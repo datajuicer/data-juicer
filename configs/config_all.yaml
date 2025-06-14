@@ -289,6 +289,10 @@ process:
       timeout: 30                                             # The timeout in seconds for each HTTP request.
       max_concurrent: 10                                      # Maximum concurrent downloads.
   - fix_unicode_mapper:                                     # fix unicode errors in text.
+  - generate_challenging_qa_mapper:                         # mapper to generate challenging question and answer pairs.
+      hf_model: 'Qwen/Qwen2.5-VL-7B-Instruct'                 # Huggingface model id.
+      category: 'Mathematical Reasoning'                      # The category for the current QA.
+      model_name: 'Qwen'                                      # The name for the current model.
   - generate_qa_from_examples_mapper:                       # mapper to generate question and answer pairs from examples.
       hf_model: 'Qwen/Qwen2.5-7B-Instruct'                    # Model name on huggingface to generate question and answer pairs.
       seed_file: 'demos/data/demo-dataset-chatml.jsonl'       # Path to the seed file in chatml format.

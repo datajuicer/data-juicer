@@ -5,7 +5,7 @@ from datasets import Dataset
 from data_juicer.ops.selector.domain_diversity_selector import DomainDiversitySelector
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-
+@unittest.skipIf(FROM_FORK, "Skipping the test because running from a fork repo")
 class DomainDiversitySelectorTest(DataJuicerTestCaseBase):
 
     def _run_domain_diversity_selector(self, dataset: Dataset, target_num, op):

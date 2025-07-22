@@ -10,28 +10,29 @@ from data_juicer.ops.base_op import OPERATORS, Selector
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
 
-torch = LazyLoader('torch')
+torch = LazyLoader("torch")
 
 
-@OPERATORS.register_module('domain_diversity_selector')
+@OPERATORS.register_module("domain_diversity_selector")
 class DomainDiversitySelector(Selector):
-    """Selector to select samples based on the data's domain diversity. """
+    """Selector to select samples based on the data's domain diversity."""
 
-    _accelerator = 'cuda'
+    _accelerator = "cuda"
 
-    def __init__(self,
-                 api_or_hf_model: str = 'text-embedding-v3',
-                 is_hf_model: bool = False,
-                 api_endpoint: str = '/embeddings',
-                 response_path: str = 'data.0.embedding',
-                 model_params: Dict = {},
-                 select_ratio: Optional[Annotated[float,
-                                                  Field(ge=0, le=1)]] = None,
-                 init_k: PositiveInt = 3,
-                 ebd_dim: PositiveInt = 512,
-                 strategy: str = 'inter',
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        api_or_hf_model: str = "text-embedding-v3",
+        is_hf_model: bool = False,
+        api_endpoint: str = "/embeddings",
+        response_path: str = "data.0.embedding",
+        model_params: Dict = {},
+        select_ratio: Optional[Annotated[float, Field(ge=0, le=1)]] = None,
+        init_k: PositiveInt = 3,
+        ebd_dim: PositiveInt = 512,
+        strategy: str = "inter",
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -61,16 +62,17 @@ class DomainDiversitySelector(Selector):
         self.strategy = strategy
 
         if is_hf_model:
-            self.model_key = prepare_model(model_type='embedding',
-                                           model_path=api_or_hf_model,
-                                           trust_remote_code=True,
-                                           **model_params)
+            self.model_key = prepare_model(
+                model_type="embedding", model_path=api_or_hf_model, trust_remote_code=True, **model_params
+            )
         else:
-            self.model_key = prepare_model(model_type='api',
-                                           model=api_or_hf_model,
-                                           endpoint=self.api_endpoint,
-                                           response_path=self.response_path,
-                                           **model_params)
+            self.model_key = prepare_model(
+                model_type="api",
+                model=api_or_hf_model,
+                endpoint=self.api_endpoint,
+                response_path=self.response_path,
+                **model_params,
+            )
 
     def dataset_embedding(self, dataset, rank=None):
         embeddings = []
@@ -78,18 +80,16 @@ class DomainDiversitySelector(Selector):
 
         if self.is_hf_model:
             # Embeddings extract via local models
-            for sample in tqdm(dataset, desc='Embedding', unit='sample'):
-                text = sample['text']
+            for sample in tqdm(dataset, desc="Embedding", unit="sample"):
+                text = sample["text"]
                 with torch.no_grad():
                     embedding = model.encode(text)
                 embeddings.append(embedding)
         else:
             # Embeddings extract via API
-            for sample in tqdm(dataset, desc='Embedding', unit='sample'):
-                text = sample['text']
-                embedding = model(text,
-                                  dimensions=self.ebd_dim,
-                                  encoding_format='float')
+            for sample in tqdm(dataset, desc="Embedding", unit="sample"):
+                text = sample["text"]
+                embedding = model(text, dimensions=self.ebd_dim, encoding_format="float")
                 embeddings.append(embedding)
 
         embeddings = np.array(embeddings)
@@ -115,9 +115,7 @@ class DomainDiversitySelector(Selector):
         centroid_embeddings = np.array(centroid_embeddings)
 
         # Sample-level cos-similarity to other centroids
-        for i, entry in tqdm(enumerate(dataset),
-                             total=len(dataset),
-                             desc='Calculating similarity:'):
+        for i, entry in tqdm(enumerate(dataset), total=len(dataset), desc="Calculating similarity:"):
             current_embedding = embeddings_array[i]
             current_label = int(labels[i])
 
@@ -125,29 +123,31 @@ class DomainDiversitySelector(Selector):
             for j, centroid in enumerate(centroid_embeddings):
                 if j != current_label:
                     similarity = torch.nn.functional.cosine_similarity(
-                        torch.tensor(current_embedding).unsqueeze(0),
-                        torch.tensor(centroid).unsqueeze(0)).item()
+                        torch.tensor(current_embedding).unsqueeze(0), torch.tensor(centroid).unsqueeze(0)
+                    ).item()
                     similarities.append(similarity)
 
             own_centroid_similarity = torch.nn.functional.cosine_similarity(
                 torch.tensor(current_embedding).unsqueeze(0),
-                torch.tensor(
-                    centroid_embeddings[current_label]).unsqueeze(0)).item()
+                torch.tensor(centroid_embeddings[current_label]).unsqueeze(0),
+            ).item()
 
             global_centroid_similarity = torch.nn.functional.cosine_similarity(
-                torch.tensor(current_embedding).unsqueeze(0),
-                torch.tensor(global_centroid).unsqueeze(0)).item()
+                torch.tensor(current_embedding).unsqueeze(0), torch.tensor(global_centroid).unsqueeze(0)
+            ).item()
             total_similarity = sum(similarities)
 
-            data_status.append({
-                'text': entry['text'],
-                'label': current_label,
-                'similarity_with_other_centroids': similarities,
-                'total_similarity': total_similarity,
-                'similarity_with_own_centroid': own_centroid_similarity,
-                'global_centroid_similarity': global_centroid_similarity,
-                'original_index': i
-            })
+            data_status.append(
+                {
+                    "text": entry["text"],
+                    "label": current_label,
+                    "similarity_with_other_centroids": similarities,
+                    "total_similarity": total_similarity,
+                    "similarity_with_own_centroid": own_centroid_similarity,
+                    "global_centroid_similarity": global_centroid_similarity,
+                    "original_index": i,
+                }
+            )
 
         return data_status, labels
 
@@ -156,30 +156,20 @@ class DomainDiversitySelector(Selector):
         select_indices = []
 
         for label in np.unique(labels):
-            label_data_status = [
-                item for item in data_status if item['label'] == label
-            ]
+            label_data_status = [item for item in data_status if item["label"] == label]
 
             # Related to the strategy
-            if self.strategy == 'inter':
-                label_data_status.sort(key=lambda x: x['total_similarity'])
-            elif self.strategy == 'intra':
-                label_data_status.sort(
-                    key=lambda x: x['similarity_with_own_centroid'],
-                    reverse=True)
-            elif self.strategy == 'global':
-                label_data_status.sort(
-                    key=lambda x: x['global_centroid_similarity'])
+            if self.strategy == "inter":
+                label_data_status.sort(key=lambda x: x["total_similarity"])
+            elif self.strategy == "intra":
+                label_data_status.sort(key=lambda x: x["similarity_with_own_centroid"], reverse=True)
+            elif self.strategy == "global":
+                label_data_status.sort(key=lambda x: x["global_centroid_similarity"])
             else:
-                raise ValueError(
-                    "Invalid strategy. Use 'inter', 'intra' or 'global'.")
+                raise ValueError("Invalid strategy. Use 'inter', 'intra' or 'global'.")
 
-            num_to_select = max(
-                1, int(self.select_ratio * len(label_data_status)))
-            selected_indices = [
-                item['original_index']
-                for item in label_data_status[:num_to_select]
-            ]
+            num_to_select = max(1, int(self.select_ratio * len(label_data_status)))
+            selected_indices = [item["original_index"] for item in label_data_status[:num_to_select]]
             select_indices.extend(selected_indices)
 
         select_dataset = dataset.select(select_indices)

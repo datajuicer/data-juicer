@@ -267,6 +267,8 @@ class StatsKeysConstant(object):
     llm_perplexity = "llm_perplexity"
     llm_task_relevance = "llm_task_relevance"
     llm_task_relevance_record = "llm_task_relevance_record"
+    text_ebd_diversity = "text_ebd_diversity"
+    text_ebd_diversity_score = "text_ebd_diversity_score"
 
     #  === image ===
     aspect_ratios = "aspect_ratios"

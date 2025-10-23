@@ -2,10 +2,11 @@ from typing import List
 
 from loguru import logger
 
-from data_juicer.core.optimizer.strategy import OptimizationStrategy
+from data_juicer.core.optimizer.strategy import OptimizationStrategy, register_strategy
 from data_juicer.core.pipeline_ast import OpNode, OpType, PipelineAST
 
 
+@register_strategy("mapper_fusion")
 class MapperFusionStrategy(OptimizationStrategy):
     """Strategy for fusing mapper operations in the pipeline."""
 

@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from loguru import logger
 
-from data_juicer.core.optimizer.strategy import OptimizationStrategy
+from data_juicer.core.optimizer.strategy import OptimizationStrategy, register_strategy
 from data_juicer.core.pipeline_ast import OpNode, OpType, PipelineAST
 from data_juicer.utils.constant import InterVars, StatsKeys
 from data_juicer.utils.registry import Registry
@@ -18,6 +18,7 @@ INTER_SAMPLED_FRAMES = Registry(InterVars.sampled_frames)
 ALL_INTER_VARS = [INTER_LINES, INTER_WORDS, LOADED_AUDIOS, LOADED_IMAGES, LOADED_VIDEOS, INTER_SAMPLED_FRAMES]
 
 
+@register_strategy("filter_fusion")
 class FilterFusionStrategy(OptimizationStrategy):
     """Strategy for fusing filter operations in the pipeline."""
 

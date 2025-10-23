@@ -4,6 +4,7 @@ from loguru import logger
 
 from data_juicer.core.optimizer.filter_fusion_strategy import FilterFusionStrategy
 from data_juicer.core.optimizer.mapper_fusion_strategy import MapperFusionStrategy
+from data_juicer.core.optimizer.op_reorder_strategy import OpReorderStrategy
 from data_juicer.core.optimizer.strategy import OptimizationStrategy
 from data_juicer.core.pipeline_ast import PipelineAST
 
@@ -27,7 +28,11 @@ class PipelineOptimizer:
 
         if strategies is None:
             # Create strategies with analyzer insights
-            self.strategies = [MapperFusionStrategy(), FilterFusionStrategy(analyzer_insights=self.analyzer_insights)]
+            self.strategies = [
+                OpReorderStrategy(),  # Apply reordering first
+                MapperFusionStrategy(),
+                FilterFusionStrategy(analyzer_insights=self.analyzer_insights),
+            ]
         else:
             self.strategies = strategies
 

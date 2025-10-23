@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from functools import partial
 from typing import Any, Dict, List, Literal, Optional, Union
 
@@ -16,7 +15,6 @@ from data_juicer.ops.base_op import DEFAULT_BATCH_SIZE, TAGGING_OPS
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import is_remote_path
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.process_utils import calculate_np
 from data_juicer.utils.resource_utils import cuda_device_count
 from data_juicer.utils.webdataset_utils import _custom_default_decoder
 
@@ -148,27 +146,16 @@ class RayDataset(DJDataset):
             return self
         if not isinstance(operators, list):
             operators = [operators]
+
+        from data_juicer.utils.process_utils import calculate_ray_np
+
+        calculate_ray_np(operators)
+
         for op in operators:
             self._run_single_op(op)
         return self
 
     def _run_single_op(self, op):
-        # TODO: optimize auto proc
-        auto_parallel = False
-        if op.num_proc:
-            op_proc = op.num_proc
-        else:
-            auto_parallel = True
-            op_proc = sys.maxsize
-        auto_op_proc = calculate_np(op._name, op.mem_required, op.cpu_required, op.use_cuda(), op.gpu_required)
-        op_proc = min(op_proc, auto_op_proc)
-
-        # use ray default parallelism in cpu mode if op.num_proc is not specified
-        if op.use_cuda() or not auto_parallel:
-            logger.info(f"Op [{op._name}] running with number of procs:{op_proc}")
-
-        num_gpus = op.gpu_required if op.gpu_required else get_num_gpus(op, op_proc)
-
         if op._name in TAGGING_OPS.modules and Fields.meta not in self.data.columns():
 
             def process_batch_arrow(table: pyarrow.Table):
@@ -193,8 +180,8 @@ class RayDataset(DJDataset):
                         fn_constructor_kwargs=op_kwargs,
                         batch_size=batch_size,
                         num_cpus=op.cpu_required,
-                        num_gpus=num_gpus,
-                        concurrency=op_proc,
+                        num_gpus=op.gpu_required,
+                        concurrency=op.num_proc,
                         batch_format="pyarrow",
                     )
                 else:
@@ -203,9 +190,7 @@ class RayDataset(DJDataset):
                         batch_size=batch_size,
                         batch_format="pyarrow",
                         num_cpus=op.cpu_required,
-                        concurrency=(
-                            None if auto_parallel else op_proc
-                        ),  # use ray default parallelism in cpu mode if num_proc is not specified
+                        concurrency=op.num_proc,
                     )
             elif isinstance(op, Filter):
                 columns = self.data.columns()
@@ -229,8 +214,8 @@ class RayDataset(DJDataset):
                         fn_constructor_kwargs=op_kwargs,
                         batch_size=batch_size,
                         num_cpus=op.cpu_required,
-                        num_gpus=num_gpus,
-                        concurrency=op_proc,
+                        num_gpus=op.gpu_required,
+                        concurrency=op.num_proc,
                         batch_format="pyarrow",
                     )
                 else:
@@ -239,9 +224,7 @@ class RayDataset(DJDataset):
                         batch_size=batch_size,
                         batch_format="pyarrow",
                         num_cpus=op.cpu_required,
-                        concurrency=(
-                            None if auto_parallel else op_proc
-                        ),  # use ray default parallelism in cpu mode if num_proc is not specified
+                        concurrency=op.num_proc,
                     )
                 if op.stats_export_path is not None:
                     self.data.write_json(op.stats_export_path, force_ascii=False)

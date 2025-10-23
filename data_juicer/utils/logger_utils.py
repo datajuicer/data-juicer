@@ -26,7 +26,22 @@ from tabulate import tabulate
 
 from data_juicer.utils.file_utils import add_suffix_to_filename
 
+try:
+    from IPython import get_ipython
+except Exception:
+    get_ipython = None
+
 LOGGER_SETUP = False
+
+
+def is_notebook():
+    try:
+        if get_ipython is None:
+            return False
+        ip = get_ipython()
+        return ip is not None and ip.__class__.__name__ == "ZMQInteractiveShell"
+    except Exception:
+        return False
 
 
 def get_caller_name(depth=0):
@@ -93,6 +108,8 @@ def redirect_sys_output(log_level="INFO"):
 
     :param log_level: log level string of loguru. Default value: "INFO".
     """
+    if is_notebook():
+        return
     redirect_logger = StreamToLoguru(level=log_level)
     sys.stderr = redirect_logger
     sys.stdout = redirect_logger
@@ -109,7 +126,7 @@ def get_log_file_path():
             return handler._sink._file.name
 
 
-def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", level="INFO", redirect=True):
+def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", level="INFO", redirect="auto"):
     """
     Setup logger for training and testing.
 
@@ -118,7 +135,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
     :param filename: log file name to save
     :param mode: log file write mode, `append` or `override`. default is `o`.
     :param level: log severity level. It's "INFO" in default.
-    :param redirect: whether to redirect system output
+    :param redirect: whether to redirect system output, `auto`, True or False.
     :return: logger instance.
     """
     global LOGGER_SETUP
@@ -137,13 +154,18 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
     if mode == "o" and os.path.exists(save_file):
         os.remove(save_file)
 
+    if redirect == "auto":
+        redirect = not is_notebook()
+    else:
+        redirect = bool(redirect)
+
     # only keep logger in rank0 process
     if distributed_rank == 0:
         logger.add(
             sys.stderr,
             format=loguru_format,
             level=level,
-            enqueue=True,
+            enqueue=not is_notebook(),
         )
         logger.add(save_file)
 

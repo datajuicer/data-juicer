@@ -103,6 +103,8 @@ class ColumnWiseAnalysisTest(DataJuicerTestCaseBase):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
 
+        super().tearDown()
+
     def test_init(self):
         column_wise_analysis = ColumnWiseAnalysis(
             self.dataset_3_sample, self.temp_output_path)

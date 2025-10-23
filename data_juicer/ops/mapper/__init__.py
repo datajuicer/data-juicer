@@ -12,6 +12,9 @@ from .clean_email_mapper import CleanEmailMapper
 from .clean_html_mapper import CleanHtmlMapper
 from .clean_ip_mapper import CleanIpMapper
 from .clean_links_mapper import CleanLinksMapper
+from .detect_character_attributes_mapper import DetectCharacterAttributesMapper
+from .detect_character_locations_mapper import DetectCharacterLocationsMapper
+from .detect_main_character_mapper import DetectMainCharacterMapper
 from .dialog_intent_detection_mapper import DialogIntentDetectionMapper
 from .dialog_sentiment_detection_mapper import DialogSentimentDetectionMapper
 from .dialog_sentiment_intensity_mapper import DialogSentimentIntensityMapper
@@ -101,6 +104,9 @@ __all__ = [
     "CleanHtmlMapper",
     "CleanIpMapper",
     "CleanLinksMapper",
+    "DetectCharacterAttributesMapper",
+    "DetectCharacterLocationsMapper",
+    "DetectMainCharacterMapper",
     "DialogIntentDetectionMapper",
     "DialogSentimentDetectionMapper",
     "DialogSentimentIntensityMapper",

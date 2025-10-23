@@ -1,4 +1,3 @@
-import functools
 import gc
 import os
 import shutil
@@ -27,24 +26,7 @@ def TEST_TAG(*tags):
 
     def decorator(func):
         setattr(func, "__test_tags__", tags)
-
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            # Save the original current_tag if it exists
-            original_tag = getattr(self, "current_tag", "standalone")
-
-            # Set the current_tag to the first tag
-            if tags:
-                self.current_tag = tags[0]
-
-            try:
-                # Run the test method
-                return func(self, *args, **kwargs)
-            finally:
-                # Restore the original current_tag
-                self.current_tag = original_tag
-
-        return wrapper
+        return func
 
     return decorator
 
@@ -83,22 +65,6 @@ class DataJuicerTestCaseBase(unittest.TestCase):
         # clear models in memory
         free_models()
 
-        # start ray
-        current_tag = getattr(cls, "current_tag", "standalone")
-        if current_tag.startswith("ray"):
-            ray = LazyLoader("ray")
-            if not ray.is_initialized():
-                logger.info(f">>>>>>>>>>>>>>>>>>>> [Init Ray]: dj_dist_unittest_{cls.__name__}")
-                ray.init(
-                    "auto",
-                    ignore_reinit_error=True,
-                    namespace=f"dj_dist_unittest_{cls.__name__}",
-                )
-
-            # erase existing resources
-            cls._cleanup_ray_data_state()
-            gc.collect()
-
     @classmethod
     def tearDownClass(cls, hf_model_name=None) -> None:
         import multiprocess
@@ -120,11 +86,6 @@ class DataJuicerTestCaseBase(unittest.TestCase):
                 logger.info("CLEAN all TRANSFORMERS_CACHE")
                 shutil.rmtree(transformers.TRANSFORMERS_CACHE)
 
-        current_tag = getattr(cls, "current_tag", "standalone")
-        if current_tag.startswith("ray"):
-            cls._cleanup_ray_data_state()
-            gc.collect()
-
     @classmethod
     def _cleanup_ray_data_state(cls):
         """clean up the global states of Ray Data"""
@@ -136,6 +97,9 @@ class DataJuicerTestCaseBase(unittest.TestCase):
             if hasattr(ray.data._internal.execution.streaming_executor, "_execution_context"):
                 ray.data._internal.execution.streaming_executor._execution_context = None
 
+            # trigger gc.collect() on all workers in the cluster
+            ray._private.internal_api.global_gc()
+
             # clean up stats manager
             from ray.data._internal.stats import StatsManager
 
@@ -146,11 +110,32 @@ class DataJuicerTestCaseBase(unittest.TestCase):
             pass
 
     def setUp(self):
-        logger.info(f">>>>>>>>>> [Start Test]: {self.id()}")
+        logger.info(f">>>>>>>>>> [Start Test]: {self.id()} in {getattr(self, 'current_tag', 'standalone')} mode")
+
+        # start ray
+        current_tag = getattr(self, "current_tag", "standalone")
+        if current_tag.startswith("ray"):
+            ray = LazyLoader("ray")
+            if not ray.is_initialized():
+                logger.info(f">>>>>>>>>>>>>>>>>>>> [Init Ray]: dj_dist_unittest_{self.id()}")
+                ray.init(
+                    "auto",
+                    ignore_reinit_error=True,
+                    namespace=f"dj_dist_unittest_{self.id()}",
+                )
+
+            # erase existing resources
+            self._cleanup_ray_data_state()
+            gc.collect()
 
     def tearDown(self) -> None:
         # clear models in memory
         free_models()
+
+        current_tag = getattr(self, "current_tag", "standalone")
+        if current_tag.startswith("ray"):
+            self._cleanup_ray_data_state()
+            gc.collect()
 
     def generate_dataset(self, data) -> DJDataset:
         """Generate dataset for a specific executor.

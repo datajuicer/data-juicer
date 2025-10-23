@@ -11,6 +11,7 @@ from data_juicer.utils.mm_utils import load_images_byte
 
 
 class TestRayExporter(DataJuicerTestCaseBase):
+
     def setUp(self):
         """Set up test data"""
         super().setUp()
@@ -35,6 +36,8 @@ class TestRayExporter(DataJuicerTestCaseBase):
         self.dataset = None
         if osp.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
+
+        super().tearDown()
 
     def _pop_raw_data_keys(self, keys):
         res = copy.deepcopy(self.data)
@@ -149,6 +152,8 @@ class TestRayExporter(DataJuicerTestCaseBase):
         res_list = ds.take_all()
         
         self.assertEqual(len(res_list), len(data))
+        res_list.sort(key=lambda x: x['json']['text'])
+        data.sort(key=lambda x: x['json']['text'])
 
         for i in range(len(data)):
             self.assertDictEqual(res_list[i]['json'], data[i]['json'])

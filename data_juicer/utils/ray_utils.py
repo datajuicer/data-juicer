@@ -37,8 +37,11 @@ def initialize_ray(cfg=None, force=False):
 
 def check_and_initialize_ray(cfg=None):
     if is_ray_mode():
-        initialize_ray(cfg)
-        return True
+        try:
+            initialize_ray(cfg)
+            return True
+        except:  # noqa: E722
+            return False
 
     return False
 
@@ -56,22 +59,24 @@ def get_ray_nodes_info(cfg=None):
         cpu_count = psutil.cpu_count()
 
         try:
-            free_gpus_memory = []
+            gpus_memory, free_gpus_memory = [], []
             nvidia_smi_output = subprocess.check_output(
-                ["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"]
+                ["nvidia-smi", "--query-gpu=memory.free,memory.total", "--format=csv,noheader,nounits"]
             ).decode("utf-8")
 
             for line in nvidia_smi_output.strip().split("\n"):
-                free_gpus_memory.append(int(line))
-
+                free_mem_str, total_mem_str = line.split(", ")
+                free_gpus_memory.append(int(free_mem_str))
+                gpus_memory.append(int(total_mem_str))
         except Exception:
             # no gpu
-            free_gpus_memory = []
+            gpus_memory, free_gpus_memory = [], []
 
         return {
             "free_memory": free_mem,  # MB
             "cpu_count": cpu_count,
             "gpu_count": len(free_gpus_memory),
+            "gpus_memory": gpus_memory,
             "free_gpus_memory": free_gpus_memory,  # MB
         }
 
@@ -135,3 +140,14 @@ def ray_available_gpu_memories():
         available_gpu_mems.extend(info["free_gpus_memory"])
 
     return available_gpu_mems
+
+
+def ray_gpu_memories():
+    """Total gpu memory of each gpu card for each alive node in MB."""
+    ray_nodes_info = get_ray_nodes_info()
+
+    gpu_mems = []
+    for nodeid, info in ray_nodes_info.items():
+        gpu_mems.extend(info["gpus_memory"])
+
+    return gpu_mems

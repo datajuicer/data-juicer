@@ -26,6 +26,8 @@ class CacheCompressTest(DataJuicerTestCaseBase):
             os.system(f'rm -rf {self.temp_output_path}')
         config.HF_DATASETS_CACHE = self.ori_cache_dir
 
+        super().tearDown()
+
     def test_basic_func(self):
         cache_utils.CACHE_COMPRESS = 'zstd'
         ds = load_dataset('json', data_files=self.test_data_path, split='train')

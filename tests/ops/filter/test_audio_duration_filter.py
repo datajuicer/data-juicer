@@ -1,10 +1,9 @@
 import os
 import unittest
 
-from data_juicer.core.data import NestedDataset as Dataset
+from data_juicer.core.data import DJDataset
 
 from data_juicer.ops.filter.audio_duration_filter import AudioDurationFilter
-from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 
 class AudioDurationFilterTest(DataJuicerTestCaseBase):
@@ -16,18 +15,11 @@ class AudioDurationFilterTest(DataJuicerTestCaseBase):
     aud3_path = os.path.join(data_path, 'audio3.ogg')  # about 1min59s
 
     def _run_audio_duration_filter(self,
-                                   dataset: Dataset,
+                                   dataset: DJDataset,
                                    target_list,
-                                   op,
-                                   np=1):
-        if Fields.stats not in dataset.features:
-            dataset = dataset.add_column(name=Fields.stats,
-                                         column=[{}] * dataset.num_rows)
-        dataset = dataset.map(op.compute_stats, num_proc=np)
-        dataset = dataset.filter(op.process, num_proc=np)
-        dataset = dataset.select_columns(column_names=[op.audio_key])
-        res_list = dataset.to_list()
-        self.assertEqual(res_list, target_list)
+                                   op):
+        res_list = self.run_single_op(dataset, op, [op.audio_key])
+        self.assertDatasetEqual(res_list, target_list)
 
     @TEST_TAG("standalone", "ray")
     def test_default_filter(self):

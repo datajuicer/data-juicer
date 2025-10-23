@@ -277,6 +277,8 @@ class TestRayLocalJsonDataLoadStrategy(DataJuicerTestCaseBase):
         if osp.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 
+        super().tearDown()
+
 
     @TEST_TAG('ray')
     def test_absolute_path_resolution(self):

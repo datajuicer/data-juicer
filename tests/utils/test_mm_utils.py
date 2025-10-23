@@ -41,6 +41,7 @@ class MMTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+        super().tearDown()
 
     def test_special_tokens(self):
         self.assertEqual(

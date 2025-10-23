@@ -92,7 +92,8 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
 - Granular-Operators（细粒度算子）: 将每个算子作为一个独立的工具提供，可以灵活地通过环境变量指定需要使用的算子列表，从而构建定制化的数据处理管道。
 
 请注意，Data-Juicer MCP 服务器目前处于早期开发阶段。其功能和可用工具可能会随着我们继续开发和改进服务器而发生变化和扩展。
-支持两种部署方式：stdio 和 SSE 。 stdio 方法不支持多进程。如果需要多进程或多线程功能，则必须使用 SSE 部署方法。 以下提供了每种方法的配置详细信息。
+
+支持两种部署方式：stdio 和 SSE。stdio 方法不支持多进程。如果需要多进程或多线程功能，则必须使用 SSE 部署方法。以下提供了每种方法的配置详细信息。
 
 ### Recipe-Flow
 
@@ -114,55 +115,6 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
 
 针对特定数据处理请求，MCP client 应先调用`get_data_processing_ops`获取相关的算子信息，从中选择匹配需求的算子，然后调用`run_data_recipe`运行选择的算子组合。
 
-#### 配置
-
-以下配置示例演示了如何使用 stdio 和 SSE 方法设置 Recipe-Flow 服务器。 这些示例仅用于说明目的，应根据特定 MCP 客户端的配置格式进行调整。
-
-##### stdio
-
-将以下内容添加到 MCP 客户端的配置文件中（例如，claude_desktop_config.json 或类似的配置文件）：
-
-```json
-"mcpServers": {
-  "DJ_recipe_flow": {
-    "transport": "stdio",
-    "command": "/path/to/python",
-    "args": [
-      "/path/to/data_juicer/tools/DJ_mcp_recipe_flow.py"
-    ],
-    "env": {
-      "SERVER_TRANSPORT": "stdio"
-    }
-  }
-}
-```
-
-##### SSE
-
-要使用 SSE 部署，首先需要单独启动 MCP 服务器。
-
-1.  运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：
-
-    ```bash
-    python /path/to/data_juicer/tools/DJ_mcp_recipe_flow.py --port=8080
-    ```
-
-2.  配置您的 MCP 客户端：将以下内容添加到 MCP 客户端的配置文件中：
-
-    ```json
-    "mcpServers": {
-      "DJ_recipe_flow": {
-        "url": "http://127.0.0.1:8080/sse"
-      }
-    }
-    ```
-
-注意：
-
-*   URL：`url` 应指向正在运行的服务器的 SSE 端点（通常为 `http://127.0.0.1:<port>/sse`）。 如果在启动服务器时使用了不同的值，请调整端口号。
-*   单独的服务器进程：SSE 服务器必须在 MCP 客户端尝试连接之前运行。
-*   防火墙：确保防火墙允许连接到指定的端口。
-
 ### Granular-Operators
 
 默认情况下，该 MCP 服务器将返回所有Data-Juicer算子工具，每个工具都独立运行。
@@ -172,47 +124,129 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
 2.  将算子名称添加到文件中，例如：[ops_list_example.txt](../configs/mcp/ops_list_example.txt)。
 3.  将算子列表的路径设置为环境变量 `DJ_OPS_LIST_PATH`。
 
-#### 配置
+### 配置
 
-以下配置示例演示了如何使用 stdio 和 SSE 方法设置 Granular-Operators 服务器。 这些示例仅用于说明目的，应根据特定 MCP 客户端的配置格式进行调整。
+以下配置示例演示了如何使用 stdio 和 SSE 方法设置两种不同的 MCP 服务器。 这些示例仅用于说明目的，应根据特定 MCP 客户端的配置格式进行调整。
 
-##### stdio
+#### stdio
 
-将以下内容添加到 MCP 客户端的配置文件中：
+适用于快速本地测试和简单场景。将以下内容添加到 MCP 客户端的配置文件中（例如，claude_desktop_config.json 或类似的配置文件）：
 
-```json
-"mcpServers": {
-  "DJ_granular_ops": {
-    "transport": "stdio",
-    "command": "/path/to/python",
-    "args": [
-      "/path/to/data_juicer/tools/DJ_mcp_granular_ops.py"
-    ],
-    "env": {
-      "DJ_OPS_LIST_PATH": "/path/to/ops_list.txt",
-      "SERVER_TRANSPORT": "stdio"
+##### 使用 uvx
+
+直接从存储库运行最新版本的 Data-Juicer MCP，无需手动进行本地安装。
+
+- Recipe-Flow模式：
+  ```json
+  {
+    "mcpServers": {
+      "DJ_recipe_flow": {
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/modelscope/data-juicer",
+          "dj-mcp",
+          "recipe-flow"
+        ]
+      }
     }
   }
-}
-```
+  ```
 
-##### SSE
+- Granular-Operators模式：
+  ```json
+  {
+    "mcpServers": {
+      "DJ_granular_ops": {
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/modelscope/data-juicer",
+          "dj-mcp",
+          "granular-ops",
+          "--transport",
+          "stdio"
+        ],
+        "env": {
+          "DJ_OPS_LIST_PATH": "/path/to/ops_list.txt"
+        }
+      }
+    }
+  }
+  ```
+  注意：若不设置`DJ_OPS_LIST_PATH`，则默认返回所有算子。
+
+##### 本地安装
+
+1. 将 Data-Juicer 仓库克隆到本地。
+   ```bash
+   git clone https://github.com/modelscope/data-juicer.git
+   ```
+2. 使用 uv 运行 Data-Juicer MCP：
+   - Recipe-Flow模式：
+    ```json
+      {
+        "mcpServers": {
+          "DJ_recipe_flow": {
+            "transport": "stdio",
+            "command": "uv",
+            "args": [
+              "run",
+              "--directory",
+              "/abs/path/to/data-juicer",
+              "dj-mcp",
+              "recipe-flow"
+            ]
+          }
+        }
+      }
+      ```
+   - Granular-Operators模式：
+    ```json
+    {
+      "mcpServers": {
+        "DJ_granular_ops": {
+          "transport": "stdio",
+          "command": "uv",
+          "args": [
+            "run",
+            "--directory",
+            "/abs/path/to/data-juicer",
+            "dj-mcp",
+            "granular-ops"
+          ],
+          "env": {
+            "DJ_OPS_LIST_PATH": "/path/to/ops_list.txt"
+          }
+        }
+      }
+    }
+    ```
+
+
+#### SSE
 
 要使用 SSE 部署，首先需要单独启动 MCP 服务器。
 
-1.  设置环境变量：确保已设置服务器所需的任何环境变量，例如 `DJ_OPS_LIST_PATH`。
-2.  运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：
-
+1.  运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：
+    
+    - uvx 启动：
     ```bash
-    python /path/to/data_juicer/tools/DJ_mcp_granular_ops.py --port=8081
+    uvx --from git+https://github.com/modelscope/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
+    ```
+    - 本地启动：
+    ```bash
+    uv run dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
     ```
 
-3.  配置 MCP 客户端：将以下内容添加到 MCP 客户端的配置文件中：
+2.  配置您的 MCP 客户端：将以下内容添加到 MCP 客户端的配置文件中：
 
     ```json
-    "mcpServers": {
-      "DJ_granular_ops": {
-        "url": "http://127.0.0.1:8081/sse"
+    {
+      "mcpServers": {
+        "DJ_MCP": {
+          "url": "http://127.0.0.1:8080/sse"
+        }
       }
     }
     ```
@@ -223,14 +257,3 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
 *   单独的服务器进程：SSE 服务器必须在 MCP 客户端尝试连接之前运行。
 *   防火墙：确保防火墙允许连接到指定的端口。
 
-### 查找你的 Python 路径
-要查找 Python 可执行文件路径，请使用以下命令：
-
-Windows (Command Prompt/Terminal):
-```
-where python
-```
-Linux/macOS (Terminal):
-```
-which python
-```

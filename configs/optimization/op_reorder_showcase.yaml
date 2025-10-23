@@ -1,0 +1,53 @@
+# Configuration to showcase operation reordering optimization
+# This config has a suboptimal order that should be reordered by the optimizer
+# GOAL: Show dramatic performance difference by putting expensive operations first
+
+project_name: 'op-reorder-showcase'
+dataset_path: 'perf_bench_data/text/wiki-10k.jsonl'
+export_path: 'outputs/op_reorder_showcase/res.jsonl'
+np: 4
+use_cache: false
+
+process:
+  # VERY EXPENSIVE OPERATIONS (should be moved after filtering)
+  # These are resource-intensive operations that waste computation on filtered data
+  - text_chunk_mapper:
+      chunk_size: 500  # Smaller chunks = more processing
+      text_key: 'text'
+      mem_required: '2GB'
+
+  - text_entity_dependency_filter:
+      min_score: 0.9  # Very strict filtering
+      text_key: 'text'
+      mem_required: '3GB'
+
+  - text_pair_similarity_filter:
+      min_score: 0.8
+      text_key: 'text'
+      mem_required: '2GB'
+
+  # LIGHT FILTERS (should be moved to front)
+  # These are fast filters that should run early to reduce data volume
+  - text_length_filter:
+      min_len: 50   # Less restrictive to keep more data
+      max_len: 5000
+      text_key: 'text'
+
+  - text_action_filter:
+      action_types: ['question', 'command', 'statement']  # Keep all types
+      text_key: 'text'
+
+  # DEPENDENCY CHAIN (must stay in order)
+  # language_id must come before perplexity
+  - language_id_score_filter:
+      lang: 'en'
+      min_score: 0.5  # Much less strict to keep more data
+      text_key: 'text'
+
+  - perplexity_filter:
+      lang: 'en'
+      min_score: 0.1  # Much less strict to keep more data
+      text_key: 'text'
+
+  # ADDITIONAL EXPENSIVE OPERATIONS
+  # text_pair_similarity_filter moved up to replace text_embd_similarity_filter

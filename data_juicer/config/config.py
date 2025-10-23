@@ -520,6 +520,18 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 default=False,
                 help="Whether to save all stats to only one file. Only used in " "Analysis.",
             )
+            parser.add_argument(
+                "--enable_optimizer",
+                type=bool,
+                default=False,
+                help="Enable/disable the core pipeline optimizer.",
+            )
+            parser.add_argument(
+                "--optimizer_strategies",
+                type=List[str],
+                default=["op_reorder"],
+                help="List of optimization strategies to apply when optimizer is enabled.",
+            )
             parser.add_argument("--ray_address", type=str, default="auto", help="The address of the Ray cluster.")
             parser.add_argument(
                 "--custom-operator-paths", nargs="+", help="Paths to custom operator scripts or directories."
@@ -735,6 +747,23 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     # add all filters that produce stats
     if cfg.get("auto", False):
         cfg.process = load_ops_with_stats_meta()
+
+    # Handle optimization configuration
+    cfg.enable_optimizer = cfg.get("enable_optimizer", False)
+    cfg.optimizer_strategies = cfg.get("optimizer_strategies", ["op_reorder"])
+
+    # Ensure optimizer_strategies is a list
+    if isinstance(cfg.optimizer_strategies, str):
+        cfg.optimizer_strategies = cfg.optimizer_strategies.split(",")
+
+    if cfg.enable_optimizer:
+        from data_juicer.core.optimizer.strategy import StrategyRegistry
+
+        available_strategies = StrategyRegistry.get_available_strategies()
+        logger.info(f"🔧 Pipeline optimizer enabled with strategies: {cfg.optimizer_strategies}")
+        logger.debug(f"🔧 Available optimization strategies: {available_strategies}")
+    else:
+        logger.debug("🔧 Pipeline optimizer disabled")
 
     # Apply text_key modification during initializing configs
     # users can freely specify text_key for different ops using `text_key`

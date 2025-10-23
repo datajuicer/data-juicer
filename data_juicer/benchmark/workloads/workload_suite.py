@@ -167,6 +167,19 @@ class WorkloadSuite:
             resource_requirements={"memory_gb": 64, "cpu_cores": 32, "gpu": False},
         )
 
+        # Operation Reordering Showcase
+        self.workloads["op_reorder_showcase"] = WorkloadDefinition(
+            name="op_reorder_showcase",
+            description="Showcase workload designed to demonstrate operation reordering benefits",
+            dataset_path="perf_bench_data/text/c4-train.00000-of-01024.jsonl",
+            config_path="configs/optimization/op_reorder_showcase.yaml",
+            expected_samples=10000,
+            modality="text",
+            complexity="complex",
+            estimated_duration_minutes=15,  # Moderate complexity
+            resource_requirements={"memory_gb": 8, "cpu_cores": 8, "gpu": False},
+        )
+
     def get_workload(self, name: str) -> Optional[WorkloadDefinition]:
         """Get a specific workload by name."""
         return self.workloads.get(name)

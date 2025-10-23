@@ -3,6 +3,9 @@
 outputs/
 assets/
 
+# logs
+**/logs/*
+
 # setup
 data_juicer.egg-info/
 py_data_juicer.egg-info/
@@ -16,6 +19,7 @@ wandb/
 __pycache__
 .vscode/
 .ipynb_checkpoints/
+performance_test_results*.json
 
 # label studio related
 label_studio_data/
@@ -31,3 +35,6 @@ tests/ops/data/*dup*
 tests/tools/tmp_*/
 tests/ops/deduplicator/chinese_dedup/
 tests/ops/deduplicator/english_dedup/
+
+# perf bench data
+perf_bench_data

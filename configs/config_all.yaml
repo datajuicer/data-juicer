@@ -68,6 +68,11 @@ eoc_special_token: '<|__dj__eoc|>'                          # the special token 
 executor_type: default                                      # type of executor, support "default" or "ray" for now.
 ray_address: auto                                           # the address of the Ray cluster.
 
+# Core optimizer configuration
+enable_optimizer: false                                     # enable/disable core optimizer
+optimizer_strategies: ['op_reorder']                        # list of optimization strategies to apply
+                                                           # available strategies: op_reorder, filter_fusion, mapper_fusion
+
 # only for data analysis
 percentiles: [0.25, 0.5, 0.75]                              # percentiles to analyze the dataset distribution
 export_original_dataset: false                              # whether to export the original dataset with stats. If you only need the stats of the dataset, setting it to false could speed up the exporting.

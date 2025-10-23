@@ -1,0 +1,58 @@
+project_name: 'performance-benchmark-text-c4-local'
+dataset_path: 'perf_bench_data/text/c4-train.00000-of-01024.jsonl'
+export_path: 'outputs/performance_benchmark_text_c4_local/res.jsonl'
+np: 16
+use_cache: false
+
+# Process pipeline with real DataJuicer operations
+process:
+  # Text cleaning operations
+  - clean_links_mapper:
+      text_key: "text"
+      min_links: 0
+      max_links: 10
+
+  - clean_email_mapper:
+      text_key: "text"
+      min_emails: 0
+      max_emails: 5
+
+  - whitespace_normalization_mapper:
+      text_key: "text"
+
+  - fix_unicode_mapper:
+      text_key: "text"
+
+  # Text filtering operations
+  - text_length_filter:
+      text_key: "text"
+      min_len: 5
+      max_len: 10000
+
+  - alphanumeric_filter:
+      text_key: "text"
+      min_ratio: 0.1
+
+  # Quality filtering
+  - character_repetition_filter:
+      text_key: "text"
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  - word_repetition_filter:
+      text_key: "text"
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  # Deduplication
+  - document_deduplicator:
+      text_key: "text"
+      lowercase: false
+      ignore_non_character: false
+
+
+
+# Export configuration
+export_in_parallel: true
+keep_stats_in_res_ds: true
+keep_hashes_in_res_ds: true

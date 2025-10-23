@@ -11,7 +11,6 @@ from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.ray_exporter import RayExporter
 from data_juicer.ops import load_ops
-from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.utils.lazy_loader import LazyLoader
 
 ray = LazyLoader("ray")
@@ -97,9 +96,10 @@ class RayExecutor(ExecutorBase):
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process)
 
-        if self.cfg.op_fusion:
-            logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops)
+        # Apply core optimizer if enabled
+        from data_juicer.core.optimization_manager import apply_optimizations
+
+        ops = apply_optimizations(ops, self.cfg)
 
         with TempDirManager(self.tmp_dir):
             # 3. data process

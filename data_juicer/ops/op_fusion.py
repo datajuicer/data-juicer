@@ -263,6 +263,27 @@ class GeneralFusedOP(Mapper):
         _ = tmp_samples.pop(Fields.context)
         return tmp_samples
 
+    def process_batched_for_validation(self, samples, rank=None):
+        """Process samples and return boolean masks for validation purposes."""
+        # Initialize mask as all True
+        mask = [True] * len(samples.get("text", []))
+
+        for op in self.fused_ops:
+            process_args = {"rank": rank} if op.accelerator == "cuda" else {}
+            if isinstance(op, Mapper):
+                samples = op.process_batched(samples, **process_args)
+            elif isinstance(op, Filter):
+                samples = op.compute_stats_batched(samples, **process_args)
+                indicators = list(op.process_batched(samples))
+                # Apply AND logic with the current mask
+                mask = [m and i for m, i in zip(mask, indicators)]
+            else:
+                raise NotImplementedError(
+                    f"FusedOP does not support OP {op._name} of type "
+                    f"{type(op)} and only supports Mapper and Filter now."
+                )
+        return mask
+
     def run(self, dataset, *, exporter=None, tracer=None):
         # prepare the dataset
         from data_juicer.core.data import NestedDataset

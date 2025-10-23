@@ -14,7 +14,6 @@ from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.exporter import Exporter
 from data_juicer.core.tracer import Tracer
 from data_juicer.ops import load_ops
-from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.ops.selector import (
     FrequencySpecifiedFieldSelector,
     TopkSpecifiedFieldSelector,
@@ -121,15 +120,10 @@ class DefaultExecutor(ExecutorBase):
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process)
 
-        # OP fusion
-        if self.cfg.op_fusion:
-            probe_res = None
-            if self.cfg.fusion_strategy == "probe":
-                logger.info("Probe the OP speed for OP reordering...")
-                probe_res, _ = self.adapter.probe_small_batch(dataset, ops)
+        # Apply core optimizer if enabled
+        from data_juicer.core.optimization_manager import apply_optimizations
 
-            logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops, probe_res)
+        ops = apply_optimizations(ops, self.cfg)
 
         # adaptive batch size
         if self.cfg.adaptive_batch_size:

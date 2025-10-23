@@ -11,3 +11,8 @@ executor_type: default                                      # type of executor, 
 ray_address: auto                                           # the address of the Ray cluster.
 suffixes: null
 add_suffix: false
+
+# Core optimizer configuration
+enable_optimizer: false                                     # enable/disable core optimizer
+optimizer_strategies: ['op_reorder']                        # list of optimization strategies to apply
+                                                           # available strategies: op_reorder, filter_fusion, mapper_fusion

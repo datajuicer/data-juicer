@@ -30,13 +30,7 @@ Examples:
         help="Transport protocol for MCP server (default: stdio)",
     )
 
-    parser.add_argument(
-        "--port", type=str, default="8000", help="Port number for HTTP-based transports (default: 8000)"
-    )
-
-    parser.add_argument(
-        "--host", type=str, default="localhost", help="Host address for HTTP-based transports (default: localhost)"
-    )
+    parser.add_argument("--port", type=int, default=8080, help="Port number for HTTP-based transports (default: 8080)")
 
     args = parser.parse_args()
 
@@ -47,20 +41,14 @@ Examples:
         if args.mode == "granular-ops":
             from data_juicer.tools.DJ_mcp_granular_ops import create_mcp_server
 
-            print("Starting Data-Juicer MCP Server (granular-ops mode)")
-            print(f"Transport: {args.transport}, Port: {args.port}")
-
-            mcp = create_mcp_server(port=args.port)
-            mcp.run(transport=args.transport)
-
         elif args.mode == "recipe-flow":
             from data_juicer.tools.DJ_mcp_recipe_flow import create_mcp_server
 
-            print("Starting Data-Juicer MCP Server (recipe-flow mode)")
-            print(f"Transport: {args.transport}, Port: {args.port}")
+        print(f"Starting Data-Juicer MCP Server ({args.mode} mode)")
+        print(f"Transport: {args.transport}, Port: {args.port}")
 
-            mcp = create_mcp_server(port=args.port)
-            mcp.run(transport=args.transport)
+        mcp = create_mcp_server(port=str(args.port))
+        mcp.run(transport=args.transport)
 
     except ImportError as e:
         print(f"Error: Missing dependencies for MCP server. {e}")

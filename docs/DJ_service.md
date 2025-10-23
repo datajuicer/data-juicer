@@ -112,30 +112,30 @@ The server supports two deployment methods: **stdio** and **SSE**. The **stdio**
      - `export_path` (str, optional): The path to export the dataset to. Default is None, meaning the dataset will be exported to './outputs'
    - Returns: A string representing the execution result
 
-For specific data processing requests, the MCP client should first call `get_data_processing_ops` to obtain relevant operator information, select the operators that meet the requirements, and then call `run_data_recipe` to execute the chosen operator combination.  
+For specific data processing requests, the MCP client should first call `get_data_processing_ops` to obtain relevant operator information, select the operators that meet the requirements, and then call `run_data_recipe` to execute the chosen operator combination.
 
-### Granular-Operators  
+### Granular-Operators
 
-By default, this MCP server returns all Data-Juicer operator tools, each running independently.  
+By default, this MCP server returns all Data-Juicer operator tools, each running independently.
 
-To control the operator tools returned by the MCP server, specify the environment variable `DJ_OPS_LIST_PATH`:  
-1. Create a `.txt` file.  
-2. Add operator names to the file, e.g., [ops_list_example.txt](../configs/mcp/ops_list_example.txt).  
-3. Set the path to the operator list as the environment variable `DJ_OPS_LIST_PATH`.  
+To control the operator tools returned by the MCP server, specify the environment variable `DJ_OPS_LIST_PATH`:
+1. Create a `.txt` file.
+2. Add operator names to the file, e.g., [ops_list_example.txt](../configs/mcp/ops_list_example.txt).
+3. Set the path to the operator list as the environment variable `DJ_OPS_LIST_PATH`.
 
-### Configuration  
+### Configuration
 
-The following configuration examples demonstrate how to set up the two MCP server types using the stdio and SSE methods. These examples are for illustrative purposes only and should be adapted to the specific MCP client's configuration format.  
+The following configuration examples demonstrate how to set up the two MCP server types using the stdio and SSE methods. These examples are for illustrative purposes only and should be adapted to the specific MCP client's configuration format.
 
-#### stdio  
+#### stdio
 
-Suitable for quick local testing and simple scenarios. Add the following to the MCP client's configuration file (e.g., `claude_desktop_config.json` or similar):  
+Suitable for quick local testing and simple scenarios. Add the following to the MCP client's configuration file (e.g., `claude_desktop_config.json` or similar):
 
-##### Using uvx  
+##### Using uvx
 
-Run the latest version of Data-Juicer MCP directly from the repository without manual local installation.  
+Run the latest version of Data-Juicer MCP directly from the repository without manual local installation.
 
-- Recipe-Flow mode:  
+- Recipe-Flow mode:
   ```json
   {
     "mcpServers": {
@@ -150,9 +150,9 @@ Run the latest version of Data-Juicer MCP directly from the repository without m
       }
     }
   }
-  ```  
+  ```
 
-- Granular-Operators mode:  
+- Granular-Operators mode:
   ```json
   {
     "mcpServers": {
@@ -172,71 +172,71 @@ Run the latest version of Data-Juicer MCP directly from the repository without m
       }
     }
   }
-  ```  
-  Note: If `DJ_OPS_LIST_PATH` is not set, all operators are returned by default.  
+  ```
+  Note: If `DJ_OPS_LIST_PATH` is not set, all operators are returned by default.
 
-##### Local Installation  
+##### Local Installation
 
-1. Clone the Data-Juicer repository locally:  
+1. Clone the Data-Juicer repository locally:
    ```bash
-   git clone https://github.com/modelscope/data-juicer.git  
-   ```  
-2. Run Data-Juicer MCP using uv:  
-   - Recipe-Flow mode:  
-     ```json
-     {
-       "mcpServers": {
-         "DJ_recipe_flow": {
-           "transport": "stdio",
-           "command": "uv",
-           "args": [
-             "run",
-             "--directory",
-             "/abs/path/to/data-juicer",
-             "dj-mcp",
-             "recipe-flow"
-           ]
-         }
-       }
-     }
-     ```  
-   - Granular-Operators mode:  
-     ```json
-     {
-       "mcpServers": {
-         "DJ_granular_ops": {
-           "transport": "stdio",
-           "command": "uv",
-           "args": [
-             "run",
-             "--directory",
-             "/abs/path/to/data-juicer",
-             "dj-mcp",
-             "granular-ops"
-           ],
-           "env": {
-             "DJ_OPS_LIST_PATH": "/path/to/ops_list.txt"
-           }
-         }
-       }
-     }
-     ```  
+   git clone https://github.com/modelscope/data-juicer.git
+   ```
+2. Run Data-Juicer MCP using uv:
+- Recipe-Flow mode:
+  ```json
+  {
+    "mcpServers": {
+      "DJ_recipe_flow": {
+        "transport": "stdio",
+        "command": "uv",
+        "args": [
+          "run",
+          "--directory",
+          "/abs/path/to/data-juicer",
+          "dj-mcp",
+          "recipe-flow"
+        ]
+      }
+    }
+  }
+  ```
+- Granular-Operators mode:
+  ```json
+  {
+    "mcpServers": {
+      "DJ_granular_ops": {
+        "transport": "stdio",
+        "command": "uv",
+        "args": [
+          "run",
+          "--directory",
+          "/abs/path/to/data-juicer",
+          "dj-mcp",
+          "granular-ops"
+        ],
+        "env": {
+          "DJ_OPS_LIST_PATH": "/path/to/ops_list.txt"
+        }
+      }
+    }
+  }
+  ```
 
-#### SSE  
+#### SSE
 
-To use SSE deployment, first start the MCP server separately.  
+To use SSE deployment, first start the MCP server separately.
 
-1. Run the MCP server: Execute the MCP server script and specify the port number:  
-   - Using uvx:  
+1. Run the MCP server: Execute the MCP server script and specify the port number:
+   - Using uvx:
      ```bash
-     uvx --from git+https://github.com/modelscope/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080  
-     ```  
-   - Local execution:  
+     uvx --from git+https://github.com/modelscope/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
+     ```
+   - Local execution:
      ```bash
-     uv run dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080  
-     ```  
+     uv run dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
+     ```
 
-2. Configure your MCP client: Add the following to the MCP client's configuration file:  
+2. Configure your MCP client: Add the following to the MCP client's configuration file:
    ```json
    {
      "mcpServers": {
@@ -245,9 +245,9 @@ To use SSE deployment, first start the MCP server separately.
        }
      }
    }
-   ```  
+   ```
 
-Notes:  
-- URL: The `url` should point to the SSE endpoint of the running server (typically `http://127.0.0.1:<port>/sse`). Adjust the port number if a different value was used when starting the server.  
-- Separate server process: The SSE server must be running before the MCP client attempts to connect.  
+Notes:
+- URL: The `url` should point to the SSE endpoint of the running server (typically `http://127.0.0.1:<port>/sse`). Adjust the port number if a different value was used when starting the server.
+- Separate server process: The SSE server must be running before the MCP client attempts to connect.
 - Firewall: Ensure the firewall allows connections to the specified port.

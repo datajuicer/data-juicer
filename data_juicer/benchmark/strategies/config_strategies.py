@@ -18,10 +18,11 @@ class CoreOptimizerStrategy(OptimizationStrategy):
 
     def apply_to_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Apply core optimizer configuration."""
-        # For now, return the config unchanged since we can't add custom keys
-        # The actual optimizer integration would need to be implemented at the benchmark runner level
-        # TODO: Implement proper core optimizer integration in benchmark runner
-        return config.copy()
+        # Enable core optimizer and specify which strategies to use
+        config = config.copy()
+        config["_benchmark_optimizer_enabled"] = True
+        config["_benchmark_optimizer_strategies"] = self.enabled_strategies
+        return config
 
     def get_expected_impact(self) -> Dict[str, str]:
         """Get expected impact description."""

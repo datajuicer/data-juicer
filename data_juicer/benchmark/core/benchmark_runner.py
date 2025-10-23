@@ -120,13 +120,10 @@ class BenchmarkRunner:
         # Apply strategy-specific modifications
         if self.config.strategy_config:
             # Check if this is a core optimizer strategy
-            if self.config.strategy_config.get("enable_core_optimizer"):
-                # For core optimizer strategies, we need to modify the pipeline
-                # Add a note to the config that core optimizer should be enabled
-                base_config["_benchmark_optimizer_enabled"] = True
-                base_config["_benchmark_optimizer_strategies"] = self.config.strategy_config.get(
-                    "optimizer_strategies", []
-                )
+            if self.config.strategy_config.get("_benchmark_optimizer_enabled"):
+                # For core optimizer strategies, we use environment variables instead of config keys
+                # This avoids config validation issues
+                logger.info("🔧 Core optimizer strategy detected - will use environment variables")
             else:
                 # For regular config strategies, apply them directly
                 base_config = self.config_manager.apply_strategy_config(base_config, self.config.strategy_config)
@@ -188,7 +185,72 @@ class BenchmarkRunner:
             # Clean up output directory before running benchmark
             self._cleanup_output_directory()
 
-            # Build command
+            # Check if core optimizer should be enabled
+            if self.config.strategy_config and self.config.strategy_config.get("_benchmark_optimizer_enabled"):
+                # Use custom executor that applies core optimizer
+                return self._execute_with_core_optimizer(config_file)
+            else:
+                # Use standard subprocess execution
+                return self._execute_standard_benchmark(config_file)
+
+        except subprocess.TimeoutExpired:
+            logger.error(f"Benchmark timed out after {self.config.timeout_seconds} seconds")
+            return None
+        except Exception as e:
+            logger.error(f"Error executing benchmark: {e}")
+            return None
+
+    def _execute_standard_benchmark(self, config_file: str) -> Optional[Dict[str, Any]]:
+        """Execute benchmark using standard subprocess."""
+        # Build command
+        cmd = [
+            "python",
+            "-m",
+            "data_juicer.tools.process_data",
+            "--config",
+            config_file,
+            "--export_path",
+            os.path.join(self.config.output_dir, "output.jsonl"),
+        ]
+
+        # Only add dataset_path if it's provided (config might have it instead)
+        if self.config.dataset_path:
+            cmd.extend(["--dataset_path", self.config.dataset_path])
+
+        logger.debug(f"Executing command: {' '.join(cmd)}")
+
+        # Run the benchmark
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=self.config.timeout_seconds, cwd=os.getcwd()
+        )
+
+        if result.returncode != 0:
+            logger.error(f"Benchmark execution failed: {result.stderr}")
+            return None
+
+        # Log the subprocess output for debugging
+        logger.info("=== Subprocess STDOUT ===")
+        logger.info(result.stdout)
+        logger.info("=== Subprocess STDERR ===")
+        logger.info(result.stderr)
+        logger.info("=== End Subprocess Output ===")
+
+        # Parse output for metrics (data-juicer logs to stderr, not stdout)
+        return self._parse_benchmark_output(result.stdout)
+
+    def _execute_with_core_optimizer(self, config_file: str) -> Optional[Dict[str, Any]]:
+        """Execute benchmark with core optimizer applied."""
+        try:
+            # Get the enabled optimizer strategies
+            enabled_strategies = self.config.strategy_config.get("_benchmark_optimizer_strategies", [])
+            logger.info(f"🔧 Applying core optimizer with strategies: {enabled_strategies}")
+
+            # Use environment variables to pass optimizer information
+            env = os.environ.copy()
+            env["DJ_ENABLE_CORE_OPTIMIZER"] = "true"
+            env["DJ_OPTIMIZER_STRATEGIES"] = ",".join(enabled_strategies)
+
+            # Build command with the original config
             cmd = [
                 "python",
                 "-m",
@@ -203,12 +265,14 @@ class BenchmarkRunner:
             if self.config.dataset_path:
                 cmd.extend(["--dataset_path", self.config.dataset_path])
 
-            logger.debug(f"Executing command: {' '.join(cmd)}")
+            logger.debug(f"Executing command with core optimizer: {' '.join(cmd)}")
 
-            # Run the benchmark
+            # Run the benchmark with environment variables
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=self.config.timeout_seconds, cwd=os.getcwd()
+                cmd, capture_output=True, text=True, timeout=self.config.timeout_seconds, cwd=os.getcwd(), env=env
             )
+
+            # No cleanup needed since we're using environment variables
 
             if result.returncode != 0:
                 logger.error(f"Benchmark execution failed: {result.stderr}")
@@ -224,11 +288,8 @@ class BenchmarkRunner:
             # Parse output for metrics (data-juicer logs to stderr, not stdout)
             return self._parse_benchmark_output(result.stdout)
 
-        except subprocess.TimeoutExpired:
-            logger.error(f"Benchmark timed out after {self.config.timeout_seconds} seconds")
-            return None
         except Exception as e:
-            logger.error(f"Error executing benchmark: {e}")
+            logger.error(f"Error executing benchmark with core optimizer: {e}")
             return None
 
     def _cleanup_output_directory(self):

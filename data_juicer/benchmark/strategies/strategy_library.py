@@ -135,6 +135,11 @@ class StrategyLibrary:
             },
         )
 
+        # Operation Reordering Strategy (from core optimizer)
+        self.strategies["op_reorder"] = CoreOptimizerStrategy(
+            "op_reorder", "Enable operation reordering for optimal execution order", ["op_reorder"]
+        )
+
     def get_strategy(self, name: str) -> Optional[OptimizationStrategy]:
         """Get a strategy by name."""
         return self.strategies.get(name)

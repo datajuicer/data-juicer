@@ -36,6 +36,7 @@ class TestRayDataset(DataJuicerTestCaseBase):
     def tearDown(self):
         """Clean up test data"""
         self.dataset = None
+        super().tearDown()
 
     @TEST_TAG('ray')
     def test_get_column_basic(self):

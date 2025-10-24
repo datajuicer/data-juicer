@@ -46,6 +46,8 @@ class DownloadFileMapperTest(DataJuicerTestCaseBase):
         self.httpd.server_close()
         shutil.rmtree(self.temp_dir)
 
+        super().tearDown()
+
     def _test_image_download(self, ds_list, save_field=None):
         op = DownloadFileMapper(
                 save_dir=self.temp_dir,

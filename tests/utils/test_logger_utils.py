@@ -20,6 +20,7 @@ class LoggerUtilsTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+        super().tearDown()
 
     def get_log_messages(self, content):
         lines = content.strip().split('\n')

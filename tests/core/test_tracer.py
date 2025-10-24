@@ -15,6 +15,7 @@ class TracerTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.work_dir):
             os.system(f'rm -rf {self.work_dir}')
+        super().tearDown()
 
     def test_trace_mapper(self):
         prev_ds = Dataset.from_list([

@@ -21,6 +21,7 @@ class FileUtilsTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+        super().tearDown()
 
     def test_find_files_with_suffix(self):
         # prepare test files

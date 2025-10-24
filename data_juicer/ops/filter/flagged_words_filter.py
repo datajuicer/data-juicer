@@ -1,5 +1,8 @@
 # Some code here has been modified from:
 # https://huggingface.co/spaces/huggingface/text-data-filtering
+#
+# The flagged words list comes from https://huggingface.co/spaces/huggingface/text-data-filtering
+# and https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words
 # --------------------------------------------------------
 
 from typing import List

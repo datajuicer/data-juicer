@@ -22,6 +22,8 @@ class MeasureTest(DataJuicerTestCaseBase):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
 
+        super().tearDown()
+
     def test_convert_to_tensor(self):
         measure = Measure()
 

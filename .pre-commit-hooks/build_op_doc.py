@@ -207,6 +207,7 @@ class OPRecord:
         type: str,
         name: str,
         desc: str,
+        desc_zh: str = None,
         tags: List[str] = None,
         test: str = None,
         info: str = None,
@@ -216,15 +217,17 @@ class OPRecord:
         self.name = name
         self.tags = tags if tags else []
         self.desc = desc
+        self.desc_zh = desc_zh
         self.test = test
         self.info = info
         self.ref = ref
 
     def __repr__(self):
-        return f"{self.type}, {self.name}, {self.tags}, {self.desc}, {self.info}, {self.ref}"
+        return f"{self.type}, {self.name}, {self.tags}, {self.desc}, {self.desc_zh}, {self.info}, {self.ref}"
 
     def __eq__(self, other):
         # Do not compare test properties
+        # And do not compare the Chinese description
         return (
             self.type == other.type
             and self.name == other.name
@@ -365,10 +368,12 @@ def get_op_list_from_code():
     return op_record_list
 
 
-def generate_new_doc(op_record_list):
+def generate_new_doc(op_record_list, old_op_record_list):
     """
     Generate new docs for the updated OP records.
     """
+    reference_op_record_dict = {record.name: record for record in old_op_record_list}
+
     op_record_dict = {}
     for record in op_record_list:
         op_record_dict.setdefault(record.type, []).append(record)
@@ -378,7 +383,7 @@ def generate_new_doc(op_record_list):
     doc.append(generate_overview(op_record_dict))
     # make OP tables
     for op_type, op_records in op_record_dict.items():
-        doc.append(generate_op_table_section(op_type, op_records))
+        doc.append(generate_op_table_section(op_type, op_records, reference_op_record_dict))
     # add
     doc.append(DOC_CONTRIBUTING)
 
@@ -438,9 +443,13 @@ def ref_link(name):
     return "-"
 
 
-def generate_op_table_section(op_type, op_record_list):
+def generate_op_table_section(op_type, op_record_list, reference_op_record_dict):
     """
     Generate the OP table section for the given OP type and the OP record list.
+
+    For Chinese descriptions of OPs, if any of the following condition meets, it will keep the old version:
+    1. the English description is unchanged
+    2. the translation procedure is failed
     """
     # make the header
     doc = [f'## {op_type} <a name="{op_type}"/>']
@@ -449,12 +458,34 @@ def generate_op_table_section(op_type, op_record_list):
         "| Operator 算子 | Tags 标签 | Description 描述 | Details 详情 | Reference 参考 |",
         "|----------|------|-------------|-------------|-------------|",
     ]
-    trans_descs = get_op_desc_in_en_zh_batched([record.desc for record in op_record_list])
+    # only translate for the different descriptions
+    dif_indices = [
+        i
+        for i, record in enumerate(op_record_list)
+        if record.name not in reference_op_record_dict or record.desc != reference_op_record_dict.get(record.name).desc
+    ]
+    zh_update_map = {}
+    if len(dif_indices) > 0:
+        dif_descs = [op_record_list[i].desc for i in dif_indices]
+        trans_zh_descs = get_op_desc_in_en_zh_batched(dif_descs)
+        if trans_zh_descs is None:
+            # translation failed --> keep the old version
+            trans_zh_descs = [
+                (
+                    reference_op_record_dict.get(op_record_list[i].name).desc_zh
+                    if reference_op_record_dict.get(op_record_list[i].name)
+                    else "-"
+                )
+                for i in dif_indices
+            ]
+        zh_update_map = dict(zip(dif_indices, trans_zh_descs))
     for i, record in enumerate(op_record_list):
         tags = " ".join(replace_tags_with_icons(record.tags))
         info = record.info
         ref = record.ref
-        op_row = f"| {record.name} " f"| {tags} " f"| {trans_descs[i]} " f"| {info} " f"| {ref} |"
+        old_record = reference_op_record_dict.get(record.name)
+        zh_desc = zh_update_map.get(i, old_record.desc_zh if old_record else "-")
+        op_row = f"| {record.name} " f"| {tags} " f"| {record.desc} {zh_desc.strip()} " f"| {info} " f"| {ref} |"
         table.append(op_row)
     doc.append("\n".join(table))
     return "\n\n".join(doc)
@@ -474,10 +505,10 @@ def get_op_desc_in_en_zh_batched(descs):
         try:
             res = ts.translate_text(batch, translator="alibaba", from_language="en", to_language="zh")
         except Exception:
-            res = f"-{separator}" * (len(descs) - 1) + "-"
+            return None
     zhs = res.split(separator)
     assert len(zhs) == len(descs)
-    return [desc + " " + zh.strip() for desc, zh in zip(descs, zhs)]
+    return zhs
 
 
 def parse_op_record_from_current_doc():
@@ -500,13 +531,16 @@ def parse_op_record_from_current_doc():
                 type = name.split("_")[-1]
                 tags = [remove_emojis(tag.lower()) for tag in tags.split(" ")]
                 # only need English description
-                desc = desc.split(". ")[0] + "."
+                desc_parts = desc.split(". ")
+                desc = desc_parts[0] + "."
+                desc_zh = ". ".join(desc_parts[1:])
                 test_path = os.path.join(OP_TEST_PREFIX, type, f"test_{name}.py")
                 op_record_list.append(
                     OPRecord(
                         type=type,
                         name=name,
                         desc=desc,
+                        desc_zh=desc_zh,
                         tags=tags,
                         test=test_path if os.path.exists(test_path) else "-",
                         info=info,
@@ -588,7 +622,7 @@ def main():
     if old_op_record_list == updated_op_record_list:
         exit(0)
     else:
-        generate_new_doc(updated_op_record_list)
+        generate_new_doc(updated_op_record_list, old_op_record_list)
         print("Operator document is updated.")
         exit(1)
 

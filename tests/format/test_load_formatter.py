@@ -46,6 +46,8 @@ class LoadFormatterTest(DataJuicerTestCaseBase):
         if os.path.exists(self._temp_dir):
             shutil.rmtree(self._temp_dir)
 
+        super().tearDown()
+
     def test_load_formatter_with_json_file(self):
         """Test loading a JSONL file directly"""
         formatter = load_formatter(self._json_file)

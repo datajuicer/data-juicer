@@ -40,11 +40,13 @@ from .image_face_blur_mapper import ImageFaceBlurMapper
 from .image_remove_background_mapper import ImageRemoveBackgroundMapper
 from .image_segment_mapper import ImageSegmentMapper
 from .image_tagging_mapper import ImageTaggingMapper
+from .image_tagging_vlm_mapper import ImageTaggingVLMMapper
 from .imgdiff_difference_area_generator_mapper import Difference_Area_Generator_Mapper
 from .imgdiff_difference_caption_generator_mapper import (
     Difference_Caption_Generator_Mapper,
 )
 from .mllm_mapper import MllmMapper
+from .mmpose_mapper import MMPoseMapper
 from .nlpaug_en_mapper import NlpaugEnMapper
 from .nlpcda_zh_mapper import NlpcdaZhMapper
 from .optimize_prompt_mapper import OptimizePromptMapper
@@ -135,7 +137,9 @@ __all__ = [
     "ImageRemoveBackgroundMapper",
     "ImageSegmentMapper",
     "ImageTaggingMapper",
+    "ImageTaggingVLMMapper",
     "MllmMapper",
+    "MMPoseMapper",
     "NlpaugEnMapper",
     "NlpcdaZhMapper",
     "OptimizePromptMapper",

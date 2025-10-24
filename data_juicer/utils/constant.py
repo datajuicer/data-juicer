@@ -67,6 +67,9 @@ class MetaKeys(object):
     # # class label (from detection) tag
     class_label_tag = DEFAULT_PREFIX + "class_label__"
 
+    # # pose information
+    pose_info = "pose_info"
+
     # === info extraction related tags ===
     # # for event extraction
     event_description = "event_description"

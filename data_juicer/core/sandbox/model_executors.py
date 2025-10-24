@@ -331,10 +331,7 @@ class VLLMInferExecutor(LLMInferExecutor):
         sampling_params = self.model_config.get("sampling_params", {})
         if model_params.get("tensor_parallel_size") is None:
             tensor_parallel_size = torch.cuda.device_count()
-            logger.info(
-                f"Set tensor_parallel_size to \
-                        {tensor_parallel_size} for vllm."
-            )
+            logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")
             model_params["tensor_parallel_size"] = tensor_parallel_size
         executor, _ = get_model(
             prepare_model(

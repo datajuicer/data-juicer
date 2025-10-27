@@ -40,7 +40,7 @@ ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
 mmdeploy = LazyLoader("mmdeploy")
-
+mmcv = LazyLoader("mmcv==2.1.0")
 MODEL_ZOO = {}
 
 # Default cached models links for downloading
@@ -1025,6 +1025,14 @@ class MMLabModel(object):
     """
 
     def __init__(self, model_cfg_path, deploy_cfg_path, model_files, device):
+        """Initialize the MMLabModel.
+        :param model_cfg: Path to the model config.
+        :param deploy_cfg: Path to the deployment config.
+        :param model_files: Path to the model files.
+        :param device: Device to use.
+        """
+        import mmcv  # noqa: F401
+
         self.model_cfg_path = model_cfg_path
         self.deploy_cfg_path = deploy_cfg_path
         self.model_files = model_files
@@ -1042,8 +1050,8 @@ class MMLabModel(object):
 
         self.input_shape = get_input_shape(deploy_cfg)
 
-    def __call__(self, image):
-        model_inputs, _ = self.task_processor.create_input(image, self.input_shape)
+    def __call__(self, images):
+        model_inputs, _ = self.task_processor.create_input(images, self.input_shape)
 
         with torch.no_grad():
             result = self.model.test_step(model_inputs)
@@ -1062,7 +1070,7 @@ def prepare_mmlab_model(model_cfg: str, deploy_cfg: str, model_files: List[str],
     model = MMLabModel(
         model_cfg,
         deploy_cfg,
-        [model_file for model_file in model_files],
+        model_files,
         device,
     )
 

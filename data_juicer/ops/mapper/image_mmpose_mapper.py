@@ -1,19 +1,19 @@
-from typing import Dict, Optional, Union, Sequence
 import os
+from typing import Dict, Optional, Sequence, Union
 
+from data_juicer.ops.base_op import OPERATORS, Mapper
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
 
-from data_juicer.ops.base_op import OPERATORS, Mapper
-
 mmpose = LazyLoader("mmpose")
+mmdet = LazyLoader("mmdet==3.2.0")
 
-OP_NAME = "mmpose_mapper"
+OP_NAME = "image_mmpose_mapper"
 
 
 @OPERATORS.register_module(OP_NAME)
-class MMPoseMapper(Mapper):
+class ImageMMPoseMapper(Mapper):
     """Mapper to perform human keypoint detection inference using MMPose models.
     It requires three essential components for model initialization:
     - deploy_cfg (str): Path to the deployment configuration file (defines inference settings)
@@ -26,17 +26,18 @@ class MMPoseMapper(Mapper):
 
     """
 
-    _batched_op = True
     _accelerator = "cuda"
 
-    def __init__(self,
-                 deploy_cfg: str = None,
-                 model_cfg: str = None, 
-                 model_files: Optional[Union[str, Sequence[str]]] = None,
-                 pose_key: str = MetaKeys.pose_info,
-                 visualization_dir: str = None,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        deploy_cfg: str = None,
+        model_cfg: str = None,
+        model_files: Optional[Union[str, Sequence[str]]] = None,
+        pose_key: str = MetaKeys.pose_info,
+        visualization_dir: str = None,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
         :param deploy_cfg: MMPose deployment config file.
@@ -59,6 +60,8 @@ class MMPoseMapper(Mapper):
 
         self.visualization_dir = visualization_dir
 
+        import mmdet  # noqa: F401
+
         self.model_key = prepare_model(
             "mmlab",
             model_cfg=self.model_cfg,
@@ -80,30 +83,26 @@ class MMPoseMapper(Mapper):
             dict: Prediction results.
         """
         result = {
-            'keypoints': [],
-            'keypoint_scores': [],
-            'bboxes': [],
-            'bbox_scores': [],
+            "keypoints": [],
+            "keypoint_scores": [],
+            "bboxes": [],
+            "bbox_scores": [],
         }
-        if 'pred_instances' in data_sample:
-            if 'keypoints' in data_sample.pred_instances:
-                result['keypoints'] = data_sample.pred_instances.keypoints
-            if 'keypoint_scores' in data_sample.pred_instances:
-                result['keypoint_scores'] = data_sample.pred_instances.keypoint_scores
-            if 'bboxes' in data_sample.pred_instances:
-                result['bboxes'] = data_sample.pred_instances.bboxes
-            if 'bbox_scores' in data_sample.pred_instances:
-                result['bbox_scores'] = data_sample.pred_instances.bbox_scores
+        if "pred_instances" in data_sample:
+            if "keypoints" in data_sample.pred_instances:
+                result["keypoints"] = data_sample.pred_instances.keypoints
+            if "keypoint_scores" in data_sample.pred_instances:
+                result["keypoint_scores"] = data_sample.pred_instances.keypoint_scores
+            if "bboxes" in data_sample.pred_instances:
+                result["bboxes"] = data_sample.pred_instances.bboxes
+            if "bbox_scores" in data_sample.pred_instances:
+                result["bbox_scores"] = data_sample.pred_instances.bbox_scores
 
         return result
-    
+
     def visualize_results(self, image, model, result, output_file):
         model.task_processor.visualize(
-            image=image,
-            model=model,
-            result=result[0],
-            window_name='visualize',
-            output_file=output_file
+            image=image, model=model, result=result[0], window_name="visualize", output_file=output_file
         )
 
     def process_single(self, sample, rank=None):
@@ -115,9 +114,9 @@ class MMPoseMapper(Mapper):
         images = sample[self.image_key]
 
         from mmpose.apis.inference import dataset_meta_from_config
-        dataset_meta = dataset_meta_from_config(
-            model.task_processor.model_cfg, dataset_mode='test')
-        keypoint_names = [dataset_meta['keypoint_id2name'][i] for i in range(dataset_meta['num_keypoints'])]
+
+        dataset_meta = dataset_meta_from_config(model.task_processor.model_cfg, dataset_mode="test")
+        keypoint_names = [dataset_meta["keypoint_id2name"][i] for i in range(dataset_meta["num_keypoints"])]
 
         results = [model(img) for img in images]
         pose_info = [self.parse_and_filter(res[0]) for res in results]

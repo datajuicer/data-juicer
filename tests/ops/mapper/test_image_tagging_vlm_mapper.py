@@ -8,7 +8,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.ops.mapper.image_tagging_vlm_mapper import ImageTaggingVLMMapper
 
 
-class ImageTaggingMapperTest(DataJuicerTestCaseBase):
+class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              'data')
     img1_path = os.path.join(data_path, 'img1.png')

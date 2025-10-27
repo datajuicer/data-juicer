@@ -1,17 +1,22 @@
-from typing import Dict, Optional
 import json
+from typing import Dict, Optional
+
 import numpy as np
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import (
+    image_path_to_base64,
     load_data_with_context,
     load_image,
-    image_path_to_base64
 )
-from data_juicer.utils.model_utils import get_model, prepare_model, update_sampling_params
+from data_juicer.utils.model_utils import (
+    get_model,
+    prepare_model,
+    update_sampling_params,
+)
 
 from ..base_op import OPERATORS, TAGGING_OPS, Mapper
 
@@ -25,8 +30,8 @@ OP_NAME = "image_tagging_vlm_mapper"
 @OPERATORS.register_module(OP_NAME)
 class ImageTaggingVLMMapper(Mapper):
     """Mapper to generates image tags.
-    This operator generates tags based on the content of given images. 
-    The tags are generated using a vlm model and stored in the specified field name. 
+    This operator generates tags based on the content of given images.
+    The tags are generated using a vlm model and stored in the specified field name.
     If the tags are already present in the sample, the operator skips processing.
     """
 
@@ -98,9 +103,7 @@ Analyze the provided image(s) and generate descriptive tags. Return results in s
             self.num_proc = 1
             if model_params.get("tensor_parallel_size") is None:
                 tensor_parallel_size = torch.cuda.device_count()
-                logger.info(
-                    f"Set tensor_parallel_size to {tensor_parallel_size} for vllm."
-                )
+                logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")
                 model_params["tensor_parallel_size"] = tensor_parallel_size
             self.model_key = prepare_model(
                 model_type="vllm", pretrained_model_name_or_path=api_or_hf_model, **model_params
@@ -108,11 +111,7 @@ Analyze the provided image(s) and generate descriptive tags. Return results in s
             self.sampling_params = vllm.SamplingParams(**sampling_params)
 
     def parse_output(self, raw_output):
-        try:
-            return json.loads(raw_output.replace('```json', '').replace('```', ''))["tags"]
-        except Exception as e:
-            logger.warning(f"Error parsing output: {e}")
-            return []
+        return json.loads(raw_output.replace("```json", "").replace("```", ""))["tags"]
 
     def process_single(self, sample, rank=None, context=False):
         # check if it's generated already
@@ -135,20 +134,24 @@ Analyze the provided image(s) and generate descriptive tags. Return results in s
 
         tags_list = []
         for img in images:
-            input_prompt = self.input_template.format(text=sample.get(self.text_key, ''))
-            content = [{"type": "text", "text": input_prompt}]
-            if self.system_prompt:
-                content.append({"role": "system", "content": self.system_prompt})
-            content.append({
+            input_prompt = self.input_template.format(text=sample.get(self.text_key, ""))
+            user_content = [
+                {"type": "text", "text": input_prompt},
+                {
                     "type": "image_url",
                     "image_url": {"url": f"data:image/jpeg;base64,{image_path_to_base64(img)}"},
-                })
-            messages = [
-                {
-                    "role": "user",
-                    "content": content,
                 },
             ]
+            messages = []
+            if self.system_prompt:
+                messages.append({"role": "system", "content": self.system_prompt})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_content,
+                }
+            )
+
             if self.is_api_model:
                 for _ in range(self.try_num):
                     try:
@@ -160,9 +163,13 @@ Analyze the provided image(s) and generate descriptive tags. Return results in s
                 response = model.chat(messages, self.sampling_params)
                 output = response[0].outputs[0].text
 
-            tags = self.parse_output(output)
+            try:
+                tags = self.parse_output(output)
+            except Exception as e:
+                logger.warning(f"Error parsing output: {e}")
+                tags = []
             tags_list.append(tags)
 
-        tags_list = np.array(tags_list, dtype=np.str_)
+        tags_list = np.array(tags_list, dtype=object)
         sample[Fields.meta][self.tag_field_name] = tags_list
         return sample

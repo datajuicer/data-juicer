@@ -1,3 +1,4 @@
+import ast
 import json
 from typing import Dict, Optional
 
@@ -35,9 +36,23 @@ class ImageTaggingVLMMapper(Mapper):
     If the tags are already present in the sample, the operator skips processing.
     """
 
+    DEFAULT_SYSTEM_PROMPT = """
+Generate comprehensive and specific descriptive tags for the provided image(s) following these rules:
+1. Tags should be concise English phrases (nouns or gerunds)
+2. Use lowercase and hyphenate multi-word tags
+3. Include objects, actions, colors, materials, styles, emotions, and context
+4. Prioritize prominent and distinctive elements
+5. Output exactly 5-10 most relevant tags
+6. Format strictly as: {"tags": ["tag1", "tag2", ...]}
+
+Example valid responses:
+{"tags": ["red-apple", "wooden-table", "natural-lighting", "food-photography", "fresh-fruit"]}
+{"tags": ["mountain-landscape", "snowy-peaks", "sunset-glow", "alpine-lake", "conifer-forest"]}
+"""
     DEFAULT_INPUT_TEMPLATE = """
-Analyze the provided image(s) and generate descriptive tags. Return results in strict JSON format:
-{{"tags": ["tag1", "tag2", ...]}}
+Analyze both the provided image and its associated text description (if available) to generate comprehensive tags.
+Text description: {text}
+Verify text relevance before combining with visual elements. If text is missing or irrelevant, generate tags based solely on the image.
 """
 
     _accelerator = "cuda"
@@ -80,7 +95,7 @@ Analyze the provided image(s) and generate descriptive tags. Return results in s
         super().__init__(**kwargs)
         self.is_api_model = is_api_model
 
-        self.system_prompt = system_prompt
+        self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
         self.input_template = input_template or self.DEFAULT_INPUT_TEMPLATE
         self.tag_field_name = tag_field_name
         self.try_num = try_num
@@ -111,7 +126,44 @@ Analyze the provided image(s) and generate descriptive tags. Return results in s
             self.sampling_params = vllm.SamplingParams(**sampling_params)
 
     def parse_output(self, raw_output):
-        return json.loads(raw_output.replace("```json", "").replace("```", ""))["tags"]
+        json_str = raw_output.strip()
+
+        for pattern in ["```json", "```", "JSON:", "Response:"]:
+            json_str = json_str.replace(pattern, "")
+
+        try:
+            result = json.loads(json_str, strict=False)
+        except json.JSONDecodeError:
+            try:
+                # handle single quotation situations
+                json_str = json_str.replace("'", '"')
+                result = json.loads(json_str, strict=False)
+            except Exception:
+                try:
+                    # ast as alternative option
+                    result = ast.literal_eval(json_str)
+                except Exception:
+                    logger.error(f"Failed to parse model output: {raw_output}")
+                    return []
+
+        if not isinstance(result, dict):
+            return []
+
+        # support possible variations of key names
+        tags = result.get("tags", result.get("tag", []))
+
+        if isinstance(tags, str):
+            tags = [tag.strip() for tag in tags.split(",")]
+
+        # dedup and filter
+        valid_tags = []
+        for tag in tags:
+            if isinstance(tag, str):
+                # normalize format: lowercase, replace spaces, limit length
+                tag = tag.lower().replace(" ", "-")[:30]
+                valid_tags.append(tag)
+
+        return list(set(valid_tags))[:10]
 
     def process_single(self, sample, rank=None, context=False):
         # check if it's generated already

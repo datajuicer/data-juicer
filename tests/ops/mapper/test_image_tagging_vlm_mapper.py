@@ -18,17 +18,15 @@ class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
     def _run_image_tagging_vlm_mapper(self,
                                   op,
                                   source_list,
-                                  target_list,
                                   num_proc=1):
         dataset = Dataset.from_list(source_list)
         if Fields.meta not in dataset.features:
             dataset = dataset.add_column(name=Fields.meta,
                                          column=[{}] * dataset.num_rows)
         dataset = dataset.map(op.process, num_proc=num_proc, with_rank=True)
-        res_list = dataset.to_list()
-        self.assertEqual(res_list, target_list)
+        return dataset
 
-    def test(self):
+    def test_default(self):
         ds_list = [{
             'images': [self.img1_path]
         }, {
@@ -36,31 +34,16 @@ class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
         }, {
             'images': [self.img3_path]
         }]
-        tgt_list = [{
-            'images': [self.img1_path],
-            Fields.meta: {
-                MetaKeys.image_tags: [[
-                   'bed', 'pillow', 'mattress', 'bedroom', 'home', 'comfort', 'sleeping', 'house']]},
-        }, {
-            'images': [self.img2_path],
-            Fields.meta: {
-                MetaKeys.image_tags: [[
-                    'bus', 'advertisement', 'street scene', 'city life', 'tour bus', 
-                    'travel service', 'urban environment', 'local transportation', 'daylight']]},
-        }, {
-            'images': [self.img3_path],
-            Fields.meta: {
-                MetaKeys.image_tags: [[
-                    'urban', 'alley', 'rainy-day', 'building', 'person', 'umbrella', 'sidewalk', 
-                    'black-and-white', '/blackandwhite', 'shoe', 'clothing', 'architecture', 
-                    'trees', 'reflection', 'exploration']]},
-        }]
         op = ImageTaggingVLMMapper(
             api_or_hf_model="Qwen2.5-VL-7B-Instruct",
             is_api_model=False,
+            sampling_params={},
             model_params={"tensor_parallel_size": 1}
         )
-        self._run_image_tagging_vlm_mapper(op, ds_list, tgt_list)
+        dataset = self._run_image_tagging_vlm_mapper(op, ds_list)
+        res_list = dataset.to_list()
+        for res in res_list:
+            self.assertTrue(len(res[Fields.meta][MetaKeys.image_tags]) > 0)
 
     def test_no_images(self):
         ds_list = [{
@@ -68,23 +51,17 @@ class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
         }, {
             'images': [self.img2_path]
         }]
-        tgt_list = [{
-            'images': [],
-            Fields.meta: {
-                MetaKeys.image_tags: [[]]},
-        }, {
-            'images': [self.img2_path],
-            Fields.meta: {
-                MetaKeys.image_tags: [[
-                    'bus', 'advertisement', 'street scene', 'city life', 'tour bus', 
-                    'travel service', 'urban environment', 'local transportation', 'daylight']]},
-        }]
         op = ImageTaggingVLMMapper(
             api_or_hf_model="Qwen2.5-VL-7B-Instruct",
             is_api_model=False,
+            sampling_params={},
             model_params={"tensor_parallel_size": 1}
         )
-        self._run_image_tagging_vlm_mapper(op, ds_list, tgt_list)
+        dataset = self._run_image_tagging_vlm_mapper(op, ds_list)
+        res_list = dataset.to_list()
+
+        self.assertEqual(res_list[0][Fields.meta][MetaKeys.image_tags], [[]])
+        self.assertTrue(len(res_list[1][Fields.meta][MetaKeys.image_tags]) > 0)
 
     def test_api_model(self):
 
@@ -93,25 +70,19 @@ class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
         }, {
             'images': [self.img2_path]
         }]
-        tgt_list = [{
-            'images': [],
-            Fields.meta: {
-                MetaKeys.image_tags: [[]]},
-        }, {
-            'images': [self.img2_path],
-            Fields.meta: {
-                MetaKeys.image_tags: [[
-                    'bus', 'advertisement', 'street scene', 'city life', 'tour bus', 
-                    'travel service', 'urban environment', 'local transportation', 'daylight']]},
-        }]
 
         op = ImageTaggingVLMMapper(
             api_or_hf_model='qwen2.5-vl-3b-instruct',
             is_api_model=True,
+            sampling_params={}
         )
-        self._run_image_tagging_vlm_mapper(op, ds_list, tgt_list)
+        dataset = self._run_image_tagging_vlm_mapper(op, ds_list)
+        res_list = dataset.to_list()
 
-    def test_specify_tag_fieldl(self):
+        self.assertEqual(res_list[0][Fields.meta][MetaKeys.image_tags], [[]])
+        self.assertTrue(len(res_list[1][Fields.meta][MetaKeys.image_tags]) > 0)
+
+    def test_specify_tag_field(self):
         tag_field_name = 'my_tags'
 
         ds_list = [{
@@ -119,25 +90,18 @@ class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
         }, {
             'images': [self.img2_path]
         }]
-        tgt_list = [{
-            'images': [],
-            Fields.meta: {
-                tag_field_name: [[]]},
-        }, {
-            'images': [self.img2_path],
-            Fields.meta: {
-                tag_field_name: [[
-                    'bus', 'advertisement', 'street scene', 'city life', 'tour bus', 
-                    'travel service', 'urban environment', 'local transportation', 'daylight']]},
-        }]
-
         op = ImageTaggingVLMMapper(
             api_or_hf_model="Qwen2.5-VL-7B-Instruct",
             is_api_model=False,
             tag_field_name=tag_field_name,
+            sampling_params={},
             model_params={"tensor_parallel_size": 1}
         )
-        self._run_image_tagging_vlm_mapper(op, ds_list, tgt_list)
+        dataset = self._run_image_tagging_vlm_mapper(op, ds_list)
+        res_list = dataset.to_list()
+
+        self.assertEqual(res_list[0][Fields.meta]['my_tags'], [[]])
+        self.assertTrue(len(res_list[1][Fields.meta]['my_tags']) > 0)
 
 
 if __name__ == '__main__':

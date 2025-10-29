@@ -115,9 +115,17 @@ class VideoObjectSegmentingMapper(Mapper):
             }
             return sample
 
-        self.yoloe_model.set_classes(
-            sample["main_character_list"], self.yoloe_model.get_text_pe(sample["main_character_list"])
-        )
+        main_character_list = sample.get("main_character_list")
+        if not main_character_list:
+            sample[Fields.meta][self.tag_field_name] = {
+                "segment_data": [],
+                "cls_id_dict": [],
+                "object_cls_list": [],
+                "yoloe_conf_list": [],
+            }
+            return sample
+
+        self.yoloe_model.set_classes(main_character_list, self.yoloe_model.get_text_pe(main_character_list))
         results = self.yoloe_model.predict(temp_initial_frame_path, verbose=False, conf=self.yoloe_conf)
         yoloe_bboxes = results[0].boxes.xyxy.tolist()
         bboxes_cls = results[0].boxes.cls.tolist()

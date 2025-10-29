@@ -14,7 +14,6 @@ OP_NAME = "video_depth_estimation_mapper"
 
 cv2 = LazyLoader("cv2", "opencv-python")
 torch = LazyLoader("torch")
-# video_depth_anything = LazyLoader("video_depth_anything", "git+https://github.com/DepthAnything/Video-Depth-Anything.git", pip_args=['--no-deps'])
 open3d = LazyLoader("open3d")
 
 

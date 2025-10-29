@@ -39,9 +39,6 @@ openai = LazyLoader("openai")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
-video_depth_anything = LazyLoader(
-    "video_depth_anything", "git+https://github.com/DepthAnything/Video-Depth-Anything.git"
-)
 
 MODEL_ZOO = {}
 

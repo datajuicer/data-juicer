@@ -60,6 +60,10 @@ class MetaKeys(object):
     video_audio_tags = "video_audio_tags"
     # # video frames
     video_frames = "video_frames"
+    # # object segment info in video
+    video_object_segment_tags = "video_object_segment_tags"
+    # # depth info in video
+    video_depth_tags = "video_depth_tags"
     # # image tags
     image_tags = "image_tags"
     # # bounding box tag

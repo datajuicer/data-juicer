@@ -39,6 +39,9 @@ openai = LazyLoader("openai")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
+video_depth_anything = LazyLoader(
+    "video_depth_anything", "git+https://github.com/DepthAnything/Video-Depth-Anything.git"
+)
 
 MODEL_ZOO = {}
 
@@ -876,6 +879,76 @@ def prepare_video_blip_model(pretrained_model_name_or_path, *, return_model=True
     return (model, processor) if return_model else processor
 
 
+def prepare_video_depth_anything(model_path, **model_params):
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    video_depth_anything_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "Video-Depth-Anything")
+    if not os.path.exists(video_depth_anything_repo_path):
+        os.system(
+            f"git clone https://github.com/DepthAnything/Video-Depth-Anything.git {video_depth_anything_repo_path}"
+        )
+    import sys
+
+    sys.path.append(os.path.join(video_depth_anything_repo_path))
+
+    from video_depth_anything.video_depth import VideoDepthAnything
+
+    device = model_params.pop("device", "cpu")
+
+    model_configs = {
+        "vits": {"encoder": "vits", "features": 64, "out_channels": [48, 96, 192, 384]},
+        "vitb": {"encoder": "vitb", "features": 128, "out_channels": [96, 192, 384, 768]},
+        "vitl": {"encoder": "vitl", "features": 256, "out_channels": [256, 512, 1024, 1024]},
+    }
+
+    model_links = {
+        "video_depth_anything_vits": "https://huggingface.co/depth-anything/Video-Depth-Anything-Small/resolve/main/video_depth_anything_vits.pth",
+        "video_depth_anything_vitb": "https://huggingface.co/depth-anything/Video-Depth-Anything-Base/resolve/main/video_depth_anything_vitb.pth",
+        "video_depth_anything_vitl": "https://huggingface.co/depth-anything/Video-Depth-Anything-Large/resolve/main/video_depth_anything_vitl.pth",
+        "metric_video_depth_anything_vits": "https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Small/resolve/main/metric_video_depth_anything_vits.pth",
+        "metric_video_depth_anything_vitb": "https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Base/resolve/main/metric_video_depth_anything_vitb.pth",
+        "metric_video_depth_anything_vitl": "https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Large/resolve/main/metric_video_depth_anything_vitl.pth",
+    }
+
+    if "vits" in model_path:
+        encoder_type = "vits"
+    elif "vitb" in model_path:
+        encoder_type = "vitb"
+    else:
+        encoder_type = "vitl"
+
+    if "metric" in model_path:
+        metric = True
+    else:
+        metric = False
+
+    if "metric_video_depth_anything_vitl" in model_path:
+        model_type = "metric_video_depth_anything_vitl"
+    elif "metric_video_depth_anything_vitb" in model_path:
+        model_type = "metric_video_depth_anything_vitb"
+    elif "metric_video_depth_anything_vits" in model_path:
+        model_type = "metric_video_depth_anything_vits"
+    elif "video_depth_anything_vitb" in model_path:
+        model_type = "video_depth_anything_vitb"
+    elif "video_depth_anything_vitl" in model_path:
+        model_type = "video_depth_anything_vitl"
+    else:
+        model_type = "video_depth_anything_vits"
+
+    if not os.path.exists(model_path):
+        if not os.path.exists(DJMC):
+            os.makedirs(DJMC)
+
+        model_path = os.path.join(DJMC, model_type + ".pth")
+        wget.download(model_links[model_type], model_path)
+
+    model = VideoDepthAnything(**model_configs[encoder_type], metric=metric)
+    model.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
+    model = model.to(device).eval()
+
+    return model
+
+
 def prepare_yolo_model(model_path, **model_params):
     device = model_params.pop("device", "cpu")
     model = ultralytics.YOLO(check_model(model_path)).to(device)
@@ -1033,6 +1106,7 @@ MODEL_FUNCTION_MAPPING = {
     "simple_aesthetics": prepare_simple_aesthetics_model,
     "spacy": prepare_spacy_model,
     "video_blip": prepare_video_blip_model,
+    "video_depth_anything": prepare_video_depth_anything,
     "vllm": prepare_vllm_model,
     "yolo": prepare_yolo_model,
     "embedding": prepare_embedding_model,

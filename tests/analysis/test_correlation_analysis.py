@@ -32,6 +32,8 @@ class CorrelationAnalysisTest(DataJuicerTestCaseBase):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
 
+        super().tearDown()
+
     def test_is_numeric_list_series(self):
         res = {
             'A': False,

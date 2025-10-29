@@ -130,6 +130,8 @@ class DiversityAnalysisTest(DataJuicerTestCaseBase):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
 
+        super().tearDown()
+
     def test_analyze(self):
         diversity_analysis = DiversityAnalysis(self.test_data_en, self.temp_output_path)
         df_en = diversity_analysis.analyze()

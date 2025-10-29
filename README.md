@@ -107,7 +107,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   through the [sandbox laboratory](docs/Sandbox.md), and providing features such as feedback loops and visualization, so that you can better understand and improve your data and models. Many effect-proven datasets and models have been derived from DJ, in scenarios such as pre-training, text-to-video and image-to-text generation.
   ![Data-in-the-loop](https://img.alicdn.com/imgextra/i2/O1CN017U7Zz31Y7XtCJ5GOz_!!6000000003012-0-tps-3640-1567.jpg) 
 
-## Doucmentation
+## Documentation
 
 - Tutorial
   - [DJ-Cookbook](docs/tutorial/DJ-Cookbook.md)

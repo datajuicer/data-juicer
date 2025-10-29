@@ -21,6 +21,7 @@ class TestDownload(DataJuicerTestCaseBase):
         # Clean up the temporary directory after each test
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
+        super().tearDown()
 
     def test_wikipedia_urls(self):
         dump_date = "20241101"

@@ -15,6 +15,7 @@ class MonitorTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.work_dir):
             os.system(f'rm -rf {self.work_dir}')
+        super().tearDown()
 
     def test_monitor_current_resources(self):
         resource_dict = Monitor.monitor_current_resources()

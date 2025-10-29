@@ -7,13 +7,13 @@ sources and file formats, and allow for flexible extension to custom datasets.
 
 算子 (Operator) 是协助数据修改、清理、过滤、去重等基本流程的集合。我们支持广泛的数据来源和文件格式，并支持对自定义数据集的灵活扩展。
 
-This page offers a basic description of the operators (OPs) in Data-Juicer. 
-Users can consult the 
-[API documentation](https://modelscope.github.io/data-juicer/en/main/api.html) 
+This page offers a basic description of the operators (OPs) in Data-Juicer.
+Users can consult the
+[API documentation](https://modelscope.github.io/data-juicer/en/main/api.html)
 for the operator API reference. To learn more about each operator, click its
 adjacent 'info' link to access the operator's details page, which includes its
-detailed parameters, effect demonstrations, and links to relevant unit tests 
-and source code. 
+detailed parameters, effect demonstrations, and links to relevant unit tests
+and source code.
 
 Additionally, the 'Reference' column in the table is intended to cite research,
 libraries, or resource links that the operator's design or implementation is
@@ -46,7 +46,7 @@ Data-Juicer 中的算子分为以下 7 种类型。
 | [filter](#filter) | 54 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 83 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 86 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [selector](#selector) | 5 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
 All the specific operators are listed below, each featured with several capability tags. 
@@ -188,6 +188,9 @@ All the specific operators are listed below, each featured with several capabili
 | clean_html_mapper | 🔤Text 💻CPU 🟢Stable | Cleans HTML code from text samples, converting HTML to plain text. 从文本示例中清除HTML代码，将HTML转换为纯文本。 | [info](operators/mapper/clean_html_mapper.md) | - |
 | clean_ip_mapper | 🔤Text 💻CPU 🟢Stable | Cleans IPv4 and IPv6 addresses from text samples. 从文本示例中清除IPv4和IPv6地址。 | [info](operators/mapper/clean_ip_mapper.md) | - |
 | clean_links_mapper | 🔤Text 💻CPU 🟢Stable | Mapper to clean links like http/https/ftp in text samples. 映射器来清理链接，如文本示例中的http/https/ftp。 | [info](operators/mapper/clean_links_mapper.md) | - |
+| detect_character_attributes_mapper | 🚀GPU 🟡Beta | Takes an image, a caption, and main character names as input to extract the characters' attributes. 根据给定的图像、图像描述信息和（多个）角色名称，提取图像中主要角色的属性。 | - | [DetailMaster](https://arxiv.org/abs/2505.16915) |
+| detect_character_locations_mapper | 🚀GPU 🟡Beta | Given an image and a list of main character names, extract the bounding boxes for each present character. 给定一张图像和主要角色的名称列表，提取每个在场角色的边界框。(YOLOE + MLLM) | - | [DetailMaster](https://arxiv.org/abs/2505.16915) |
+| detect_main_character_mapper | 🚀GPU 🟡Beta | Extract all main character names based on the given image and its caption. 根据给定的图像及其图像描述，提取所有主要角色的名字。 | - | [DetailMaster](https://arxiv.org/abs/2505.16915) |
 | dialog_intent_detection_mapper | 💻CPU 🔗API 🟢Stable | Generates user's intent labels in a dialog by analyzing the history, query, and response. 通过分析历史记录、查询和响应，在对话框中生成用户的意图标签。 | [info](operators/mapper/dialog_intent_detection_mapper.md) | - |
 | dialog_sentiment_detection_mapper | 💻CPU 🔗API 🟢Stable | Generates sentiment labels and analysis for user queries in a dialog. 在对话框中为用户查询生成情绪标签和分析。 | [info](operators/mapper/dialog_sentiment_detection_mapper.md) | - |
 | dialog_sentiment_intensity_mapper | 💻CPU 🔗API 🟢Stable | Mapper to predict user's sentiment intensity in a dialog, ranging from -5 to 5. Mapper预测用户在对话框中的情绪强度，范围从-5到5。 | [info](operators/mapper/dialog_sentiment_intensity_mapper.md) | - |

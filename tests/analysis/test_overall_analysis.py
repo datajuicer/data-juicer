@@ -71,6 +71,8 @@ class OverallAnalysisTest(DataJuicerTestCaseBase):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
 
+        super().tearDown()
+
     def test_single_column_analysis(self):
         df = self.dataset.flatten().to_pandas()
         res = _single_column_analysis(df[f'{Fields.stats}.stats_num'])

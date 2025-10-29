@@ -10,7 +10,7 @@ resume: true                                                              # allo
 # iteration related parameters
 max_iter_num: 5
 iter_targets:
-  - "grader_model_prompt_optimization.grades_evaluation.min_mse <= 0.26"
+  - "grader_model_prompt_optimization.grades_evaluation.min_mse <= 0.2"
 iter_updater:
   select_and_merge_data_pools.merge_single_prompt_data_pools.merged_top_prompt_dataset: grader_model_prompt_optimization.generate_new_prompts.dj_configs.dataset_path
 
@@ -53,11 +53,12 @@ pipelines:
             type: 'api'
             model: 'qwen2.5-32b-instruct'
             max_retry_num: 5
-            build_messages_func: 'build_messages'
+            build_messages_func: 'build_messages_for_math_qa'
             parse_output_func: 'parse_output'
             func_kwargs:
               system_key: "prompt"
               query_key: "question"
+              response_key: "answer"
             # data related
             dataset_path: '<replaced_by_the_input>'
             export_path: './outputs/auto-prompt-optimization-for-grader-model/infer_results/'

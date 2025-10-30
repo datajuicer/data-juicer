@@ -1,6 +1,6 @@
 # 作业管理与监控
 
-DataJuicer 提供全面的作业管理和监控功能，帮助您跟踪、分析和优化数据处理工作流。
+Data-Juicer 提供全面的作业管理和监控功能，帮助您跟踪、分析和优化数据处理工作流。
 
 ## 概述
 
@@ -13,7 +13,7 @@ DataJuicer 提供全面的作业管理和监控功能，帮助您跟踪、分析
 
 ## 处理快照工具
 
-处理快照工具基于 `events.jsonl` 和 DAG 结构提供 DataJuicer 作业处理状态的全面分析。
+处理快照工具基于 `events.jsonl` 和 DAG 结构提供 Data-Juicer 作业处理状态的全面分析。
 
 ### 功能特性
 
@@ -308,7 +308,7 @@ import subprocess
 from pathlib import Path
 
 def monitor_job(job_dir: str):
-    """监控 DataJuicer 作业并返回状态。"""
+    """监控 Data-Juicer 作业并返回状态。"""
     result = subprocess.run([
         "python", "-m", "data_juicer.utils.job.snapshot", job_dir
     ], capture_output=True, text=True)
@@ -414,4 +414,4 @@ optimizer = PartitionSizeOptimizer()
 recommendations = optimizer.get_partition_recommendations(dataset, modality)
 ```
 
-这个全面的作业管理系统提供了您有效监控、优化和故障排除 DataJuicer 处理作业所需的工具。
+这个全面的作业管理系统提供了您有效监控、优化和故障排除 Data-Juicer 处理作业所需的工具。

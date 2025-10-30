@@ -139,7 +139,7 @@ Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详
   - [给数据打分](tools/quality_classifier/README_ZH.md)
 - 作业管理与监控
   - [处理快照工具](data_juicer/utils/job/snapshot.py) - 提供JSON格式的全面作业状态分析
-  - [作业管理工具](data_juicer/utils/job/) - 监控和管理DataJuicer处理作业
+  - [作业管理工具](data_juicer/utils/job/) - 监控和管理Data-Juicer处理作业
   - [资源感知分区](data_juicer/core/executor/partition_size_optimizer.py) - 分布式处理的自动资源优化
 - 第三方
   - [大语言模型生态](thirdparty/LLM_ecosystems/README_ZH.md)

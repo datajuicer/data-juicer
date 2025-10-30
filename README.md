@@ -144,7 +144,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [Data Scoring](tools/quality_classifier/README.md)
 - Job Management & Monitoring
   - [Processing Snapshot Utility](data_juicer/utils/job/snapshot.py) - Comprehensive job status analysis with JSON output
-  - [Job Management Tools](data_juicer/utils/job/) - Monitor and manage DataJuicer processing jobs
+  - [Job Management Tools](data_juicer/utils/job/) - Monitor and manage Data-Juicer processing jobs
   - [Resource-Aware Partitioning](data_juicer/core/executor/partition_size_optimizer.py) - Automatic resource optimization for distributed processing
 - Third-party
   - [LLM Ecosystems](thirdparty/LLM_ecosystems/README.md)

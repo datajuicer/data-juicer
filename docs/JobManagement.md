@@ -1,6 +1,6 @@
 # Job Management & Monitoring
 
-DataJuicer provides comprehensive job management and monitoring capabilities to help you track, analyze, and optimize your data processing workflows.
+Data-Juicer provides comprehensive job management and monitoring capabilities to help you track, analyze, and optimize your data processing workflows.
 
 ## Overview
 
@@ -13,7 +13,7 @@ The job management system includes:
 
 ## Processing Snapshot Utility
 
-The Processing Snapshot Utility provides comprehensive analysis of DataJuicer job processing status based on `events.jsonl` and DAG structure.
+The Processing Snapshot Utility provides comprehensive analysis of Data-Juicer job processing status based on `events.jsonl` and DAG structure.
 
 ### Features
 
@@ -308,7 +308,7 @@ import subprocess
 from pathlib import Path
 
 def monitor_job(job_dir: str):
-    """Monitor a DataJuicer job and return status."""
+    """Monitor a Data-Juicer job and return status."""
     result = subprocess.run([
         "python", "-m", "data_juicer.utils.job.snapshot", job_dir
     ], capture_output=True, text=True)
@@ -414,4 +414,4 @@ optimizer = PartitionSizeOptimizer()
 recommendations = optimizer.get_partition_recommendations(dataset, modality)
 ```
 
-This comprehensive job management system provides the tools you need to monitor, optimize, and troubleshoot DataJuicer processing jobs effectively.
+This comprehensive job management system provides the tools you need to monitor, optimize, and troubleshoot Data-Juicer processing jobs effectively.

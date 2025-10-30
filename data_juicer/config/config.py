@@ -1585,20 +1585,6 @@ def resolve_job_id(cfg):
     else:
         # No job_id provided by user
         setattr(cfg, "_user_provided_job_id", False)
-
-    # Only auto-generate if {job_id} is in work_dir or any relevant path
-    needs_job_id = False
-    for key in ["work_dir", "export_path", "event_log_dir", "checkpoint_dir", "partition_dir"]:
-        val = getattr(cfg, key, None)
-        if isinstance(val, str) and "{job_id}" in val:
-            needs_job_id = True
-    if not job_id and needs_job_id:
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        short_hash = uuid.uuid4().hex[:6]
-        job_id = f"{timestamp}_{short_hash}"
-        setattr(cfg, "job_id", job_id)
-    elif not job_id:
-        # fallback: use timestamp+hash always if not set
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         short_hash = uuid.uuid4().hex[:6]
         job_id = f"{timestamp}_{short_hash}"

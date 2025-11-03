@@ -44,14 +44,8 @@ def timing_context(description):
 
 
 def _generate_module_name(abs_path):
-    """Generate a unique module name based on the absolute path of the file."""
-    abs_path_without_ext = os.path.splitext(abs_path)[0]
-
-    # handle path delimiters for different operating systems
-    normalized_path = os.path.normpath(abs_path_without_ext)
-    module_name = normalized_path.replace(os.path.sep, "_")
-
-    return module_name
+    """Generate a module name based on the absolute path of the file."""
+    return os.path.splitext(os.path.basename(abs_path))[0]
 
 
 def load_custom_operators(paths):

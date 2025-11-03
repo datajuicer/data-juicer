@@ -23,16 +23,20 @@ def initialize_ray(cfg=None, force=False):
     if ray.is_initialized() and not force:
         return
 
-    from ray.runtime_env import RuntimeEnv
-
     if cfg is None:
         ray_address = "auto"
         logger.warning("No ray config provided, using default ray address 'auto'.")
     else:
         ray_address = cfg.ray_address
 
-    runtime_env = RuntimeEnv(env_vars={RAY_JOB_ENV_VAR: os.environ.get(RAY_JOB_ENV_VAR, "0")})
-    ray.init(ray_address, ignore_reinit_error=True, runtime_env=runtime_env)
+    ray.init(
+        ray_address,
+        ignore_reinit_error=True,
+        runtime_env=dict(
+            py_modules=cfg.custom_operator_paths if cfg.get("custom_operator_paths", None) else None,
+            env_vars={RAY_JOB_ENV_VAR: os.environ.get(RAY_JOB_ENV_VAR, "0")},
+        ),
+    )
 
 
 def check_and_initialize_ray(cfg=None):

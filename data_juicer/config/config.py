@@ -771,10 +771,9 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         # Validate config for resumption if job_id is provided
         if not load_configs_only and hasattr(cfg, "job_id") and cfg.job_id:
             # Check if this is a resumption attempt by looking for existing job directory
-            job_dir = getattr(cfg, "job_dir", None)
-            if job_dir and os.path.exists(job_dir):
+            if cfg.work_dir and os.path.exists(cfg.work_dir):
                 logger.info(f"🔍 Checking for job resumption: {cfg.job_id}")
-                cfg._same_yaml_config = validate_config_for_resumption(cfg, job_dir, args)
+                cfg._same_yaml_config = validate_config_for_resumption(cfg, cfg.work_dir, args)
             else:
                 # New job, set flag to True
                 cfg._same_yaml_config = True
@@ -1190,7 +1189,7 @@ def save_cli_arguments(cfg: Namespace):
     logger.info(f"💾 Saved CLI arguments to: {cli_path}")
 
 
-def validate_config_for_resumption(cfg: Namespace, job_dir: str, original_args: List[str] = None) -> bool:
+def validate_config_for_resumption(cfg: Namespace, work_dir: str, original_args: List[str] = None) -> bool:
     """Validate that the current config matches the job's saved config for safe resumption.
 
     Does verbatim comparison between:
@@ -1202,10 +1201,10 @@ def validate_config_for_resumption(cfg: Namespace, job_dir: str, original_args: 
     try:
         from pathlib import Path
 
-        # Find the original config file in the job directory
-        config_files = list(Path(job_dir).glob("*.yaml")) + list(Path(job_dir).glob("*.yml"))
+        # Find the original config file in the work directory
+        config_files = list(Path(work_dir).glob("*.yaml")) + list(Path(work_dir).glob("*.yml"))
         if not config_files:
-            logger.warning(f"No config file found in job directory: {job_dir}")
+            logger.warning(f"No config file found in work directory: {work_dir}")
             cfg._same_yaml_config = False
             return False
 
@@ -1217,7 +1216,7 @@ def validate_config_for_resumption(cfg: Namespace, job_dir: str, original_args: 
                 break
 
         if not original_config_file:
-            logger.warning(f"No original config file found in job directory: {job_dir}")
+            logger.warning(f"No original config file found in work directory: {work_dir}")
             cfg._same_yaml_config = False
             return False
 
@@ -1236,7 +1235,7 @@ def validate_config_for_resumption(cfg: Namespace, job_dir: str, original_args: 
         config_match = original_config_content.strip() == current_config_content.strip()
 
         # 2. Per-key comparison for CLI arguments
-        cli_file = Path(job_dir) / "cli.yaml"
+        cli_file = Path(work_dir) / "cli.yaml"
         cli_config = {}
         if cli_file.exists():
             with open(cli_file, "r") as f:
@@ -1256,7 +1255,7 @@ def validate_config_for_resumption(cfg: Namespace, job_dir: str, original_args: 
         # Compare CLI arguments per key
         cli_differences = []
         all_cli_keys = set(cli_config.keys()) | set(current_cli_config.keys())
-        excluded_keys = {"config", "_original_args", "backed_up_config_path", "_same_yaml_config", "job_id"}
+        excluded_keys = {"config", "_original_args", "backed_up_config_path", "_same_yaml_config", "job_id", "work_dir"}
 
         for key in all_cli_keys:
             if key in excluded_keys:
@@ -1520,7 +1519,6 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
         internal_attrs = [
             "_user_provided_job_id",
             "_same_yaml_config",
-            "job_dir",
             "metadata_dir",
             "results_dir",
             "event_log_file",
@@ -1626,7 +1624,9 @@ def resolve_job_directories(cfg):
 
     - If work_dir does NOT contain '{job_id}', job_id will be appended automatically
     - Examples:
-      work_dir: "./outputs/my_project" → job_dir: "./outputs/my_project/20250804_143022_abc123"
+      work_dir: "./outputs/my_project" → work_dir: "./outputs/my_project/20250804_143022_abc123"
+
+    After resolution, work_dir will always include job_id at the end.
     """
     # 1. placeholder map
     placeholder_map = {"work_dir": cfg.work_dir, "job_id": getattr(cfg, "job_id", "")}
@@ -1658,25 +1658,25 @@ def resolve_job_directories(cfg):
     if not job_id:
         raise ValueError("job_id must be set before resolving job directories.")
 
-    # Since we validated {job_id} is at the end, we can safely check if work_dir ends with job_id
-    if cfg.work_dir.endswith(job_id) or os.path.basename(cfg.work_dir) == job_id:
-        job_dir = cfg.work_dir
-    else:
-        job_dir = os.path.join(cfg.work_dir, job_id)
+    # Ensure work_dir always includes job_id at the end
+    # If work_dir already ends with job_id (from placeholder substitution), keep it as-is
+    # Otherwise, append job_id automatically
+    if not (cfg.work_dir.endswith(job_id) or os.path.basename(cfg.work_dir) == job_id):
+        cfg.work_dir = os.path.join(cfg.work_dir, job_id)
 
-    cfg.job_dir = job_dir
-    cfg.event_log_dir = os.path.join(job_dir, "logs")
-    cfg.checkpoint_dir = os.path.join(job_dir, "checkpoints")
-    cfg.partition_dir = os.path.join(job_dir, "partitions")
-    cfg.metadata_dir = os.path.join(job_dir, "metadata")
-    cfg.results_dir = os.path.join(job_dir, "results")
-    cfg.event_log_file = os.path.join(job_dir, "events.jsonl")
-    cfg.job_summary_file = os.path.join(job_dir, "job_summary.json")
+    # All job-specific directories are under work_dir
+    cfg.event_log_dir = os.path.join(cfg.work_dir, "logs")
+    cfg.checkpoint_dir = os.path.join(cfg.work_dir, "checkpoints")
+    cfg.partition_dir = os.path.join(cfg.work_dir, "partitions")
+    cfg.metadata_dir = os.path.join(cfg.work_dir, "metadata")
+    cfg.results_dir = os.path.join(cfg.work_dir, "results")
+    cfg.event_log_file = os.path.join(cfg.work_dir, "events.jsonl")
+    cfg.job_summary_file = os.path.join(cfg.work_dir, "job_summary.json")
     # Set backed_up_config_path using original config filename
     if hasattr(cfg, "config") and cfg.config:
         original_config_name = os.path.basename(cfg.config[0])
-        cfg.backed_up_config_path = os.path.join(job_dir, original_config_name)
+        cfg.backed_up_config_path = os.path.join(cfg.work_dir, original_config_name)
     else:
-        cfg.backed_up_config_path = os.path.join(job_dir, "config.yaml")
+        cfg.backed_up_config_path = os.path.join(cfg.work_dir, "config.yaml")
 
     return cfg

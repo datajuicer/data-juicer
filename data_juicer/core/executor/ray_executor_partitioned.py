@@ -719,17 +719,17 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
 
         return groups
 
-    def _find_job_directory(self, job_id: str) -> Optional[str]:
-        """Find the job directory based on job_id."""
+    def _find_work_directory(self, job_id: str) -> Optional[str]:
+        """Find the work directory based on job_id."""
         # Check if the current work_dir already contains the job_id
         current_work_dir = Path(self.work_dir)
         logger.info(f"Checking if current work_dir contains job_id: {current_work_dir}")
 
         if job_id in str(current_work_dir):
-            # Current work_dir already contains job_id, check if it's a valid job directory
-            logger.info(f"Current work_dir contains job_id '{job_id}', checking if it's a valid job directory")
+            # Current work_dir already contains job_id, check if it's a valid work directory
+            logger.info(f"Current work_dir contains job_id '{job_id}', checking if it's a valid work directory")
 
-            # Check if this directory has events files (indicating it's a job directory)
+            # Check if this directory has events files (indicating it's a work directory)
             latest_events_file = self.event_logger.find_latest_events_file(str(current_work_dir))
             if latest_events_file:
                 logger.info(f"Found events file in current work_dir: {latest_events_file}")
@@ -740,11 +740,11 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
         logger.warning(f"No directory found containing job_id '{job_id}' with events files")
         return None
 
-    def _check_job_completion(self, job_dir: str, job_id: str) -> bool:
+    def _check_job_completion(self, work_dir: str, job_id: str) -> bool:
         """Check if the job is already completed."""
-        latest_events_file = self.event_logger.find_latest_events_file(job_dir)
+        latest_events_file = self.event_logger.find_latest_events_file(work_dir)
         if not latest_events_file:
-            logger.info(f"No events file found in job directory: {job_dir}")
+            logger.info(f"No events file found in work directory: {work_dir}")
             return False
 
         is_completed = self.event_logger.check_job_completion(latest_events_file)
@@ -765,13 +765,13 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
         """
         logger.info(f"Attempting to resume job: {job_id}")
 
-        # Find job directory
-        job_dir = self._find_job_directory(job_id)
-        if not job_dir:
-            logger.error(f"Job directory not found for job_id: {job_id}")
+        # Find work directory
+        work_dir = self._find_work_directory(job_id)
+        if not work_dir:
+            logger.error(f"Work directory not found for job_id: {job_id}")
             return "failed"
 
-        logger.info(f"Found job directory: {job_dir}")
+        logger.info(f"Found work directory: {work_dir}")
 
         # Check if config validation passed (done during config initialization)
         if not getattr(self.cfg, "_same_yaml_config", False):
@@ -779,16 +779,16 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
             return "failed"
 
         # Check if job is already completed
-        if self._check_job_completion(job_dir, job_id):
+        if self._check_job_completion(work_dir, job_id):
             return "completed"  # Job already completed
 
-        # Update checkpoint directory to use the job's checkpoint directory
-        job_checkpoint_dir = os.path.join(job_dir, "checkpoints")
-        if os.path.exists(job_checkpoint_dir):
-            self.checkpoint_dir = job_checkpoint_dir
-            logger.info(f"Using checkpoint directory from job: {self.checkpoint_dir}")
+        # Update checkpoint directory to use the work directory's checkpoint directory
+        work_checkpoint_dir = os.path.join(work_dir, "checkpoints")
+        if os.path.exists(work_checkpoint_dir):
+            self.checkpoint_dir = work_checkpoint_dir
+            logger.info(f"Using checkpoint directory from work directory: {self.checkpoint_dir}")
         else:
-            logger.warning(f"No checkpoint directory found in job directory: {job_checkpoint_dir}")
+            logger.warning(f"No checkpoint directory found in work directory: {work_checkpoint_dir}")
 
         return "resuming"
 

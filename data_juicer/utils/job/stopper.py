@@ -21,9 +21,9 @@ class JobStopper:
     """Stop DataJuicer jobs using event log-based process discovery."""
 
     def __init__(self, job_id: str, base_dir: str = "outputs/partition-checkpoint-eventlog"):
-        self.job_utils = JobUtils(job_id, base_dir)
+        self.job_utils = JobUtils(job_id, base_dir=base_dir)
         self.job_id = job_id
-        self.job_dir = self.job_utils.job_dir
+        self.work_dir = self.job_utils.work_dir
 
     def terminate_process_gracefully(self, proc, timeout: int = 10) -> bool:
         """Terminate a process gracefully with timeout."""
@@ -62,9 +62,9 @@ class JobStopper:
             job_summary["stop_reason"] = "manual_stop"
 
             try:
-                with open(self.job_dir / "job_summary.json", "w") as f:
+                with open(self.work_dir / "job_summary.json", "w") as f:
                     json.dump(job_summary, f, indent=2, default=str)
-                logger.info(f"Updated job summary: {self.job_dir / 'job_summary.json'}")
+                logger.info(f"Updated job summary: {self.work_dir / 'job_summary.json'}")
             except Exception as e:
                 logger.error(f"Failed to update job summary: {e}")
 
@@ -81,7 +81,7 @@ class JobStopper:
         }
 
         logger.info(f"🛑 Stopping DataJuicer job: {self.job_id}")
-        logger.info(f"Job directory: {self.job_dir}")
+        logger.info(f"Work directory: {self.work_dir}")
 
         # Load job summary
         job_summary = self.job_utils.load_job_summary()

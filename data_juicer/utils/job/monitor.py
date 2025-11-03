@@ -26,9 +26,9 @@ class JobProgressMonitor:
             job_id: The job ID to monitor
             base_dir: Base directory containing job outputs
         """
-        self.job_utils = JobUtils(job_id, base_dir)
+        self.job_utils = JobUtils(job_id, base_dir=base_dir)
         self.job_id = job_id
-        self.job_dir = self.job_utils.job_dir
+        self.work_dir = self.job_utils.work_dir
 
     def display_progress(self, detailed: bool = False):
         """Display job progress information."""

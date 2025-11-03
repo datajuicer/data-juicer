@@ -98,12 +98,12 @@ class JobSnapshot:
 class ProcessingSnapshotAnalyzer:
     """Analyzer for processing snapshots."""
 
-    def __init__(self, job_dir: str):
-        """Initialize the analyzer with job directory."""
-        self.job_dir = Path(job_dir)
-        self.events_file = self.job_dir / "events.jsonl"
-        self.dag_file = self.job_dir / "dag_execution_plan.json"
-        self.job_summary_file = self.job_dir / "job_summary.json"
+    def __init__(self, work_dir: str):
+        """Initialize the analyzer with work directory."""
+        self.work_dir = Path(work_dir)
+        self.events_file = self.work_dir / "events.jsonl"
+        self.dag_file = self.work_dir / "dag_execution_plan.json"
+        self.job_summary_file = self.work_dir / "job_summary.json"
 
     def load_events(self) -> List[Dict]:
         """Load events from events.jsonl file."""
@@ -339,7 +339,7 @@ class ProcessingSnapshotAnalyzer:
 
     def generate_snapshot(self) -> JobSnapshot:
         """Generate a complete processing snapshot."""
-        logger.info(f"Generating processing snapshot for job directory: {self.job_dir}")
+        logger.info(f"Generating processing snapshot for work directory: {self.work_dir}")
 
         # Load data
         events = self.load_events()
@@ -347,7 +347,7 @@ class ProcessingSnapshotAnalyzer:
         job_summary = self.load_job_summary()
 
         # Extract job ID from directory name
-        job_id = self.job_dir.name
+        job_id = self.work_dir.name
 
         # Analyze events
         partition_statuses, operation_statuses = self.analyze_events(events)
@@ -641,9 +641,9 @@ class ProcessingSnapshotAnalyzer:
             return f"{seconds}s"
 
 
-def create_snapshot(job_dir: str, detailed: bool = False) -> JobSnapshot:
-    """Create and display a processing snapshot for a job directory."""
-    analyzer = ProcessingSnapshotAnalyzer(job_dir)
+def create_snapshot(work_dir: str, detailed: bool = False) -> JobSnapshot:
+    """Create and display a processing snapshot for a work directory."""
+    analyzer = ProcessingSnapshotAnalyzer(work_dir)
     snapshot = analyzer.generate_snapshot()
     return snapshot
 
@@ -661,18 +661,18 @@ Examples:
   python -m data_juicer.utils.job.snapshot /path/to/job/directory --human-readable
         """,
     )
-    parser.add_argument("job_dir", help="Path to the DataJuicer job directory")
+    parser.add_argument("work_dir", help="Path to the DataJuicer work directory")
     parser.add_argument("--human-readable", action="store_true", help="Output in human-readable format instead of JSON")
 
     args = parser.parse_args()
 
-    if not os.path.exists(args.job_dir):
-        print(f"Error: Job directory '{args.job_dir}' does not exist")
+    if not os.path.exists(args.work_dir):
+        print(f"Error: Work directory '{args.work_dir}' does not exist")
         return 1
 
     try:
-        snapshot = create_snapshot(args.job_dir)
-        analyzer = ProcessingSnapshotAnalyzer(args.job_dir)
+        snapshot = create_snapshot(args.work_dir)
+        analyzer = ProcessingSnapshotAnalyzer(args.work_dir)
 
         if args.human_readable:
             # Human-readable output

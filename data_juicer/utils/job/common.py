@@ -20,28 +20,36 @@ from loguru import logger
 class JobUtils:
     """Common utilities for DataJuicer job operations."""
 
-    def __init__(self, job_id: str, base_dir: str = "outputs/partition-checkpoint-eventlog"):
+    def __init__(self, job_id: str, work_dir: str = None, base_dir: str = None):
         """
         Initialize job utilities.
 
         Args:
             job_id: The job ID to work with
-            base_dir: Base directory containing job outputs
+            work_dir: Work directory that already includes job_id (preferred)
+            base_dir: Base directory containing job outputs (deprecated, use work_dir instead)
         """
         self.job_id = job_id
-        self.base_dir = Path(base_dir)
-        self.job_dir = self.base_dir / job_id
+        if work_dir:
+            # work_dir already includes job_id
+            self.work_dir = Path(work_dir)
+        elif base_dir:
+            # Legacy: construct work_dir from base_dir + job_id
+            self.work_dir = Path(base_dir) / job_id
+        else:
+            # Default fallback
+            self.work_dir = Path("outputs/partition-checkpoint-eventlog") / job_id
 
         # Set up logging
         logger.remove()
         logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level} | {name}:{function}:{line} - {message}")
 
-        if not self.job_dir.exists():
-            raise FileNotFoundError(f"Job directory not found: {self.job_dir}")
+        if not self.work_dir.exists():
+            raise FileNotFoundError(f"Job directory not found: {self.work_dir}")
 
     def load_job_summary(self) -> Optional[Dict[str, Any]]:
-        """Load job summary from the job directory."""
-        job_summary_file = self.job_dir / "job_summary.json"
+        """Load job summary from the work directory."""
+        job_summary_file = self.work_dir / "job_summary.json"
         if not job_summary_file.exists():
             logger.error(f"Job summary not found: {job_summary_file}")
             return None
@@ -55,7 +63,7 @@ class JobUtils:
 
     def load_dataset_mapping(self) -> Dict[str, Any]:
         """Load dataset mapping information."""
-        mapping_file = self.job_dir / "metadata" / "dataset_mapping.json"
+        mapping_file = self.work_dir / "metadata" / "dataset_mapping.json"
         if mapping_file.exists():
             try:
                 with open(mapping_file, "r") as f:
@@ -66,7 +74,7 @@ class JobUtils:
 
     def load_event_logs(self) -> List[Dict[str, Any]]:
         """Load and parse event logs."""
-        events_file = self.job_dir / "events.jsonl"
+        events_file = self.work_dir / "events.jsonl"
         events = []
 
         if events_file.exists():
@@ -260,7 +268,7 @@ class JobUtils:
 
     def get_operation_pipeline(self) -> List[Dict[str, Any]]:
         """Get the operation pipeline from config."""
-        config_file = self.job_dir / "partition-checkpoint-eventlog.yaml"
+        config_file = self.work_dir / "partition-checkpoint-eventlog.yaml"
         if not config_file.exists():
             return []
 
@@ -337,7 +345,7 @@ def list_running_jobs(base_dir: str = "outputs/partition-checkpoint-eventlog") -
                             "status": job_summary.get("status", "unknown"),
                             "start_time": job_summary.get("start_time"),
                             "processes": running_processes,
-                            "job_dir": str(job_dir),
+                            "work_dir": str(job_dir),
                         }
                     )
                 except Exception as e:

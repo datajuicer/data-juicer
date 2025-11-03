@@ -303,15 +303,14 @@ class EventLogger:
 
         # Look for job directories (each job has its own directory)
         for item in os.listdir(work_dir):
-            job_dir = os.path.join(work_dir, item)
-            if os.path.isdir(job_dir):
-                summary_file = os.path.join(job_dir, "job_summary.json")
+            job_work_dir = os.path.join(work_dir, item)
+            if os.path.isdir(job_work_dir):
+                summary_file = os.path.join(job_work_dir, "job_summary.json")
                 if os.path.exists(summary_file):
                     try:
                         with open(summary_file, "r") as f:
                             job_summary = json.load(f)
-                        job_summary["work_dir"] = work_dir
-                        job_summary["job_dir"] = job_dir
+                        job_summary["work_dir"] = job_work_dir
                         available_jobs.append(job_summary)
                     except Exception as e:
                         logger.warning(f"Failed to load job summary from {summary_file}: {e}")
@@ -338,43 +337,30 @@ class EventLoggingMixin:
             self.event_logger = None
             return
 
-        # Use job_id from config if provided, otherwise auto-generate
+        # job_id and work_dir should already be resolved by resolve_job_directories() in config.py
         job_id = getattr(self.cfg, "job_id", None)
+        if not job_id:
+            raise ValueError(
+                "job_id must be set before setting up event logging. "
+                "This should have been done by resolve_job_id() in config.py"
+            )
 
-        # Create job-specific directory structure
-        if job_id and (self.work_dir.endswith(job_id) or os.path.basename(self.work_dir) == job_id):
-            # work_dir already includes job_id
-            job_dir = self.work_dir
-        elif job_id:
-            job_dir = os.path.join(self.work_dir, job_id)
-        else:
-            # Auto-generate job_id with timestamp and config name
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-            config_name = self._get_config_name()
-            unique_suffix = uuid4().hex[:6]
-            job_id = f"{timestamp}_{config_name}_{unique_suffix}"
-            job_dir = os.path.join(self.work_dir, job_id)
-
-        # Create job directory and subdirectories
-        os.makedirs(job_dir, exist_ok=True)
+        # work_dir already includes job_id after resolve_job_directories
+        # Create work directory and subdirectories
+        os.makedirs(self.work_dir, exist_ok=True)
 
         # Use logs directory instead of event_logs
-        logs_dir = os.path.join(job_dir, "logs")
+        logs_dir = os.path.join(self.work_dir, "logs")
         os.makedirs(logs_dir, exist_ok=True)
 
-        self.event_logger = EventLogger(logs_dir, job_id=job_id, work_dir=job_dir)
+        self.event_logger = EventLogger(logs_dir, job_id=job_id, work_dir=self.work_dir)
 
         logger.info(f"Event logging initialized for {self.executor_type} executor")
 
     def _update_job_summary(self, status: str, end_time: Optional[float] = None, error_message: Optional[str] = None):
         """Update job summary with completion status."""
-        job_id = self.event_logger.job_id
-        job_dir = (
-            self.work_dir
-            if self.work_dir.endswith(job_id) or os.path.basename(self.work_dir) == job_id
-            else os.path.join(self.work_dir, job_id)
-        )
-        summary_file = os.path.join(job_dir, "job_summary.json")
+        # work_dir already includes job_id after resolve_job_directories
+        summary_file = os.path.join(self.work_dir, "job_summary.json")
 
         if not os.path.exists(summary_file):
             return
@@ -412,16 +398,8 @@ class EventLoggingMixin:
 
     def _load_job_summary(self) -> Optional[Dict[str, Any]]:
         """Load job summary if it exists."""
-        job_id = getattr(self.cfg, "job_id", None)
-        if not job_id:
-            return None
-
-        job_dir = (
-            self.work_dir
-            if self.work_dir.endswith(job_id) or os.path.basename(self.work_dir) == job_id
-            else os.path.join(self.work_dir, job_id)
-        )
-        summary_file = os.path.join(job_dir, "job_summary.json")
+        # work_dir already includes job_id after resolve_job_directories
+        summary_file = os.path.join(self.work_dir, "job_summary.json")
 
         if os.path.exists(summary_file):
             with open(summary_file, "r") as f:

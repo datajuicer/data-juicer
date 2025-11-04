@@ -885,11 +885,13 @@ def prepare_yolo_model(model_path, **model_params):
 def prepare_vggt_model(model_path, **model_params):
     device = model_params.pop("device", "cpu")
 
+    import subprocess
+
     from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 
     vggt_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "vggt")
     if not os.path.exists(vggt_repo_path):
-        os.system(f"git clone https://github.com/facebookresearch/vggt.git {vggt_repo_path}")
+        subprocess.run(["git", "clone", "https://github.com/facebookresearch/vggt.git", vggt_repo_path], check=True)
     import sys
 
     sys.path.append(vggt_repo_path)

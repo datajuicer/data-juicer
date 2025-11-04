@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from pydantic import PositiveInt
 
@@ -13,9 +14,6 @@ from data_juicer.utils.model_utils import get_model, prepare_model
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
-# from data_juicer.core.data import NestedDataset as Dataset
-
-
 OP_NAME = "vggt_mapper"
 
 torch = LazyLoader("torch")
@@ -26,7 +24,7 @@ torch = LazyLoader("torch")
 class VggtMapper(Mapper):
     """Input a video of a single scene, and use VGGT to extract
     information including Camera Pose, Depth Maps, Point Maps,
-    and 3D point tracks."""
+    and 3D Point Tracks."""
 
     _accelerator = "cuda"
 
@@ -49,19 +47,18 @@ class VggtMapper(Mapper):
         Initialization method.
 
         :param vggt_model_path: The path to the VGGT model.
-        :param frame_num: the number of frames to be extracted uniformly from
-            the video. Only works when frame_sampling_method is "uniform". If
-            it's 1, only the middle frame will be extracted. If it's 2, only
-            the first and the last frames will be extracted. If it's larger
-            than 2, in addition to the first and the last frames, other frames
-            will be extracted uniformly within the video duration.
+        :param frame_num: The number of frames to be extracted uniformly from
+            the video. If it's 1, only the middle frame will be extracted. If
+            it's 2, only the first and the last frames will be extracted. If
+            it's larger than 2, in addition to the first and the last frames,
+            other frames will be extracted uniformly within the video duration.
             If "duration" > 0, frame_num is the number of frames per segment.
         :param duration: The duration of each segment in seconds.
             If 0, frames are extracted from the entire video.
             If duration > 0, the video is segmented into multiple segments
             based on duration, and frames are extracted from each segment.
-        :param tag_field_name: the field name to store the tags. It's
-            "video_frame_tags" in default.
+        :param tag_field_name: The field name to store the tags. It's
+            "vggt_tags" in default.
         :param frame_dir: Output directory to save extracted frames.
         :param if_output_camera_parameters: Determines whether to output
             camera parameters.
@@ -90,7 +87,7 @@ class VggtMapper(Mapper):
 
         vggt_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "vggt")
         if not os.path.exists(vggt_repo_path):
-            os.system(f"git clone https://github.com/facebookresearch/vggt.git {vggt_repo_path}")
+            subprocess.run(["git", "clone", "https://github.com/facebookresearch/vggt.git", vggt_repo_path], check=True)
         import sys
 
         sys.path.append(vggt_repo_path)
@@ -106,7 +103,7 @@ class VggtMapper(Mapper):
         self.duration = duration
         self.tag_field_name = tag_field_name
         self.frame_dir = frame_dir
-        self.dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
+        self.dtype = torch.bfloat16 if self.use_cuda() and torch.cuda.get_device_capability()[0] >= 8 else torch.float16
         self.model_key = prepare_model(model_type="vggt", model_path=vggt_model_path)
 
         self.if_output_camera_parameters = if_output_camera_parameters

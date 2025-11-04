@@ -24,8 +24,8 @@ torch = LazyLoader("torch")
 class VggtMapper(Mapper):
     """Input a video of a single scene, and use VGGT to extract
     information including Camera Pose, Depth Maps, Point Maps,
-    and 3D Point Tracks. (if outputting point tracks is required,
-    the user needs to provide query points)"""
+    and 3D Point Tracks (if outputting point tracks is required,
+    the user needs to provide query points)."""
 
     _accelerator = "cuda"
 

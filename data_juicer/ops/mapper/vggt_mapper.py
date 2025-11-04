@@ -24,7 +24,8 @@ torch = LazyLoader("torch")
 class VggtMapper(Mapper):
     """Input a video of a single scene, and use VGGT to extract
     information including Camera Pose, Depth Maps, Point Maps,
-    and 3D Point Tracks."""
+    and 3D Point Tracks. (if outputting point tracks is required,
+    the user needs to provide query points)"""
 
     _accelerator = "cuda"
 
@@ -35,11 +36,11 @@ class VggtMapper(Mapper):
         duration: float = 0,
         tag_field_name: str = MetaKeys.vggt_tags,
         frame_dir: str = DATA_JUICER_ASSETS_CACHE,
-        if_output_camera_parameters: bool = False,
-        if_output_depth_maps: bool = False,
-        if_output_point_maps_from_projection: bool = False,
-        if_output_point_maps_from_unprojection: bool = False,
-        if_output_point_tracks: bool = False,
+        if_output_camera_parameters: bool = True,
+        if_output_depth_maps: bool = True,
+        if_output_point_maps_from_projection: bool = True,
+        if_output_point_maps_from_unprojection: bool = True,
+        if_output_point_tracks: bool = True,
         *args,
         **kwargs,
     ):
@@ -69,6 +70,10 @@ class VggtMapper(Mapper):
         :param if_output_point_maps_from_unprojection: Determines whether to
             output point maps constructed from depth maps and camera parameters.
         :param if_output_point_tracks: Determines whether to output point tracks.
+            If point tracks are required, the user should provide a list where
+            each element consists of 2D point coordinates (list shape: (N, 2)).
+            The point coordinates should be specified in the format [x, y],
+            relative to the top-left corner, where x/y values are non-normalized.
         :param args: extra args
         :param kwargs: extra args
 
@@ -181,6 +186,9 @@ class VggtMapper(Mapper):
             point_maps_from_unprojection = []
 
         # Predict Tracks
+        # If point track output is required, users must provide a list of non-normalized [x, y]
+        # coordinates (shape (N, 2)) relative to the top-left corner.
+        # The tracking is done in 4 iterations. The last iteration should be the best one.
         query_points = sample.get("query_points")
         # choose your own points to track, with shape (N, 2) for one scene
         if self.if_output_point_tracks and query_points and len(query_points) > 0:

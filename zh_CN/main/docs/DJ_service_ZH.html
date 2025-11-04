@@ -435,19 +435,18 @@
 <h2>MCP服务器<a class="headerlink" href="#mcp" title="Link to this heading">¶</a></h2>
 <section id="id9">
 <h3>概览<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
-<p>Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗、过滤、去重等任务。
-为了适应不同的使用场景，我们提供两种服务器供选用：</p>
+<p>Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗、过滤、去重等任务。为了适应不同的使用场景，我们提供两种服务器供选用：</p>
 <ul class="simple">
-<li><p>Recipe-Flow（数据菜谱）: 允许根据算子的类型和标签进行筛选，并支持将多个算子组合成一个数据菜谱来运行。</p></li>
-<li><p>Granular-Operators（细粒度算子）: 将每个算子作为一个独立的工具提供，可以灵活地通过环境变量指定需要使用的算子列表，从而构建定制化的数据处理管道。</p></li>
+<li><p><strong>Recipe-Flow（数据菜谱）</strong>：允许根据算子的类型和标签进行筛选，并支持将多个算子组合成一个数据菜谱来运行。</p></li>
+<li><p><strong>Granular-Operators（细粒度算子）</strong>：将每个算子作为一个独立的工具提供，可以灵活地通过环境变量指定需要使用的算子列表，从而构建定制化的数据处理管道。</p></li>
 </ul>
-<p>请注意，Data-Juicer MCP 服务器目前处于早期开发阶段。其功能和可用工具可能会随着我们继续开发和改进服务器而发生变化和扩展。
-支持两种部署方式：stdio 和 SSE 。 stdio 方法不支持多进程。如果需要多进程或多线程功能，则必须使用 SSE 部署方法。 以下提供了每种方法的配置详细信息。</p>
+<p>请注意，Data-Juicer MCP 服务器目前处于早期开发阶段。其功能和可用工具可能会随着我们继续开发和改进服务器而发生变化和扩展。</p>
+<p>支持两种部署方式：stdio 和 SSE。stdio 方法不支持多进程。如果需要多进程或多线程功能，则必须使用 SSE 部署方法。以下提供了每种方法的配置详细信息。</p>
 </section>
 <section id="recipe-flow">
 <h3>Recipe-Flow<a class="headerlink" href="#recipe-flow" title="Link to this heading">¶</a></h3>
-<ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">get_data_processing_ops</span></code></p>
+<section id="get-data-processing-ops">
+<h4>1. get_data_processing_ops<a class="headerlink" href="#get-data-processing-ops" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p>根据指定的类型和标签检索可用的数据处理算子列表（若不指定，则返回全部算子）</p></li>
 <li><p>输入：</p>
@@ -459,8 +458,9 @@
 </li>
 <li><p>返回：包含可用算子详细信息的字典</p></li>
 </ul>
-</li>
-<li><p><code class="docutils literal notranslate"><span class="pre">run_data_recipe</span></code></p>
+</section>
+<section id="run-data-recipe">
+<h4>2. run_data_recipe<a class="headerlink" href="#run-data-recipe" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p>执行数据菜谱</p></li>
 <li><p>输入：</p>
@@ -472,56 +472,7 @@
 </li>
 <li><p>返回：执行结果的字符串</p></li>
 </ul>
-</li>
-</ol>
 <p>针对特定数据处理请求，MCP client 应先调用<code class="docutils literal notranslate"><span class="pre">get_data_processing_ops</span></code>获取相关的算子信息，从中选择匹配需求的算子，然后调用<code class="docutils literal notranslate"><span class="pre">run_data_recipe</span></code>运行选择的算子组合。</p>
-<section id="id10">
-<h4>配置<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h4>
-<p>以下配置示例演示了如何使用 stdio 和 SSE 方法设置 Recipe-Flow 服务器。 这些示例仅用于说明目的，应根据特定 MCP 客户端的配置格式进行调整。</p>
-<section id="stdio">
-<h5>stdio<a class="headerlink" href="#stdio" title="Link to this heading">¶</a></h5>
-<p>将以下内容添加到 MCP 客户端的配置文件中（例如，claude_desktop_config.json 或类似的配置文件）：</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/python&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;/path/to/data_juicer/tools/DJ_mcp_recipe_flow.py&quot;</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;SERVER_TRANSPORT&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-<section id="sse">
-<h5>SSE<a class="headerlink" href="#sse" title="Link to this heading">¶</a></h5>
-<p>要使用 SSE 部署，首先需要单独启动 MCP 服务器。</p>
-<ol class="arabic">
-<li><p>运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>/path/to/data_juicer/tools/DJ_mcp_recipe_flow.py<span class="w"> </span>--port<span class="o">=</span><span class="m">8080</span>
-</pre></div>
-</div>
-</li>
-<li><p>配置您的 MCP 客户端：将以下内容添加到 MCP 客户端的配置文件中：</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8080/sse&quot;</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</li>
-</ol>
-<p>注意：</p>
-<ul class="simple">
-<li><p>URL：<code class="docutils literal notranslate"><span class="pre">url</span></code> 应指向正在运行的服务器的 SSE 端点（通常为 <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/sse</span></code>）。 如果在启动服务器时使用了不同的值，请调整端口号。</p></li>
-<li><p>单独的服务器进程：SSE 服务器必须在 MCP 客户端尝试连接之前运行。</p></li>
-<li><p>防火墙：确保防火墙允许连接到指定的端口。</p></li>
-</ul>
-</section>
 </section>
 </section>
 <section id="granular-operators">
@@ -529,72 +480,155 @@
 <p>默认情况下，该 MCP 服务器将返回所有Data-Juicer算子工具，每个工具都独立运行。</p>
 <p>可通过指定环境变量 <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code> 控制 MCP 服务器返回的算子工具：</p>
 <ol class="arabic simple">
-<li><p>创建一个 <code class="docutils literal notranslate"><span class="pre">.txt</span></code> 文件。</p></li>
-<li><p>将算子名称添加到文件中，例如：<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a>。</p></li>
-<li><p>将算子列表的路径设置为环境变量 <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>。</p></li>
+<li><p>创建一个 <code class="docutils literal notranslate"><span class="pre">.txt</span></code> 文件</p></li>
+<li><p>将算子名称添加到文件中，例如：<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a></p></li>
+<li><p>将算子列表的路径设置为环境变量 <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code></p></li>
 </ol>
-<section id="id11">
-<h4>配置<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h4>
-<p>以下配置示例演示了如何使用 stdio 和 SSE 方法设置 Granular-Operators 服务器。 这些示例仅用于说明目的，应根据特定 MCP 客户端的配置格式进行调整。</p>
-<section id="id12">
-<h5>stdio<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h5>
-<p>将以下内容添加到 MCP 客户端的配置文件中：</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_granular_ops&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/python&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;/path/to/data_juicer/tools/DJ_mcp_granular_ops.py&quot;</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;DJ_OPS_LIST_PATH&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/ops_list.txt&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;SERVER_TRANSPORT&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span>
+</section>
+<section id="id10">
+<h3>配置<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
+<p>以下配置示例演示了如何使用 stdio 和 SSE 方法设置两种不同的 MCP 服务器。这些示例仅用于说明目的，应根据特定 MCP 客户端的配置格式进行调整。</p>
+<section id="stdio">
+<h4>stdio<a class="headerlink" href="#stdio" title="Link to this heading">¶</a></h4>
+<p>适用于快速本地测试和简单场景。将以下内容添加到 MCP 客户端的配置文件中（例如，claude_desktop_config.json 或类似的配置文件）：</p>
+<section id="uvx">
+<h5>使用 uvx<a class="headerlink" href="#uvx" title="Link to this heading">¶</a></h5>
+<p>直接从存储库运行最新版本的 Data-Juicer MCP，无需手动进行本地安装。</p>
+<ul>
+<li><p><strong>Recipe-Flow模式</strong>：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;recipe-flow&quot;</span>
+<span class="w">      </span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
+</li>
+<li><p><strong>Granular-Operators模式</strong>：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_granular_ops&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;granular-ops&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--transport&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;stdio&quot;</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;DJ_OPS_LIST_PATH&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/ops_list.txt&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>注意：若不设置<code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>，则默认返回所有算子。</p>
+</li>
+</ul>
 </section>
-<section id="id13">
-<h5>SSE<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h5>
-<p>要使用 SSE 部署，首先需要单独启动 MCP 服务器。</p>
+<section id="id11">
+<h5>本地安装<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h5>
 <ol class="arabic">
-<li><p>设置环境变量：确保已设置服务器所需的任何环境变量，例如 <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>。</p></li>
-<li><p>运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>/path/to/data_juicer/tools/DJ_mcp_granular_ops.py<span class="w"> </span>--port<span class="o">=</span><span class="m">8081</span>
+<li><p>将 Data-Juicer 仓库克隆到本地：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/modelscope/data-juicer.git
 </pre></div>
 </div>
 </li>
-<li><p>配置 MCP 客户端：将以下内容添加到 MCP 客户端的配置文件中：</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_granular_ops&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8081/sse&quot;</span>
+<li><p>使用 uv 运行 Data-Juicer MCP：</p></li>
+</ol>
+<ul>
+<li><p>Recipe-Flow 模式:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uv&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--directory&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;/abs/path/to/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;recipe-flow&quot;</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p>Granular-Operators 模式:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_granular_ops&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uv&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--directory&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;/abs/path/to/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;granular-ops&quot;</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;DJ_OPS_LIST_PATH&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/ops_list.txt&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+</section>
+<section id="sse">
+<h4>SSE<a class="headerlink" href="#sse" title="Link to this heading">¶</a></h4>
+<p>要使用 SSE 部署，首先需要单独启动 MCP 服务器。</p>
+<ol class="arabic">
+<li><p>运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：</p>
+<ul>
+<li><p>uvx 启动:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvx<span class="w"> </span>--from<span class="w"> </span>git+https://github.com/modelscope/data-juicer<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+</pre></div>
+</div>
+</li>
+<li><p>本地启动:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+<li><p>配置您的 MCP 客户端：将以下内容添加到 MCP 客户端的配置文件中：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_MCP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8080/sse&quot;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </li>
 </ol>
-<p>注意：</p>
+<p><strong>注意事项</strong>：</p>
 <ul class="simple">
-<li><p>URL：<code class="docutils literal notranslate"><span class="pre">url</span></code> 应指向正在运行的服务器的 SSE 端点（通常为 <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/sse</span></code>）。 如果在启动服务器时使用了不同的值，请调整端口号。</p></li>
+<li><p>URL：<code class="docutils literal notranslate"><span class="pre">url</span></code> 应指向正在运行的服务器的 SSE 端点（通常为 <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/sse</span></code>）。如果在启动服务器时使用了不同的值，请调整端口号。</p></li>
 <li><p>单独的服务器进程：SSE 服务器必须在 MCP 客户端尝试连接之前运行。</p></li>
 <li><p>防火墙：确保防火墙允许连接到指定的端口。</p></li>
 </ul>
 </section>
-</section>
-</section>
-<section id="python">
-<h3>查找你的 Python 路径<a class="headerlink" href="#python" title="Link to this heading">¶</a></h3>
-<p>要查找 Python 可执行文件路径，请使用以下命令：</p>
-<p>Windows (Command Prompt/Terminal):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">where</span> <span class="n">python</span>
-</pre></div>
-</div>
-<p>Linux/macOS (Terminal):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">which</span> <span class="n">python</span>
-</pre></div>
-</div>
 </section>
 </section>
 </section>
@@ -674,22 +708,20 @@
 <li><a class="reference internal" href="#mcp">MCP服务器</a><ul>
 <li><a class="reference internal" href="#id9">概览</a></li>
 <li><a class="reference internal" href="#recipe-flow">Recipe-Flow</a><ul>
+<li><a class="reference internal" href="#get-data-processing-ops">1. get_data_processing_ops</a></li>
+<li><a class="reference internal" href="#run-data-recipe">2. run_data_recipe</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#granular-operators">Granular-Operators</a></li>
 <li><a class="reference internal" href="#id10">配置</a><ul>
-<li><a class="reference internal" href="#stdio">stdio</a></li>
+<li><a class="reference internal" href="#stdio">stdio</a><ul>
+<li><a class="reference internal" href="#uvx">使用 uvx</a></li>
+<li><a class="reference internal" href="#id11">本地安装</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#sse">SSE</a></li>
 </ul>
 </li>
-</ul>
-</li>
-<li><a class="reference internal" href="#granular-operators">Granular-Operators</a><ul>
-<li><a class="reference internal" href="#id11">配置</a><ul>
-<li><a class="reference internal" href="#id12">stdio</a></li>
-<li><a class="reference internal" href="#id13">SSE</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#python">查找你的 Python 路径</a></li>
 </ul>
 </li>
 </ul>

@@ -471,127 +471,162 @@
 </ul>
 </li>
 </ol>
-<p>For specific data processing requests, the MCP client should first call <code class="docutils literal notranslate"><span class="pre">get_data_processing_ops</span></code> to obtain relevant operator information, select operators that match the requirements from it, and then call <code class="docutils literal notranslate"><span class="pre">run_data_recipe</span></code> to run the selected combination of operators.</p>
-<section id="configuration">
-<h4>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h4>
-<p>The following configuration examples demonstrate how to set up the Recipe-Flow server using both stdio and SSE transport methods. These examples are for illustrative purposes and should be adapted to your specific MCP client’s configuration format.</p>
-<section id="stdio-transport">
-<h5>stdio Transport<a class="headerlink" href="#stdio-transport" title="Link to this heading">¶</a></h5>
-<p>Add the following to your MCP client’s configuration file (e.g., <code class="docutils literal notranslate"><span class="pre">claude_desktop_config.json</span></code> or a similar configuration file):</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/python&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;/path/to/data_juicer/tools/DJ_mcp_recipe_flow.py&quot;</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;SERVER_TRANSPORT&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-<section id="sse-transport">
-<h5>SSE Transport<a class="headerlink" href="#sse-transport" title="Link to this heading">¶</a></h5>
-<p>To use the SSE transport, you first need to start the MCP server separately.</p>
-<ol class="arabic">
-<li><p>Run the Server: Execute the server script, specifying the port number:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>/path/to/data_juicer/tools/DJ_mcp_recipe_flow.py<span class="w"> </span>--port<span class="o">=</span><span class="m">8080</span>
-</pre></div>
-</div>
-</li>
-<li><p>Configure your MCP Client:  Add the following to your MCP client’s configuration file:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8080/sse&quot;</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</li>
-</ol>
-<p>Note:</p>
-<ul class="simple">
-<li><p>URL: The <code class="docutils literal notranslate"><span class="pre">url</span></code> should point to the SSE endpoint of your running server (typically <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/sse</span></code>).  Adjust the port number if you used a different value when starting the server.</p></li>
-<li><p>Separate Server Process:  The SSE server must be running before your MCP client attempts to connect.</p></li>
-<li><p>Firewall: Ensure that your firewall allows connections to the specified port.</p></li>
-</ul>
-</section>
-</section>
+<p>For specific data processing requests, the MCP client should first call <code class="docutils literal notranslate"><span class="pre">get_data_processing_ops</span></code> to obtain relevant operator information, select the operators that meet the requirements, and then call <code class="docutils literal notranslate"><span class="pre">run_data_recipe</span></code> to execute the chosen operator combination.</p>
 </section>
 <section id="granular-operators">
 <h3>Granular-Operators<a class="headerlink" href="#granular-operators" title="Link to this heading">¶</a></h3>
-<p>By default, this MCP server will return all Data-Juicer operator tools, each running independently.</p>
-<p>You can control the operator tools returned by the MCP server by specifying the environment variable <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>:</p>
+<p>By default, this MCP server returns all Data-Juicer operator tools, each running independently.</p>
+<p>To control the operator tools returned by the MCP server, specify the environment variable <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>:</p>
 <ol class="arabic simple">
 <li><p>Create a <code class="docutils literal notranslate"><span class="pre">.txt</span></code> file.</p></li>
-<li><p>Add operator names to the file, such as: <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a>.</p></li>
-<li><p>Set the path to the operators list as the environment variable <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>.</p></li>
+<li><p>Add operator names to the file, e.g., <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a>.</p></li>
+<li><p>Set the path to the operator list as the environment variable <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>.</p></li>
 </ol>
-<section id="id1">
-<h4>Configuration<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
-<p>The following configuration examples demonstrate how to set up the Granular-Operators server using both stdio and SSE transport methods. These examples are for illustrative purposes and should be adapted to your specific MCP client’s configuration format.</p>
-<section id="id2">
-<h5>stdio Transport<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h5>
-<p>Add the following to your MCP client’s configuration file:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_granular_ops_stdio&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/python&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;/path/to/data_juicer/tools/DJ_mcp_granular_ops.py&quot;</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;DJ_OPS_LIST_PATH&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/ops_list.txt&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;SERVER_TRANSPORT&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span>
+</section>
+<section id="configuration">
+<h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h3>
+<p>The following configuration examples demonstrate how to set up the two MCP server types using the stdio and SSE methods. These examples are for illustrative purposes only and should be adapted to the specific MCP client’s configuration format.</p>
+<section id="stdio">
+<h4>stdio<a class="headerlink" href="#stdio" title="Link to this heading">¶</a></h4>
+<p>Suitable for quick local testing and simple scenarios. Add the following to the MCP client’s configuration file (e.g., <code class="docutils literal notranslate"><span class="pre">claude_desktop_config.json</span></code> or similar):</p>
+<section id="using-uvx">
+<h5>Using uvx<a class="headerlink" href="#using-uvx" title="Link to this heading">¶</a></h5>
+<p>Run the latest version of Data-Juicer MCP directly from the repository without manual local installation.</p>
+<ul>
+<li><p>Recipe-Flow mode:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;recipe-flow&quot;</span>
+<span class="w">      </span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
+</li>
+<li><p>Granular-Operators mode:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_granular_ops&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;granular-ops&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--transport&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;stdio&quot;</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;DJ_OPS_LIST_PATH&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/ops_list.txt&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note: If <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code> is not set, all operators are returned by default.</p>
+</li>
+</ul>
 </section>
-<section id="id3">
-<h5>SSE Transport<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h5>
-<p>To use the SSE transport, you first need to start the MCP server separately.</p>
+<section id="local-installation">
+<h5>Local Installation<a class="headerlink" href="#local-installation" title="Link to this heading">¶</a></h5>
 <ol class="arabic">
-<li><p>Set Environment Variables:  Ensure any required environment variables for the server are set, including <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code> if you’re using it.</p></li>
-<li><p>Run the Server: Execute the server script, specifying the port number:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>/path/to/data_juicer/tools/DJ_mcp_granular_ops.py<span class="w"> </span>--port<span class="o">=</span><span class="m">8081</span>
+<li><p>Clone the Data-Juicer repository locally:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/modelscope/data-juicer.git
 </pre></div>
 </div>
 </li>
-<li><p>Configure your MCP Client:  Add the following to your MCP client’s configuration file:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;DJ_granular_ops_sse&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8081/sse&quot;</span>
+<li><p>Run Data-Juicer MCP using uv:</p></li>
+</ol>
+<ul>
+<li><p>Recipe-Flow mode:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_recipe_flow&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uv&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--directory&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;/abs/path/to/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;recipe-flow&quot;</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p>Granular-Operators mode:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_granular_ops&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stdio&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uv&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--directory&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;/abs/path/to/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;granular-ops&quot;</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;DJ_OPS_LIST_PATH&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/ops_list.txt&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+</section>
+<section id="sse">
+<h4>SSE<a class="headerlink" href="#sse" title="Link to this heading">¶</a></h4>
+<p>To use SSE deployment, first start the MCP server separately.</p>
+<ol class="arabic">
+<li><p>Run the MCP server: Execute the MCP server script and specify the port number:</p>
+<ul>
+<li><p>Using uvx:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvx<span class="w"> </span>--from<span class="w"> </span>git+https://github.com/modelscope/data-juicer<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+</pre></div>
+</div>
+</li>
+<li><p>Local execution:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+<li><p>Configure your MCP client: Add the following to the MCP client’s configuration file:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;DJ_MCP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8080/sse&quot;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </li>
 </ol>
-<p>Note:</p>
+<p>Notes:</p>
 <ul class="simple">
-<li><p>URL: The <code class="docutils literal notranslate"><span class="pre">url</span></code> should point to the SSE endpoint of your running server (typically <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/sse</span></code>).  Adjust the port number if you used a different value when starting the server.</p></li>
-<li><p>Separate Server Process:  The SSE server must be running before your MCP client attempts to connect.</p></li>
-<li><p>Firewall: Ensure that your firewall allows connections to the specified port.</p></li>
+<li><p>URL: The <code class="docutils literal notranslate"><span class="pre">url</span></code> should point to the SSE endpoint of the running server (typically <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/sse</span></code>). Adjust the port number if a different value was used when starting the server.</p></li>
+<li><p>Separate server process: The SSE server must be running before the MCP client attempts to connect.</p></li>
+<li><p>Firewall: Ensure the firewall allows connections to the specified port.</p></li>
 </ul>
 </section>
-</section>
-</section>
-<section id="finding-your-python-path">
-<h3>Finding Your Python Path<a class="headerlink" href="#finding-your-python-path" title="Link to this heading">¶</a></h3>
-<p>To find the path to the Python executable, use the following commands:</p>
-<p>Windows (Command Prompt/Terminal):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>where<span class="w"> </span>python
-</pre></div>
-</div>
-<p>Linux/macOS (Terminal):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>which<span class="w"> </span>python
-</pre></div>
-</div>
 </section>
 </section>
 </section>
@@ -670,23 +705,17 @@
 </li>
 <li><a class="reference internal" href="#mcp-server">MCP Server</a><ul>
 <li><a class="reference internal" href="#overview">Overview</a></li>
-<li><a class="reference internal" href="#recipe-flow">Recipe-Flow</a><ul>
+<li><a class="reference internal" href="#recipe-flow">Recipe-Flow</a></li>
+<li><a class="reference internal" href="#granular-operators">Granular-Operators</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a><ul>
-<li><a class="reference internal" href="#stdio-transport">stdio Transport</a></li>
-<li><a class="reference internal" href="#sse-transport">SSE Transport</a></li>
+<li><a class="reference internal" href="#stdio">stdio</a><ul>
+<li><a class="reference internal" href="#using-uvx">Using uvx</a></li>
+<li><a class="reference internal" href="#local-installation">Local Installation</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#sse">SSE</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#granular-operators">Granular-Operators</a><ul>
-<li><a class="reference internal" href="#id1">Configuration</a><ul>
-<li><a class="reference internal" href="#id2">stdio Transport</a></li>
-<li><a class="reference internal" href="#id3">SSE Transport</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#finding-your-python-path">Finding Your Python Path</a></li>
 </ul>
 </li>
 </ul>

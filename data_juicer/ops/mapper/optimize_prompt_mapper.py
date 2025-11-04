@@ -138,10 +138,7 @@ class OptimizePromptMapper(Mapper):
             self.num_proc = 1
             if model_params.get("tensor_parallel_size") is None:
                 tensor_parallel_size = torch.cuda.device_count()
-                logger.info(
-                    f"Set tensor_parallel_size to \
-                    {tensor_parallel_size} for vllm."
-                )
+                logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")
                 model_params["tensor_parallel_size"] = tensor_parallel_size
             self.model_key = prepare_model(
                 model_type="vllm", pretrained_model_name_or_path=api_or_hf_model, **model_params

@@ -23,6 +23,31 @@ class VideoDepthEstimationMapperTest(DataJuicerTestCaseBase):
         }]
 
         op = VideoDepthEstimationMapper(
+            video_depth_model_path="video_depth_anything_vits.pth",
+            point_cloud_dir_for_metric=DATA_JUICER_ASSETS_CACHE,
+            max_res=1280,
+            torch_dtype="fp16",
+            if_save_visualization=True,
+            save_visualization_dir=DATA_JUICER_ASSETS_CACHE,
+            grayscale=False,
+        )
+
+        dataset = Dataset.from_list(ds_list)
+        if Fields.meta not in dataset.features:
+            dataset = dataset.add_column(name=Fields.meta,
+                                         column=[{}] * dataset.num_rows)
+        dataset = dataset.map(op.process, num_proc=1, with_rank=True)
+        res_list = dataset.to_list()
+
+    
+    def test_metric(self):
+        ds_list = [{
+            'videos': [self.vid4_path]
+        },  {
+            'videos': [self.vid3_path]
+        }]
+
+        op = VideoDepthEstimationMapper(
             video_depth_model_path="metric_video_depth_anything_vits.pth",
             point_cloud_dir_for_metric=DATA_JUICER_ASSETS_CACHE,
             max_res=1280,
@@ -38,6 +63,57 @@ class VideoDepthEstimationMapperTest(DataJuicerTestCaseBase):
                                          column=[{}] * dataset.num_rows)
         dataset = dataset.map(op.process, num_proc=1, with_rank=True)
         res_list = dataset.to_list()
+
+
+    def test_mul_proc(self):
+        ds_list = [{
+            'videos': [self.vid4_path]
+        },  {
+            'videos': [self.vid3_path]
+        }]
+
+        op = VideoDepthEstimationMapper(
+            video_depth_model_path="video_depth_anything_vits.pth",
+            point_cloud_dir_for_metric=DATA_JUICER_ASSETS_CACHE,
+            max_res=1280,
+            torch_dtype="fp16",
+            if_save_visualization=True,
+            save_visualization_dir=DATA_JUICER_ASSETS_CACHE,
+            grayscale=False,
+        )
+
+        dataset = Dataset.from_list(ds_list)
+        if Fields.meta not in dataset.features:
+            dataset = dataset.add_column(name=Fields.meta,
+                                         column=[{}] * dataset.num_rows)
+        dataset = dataset.map(op.process, num_proc=2, with_rank=True)
+        res_list = dataset.to_list()
+
+
+    def test_metric_mul_proc(self):
+        ds_list = [{
+            'videos': [self.vid4_path]
+        },  {
+            'videos': [self.vid3_path]
+        }]
+
+        op = VideoDepthEstimationMapper(
+            video_depth_model_path="metric_video_depth_anything_vits.pth",
+            point_cloud_dir_for_metric=DATA_JUICER_ASSETS_CACHE,
+            max_res=1280,
+            torch_dtype="fp16",
+            if_save_visualization=True,
+            save_visualization_dir=DATA_JUICER_ASSETS_CACHE,
+            grayscale=False,
+        )
+
+        dataset = Dataset.from_list(ds_list)
+        if Fields.meta not in dataset.features:
+            dataset = dataset.add_column(name=Fields.meta,
+                                         column=[{}] * dataset.num_rows)
+        dataset = dataset.map(op.process, num_proc=2, with_rank=True)
+        res_list = dataset.to_list()
+
 
 if __name__ == '__main__':
     unittest.main()

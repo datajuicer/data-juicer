@@ -7,17 +7,17 @@ import numpy as np
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.model_utils import check_model, get_model, prepare_model
+from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_object_segmenting_mapper"
 
-cv2 = LazyLoader("cv2", "opencv-python")
+LazyLoader._install_package("transformers>=4.56.0.dev0")
 ultralytics = LazyLoader("ultralytics")
+cv2 = LazyLoader("cv2", "opencv-python")
 torch = LazyLoader("torch")
-transformers = LazyLoader("transformers")
 
 
 @TAGGING_OPS.register_module(OP_NAME)
@@ -60,7 +60,7 @@ class VideoObjectSegmentingMapper(Mapper):
         super().__init__(*args, **kwargs)
 
         # Requires the weights for YOLOE and mobileclip_blt.
-        self.yoloe_model = ultralytics.YOLO(check_model(yoloe_path))
+        self.yoloe_model_key = prepare_model(model_type="yolo", model_path=yoloe_path)
         torch_dtype_dict = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}
         self.torch_dtype = torch_dtype_dict[torch_dtype]
         self.sam2_model_key = prepare_model(
@@ -74,6 +74,7 @@ class VideoObjectSegmentingMapper(Mapper):
         self.if_binarize = True if if_save_visualization else if_binarize
 
     def process_single(self, sample=None, rank=None):
+
         # check if it's generated already
         if self.tag_field_name in sample[Fields.meta]:
             return sample
@@ -125,8 +126,9 @@ class VideoObjectSegmentingMapper(Mapper):
             }
             return sample
 
-        self.yoloe_model.set_classes(main_character_list, self.yoloe_model.get_text_pe(main_character_list))
-        results = self.yoloe_model.predict(temp_initial_frame_path, verbose=False, conf=self.yoloe_conf)
+        yoloe_model = get_model(model_key=self.yoloe_model_key, rank=rank, use_cuda=self.use_cuda())
+        yoloe_model.set_classes(main_character_list, yoloe_model.get_text_pe(main_character_list))
+        results = yoloe_model.predict(temp_initial_frame_path, verbose=False, conf=self.yoloe_conf)
         yoloe_bboxes = results[0].boxes.xyxy.tolist()
         bboxes_cls = results[0].boxes.cls.tolist()
         bboxes_cls = [int(x) for x in bboxes_cls]
@@ -154,11 +156,18 @@ class VideoObjectSegmentingMapper(Mapper):
             return sample
 
         # Track objects with SAM2
+        import transformers
+
         video_frames, _ = transformers.video_utils.load_video(sample[self.video_key][0])
+
+        if rank is not None:
+            device = f"cuda:{str(rank)}"
+        else:
+            device = "cuda"
 
         inference_session = sam2_processor.init_video_session(
             video=video_frames,
-            inference_device="cuda" if self.use_cuda() else "cpu",
+            inference_device=device if self.use_cuda() else "cpu",
             dtype=self.torch_dtype,
         )
 

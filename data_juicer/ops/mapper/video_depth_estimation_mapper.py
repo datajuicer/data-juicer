@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import numpy as np
 
@@ -12,6 +13,8 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_depth_estimation_mapper"
 
+
+LazyLoader.check_packages(["easydict", "xformers"])
 cv2 = LazyLoader("cv2", "opencv-python")
 torch = LazyLoader("torch")
 open3d = LazyLoader("open3d")
@@ -61,12 +64,18 @@ class VideoDepthEstimationMapper(Mapper):
 
         video_depth_anything_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "Video-Depth-Anything")
         if not os.path.exists(video_depth_anything_repo_path):
-            os.system(
-                f"git clone https://github.com/DepthAnything/Video-Depth-Anything.git {video_depth_anything_repo_path}"
+            subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    "https://github.com/DepthAnything/Video-Depth-Anything.git",
+                    video_depth_anything_repo_path,
+                ],
+                check=True,
             )
         import sys
 
-        sys.path.append(os.path.join(video_depth_anything_repo_path))
+        sys.path.append(video_depth_anything_repo_path)
         from utils.dc_utils import read_video_frames, save_video
 
         if "metric" in video_depth_model_path:
@@ -98,12 +107,16 @@ class VideoDepthEstimationMapper(Mapper):
 
         video_depth_anything_model = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
 
+        if rank is not None:
+            device = f"cuda:{str(rank)}"
+        else:
+            device = "cuda"
         frames, target_fps = self.read_video_frames(sample[self.video_key][0], -1, -1, self.max_res)
         depths, fps = video_depth_anything_model.infer_video_depth(
             frames,
             target_fps,
             input_size=518,
-            device="cuda" if self.use_cuda() else "cpu",
+            device=device if self.use_cuda() else "cpu",
             fp32=False if self.torch_dtype == "fp16" else True,
         )
 

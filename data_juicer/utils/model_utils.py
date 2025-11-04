@@ -877,16 +877,24 @@ def prepare_video_blip_model(pretrained_model_name_or_path, *, return_model=True
 
 
 def prepare_video_depth_anything(model_path, **model_params):
+    import subprocess
+
     from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 
     video_depth_anything_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "Video-Depth-Anything")
     if not os.path.exists(video_depth_anything_repo_path):
-        os.system(
-            f"git clone https://github.com/DepthAnything/Video-Depth-Anything.git {video_depth_anything_repo_path}"
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "https://github.com/DepthAnything/Video-Depth-Anything.git",
+                video_depth_anything_repo_path,
+            ],
+            check=True,
         )
     import sys
 
-    sys.path.append(os.path.join(video_depth_anything_repo_path))
+    sys.path.append(video_depth_anything_repo_path)
 
     from video_depth_anything.video_depth import VideoDepthAnything
 

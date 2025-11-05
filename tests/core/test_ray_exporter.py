@@ -162,6 +162,167 @@ class TestRayExporter(DataJuicerTestCaseBase):
                 [Image.open(io.BytesIO(v)) for v in data[i]['jpgs']]
             )
 
+    @TEST_TAG('ray')
+    def test_webdataset_multi_videos_frames_bytes(self):
+        import io
+        from PIL import Image
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        data_dir = osp.abspath(osp.join(osp.dirname(osp.realpath(__file__)), '..', 'ops', 'data'))
+        img1_path = osp.join(data_dir, 'img1.png')
+        img2_path = osp.join(data_dir, 'img2.jpg')
+        img3_path = osp.join(data_dir, 'img3.jpg')
+
+        data = [
+            {
+                'json': {
+                    'text': 'hello',
+                    'videos': ['video1.mp4', 'video2.mp4']
+                    },
+                'mp4s': [
+                    load_images_byte([img1_path]),  # as video1 frames bytes
+                    load_images_byte([img1_path, img2_path])   # as video2 frames path
+                    ]
+            },
+            {
+                'json': {
+                    'text': 'world',
+                    'videos': ['video1.mp4']
+                    },
+                'mp4s': [
+                    load_images_byte([img2_path, img3_path])  # as video1 frames
+                    ]
+            }
+        ]
+        dataset = RayDataset(ray.data.from_items(data))
+        out_path = osp.join(self.tmp_dir, 'outdata.webdataset')
+        ray_exporter = RayExporter(out_path, export_type='webdataset')
+        ray_exporter.export(dataset.data)
+
+        ds = RayDataset.read_webdataset(out_path)
+        res_list = ds.take_all()
+        
+        self.assertEqual(len(res_list), len(data))
+        res_list.sort(key=lambda x: x['json']['text'])
+        data.sort(key=lambda x: x['json']['text'])
+        
+        for i in range(len(data)):
+            if len(data[i]['mp4s']) > 1:
+                tgt_mp4s = [[Image.open(io.BytesIO(f_i)) for f_i in v_i] for v_i in data[i]['mp4s']]
+            else:
+                tgt_mp4s = [Image.open(io.BytesIO(f_i)) for f_i in data[i]['mp4s'][0]]
+            self.assertDictEqual(res_list[i]['json'], data[i]['json'])
+            self.assertEqual(res_list[i]['mp4s'], tgt_mp4s)
+
+    @TEST_TAG('ray')
+    def test_webdataset_multi_videos_frames_path(self):
+        import io
+        from PIL import Image
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        data_dir = osp.abspath(osp.join(osp.dirname(osp.realpath(__file__)), '..', 'ops', 'data'))
+        img1_path = osp.join(data_dir, 'img8.jpg')
+        img2_path = osp.join(data_dir, 'img9.jpg')
+        img3_path = osp.join(data_dir, 'img10.jpg')
+
+        data = [
+            {
+                'json': {
+                    'text': 'hello',
+                    'videos': ['video1.mp4', 'video2.mp4']
+                    },
+                'mp4s': [
+                    [img1_path],  # as video1 frames path
+                    [img1_path, img2_path]   # as video2 frames path
+                    ]
+            },
+            {
+                'json': {
+                    'text': 'world',
+                    'videos': ['video1.mp4']
+                    },
+                'mp4s': [
+                    [img2_path, img3_path]  # as video1 frames path
+                    ]
+            }
+        ]
+        dataset = RayDataset(ray.data.from_items(data))
+        out_path = osp.join(self.tmp_dir, 'outdata.webdataset')
+        ray_exporter = RayExporter(out_path, export_type='webdataset')
+        ray_exporter.export(dataset.data)
+
+        ds = RayDataset.read_webdataset(out_path)
+        res_list = ds.take_all()
+        
+        self.assertEqual(len(res_list), len(data))
+        res_list.sort(key=lambda x: x['json']['text'])
+        data.sort(key=lambda x: x['json']['text'])
+        
+        for i in range(len(data)):
+            if len(data[i]['mp4s']) > 1:
+                tgt_mp4s = [[Image.open(f_i, formats=['jpeg']) for f_i in v_i] for v_i in data[i]['mp4s']]
+            else:
+                tgt_mp4s = [Image.open(f_i, formats=['jpeg']) for f_i in data[i]['mp4s'][0]]
+            self.assertDictEqual(res_list[i]['json'], data[i]['json'])
+            self.assertEqual(res_list[i]['mp4s'], tgt_mp4s)
+
+    @TEST_TAG('ray')
+    def test_webdataset_multi_audios_path(self):
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+        from data_juicer.utils.mm_utils import load_audio
+
+        data_dir = osp.abspath(osp.join(osp.dirname(osp.realpath(__file__)), '..', 'ops', 'data'))
+        audio1_path = osp.join(data_dir, 'audio1.wav')
+        audio2_path = osp.join(data_dir, 'audio2.wav')
+        audio3_path = osp.join(data_dir, 'audio3.ogg')
+
+        data = [
+            {
+                'json': {
+                    'text': 'hello',
+                    },
+                'mp3s': [audio1_path]
+            },
+            {
+                'json': {
+                    'text': 'world',
+                    },
+                'mp3s': [audio2_path, audio3_path]
+            }
+        ]
+        dataset = RayDataset(ray.data.from_items(data))
+        out_path = osp.join(self.tmp_dir, 'outdata.webdataset')
+        ray_exporter = RayExporter(out_path, export_type='webdataset')
+        ray_exporter.export(dataset.data)
+
+        ds = RayDataset.read_webdataset(out_path)
+        res_list = ds.take_all()
+        
+        self.assertEqual(len(res_list), len(data))
+
+        res_list.sort(key=lambda x: x['json']['text'])
+        data.sort(key=lambda x: x['json']['text'])
+        
+        for i in range(len(data)):
+            if len(data[i]['mp3s']) <= 1:
+                mp3s_list = [res_list[i]['mp3s']]
+            else:
+                mp3s_list = res_list[i]['mp3s']
+
+            tgt_mp3s = [load_audio(f_i) for f_i in data[i]['mp3s']]
+            
+            self.assertDictEqual(res_list[i]['json'], data[i]['json'])
+
+            for j in range(len(mp3s_list)):
+                arr, sampling_rate = mp3s_list[j]
+                tgt_arr, tgt_sampling_rate = tgt_mp3s[j]
+                import numpy as np
+                np.testing.assert_array_equal(arr, tgt_arr)
+                self.assertEqual(sampling_rate, tgt_sampling_rate)
+
 
 if __name__ == '__main__':
     unittest.main()

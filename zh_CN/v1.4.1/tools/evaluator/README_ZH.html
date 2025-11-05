@@ -360,7 +360,7 @@
 </section>
 <section id="id2">
 <h2>用法<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
-<p>通过 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/evaluator/evaluator.py"><code class="docutils literal notranslate"><span class="pre">evaluator.py</span></code></a> 来使用 HELM 或 OpenAI API 自动评估您的模型。</p>
+<p>通过 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/evaluator/evaluator.py"><code class="docutils literal notranslate"><span class="pre">evaluator.py</span></code></a> 来使用 HELM 或 OpenAI API 自动评估您的模型。</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/evaluator.py<span class="w">  </span><span class="se">\</span>
 <span class="w">    </span>--config<span class="w"> </span>&lt;config&gt;<span class="w">      </span><span class="se">\</span>
 <span class="w">    </span>--begin-iteration<span class="w">     </span>&lt;begin_iteration&gt;<span class="w">     </span><span class="se">\</span>
@@ -397,7 +397,7 @@
 </div>
 <p>将会使用 HELM 从 Megatron-LM 训练到 2000 iteration 开始每隔 1000 iterations 评测一个检查点，并会每隔 30 分钟检测一次是否有新的检查点生成</p>
 </div></blockquote>
-<p>在运行 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/evaluator/evaluator.py">evaluator.py</a> 之后, 可以使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/evaluator/recorder/wandb_writer.py">recorder/wandb_writer.py</a> 将评测结果记录到 wandb 并可视化展示，更多细节请参考 <a class="reference internal" href="recorder/README_ZH.html"><span class="std std-doc">recorder/README_ZH.md</span></a>。</p>
+<p>在运行 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/evaluator/evaluator.py">evaluator.py</a> 之后, 可以使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/evaluator/recorder/wandb_writer.py">recorder/wandb_writer.py</a> 将评测结果记录到 wandb 并可视化展示，更多细节请参考 <a class="reference internal" href="recorder/README_ZH.html"><span class="std std-doc">recorder/README_ZH.md</span></a>。</p>
 </section>
 <section id="id3">
 <h2>配置<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h2>

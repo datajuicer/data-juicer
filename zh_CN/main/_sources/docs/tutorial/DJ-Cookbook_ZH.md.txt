@@ -1,6 +1,6 @@
 # DJ-Cookbook
 ## 资源合集
-- [KDD'24 相关教程](https://modelscope.github.io/data-juicer/en/main/_static/tutorial_kdd24.html)
+- [KDD'24 相关教程](https://datajuicer.github.io/data-juicer/en/main/_static/tutorial_kdd24.html)
 - [Awesome LLM-Data](../awesome_llm_data.md)
 - ["坏"数据展览](../BadDataExhibition_ZH.md)
 
@@ -12,7 +12,7 @@
   - [数据格式转换](../../tools/fmt_conversion/README_ZH.md)
 - 信息速查
   - [算子库](../Operators.md)
-  - [API参考](https://modelscope.github.io/data-juicer/zh_CN/main/api)
+  - [API参考](https://datajuicer.github.io/data-juicer/zh_CN/main/api)
 - 进阶
   - [开发者指南](../DeveloperGuide_ZH.md)
   - [预处理工具](../../tools/preprocess/README_ZH.md)
@@ -41,7 +41,7 @@
   - FT-Data Ranker ([1B Track](https://tianchi.aliyun.com/competition/entrance/532157)、 [7B Track](https://tianchi.aliyun.com/competition/entrance/532158))，针对指定候选数据集，仅调整数据过滤和增强策略
   - [可图Kolors-LoRA风格故事挑战赛](https://tianchi.aliyun.com/competition/entrance/532254)，基于Data-Juicer和[DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio)框架，探索Diffusion模型微调
 * [DJ-SORA](../DJ_SORA_ZH.md)
-* 基于Data-Juicer和[AgentScope](https://github.com/modelscope/agentscope)框架，通过[智能体调用DJ Filters](../../demos/api_service/react_data_filter_process.ipynb)和[调用DJ Mappers](../../demos/api_service/react_data_mapper_process.ipynb)
+* 基于Data-Juicer和[AgentScope](https://github.com/agentscope-ai/agentscope)框架，通过[智能体调用DJ Filters](../../demos/api_service/react_data_filter_process.ipynb)和[调用DJ Mappers](../../demos/api_service/react_data_mapper_process.ipynb)
   
 
 

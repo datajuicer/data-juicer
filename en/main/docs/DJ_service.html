@@ -426,7 +426,7 @@
 </section>
 <section id="demonstration">
 <h3>Demonstration<a class="headerlink" href="#demonstration" title="Link to this heading">¶</a></h3>
-<p>We have integrated <a class="reference external" href="https://github.com/modelscope/agentscope">AgentScope</a> to enable users to invoke Data-Juicer operators for data cleaning through natural language. The operators are invoked via an API service. For the specific code, please refer to <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/demos/api_service">here</a>.</p>
+<p>We have integrated <a class="reference external" href="https://github.com/agentscope-ai/agentscope">AgentScope</a> to enable users to invoke Data-Juicer operators for data cleaning through natural language. The operators are invoked via an API service. For the specific code, please refer to <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/demos/api_service">here</a>.</p>
 </section>
 </section>
 <section id="mcp-server">
@@ -479,7 +479,7 @@
 <p>To control the operator tools returned by the MCP server, specify the environment variable <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>:</p>
 <ol class="arabic simple">
 <li><p>Create a <code class="docutils literal notranslate"><span class="pre">.txt</span></code> file.</p></li>
-<li><p>Add operator names to the file, e.g., <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a>.</p></li>
+<li><p>Add operator names to the file, e.g., <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a>.</p></li>
 <li><p>Set the path to the operator list as the environment variable <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code>.</p></li>
 </ol>
 </section>
@@ -500,7 +500,7 @@
 <span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/datajuicer/data-juicer&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;recipe-flow&quot;</span>
 <span class="w">      </span><span class="p">]</span>
@@ -517,7 +517,7 @@
 <span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/datajuicer/data-juicer&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;granular-ops&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;--transport&quot;</span><span class="p">,</span>
@@ -539,7 +539,7 @@
 <h5>Local Installation<a class="headerlink" href="#local-installation" title="Link to this heading">¶</a></h5>
 <ol class="arabic">
 <li><p>Clone the Data-Juicer repository locally:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/modelscope/data-juicer.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/datajuicer/data-juicer.git
 </pre></div>
 </div>
 </li>
@@ -597,7 +597,7 @@
 <li><p>Run the MCP server: Execute the MCP server script and specify the port number:</p>
 <ul>
 <li><p>Using uvx:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvx<span class="w"> </span>--from<span class="w"> </span>git+https://github.com/modelscope/data-juicer<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvx<span class="w"> </span>--from<span class="w"> </span>git+https://github.com/datajuicer/data-juicer<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
 </pre></div>
 </div>
 </li>

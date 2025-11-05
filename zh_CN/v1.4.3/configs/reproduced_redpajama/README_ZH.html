@@ -352,7 +352,7 @@
 <section id="arxiv">
 <h2>arXiv<a class="headerlink" href="#arxiv" title="Link to this heading">¶</a></h2>
 <p>原始数据文件从 <a class="reference external" href="https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep/arxiv">Redpajama/arXiv</a> 中相同的 AWS 链接下载。</p>
-<p>下载完成后，使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/preprocess/raw_arxiv_to_jsonl.py">raw_arxiv_to_jsonl.py</a> 将原始格式转换为 Data-Juicer 易于处理的格式：</p>
+<p>下载完成后，使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/preprocess/raw_arxiv_to_jsonl.py">raw_arxiv_to_jsonl.py</a> 将原始格式转换为 Data-Juicer 易于处理的格式：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/raw_arxiv_to_jsonl.py<span class="w">           </span><span class="se">\</span>
 <span class="w">    </span>--arxiv_src_dir<span class="w">       </span>&lt;arxiv_src_dir&gt;<span class="w">    </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">          </span>&lt;target_dir&gt;<span class="w">       </span><span class="se">\</span>
@@ -360,7 +360,7 @@
 <span class="w">    </span>--num_proc<span class="w">            </span>&lt;num_proc&gt;
 </pre></div>
 </div>
-<p>预处理完成后，修改 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-arxiv.yaml">redpajama-arxiv.yaml</a> 中的数据路径，执行以下命令复现 RedPajama 的处理流程：</p>
+<p>预处理完成后，修改 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-arxiv.yaml">redpajama-arxiv.yaml</a> 中的数据路径，执行以下命令复现 RedPajama 的处理流程：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/process_data.py<span class="w"> </span>--config<span class="w"> </span>configs/reproduced_redpajama/redpajama-arxiv.yaml
 </pre></div>
 </div>
@@ -397,7 +397,7 @@
 <section id="books">
 <h2>Books<a class="headerlink" href="#books" title="Link to this heading">¶</a></h2>
 <p>原始数据文件从 <a class="reference external" href="https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep/book">Redpajama/Books</a> 中相同的 HuggingFace 链接下载。</p>
-<p>下载完成后，修改 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-books.yaml">redpajama-books.yaml</a> 中的数据路径，执行以下命令复现 RedPajama 的处理流程：</p>
+<p>下载完成后，修改 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-books.yaml">redpajama-books.yaml</a> 中的数据路径，执行以下命令复现 RedPajama 的处理流程：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/process_data.py<span class="w"> </span>--config<span class="w"> </span>configs/reproduced_redpajama/redpajama-books.yaml
 </pre></div>
 </div>
@@ -438,7 +438,7 @@
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>.asm, .bat, .cmd, .c, .h, .cs, .cpp, .hpp, .c++, .h++, .cc, .hh, .C, .H, .cmake, .css, .dockerfile, .f90, .f, .f03, .f08, .f77, .f95, .for, .fpp, .go, .hs, .html, .java, .js, .jl, .lua, .md, .markdown, .php, .php3, .php4, .php5, .phps, .phpt, .pl, .pm, .pod, .perl,  ps1, .psd1, .psm1, .py, .rb, .rs, .sql, .scala, .sh, .bash, .command, .zsh, .ts, .tsx, .tex, .vb, Dockerfile, Makefile, .xml, .rst, .m, .smali
 </pre></div>
 </div>
-<p>修改 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-code.yaml">redpajama-code.yaml</a> 中的数据路径，执行以下命令复现 redpajama 的处理流程：</p>
+<p>修改 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-code.yaml">redpajama-code.yaml</a> 中的数据路径，执行以下命令复现 redpajama 的处理流程：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/process_data.py<span class="w"> </span>--config<span class="w"> </span>configs/redpajama/redpajama-code.yaml
 </pre></div>
 </div>
@@ -475,7 +475,7 @@
 <section id="stackexchange">
 <h2>StackExchange<a class="headerlink" href="#stackexchange" title="Link to this heading">¶</a></h2>
 <p>原始数据文件从 <a class="reference external" href="https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep/stack_exchange">Redpajama/Stack_exchange</a> 中相同的 Archive 链接获取。</p>
-<p>下载完成后，使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/preprocess/raw_stackexchange_to_jsonl.py">raw_stackexchange_to_jsonl.py</a> 将原始格式转换为 Data-Juicer 易于处理的格式：</p>
+<p>下载完成后，使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/preprocess/raw_stackexchange_to_jsonl.py">raw_stackexchange_to_jsonl.py</a> 将原始格式转换为 Data-Juicer 易于处理的格式：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/raw_arxiv_stackexchange_to_jsonl.py<span class="w">           </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">       </span>&lt;src_dir&gt;<span class="w">      </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">    </span>&lt;target_dir&gt;<span class="w">   </span><span class="se">\</span>
@@ -483,7 +483,7 @@
 <span class="w">    </span>--num_proc<span class="w">      </span>&lt;num_proc&gt;<span class="w">     </span><span class="se">\</span>
 </pre></div>
 </div>
-<p>预处理完成后，修改 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-stackexchange.yaml">redpajama-stackexchange.yaml</a> 中的数据路径，执行以下命令复现 redpajama 的处理流程：</p>
+<p>预处理完成后，修改 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/reproduced_redpajama/redpajama-stackexchange.yaml">redpajama-stackexchange.yaml</a> 中的数据路径，执行以下命令复现 redpajama 的处理流程：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/process_data.py<span class="w"> </span>--config<span class="w"> </span>configs/redpajama/redpajama-stackexchange.yaml
 </pre></div>
 </div>

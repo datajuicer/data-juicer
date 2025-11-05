@@ -349,7 +349,7 @@
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
 <section id="count-tokens-for-datasets">
 <h3>Count tokens for datasets<a class="headerlink" href="#count-tokens-for-datasets" title="Link to this heading">¶</a></h3>
-<p>Use <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/postprocess/count_token.py">count_token.py</a> to count tokens for datasets.</p>
+<p>Use <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/postprocess/count_token.py">count_token.py</a> to count tokens for datasets.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/postprocess/count_token.py<span class="w">        </span><span class="se">\</span>
 <span class="w">    </span>--data_path<span class="w">            </span>&lt;data_path&gt;<span class="w">         </span><span class="se">\</span>
 <span class="w">    </span>--text_keys<span class="w">            </span>&lt;text_keys&gt;<span class="w">         </span><span class="se">\</span>
@@ -369,7 +369,7 @@ python<span class="w"> </span>tools/postprocess/count_token.py<span class="w"> <
 </section>
 <section id="mix-multiple-datasets-with-optional-weights">
 <h3>Mix multiple datasets with optional weights<a class="headerlink" href="#mix-multiple-datasets-with-optional-weights" title="Link to this heading">¶</a></h3>
-<p>Use <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/postprocess/data_mixture.py">data_mixture.py</a> to mix multiple datasets.</p>
+<p>Use <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/postprocess/data_mixture.py">data_mixture.py</a> to mix multiple datasets.</p>
 <p>This script will randomly select samples from every dataset and mix these samples and export to a new_dataset.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/postprocess/data_mixture.py<span class="w">        </span><span class="se">\</span>
 <span class="w">    </span>--data_path<span class="w">             </span>&lt;data_path&gt;<span class="w">         </span><span class="se">\</span>
@@ -392,7 +392,7 @@ python<span class="w"> </span>tools/postprocess/data_mixture.py<span class="w"> 
 </section>
 <section id="deserialize-meta-fields-in-jsonl-file">
 <h3>Deserialize meta fields in jsonl file<a class="headerlink" href="#deserialize-meta-fields-in-jsonl-file" title="Link to this heading">¶</a></h3>
-<p>This tool is usually used with <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/preprocess/serialize_meta.py">serialize_meta.py</a> to deserialize the specified field into the original format.</p>
+<p>This tool is usually used with <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/preprocess/serialize_meta.py">serialize_meta.py</a> to deserialize the specified field into the original format.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/postprocess/deserialize_meta.py<span class="w">           </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">           </span>&lt;src_dir&gt;<span class="w">         </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">        </span>&lt;target_dir&gt;<span class="w">      </span><span class="se">\</span>

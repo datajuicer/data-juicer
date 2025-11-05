@@ -355,12 +355,12 @@
 <li><p>baseline model: Huggingface, Megatron-LM or OpenAI model</p></li>
 </ul>
 <blockquote>
-<div><p>Evaluating Megatron-LM models requires a customized Megatron-LM which is provided in <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/thirdparty"><code class="docutils literal notranslate"><span class="pre">thirdparty</span></code></a>.</p>
+<div><p>Evaluating Megatron-LM models requires a customized Megatron-LM which is provided in <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/thirdparty"><code class="docutils literal notranslate"><span class="pre">thirdparty</span></code></a>.</p>
 </div></blockquote>
 </li>
-<li><p>Generate answers using <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/answer_generator.py"><code class="docutils literal notranslate"><span class="pre">answer_generator.py</span></code></a> for both your model and the baseline model.</p>
+<li><p>Generate answers using <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/answer_generator.py"><code class="docutils literal notranslate"><span class="pre">answer_generator.py</span></code></a> for both your model and the baseline model.</p>
 <ol class="arabic">
-<li><p>Prepare the benchmark dataset. The toolkit has provided Vicuna Bench(<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/question.jsonl"><code class="docutils literal notranslate"><span class="pre">config/question.jsonl</span></code></a>), and you can create custom dataset to generate answers. The custom datasets must be a single file in jsonl format, and each json object in it contains 3 attributes:</p>
+<li><p>Prepare the benchmark dataset. The toolkit has provided Vicuna Bench(<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/question.jsonl"><code class="docutils literal notranslate"><span class="pre">config/question.jsonl</span></code></a>), and you can create custom dataset to generate answers. The custom datasets must be a single file in jsonl format, and each json object in it contains 3 attributes:</p>
 <ul class="simple">
 <li><p>question_id: int type</p></li>
 <li><p>text: the specific content of the question, string type</p></li>
@@ -406,15 +406,15 @@
 </li>
 </ol>
 </li>
-<li><p>Get OpenAI API evaluation results via <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/gpt_evaluator.py"><code class="docutils literal notranslate"><span class="pre">gpt_evaluator.py</span></code></a>.</p>
+<li><p>Get OpenAI API evaluation results via <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/gpt_evaluator.py"><code class="docutils literal notranslate"><span class="pre">gpt_evaluator.py</span></code></a>.</p>
 <ol class="arabic">
 <li><p>Prepare dependencies. Make sure the following files are ready:</p>
 <ul class="simple">
 <li><p>question_file: the benchmark dataset file in previous step</p></li>
 <li><p>answer_file: the answer file of your model in previous step</p></li>
 <li><p>baseline_file: the answer file of the baseline model in previous step</p></li>
-<li><p>prompt_file: a file contains multiple prompt templates, the toolkit has provided a sample file (<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/prompt.jsonl"><code class="docutils literal notranslate"><span class="pre">config/prompt.jsonl</span></code></a>)</p></li>
-<li><p>reviewer_file: a file contains multiple reviewer templates (including the model type and other parameters used in the OpenAI api request)，the toolkit has provided a sample file (<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/reviewer.jsonl"><code class="docutils literal notranslate"><span class="pre">config/reviewer.json</span></code></a>)</p></li>
+<li><p>prompt_file: a file contains multiple prompt templates, the toolkit has provided a sample file (<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/prompt.jsonl"><code class="docutils literal notranslate"><span class="pre">config/prompt.jsonl</span></code></a>)</p></li>
+<li><p>reviewer_file: a file contains multiple reviewer templates (including the model type and other parameters used in the OpenAI api request)，the toolkit has provided a sample file (<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/reviewer.jsonl"><code class="docutils literal notranslate"><span class="pre">config/reviewer.json</span></code></a>)</p></li>
 </ul>
 </li>
 <li><p>Build the config file (<code class="docutils literal notranslate"><span class="pre">config.yaml</span></code>). The format of the file is as follows:</p>

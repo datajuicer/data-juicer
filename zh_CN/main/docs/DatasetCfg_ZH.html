@@ -355,7 +355,7 @@
 <h3>本地数据集<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">local_json.yaml</span></code> 配置文件用于指定以 JSON 格式本地存储的数据集。<em>path</em> 是必需的，用于指定本地数据集路径，可以是单个文件或目录。<em>format</em> 是可选的，用于指定数据集格式。
 对于本地文件，DJ 将自动检测文件格式并相应地加载数据集。支持 parquet、jsonl、json、csv、tsv、txt 和 jsonl.gz 等格式
-有关更多详细信息，请参阅 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/local_json.yaml">local_json.yaml</a>。</p>
+有关更多详细信息，请参阅 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/local_json.yaml">local_json.yaml</a>。</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>
@@ -374,7 +374,7 @@
 <section id="remote-huggingface">
 <h3>Remote Huggingface 数据集<a class="headerlink" href="#remote-huggingface" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">remote_huggingface.yaml</span></code> 配置文件用于指定 huggingface 数据集。<em>type</em> 和 <em>source</em> 固定为 'remote' 和 'huggingface'，以定位 huggingface 加载逻辑。<em>path</em> 是必需的，用于标识 huggingface 数据集。<em>name</em>、<em>split</em> 和 <em>limit</em> 是可选的，用于指定数据集名称/拆分并限制要加载的样本数量。
-更多详细信息请参阅 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/remote_huggingface.yaml">remote_huggingface.yaml</a>。</p>
+更多详细信息请参阅 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/remote_huggingface.yaml">remote_huggingface.yaml</a>。</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;remote&#39;</span>
@@ -389,7 +389,7 @@
 <section id="arxiv">
 <h3>远程 Arxiv 数据集<a class="headerlink" href="#arxiv" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">remote_arxiv.yaml</span></code> 配置文件用于指定以 JSON 格式远程存储的数据集。<em>type</em> 和 <em>source</em> 固定为 'remote' 和 'arxiv'，以定位 arxiv 加载逻辑。 <em>lang</em>、<em>dump_date</em>、<em>force_download</em> 和 <em>url_limit</em> 是可选的，用于指定数据集语言、转储日期、强制下载和 URL 限制。
-有关更多详细信息，请参阅 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/remote_arxiv.yaml">remote_arxiv.yaml</a>。</p>
+有关更多详细信息，请参阅 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/remote_arxiv.yaml">remote_arxiv.yaml</a>。</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;remote&#39;</span>
@@ -403,7 +403,7 @@
 </section>
 <section id="id4">
 <h3>其他支持的数据集格式<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
-<p>有关更多详细信息和支持的数据集格式，请参阅 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/data_juicer/core/data/load_strategy.py">load_strategy.py</a>。</p>
+<p>有关更多详细信息和支持的数据集格式，请参阅 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/load_strategy.py">load_strategy.py</a>。</p>
 </section>
 </section>
 <section id="id5">
@@ -411,7 +411,7 @@
 <section id="id6">
 <h3>数据混合<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">mixture.yaml</span></code> 配置文件演示了如何指定数据混合规则。DJ 将通过对数据集的一部分进行采样并应用适当的权重来混合数据集。
-有关更多详细信息，请参阅 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/mixture.yaml">mixture.yaml</a>。</p>
+有关更多详细信息，请参阅 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/mixture.yaml">mixture.yaml</a>。</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">max_sample_num</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
@@ -427,7 +427,7 @@
 <section id="id7">
 <h3>数据验证<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">validator.yaml</span></code> 配置文件演示了如何指定数据验证规则。DJ 将通过对数据集的一部分进行采样并应用验证规则来验证数据集。
-有关更多详细信息和支持的验证器，请参阅 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/data_juicer/core/data/data_validator.py">data_validator.py</a>。</p>
+有关更多详细信息和支持的验证器，请参阅 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/data_validator.py">data_validator.py</a>。</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>

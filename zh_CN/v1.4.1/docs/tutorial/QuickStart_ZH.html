@@ -479,8 +479,8 @@ python<span class="w"> </span>tools/analyze_data.py<span class="w"> </span>--con
 </li>
 <li><p>您可以通过如下方式构建自己的配置文件:</p>
 <ul>
-<li><p>➖：修改我们的样例配置文件 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/configs/config_all.yaml"><code class="docutils literal notranslate"><span class="pre">config_all.yaml</span></code></a>。该文件包含了<strong>所有</strong>算子以及算子对应的默认参数。您只需要<strong>移除</strong>不需要的算子并重新设置部分算子的参数即可。</p></li>
-<li><p>➕：从头开始构建自己的配置文件。您可以参考我们提供的样例配置文件 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/configs/config_all.yaml"><code class="docutils literal notranslate"><span class="pre">config_all.yaml</span></code></a>，<a class="reference internal" href="../Operators.html"><span class="std std-doc">算子文档</span></a>，以及 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/docs/DeveloperGuide_ZH.md#2-%E6%9E%84%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84%E7%AE%97%E5%AD%90">开发者指南</a>.</p></li>
+<li><p>➖：修改我们的样例配置文件 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/configs/config_all.yaml"><code class="docutils literal notranslate"><span class="pre">config_all.yaml</span></code></a>。该文件包含了<strong>所有</strong>算子以及算子对应的默认参数。您只需要<strong>移除</strong>不需要的算子并重新设置部分算子的参数即可。</p></li>
+<li><p>➕：从头开始构建自己的配置文件。您可以参考我们提供的样例配置文件 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/configs/config_all.yaml"><code class="docutils literal notranslate"><span class="pre">config_all.yaml</span></code></a>，<a class="reference internal" href="../Operators.html"><span class="std std-doc">算子文档</span></a>，以及 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/docs/DeveloperGuide_ZH.md#2-%E6%9E%84%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84%E7%AE%97%E5%AD%90">开发者指南</a>.</p></li>
 <li><p>除了使用 yaml 文件外，您还可以在命令行上指定一个或多个参数，这些参数将覆盖 yaml 文件中的值。</p></li>
 </ul>
 </li>
@@ -522,7 +522,7 @@ python<span class="w"> </span>tools/analyze_data.py<span class="w"> </span>--con
 </ul>
 </li>
 <li><p>Data-Juicer 不可能处理所有类型的数据，欢迎提 Issues/PRs，贡献对新数据类型的处理能力！</p></li>
-<li><p>因此我们在 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/preprocess"><code class="docutils literal notranslate"><span class="pre">tools/preprocess</span></code></a> 中提供了一些<strong>常见的预处理工具</strong>，用于预处理这些类型各异的数据。</p>
+<li><p>因此我们在 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/preprocess"><code class="docutils literal notranslate"><span class="pre">tools/preprocess</span></code></a> 中提供了一些<strong>常见的预处理工具</strong>，用于预处理这些类型各异的数据。</p>
 <ul>
 <li><p>欢迎您为社区贡献新的预处理工具。</p></li>
 <li><p>我们<strong>强烈建议</strong>将复杂的数据预处理为 jsonl 或 parquet 文件。</p></li>

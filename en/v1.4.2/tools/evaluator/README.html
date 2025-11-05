@@ -359,7 +359,7 @@
 </section>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<p>Use <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.2/tools/evaluator/evaluator.py">evaluator.py</a> to automatically evaluate your models with HELM and OpenAI API.</p>
+<p>Use <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.2/tools/evaluator/evaluator.py">evaluator.py</a> to automatically evaluate your models with HELM and OpenAI API.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/evaluator.py<span class="w">  </span><span class="se">\</span>
 <span class="w">    </span>--config<span class="w"> </span>&lt;config&gt;<span class="w">      </span><span class="se">\</span>
 <span class="w">    </span>--begin-iteration<span class="w">     </span>&lt;begin_iteration&gt;<span class="w">     </span><span class="se">\</span>
@@ -396,7 +396,7 @@
 </div>
 <p>will use HELM to evaluate a Megatron-LM checkpoint every 1000 iterations starting from iteration 2000, and check whether there is a new checkpoint meets the condition every 10 minutes.</p>
 </div></blockquote>
-<p>After running the <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.2/tools/evaluator/evaluator.py">evaluator.py</a>, you can use <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.2/tools/evaluator/recorder/wandb_writer.py">recorder/wandb_writer.py</a> to visualize the evaluation results, more details can be found in <a class="reference internal" href="recorder/README.html"><span class="std std-doc">recorder/README.md</span></a>.</p>
+<p>After running the <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.2/tools/evaluator/evaluator.py">evaluator.py</a>, you can use <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.2/tools/evaluator/recorder/wandb_writer.py">recorder/wandb_writer.py</a> to visualize the evaluation results, more details can be found in <a class="reference internal" href="recorder/README.html"><span class="std std-doc">recorder/README.md</span></a>.</p>
 </section>
 <section id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h2>

@@ -120,13 +120,13 @@ process:
       max_len: 1000
 ```
 
-6. 社区贡献者可在alpha状态后就提相应算子PR。此后该贡献者可以与Data-Juicer团队一起在后续PR中，将其渐进完善到beta和stable版本。更多细节请参考下方第4节。我们非常欢迎共建，并会[高亮致谢](https://github.com/modelscope/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
+6. 社区贡献者可在alpha状态后就提相应算子PR。此后该贡献者可以与Data-Juicer团队一起在后续PR中，将其渐进完善到beta和stable版本。更多细节请参考下方第4节。我们非常欢迎共建，并会[高亮致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
 
 ## 2. 构建你自己的数据菜谱和配置项
 
 - 我们提供基于 [jsonargparse](https://github.com/omni-us/jsonargparse/) 的简单配置以降低样板代码的成本。
 - 我们提供大量的示例性菜谱以供参阅复用和扩展，[数据菜谱Gallery](RecipeGallery_ZH.md)。
-- 📣📣📣 社区贡献者可提PR在*数据菜谱Gallery*中添加自定义的数据菜谱，促进传播、复用和相关技术演进。更多细节请参考下方第4节。我们非常欢迎共建，并会[高亮致谢](https://github.com/modelscope/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
+- 📣📣📣 社区贡献者可提PR在*数据菜谱Gallery*中添加自定义的数据菜谱，促进传播、复用和相关技术演进。更多细节请参考下方第4节。我们非常欢迎共建，并会[高亮致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
 
 ### 2.1 丰富的配置源和类型提示
 
@@ -333,7 +333,7 @@ git commit -m "<your_commit_message>"
   - ![beta](https://img.shields.io/badge/beta-yellow?style=plastic) 版本：在 alpha 版本基础上为算子添加了单元测试，补充基础文档描述
   - ![stable](https://img.shields.io/badge/stable-green?style=plastic) 版本：在 beta 版本基础上进行了各项算子优化（如模型管理、批处理、算子融合等）
 
-- 社区贡献者可以在 alpha 版本提交相应的算子 PR。之后，贡献者可以与 Data-Juicer 团队合作，在后续 PR 中逐步将其改进到 beta 版本和稳定版本。我们欢迎共同创作，并将重点标注[致谢](https://github.com/modelscope/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
+- 社区贡献者可以在 alpha 版本提交相应的算子 PR。之后，贡献者可以与 Data-Juicer 团队合作，在后续 PR 中逐步将其改进到 beta 版本和稳定版本。我们欢迎共同创作，并将重点标注[致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
 
 - 欢迎添加新算子的相应参考文献（例如，受现有想法或代码启发的新实现，或现有论文中提出的高级算法）。
 
@@ -595,4 +595,4 @@ class PerplexityFilter(Filter):
 
 - 欢迎添加您新配方的相应参考文献，或提出一些新需求、以及改进现有配方的想法。
 
-- 我们非常欢迎共建，并将重点[注明致谢](https://github.com/modelscope/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
+- 我们非常欢迎共建，并将重点[注明致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！

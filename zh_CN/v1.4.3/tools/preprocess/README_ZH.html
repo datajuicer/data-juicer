@@ -423,7 +423,7 @@ python<span class="w"> </span>tools/preprocess/raw_stackexchange_to_jsonl.py<spa
 <section id="alpaca-cot-jsonl">
 <h3>将原始 Alpaca-CoT 数据转换为 jsonl<a class="headerlink" href="#alpaca-cot-jsonl" title="Link to this heading">¶</a></h3>
 <p>使用 <code class="docutils literal notranslate"><span class="pre">raw_alpaca_cot_merge_add_meta.py</span></code> 来转化原始 Alpaca-CoT 数据.</p>
-<p>该工具用于将从 [HuggingFace](<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/preprocess/">https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/preprocess/</a> https:/huggingface.co/datasets/QingyiSi/Alpaca-CoT) 下载的原始 Alpaca-Cot 数据转化为 jsonl 文件.</p>
+<p>该工具用于将从 [HuggingFace](<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/preprocess/">https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/preprocess/</a> https:/huggingface.co/datasets/QingyiSi/Alpaca-CoT) 下载的原始 Alpaca-Cot 数据转化为 jsonl 文件.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/raw_alpaca_cot_merge_add_meta.py<span class="w">           </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">       </span>&lt;src_dir&gt;<span class="w">      </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">    </span>&lt;target_dir&gt;<span class="w">   </span><span class="se">\</span>
@@ -483,7 +483,7 @@ python<span class="w"> </span>tools/preprocess/reformat_jsonl_nan_value.py<span 
 </section>
 <section id="id4">
 <h3>序列化 jsonl 文件中的元字段<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
-<p>在一些jsonl文件中，不同的样本可能有不同的meta字段，甚至同一个meta字段中的数据类型也可能不同，这会导致使用 <a class="reference external" href="https://huggingface.co/docs/datasets/index">HuggingFace Dataset</a> 读取数据集失败。 该工具用于将这些jsonl文件中除 <code class="docutils literal notranslate"><span class="pre">text_key</span></code> 之外的所有元字段序列化为字符串，以方便后续的Data-juicer处理。 数据集处理后，通常需要配合使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/postprocess/deserialize_meta.py">deserialize_meta.py</a> 对其进行反序列化。</p>
+<p>在一些jsonl文件中，不同的样本可能有不同的meta字段，甚至同一个meta字段中的数据类型也可能不同，这会导致使用 <a class="reference external" href="https://huggingface.co/docs/datasets/index">HuggingFace Dataset</a> 读取数据集失败。 该工具用于将这些jsonl文件中除 <code class="docutils literal notranslate"><span class="pre">text_key</span></code> 之外的所有元字段序列化为字符串，以方便后续的Data-juicer处理。 数据集处理后，通常需要配合使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/postprocess/deserialize_meta.py">deserialize_meta.py</a> 对其进行反序列化。</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/serialize_meta.py<span class="w">           </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">           </span>&lt;src_dir&gt;<span class="w">         </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">        </span>&lt;target_dir&gt;<span class="w">      </span><span class="se">\</span>

@@ -346,13 +346,13 @@
         <article role="main" id="furo-main-content">
           <section id="evaluation-results-recorder">
 <h1>Evaluation Results Recorder<a class="headerlink" href="#evaluation-results-recorder" title="Link to this heading">¶</a></h1>
-<p>Record your evaluation results to <a class="reference external" href="https://wandb.ai/">W&amp;B</a> (wandb) with <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/recorder/wandb_writer.py"><code class="docutils literal notranslate"><span class="pre">wandb_writer.py</span></code></a>.</p>
+<p>Record your evaluation results to <a class="reference external" href="https://wandb.ai/">W&amp;B</a> (wandb) with <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/recorder/wandb_writer.py"><code class="docutils literal notranslate"><span class="pre">wandb_writer.py</span></code></a>.</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">wandb_writer.py</span></code>, you can:</p>
 <ul class="simple">
 <li><p>visualize the changes of evaluation metrics of your model during the training process
-<img alt="Metrics" src="https://github.com/modelscope/data-juicer/blob/v1.4.3/docs/imgs/eval-02.png" /></p></li>
+<img alt="Metrics" src="https://github.com/datajuicer/data-juicer/blob/v1.4.3/docs/imgs/eval-02.png" /></p></li>
 <li><p>make a leaderboard to compare the metrics of different models
-<img alt="Leaderboard" src="https://github.com/modelscope/data-juicer/blob/v1.4.3/docs/imgs/eval-01.png" /></p></li>
+<img alt="Leaderboard" src="https://github.com/datajuicer/data-juicer/blob/v1.4.3/docs/imgs/eval-01.png" /></p></li>
 </ul>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
@@ -366,7 +366,7 @@
 </section>
 <section id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h2>
-<p>We provided three example files in <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/recorder/config"><code class="docutils literal notranslate"><span class="pre">config</span></code></a> folder for three different cases.</p>
+<p>We provided three example files in <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/recorder/config"><code class="docutils literal notranslate"><span class="pre">config</span></code></a> folder for three different cases.</p>
 <p>The general format is as follows:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;str&gt;</span><span class="w">   </span><span class="c1"># your wandb project name</span>
 <span class="nt">base_url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;str&gt;</span><span class="w">  </span><span class="c1"># your wandb instance url</span>

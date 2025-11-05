@@ -354,7 +354,7 @@
 <p>原始数据文件在 HuggingFace 中的 <a class="reference external" href="https://huggingface.co/datasets/QingyiSi/Alpaca-CoT">Alpaca-CoT</a> 下载。</p>
 <section id="alpaca-cot-jsonl">
 <h3>将 Alpaca-CoT 转换为 jsonl 文件<a class="headerlink" href="#alpaca-cot-jsonl" title="Link to this heading">¶</a></h3>
-<p>使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/preprocess/raw_alpaca_cot_merge_add_meta.py">raw_alpaca_cot_merge_add_meta.py</a> 选择数据集的 <code class="docutils literal notranslate"><span class="pre">instruction</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span></code> 和 <code class="docutils literal notranslate"><span class="pre">output</span></code> 3个字段，并使用空格将它们合并到 <code class="docutils literal notranslate"><span class="pre">text</span></code>，同时在数据集中增加额外的[元信息](<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/">https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/</a> #meta_info) ：</p>
+<p>使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/preprocess/raw_alpaca_cot_merge_add_meta.py">raw_alpaca_cot_merge_add_meta.py</a> 选择数据集的 <code class="docutils literal notranslate"><span class="pre">instruction</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span></code> 和 <code class="docutils literal notranslate"><span class="pre">output</span></code> 3个字段，并使用空格将它们合并到 <code class="docutils literal notranslate"><span class="pre">text</span></code>，同时在数据集中增加额外的[元信息](<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/">https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/</a> #meta_info) ：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/raw_alpaca_cot_merge_add_meta.py<span class="w">    </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">             </span>&lt;Alpaca-CoT_src_dir&gt;<span class="w">              </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">          </span>&lt;target_dir&gt;<span class="w">                      </span><span class="se">\</span>
@@ -364,7 +364,7 @@
 </section>
 <section id="id2">
 <h3>按照语言将数据集拆分子数据集<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
-<p>使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/preprocess/dataset_split_by_language.py">dataset_split_by_language.py</a> 将数据集拆分为中文和英文：</p>
+<p>使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/preprocess/dataset_split_by_language.py">dataset_split_by_language.py</a> 将数据集拆分为中文和英文：</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/dataset_split_by_language.py<span class="w">    </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">             </span>&lt;src_dir&gt;<span class="w">                     </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">          </span>&lt;target_dir&gt;<span class="w">                  </span><span class="se">\</span>
@@ -376,7 +376,7 @@
 </section>
 <section id="id3">
 <h2>处理<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h2>
-<p>在预处理完成之后，修改 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml">alpaca-cot-en-refine.yaml</a> 和 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml">alpaca-cot-zh-refine.yaml</a> 中的数据集路径，然后执行以下命令来复现完善过的 Alpaca-CoT 的处理流程。</p>
+<p>在预处理完成之后，修改 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml">alpaca-cot-en-refine.yaml</a> 和 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml">alpaca-cot-zh-refine.yaml</a> 中的数据集路径，然后执行以下命令来复现完善过的 Alpaca-CoT 的处理流程。</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># refine English dataset</span>
 python<span class="w"> </span>tools/process_data.py<span class="w"> </span>--config<span class="w"> </span>configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml
 

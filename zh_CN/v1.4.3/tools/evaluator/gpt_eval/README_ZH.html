@@ -357,12 +357,12 @@
 <li><p>对照模型：Huggingface, Megatron-LM 模型或 OpenAI 提供的模型</p></li>
 </ul>
 <blockquote>
-<div><p>评测 Megatron-LM 模型需要使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/thirdparty"><code class="docutils literal notranslate"><span class="pre">thirdparty</span></code></a> 文件夹提供的定制化 Megatron-LM</p>
+<div><p>评测 Megatron-LM 模型需要使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/thirdparty"><code class="docutils literal notranslate"><span class="pre">thirdparty</span></code></a> 文件夹提供的定制化 Megatron-LM</p>
 </div></blockquote>
 </li>
-<li><p>使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/answer_generator.py"><code class="docutils literal notranslate"><span class="pre">answer_generator.py</span></code></a> 在评测数据集上分别生成待评测模型及对照模型的回答。</p>
+<li><p>使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/answer_generator.py"><code class="docutils literal notranslate"><span class="pre">answer_generator.py</span></code></a> 在评测数据集上分别生成待评测模型及对照模型的回答。</p>
 <ol class="arabic">
-<li><p>准备数据集。工具包内已经提供了 Vicuna 评测数据集 (<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/question.jsonl"><code class="docutils literal notranslate"><span class="pre">config/question.jsonl</span></code></a>)，同时支持用户使用自定义数据集生成回答，自定义数据集要求为单个 jsonl 文件，其中每个 json 对象包含以下3个域：</p>
+<li><p>准备数据集。工具包内已经提供了 Vicuna 评测数据集 (<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/question.jsonl"><code class="docutils literal notranslate"><span class="pre">config/question.jsonl</span></code></a>)，同时支持用户使用自定义数据集生成回答，自定义数据集要求为单个 jsonl 文件，其中每个 json 对象包含以下3个域：</p>
 <ul class="simple">
 <li><p>question_id: int 类型，用于标识该问题</p></li>
 <li><p>text: string 类型，问题的具体内容</p></li>
@@ -408,15 +408,15 @@
 </li>
 </ol>
 </li>
-<li><p>通过 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/gpt_evaluator.py"><code class="docutils literal notranslate"><span class="pre">gpt_evaluator.py</span></code></a> 调用 OpenAI API 获得评价结果。</p>
+<li><p>通过 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/gpt_evaluator.py"><code class="docutils literal notranslate"><span class="pre">gpt_evaluator.py</span></code></a> 调用 OpenAI API 获得评价结果。</p>
 <ol class="arabic">
 <li><p>准备评测依赖项。运行脚本前需准备如下文件：</p>
 <ul class="simple">
 <li><p>question_file: 即上一步中的评测数据文件</p></li>
 <li><p>answer_file: 即上一步得到的待评测模型的回答文件</p></li>
 <li><p>baseline_file: 即上一步得到的对照模型的回答文件</p></li>
-<li><p>prompt_file: prompt 模板文件，工具包内已提供一份样本 (<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/prompt.jsonl"><code class="docutils literal notranslate"><span class="pre">config/prompt.jsonl</span></code></a>)</p></li>
-<li><p>reviewer_file: reviewer 模板文件(包括评测时使用的模型类型和其他参数)，工具包内已提供一份样本 (<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/reviewer.json"><code class="docutils literal notranslate"><span class="pre">config/reviewer.json</span></code></a>)</p></li>
+<li><p>prompt_file: prompt 模板文件，工具包内已提供一份样本 (<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/prompt.jsonl"><code class="docutils literal notranslate"><span class="pre">config/prompt.jsonl</span></code></a>)</p></li>
+<li><p>reviewer_file: reviewer 模板文件(包括评测时使用的模型类型和其他参数)，工具包内已提供一份样本 (<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.3/tools/evaluator/gpt_eval/config/reviewer.json"><code class="docutils literal notranslate"><span class="pre">config/reviewer.json</span></code></a>)</p></li>
 </ul>
 </li>
 <li><p>编写配置文件。运行脚本所需的 yaml 文件格式如下：</p>

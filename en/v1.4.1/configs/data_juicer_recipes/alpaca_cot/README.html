@@ -350,7 +350,7 @@
 <p>The raw data files can be downloaded from <a class="reference external" href="https://huggingface.co/datasets/QingyiSi/Alpaca-CoT">Alpaca-CoT</a> on HuggingFace.</p>
 <section id="convert-raw-alpaca-cot-data-to-jsonl">
 <h3>Convert raw Alpaca-CoT data to jsonl<a class="headerlink" href="#convert-raw-alpaca-cot-data-to-jsonl" title="Link to this heading">¶</a></h3>
-<p>Use <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/preprocess/raw_alpaca_cot_merge_add_meta.py">raw_alpaca_cot_merge_add_meta.py</a> to select <code class="docutils literal notranslate"><span class="pre">instruction</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span></code> and <code class="docutils literal notranslate"><span class="pre">output</span></code> columns and merge them to <code class="docutils literal notranslate"><span class="pre">text</span></code> field with a space, and add extra [ META ](<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/">https://github.com/modelscope/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/</a> #meta_info) info to dataset:</p>
+<p>Use <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/preprocess/raw_alpaca_cot_merge_add_meta.py">raw_alpaca_cot_merge_add_meta.py</a> to select <code class="docutils literal notranslate"><span class="pre">instruction</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span></code> and <code class="docutils literal notranslate"><span class="pre">output</span></code> columns and merge them to <code class="docutils literal notranslate"><span class="pre">text</span></code> field with a space, and add extra [ META ](<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/">https://github.com/datajuicer/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/</a> #meta_info) info to dataset:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/raw_alpaca_cot_merge_add_meta.py<span class="w">    </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">             </span>&lt;Alpaca-CoT_src_dir&gt;<span class="w">              </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">          </span>&lt;target_dir&gt;<span class="w">                      </span><span class="se">\</span>
@@ -360,7 +360,7 @@
 </section>
 <section id="split-datasets-to-sub-datasets-by-language">
 <h3>Split datasets to sub-datasets by language<a class="headerlink" href="#split-datasets-to-sub-datasets-by-language" title="Link to this heading">¶</a></h3>
-<p>Use <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/tools/preprocess/dataset_split_by_language.py">dataset_split_by_language.py</a> to split the dataset to EN and ZH sub-datasets:</p>
+<p>Use <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/tools/preprocess/dataset_split_by_language.py">dataset_split_by_language.py</a> to split the dataset to EN and ZH sub-datasets:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/preprocess/dataset_split_by_language.py<span class="w">    </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">             </span>&lt;src_dir&gt;<span class="w">                     </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">          </span>&lt;target_dir&gt;<span class="w">                  </span><span class="se">\</span>
@@ -372,7 +372,7 @@
 </section>
 <section id="process">
 <h2>Process<a class="headerlink" href="#process" title="Link to this heading">¶</a></h2>
-<p>After preprocess, modify the dataset path in <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml">alpaca-cot-en-refine.yaml</a> and <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml">alpaca-cot-zh-refine.yaml</a>, and then execute the following command to reproduce the processing flow of refined Alpaca-CoT.</p>
+<p>After preprocess, modify the dataset path in <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml">alpaca-cot-en-refine.yaml</a> and <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.1/configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml">alpaca-cot-zh-refine.yaml</a>, and then execute the following command to reproduce the processing flow of refined Alpaca-CoT.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># refine English dataset</span>
 python<span class="w"> </span>tools/process_data.py<span class="w"> </span>--config<span class="w"> </span>configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml
 

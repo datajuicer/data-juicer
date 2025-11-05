@@ -428,7 +428,7 @@
 </section>
 <section id="id8">
 <h3>演示<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
-<p>我们结合<a class="reference external" href="https://github.com/modelscope/agentscope">AgentScope</a>实现了用户通过自然语言调用Data-Juicer算子进行数据清洗的功能，算子采用API服务的方式进行调用。具体代码请参考<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/demos/api_service">这里</a>。</p>
+<p>我们结合<a class="reference external" href="https://github.com/agentscope-ai/agentscope">AgentScope</a>实现了用户通过自然语言调用Data-Juicer算子进行数据清洗的功能，算子采用API服务的方式进行调用。具体代码请参考<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/demos/api_service">这里</a>。</p>
 </section>
 </section>
 <section id="mcp">
@@ -481,7 +481,7 @@
 <p>可通过指定环境变量 <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code> 控制 MCP 服务器返回的算子工具：</p>
 <ol class="arabic simple">
 <li><p>创建一个 <code class="docutils literal notranslate"><span class="pre">.txt</span></code> 文件</p></li>
-<li><p>将算子名称添加到文件中，例如：<a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a></p></li>
+<li><p>将算子名称添加到文件中，例如：<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/mcp/ops_list_example.txt">ops_list_example.txt</a></p></li>
 <li><p>将算子列表的路径设置为环境变量 <code class="docutils literal notranslate"><span class="pre">DJ_OPS_LIST_PATH</span></code></p></li>
 </ol>
 </section>
@@ -502,7 +502,7 @@
 <span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/datajuicer/data-juicer&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;recipe-flow&quot;</span>
 <span class="w">      </span><span class="p">]</span>
@@ -519,7 +519,7 @@
 <span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uvx&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;--from&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="s2">&quot;git+https://github.com/modelscope/data-juicer&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;git+https://github.com/datajuicer/data-juicer&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;dj-mcp&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;granular-ops&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;--transport&quot;</span><span class="p">,</span>
@@ -541,7 +541,7 @@
 <h5>本地安装<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h5>
 <ol class="arabic">
 <li><p>将 Data-Juicer 仓库克隆到本地：</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/modelscope/data-juicer.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/datajuicer/data-juicer.git
 </pre></div>
 </div>
 </li>
@@ -599,7 +599,7 @@
 <li><p>运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：</p>
 <ul>
 <li><p>uvx 启动:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvx<span class="w"> </span>--from<span class="w"> </span>git+https://github.com/modelscope/data-juicer<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvx<span class="w"> </span>--from<span class="w"> </span>git+https://github.com/datajuicer/data-juicer<span class="w"> </span>dj-mcp<span class="w"> </span>&lt;MODE:<span class="w"> </span>recipe-flow/granular-ops&gt;<span class="w"> </span>--transport<span class="w"> </span>sse<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
 </pre></div>
 </div>
 </li>

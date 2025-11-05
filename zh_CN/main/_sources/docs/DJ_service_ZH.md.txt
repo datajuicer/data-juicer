@@ -79,7 +79,7 @@ curl -X POST \
 注：如果需要调用`Executor`类或`Analyzer`类的`run`函数进行数据处理和数据分析，需要先调用`init_configs`或`get_init_configs`函数获取完整的Data-Juicer参数来构造这两个类。具体可参考如下演示。
 
 ### 演示
-我们结合[AgentScope](https://github.com/modelscope/agentscope)实现了用户通过自然语言调用Data-Juicer算子进行数据清洗的功能，算子采用API服务的方式进行调用。具体代码请参考[这里](../demos/api_service)。
+我们结合[AgentScope](https://github.com/agentscope-ai/agentscope)实现了用户通过自然语言调用Data-Juicer算子进行数据清洗的功能，算子采用API服务的方式进行调用。具体代码请参考[这里](../demos/api_service)。
 
 ## MCP服务器
 
@@ -143,7 +143,7 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
         "command": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/modelscope/data-juicer",
+          "git+https://github.com/datajuicer/data-juicer",
           "dj-mcp",
           "recipe-flow"
         ]
@@ -160,7 +160,7 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
         "command": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/modelscope/data-juicer",
+          "git+https://github.com/datajuicer/data-juicer",
           "dj-mcp",
           "granular-ops",
           "--transport",
@@ -179,7 +179,7 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
 
 1. 将 Data-Juicer 仓库克隆到本地：
    ```bash
-   git clone https://github.com/modelscope/data-juicer.git
+   git clone https://github.com/datajuicer/data-juicer.git
    ```
 2. 使用 uv 运行 Data-Juicer MCP：
 - Recipe-Flow 模式:
@@ -230,7 +230,7 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
 1. 运行 MCP 服务器：执行 MCP 服务器脚本，指定端口号：
    - uvx 启动:
      ```bash
-     uvx --from git+https://github.com/modelscope/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
+     uvx --from git+https://github.com/datajuicer/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
      ```
    - 本地启动:
      ```bash

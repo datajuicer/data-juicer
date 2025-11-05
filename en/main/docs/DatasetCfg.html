@@ -353,7 +353,7 @@
 <h3>Local Dataset<a class="headerlink" href="#local-dataset" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">local_json.yaml</span></code> configuration file is used to specify datasets stored locally in JSON format. <em>path</em> is required to specify the local dataset path, either a single file or a directory. <em>format</em> is optional to specify the dataset format.
 For local files, DJ will automatically detect the file format and load the dataset accordingly. Formats like parquet, jsonl, json, csv, tsv, txt, and jsonl.gz are supported
-Refer to <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/local_json.yaml">local_json.yaml</a> for more details.</p>
+Refer to <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/local_json.yaml">local_json.yaml</a> for more details.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>
@@ -372,7 +372,7 @@ Refer to <a class="reference external" href="https://github.com/modelscope/data-
 <section id="remote-huggingface-dataset">
 <h3>Remote Huggingface Dataset<a class="headerlink" href="#remote-huggingface-dataset" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">remote_huggingface.yaml</span></code> configuration file is used to specify huggingface datasets. <em>type</em> and <em>source</em> are fixed to ‘remote’ and ‘huggingface’ to locate huggingface loading logic. <em>path</em> is required to identify the huggingface dataset. <em>name</em>, <em>split</em> and <em>limit</em> are optional to specify the dataset name/split and limit the number of samples to load.
-Refer to <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/remote_huggingface.yaml">remote_huggingface.yaml</a> for more details.</p>
+Refer to <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/remote_huggingface.yaml">remote_huggingface.yaml</a> for more details.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;remote&#39;</span>
@@ -387,7 +387,7 @@ Refer to <a class="reference external" href="https://github.com/modelscope/data-
 <section id="remote-arxiv-dataset">
 <h3>Remote Arxiv Dataset<a class="headerlink" href="#remote-arxiv-dataset" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">remote_arxiv.yaml</span></code> configuration file is used to specify datasets stored remotely in JSON format. <em>type</em> and <em>source</em> are fixed to ‘remote’ and ‘arxiv’ to locate arxiv loading logic. <em>lang</em>, <em>dump_date</em>, <em>force_download</em> and <em>url_limit</em> are optional to specify the dataset language, dump date, force download and url limit.
-Refer to <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/remote_arxiv.yaml">remote_arxiv.yaml</a> for more details.</p>
+Refer to <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/remote_arxiv.yaml">remote_arxiv.yaml</a> for more details.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;remote&#39;</span>
@@ -401,7 +401,7 @@ Refer to <a class="reference external" href="https://github.com/modelscope/data-
 </section>
 <section id="other-supported-dataset-formats">
 <h3>Other Supported Dataset Formats<a class="headerlink" href="#other-supported-dataset-formats" title="Link to this heading">¶</a></h3>
-<p>Refer to <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/data_juicer/core/data/load_strategy.py">load_strategy.py</a> for more details and supported dataset formats.</p>
+<p>Refer to <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/load_strategy.py">load_strategy.py</a> for more details and supported dataset formats.</p>
 </section>
 </section>
 <section id="other-features">
@@ -409,7 +409,7 @@ Refer to <a class="reference external" href="https://github.com/modelscope/data-
 <section id="data-mixture">
 <h3>Data Mixture<a class="headerlink" href="#data-mixture" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">mixture.yaml</span></code> configuration file demonstrates how to specify data mixture rules. DJ will mix the datasets by sampling a portion of the dataset and applying proper weights.
-Refer to <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/configs/datasets/mixture.yaml">mixture.yaml</a> for more details.</p>
+Refer to <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/mixture.yaml">mixture.yaml</a> for more details.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">max_sample_num</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
@@ -425,7 +425,7 @@ Refer to <a class="reference external" href="https://github.com/modelscope/data-
 <section id="data-validation">
 <h3>Data Validation<a class="headerlink" href="#data-validation" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">validator.yaml</span></code> configuration file demonstrates how to specify data validation rules. DJ will validate the dataset by sampling a portion of the dataset and applying the validation rules.
-Refer to <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/main/data_juicer/core/data/data_validator.py">data_validator.py</a> for more details and supported validators.</p>
+Refer to <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/data_validator.py">data_validator.py</a> for more details and supported validators.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">configs</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>

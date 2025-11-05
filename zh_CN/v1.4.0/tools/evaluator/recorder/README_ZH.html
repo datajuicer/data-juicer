@@ -346,13 +346,13 @@
         <article role="main" id="furo-main-content">
           <section id="evaluation-results-recorder">
 <h1>Evaluation Results Recorder<a class="headerlink" href="#evaluation-results-recorder" title="Link to this heading">¶</a></h1>
-<p>使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.0/tools/evaluator/recorder/wandb_writer.py"><code class="docutils literal notranslate"><span class="pre">wandb_writer.py</span></code></a> 将评测结果记录到 <a class="reference external" href="https://wandb.ai/">W&amp;B</a> (wandb) 并可视化展示。</p>
+<p>使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.0/tools/evaluator/recorder/wandb_writer.py"><code class="docutils literal notranslate"><span class="pre">wandb_writer.py</span></code></a> 将评测结果记录到 <a class="reference external" href="https://wandb.ai/">W&amp;B</a> (wandb) 并可视化展示。</p>
 <p><code class="docutils literal notranslate"><span class="pre">wandb_writer.py</span></code> 能够:</p>
 <ul class="simple">
 <li><p>可视化模型在训练过程中各项评测指标的变化
-<img alt="Metrics" src="https://github.com/modelscope/data-juicer/blob/v1.4.0/docs/imgs/eval-02.png" /></p></li>
+<img alt="Metrics" src="https://github.com/datajuicer/data-juicer/blob/v1.4.0/docs/imgs/eval-02.png" /></p></li>
 <li><p>制作排行榜来比较不同模型的各项评测指标
-<img alt="Leaderboard" src="https://github.com/modelscope/data-juicer/blob/v1.4.0/docs/imgs/eval-01.png" /></p></li>
+<img alt="Leaderboard" src="https://github.com/datajuicer/data-juicer/blob/v1.4.0/docs/imgs/eval-01.png" /></p></li>
 </ul>
 <section id="id1">
 <h2>用法<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
@@ -366,7 +366,7 @@
 </section>
 <section id="id2">
 <h2>配置<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
-<p>我们在 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.0/tools/evaluator/recorder/config"><code class="docutils literal notranslate"><span class="pre">config</span></code></a> 文件夹中为三种不同的情况提供了三个示例文件，其中通用的配置项格式如下:</p>
+<p>我们在 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.0/tools/evaluator/recorder/config"><code class="docutils literal notranslate"><span class="pre">config</span></code></a> 文件夹中为三种不同的情况提供了三个示例文件，其中通用的配置项格式如下:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;str&gt;</span><span class="w">   </span><span class="c1"># wandb 项目名</span>
 <span class="nt">base_url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;str&gt;</span><span class="w">  </span><span class="c1"># wandb 实例 url</span>
 <span class="c1"># other specific configuration items</span>

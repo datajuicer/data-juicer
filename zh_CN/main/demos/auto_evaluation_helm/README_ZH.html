@@ -421,7 +421,7 @@ python<span class="w"> </span>evaluator.py<span class="w"> </span>--config<span 
 </pre></div>
 </div>
 <p>该脚本会每隔 30 分钟检测一次 <code class="docutils literal notranslate"><span class="pre">/workspace/data/checkpoints/GPT2</span></code> 目录，并从 2000 iteration 开始每隔 2000 iteration 对检查点执行一次 HELM 评测并将评测结果记录至 wandb，直到评测完 200000 iteration 对应的检查点为止，您可以在 wandb 上查看已完成的评测结果，下图展示了模型训练到 140000 iteration 时 wandb 上的可视化展示结果。</p>
-<p><img alt="训练过程中的评测结果展示" src="https://github.com/modelscope/data-juicer/blob/main/demos/auto_evaluation_helm/imgs/eval-02.png" /></p>
+<p><img alt="训练过程中的评测结果展示" src="https://github.com/datajuicer/data-juicer/blob/main/demos/auto_evaluation_helm/imgs/eval-02.png" /></p>
 <blockquote>
 <div><p>本示例运行的 HELM 测试集配置位于 <code class="docutils literal notranslate"><span class="pre">/workspace/data-juicer/demos/helm_spec_template.conf</span></code> 中，这里仅选用了 MMLU 的一个子集、boolq、narrative_qa 以及 hellaswag 作为样例，完整的测试集配置位于 <code class="docutils literal notranslate"><span class="pre">/workspace/data-juicer/tools/eval/config/helm_spec_template.conf</span></code> 中。</p>
 </div></blockquote>
@@ -439,7 +439,7 @@ python<span class="w"> </span>wandb_writer.py<span class="w"> </span>--config<sp
 python<span class="w"> </span>wandb_writer.py<span class="w"> </span>--config<span class="w"> </span>/workspace/data-juicer/demos/leaderboard.yaml
 </pre></div>
 </div>
-<p><img alt="排行榜" src="https://github.com/modelscope/data-juicer/blob/main/demos/auto_evaluation_helm/imgs/eval-01.png" /></p>
+<p><img alt="排行榜" src="https://github.com/datajuicer/data-juicer/blob/main/demos/auto_evaluation_helm/imgs/eval-01.png" /></p>
 </section>
 </section>
 </section>

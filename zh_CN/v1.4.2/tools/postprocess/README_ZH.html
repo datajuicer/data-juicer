@@ -352,7 +352,7 @@
 <h2>用法<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
 <section id="token">
 <h3>为数据集计算token数目<a class="headerlink" href="#token" title="Link to this heading">¶</a></h3>
-<p>使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.2/tools/postprocess/count_token.py">count_token.py</a> 计算数据集包含的 token 数目。</p>
+<p>使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.2/tools/postprocess/count_token.py">count_token.py</a> 计算数据集包含的 token 数目。</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/postprocess/count_token.py<span class="w">        </span><span class="se">\</span>
 <span class="w">    </span>--data_path<span class="w">            </span>&lt;data_path&gt;<span class="w">         </span><span class="se">\</span>
 <span class="w">    </span>--text_keys<span class="w">            </span>&lt;text_keys&gt;<span class="w">         </span><span class="se">\</span>
@@ -372,7 +372,7 @@ python<span class="w"> </span>tools/postprocess/count_token.py<span class="w"> <
 </section>
 <section id="id2">
 <h3>将多个数据集以可选的权重混合<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
-<p>使用 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.2/tools/postprocess/data_mixture.py">data_mixture.py</a> 将多个数据集混合。</p>
+<p>使用 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.2/tools/postprocess/data_mixture.py">data_mixture.py</a> 将多个数据集混合。</p>
 <p>该脚本将从每个数据集中随机选择样本并混合这些样本并导出到新的数据集。</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/postprocess/data_mixture.py<span class="w">        </span><span class="se">\</span>
 <span class="w">    </span>--data_path<span class="w">             </span>&lt;data_path&gt;<span class="w">         </span><span class="se">\</span>
@@ -395,7 +395,7 @@ python<span class="w"> </span>tools/postprocess/data_mixture.py<span class="w"> 
 </section>
 <section id="jsonl">
 <h3>反序列化 jsonl 文件中的元字段<a class="headerlink" href="#jsonl" title="Link to this heading">¶</a></h3>
-<p>该工具通常和 <a class="reference external" href="https://github.com/modelscope/data-juicer/blob/v1.4.2/tools/preprocess/serialize_meta.py">serialize_meta.py</a> 配合使用，将指定字段反序列化为原始格式。</p>
+<p>该工具通常和 <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.4.2/tools/preprocess/serialize_meta.py">serialize_meta.py</a> 配合使用，将指定字段反序列化为原始格式。</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/postprocess/deserialize_meta.py<span class="w">           </span><span class="se">\</span>
 <span class="w">    </span>--src_dir<span class="w">           </span>&lt;src_dir&gt;<span class="w">         </span><span class="se">\</span>
 <span class="w">    </span>--target_dir<span class="w">        </span>&lt;target_dir&gt;<span class="w">      </span><span class="se">\</span>

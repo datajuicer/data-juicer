@@ -79,9 +79,11 @@ from .video_captioning_from_audio_mapper import VideoCaptioningFromAudioMapper
 from .video_captioning_from_frames_mapper import VideoCaptioningFromFramesMapper
 from .video_captioning_from_summarizer_mapper import VideoCaptioningFromSummarizerMapper
 from .video_captioning_from_video_mapper import VideoCaptioningFromVideoMapper
+from .video_depth_estimation_mapper import VideoDepthEstimationMapper
 from .video_extract_frames_mapper import VideoExtractFramesMapper
 from .video_face_blur_mapper import VideoFaceBlurMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
+from .video_object_segmenting_mapper import VideoObjectSegmentingMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
 from .video_resize_aspect_ratio_mapper import VideoResizeAspectRatioMapper
 from .video_resize_resolution_mapper import VideoResizeResolutionMapper
@@ -168,9 +170,11 @@ __all__ = [
     "VideoCaptioningFromFramesMapper",
     "VideoCaptioningFromSummarizerMapper",
     "VideoCaptioningFromVideoMapper",
+    "VideoDepthEstimationMapper",
     "VideoExtractFramesMapper",
     "VideoFFmpegWrappedMapper",
     "VideoFaceBlurMapper",
+    "VideoObjectSegmentingMapper",
     "VideoRemoveWatermarkMapper",
     "VideoResizeAspectRatioMapper",
     "VideoResizeResolutionMapper",

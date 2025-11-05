@@ -7,7 +7,7 @@ Due to the rapid development in the field, this repository and our paper are con
 ## News
 + 🎉 [2025-06-04] Our [Data-Model Co-development Survey](hhttps://ieeexplore.ieee.org/document/11027559) has been accepted by IEEE Transactions on Pattern Analysis and Machine Intelligence (**TPAMI**)! Welcome to explore and contribute this awesome-list.
 + [2025-05-25] We added 20 academic papers related to this survey.
-+ ![new](https://img.alicdn.com/imgextra/i4/O1CN01kUiDtl1HVxN6G56vN_!!6000000000764-2-tps-43-19.png) [2024-10-23] We built a [dynamic table](https://modelscope.github.io/data-juicer/en/main/_static/awesome-list.html) based on the [paper list](#paper-list) that supports filtering and searching.
++ ![new](https://img.alicdn.com/imgextra/i4/O1CN01kUiDtl1HVxN6G56vN_!!6000000000764-2-tps-43-19.png) [2024-10-23] We built a [dynamic table](https://datajuicer.github.io/data-juicer/en/main/_static/awesome-list.html) based on the [paper list](#paper-list) that supports filtering and searching.
 + ![new](https://img.alicdn.com/imgextra/i4/O1CN01kUiDtl1HVxN6G56vN_!!6000000000764-2-tps-43-19.png) [2024-10-22] We restructured our [paper list](#paper-list) to provide more streamlined information.
 
 
@@ -75,7 +75,7 @@ These tags correspond to the taxonomy in our paper, and each work may be assigne
 
 
 ## Paper List
-Below is a paper list summarized based on our survey. Additionally, we have provided a [dynamic table](https://modelscope.github.io/data-juicer/_static/awesome-list.html) that supports filtering and searching, with the data source same as the list below.
+Below is a paper list summarized based on our survey. Additionally, we have provided a [dynamic table](https://datajuicer.github.io/data-juicer/_static/awesome-list.html) that supports filtering and searching, with the data source same as the list below.
 
 | Title | Tags |
 |-------|-------|

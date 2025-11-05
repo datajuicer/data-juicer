@@ -1,6 +1,6 @@
 # DJ-Cookbook
 ## 资源合集
-- [KDD'24 相关教程](https://modelscope.github.io/data-juicer/en/main/_static/tutorial_kdd24.html)
+- [KDD'24 相关教程](https://datajuicer.github.io/data-juicer/en/main/_static/tutorial_kdd24.html)
 - [Awesome LLM-Data](../awesome_llm_data.md)
 - ["坏"数据展览](../BadDataExhibition_ZH.md)
 
@@ -12,7 +12,7 @@
   - [数据格式转换](../../tools/fmt_conversion/README_ZH.md)
 - 信息速查
   - [算子库](../Operators.md)
-  - [API参考](https://modelscope.github.io/data-juicer/zh_CN/main/api)
+  - [API参考](https://datajuicer.github.io/data-juicer/zh_CN/main/api)
 - 进阶
   - [开发者指南](../DeveloperGuide_ZH.md)
   - [预处理工具](../../tools/preprocess/README_ZH.md)

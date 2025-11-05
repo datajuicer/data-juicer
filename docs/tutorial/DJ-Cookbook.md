@@ -1,7 +1,7 @@
 # DJ-Cookbook
 
 ## Curated Resources
-- [KDD-Tutorial](https://modelscope.github.io/data-juicer/en/main/_static/tutorial_kdd24.html)
+- [KDD-Tutorial](https://datajuicer.github.io/data-juicer/en/main/_static/tutorial_kdd24.html)
 - [Awesome LLM-Data](../awesome_llm_data.md)
 - ["Bad" Data Exhibition](../BadDataExhibition.md)
 
@@ -14,7 +14,7 @@
   - [Data Format Conversion](../../tools/fmt_conversion/README.md)
 - Lookup Materials
   - [DJ OperatorZoo](../Operators.md)
-  - [API references](https://modelscope.github.io/data-juicer/en/main/api)
+  - [API references](https://datajuicer.github.io/data-juicer/en/main/api)
 - Advanced
   - [Developer Guide](../DeveloperGuide.md)
   - [Preprocess Tools](../../tools/preprocess/README.md)

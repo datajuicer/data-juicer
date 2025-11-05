@@ -52,11 +52,11 @@ class VideoExtractFramesMapper(Mapper):
     def __init__(
         self,
         frame_sampling_method: str = "all_keyframes",
-        output_format: str = "dict_dir",
+        output_format: str = "path",
         frame_num: PositiveInt = 3,
         duration: float = 0,
         frame_dir: str = None,
-        frame_key=MetaKeys.video_frames,
+        frame_key: str = MetaKeys.video_frames,
         *args,
         **kwargs,
     ):
@@ -71,17 +71,21 @@ class VideoExtractFramesMapper(Mapper):
             If "duration" > 0, frame_sampling_method acts on every segment.
             Default: "all_keyframes".
         :param output_format: The output format of the frame videos.
-            Supported formats are: ["dict_dir", "dict_paths", "list_paths", "list_bytes"].
-            If format is "dict_dir", the output is a dictionary mapping video keys
-            to their respective frame directories. e.g. {video_key: frame_dir}
-            If format is "dict_paths", the output is a dictionary mapping video keys
-            to a list of frame paths. e.g. {video_key: [frame_path1, frame_path2...]}
-            If format is "list_paths", the output is a list of lists, where each inner
-            list contains the paths to the frames of a single video.
-            e.g. [[frame_path1, frame_path2...], [frame_path1, frame_path2...]] (In the order of the videos).
-            If format is "list_bytes", the output is a list of lists, where each inner
+            Supported formats are: ["path", "bytes"].
+            If format is "path", the output is a list of lists, where each inner
+            list contains the path of the frames of a single video.
+            e.g.[
+                    [video1_frame1_path, video1_frame2_path, ...],
+                    [video2_frame1_path, video2_frame2_path, ...],
+                    ...
+                ] (In the order of the videos).
+            If format is "bytes", the output is a list of lists, where each inner
             list contains the bytes of the frames of a single video.
-            e.g. [[frame_bytes1, frame_bytes2...], ...] (In the order of the videos).
+            e.g. [
+                    [video1_byte1, video1_byte2, ...],
+                    [video2_byte1, video2_byte2, ...],
+                    ...
+                ] (In the order of the videos).
         :param frame_num: the number of frames to be extracted uniformly from
             the video. Only works when frame_sampling_method is "uniform". If
             it's 1, only the middle frame will be extracted. If it's 2, only
@@ -94,23 +98,19 @@ class VideoExtractFramesMapper(Mapper):
             If duration > 0, the video is segmented into multiple segments
             based on duration, and frames are extracted from each segment.
         :param frame_dir: Output directory to save extracted frames.
-            If None, a default directory based on the video file path is used.
+            If output_format is "path", must specify a directory.
         :param frame_key: The name of field to save generated frames info.
         :param args: extra args
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
         self._init_parameters = self.remove_extra_parameters(locals())
-        self.output_format = output_format
+
+        self.output_format = output_format.lower()
         assert self.output_format in [
-            "dict_dir",
-            "dict_paths",
-            "list_paths",
-            "list_bytes",
-        ], (
-            f"Output format [{output_format}] is not supported. "
-            f'Can only be one of ["dict_dir", "dict_paths", "list_paths", "list_bytes"].'
-        )
+            "path",
+            "bytes",
+        ], f"output_format '{output_format}' is not supported. Can only be one of ['path', 'bytes']."
 
         if frame_sampling_method not in ["all_keyframes", "uniform"]:
             raise ValueError(
@@ -120,10 +120,8 @@ class VideoExtractFramesMapper(Mapper):
             )
 
         self.frame_dir = frame_dir
-        if self.output_format in ["dict_dir", "dict_paths", "list_paths"]:
-            assert frame_dir is not None, (
-                "frame_dir must be specified " "when output_format is in ['dict_dir', 'dict_paths', 'list_paths']."
-            )
+        if self.output_format in ["path"]:
+            assert frame_dir is not None, "'frame_dir' must be specified when output_format is in ['path']."
         self.frame_sampling_method = frame_sampling_method
         self.frame_num = frame_num
         self.duration = duration
@@ -163,7 +161,7 @@ class VideoExtractFramesMapper(Mapper):
 
     def process_single(self, sample, context=False):
         # check if it's generated already
-        if self.frame_key in sample[Fields.meta]:
+        if self.frame_key in sample:
             return sample
 
         # there is no videos in this sample
@@ -173,10 +171,7 @@ class VideoExtractFramesMapper(Mapper):
         # load videos
         loaded_video_keys = sample[self.video_key]
         sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
-        video_to_frame_dir = {}
-        video_to_frames_path = {}
-        videos_frames_path_list = []
-        videos_frames_bytes_list = []
+        videos_frames_list = [[] for _ in range(len(loaded_video_keys))]
         text = sample[self.text_key]
         offset = 0
         for chunk in text.split(SpecialTokens.eoc):
@@ -186,24 +181,22 @@ class VideoExtractFramesMapper(Mapper):
                 continue
             else:
                 for video_key in loaded_video_keys[offset : offset + video_count]:
+                    video_idx = loaded_video_keys.index(video_key)
                     video = videos[video_key]
                     # extract frame videos
                     frames = self.extract_frames(video)
-                    if self.output_format in ["dict_dir", "dict_paths", "list_paths"]:
+                    if self.output_format in ["path"]:
                         frame_dir = osp.join(self.frame_dir, osp.splitext(osp.basename(video_key))[0])
                         os.makedirs(frame_dir, exist_ok=True)
-                        video_to_frame_dir[video_key] = frame_dir
-                        video_to_frames_path[video_key] = []
                         cur_frames_path = []
 
                         for i, frame in enumerate(frames):
                             frame_path = osp.join(frame_dir, self.frame_fname_template.format(i))
                             if not os.path.exists(frame_path):
                                 frame.save(frame_path)
-                            video_to_frames_path[video_key].append(frame_path)
                             cur_frames_path.append(frame_path)
 
-                        videos_frames_path_list.append(cur_frames_path)
+                        videos_frames_list[video_idx] = cur_frames_path
                     else:
                         cur_frames_bytes = []
                         for i, frame in enumerate(frames):
@@ -211,7 +204,7 @@ class VideoExtractFramesMapper(Mapper):
                             frame.save(stream, format="jpeg")
                             cur_frames_bytes.append(stream.getvalue())
 
-                        videos_frames_bytes_list.append(cur_frames_bytes)
+                        videos_frames_list[video_idx] = cur_frames_bytes
 
                 offset += video_count
 
@@ -219,13 +212,6 @@ class VideoExtractFramesMapper(Mapper):
             for vid_key in videos:
                 close_video(videos[vid_key])
 
-        if self.output_format == "dict_dir":
-            sample[self.frame_key] = video_to_frame_dir
-        elif self.output_format == "dict_paths":
-            sample[self.frame_key] = video_to_frames_path
-        elif self.output_format == "list_paths":
-            sample[self.frame_key] = videos_frames_path_list
-        elif self.output_format == "list_bytes":
-            sample[self.frame_key] = videos_frames_bytes_list
+        sample[self.frame_key] = videos_frames_list
 
         return sample

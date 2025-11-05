@@ -570,9 +570,11 @@ process:
       mem_required: '20GB'                                    # This operation (Op) utilizes deep neural network models that consume a significant amount of memory for computation, hence the system's available memory might constrain the maximum number of processes that can be launched
   - video_extract_frames_mapper:                            # extract frames from video files according to specified methods
       frame_sampling_method: 'all_keyframes'                  # sampling method of extracting frame images from the videos. Should be one of ["all_keyframes", "uniform"]. The former one extracts all key frames and the latter one extract specified number of frames uniformly from the video. Default: "all_keyframes".
+      output_format: 'path'                                   # output format of frame images. Should be one of ["path", "bytes"].
       frame_num: 3                                            # the number of frames to be extracted uniformly from the video. Only works when frame_sampling_method is "uniform". If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
       duration: 0                                             # The duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
-      frame_dir: None                                         # Output directory to save extracted frames. If None, a default directory based on the video file path is used.
+      frame_dir: None                                         # Output directory to save extracted frames. If output_format is "path", must specify a directory.
+      frame_key: 'video_frames'                               # The name of field to save generated frames info.
   - video_face_blur_mapper:                                 # blur faces detected in videos
       cv_classifier: ''                                       # OpenCV classifier path for face detection. By default, we will use 'haarcascade_frontalface_alt.xml'.
       blur_type: 'gaussian'                                   # type of blur kernel, including ['mean', 'box', 'gaussian']

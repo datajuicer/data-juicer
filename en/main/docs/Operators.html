@@ -404,7 +404,7 @@ Data-Juicer 中的算子分为以下 7 种类型。</p>
 <td><p>Group samples to batched samples. 将样本分组，每一组组成一个批量样本。</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.ops.mapper.html#module-data_juicer.ops.mapper" title="data_juicer.ops.mapper"><span class="xref myst py py-mod">mapper</span></a></p></td>
-<td class="text-center"><p>86</p></td>
+<td class="text-center"><p>87</p></td>
 <td><p>Edits and transforms samples. 对数据样本进行编辑和转换。</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.ops.selector.html#module-data_juicer.ops.selector" title="data_juicer.ops.selector"><span class="xref myst py py-mod">selector</span></a></p></td>
@@ -1440,97 +1440,103 @@ Data-Juicer 中的算子分为以下 7 种类型。</p>
 <td><p><a class="reference internal" href="operators/mapper/text_chunk_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_captioning_from_audio_mapper</p></td>
+<tr class="row-even"><td><p>vggt_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Input a video of a single scene, and use VGGT to extract information including Camera Pose, Depth Maps, Point Maps, and 3D Point Tracks (if outputting point tracks is required, the user needs to provide query points). 输入单个场景的视频，并使用VGGT提取包括相机姿态，深度图，点图和3D点轨迹的信息 (如果需要输出点轨迹，则用户需要提供查询点)。</p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_captioning_from_audio_mapper</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Mapper to caption a video according to its audio streams based on Qwen-Audio model. 映射器根据基于qwen-audio模型的音频流为视频添加字幕。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_captioning_from_audio_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_captioning_from_frames_mapper</p></td>
+<tr class="row-even"><td><p>video_captioning_from_frames_mapper</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Generates video captions from sampled frames using an image-to-text model. 使用图像到文本模型从采样帧生成视频字幕。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_captioning_from_frames_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_captioning_from_summarizer_mapper</p></td>
+<tr class="row-odd"><td><p>video_captioning_from_summarizer_mapper</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Mapper to generate video captions by summarizing several kinds of generated texts (captions from video/audio/frames, tags from audio/frames, …). 映射器通过总结几种生成的文本 (来自视频/音频/帧的字幕，来自音频/帧的标签，…) 来生成视频字幕。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_captioning_from_summarizer_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_captioning_from_video_mapper</p></td>
+<tr class="row-even"><td><p>video_captioning_from_video_mapper</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Generates video captions using a Hugging Face video-to-text model and sampled video frames. 使用拥抱面部视频到文本模型和采样视频帧生成视频字幕。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_captioning_from_video_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_extract_frames_mapper</p></td>
+<tr class="row-odd"><td><p>video_extract_frames_mapper</p></td>
 <td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
 <td><p>Mapper to extract frames from video files according to specified methods. 映射器根据指定的方法从视频文件中提取帧。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_extract_frames_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_face_blur_mapper</p></td>
+<tr class="row-even"><td><p>video_face_blur_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Mapper to blur faces detected in videos. 映射器模糊在视频中检测到的人脸。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_face_blur_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_ffmpeg_wrapped_mapper</p></td>
+<tr class="row-odd"><td><p>video_ffmpeg_wrapped_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Wraps FFmpeg video filters for processing video files in a dataset. 包装FFmpeg视频过滤器，用于处理数据集中的视频文件。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_ffmpeg_wrapped_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_remove_watermark_mapper</p></td>
+<tr class="row-even"><td><p>video_remove_watermark_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Remove watermarks from videos based on specified regions. 根据指定区域从视频中删除水印。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_resize_aspect_ratio_mapper</p></td>
+<tr class="row-odd"><td><p>video_resize_aspect_ratio_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Resizes videos to fit within a specified aspect ratio range. 调整视频大小以适应指定的宽高比范围。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_resize_resolution_mapper</p></td>
+<tr class="row-even"><td><p>video_resize_resolution_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Resizes video resolution based on specified width and height constraints. 根据指定的宽度和高度限制调整视频分辨率。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_split_by_duration_mapper</p></td>
+<tr class="row-odd"><td><p>video_split_by_duration_mapper</p></td>
 <td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
 <td><p>Splits videos into segments based on a specified duration. 根据指定的持续时间将视频拆分为多个片段。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_split_by_duration_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_split_by_key_frame_mapper</p></td>
+<tr class="row-even"><td><p>video_split_by_key_frame_mapper</p></td>
 <td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
 <td><p>Splits a video into segments based on key frames. 根据关键帧将视频分割为多个片段。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_split_by_key_frame_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_split_by_scene_mapper</p></td>
+<tr class="row-odd"><td><p>video_split_by_scene_mapper</p></td>
 <td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
 <td><p>Splits videos into scene clips based on detected scene changes. 根据检测到的场景变化将视频拆分为场景剪辑。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_split_by_scene_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_tagging_from_audio_mapper</p></td>
+<tr class="row-even"><td><p>video_tagging_from_audio_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Generates video tags from audio streams using the Audio Spectrogram Transformer. 使用音频频谱图转换器从音频流生成视频标签。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_tagging_from_audio_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_tagging_from_frames_mapper</p></td>
+<tr class="row-odd"><td><p>video_tagging_from_frames_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🟢Stable</p></td>
 <td><p>Generates video tags from frames extracted from videos. 从视频中提取的帧生成视频标签。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>whitespace_normalization_mapper</p></td>
+<tr class="row-even"><td><p>whitespace_normalization_mapper</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Normalizes various types of whitespace characters to standard spaces in text samples. 将文本样本中各种类型的空白字符规范化为标准空格。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html"><span class="std std-doc">info</span></a></p></td>

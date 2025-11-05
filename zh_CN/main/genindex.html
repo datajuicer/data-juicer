@@ -773,10 +773,10 @@
 </li>
         <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoFramesTextSimilarityFilter.__init__">__init__() （data_juicer.ops.filter.VideoFramesTextSimilarityFilter 方法）</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreFilter.__init__">__init__() （data_juicer.ops.filter.VideoMotionScoreFilter 方法）</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreRaftFilter.__init__">__init__() （data_juicer.ops.filter.VideoMotionScoreRaftFilter 方法）</a>
 </li>
         <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoNSFWFilter.__init__">__init__() （data_juicer.ops.filter.VideoNSFWFilter 方法）</a>
@@ -1084,6 +1084,10 @@
         <li><a href="api/data_juicer.ops.mapper.text_chunk_mapper.html#data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper.__init__">__init__() （data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper 方法）</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.TextChunkMapper.__init__">__init__() （data_juicer.ops.mapper.TextChunkMapper 方法）</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.vggt_mapper.html#data_juicer.ops.mapper.vggt_mapper.VggtMapper.__init__">__init__() （data_juicer.ops.mapper.vggt_mapper.VggtMapper 方法）</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VggtMapper.__init__">__init__() （data_juicer.ops.mapper.VggtMapper 方法）</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_captioning_from_audio_mapper.html#data_juicer.ops.mapper.video_captioning_from_audio_mapper.VideoCaptioningFromAudioMapper.__init__">__init__() （data_juicer.ops.mapper.video_captioning_from_audio_mapper.VideoCaptioningFromAudioMapper 方法）</a>
 </li>
@@ -3375,6 +3379,13 @@
 </li>
         </ul></li>
         <li>
+    data_juicer.ops.mapper.vggt_mapper
+
+        <ul>
+          <li><a href="api/data_juicer.ops.mapper.vggt_mapper.html#module-data_juicer.ops.mapper.vggt_mapper">module</a>
+</li>
+        </ul></li>
+        <li>
     data_juicer.ops.mapper.video_captioning_from_audio_mapper
 
         <ul>
@@ -3409,6 +3420,8 @@
           <li><a href="api/data_juicer.ops.mapper.video_extract_frames_mapper.html#module-data_juicer.ops.mapper.video_extract_frames_mapper">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     data_juicer.ops.mapper.video_face_blur_mapper
 
@@ -3416,8 +3429,6 @@
           <li><a href="api/data_juicer.ops.mapper.video_face_blur_mapper.html#module-data_juicer.ops.mapper.video_face_blur_mapper">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper
 
@@ -5798,6 +5809,8 @@
 </li>
           <li><a href="api/data_juicer.ops.mapper.text_chunk_mapper.html#module-data_juicer.ops.mapper.text_chunk_mapper">data_juicer.ops.mapper.text_chunk_mapper</a>
 </li>
+          <li><a href="api/data_juicer.ops.mapper.vggt_mapper.html#module-data_juicer.ops.mapper.vggt_mapper">data_juicer.ops.mapper.vggt_mapper</a>
+</li>
           <li><a href="api/data_juicer.ops.mapper.video_captioning_from_audio_mapper.html#module-data_juicer.ops.mapper.video_captioning_from_audio_mapper">data_juicer.ops.mapper.video_captioning_from_audio_mapper</a>
 </li>
           <li><a href="api/data_juicer.ops.mapper.video_captioning_from_frames_mapper.html#module-data_juicer.ops.mapper.video_captioning_from_frames_mapper">data_juicer.ops.mapper.video_captioning_from_frames_mapper</a>
@@ -6244,6 +6257,8 @@
         <li><a href="api/data_juicer.ops.filter.text_embd_similarity_filter.html#data_juicer.ops.filter.text_embd_similarity_filter.TextEmbdSimilarityFilter.prepare_valid_feature">prepare_valid_feature() （data_juicer.ops.filter.text_embd_similarity_filter.TextEmbdSimilarityFilter 方法）</a>
 </li>
         <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.TextEmbdSimilarityFilter.prepare_valid_feature">prepare_valid_feature() （data_juicer.ops.filter.TextEmbdSimilarityFilter 方法）</a>
+</li>
+        <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_vggt_model">prepare_vggt_model()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
         <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_video_blip_model">prepare_video_blip_model()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
@@ -6898,6 +6913,10 @@
         <li><a href="api/data_juicer.ops.mapper.sentence_augmentation_mapper.html#data_juicer.ops.mapper.sentence_augmentation_mapper.SentenceAugmentationMapper.process_single">process_single() （data_juicer.ops.mapper.sentence_augmentation_mapper.SentenceAugmentationMapper 方法）</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.SentenceAugmentationMapper.process_single">process_single() （data_juicer.ops.mapper.SentenceAugmentationMapper 方法）</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.vggt_mapper.html#data_juicer.ops.mapper.vggt_mapper.VggtMapper.process_single">process_single() （data_juicer.ops.mapper.vggt_mapper.VggtMapper 方法）</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VggtMapper.process_single">process_single() （data_juicer.ops.mapper.VggtMapper 方法）</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_extract_frames_mapper.html#data_juicer.ops.mapper.video_extract_frames_mapper.VideoExtractFramesMapper.process_single">process_single() （data_juicer.ops.mapper.video_extract_frames_mapper.VideoExtractFramesMapper 方法）</a>
 </li>
@@ -7735,6 +7754,12 @@
 </li>
         <li><a href="api/data_juicer.download.downloader.html#data_juicer.download.downloader.validate_snapshot_format">validate_snapshot_format()（在 data_juicer.download.downloader 模块中）</a>
 </li>
+        <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.vggt_tags">vggt_tags（data_juicer.utils.constant.MetaKeys 属性）</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VggtMapper">VggtMapper（data_juicer.ops.mapper 中的类）</a>
+</li>
+        <li><a href="api/data_juicer.ops.mapper.vggt_mapper.html#data_juicer.ops.mapper.vggt_mapper.VggtMapper">VggtMapper（data_juicer.ops.mapper.vggt_mapper 中的类）</a>
+</li>
         <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_aesthetic_score">video_aesthetic_score（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
 </li>
         <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_aspect_ratios">video_aspect_ratios（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
@@ -7793,10 +7818,10 @@
 </li>
         <li><a href="api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.video_deduplicator.VideoDeduplicator">VideoDeduplicator（data_juicer.ops.deduplicator.video_deduplicator 中的类）</a>
 </li>
-        <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoDurationFilter">VideoDurationFilter（data_juicer.ops.filter 中的类）</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoDurationFilter">VideoDurationFilter（data_juicer.ops.filter 中的类）</a>
+</li>
         <li><a href="api/data_juicer.ops.filter.video_duration_filter.html#data_juicer.ops.filter.video_duration_filter.VideoDurationFilter">VideoDurationFilter（data_juicer.ops.filter.video_duration_filter 中的类）</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoExtractFramesMapper">VideoExtractFramesMapper（data_juicer.ops.mapper 中的类）</a>

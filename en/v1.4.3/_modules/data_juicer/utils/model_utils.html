@@ -1297,6 +1297,30 @@
 
 
 
+<div class="viewcode-block" id="prepare_vggt_model">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_vggt_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_vggt_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">):</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;device&quot;</span><span class="p">,</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.cache_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">DATA_JUICER_ASSETS_CACHE</span>
+
+    <span class="n">vggt_repo_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_JUICER_ASSETS_CACHE</span><span class="p">,</span> <span class="s2">&quot;vggt&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">vggt_repo_path</span><span class="p">):</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;clone&quot;</span><span class="p">,</span> <span class="s2">&quot;https://github.com/facebookresearch/vggt.git&quot;</span><span class="p">,</span> <span class="n">vggt_repo_path</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vggt_repo_path</span><span class="p">)</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">vggt.models.vggt</span><span class="w"> </span><span class="kn">import</span> <span class="n">VGGT</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">VGGT</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">check_model_home</span><span class="p">(</span><span class="n">model_path</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span></div>
+
+
+
 <div class="viewcode-block" id="prepare_vllm_model">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_vllm_model">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_vllm_model</span><span class="p">(</span><span class="n">pretrained_model_name_or_path</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">):</span>
@@ -1456,6 +1480,7 @@
     <span class="s2">&quot;sentencepiece&quot;</span><span class="p">:</span> <span class="n">prepare_sentencepiece_for_lang</span><span class="p">,</span>
     <span class="s2">&quot;simple_aesthetics&quot;</span><span class="p">:</span> <span class="n">prepare_simple_aesthetics_model</span><span class="p">,</span>
     <span class="s2">&quot;spacy&quot;</span><span class="p">:</span> <span class="n">prepare_spacy_model</span><span class="p">,</span>
+    <span class="s2">&quot;vggt&quot;</span><span class="p">:</span> <span class="n">prepare_vggt_model</span><span class="p">,</span>
     <span class="s2">&quot;video_blip&quot;</span><span class="p">:</span> <span class="n">prepare_video_blip_model</span><span class="p">,</span>
     <span class="s2">&quot;vllm&quot;</span><span class="p">:</span> <span class="n">prepare_vllm_model</span><span class="p">,</span>
     <span class="s2">&quot;yolo&quot;</span><span class="p">:</span> <span class="n">prepare_yolo_model</span><span class="p">,</span>

@@ -17,4 +17,4 @@ uv pip install "py-data-juicer[dev]"
 mv build/ position_to_publish
 ```
 
-Automatic action in github can be found in [here](https://github.com/modelscope/data-juicer/blob/main/.github/workflows/deploy_sphinx_docs.yml).
+Automatic action in github can be found in [here](https://github.com/datajuicer/data-juicer/blob/main/.github/workflows/deploy_sphinx_docs.yml).

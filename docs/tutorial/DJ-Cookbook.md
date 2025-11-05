@@ -44,7 +44,7 @@
   - FT-Data Ranker ([1B Track](https://tianchi.aliyun.com/competition/entrance/532157), [7B Track](https://tianchi.aliyun.com/competition/entrance/532158)), For a specified candidate dataset, only adjust the data filtering and enhancement strategies
   - [Kolors-LoRA Stylized Story Challenge](https://tianchi.aliyun.com/competition/entrance/532254), based on Data-Juicer and [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) framework, explore Diffusion model fine-tuning
 - [DJ-SORA](../DJ_SORA.md)
-- Based on Data-Juicer and [AgentScope](https://github.com/modelscope/agentscope) framework, leverage [agents to call DJ Filters](../../demos/api_service/react_data_filter_process.ipynb) and [call DJ Mappers](../../demos/api_service/react_data_mapper_process.ipynb)
+- Based on Data-Juicer and [AgentScope](https://github.com/agentscope-ai/agentscope) framework, leverage [agents to call DJ Filters](../../demos/api_service/react_data_filter_process.ipynb) and [call DJ Mappers](../../demos/api_service/react_data_mapper_process.ipynb)
 
 
 ## Interactive Examples

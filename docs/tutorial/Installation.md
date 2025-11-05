@@ -98,7 +98,7 @@ For contributors and developers:
 
 ```bash
 # Clone repository
-git clone https://github.com/modelscope/data-juicer.git
+git clone https://github.com/datajuicer/data-juicer.git
 cd data-juicer
 
 # Install dev dependencies

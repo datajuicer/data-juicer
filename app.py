@@ -552,7 +552,7 @@ class Visualize:
             # initial_sidebar_state="expanded",
         )
 
-        readme_link = "https://github.com/modelscope/data-juicer"
+        readme_link = "https://github.com/datajuicer/data-juicer"
         st.markdown(
             '<div align = "center"> <font size = "70"> Data-Juicer \
             </font> </div>',

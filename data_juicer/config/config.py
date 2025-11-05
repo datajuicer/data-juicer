@@ -738,6 +738,12 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         text_key = cfg.text_keys[0]
     else:
         text_key = cfg.text_keys
+
+    SpecialTokens.image = cfg.get("image_special_token", SpecialTokens.image)
+    SpecialTokens.audio = cfg.get("audio_special_token", SpecialTokens.audio)
+    SpecialTokens.video = cfg.get("video_special_token", SpecialTokens.video)
+    SpecialTokens.eoc = cfg.get("eoc_special_token", SpecialTokens.eoc)
+
     op_attrs = {
         "text_key": text_key,
         "image_key": cfg.get("image_key", "images"),
@@ -747,10 +753,6 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         "turbo": cfg.get("turbo", False),
         "skip_op_error": cfg.get("skip_op_error", True),
         "work_dir": cfg.work_dir,
-        "image_special_token": cfg.get("image_special_token", SpecialTokens.image),
-        "audio_special_token": cfg.get("audio_special_token", SpecialTokens.audio),
-        "video_special_token": cfg.get("video_special_token", SpecialTokens.video),
-        "eoc_special_token": cfg.get("eoc_special_token", SpecialTokens.eoc),
     }
     if not is_ray_mode():
         op_attrs.update({"num_proc": cfg.get("np", None)})

@@ -30,20 +30,30 @@ class VideoExtractFramesMapper(Mapper):
     """Mapper to extract frames from video files according to specified methods.
 
     Extracts frames from video files using either all keyframes or a uniform sampling
-    method. The extracted frames are saved in a directory, and the mapping from video keys
-    to frame directories is stored in the sample's metadata. The data format for the
-    extracted frames is a dictionary mapping video keys to their respective frame
-    directories:
-    - "video_key_1": "/${frame_dir}/video_key_1_filename/"
-    - "video_key_2": "/${frame_dir}/video_key_2_filename/"
+    method.
+
+    Supported output formats are: ["path", "bytes"].
+    If format is "path", the output is a list of lists, where each inner
+    list contains the path of the frames of a single video.
+    e.g.[
+            [video1_frame1_path, video1_frame2_path, ...],
+            [video2_frame1_path, video2_frame2_path, ...],
+            ...
+        ] (In the order of the videos).
+    If format is "bytes", the output is a list of lists, where each inner
+    list contains the bytes of the frames of a single video.
+    e.g. [
+            [video1_byte1, video1_byte2, ...],
+            [video2_byte1, video2_byte2, ...],
+            ...
+        ] (In the order of the videos).
 
     - **Frame Sampling Methods**:
     - "all_keyframes": Extracts all keyframes from the video.
     - "uniform": Extracts a specified number of frames uniformly from the video.
     - If `duration` is set, the video is segmented into multiple segments based on the
       duration, and frames are extracted from each segment.
-    - The output directory for the frames can be specified; otherwise, a default directory
-      is used.
+    - The output directory for the frames can be specified if output format is "path", else left to None.
     - The field name in the sample's metadata where the frame information is stored can be
       customized."""
 

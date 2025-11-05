@@ -29,12 +29,12 @@ def initialize_ray(cfg=None, force=False):
     else:
         ray_address = cfg.ray_address
 
+    env_vars = dict(os.environ)
     ray.init(
         ray_address,
         ignore_reinit_error=True,
         runtime_env=dict(
-            py_modules=cfg.custom_operator_paths if cfg.get("custom_operator_paths", None) else None,
-            env_vars={RAY_JOB_ENV_VAR: os.environ.get(RAY_JOB_ENV_VAR, "0")},
+            py_modules=cfg.custom_operator_paths if cfg.get("custom_operator_paths", None) else None, env_vars=env_vars
         ),
     )
 

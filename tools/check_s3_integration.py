@@ -214,8 +214,6 @@ def test_ray_s3_load_public_file():
         import ray
         import ray.data
 
-        from data_juicer.core.data.ray_dataset import read_json_stream
-
         # Initialize Ray if not already initialized
         try:
             ray.init(ignore_reinit_error=True)
@@ -245,7 +243,7 @@ def test_ray_s3_load_public_file():
 
         # Load dataset using Ray with filesystem
         if data_format in {"json", "jsonl"}:
-            dataset = read_json_stream(example_s3_path, filesystem=s3_fs)
+            dataset = ray.data.read_json(example_s3_path, filesystem=s3_fs)
         elif data_format == "parquet":
             dataset = ray.data.read_parquet(example_s3_path, filesystem=s3_fs)
         elif data_format == "csv":
@@ -308,8 +306,6 @@ def test_ray_s3_load_private_file(s3_path: str = None):
         import ray
         import ray.data
 
-        from data_juicer.core.data.ray_dataset import read_json_stream
-
         # Initialize Ray if not already initialized
         try:
             ray.init(ignore_reinit_error=True)
@@ -354,7 +350,7 @@ def test_ray_s3_load_private_file(s3_path: str = None):
 
         # Load dataset using Ray with filesystem
         if data_format in {"json", "jsonl"}:
-            dataset = read_json_stream(s3_path, filesystem=s3_fs)
+            dataset = ray.data.read_json(s3_path, filesystem=s3_fs)
         elif data_format == "parquet":
             dataset = ray.data.read_parquet(s3_path, filesystem=s3_fs)
         elif data_format == "csv":

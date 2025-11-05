@@ -89,7 +89,7 @@ def create_pyarrow_s3_filesystem(ds_config: Dict = {}) -> "pyarrow.fs.S3FileSyst
     if aws_session_token:
         s3_options["session_token"] = aws_session_token
     if aws_region:
-        s3_options["region"] = aws_region
+        s3_options["region"] = aws_region or "us-east-2"
 
     if "endpoint_url" in ds_config:
         s3_options["endpoint_override"] = ds_config["endpoint_url"]

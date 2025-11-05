@@ -83,6 +83,7 @@ vision = [
     "scenedetect[opencv]",  # Scene detection
     "ultralytics",  # YOLO models
     "rembg",  # Background removal
+    "qwen-vl-utils==0.0.14",  # for Qwen-VL
 ]
 
 # Natural Language Processing

@@ -1,11 +1,12 @@
 import os
 import unittest
+import numpy as np
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.video_object_segmenting_mapper import \
     VideoObjectSegmentingMapper
 from data_juicer.utils.mm_utils import SpecialTokens
-from data_juicer.utils.constant import Fields
+from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -38,6 +39,24 @@ class VideoObjectSegmentingMapperTest(DataJuicerTestCaseBase):
                                          column=[{}] * dataset.num_rows)
         dataset = dataset.map(op.process, num_proc=1, with_rank=True)
         res_list = dataset.to_list()
+
+        tgt_list = [{
+            "segment_data": [673, 3, 1, 360, 480],
+            "cls_id_dict": 3,
+            "object_cls_list": [3],
+            "yoloe_conf_list": [3]
+        },  {
+            "segment_data": [1190, 1, 1, 640, 362],
+            "cls_id_dict": 1,
+            "object_cls_list": [1],
+            "yoloe_conf_list": [1]
+        }]
+
+        for sample, target in zip(res_list, tgt_list):
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.video_object_segment_tags]["segment_data"]).shape), target["segment_data"])
+            self.assertEqual(len(sample[Fields.meta][MetaKeys.video_object_segment_tags]["cls_id_dict"]), target["cls_id_dict"])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.video_object_segment_tags]["object_cls_list"]).shape), target["object_cls_list"])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.video_object_segment_tags]["yoloe_conf_list"]).shape), target["yoloe_conf_list"])
 
 
 if __name__ == '__main__':

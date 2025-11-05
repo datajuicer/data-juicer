@@ -18,6 +18,7 @@ import os
 import sys
 
 from datasets import load_dataset
+from jsonargparse import Namespace
 from loguru import logger
 
 # Force reload to avoid stale imports
@@ -26,6 +27,7 @@ from data_juicer import utils
 if hasattr(utils, "s3_utils"):
     importlib.reload(utils.s3_utils)
 
+from data_juicer.core.data.load_strategy import DataLoadStrategyRegistry
 from data_juicer.utils.s3_utils import create_pyarrow_s3_filesystem, get_aws_credentials
 
 # Configure logger
@@ -387,28 +389,382 @@ def test_ray_s3_load_private_file(s3_path: str = None):
         return False
 
 
+# ============================================================================
+# Tests using Data-Juicer Load Strategies
+# ============================================================================
+
+
+def test_strategy_s3_load_public_file():
+    """
+    Test loading a public JSONL file from S3 using DefaultS3DataLoadStrategy.
+
+    This tests the DefaultS3DataLoadStrategy with anonymous access for public buckets.
+    """
+    logger.info("\n" + "=" * 70)
+    logger.info("Test 5: Load public S3 JSONL file using DefaultS3DataLoadStrategy")
+    logger.info("=" * 70)
+
+    # Public S3 JSONL file for testing
+    example_s3_path = "s3://yileiz-bucket-1/c4-train-debug.split.00000-of-00004.jsonl"
+    logger.info(f"Attempting to load public file: {example_s3_path}")
+
+    try:
+        # Get the DefaultS3DataLoadStrategy from registry
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="default", data_type="remote", data_source="s3"
+        )
+
+        if strategy_class is None:
+            logger.error("✗ DefaultS3DataLoadStrategy not found in registry")
+            return False
+
+        logger.info(f"Using strategy: {strategy_class.__name__}")
+
+        # Create dataset config (no credentials for public bucket)
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": example_s3_path,
+        }
+
+        # Create minimal config for the strategy
+        cfg = Namespace()
+        cfg.text_keys = ["text"]
+
+        # Instantiate and use the strategy
+        strategy = strategy_class(ds_config, cfg=cfg)
+        dataset = strategy.load_data()
+
+        # Check dataset info
+        if hasattr(dataset, "__len__"):
+            count = len(dataset)
+            logger.info(f"✓ Loaded dataset with {count} samples")
+            if count > 0:
+                sample = dataset[0]
+                logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
+                logger.info(f"  First sample preview: {str(sample)[:200]}...")
+        else:
+            logger.info("✓ Loaded dataset (streaming or lazy)")
+
+        logger.info("\n✓ Successfully loaded public S3 file using DefaultS3DataLoadStrategy!")
+        return True
+    except Exception as e:
+        logger.error(f"✗ Failed to load public S3 file: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        logger.error("\nCommon issues:")
+        logger.error("  - Invalid S3 path or file doesn't exist")
+        logger.error("  - Bucket not publicly accessible")
+        logger.error("  - Network connectivity issues")
+        logger.error("  - s3fs not installed")
+        return False
+
+
+def test_strategy_s3_load_private_file(s3_path: str = None):
+    """
+    Test loading a private JSONL file from S3 using DefaultS3DataLoadStrategy.
+
+    This tests the DefaultS3DataLoadStrategy with credentials for private buckets.
+
+    Args:
+        s3_path: S3 path to private JSONL file (e.g., s3://bucket/path/to/file.jsonl)
+                If None, uses a default private S3 file for testing.
+    """
+    logger.info("\n" + "=" * 70)
+    logger.info("Test 6: Load private S3 JSONL file using DefaultS3DataLoadStrategy")
+    logger.info("=" * 70)
+
+    # Use provided path or default private S3 file
+    if s3_path is None:
+        # Default private S3 JSONL file for testing
+        s3_path = "s3://yileiz-bucket-2/c4-train-debug.split.00001-of-00004.jsonl"
+        logger.info("Using default private S3 file for testing")
+    else:
+        logger.info("Using provided S3 path")
+
+    logger.info(f"Attempting to load private file: {s3_path}")
+
+    try:
+        # Get the DefaultS3DataLoadStrategy from registry
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="default", data_type="remote", data_source="s3"
+        )
+
+        if strategy_class is None:
+            logger.error("✗ DefaultS3DataLoadStrategy not found in registry")
+            return False
+
+        logger.info(f"Using strategy: {strategy_class.__name__}")
+
+        # Create dataset config (credentials come from environment or .env file)
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": s3_path,
+        }
+
+        # Check if credentials are available
+        aws_access_key_id, aws_secret_access_key, _, _ = get_aws_credentials(ds_config)
+
+        if not aws_access_key_id or not aws_secret_access_key:
+            logger.warning("⚠ No AWS credentials found in environment")
+            logger.warning("This test requires credentials for private buckets.")
+            logger.warning("Set environment variables:")
+            logger.warning("  AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+            return True  # Skip test, don't fail
+        else:
+            logger.info("Using AWS credentials from environment")
+            logger.info(f"AWS access key ID: {aws_access_key_id[:10]}...")
+
+        # Create minimal config for the strategy
+        cfg = Namespace()
+        cfg.text_keys = ["text"]
+
+        # Instantiate and use the strategy
+        strategy = strategy_class(ds_config, cfg=cfg)
+        dataset = strategy.load_data()
+
+        # Check dataset info
+        if hasattr(dataset, "__len__"):
+            count = len(dataset)
+            logger.info(f"✓ Loaded dataset with {count} samples")
+            if count > 0:
+                sample = dataset[0]
+                logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
+                logger.info(f"  First sample preview: {str(sample)[:200]}...")
+        else:
+            logger.info("✓ Loaded dataset (streaming or lazy)")
+
+        logger.info("\n✓ Successfully loaded private S3 file using DefaultS3DataLoadStrategy!")
+        return True
+    except Exception as e:
+        logger.error(f"✗ Failed to load private S3 file: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        logger.error("\nCommon issues:")
+        logger.error("  - Invalid S3 path or file doesn't exist")
+        logger.error("  - Missing or invalid AWS credentials")
+        logger.error("  - Insufficient permissions to access the bucket")
+        logger.error("  - Network connectivity issues")
+        logger.error("  - s3fs not installed")
+        return False
+
+
+def test_strategy_ray_s3_load_public_file():
+    """
+    Test loading a public JSONL file from S3 using RayS3DataLoadStrategy.
+
+    This tests the RayS3DataLoadStrategy with anonymous access for public buckets.
+    """
+    logger.info("\n" + "=" * 70)
+    logger.info("Test 7: Load public S3 JSONL file using RayS3DataLoadStrategy")
+    logger.info("=" * 70)
+
+    # Public S3 JSONL file for testing
+    example_s3_path = "s3://yileiz-bucket-1/c4-train-debug.split.00000-of-00004.jsonl"
+    logger.info(f"Attempting to load public file with Ray: {example_s3_path}")
+
+    try:
+        import ray
+
+        # Initialize Ray if not already initialized
+        try:
+            ray.init(ignore_reinit_error=True)
+        except Exception:
+            pass  # Ray might already be initialized
+
+        # Get the RayS3DataLoadStrategy from registry
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="ray", data_type="remote", data_source="s3"
+        )
+
+        if strategy_class is None:
+            logger.error("✗ RayS3DataLoadStrategy not found in registry")
+            return False
+
+        logger.info(f"Using strategy: {strategy_class.__name__}")
+
+        # Create dataset config (no credentials for public bucket)
+        # Region is required for PyArrow S3FileSystem
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": example_s3_path,
+            "aws_region": "us-east-2",  # Required for PyArrow
+        }
+
+        # Create minimal config for the strategy
+        cfg = Namespace()
+        cfg.text_keys = ["text"]
+
+        # Instantiate and use the strategy
+        strategy = strategy_class(ds_config, cfg=cfg)
+        dataset = strategy.load_data()
+
+        # Check dataset info
+        if hasattr(dataset, "count"):
+            count = dataset.count()
+            logger.info(f"✓ Loaded Ray dataset with {count} samples")
+            if count > 0:
+                sample = dataset.take(1)[0]
+                logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
+                logger.info(f"  First sample preview: {str(sample)[:200]}...")
+        else:
+            logger.info("✓ Loaded Ray dataset")
+
+        logger.info("\n✓ Successfully loaded public S3 file using RayS3DataLoadStrategy!")
+        return True
+    except ImportError:
+        logger.warning("⚠ Ray is not installed. Skipping Ray dataset test.")
+        logger.warning("Install Ray with: pip install 'ray[default]'")
+        return True  # Skip test, don't fail
+    except Exception as e:
+        logger.error(f"✗ Failed to load public S3 file with Ray: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        logger.error("\nCommon issues:")
+        logger.error("  - Ray not installed or not initialized")
+        logger.error("  - Invalid S3 path or file doesn't exist")
+        logger.error("  - Missing region configuration (aws_region in ds_config)")
+        logger.error("  - Network connectivity issues")
+        logger.error("  - pyarrow not installed")
+        return False
+
+
+def test_strategy_ray_s3_load_private_file(s3_path: str = None):
+    """
+    Test loading a private JSONL file from S3 using RayS3DataLoadStrategy.
+
+    This tests the RayS3DataLoadStrategy with credentials for private buckets.
+
+    Args:
+        s3_path: S3 path to private JSONL file (e.g., s3://bucket/path/to/file.jsonl)
+                If None, uses a default private S3 file for testing.
+    """
+    logger.info("\n" + "=" * 70)
+    logger.info("Test 8: Load private S3 JSONL file using RayS3DataLoadStrategy")
+    logger.info("=" * 70)
+
+    # Use provided path or default private S3 file
+    if s3_path is None:
+        # Default private S3 JSONL file for testing
+        s3_path = "s3://yileiz-bucket-2/c4-train-debug.split.00001-of-00004.jsonl"
+        logger.info("Using default private S3 file for testing")
+    else:
+        logger.info("Using provided S3 path")
+
+    logger.info(f"Attempting to load private file with Ray: {s3_path}")
+
+    try:
+        import ray
+
+        # Initialize Ray if not already initialized
+        try:
+            ray.init(ignore_reinit_error=True)
+        except Exception:
+            pass  # Ray might already be initialized
+
+        # Get the RayS3DataLoadStrategy from registry
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="ray", data_type="remote", data_source="s3"
+        )
+
+        if strategy_class is None:
+            logger.error("✗ RayS3DataLoadStrategy not found in registry")
+            return False
+
+        logger.info(f"Using strategy: {strategy_class.__name__}")
+
+        # Create dataset config (credentials come from environment or .env file)
+        # Region is required for PyArrow S3FileSystem
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": s3_path,
+            "aws_region": "us-east-2",  # Required for PyArrow
+        }
+
+        # Check if credentials are available
+        aws_access_key_id, aws_secret_access_key, _, _ = get_aws_credentials(ds_config)
+
+        if not aws_access_key_id or not aws_secret_access_key:
+            logger.warning("⚠ No AWS credentials found in environment")
+            logger.warning("This test requires credentials for private buckets.")
+            logger.warning("Set environment variables:")
+            logger.warning("  AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+            return True  # Skip test, don't fail
+        else:
+            logger.info("Using AWS credentials from environment")
+            logger.info(f"AWS access key ID: {aws_access_key_id[:10]}...")
+
+        # Create minimal config for the strategy
+        cfg = Namespace()
+        cfg.text_keys = ["text"]
+
+        # Instantiate and use the strategy
+        strategy = strategy_class(ds_config, cfg=cfg)
+        dataset = strategy.load_data()
+
+        # Check dataset info
+        if hasattr(dataset, "count"):
+            count = dataset.count()
+            logger.info(f"✓ Loaded Ray dataset with {count} samples")
+            if count > 0:
+                sample = dataset.take(1)[0]
+                logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
+                logger.info(f"  First sample preview: {str(sample)[:200]}...")
+        else:
+            logger.info("✓ Loaded Ray dataset")
+
+        logger.info("\n✓ Successfully loaded private S3 file using RayS3DataLoadStrategy!")
+        return True
+    except ImportError:
+        logger.warning("⚠ Ray is not installed. Skipping Ray dataset test.")
+        logger.warning("Install Ray with: pip install 'ray[default]'")
+        return True  # Skip test, don't fail
+    except Exception as e:
+        logger.error(f"✗ Failed to load private S3 file with Ray: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        logger.error("\nCommon issues:")
+        logger.error("  - Ray not installed or not initialized")
+        logger.error("  - Invalid S3 path or file doesn't exist")
+        logger.error("  - Missing or invalid AWS credentials")
+        logger.error("  - Missing region configuration (aws_region in ds_config)")
+        logger.error("  - Insufficient permissions to access the bucket")
+        logger.error("  - Network connectivity issues")
+        logger.error("  - pyarrow not installed")
+        return False
+
+
 def main():
     """Run all S3 loading tests."""
     logger.info("\n" + "=" * 70)
     logger.info("S3 Integration Test (HuggingFace Datasets + Ray Datasets)")
     logger.info("=" * 70)
     logger.info("\nThis script tests the S3 loading functionality using:")
-    logger.info("  - HuggingFace datasets (DefaultS3DataLoadStrategy)")
-    logger.info("  - Ray datasets (RayS3DataLoadStrategy)\n")
+    logger.info("  - Direct HuggingFace/Ray API calls (Tests 1-4)")
+    logger.info("  - Data-Juicer Load Strategies (Tests 5-8)\n")
 
     results = []
 
-    # Test 1: Public S3 file with HuggingFace (anonymous access)
+    # Tests 1-4: Direct API calls (low-level tests)
+    logger.info("--- Low-level API Tests ---")
     results.append(("Public S3 file (HuggingFace, anonymous)", test_s3_load_public_file()))
-
-    # Test 2: Private S3 file with HuggingFace (requires credentials)
     results.append(("Private S3 file (HuggingFace, credentials)", test_s3_load_private_file()))
-
-    # Test 3: Public S3 file with Ray (anonymous access)
     results.append(("Public S3 file (Ray, anonymous)", test_ray_s3_load_public_file()))
-
-    # Test 4: Private S3 file with Ray (requires credentials)
     results.append(("Private S3 file (Ray, credentials)", test_ray_s3_load_private_file()))
+
+    # Tests 5-8: Load Strategy tests (integration tests)
+    logger.info("\n--- Load Strategy Integration Tests ---")
+    results.append(("Public S3 file (DefaultS3DataLoadStrategy)", test_strategy_s3_load_public_file()))
+    results.append(("Private S3 file (DefaultS3DataLoadStrategy)", test_strategy_s3_load_private_file()))
+    results.append(("Public S3 file (RayS3DataLoadStrategy)", test_strategy_ray_s3_load_public_file()))
+    results.append(("Private S3 file (RayS3DataLoadStrategy)", test_strategy_ray_s3_load_private_file()))
 
     # Summary
     logger.info("\n" + "=" * 70)

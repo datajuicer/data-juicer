@@ -22,14 +22,14 @@ export DASHSCOPE_API_KEY=your_dashscope_key
 pip install -r requirements.txt
 ```
 
-启动Q&A机器人服务器（请将 `./dj-copilot/as_scripts/setup_server.sh` 中的 `PATH_TO_DJ_REPO` 替换为你本地 data-juicer 仓库的绝对路径）：
+启动Q&A机器人服务器（请将 `./qa-copilot/as_scripts/setup_server.sh` 中的 `PATH_TO_DJ_REPO` 替换为你本地 data-juicer 仓库的绝对路径）：
 
 ```bash
-cd dj-copilot
+cd qa-copilot
 as_scripts/setup_server.sh
 ```
 
-> ⚠️ 建议创建一个干净的 data-juicer 仓库以避免潜在问题。当更改仓库路径时，请确保更新 `./dj-copilot/configs/as_config/as_knowledge_configs/knowledge_config.json` 中每个知识库条目中的 `input_dir` 字段。
+> ⚠️ 建议创建一个干净的 data-juicer 仓库以避免潜在问题。当更改仓库路径时，请确保更新 `./qa-copilot/configs/as_config/as_knowledge_configs/knowledge_config.json` 中每个知识库条目中的 `input_dir` 字段。
 
 通过 Streamlit 启动演示：
 

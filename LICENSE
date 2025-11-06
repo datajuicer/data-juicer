@@ -420,7 +420,7 @@ limitations under the License.
 
 -----------------------------------------------------
 
-Code in demos/interactive_recipe/dj-copilot/. is modified from
+Code in demos/interactive_recipe/qa-copilot/. is modified from
 https://github.com/modelscope/agentscope/tree/main/applications/multis
 ource_rag_app/src (Apache License)
 

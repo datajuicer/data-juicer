@@ -21,14 +21,14 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Start the copilot server (replace the `PATH_TO_DJ_REPO` variable in `./dj-copilot/as_scripts/setup_server.sh` with the absolute path to your data-juicer repository):
+Start the copilot server (replace the `PATH_TO_DJ_REPO` variable in `./qa-copilot/as_scripts/setup_server.sh` with the absolute path to your data-juicer repository):
 
 ```bash
-cd dj-copilot
+cd qa-copilot
 as_scripts/setup_server.sh
 ```
 
-Note: It is strongly recommended to create a clean data-juicer repository to avoid potential issues. When you change the repository path, make sure to update the `input_dir` field in each knowledge base entry in `./dj-copilot/configs/as_config/as_knowledge_configs/knowledge_config.json` accordingly.
+Note: It is strongly recommended to create a clean data-juicer repository to avoid potential issues. When you change the repository path, make sure to update the `input_dir` field in each knowledge base entry in `./qa-copilot/configs/as_config/as_knowledge_configs/knowledge_config.json` accordingly.
 
 Launch the demo with streamlit:
 ```bash

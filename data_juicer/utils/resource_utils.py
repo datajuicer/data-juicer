@@ -63,10 +63,10 @@ def query_mem_info(query_key):
     return val
 
 
-def _cuda_device_count():
+def _cuda_device_count(cfg=None):
     _torch_available = _is_package_available("torch")
 
-    if check_and_initialize_ray():
+    if check_and_initialize_ray(cfg):
         return int(ray_gpu_count())
 
     if _torch_available:
@@ -88,32 +88,32 @@ def _cuda_device_count():
         return 0
 
 
-def cuda_device_count():
-    return _cuda_device_count()
+def cuda_device_count(cfg=None):
+    return _cuda_device_count(cfg)
 
 
 def is_cuda_available():
     return cuda_device_count() > 0
 
 
-def cpu_count():
-    if check_and_initialize_ray():
+def cpu_count(cfg=None):
+    if check_and_initialize_ray(cfg):
         return int(ray_cpu_count())
 
     return psutil.cpu_count()
 
 
-def available_memories() -> List[int]:
+def available_memories(cfg=None) -> List[int]:
     """Available memory for each node in MB."""
-    if check_and_initialize_ray():
+    if check_and_initialize_ray(cfg):
         return ray_available_memories()
 
     return [int(psutil.virtual_memory().available / (1024**2))]
 
 
-def available_gpu_memories() -> List[int]:
+def available_gpu_memories(cfg=None) -> List[int]:
     """Available gpu memory of each gpu card for each alive node in MB."""
-    if check_and_initialize_ray():
+    if check_and_initialize_ray(cfg):
         return ray_available_gpu_memories()
 
     try:

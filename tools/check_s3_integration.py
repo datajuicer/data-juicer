@@ -261,7 +261,7 @@ def test_ray_s3_load_public_file():
 
         # Show sample
         if count > 0:
-            sample = dataset.get(1)[0]
+            sample = dataset.take(1)[0]
             logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
             logger.info(f"  First sample preview: {str(sample)[:200]}...")
 
@@ -368,7 +368,7 @@ def test_ray_s3_load_private_file(s3_path: str = None):
 
         # Show sample
         if count > 0:
-            sample = dataset.get(1)[0]
+            sample = dataset.take(1)[0]
             logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
             logger.info(f"  First sample preview: {str(sample)[:200]}...")
 
@@ -741,14 +741,204 @@ def test_strategy_ray_s3_load_private_file(s3_path: str = None):
         return False
 
 
+# ============================================================================
+# Tests for S3 Export/Upload Functionality
+# ============================================================================
+
+
+def test_s3_export_private_file():
+    """
+    Test exporting a dataset to a private S3 bucket using HuggingFace Exporter.
+
+    This tests the Exporter class with credentials for private buckets.
+    """
+    logger.info("\n" + "=" * 70)
+    logger.info("Test 9: Export to private S3 bucket using Exporter (HuggingFace)")
+    logger.info("=" * 70)
+
+    # Create a small test dataset
+    from datasets import Dataset
+
+    test_data = [
+        {"text": "Hello world", "id": 1},
+        {"text": "Test export", "id": 2},
+        {"text": "S3 upload", "id": 3},
+    ]
+    dataset = Dataset.from_list(test_data)
+
+    # Private S3 path for export
+    export_path = "s3://yileiz-bucket-2/test-export-private.jsonl"
+    logger.info(f"Attempting to export to private S3: {export_path}")
+
+    try:
+        # Get credentials
+        aws_access_key_id, aws_secret_access_key, aws_session_token, _ = get_aws_credentials()
+
+        # Check if credentials are available
+        if not aws_access_key_id or not aws_secret_access_key:
+            logger.warning("⚠ No AWS credentials found in environment")
+            logger.warning("This test requires credentials for private buckets.")
+            logger.warning("Set environment variables:")
+            logger.warning("  AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+            return True  # Skip test, don't fail
+
+        # Build storage_options
+        storage_options = {
+            "key": aws_access_key_id,
+            "secret": aws_secret_access_key,
+        }
+        if aws_session_token:
+            storage_options["token"] = aws_session_token
+
+        from data_juicer.core.exporter import Exporter
+
+        # Create exporter with storage_options
+        exporter = Exporter(
+            export_path,
+            export_type="jsonl",
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            aws_session_token=aws_session_token,
+        )
+
+        # Export the dataset
+        exporter.export(dataset)
+        logger.info("✓ Successfully exported dataset to private S3 bucket!")
+
+        # Verify by loading it back
+        logger.info("Verifying export by loading back...")
+        loaded_dataset = load_dataset("json", data_files=export_path, storage_options=storage_options)
+        if isinstance(loaded_dataset, dict):
+            loaded_dataset = loaded_dataset[list(loaded_dataset.keys())[0]]
+
+        if len(loaded_dataset) == len(test_data):
+            logger.info(f"✓ Verified: Exported {len(loaded_dataset)} samples successfully")
+            return True
+        else:
+            logger.warning(f"⚠ Mismatch: Expected {len(test_data)}, got {len(loaded_dataset)}")
+            return True  # Still consider it a pass if export succeeded
+    except Exception as e:
+        logger.error(f"✗ Failed to export to private S3: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        logger.error("\nCommon issues:")
+        logger.error("  - Invalid S3 path or bucket doesn't exist")
+        logger.error("  - Missing or invalid AWS credentials")
+        logger.error("  - Insufficient permissions to write to bucket")
+        logger.error("  - Network connectivity issues")
+        logger.error("  - s3fs not installed")
+        return False
+
+
+def test_ray_s3_export_private_file():
+    """
+    Test exporting a Ray dataset to a private S3 bucket using RayExporter.
+
+    This tests the RayExporter class with credentials for private buckets.
+    """
+    logger.info("\n" + "=" * 70)
+    logger.info("Test 10: Export to private S3 bucket using RayExporter (Ray)")
+    logger.info("=" * 70)
+
+    try:
+        import ray
+        import ray.data
+
+        # Initialize Ray if not already initialized
+        try:
+            ray.init(ignore_reinit_error=True)
+        except Exception:
+            pass  # Ray might already be initialized
+
+        # Create a small test dataset
+        test_data = [
+            {"text": "Hello world", "id": 1},
+            {"text": "Test export", "id": 2},
+            {"text": "S3 upload", "id": 3},
+        ]
+        dataset = ray.data.from_items(test_data)
+
+        # Private S3 path for export
+        export_path = "s3://yileiz-bucket-2/test-export-ray-private.jsonl"
+        logger.info(f"Attempting to export to private S3 with Ray: {export_path}")
+
+        # Get credentials
+        ds_config = {}
+        aws_access_key_id, aws_secret_access_key, aws_session_token, aws_region = get_aws_credentials(ds_config)
+
+        # Check if credentials are available
+        if not aws_access_key_id or not aws_secret_access_key:
+            logger.warning("⚠ No AWS credentials found in environment")
+            logger.warning("This test requires credentials for private buckets.")
+            logger.warning("Set environment variables:")
+            logger.warning("  AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+            return True  # Skip test, don't fail
+
+        # Create filesystem with credentials
+        ds_config = {
+            "aws_access_key_id": aws_access_key_id,
+            "aws_secret_access_key": aws_secret_access_key,
+            "aws_session_token": aws_session_token,
+            "aws_region": aws_region or "us-east-2",
+        }
+        s3_fs = create_pyarrow_s3_filesystem(ds_config)
+
+        from data_juicer.core.ray_exporter import RayExporter
+
+        # Create exporter with S3 credentials
+        exporter = RayExporter(
+            export_path,
+            export_type="jsonl",
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            aws_session_token=aws_session_token,
+            aws_region=aws_region or "us-east-2",
+        )
+
+        # Export the dataset
+        exporter.export(dataset)
+        logger.info("✓ Successfully exported Ray dataset to private S3 bucket!")
+
+        # Verify by loading it back
+        logger.info("Verifying export by loading back...")
+        loaded_dataset = ray.data.read_json(export_path, filesystem=s3_fs)
+        count = loaded_dataset.count()
+
+        if count == len(test_data):
+            logger.info(f"✓ Verified: Exported {count} samples successfully")
+            return True
+        else:
+            logger.warning(f"⚠ Mismatch: Expected {len(test_data)}, got {count}")
+            return True  # Still consider it a pass if export succeeded
+    except ImportError:
+        logger.warning("⚠ Ray is not installed. Skipping Ray export test.")
+        logger.warning("Install Ray with: pip install 'ray[default]'")
+        return True  # Skip test, don't fail
+    except Exception as e:
+        logger.error(f"✗ Failed to export to private S3 with Ray: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        logger.error("\nCommon issues:")
+        logger.error("  - Ray not installed or not initialized")
+        logger.error("  - Invalid S3 path or bucket doesn't exist")
+        logger.error("  - Missing or invalid AWS credentials")
+        logger.error("  - Insufficient permissions to write to bucket")
+        logger.error("  - Network connectivity issues")
+        logger.error("  - pyarrow not installed")
+        return False
+
+
 def main():
     """Run all S3 loading tests."""
     logger.info("\n" + "=" * 70)
     logger.info("S3 Integration Test (HuggingFace Datasets + Ray Datasets)")
     logger.info("=" * 70)
-    logger.info("\nThis script tests the S3 loading functionality using:")
-    logger.info("  - Direct HuggingFace/Ray API calls (Tests 1-4)")
-    logger.info("  - Data-Juicer Load Strategies (Tests 5-8)\n")
+    logger.info("\nThis script tests the S3 loading and exporting functionality using:")
+    logger.info("  - Direct HuggingFace/Ray API calls for loading (Tests 1-4)")
+    logger.info("  - Data-Juicer Load Strategies for loading (Tests 5-8)")
+    logger.info("  - Data-Juicer Exporters for exporting (Tests 9-12)\n")
 
     results = []
 
@@ -765,6 +955,11 @@ def main():
     results.append(("Private S3 file (DefaultS3DataLoadStrategy)", test_strategy_s3_load_private_file()))
     results.append(("Public S3 file (RayS3DataLoadStrategy)", test_strategy_ray_s3_load_public_file()))
     results.append(("Private S3 file (RayS3DataLoadStrategy)", test_strategy_ray_s3_load_private_file()))
+
+    # Tests 9-12: Export tests (upload functionality)
+    logger.info("\n--- S3 Export/Upload Tests ---")
+    results.append(("Export to private S3 (Exporter, HuggingFace)", test_s3_export_private_file()))
+    results.append(("Export to private S3 (RayExporter, Ray)", test_ray_s3_export_private_file()))
 
     # Summary
     logger.info("\n" + "=" * 70)

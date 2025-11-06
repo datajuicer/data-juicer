@@ -412,10 +412,10 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_cuda_device_count</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_cuda_device_count</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">_torch_available</span> <span class="o">=</span> <span class="n">_is_package_available</span><span class="p">(</span><span class="s2">&quot;torch&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">ray_gpu_count</span><span class="p">())</span>
 
     <span class="k">if</span> <span class="n">_torch_available</span><span class="p">:</span>
@@ -439,8 +439,8 @@
 
 <div class="viewcode-block" id="cuda_device_count">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.resource_utils.html#data_juicer.utils.resource_utils.cuda_device_count">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">cuda_device_count</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">_cuda_device_count</span><span class="p">()</span></div>
+<span class="k">def</span><span class="w"> </span><span class="nf">cuda_device_count</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_cuda_device_count</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span></div>
 
 
 
@@ -453,8 +453,8 @@
 
 <div class="viewcode-block" id="cpu_count">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.resource_utils.html#data_juicer.utils.resource_utils.cpu_count">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">cpu_count</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cpu_count</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">ray_cpu_count</span><span class="p">())</span>
 
     <span class="k">return</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span></div>
@@ -463,9 +463,9 @@
 
 <div class="viewcode-block" id="available_memories">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.resource_utils.html#data_juicer.utils.resource_utils.available_memories">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">available_memories</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">available_memories</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Available memory for each node in MB.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">ray_available_memories</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">available</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">2</span><span class="p">))]</span></div>
@@ -474,9 +474,9 @@
 
 <div class="viewcode-block" id="available_gpu_memories">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.resource_utils.html#data_juicer.utils.resource_utils.available_gpu_memories">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">available_gpu_memories</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">available_gpu_memories</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Available gpu memory of each gpu card for each alive node in MB.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">check_and_initialize_ray</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">ray_available_gpu_memories</span><span class="p">()</span>
 
     <span class="k">try</span><span class="p">:</span>

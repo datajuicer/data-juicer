@@ -357,7 +357,7 @@
 
 
 <div class="viewcode-block" id="VideoCapture">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.VideoCapture">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoCapture">[docs]</a>
 <span class="nd">@contextmanager</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">VideoCapture</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">cap</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoCapture</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -369,7 +369,7 @@
 
 
 <div class="viewcode-block" id="VideoMotionScoreFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoMotionScoreFilter">[docs]</a>
 <span class="nd">@UNFORKABLE</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoMotionScoreFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -393,7 +393,7 @@
     <span class="p">}</span>
 
 <div class="viewcode-block" id="VideoMotionScoreFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoMotionScoreFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">min_score</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
@@ -462,13 +462,13 @@
 
 
 <div class="viewcode-block" id="VideoMotionScoreFilter.setup_model">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreFilter.setup_model">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoMotionScoreFilter.setup_model">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">calcOpticalFlowFarneback</span></div>
 
 
 <div class="viewcode-block" id="VideoMotionScoreFilter.compute_flow">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreFilter.compute_flow">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoMotionScoreFilter.compute_flow">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_flow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prev_frame</span><span class="p">,</span> <span class="n">curr_frame</span><span class="p">):</span>
         <span class="n">curr_frame</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">curr_frame</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2GRAY</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">prev_frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -479,7 +479,7 @@
 
 
 <div class="viewcode-block" id="VideoMotionScoreFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoMotionScoreFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
 
@@ -553,7 +553,7 @@
 
 
 <div class="viewcode-block" id="VideoMotionScoreFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoMotionScoreFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoMotionScoreFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="n">video_motion_scores</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_motion_score</span><span class="p">]</span>
 

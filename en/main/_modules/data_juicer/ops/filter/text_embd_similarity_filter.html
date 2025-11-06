@@ -359,7 +359,7 @@
 
 
 <div class="viewcode-block" id="TextEmbdSimilarityFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TextEmbdSimilarityFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.text_embd_similarity_filter.html#data_juicer.ops.filter.text_embd_similarity_filter.TextEmbdSimilarityFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@ATTRIBUTION_FILTERS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TextEmbdSimilarityFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -380,7 +380,7 @@
     <span class="n">_accelerator</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
 
 <div class="viewcode-block" id="TextEmbdSimilarityFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TextEmbdSimilarityFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.text_embd_similarity_filter.html#data_juicer.ops.filter.text_embd_similarity_filter.TextEmbdSimilarityFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_or_hf_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text-embedding-v4&quot;</span><span class="p">,</span>
@@ -462,7 +462,7 @@
         <span class="k">return</span> <span class="s2">&quot;embeddings&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_feature</span>
 
 <div class="viewcode-block" id="TextEmbdSimilarityFilter.prepare_valid_feature">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TextEmbdSimilarityFilter.prepare_valid_feature">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.text_embd_similarity_filter.html#data_juicer.ops.filter.text_embd_similarity_filter.TextEmbdSimilarityFilter.prepare_valid_feature">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">prepare_valid_feature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">n_shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">n_shot</span> <span class="o">=</span> <span class="n">n_shot</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_shot</span><span class="p">))</span>
@@ -524,7 +524,7 @@
         <span class="k">return</span> <span class="n">embeddings</span>
 
 <div class="viewcode-block" id="TextEmbdSimilarityFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TextEmbdSimilarityFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.text_embd_similarity_filter.html#data_juicer.ops.filter.text_embd_similarity_filter.TextEmbdSimilarityFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># check if it&#39;s computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">text_embd_similarity</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -551,7 +551,7 @@
 
 
 <div class="viewcode-block" id="TextEmbdSimilarityFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TextEmbdSimilarityFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.text_embd_similarity_filter.html#data_juicer.ops.filter.text_embd_similarity_filter.TextEmbdSimilarityFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">similarity</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">text_embd_similarity</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">similarity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

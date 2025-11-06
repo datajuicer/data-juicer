@@ -627,7 +627,7 @@ from . import new_op2
         OPERATORS.modules.pop('custom_mapper1')
         OPERATORS.modules.pop('custom_mapper2')
 
-    @TEST_TAG("ray")
+    # @TEST_TAG("ray")
     def test_cli_custom_operator_paths_ray(self):
         """Test arg custom_operator_paths"""
 

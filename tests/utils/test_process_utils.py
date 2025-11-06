@@ -272,7 +272,7 @@ class CalculateRayNPTest(DataJuicerTestCaseBase):
         self.assertEqual(auto_op.num_proc, None)
         self.assertEqual(auto_op.cpu_required, 1)
 
-    def test_insufficient_resources(self):
+    def test_insufficient_resources_cpu(self):
         """Test resource overallocation exception"""
         op1 = self.mock_op(use_cuda=False, num_proc=5)
         op1._name = 'op1'
@@ -284,12 +284,52 @@ class CalculateRayNPTest(DataJuicerTestCaseBase):
         
         self.mock_cpu.return_value = 4  # Only 4 cores available
         
-        with self.assertRaises(ValueError) as cm:
-            calculate_ray_np([op1, op2])
+        calculate_ray_np([op1, op2])
 
-        self.assertEqual(str(cm.exception),
-                         "Insufficient cpu resources: At least 5.0 cpus are required,  but only 4 are available. "
-                         "Please add resources to ray cluster or reduce operator requirements.")
+        # removing resource restriction errors. Errors should not be reported at batch mode  and  resource flexibility
+        # with self.assertRaises(ValueError) as cm:
+        #     calculate_ray_np([op1, op2])
+
+        # self.assertEqual(str(cm.exception),
+        #                  "Insufficient cpu resources: At least 5.0 cpus are required,  but only 4 are available. "
+        #                  "Please add resources to ray cluster or reduce operator requirements.")
+
+        self.assertEqual(op1.num_proc, 5)
+        self.assertEqual(op1.cpu_required, 2)
+        self.assertEqual(op1.gpu_required, None)
+        self.assertEqual(op1.mem_required, None)
+
+        self.assertEqual(op2.num_proc, None)
+        self.assertEqual(op2.cpu_required, 3)
+        self.assertEqual(op2.gpu_required, None)
+        self.assertEqual(op2.mem_required, None)
+
+    def test_insufficient_resources_gpu(self):
+        """Test resource overallocation exception"""
+        op1 = self.mock_op(use_cuda=False, num_proc=5)
+        op1._name = 'op1'
+        op1.cpu_required = 2
+        
+        op2 = self.mock_op(use_cuda=True)
+        op2._name = 'op2'
+
+        op3 = self.mock_op(use_cuda=True)
+        op3._name = 'op3'
+
+        self.mock_gpu.return_value = 1
+        self.mock_cpu.return_value = 5  # Only 4 cores available
+        
+        calculate_ray_np([op1, op2, op3])
+
+        self.assertEqual(op1.num_proc, 5)
+        self.assertEqual(op1.cpu_required, 2)
+        self.assertEqual(op1.gpu_required, None)
+        self.assertEqual(op1.mem_required, None)
+
+        self.assertEqual(op2.num_proc, None)
+        self.assertEqual(op2.cpu_required, None)
+        self.assertEqual(op2.gpu_required, None)
+        self.assertEqual(op2.mem_required, None)
 
     def test_gpu_op_without_cuda(self):
         """Test GPU operator when CUDA is unavailable"""

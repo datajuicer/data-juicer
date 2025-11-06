@@ -353,19 +353,22 @@ def calculate_ray_np(operators):
     total_auto_base_cpu = sum([i[0] for i in list(auto_resource_frac_map.values())])
     total_auto_base_gpu = sum([i[1] for i in list(auto_resource_frac_map.values())])
     total_required_min_cpu = fixed_min_cpu + total_auto_base_cpu
-    if total_required_min_cpu > 1:
-        raise ValueError(
-            f"Insufficient cpu resources: "
-            f"At least {total_required_min_cpu * total_cpu} cpus are required,  but only {total_cpu} are available. "
-            f"Please add resources to ray cluster or reduce operator requirements."
-        )
     total_required_min_gpu = fixed_min_gpu + total_auto_base_gpu
-    if total_required_min_gpu > 1:
-        raise ValueError(
-            f"Insufficient gpu resources: "
-            f"At least {total_required_min_gpu * total_gpu} cpus are required,  but only {total_gpu} are available. "
-            f"Please add resources to ray cluster or reduce operator requirements."
+    if total_required_min_cpu > 1 or total_required_min_gpu > 1:
+        warn_str = "If running ray streaming tasks with the current operators configuration, we detected insufficient resources. "
+        if total_required_min_cpu > 1:
+            warn_str += f"At least {total_required_min_cpu * total_cpu} cpus are required,  but only {total_cpu} are available. "
+        if total_required_min_gpu > 1:
+            warn_str += f"At least {total_required_min_gpu * total_gpu} cpus are required,  but only {total_gpu} are available. "
+        logger.warning(
+            warn_str + "Considering scenarios with small dataset or elastic scaling requirements, "
+            "we will skip the automatic parallelism calculation and recommend users manually "
+            "configure 'cpu_required', 'gpu_required' and 'num_proc' for operators."
         )
+        for op in operators:
+            op.num_proc = None if op.num_proc == -1 else op.num_proc
+        return operators
+
     if len(auto_resource_frac_map) > 0:
         remaining_min_frac_cpu = 1 - fixed_max_cpu
         remaining_max_frac_cpu = 1 - fixed_min_cpu

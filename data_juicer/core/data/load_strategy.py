@@ -438,7 +438,7 @@ class DefaultS3DataLoadStrategy(DefaultDataLoadStrategy):
             "aws_access_key_id",
             "aws_secret_access_key",
             "aws_session_token",
-            "region_name",
+            "aws_region",
             "endpoint_url",
         ],
         "field_types": {"path": str},
@@ -458,9 +458,10 @@ class DefaultS3DataLoadStrategy(DefaultDataLoadStrategy):
         path = self.ds_config["path"]
         validate_s3_path(path)
 
+        load_data_np = kwargs.get("num_proc", 1)
+
         # Get config values with defaults
         text_keys = getattr(self.cfg, "text_keys", ["text"])
-        load_data_np = kwargs.get("num_proc", 1)
 
         logger.info(f"Loading dataset from S3: {path}")
 
@@ -519,7 +520,6 @@ class DefaultS3DataLoadStrategy(DefaultDataLoadStrategy):
                 data_format,
                 data_files=path,  # Direct S3 path
                 storage_options=storage_options,  # Pass storage_options for S3 filesystem configuration
-                num_proc=load_data_np,
                 **kwargs,
             )
             # Handle DatasetDict (multiple splits) vs Dataset (single)
@@ -556,7 +556,7 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
             "aws_access_key_id",
             "aws_secret_access_key",
             "aws_session_token",
-            "region_name",
+            "aws_region",
             "endpoint_url",
         ],
         "field_types": {"path": str},

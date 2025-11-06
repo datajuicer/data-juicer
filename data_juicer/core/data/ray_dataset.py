@@ -252,6 +252,9 @@ class RayDataset(DJDataset):
             traceback.print_exc()
             exit(1)
 
+    def count(self) -> int:
+        return self.data.count()
+
     @classmethod
     def read(cls, data_format: str, paths: Union[str, List[str]]) -> RayDataset:
         if data_format in {"json", "jsonl"}:
@@ -366,9 +369,7 @@ def read_json_stream(
     except (ImportError, AttributeError):
         # Fall back to standard ray.data.read_json for older PyArrow versions
         # This works with filesystem parameter for S3
-        import ray.data
-
-        return ray.data.read_json(paths, filesystem=filesystem)
+        ray.data.read_json(paths, filesystem=filesystem)
 
     if meta_provider is None:
         meta_provider = ray.data.read_api.DefaultFileMetadataProvider()

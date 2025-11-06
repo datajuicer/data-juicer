@@ -85,6 +85,10 @@ class DJDataset(ABC):
         """
         return column in self.schema().columns
 
+    @abstractmethod
+    def count(self) -> int:
+        """return the count of the dataset"""
+
 
 def wrap_func_with_nested_access(f):
     """
@@ -343,6 +347,9 @@ class NestedDataset(Dataset, DJDataset):
                     traceback.print_exc()
                     logger.error("Error occurred when making log summarization")
         return dataset
+
+    def count(self) -> int:
+        return self.num_rows
 
     def update_args(self, args, kargs, is_filter=False):
         if args:

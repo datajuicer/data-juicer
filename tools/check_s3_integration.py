@@ -261,7 +261,7 @@ def test_ray_s3_load_public_file():
 
         # Show sample
         if count > 0:
-            sample = dataset.take(1)[0]
+            sample = dataset.get(1)[0]
             logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
             logger.info(f"  First sample preview: {str(sample)[:200]}...")
 
@@ -368,7 +368,7 @@ def test_ray_s3_load_private_file(s3_path: str = None):
 
         # Show sample
         if count > 0:
-            sample = dataset.take(1)[0]
+            sample = dataset.get(1)[0]
             logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
             logger.info(f"  First sample preview: {str(sample)[:200]}...")
 
@@ -608,7 +608,7 @@ def test_strategy_ray_s3_load_public_file():
             count = dataset.count()
             logger.info(f"✓ Loaded Ray dataset with {count} samples")
             if count > 0:
-                sample = dataset.take(1)[0]
+                sample = dataset.get(1)[0]
                 logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
                 logger.info(f"  First sample preview: {str(sample)[:200]}...")
         else:
@@ -713,7 +713,7 @@ def test_strategy_ray_s3_load_private_file(s3_path: str = None):
             count = dataset.count()
             logger.info(f"✓ Loaded Ray dataset with {count} samples")
             if count > 0:
-                sample = dataset.take(1)[0]
+                sample = dataset.get(1)[0]
                 logger.info(f"  Sample keys: {sample.keys() if isinstance(sample, dict) else 'N/A'}")
                 logger.info(f"  First sample preview: {str(sample)[:200]}...")
         else:

@@ -674,7 +674,7 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     # check number of processes np
     from data_juicer.utils.resource_utils import cpu_count
 
-    sys_cpu_count = cpu_count()
+    sys_cpu_count = cpu_count(cfg)
     if cfg.get("np", None) and cfg.np > sys_cpu_count:
         logger.warning(
             f"Number of processes `np` is set as [{cfg.np}], which "

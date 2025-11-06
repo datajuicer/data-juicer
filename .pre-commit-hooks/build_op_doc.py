@@ -26,7 +26,7 @@ sources and file formats, and allow for flexible extension to custom datasets.
 
 This page offers a basic description of the operators (OPs) in Data-Juicer.
 Users can consult the
-[API documentation](https://modelscope.github.io/data-juicer/en/main/api.html)
+[API documentation](https://datajuicer.github.io/data-juicer/en/main/api.html)
 for the operator API reference. To learn more about each operator, click its
 adjacent 'info' link to access the operator's details page, which includes its
 detailed parameters, effect demonstrations, and links to relevant unit tests
@@ -43,7 +43,7 @@ operator when applied to built-in test data samples. Besides, you can try to
 use agent to automatically route suitable OPs and call them. E.g., refer to
 [Agentic Filters of DJ](../demos/api_service/react_data_filter_process.ipynb), [Agentic Mappers of DJ](../demos/api_service/react_data_mapper_process.ipynb)
 
-这个页面提供了Data-Juicer中算子的基本描述。算子的API参考，用户可以直接查阅[API文档](https://modelscope.github.io/data-juicer/en/main/api.html)。
+这个页面提供了Data-Juicer中算子的基本描述。算子的API参考，用户可以直接查阅[API文档](https://datajuicer.github.io/data-juicer/en/main/api.html)。
 要详细了解每个算子，请点击其旁的info链接进入算子详情页，其中包含了算子参数、效果演示，以及相关单元测试和源码的链接。
 
 此外，表格中的『参考』（Reference）列则用于注明算子设计或实现所依据的研究、库或资料链接，欢迎您提供已知或相关的参考来源，共同完善此部分内容。

@@ -882,6 +882,27 @@ def prepare_yolo_model(model_path, **model_params):
     return model
 
 
+def prepare_vggt_model(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+
+    import subprocess
+
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    vggt_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "vggt")
+    if not os.path.exists(vggt_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/facebookresearch/vggt.git", vggt_repo_path], check=True)
+    import sys
+
+    sys.path.append(vggt_repo_path)
+
+    from vggt.models.vggt import VGGT
+
+    model = VGGT.from_pretrained(check_model_home(model_path)).to(device)
+
+    return model
+
+
 def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
     """
     Prepare and load a HuggingFace model with the corresponding processor.
@@ -1032,6 +1053,7 @@ MODEL_FUNCTION_MAPPING = {
     "sentencepiece": prepare_sentencepiece_for_lang,
     "simple_aesthetics": prepare_simple_aesthetics_model,
     "spacy": prepare_spacy_model,
+    "vggt": prepare_vggt_model,
     "video_blip": prepare_video_blip_model,
     "vllm": prepare_vllm_model,
     "yolo": prepare_yolo_model,

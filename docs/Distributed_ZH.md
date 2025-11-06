@@ -28,13 +28,13 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 
 ### JSON 文件的流式读取
 
-为了解决 Ray Dataset 类底层框架 Arrow 对流式读取 JSON 数据的原生支持的缺失，我们开发了一个流式载入的接口并贡献到了一个针对 Apache Arrow 的内部 [补丁](https://github.com/modelscope/data-juicer/pull/515)（ [相关 PR](https://github.com/apache/arrow/pull/45084) ） 。这个补丁可以缓解内存不够的问题。
+为了解决 Ray Dataset 类底层框架 Arrow 对流式读取 JSON 数据的原生支持的缺失，我们开发了一个流式载入的接口并贡献到了一个针对 Apache Arrow 的内部 [补丁](https://github.com/datajuicer/data-juicer/pull/515)（ [相关 PR](https://github.com/apache/arrow/pull/45084) ） 。这个补丁可以缓解内存不够的问题。
 
 
 流式读取 JSON 文件是基础模型数据处理中的常见要求，因为许多数据集都以 JSONL 格式存储，并且尺寸巨大。
 但是，Ray Datasets 中当前的实现不支持流式读取 JSON 文件，根因来源于其底层 Arrow 库（截至 Ray 版本 2.40 和 Arrow 版本 18.1.0）。
 
-为了解决不支持流式 JSON 数据的原生读取问题，我们开发了一个流式加载接口，并为 Apache Arrow 贡献了一个第三方 [补丁](https://github.com/modelscope/data-juicer/pull/515)（[PR 到 repo](https://github.com/apache/arrow/pull/45084)）。这将有助于缓解内存不足问题。使用此补丁后， Data-Juicer 的Ray模式将默认使用流式加载接口加载 JSON 文件。此外，如果输入变为 CSV 和 Parquet 文件，Ray模式下流式读取已经会自动开启。
+为了解决不支持流式 JSON 数据的原生读取问题，我们开发了一个流式加载接口，并为 Apache Arrow 贡献了一个第三方 [补丁](https://github.com/datajuicer/data-juicer/pull/515)（[PR 到 repo](https://github.com/apache/arrow/pull/45084)）。这将有助于缓解内存不足问题。使用此补丁后， Data-Juicer 的Ray模式将默认使用流式加载接口加载 JSON 文件。此外，如果输入变为 CSV 和 Parquet 文件，Ray模式下流式读取已经会自动开启。
 
 ### 去重
 

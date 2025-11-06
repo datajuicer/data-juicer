@@ -1,0 +1,5 @@
+agentscope>=1.0.5
+py-data-juicer>=1.4.2
+faiss-cpu>=1.12.0
+fire>=0.7.1
+langchain-community

@@ -353,6 +353,7 @@
     <span class="n">prepare_model</span><span class="p">,</span>
     <span class="n">update_sampling_params</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.resource_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">cuda_device_count</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..base_op</span><span class="w"> </span><span class="kn">import</span> <span class="n">OPERATORS</span><span class="p">,</span> <span class="n">Mapper</span>
 
@@ -471,11 +472,11 @@
         <span class="n">sampling_params</span> <span class="o">=</span> <span class="n">update_sampling_params</span><span class="p">(</span><span class="n">sampling_params</span><span class="p">,</span> <span class="n">hf_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_vllm</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">enable_vllm</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;must be executed in CUDA&quot;</span>
+            <span class="k">assert</span> <span class="n">cuda_device_count</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;must be executed in CUDA&quot;</span>
             <span class="c1"># cannot initialize vllm replicas on different GPUs</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">model_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;tensor_parallel_size&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">tensor_parallel_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span>
+                <span class="n">tensor_parallel_size</span> <span class="o">=</span> <span class="n">cuda_device_count</span><span class="p">()</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Set tensor_parallel_size to </span><span class="se">\</span>
 <span class="s2">                    </span><span class="si">{</span><span class="n">tensor_parallel_size</span><span class="si">}</span><span class="s2"> for vllm.&quot;</span>

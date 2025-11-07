@@ -352,7 +352,7 @@
 
 
 <div class="viewcode-block" id="VideoResolutionFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_resolution_filter.html#data_juicer.ops.filter.video_resolution_filter.VideoResolutionFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoResolutionFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoResolutionFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -369,7 +369,7 @@
 <span class="sd">    values are used to determine whether to keep or filter out the sample.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="VideoResolutionFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_resolution_filter.html#data_juicer.ops.filter.video_resolution_filter.VideoResolutionFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoResolutionFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">min_width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
@@ -405,7 +405,7 @@
 
 
 <div class="viewcode-block" id="VideoResolutionFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_resolution_filter.html#data_juicer.ops.filter.video_resolution_filter.VideoResolutionFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoResolutionFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it&#39;s computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_width</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]</span> <span class="ow">and</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_height</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -445,7 +445,7 @@
 
 
 <div class="viewcode-block" id="VideoResolutionFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_resolution_filter.html#data_juicer.ops.filter.video_resolution_filter.VideoResolutionFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoResolutionFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="n">ws</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_width</span><span class="p">]</span>
         <span class="n">hs</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_height</span><span class="p">]</span>

@@ -2,28 +2,41 @@
 
 # global parameters
 project_name: 'demo-process-s3'
+
 dataset:
   configs:
     - type: 'remote'
       source: 's3'
       path: "s3://your-bucket-name/path/to/your-dataset.jsonl"  # S3 path to your dataset
-      # AWS credentials (optional - will use environment variables if not provided)
+      # AWS credentials for input/loading (optional - will use environment variables if not provided)
       # For better security, use environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
       aws_access_key_id: 'you_access_key_id'  # Replace with your AWS access key ID
       aws_secret_access_key: 'you_secret_access_key'  # pragma: allowlist secret  # Replace with your AWS secret access key
-      aws_region: 'you_region'
-
+      aws_region: 'you_region'  # AWS region (e.g., 'us-east-2')
       # Optional: AWS session token (for temporary credentials)
       # aws_session_token: 'YOUR_SESSION_TOKEN'
-      # Optional: AWS region (defaults to us-east-2 if not specified)
-      # region_name: 'us-east-2'
       # Optional: Custom S3 endpoint URL (for S3-compatible services)
       # endpoint_url: 'https://s3.amazonaws.com'
+
+
 
 np: 4  # number of subprocess to process your dataset
 executor_type: ray
 
-export_path: './outputs/demo-process-s3/demo-processed'
+# Export path - can be local or S3
+# For S3 export, use: s3://your-bucket-name/path/to/output
+# For local export, use: './outputs/demo-process-s3/demo-processed'
+export_path: 's3://your-bucket-name/path/to/output'  # S3 export path
+
+# Export-specific AWS credentials (optional - for S3 export only)
+export_aws_credentials:
+  aws_access_key_id: 'export_access_key_id'  # Replace with your export AWS access key ID
+  aws_secret_access_key: 'export_secret_access_key'  # pragma: allowlist secret  # Replace with your export AWS secret access key
+  aws_region: 'export_region'  # AWS region for export (e.g., 'us-east-2')
+  # Optional: AWS session token (for temporary credentials)
+  # aws_session_token: 'export_session_token'
+  # Optional: Custom S3 endpoint URL (for S3-compatible services)
+  # endpoint_url: 'https://s3.amazonaws.com'
 
 # process schedule
 # a list of several process operators with their arguments

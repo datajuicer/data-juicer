@@ -28,8 +28,6 @@ def get_data_processing_ops(
     Operators are a collection of basic processes that assist in data modification,
     cleaning, filtering, deduplication, etc.
 
-    Should be used with `run_data_recipe`.
-
     If both tags and ops_type are None, return a list of all operators.
 
     The following `op_type` values are supported:

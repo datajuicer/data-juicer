@@ -95,7 +95,7 @@ uv pip install "py-data-juicer[all]"
 
 ```bash
 # 克隆仓库
-git clone https://github.com/modelscope/data-juicer.git
+git clone https://github.com/datajuicer/data-juicer.git
 cd data-juicer
 
 # 安装开发依赖

@@ -60,6 +60,8 @@ class MetaKeys(object):
     video_audio_tags = "video_audio_tags"
     # # video frames
     video_frames = "video_frames"
+    # # info extracted by VGGT
+    vggt_tags = "vggt_tags"
     # # image tags
     image_tags = "image_tags"
     # # bounding box tag

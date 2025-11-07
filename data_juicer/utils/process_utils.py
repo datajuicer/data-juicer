@@ -289,6 +289,9 @@ def calculate_ray_np(operators):
 
             if not gpu_req:
                 gpu_req = math.ceil(gpu_required_frac * total_gpu * 100) / 100
+                if gpu_req > 1:
+                    # ray requires integer number when GPU resource quantities >1
+                    gpu_req = math.ceil(gpu_req)
 
         # CPU operator calculations
         else:

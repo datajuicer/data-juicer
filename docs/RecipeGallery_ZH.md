@@ -1,7 +1,7 @@
 # 数据菜谱Gallery
 
 - 菜谱[文件夹](../configs)下包含丰富的Data-Juicer数据菜谱的示例文件，帮助用户轻松理解、复用、扩展各种功能场景下的配置。
-- 📣📣📣 社区贡献者可提PR添加自定义的数据菜谱，促进传播、复用和相关技术演进。我们非常欢迎共建，并会高亮[致谢](https://github.com/modelscope/data-juicer?tab=readme-ov-file#acknowledgement)！
+- 📣📣📣 社区贡献者可提PR添加自定义的数据菜谱，促进传播、复用和相关技术演进。我们非常欢迎共建，并会高亮[致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#acknowledgement)！
 
 目录
 - [1. Data-Juicer最小示例菜谱](#1-data-juicer最小示例菜谱)
@@ -61,7 +61,7 @@
 | Alpaca-Cot ZH     |        21,197,246        |             9,873,214              |  46.58%   | [alpaca-cot-zh-refine.yaml](../configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml)                                                                                                                                                                   | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/CFT/alpaca-cot-zh-refine_result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/alpaca-cot-zh-refined-by-data-juicer/summary) <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/alpaca-cot-zh-refined-by-data-juicer)   | [来自Alpaca-CoT的28个子集](../configs/data_juicer_recipes/alpaca_cot/README_ZH.md#完善的-alpaca-cot-数据集元信息) |
 
 ## 5. 合成对比学习图文数据集
-Data-Juicer内置了丰富的算子来支持图片多模态数据合成，譬如Img-Diff数据集。该合成数据在MMVP基准上带来了12个性能点的模型提升。更多细节参见Img-Diff[论文](https://arxiv.org/abs/2408.04594)，对应菜谱实现可参考[ImgDiff-Dev](https://github.com/modelscope/data-juicer/tree/ImgDiff).
+Data-Juicer内置了丰富的算子来支持图片多模态数据合成，譬如Img-Diff数据集。该合成数据在MMVP基准上带来了12个性能点的模型提升。更多细节参见Img-Diff[论文](https://arxiv.org/abs/2408.04594)，对应菜谱实现可参考[ImgDiff-Dev](https://github.com/datajuicer/data-juicer/tree/ImgDiff).
 
 
 ## 6. 改良开源图文数据集
@@ -102,7 +102,7 @@ Data-Juicer内置了丰富的算子来支持图片多模态数据合成，譬如
 用户可以基于这个菜谱开始他们的视频数据集处理流程。
 
 ## 8. 合成以人为中心的视频评测集
-Data-Juicer还可以支持视频评测集合成，如[HumanVBench](https://arxiv.org/abs/2412.17574)，其将in-the-wild视频转化为以人为中心的视频评测集），对应的数据菜谱和构造流程可参考[HumanVBench-dev](https://github.com/modelscope/data-juicer/tree/HumanVBench)。
+Data-Juicer还可以支持视频评测集合成，如[HumanVBench](https://arxiv.org/abs/2412.17574)，其将in-the-wild视频转化为以人为中心的视频评测集），对应的数据菜谱和构造流程可参考[HumanVBench-dev](https://github.com/datajuicer/data-juicer/tree/HumanVBench)。
 
 ## 9. 改良现有开源视频数据集
 

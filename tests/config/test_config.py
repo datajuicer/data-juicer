@@ -8,6 +8,7 @@ from jsonargparse import Namespace, namespace_to_dict
 from data_juicer.config import init_configs, get_default_cfg, update_op_attr, export_config, merge_config, prepare_side_configs
 from data_juicer.ops import load_ops
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
+from data_juicer.utils.constant import RAY_JOB_ENV_VAR
 
 
 test_yaml_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -37,6 +38,8 @@ class ConfigTest(DataJuicerTestCaseBase):
 
         if os.path.exists(self.tmp_dir):
             os.system(f'rm -rf {self.tmp_dir}')
+
+        os.environ[RAY_JOB_ENV_VAR] = "0"
 
     def test_help_info(self):
         out = StringIO()
@@ -688,6 +691,8 @@ from . import new_op4
         ds = executor.run()
         for data in ds.to_list():
             self.assertTrue(data['text'].endswith('tag1tag2'))
+
+        os.environ[RAY_JOB_ENV_VAR] = "0"
 
 
 if __name__ == '__main__':

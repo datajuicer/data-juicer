@@ -91,6 +91,7 @@ class RayExecutor(ExecutorBase):
         # 1. load data
         logger.info("Loading dataset with Ray...")
         dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
+        columns = dataset.data.columns()
 
         # 2. extract processes
         logger.info("Preparing process operators...")
@@ -109,7 +110,7 @@ class RayExecutor(ExecutorBase):
             # 4. data export
             if not skip_export:
                 logger.info("Exporting dataset to disk...")
-                self.exporter.export(dataset.data)
+                self.exporter.export(dataset.data, columns=columns)
             tend = time.time()
             logger.info(f"All Ops are done in {tend - tstart:.3f}s.")
 

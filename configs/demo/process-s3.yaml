@@ -2,6 +2,7 @@
 
 # global parameters
 project_name: 'demo-process-s3'
+work_dir: './outputs/demo-process-s3'
 
 dataset:
   configs:
@@ -10,9 +11,9 @@ dataset:
       path: "s3://your-bucket-name/path/to/your-dataset.jsonl"  # S3 path to your dataset
       # AWS credentials for input/loading (optional - will use environment variables if not provided)
       # For better security, use environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-      aws_access_key_id: 'you_access_key_id'  # Replace with your AWS access key ID
-      aws_secret_access_key: 'you_secret_access_key'  # pragma: allowlist secret  # Replace with your AWS secret access key
-      aws_region: 'you_region'  # AWS region (e.g., 'us-east-2')
+      aws_access_key_id: 'your_access_key_id'  # Replace with your AWS access key ID
+      aws_secret_access_key: 'your_secret_access_key'  # pragma: allowlist secret  # Replace with your AWS secret access key
+      aws_region: 'your_region'  # AWS region (e.g., 'us-east-2')
       # Optional: AWS session token (for temporary credentials)
       # aws_session_token: 'YOUR_SESSION_TOKEN'
       # Optional: Custom S3 endpoint URL (for S3-compatible services)
@@ -30,9 +31,9 @@ export_path: 's3://your-bucket-name/path/to/output'  # S3 export path
 
 # Export-specific AWS credentials (optional - for S3 export only)
 export_aws_credentials:
-  aws_access_key_id: 'export_access_key_id'  # Replace with your export AWS access key ID
-  aws_secret_access_key: 'export_secret_access_key'  # pragma: allowlist secret  # Replace with your export AWS secret access key
-  aws_region: 'export_region'  # AWS region for export (e.g., 'us-east-2')
+  aws_access_key_id: 'your_access_key_id'  # Replace with your AWS access key ID
+  aws_secret_access_key: 'your_secret_access_key'  # pragma: allowlist secret  # Replace with your AWS secret access key
+  aws_region: 'your_region'  # AWS region for export (e.g., 'us-east-2')
   # Optional: AWS session token (for temporary credentials)
   # aws_session_token: 'export_session_token'
   # Optional: Custom S3 endpoint URL (for S3-compatible services)

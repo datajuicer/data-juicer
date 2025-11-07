@@ -954,7 +954,10 @@ def namespace_to_arg_list(namespace, prefix="", includes=None, excludes=None):
                 continue
             if excludes is not None and concat_key in excludes:
                 continue
-            arg_list.append(f"--{concat_key}={value}")
+            if key == "process":
+                arg_list.append(f"--{concat_key}={json.dumps(value, ensure_ascii=False)}")
+            else:
+                arg_list.append(f"--{concat_key}={value}")
 
     return arg_list
 

@@ -301,6 +301,9 @@ class OP:
         return dataset
 
     def empty_history(self):
+        if is_ray_mode():
+            return []
+
         return np.empty((0, 0), dtype=str)
 
 

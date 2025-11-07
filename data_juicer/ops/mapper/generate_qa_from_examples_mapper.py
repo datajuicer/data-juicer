@@ -210,9 +210,6 @@ class GenerateQAFromExamplesMapper(Mapper):
             output_qa_pairs.append((question.strip(), answer.strip()))
         return output_qa_pairs
 
-    def empty_history(self):
-        return []
-
     def process_single(self, sample, rank=None):
         model, _ = get_model(self.model_key, rank, self.use_cuda())
 

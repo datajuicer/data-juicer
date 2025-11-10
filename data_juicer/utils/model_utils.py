@@ -408,14 +408,16 @@ def prepare_dwpose_model(onnx_det_model, onnx_pose_model, **model_params):
     if not os.path.exists(onnx_det_model):
         if not os.path.exists(DJMC):
             os.makedirs(DJMC)
-        wget.download(BACKUP_MODEL_LINKS["dwpose_onnx_det_model"], DJMC)
         onnx_det_model = os.path.join(DJMC, "yolox_l.onnx")
+        if not os.path.exists(onnx_det_model):
+            wget.download(BACKUP_MODEL_LINKS["dwpose_onnx_det_model"], DJMC)
 
     if not os.path.exists(onnx_pose_model):
         if not os.path.exists(DJMC):
             os.makedirs(DJMC)
-        wget.download(BACKUP_MODEL_LINKS["dwpose_onnx_pose_model"], DJMC)
         onnx_pose_model = os.path.join(DJMC, "dw-ll_ucoco_384.onnx")
+        if not os.path.exists(onnx_pose_model):
+            wget.download(BACKUP_MODEL_LINKS["dwpose_onnx_pose_model"], DJMC)
 
     dwpose_model = DWposeDetector(onnx_det_model, onnx_pose_model, device)
     return dwpose_model

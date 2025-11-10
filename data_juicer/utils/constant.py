@@ -8,6 +8,7 @@ import zstandard as zstd
 from loguru import logger
 
 RAY_JOB_ENV_VAR = "RAY_JOB"
+SPECIAL_TOKEN_ENV_PREFIX = "_DJ_SPECIAL_TOKEN_"
 DEFAULT_PREFIX = "__dj__"
 
 

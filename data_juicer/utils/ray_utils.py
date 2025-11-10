@@ -6,6 +6,7 @@ from loguru import logger
 
 from data_juicer.utils.constant import RAY_JOB_ENV_VAR
 from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.mm_utils import SPECIAL_TOKEN_ENV_PREFIX
 
 ray = LazyLoader("ray")
 
@@ -29,7 +30,12 @@ def initialize_ray(cfg=None, force=False):
     else:
         ray_address = cfg.ray_address
 
-    env_vars = dict(os.environ)
+    # collect ray envs
+    env_vars = {RAY_JOB_ENV_VAR: os.environ.get(RAY_JOB_ENV_VAR, "0")}
+    for k, v in dict(os.environ).items():
+        if k.startswith(SPECIAL_TOKEN_ENV_PREFIX):
+            env_vars.update({k: v})
+
     ray.init(
         ray_address,
         ignore_reinit_error=True,

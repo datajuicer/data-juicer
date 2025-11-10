@@ -13,7 +13,7 @@ from datasets import Audio, Image
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.utils.constant import DEFAULT_PREFIX, Fields
+from data_juicer.utils.constant import DEFAULT_PREFIX, SPECIAL_TOKEN_ENV_PREFIX, Fields
 from data_juicer.utils.file_utils import add_suffix_to_filename
 from data_juicer.utils.lazy_loader import LazyLoader
 
@@ -30,14 +30,13 @@ _DEFAULT_TOKEN_FORMATS: Dict[str, str] = {
     # others
     "eoc": f"<|{DEFAULT_PREFIX}eoc|>",
 }
-_SPECIAL_TOKEN_ENV_FORMAT = "SPECIAL_TOKEN_{}"
 
 
 class _MetaSpecialTokens(type):
     def __new__(cls, name: str, bases: tuple, dct: dict):
 
         for token_name in list(_DEFAULT_TOKEN_FORMATS.keys()):
-            env_var = _SPECIAL_TOKEN_ENV_FORMAT.format(token_name.upper())
+            env_var = f"{SPECIAL_TOKEN_ENV_PREFIX}{token_name.upper()}"
             if env_var in os.environ:
                 dct[token_name] = os.environ[env_var]
             else:
@@ -47,7 +46,7 @@ class _MetaSpecialTokens(type):
 
     def __setattr__(cls, name: str, value: str) -> None:
         if name in list(_DEFAULT_TOKEN_FORMATS.keys()):
-            env_var = _SPECIAL_TOKEN_ENV_FORMAT.format(name.upper())
+            env_var = f"{SPECIAL_TOKEN_ENV_PREFIX}{name.upper()}"
             os.environ[env_var] = value
             super().__setattr__(name, value)
         else:

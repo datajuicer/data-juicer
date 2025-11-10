@@ -25,5 +25,3 @@ __all__ = [
     "OperationStatus",
     "PartitionStatus",
 ]
-
-__version__ = "1.0.0"

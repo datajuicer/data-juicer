@@ -11,7 +11,6 @@ from data_juicer.utils.model_utils import (
     prepare_model,
     update_sampling_params,
 )
-from data_juicer.utils.resource_utils import cuda_device_count
 
 torch = LazyLoader("torch")
 vllm = LazyLoader("vllm")
@@ -90,16 +89,11 @@ class GenerateQAFromTextMapper(Mapper):
         sampling_params = update_sampling_params(sampling_params, hf_model, self.enable_vllm)
 
         if enable_vllm:
-            assert cuda_device_count() >= 1, "must be executed in CUDA"
             # cannot initialize vllm replicas on different GPUs
             self.num_proc = 1
-            if model_params.get("tensor_parallel_size") is None:
-                tensor_parallel_size = cuda_device_count()
-                logger.info(
-                    f"Set tensor_parallel_size to \
-                    {tensor_parallel_size} for vllm."
-                )
-                model_params["tensor_parallel_size"] = tensor_parallel_size
+            tensor_parallel_size = model_params.get("tensor_parallel_size", 1)
+            model_params["tensor_parallel_size"] = tensor_parallel_size
+            logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")
             self.model_key = prepare_model(model_type="vllm", pretrained_model_name_or_path=hf_model, **model_params)
             self.sampling_params = vllm.SamplingParams(**sampling_params)
         else:

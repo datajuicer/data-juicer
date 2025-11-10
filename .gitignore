@@ -34,3 +34,6 @@ tests/ops/deduplicator/english_dedup/
 
 # perf bench data
 perf_bench_data/
+
+# .env
+.env

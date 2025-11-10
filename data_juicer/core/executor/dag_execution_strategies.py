@@ -44,7 +44,7 @@ class NonPartitionedDAGStrategy(DAGExecutionStrategy):
         """Generate DAG nodes for non-partitioned execution."""
         nodes = {}
         for op_idx, op in enumerate(operations):
-            node_id = f"op_{op_idx+1:03d}_{op._name}"
+            node_id = self.get_dag_node_id(op._name, op_idx)
             nodes[node_id] = {
                 "node_id": node_id,
                 "operation_name": op._name,
@@ -68,8 +68,8 @@ class NonPartitionedDAGStrategy(DAGExecutionStrategy):
         """Build sequential dependencies for non-partitioned execution."""
         # Simple sequential dependencies
         for i in range(1, len(operations)):
-            current_node = f"op_{i+1:03d}_{operations[i]._name}"
-            prev_node = f"op_{i:03d}_{operations[i-1]._name}"
+            current_node = self.get_dag_node_id(operations[i]._name, i)
+            prev_node = self.get_dag_node_id(operations[i - 1]._name, i - 1)
             if current_node in nodes and prev_node in nodes:
                 nodes[current_node]["dependencies"].append(prev_node)
 
@@ -95,7 +95,7 @@ class PartitionedDAGStrategy(DAGExecutionStrategy):
         # Generate partition-specific nodes
         for partition_id in range(self.num_partitions):
             for op_idx, op in enumerate(operations):
-                node_id = f"op_{op_idx+1:03d}_{op._name}_partition_{partition_id}"
+                node_id = self.get_dag_node_id(op._name, op_idx, partition_id=partition_id)
                 nodes[node_id] = {
                     "node_id": node_id,
                     "operation_name": op._name,
@@ -130,7 +130,7 @@ class PartitionedDAGStrategy(DAGExecutionStrategy):
         for conv_idx, conv_point in enumerate(convergence_points):
             if conv_point < len(operations):
                 op = operations[conv_point]
-                global_node_id = f"op_{conv_point+1:03d}_{op._name}_global"
+                global_node_id = self.get_dag_node_id(op._name, conv_point)
                 nodes[global_node_id] = {
                     "node_id": global_node_id,
                     "operation_name": op._name,
@@ -162,9 +162,13 @@ class PartitionedDAGStrategy(DAGExecutionStrategy):
 
         return nodes
 
-    def get_dag_node_id(self, op_name: str, op_idx: int, partition_id: int, **kwargs) -> str:
+    def get_dag_node_id(self, op_name: str, op_idx: int, partition_id: int = None, **kwargs) -> str:
         """Get DAG node ID for partitioned operation."""
-        return f"op_{op_idx+1:03d}_{op_name}_partition_{partition_id}"
+        if partition_id is not None:
+            return f"op_{op_idx+1:03d}_{op_name}_partition_{partition_id}"
+        else:
+            # For global operations
+            return f"op_{op_idx+1:03d}_{op_name}_global"
 
     def build_dependencies(self, nodes: Dict[str, Any], operations: List, **kwargs) -> None:
         """Build dependencies for partitioned execution."""
@@ -173,8 +177,8 @@ class PartitionedDAGStrategy(DAGExecutionStrategy):
         # Build partition-specific dependencies (within each partition)
         for partition_id in range(self.num_partitions):
             for i in range(1, len(operations)):
-                current_node = f"op_{i+1:03d}_{operations[i]._name}_partition_{partition_id}"
-                prev_node = f"op_{i:03d}_{operations[i-1]._name}_partition_{partition_id}"
+                current_node = self.get_dag_node_id(operations[i]._name, i, partition_id=partition_id)
+                prev_node = self.get_dag_node_id(operations[i - 1]._name, i - 1, partition_id=partition_id)
                 if current_node in nodes and prev_node in nodes:
                     nodes[current_node]["dependencies"].append(prev_node)
 
@@ -183,20 +187,20 @@ class PartitionedDAGStrategy(DAGExecutionStrategy):
             conv_node_id = f"convergence_point_{conv_idx}"
             if conv_node_id in nodes:
                 for partition_id in range(self.num_partitions):
-                    dep_node = f"op_{conv_point+1:03d}_{operations[conv_point]._name}_partition_{partition_id}"
+                    dep_node = self.get_dag_node_id(operations[conv_point]._name, conv_point, partition_id=partition_id)
                     if dep_node in nodes:
                         nodes[conv_node_id]["dependencies"].append(dep_node)
 
         # Build global operation dependencies (after convergence)
         for conv_idx, conv_point in enumerate(convergence_points):
             conv_node_id = f"convergence_point_{conv_idx}"
-            global_node_id = f"op_{conv_point+1:03d}_{operations[conv_point]._name}_global"
+            global_node_id = self.get_dag_node_id(operations[conv_point]._name, conv_point)
             if global_node_id in nodes and conv_node_id in nodes:
                 nodes[global_node_id]["dependencies"].append(conv_node_id)
 
         # Build redistribution dependencies (after global operation)
         for conv_idx, conv_point in enumerate(convergence_points):
-            global_node_id = f"op_{conv_point+1:03d}_{operations[conv_point]._name}_global"
+            global_node_id = self.get_dag_node_id(operations[conv_point]._name, conv_point)
             redist_node_id = f"redistribution_point_{conv_idx}"
             if redist_node_id in nodes and global_node_id in nodes:
                 nodes[redist_node_id]["dependencies"].append(global_node_id)
@@ -207,7 +211,7 @@ class PartitionedDAGStrategy(DAGExecutionStrategy):
             if redist_node_id in nodes:
                 for partition_id in range(self.num_partitions):
                     for i in range(conv_point + 1, len(operations)):
-                        post_node = f"op_{i+1:03d}_{operations[i]._name}_partition_{partition_id}"
+                        post_node = self.get_dag_node_id(operations[i]._name, i, partition_id=partition_id)
                         if post_node in nodes:
                             nodes[post_node]["dependencies"].append(redist_node_id)
 

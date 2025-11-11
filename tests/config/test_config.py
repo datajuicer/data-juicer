@@ -35,7 +35,7 @@ class ConfigTest(DataJuicerTestCaseBase):
         self.tmp_dir = 'tmp/test_config/'
         os.makedirs(self.tmp_dir, exist_ok=True)
 
-        self._ori_sys_modules = copy.deepcopy(sys.modules)
+        self._original_modules = set(sys.modules.keys())
         self._ori_sys_path = copy.deepcopy(sys.path)
 
     def tearDown(self) -> None:
@@ -45,8 +45,11 @@ class ConfigTest(DataJuicerTestCaseBase):
             os.system(f'rm -rf {self.tmp_dir}')
 
         os.environ[RAY_JOB_ENV_VAR] = "0"
-        sys.modules = self._ori_sys_modules
         sys.path = self._ori_sys_path
+        # delete the new modules added during the test period
+        for module_name in list(sys.modules.keys()):
+            if module_name not in self._original_modules:
+                del sys.modules[module_name]
 
     def test_help_info(self):
         out = StringIO()

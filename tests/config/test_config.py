@@ -643,6 +643,7 @@ from . import new_op2
     # TODO: TEST_TAG("ray ") and RayExecutor will repeatedly execute ray init, 
     # resulting in the custom module not being found
     # @TEST_TAG("ray")
+    @unittest.skip('affect other test cases')
     def test_cli_custom_operator_paths_ray(self):
         """Test arg custom_operator_paths"""
 

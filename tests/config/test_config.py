@@ -1,4 +1,6 @@
 import os
+import sys
+import copy
 import unittest
 import tempfile
 import yaml
@@ -9,7 +11,9 @@ from jsonargparse import Namespace, namespace_to_dict
 
 from data_juicer.config import init_configs, get_default_cfg, validate_work_dir_config, resolve_job_id, resolve_job_directories
 from data_juicer.ops import load_ops
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
+from data_juicer.utils.constant import RAY_JOB_ENV_VAR
+
 
 test_yaml_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                               'demo_4_test.yaml')
@@ -38,6 +42,8 @@ class ConfigTest(DataJuicerTestCaseBase):
 
         if os.path.exists(self.tmp_dir):
             os.system(f'rm -rf {self.tmp_dir}')
+
+        os.environ[RAY_JOB_ENV_VAR] = "0"
 
     def test_help_info(self):
         out = StringIO()
@@ -73,10 +79,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'accelerator': None,
                         'num_proc': 4,
                         'cpu_required': None,
@@ -104,10 +106,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -188,10 +186,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -223,10 +217,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -258,10 +248,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -293,10 +279,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -328,10 +310,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -368,7 +346,6 @@ class ConfigTest(DataJuicerTestCaseBase):
             for base_param in base_class_params:
                 base_param_key = f'{op_name}.{base_param}'
                 self.assertIn(base_param_key, params)
-
 
     def test_get_default_cfg(self):
         """Test getting default configuration from config_all.yaml"""

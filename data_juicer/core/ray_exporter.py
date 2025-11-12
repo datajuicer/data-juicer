@@ -133,8 +133,8 @@ class RayExporter:
         }
         if self.export_shard_size > 0:
             # compute the min_rows_per_file for export methods
-            dataset_nbytes = dataset.data.size_bytes()
-            dataset_num_rows = dataset.data.count()
+            dataset_nbytes = dataset.size_bytes()
+            dataset_num_rows = dataset.count()
             num_shards = int(dataset_nbytes / self.export_shard_size) + 1
             num_shards = min(num_shards, dataset_num_rows)
             rows_per_file = int(dataset_num_rows / num_shards)

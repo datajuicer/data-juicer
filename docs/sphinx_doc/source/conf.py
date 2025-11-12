@@ -173,7 +173,7 @@ def skip(app, what, name, obj, would_skip, options):
 
 def process_doc_links(app, docname, source):
     """Process and update documentation links"""
-    repo_base = f"https://github.com/modelscope/data-juicer/blob/{GIT_REF_FOR_LINKS}/"
+    repo_base = f"https://github.com/datajuicer/data-juicer/blob/{GIT_REF_FOR_LINKS}/"
 
     def link_replacer(match):
         text, path = match.group(1), match.group(2)

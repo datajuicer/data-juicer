@@ -4,7 +4,7 @@ import io
 import os
 import re
 import shutil
-from typing import List, Optional, Tuple, Union
+from typing import ClassVar, Dict, List, Optional, Tuple, Union
 
 import av
 import numpy as np
@@ -13,7 +13,7 @@ from datasets import Audio, Image
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.utils.constant import DEFAULT_PREFIX, Fields
+from data_juicer.utils.constant import DEFAULT_PREFIX, SPECIAL_TOKEN_ENV_PREFIX, Fields
 from data_juicer.utils.file_utils import add_suffix_to_filename
 from data_juicer.utils.lazy_loader import LazyLoader
 
@@ -23,16 +23,51 @@ cv2 = LazyLoader("cv2", "opencv-python")
 av.logging.set_level(av.logging.PANIC)
 
 
+_DEFAULT_TOKEN_FORMATS: Dict[str, str] = {
+    "image": f"<{DEFAULT_PREFIX}image>",
+    "audio": f"<{DEFAULT_PREFIX}audio>",
+    "video": f"<{DEFAULT_PREFIX}video>",
+    # others
+    "eoc": f"<|{DEFAULT_PREFIX}eoc|>",
+}
+
+
+class _MetaSpecialTokens(type):
+    def __new__(cls, name: str, bases: tuple, dct: dict):
+
+        for token_name in list(_DEFAULT_TOKEN_FORMATS.keys()):
+            env_var = f"{SPECIAL_TOKEN_ENV_PREFIX}{token_name.upper()}"
+            if env_var in os.environ:
+                dct[token_name] = os.environ[env_var]
+            else:
+                dct[token_name] = _DEFAULT_TOKEN_FORMATS[token_name]
+
+        return super().__new__(cls, name, bases, dct)
+
+    def __setattr__(cls, name: str, value: str) -> None:
+        if name in list(_DEFAULT_TOKEN_FORMATS.keys()):
+            env_var = f"{SPECIAL_TOKEN_ENV_PREFIX}{name.upper()}"
+            os.environ[env_var] = value
+            super().__setattr__(name, value)
+        else:
+            raise ValueError(
+                f"{name} is not a valid special token name, "
+                f"it should be one of {list(_DEFAULT_TOKEN_FORMATS.keys())}"
+            )
+
+
 # A class to keep special tokens for multimodal information in the texts
 # The tokens in this class can be updated by corresponding arguments in config
-class SpecialTokens(object):
+class SpecialTokens(metaclass=_MetaSpecialTokens):
+    """Special tokens for multimodal inputs, configurable via environment variables."""
+
     # modality
-    image = f"<{DEFAULT_PREFIX}image>"
-    audio = f"<{DEFAULT_PREFIX}audio>"
-    video = f"<{DEFAULT_PREFIX}video>"
+    image: ClassVar[str]
+    audio: ClassVar[str]
+    video: ClassVar[str]
 
     # others
-    eoc = f"<|{DEFAULT_PREFIX}eoc|>"
+    eoc: ClassVar[str]
 
 
 AV_STREAM_THREAD_TYPE = "AUTO"

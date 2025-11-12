@@ -22,6 +22,9 @@ class Fields(object):
     context = DEFAULT_PREFIX + "context__"
     suffix = DEFAULT_PREFIX + "suffix__"
 
+    # text_tags
+    text_tags = DEFAULT_PREFIX + 'text_tags__'
+
     # the name of the original file from which this sample was derived.
     source_file = DEFAULT_PREFIX + "source_file__"
 

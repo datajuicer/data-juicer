@@ -18,6 +18,7 @@ from data_juicer.utils.nltk_utils import (
     ensure_nltk_resource,
     patch_nltk_pickle_security,
 )
+from data_juicer.utils.ray_utils import is_ray_mode
 from data_juicer.utils.resource_utils import cuda_device_count
 
 from .cache_utils import DATA_JUICER_EXTERNAL_MODELS_HOME as DJEMH
@@ -915,6 +916,12 @@ def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
 
     if model_params.get("device", "").startswith("cuda:"):
         model_params["device"] = "cuda"
+
+    if is_ray_mode():
+        tensor_parallel_size = model_params.get("tensor_parallel_size", 1)
+    else:
+        tensor_parallel_size = model_params.get("tensor_parallel_size", torch.cuda.device_count())
+    logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")
 
     model = vllm.LLM(model=check_model_home(pretrained_model_name_or_path), generation_config="auto", **model_params)
     tokenizer = model.get_tokenizer()

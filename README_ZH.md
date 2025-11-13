@@ -135,7 +135,7 @@ Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详
   - [视频生成评测工具](tools/mm_eval/inception_metrics/README_ZH.md)
   - [后处理工具](tools/postprocess/README_ZH.md)
   - [预处理工具](tools/preprocess/README_ZH.md)
-  - [给数据打分](tools/quality_classifier/README_ZH.md)
+  - [给数据打分](data_juicer/tools/quality_classifier/README_ZH.md)
 - 第三方
   - [大语言模型生态](thirdparty/LLM_ecosystems/README_ZH.md)
   - [第三方模型库](thirdparty/models/README_ZH.md)

@@ -140,7 +140,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [Metrics for video generation](tools/mm_eval/inception_metrics/README.md)
   - [Postprocess Tools](tools/postprocess/README.md)
   - [Preprocess Tools](tools/preprocess/README.md)
-  - [Data Scoring](tools/quality_classifier/README.md)
+  - [Data Scoring](data_juicer/tools/quality_classifier/README.md)
 - Third-party
   - [LLM Ecosystems](thirdparty/LLM_ecosystems/README.md)
   - [Third-party Model Library](thirdparty/models/README.md)

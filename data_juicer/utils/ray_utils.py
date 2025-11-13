@@ -93,6 +93,8 @@ def get_ray_nodes_info(cfg=None):
     initialize_ray(cfg)
 
     nodes = ray.nodes()
+    logger.info(f"Ray nodes:\n{nodes}")
+
     alive_nodes = [node for node in nodes if node["Alive"]]
     # skip head node
     worker_nodes = [node for node in alive_nodes if "head" not in node["NodeManagerHostname"]]

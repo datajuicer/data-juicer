@@ -176,8 +176,6 @@ class OP:
         self.history_key = kwargs.get("history_key", "history")
 
         self.index_key = kwargs.get("index_key", None)
-
-        self.batch_size = kwargs.get("batch_size", DEFAULT_BATCH_SIZE)
         self.work_dir = kwargs.get("work_dir", None)
 
         # for unittest, do not skip the error.
@@ -190,6 +188,11 @@ class OP:
             self.accelerator = _accelerator
         else:
             self.accelerator = self._accelerator
+        
+        if self.accelerator == "cuda":
+            self.batch_size = kwargs.get("batch_size", 10)
+        else:
+            self.batch_size = kwargs.get("batch_size", DEFAULT_BATCH_SIZE)
 
         # parameters to determine the number of procs for this op
         self.num_proc = kwargs.get("num_proc", -1)  # -1 means automatic calculation of concurrency

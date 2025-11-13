@@ -89,8 +89,6 @@ class GenerateQAFromTextMapper(Mapper):
         sampling_params = update_sampling_params(sampling_params, hf_model, self.enable_vllm)
 
         if enable_vllm:
-            # cannot initialize vllm replicas on different GPUs
-            self.num_proc = 1
             tensor_parallel_size = model_params.get("tensor_parallel_size", 1)
             model_params["tensor_parallel_size"] = tensor_parallel_size
             logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")

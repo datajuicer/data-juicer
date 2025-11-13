@@ -34,7 +34,7 @@ Following is the case study for Data-Juicer (DJ, 228k) outputs.
   | A corgi's head depicted as an explosion of a nebula | [![Case 4](https://img.alicdn.com/imgextra/i2/O1CN014oPB8Q1IrJg0AbUUg_!!6000000000946-2-tps-2048-320.png)](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/show_cases/case4.mp4) |
   | A graceful ballerina doing a pirouette on a dimly lit stage, with soft spotlight highlighting her movements. | [![Case 5](https://img.alicdn.com/imgextra/i4/O1CN01yNlsVu1ymvkJgkvY8_!!6000000006622-2-tps-2048-320.png)](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/show_cases/case5.mp4) |
 
-To reproduce the paper's experiments, please refer to the sandbox usage guide below, the experimental process in the following figure, the [initial dataset](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/data_juicer_t2v_init_data_pool.zip), and the configuration file demos for the process: [1_single_op_pipeline.yaml](../configs/data_juicer_recipes/sandbox/easyanimate_text_to_video/1_single_op_pipeline.yaml), [2_multi_op_pipeline.yaml](../configs/data_juicer_recipes/sandbox/easyanimate_text_to_video/2_multi_op_pipeline.yaml), [3_duplicate_pipeline.yaml](../configs/data_juicer_recipes/sandbox/easyanimate_text_to_video/3_duplicate_pipeline.yaml).
+To reproduce the paper's experiments, please refer to the sandbox usage guide below, the experimental process in the following figure, the [initial dataset](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/data_juicer_t2v_init_data_pool.zip), and the configuration file demos for the process: [1_single_op_pipeline.yaml](https://github.com/datajuicer/data-juicer-sandbox/tree/main/configs/easyanimate_text_to_video/1_single_op_pipeline.yaml), [2_multi_op_pipeline.yaml](https://github.com/datajuicer/data-juicer-sandbox/tree/main/configs/easyanimate_text_to_video/2_multi_op_pipeline.yaml), [3_duplicate_pipeline.yaml](https://github.com/datajuicer/data-juicer-sandbox/tree/main/configs/easyanimate_text_to_video/3_duplicate_pipeline.yaml).
 ![bench_bottom_up](https://img.alicdn.com/imgextra/i2/O1CN01xvu2fo1HU80biR6Q5_!!6000000000760-2-tps-7756-3693.png)
 
 
@@ -42,9 +42,11 @@ To reproduce the paper's experiments, please refer to the sandbox usage guide be
 
 #### Requirements
 
-Before using sandbox, you might need to install sandbox-related dependencies by running the command below:
+Before using sandbox, you need to install data-juicer-sandbox by running the command below:
 ```shell
-uv pip install -v -e .[sandbox]
+git clone https://github.com/datajuicer/data-juicer-sandbox.git
+cd data-juicer-sandbox/
+uv pip install -e ".[all]"
 ```
 And prepare third-party libraries used in sandbox (e.g., EasyAnimate, VBench, InternVL, etc.) according to their official instructions, or you can simply clone the third-party repositories from GitHub and leave the installation process to our `EnvManager` during sandbox running.
 
@@ -100,7 +102,7 @@ execution_job_configs:
   - hook: 'TrainModelHook'
     meta_name:
     dj_configs:
-    extra_configs: 'configs/demo/sandbox/gpt3_extra_train_config.json'
+    extra_configs: 'configs/demo/gpt3_extra_train_config.json'
 
 evaluation_job_configs:
   - hook: 'ProbeViaAnalyzerHook'
@@ -110,7 +112,7 @@ evaluation_job_configs:
   - hook: 'EvaluateDataHook'
     meta_name: 'eval_data'
     dj_configs:
-    extra_configs: 'configs/demo/sandbox/gpt3_data_quality_eval_config.yaml'
+    extra_configs: 'configs/demo/gpt3_data_quality_eval_config.yaml'
 ```
 Based on this configuration file, sandbox:
 
@@ -152,7 +154,7 @@ pipelines:
       xxx
 ```
 
-In this example, there are 3 pipelines organized in the `pipelines` field, named `pipeline_1`, `pipeline_2`, and `pipeline_3`. Each of them has their own different types of jobs. You can find a practical example of such config file for InternVL sandbox experiments in `configs/data_juicer_recipes/sandbox/internvl_coco_caption/sandbox_internvl_coco_caption.yaml`.
+In this example, there are 3 pipelines organized in the `pipelines` field, named `pipeline_1`, `pipeline_2`, and `pipeline_3`. Each of them has their own different types of jobs. You can find a practical example of such config file for InternVL sandbox experiments [here](https://github.com/datajuicer/data-juicer-sandbox/blob/main/configs/internvl_coco_caption/sandbox_internvl_coco_caption.yaml).
 
 For the single-pipeline format, the only pipeline is named "anonymous" in default.
 
@@ -165,7 +167,8 @@ For the single-pipeline format, the only pipeline is named "anonymous" in defaul
 The entry point for running the sandbox is `dj-sandbox`. The usage is similar to the data processing and analysis tool, requiring specifying the sandbox configuration file:
 
 ```yaml
-dj-sandbox --config configs/demo/sandbox/sandbox.yaml
+# in data-juicer-sandbox
+dj-sandbox --config configs/demo/sandbox.yaml
 ```
 
 Once the run is started, the sandbox will sequentially execute each of the predefined pipeline steps according to the configuration file. The default one trial of the pipeline mainly includes four major steps:
@@ -177,7 +180,7 @@ Once the run is started, the sandbox will sequentially execute each of the prede
 
 Once this completes one trial of the sandbox pipeline run, the user can validate the effectiveness of the experiment in data production by comparing the probes and evaluation results before and after recipe refinement and dataset processing.
 
-If the `hpo_config` is set in the configuration file and appropriate optimization objectives and OP hyperparameters to be refined are configured within it, the sandbox will perform multiple trials of pipeline runs in the form of Hyperparameter Optimization (HPO) and automatically conduct iterative refinement and optimization of the operator hyperparameters. The preparation of this configuration file can be referenced from the [HPO tool](https://github.com/datajuicer/data-juicer/tree/main/tools/hpo).
+If the `hpo_config` is set in the configuration file and appropriate optimization objectives and OP hyperparameters to be refined are configured within it, the sandbox will perform multiple trials of pipeline runs in the form of Hyperparameter Optimization (HPO) and automatically conduct iterative refinement and optimization of the operator hyperparameters. The preparation of this configuration file can be referenced from the [HPO tool](https://github.com/datajuicer/data-juicer/tree/main/data_juicer/tools/hpo).
 
 ### Component Factory
 
@@ -234,7 +237,7 @@ The currently supported component factories and the components supported within 
 
 | Component | Function                                                                                             | Desc. of Method `run` | Reference Materials |
 | --- |------------------------------------------------------------------------------------------------------| --- | --- |
-| `Gpt3QualityEvaluator` | Evaluate the quality of a dataset using the GPT-3 text quality classifier reproduced by Data-Juicer. | <br />- `eval_type`: The type of the object to be evaluated by the evaluator, currently only supports `"data"`.<br />- `eval_obj`: A useless parameter.<br /> | [Data-Juicer Quality Classifier Toolkit](https://github.com/datajuicer/data-juicer/tree/main/tools/quality_classifier) |
+| `Gpt3QualityEvaluator` | Evaluate the quality of a dataset using the GPT-3 text quality classifier reproduced by Data-Juicer. | <br />- `eval_type`: The type of the object to be evaluated by the evaluator, currently only supports `"data"`.<br />- `eval_obj`: A useless parameter.<br /> | [Data-Juicer Quality Classifier Toolkit](https://github.com/datajuicer/data-juicer/tree/main/data_juicer/tools/quality_classifier) |
 | `VBenchEvaluator` | Evaluate the generated videos according to given prompts in multi dimensions                         | <br />- `eval_type`: The type of the object to be evaluated by the evaluator, currently only supports `"data"`<br />- `eval_obj`: A useless parameter.<br />- Return: The average score of generated videos in multi dimensions.<br /> | [VBench paper](https://arxiv.org/abs/2311.17982) |
 | `InceptionEvaluator` | Evaluate the generated videos by features extracted from video classification models.                | <br />- `eval_type`: The type of the object to be evaluated by the evaluator, currently only supports `"data"`<br />- `eval_obj`: A useless parameter.<br />- Return: A dictionary of scores in the given metric. <br /> | [Inception Metrics](https://github.com/NVlabs/long-video-gan/tree/main/metrics) |
 | `AccuracyEvaluator` | Evaluate the accuracy to compare the labels in the predicted ones and ground truth                   | <br />- `eval_type`: The type of the object to be evaluated by the evaluator, currently only supports `"data"`<br />- `eval_obj`: A useless parameter.<br />- Return: A dictionary of scores in the given metric. <br /> | [Inception Metrics](https://github.com/NVlabs/long-video-gan/tree/main/metrics) |
@@ -277,7 +280,7 @@ The currently supported component factories and the components supported within 
 |--------------------------------|----------------------------------------------------------------------------------|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | `InternVLCOCOCaptionEvaluator` | Evaluate Bleu-1/2/3/4, METEOR, ROUGE_L, and CIDEr for InternVL COCO Caption task | -                     | [InternVL COCO Caption](https://internvl.readthedocs.io/en/latest/tutorials/coco_caption_finetune.html#evaluating-the-fine-tuned-model) |
 
-Please refer to `data_juicer/core/sandbox/factories.py` for detailed definitions.
+Please refer to the [component factory](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/factories.py) for detailed definitions.
 
 ### Context Sharing
 
@@ -341,9 +344,9 @@ As mentioned in the previous section, developers can develop customized configur
 ### The Internal Implementation of Components
 Currently, components are mainly divided into three major categories:
 
-- **Executor**: Since the data executor is already handled by the Data-Juicer's Executor, the executor here specifically refers to the model executor, including model training, inference, evaluation, etc. The code is located in `data_juicer/core/sandbox/model_executors.py`.
-- **Evaluator**: Used for evaluating the quality and performance of datasets or models. The code is located in `data_juicer/core/sandbox/evaluators.py`.
-- **DataPoolManipulator**: Used for manipulating the data pool, such as construction, combination, sampling, etc. The code is located in `data_juicer/core/sandbox/data_pool_manipulators.py`.
+- **Executor**: Since the data executor is already handled by the Data-Juicer's Executor, the executor here specifically refers to the model executor, including model training, inference, evaluation, etc. The code is located [here](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/model_executors.py).
+- **Evaluator**: Used for evaluating the quality and performance of datasets or models. The code is located [here](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/evaluators.py).
+- **DataPoolManipulator**: Used for manipulating the data pool, such as construction, combination, sampling, etc. The code is located [here](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/data_pool_manipulators.py).
 
 #### Executor
 The core function of the model executor is to train, infer, or evaluate the model specified in the configuration file with the specified dataset. The model executor needs to inherit from `BaseModelExecutor` and implement several core methods:
@@ -370,7 +373,7 @@ Users can also extend the usage of these two parameters based on their implement
 
 The core function of the data pool manipulator is to manipulate the data pool, such as construction, combination, sampling, etc. The data pool manipulator needs to inherit from the base class `BaseDataPoolManipulator` and implement the `run` method. The `run` method. The necessary parameters usually come from the input data pool configs in the `__init__` method, covering input data pools, export paths, and specific parameters for each type of manipulators.
 
-Users can refer to the doc string of the `run` method of each manipulator for more details in `data_juicer/core/sandbox/data_pool_manipulators.py`.
+Users can refer to the doc string of the `run` method of each manipulator for more details [here](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/data_pool_manipulators.py).
 
 ### Pipeline Hook
 
@@ -457,7 +460,7 @@ one environment, version conflicts on some important and complex dependencies wi
 easy-to-use environment manager to manage different environments for different third-party libraries, allow users to run
 commands in isolated environments independently.
 
-The basic class of environment is `Env` in `data_juicer/core/sandbox/env_manager.py` implemented as below:
+The basic class of environment is `Env` [here](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/env_manager.py) implemented as below:
 ```python
 class Env(ABC):
   
@@ -515,7 +518,7 @@ Now we provide two concrete implementations of `Env`:
 
 When initializing the environment manager, we can specify the environment manager to use by setting the `env_manager` parameter in the configuration file and the name of the environment by setting the `env_name` parameter. An example of the basic usage is as follows:
 ```python
-from data_juicer.core.sandbox.env_manager import ENV_ROUTER
+from data_juicer_sandbox.env_manager import ENV_ROUTER
 
 env_manager = 'conda'
 env_name = 'new_conda_env'
@@ -544,7 +547,7 @@ cmd = "python train.py"
 env.run_cmd(cmd)
 ```
 
-A complete example of using the environment manager in a hook is available in the `InternVLCOCOCaptionEvaluator` class in `data_juicer/core/sandbox/specific_hooks/intervl_coco_captioning/model_hooks.py`.
+A complete example of using the environment manager in a hook is available in the `InternVLCOCOCaptionEvaluator` class [here](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/specific_hooks/intervl_coco_captioning/model_hooks.py).
 
 ## Q&A
 

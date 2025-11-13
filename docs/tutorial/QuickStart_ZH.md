@@ -142,7 +142,7 @@ python xxx.py --config configs/demo/process.yaml --language_id_score_filter.lang
 
 沙盒默认通过如下命令运行，更多介绍和细节请参阅[沙盒文档](../Sandbox_ZH.md).
 ```shell
-python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
+dj-sandbox --config configs/demo/sandbox/sandbox.yaml
 ```
 
 

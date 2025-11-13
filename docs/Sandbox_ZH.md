@@ -163,10 +163,10 @@ pipelines:
 
 #### 运行沙盒
 
-沙盒的运行入口为`tools/sandbox_starter.py`，使用方法和数据处理与分析工具类似，需要指定沙盒配置文件：
+沙盒的运行入口为`dj-sandbox`，使用方法和数据处理与分析工具类似，需要指定沙盒配置文件：
 
 ```yaml
-python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
+dj-sandbox --config configs/demo/sandbox/sandbox.yaml
 ```
 
 运行开始后，沙盒会根据预定义好的流水线以及配置文件依次运行各个步骤。流水线默认的单次运行主要包括4个大步骤：

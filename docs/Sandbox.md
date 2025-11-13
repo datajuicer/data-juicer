@@ -162,10 +162,10 @@ For the single-pipeline format, the only pipeline is named "anonymous" in defaul
 
 #### Start Sandbox
 
-The entry point for running the sandbox is `tools/sandbox_starter.py`. The usage is similar to the data processing and analysis tool, requiring specifying the sandbox configuration file:
+The entry point for running the sandbox is `dj-sandbox`. The usage is similar to the data processing and analysis tool, requiring specifying the sandbox configuration file:
 
 ```yaml
-python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
+dj-sandbox --config configs/demo/sandbox/sandbox.yaml
 ```
 
 Once the run is started, the sandbox will sequentially execute each of the predefined pipeline steps according to the configuration file. The default one trial of the pipeline mainly includes four major steps:

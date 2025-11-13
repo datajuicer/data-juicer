@@ -188,7 +188,7 @@ class OP:
             self.accelerator = _accelerator
         else:
             self.accelerator = self._accelerator
-        
+
         if self.accelerator == "cuda":
             self.batch_size = kwargs.get("batch_size", 10)
         else:

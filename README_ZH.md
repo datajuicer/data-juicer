@@ -130,7 +130,7 @@ Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详
   - [格式转换工具](tools/fmt_conversion/README_ZH.md)
     - [多模态工具](tools/fmt_conversion/multimodal/README_ZH.md)
     - [后微调工具](tools/fmt_conversion/post_tuning_dialog/README_ZH.md)
-  - [数据菜谱的自动化超参优化](tools/hpo/README_ZH.md)
+  - [数据菜谱的自动化超参优化](data_juicer/tools/hpo/README_ZH.md)
   - [Label Studio Service Utility](tools/humanops/README.md)
   - [视频生成评测工具](tools/mm_eval/inception_metrics/README_ZH.md)
   - [后处理工具](tools/postprocess/README_ZH.md)

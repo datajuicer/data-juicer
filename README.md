@@ -135,7 +135,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [Format Conversion Tools](tools/fmt_conversion/README.md)
     - [Multimodal Tools](tools/fmt_conversion/multimodal/README.md)
     - [Post Tuning Tools](tools/fmt_conversion/post_tuning_dialog/README.md)
-  - [Hyper-parameter Optimization for Data Recipe](tools/hpo/README.md)
+  - [Hyper-parameter Optimization for Data Recipe](data_juicer/tools/hpo/README.md)
   - [Label Studio Service Utility](tools/humanops/README.md)
   - [Metrics for video generation](tools/mm_eval/inception_metrics/README.md)
   - [Postprocess Tools](tools/postprocess/README.md)

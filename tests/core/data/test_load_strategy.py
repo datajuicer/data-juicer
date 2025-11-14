@@ -1,8 +1,11 @@
 import unittest
+from unittest.mock import patch, MagicMock
 from data_juicer.core.data.load_strategy import (
     DataLoadStrategyRegistry, DataLoadStrategy, StrategyKey,
     DefaultLocalDataLoadStrategy,
-    RayLocalJsonDataLoadStrategy
+    RayLocalJsonDataLoadStrategy,
+    DefaultS3DataLoadStrategy,
+    RayS3DataLoadStrategy
 )
 from jsonargparse import Namespace
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
@@ -360,6 +363,244 @@ class TestRayLocalJsonDataLoadStrategy(DataJuicerTestCaseBase):
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0]['text'], "Today is Sunday and it's a happy day!")
         self.assertEqual(result[1]['text'], "Today is Monday and it's a happy day!")
+
+
+class TestDefaultS3DataLoadStrategy(DataJuicerTestCaseBase):
+    """Test cases for DefaultS3DataLoadStrategy"""
+
+    def setUp(self):
+        """Instance-level setup run before each test"""
+        super().setUp()
+        self.cfg = Namespace()
+        self.cfg.text_keys = ["text"]
+
+    def test_strategy_registration(self):
+        """Test that DefaultS3DataLoadStrategy is registered correctly"""
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="default", data_type="remote", data_source="s3"
+        )
+        self.assertIsNotNone(strategy_class)
+        self.assertEqual(strategy_class, DefaultS3DataLoadStrategy)
+
+    def test_config_validation_valid_path(self):
+        """Test config validation with valid S3 path"""
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "s3://bucket-name/path/to/file.jsonl"
+        }
+        
+        # Should not raise an error
+        strategy = DefaultS3DataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["path"], "s3://bucket-name/path/to/file.jsonl")
+
+    def test_config_validation_invalid_path(self):
+        """Test config validation with invalid S3 path"""
+        from data_juicer.utils.s3_utils import validate_s3_path
+        
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "https://bucket-name/path/to/file.jsonl"  # Not s3://
+        }
+        
+        # The custom validator returns False but doesn't raise, so validation passes during init
+        # But validate_s3_path will raise ValueError during load_data
+        strategy = DefaultS3DataLoadStrategy(ds_config, self.cfg)
+        
+        # Verify that validate_s3_path raises ValueError for invalid path
+        # This is what gets called in load_data()
+        with self.assertRaises(ValueError) as ctx:
+            validate_s3_path(ds_config["path"])
+        self.assertIn("s3://", str(ctx.exception).lower())
+
+    def test_config_validation_optional_fields(self):
+        """Test config validation with optional fields"""
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "s3://bucket-name/path/to/file.jsonl",
+            "aws_access_key_id": "test_key",
+            "aws_secret_access_key": "test_secret",
+            "aws_session_token": "test_token",
+            "aws_region": "us-east-1",
+            "endpoint_url": "https://s3.amazonaws.com"
+        }
+        
+        # Should not raise an error
+        strategy = DefaultS3DataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["aws_access_key_id"], "test_key")
+        self.assertEqual(strategy.ds_config["aws_secret_access_key"], "test_secret")
+        self.assertEqual(strategy.ds_config["aws_session_token"], "test_token")
+        self.assertEqual(strategy.ds_config["aws_region"], "us-east-1")
+        self.assertEqual(strategy.ds_config["endpoint_url"], "https://s3.amazonaws.com")
+
+    def test_path_validation(self):
+        """Test S3 path validation"""
+        from data_juicer.utils.s3_utils import validate_s3_path
+        
+        # Valid paths
+        valid_paths = [
+            "s3://bucket/file.jsonl",
+            "s3://bucket/path/to/file.jsonl",
+            "s3://my-bucket-name/data/file.json"
+        ]
+        for path in valid_paths:
+            try:
+                validate_s3_path(path)
+            except ValueError:
+                self.fail(f"validate_s3_path raised ValueError for valid path: {path}")
+        
+        # Invalid paths
+        invalid_paths = [
+            "https://bucket/file.jsonl",
+            "file://bucket/file.jsonl",
+            "/local/path/file.jsonl",
+            "bucket/file.jsonl"
+        ]
+        for path in invalid_paths:
+            with self.assertRaises(ValueError):
+                validate_s3_path(path)
+
+    @patch('data_juicer.core.data.load_strategy.datasets.load_dataset')
+    @patch('data_juicer.utils.s3_utils.get_aws_credentials')
+    def test_load_data_with_credentials(self, mock_get_credentials, mock_load_dataset):
+        """Test load_data with credentials"""
+        from datasets import Dataset
+        
+        # Mock credentials
+        mock_get_credentials.return_value = ("test_key", "test_secret", "test_token", "us-east-1")
+        
+        # Create a proper Dataset object for the mock to return
+        test_dataset = Dataset.from_dict({"text": ["Hello", "World"]})
+        mock_load_dataset.return_value = test_dataset
+        
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "s3://bucket-name/path/to/file.jsonl",
+            "aws_access_key_id": "test_key",
+            "aws_secret_access_key": "test_secret"
+        }
+        
+        strategy = DefaultS3DataLoadStrategy(ds_config, self.cfg)
+        
+        # Mock unify_format to return the dataset as-is
+        with patch('data_juicer.core.data.load_strategy.unify_format') as mock_unify:
+            mock_unify.return_value = test_dataset
+            result = strategy.load_data()
+            
+            # Verify load_dataset was called with correct arguments
+            mock_load_dataset.assert_called_once()
+            call_args = mock_load_dataset.call_args
+            # Check that data_files is passed (either as positional or keyword)
+            # datasets.load_dataset(data_format, data_files=path, storage_options=...)
+            self.assertIn('data_files', call_args[1] or call_args[0])
+            if 'data_files' in call_args[1]:
+                self.assertEqual(call_args[1]['data_files'], "s3://bucket-name/path/to/file.jsonl")
+            self.assertIn('storage_options', call_args[1])
+            storage_options = call_args[1]['storage_options']
+            self.assertEqual(storage_options['key'], "test_key")
+            self.assertEqual(storage_options['secret'], "test_secret")
+
+    @patch('data_juicer.core.data.load_strategy.datasets.load_dataset')
+    @patch('data_juicer.utils.s3_utils.get_aws_credentials')
+    def test_load_data_without_credentials(self, mock_get_credentials, mock_load_dataset):
+        """Test load_data without credentials (anonymous access)"""
+        from datasets import Dataset
+        
+        # Mock no credentials
+        mock_get_credentials.return_value = (None, None, None, None)
+        
+        # Create a proper Dataset object for the mock to return
+        test_dataset = Dataset.from_dict({"text": ["Hello", "World"]})
+        mock_load_dataset.return_value = test_dataset
+        
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "s3://bucket-name/path/to/file.jsonl"
+        }
+        
+        strategy = DefaultS3DataLoadStrategy(ds_config, self.cfg)
+        
+        # Mock unify_format to return the dataset as-is
+        with patch('data_juicer.core.data.load_strategy.unify_format') as mock_unify:
+            mock_unify.return_value = test_dataset
+            result = strategy.load_data()
+            
+            # Verify load_dataset was called with anonymous access
+            mock_load_dataset.assert_called_once()
+            call_args = mock_load_dataset.call_args
+            storage_options = call_args[1]['storage_options']
+            self.assertTrue(storage_options.get('anon', False))
+
+
+class TestRayS3DataLoadStrategy(DataJuicerTestCaseBase):
+    """Test cases for RayS3DataLoadStrategy"""
+
+    def setUp(self):
+        """Instance-level setup run before each test"""
+        super().setUp()
+        self.cfg = get_default_cfg()
+        self.cfg.text_keys = ["text"]
+
+    def test_strategy_registration(self):
+        """Test that RayS3DataLoadStrategy is registered correctly"""
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="ray", data_type="remote", data_source="s3"
+        )
+        self.assertIsNotNone(strategy_class)
+        self.assertEqual(strategy_class, RayS3DataLoadStrategy)
+
+    def test_config_validation_valid_path(self):
+        """Test config validation with valid S3 path"""
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "s3://bucket-name/path/to/file.jsonl"
+        }
+        
+        # Should not raise an error
+        strategy = RayS3DataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["path"], "s3://bucket-name/path/to/file.jsonl")
+
+    def test_config_validation_invalid_path(self):
+        """Test config validation with invalid S3 path"""
+        from data_juicer.utils.s3_utils import validate_s3_path
+        
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "https://bucket-name/path/to/file.jsonl"  # Not s3://
+        }
+        
+        # Verify that validate_s3_path raises ValueError for invalid path
+        # This is what gets called in load_data()
+        with self.assertRaises(ValueError) as ctx:
+            validate_s3_path(ds_config["path"])
+        self.assertIn("s3://", str(ctx.exception).lower())
+
+    def test_config_validation_optional_fields(self):
+        """Test config validation with optional fields"""
+        ds_config = {
+            "type": "remote",
+            "source": "s3",
+            "path": "s3://bucket-name/path/to/file.jsonl",
+            "aws_access_key_id": "test_key",
+            "aws_secret_access_key": "test_secret",
+            "aws_session_token": "test_token",
+            "aws_region": "us-east-1",
+            "endpoint_url": "https://s3.amazonaws.com"
+        }
+        
+        # Should not raise an error
+        strategy = RayS3DataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["aws_access_key_id"], "test_key")
+        self.assertEqual(strategy.ds_config["aws_secret_access_key"], "test_secret")
+        self.assertEqual(strategy.ds_config["aws_session_token"], "test_token")
+        self.assertEqual(strategy.ds_config["aws_region"], "us-east-1")
+        self.assertEqual(strategy.ds_config["endpoint_url"], "https://s3.amazonaws.com")
 
 
 if __name__ == '__main__':

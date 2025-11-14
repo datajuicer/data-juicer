@@ -65,6 +65,9 @@ BACKUP_MODEL_LINKS = {
     "*_core_web_md-3.*.0": "https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/" "data_juicer/models/",
     # YOLO
     "yolo11n.pt": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt",
+    # DWPose
+    "dwpose_onnx_det_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx",
+    "dwpose_onnx_pose_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx",
 }
 
 
@@ -396,6 +399,29 @@ def prepare_diffusion_model(pretrained_model_name_or_path, diffusion_type, **mod
         model = model.to(device)
 
     return model
+
+
+def prepare_dwpose_model(onnx_det_model, onnx_pose_model, **model_params):
+    from data_juicer.ops.common.dwpose_func import DWposeDetector
+
+    device = model_params.pop("device", "cpu")
+
+    if not os.path.exists(onnx_det_model):
+        if not os.path.exists(DJMC):
+            os.makedirs(DJMC)
+        onnx_det_model = os.path.join(DJMC, "yolox_l.onnx")
+        if not os.path.exists(onnx_det_model):
+            wget.download(BACKUP_MODEL_LINKS["dwpose_onnx_det_model"], DJMC)
+
+    if not os.path.exists(onnx_pose_model):
+        if not os.path.exists(DJMC):
+            os.makedirs(DJMC)
+        onnx_pose_model = os.path.join(DJMC, "dw-ll_ucoco_384.onnx")
+        if not os.path.exists(onnx_pose_model):
+            wget.download(BACKUP_MODEL_LINKS["dwpose_onnx_pose_model"], DJMC)
+
+    dwpose_model = DWposeDetector(onnx_det_model, onnx_pose_model, device)
+    return dwpose_model
 
 
 def prepare_fastsam_model(model_path, **model_params):
@@ -1048,6 +1074,7 @@ def update_sampling_params(sampling_params, pretrained_model_name_or_path, enabl
 MODEL_FUNCTION_MAPPING = {
     "api": prepare_api_model,
     "diffusion": prepare_diffusion_model,
+    "dwpose": prepare_dwpose_model,
     "fasttext": prepare_fasttext_model,
     "fastsam": prepare_fastsam_model,
     "huggingface": prepare_huggingface_model,

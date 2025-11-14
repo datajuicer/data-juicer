@@ -83,6 +83,7 @@ from .video_captioning_from_video_mapper import VideoCaptioningFromVideoMapper
 from .video_extract_frames_mapper import VideoExtractFramesMapper
 from .video_face_blur_mapper import VideoFaceBlurMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
+from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
 from .video_resize_aspect_ratio_mapper import VideoResizeAspectRatioMapper
 from .video_resize_resolution_mapper import VideoResizeResolutionMapper
@@ -172,6 +173,7 @@ __all__ = [
     "VideoCaptioningFromVideoMapper",
     "VideoExtractFramesMapper",
     "VideoFFmpegWrappedMapper",
+    "VideoHandReconstructionMapper",
     "VideoFaceBlurMapper",
     "VideoRemoveWatermarkMapper",
     "VideoResizeAspectRatioMapper",

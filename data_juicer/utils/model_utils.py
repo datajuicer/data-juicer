@@ -871,10 +871,13 @@ def prepare_video_blip_model(pretrained_model_name_or_path, *, return_model=True
             self.post_init()
 
     pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
-    processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path, **model_params)
+    processor = transformers.AutoProcessor.from_pretrained(
+        pretrained_model_name_or_path, num_query_tokens=32, **model_params
+    )
     if return_model:
         model_class = VideoBlipForConditionalGeneration
         model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
+        model.config.image_token_index = 50265
     return (model, processor) if return_model else processor
 
 

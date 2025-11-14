@@ -64,12 +64,12 @@ dependencies = [
 [project.optional-dependencies]
 # Generic ML & DL
 generic = [
-    "torch==2.6.0",  # PyTorch
-    "transformers>=4.47.0,<4.55.0",  # Hugging Face Transformers
+    "torch==2.8.0",  # PyTorch
+    "transformers==4.57.1",  # Hugging Face Transformers
     "transformers_stream_generator",  # Stream generation for Transformers
     "einops",  # Tensor operations
     "accelerate",  # Model acceleration
-    "vllm==0.8.5.post1",  # LLM serving
+    "vllm==0.11.0",  # LLM serving
     "onnxruntime",  # ONNX runtime
     "cudf-cu12==25.4.0", # dataframe on GPU
 ]
@@ -153,7 +153,7 @@ ai_services = [
 # Todo: the sandbox dependencies will be provided in
 # micro-services rather than all-in-one env
 sandbox = [
-    "torch==2.6.0",
+    "torch==2.8.0",
     "fire",
     "pyspark",
 ]

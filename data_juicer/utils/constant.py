@@ -8,6 +8,7 @@ import zstandard as zstd
 from loguru import logger
 
 RAY_JOB_ENV_VAR = "RAY_JOB"
+SPECIAL_TOKEN_ENV_PREFIX = "_DJ_SPECIAL_TOKEN_"
 DEFAULT_PREFIX = "__dj__"
 
 
@@ -60,6 +61,8 @@ class MetaKeys(object):
     video_audio_tags = "video_audio_tags"
     # # video frames
     video_frames = "video_frames"
+    # # info extracted by VGGT
+    vggt_tags = "vggt_tags"
     # # image tags
     image_tags = "image_tags"
     # # bounding box tag

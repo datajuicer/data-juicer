@@ -68,7 +68,7 @@ cd ../../
 
 #### 准备沙盒配置文件
 
-沙盒实验总共会依次执行四类任务：数据/模型洞察（`probe_job_configs`）、基于洞察结果的数据菜谱微调迭代（`refine_recipe_job_configs`）、数据处理与模型训练（`execution_job_configs`）和数据/模型评估（`evaluation_job_configs`）。每类任务中，任务按照配置的任务列表依次执行。每个任务需要指定：挂载这个任务的钩子（`hook`），用于识别钩子的标记名(`meta_name`)，Data-Juicer数据处理参数（`dj_configs`），以及该任务其他的特定参数（`extra_configs`）。这些参数中`hook`是必须指定的，其他允许置空。`dj_configs`可以参考完整的Data-Juicer数据处理参数 [config_all.yaml](https://github.com/modelscope/data-juicer/blob/main/configs/config_all.yaml)。`extra_configs`为任务特定的参数，没有限定，可以是模型训练、推理、评测等参数，比如用`path_k_sigma_recipe`指定利用k-sigma方法微调后的数据菜谱保存路径。一个sandbox的配置文件示例可参考`configs/demo/sandbox/sandbox.yaml`：
+沙盒实验总共会依次执行四类任务：数据/模型洞察（`probe_job_configs`）、基于洞察结果的数据菜谱微调迭代（`refine_recipe_job_configs`）、数据处理与模型训练（`execution_job_configs`）和数据/模型评估（`evaluation_job_configs`）。每类任务中，任务按照配置的任务列表依次执行。每个任务需要指定：挂载这个任务的钩子（`hook`），用于识别钩子的标记名(`meta_name`)，Data-Juicer数据处理参数（`dj_configs`），以及该任务其他的特定参数（`extra_configs`）。这些参数中`hook`是必须指定的，其他允许置空。`dj_configs`可以参考完整的Data-Juicer数据处理参数 [config_all.yaml](https://github.com/datajuicer/data-juicer/blob/main/configs/config_all.yaml)。`extra_configs`为任务特定的参数，没有限定，可以是模型训练、推理、评测等参数，比如用`path_k_sigma_recipe`指定利用k-sigma方法微调后的数据菜谱保存路径。一个sandbox的配置文件示例可参考`configs/demo/sandbox/sandbox.yaml`：
 
 ```yaml
 # Sandbox config example
@@ -178,7 +178,7 @@ python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
 
 如此便完成了一轮沙盒流水线运行，最终用户只需比较数据菜谱微调以及数据集处理前后的洞察结果和评估结果，即可验证该轮实验对于数据生产的有效性。
 
-如果在配置文件里设置了`hpo_config`，并在其中配置了合适的优化目标以及待优化的算子超参，则沙盒会以HPO的形式进行多轮的流水线运行，并自动进行算子超参的多轮迭代微调优化。该配置文件的准备可参考 [hpo工具](https://github.com/modelscope/data-juicer/tree/main/tools/hpo) 。
+如果在配置文件里设置了`hpo_config`，并在其中配置了合适的优化目标以及待优化的算子超参，则沙盒会以HPO的形式进行多轮的流水线运行，并自动进行算子超参的多轮迭代微调优化。该配置文件的准备可参考 [hpo工具](https://github.com/datajuicer/data-juicer/tree/main/tools/hpo) 。
 
 ### 组件工厂
 
@@ -235,7 +235,7 @@ python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
 
 | 组件 | 功能                                     | `run`方法说明 | 参考材料 |
 | --- |----------------------------------------| --- | --- |
-| `Gpt3QualityEvaluator` | 使用Data-Juicer复现的GPT-3文本质量分类器对数据集进行质量评估 | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：待评估数据集样本质量打分均值<br /> | [Data-Juicer质量分类器工具集](https://github.com/modelscope/data-juicer/tree/main/tools/quality_classifier) |
+| `Gpt3QualityEvaluator` | 使用Data-Juicer复现的GPT-3文本质量分类器对数据集进行质量评估 | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：待评估数据集样本质量打分均值<br /> | [Data-Juicer质量分类器工具集](https://github.com/datajuicer/data-juicer/tree/main/tools/quality_classifier) |
 | `VBenchEvaluator` | 使用VBench对基于prompt生成的视频进行多维度的评估         | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：待评生成视频集各维度打分均值<br /> | [VBench论文](https://arxiv.org/abs/2311.17982) |
 | `InceptionEvaluator` | 通过视频分类模型抽取特征测评生成的视频                    | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：根据给定的metric返回对应的字典<br /> | [Inception Metrics](https://github.com/NVlabs/long-video-gan/tree/main/metrics) |
 | `AccuracyEvaluator` | 评测预测标签和真实标签比较得到的准确率                    | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：根据给定的metric返回对应的字典<br /> | [Inception Metrics](https://github.com/NVlabs/long-video-gan/tree/main/metrics) |

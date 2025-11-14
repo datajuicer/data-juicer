@@ -16,4 +16,4 @@ mv build/ position_to_publish
 ```
 
 Github上的自动化部署配置可参考 [该处](
-https://github.com/modelscope/data-juicer/blob/main/.github/workflows/deploy_sphinx_docs.yml).
+https://github.com/datajuicer/data-juicer/blob/main/.github/workflows/deploy_sphinx_docs.yml).

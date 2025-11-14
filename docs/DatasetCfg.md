@@ -9,7 +9,7 @@ This guide provides an overview of how to configure datasets using YAML format i
 
 The `local_json.yaml` configuration file is used to specify datasets stored locally in JSON format. *path* is required to specify the local dataset path, either a single file or a directory. *format* is optional to specify the dataset format.
 For local files, DJ will automatically detect the file format and load the dataset accordingly. Formats like parquet, jsonl, json, csv, tsv, txt, and jsonl.gz are supported
-Refer to [local_json.yaml](https://github.com/modelscope/data-juicer/blob/main/configs/datasets/local_json.yaml) for more details.
+Refer to [local_json.yaml](https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/local_json.yaml) for more details.
 ```yaml
 dataset:
   configs:
@@ -29,7 +29,7 @@ dataset:
 ### Remote Huggingface Dataset
 
 The `remote_huggingface.yaml` configuration file is used to specify huggingface datasets. *type* and *source* are fixed to 'remote' and 'huggingface' to locate huggingface loading logic. *path* is required to identify the huggingface dataset. *name*, *split* and *limit* are optional to specify the dataset name/split and limit the number of samples to load.
-Refer to [remote_huggingface.yaml](https://github.com/modelscope/data-juicer/blob/main/configs/datasets/remote_huggingface.yaml) for more details.
+Refer to [remote_huggingface.yaml](https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/remote_huggingface.yaml) for more details.
 
 ```yaml
 dataset:
@@ -45,7 +45,7 @@ dataset:
 ### Remote Arxiv Dataset
 
 The `remote_arxiv.yaml` configuration file is used to specify datasets stored remotely in JSON format. *type* and *source* are fixed to 'remote' and 'arxiv' to locate arxiv loading logic. *lang*, *dump_date*, *force_download* and *url_limit* are optional to specify the dataset language, dump date, force download and url limit.
-Refer to [remote_arxiv.yaml](https://github.com/modelscope/data-juicer/blob/main/configs/datasets/remote_arxiv.yaml) for more details.
+Refer to [remote_arxiv.yaml](https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/remote_arxiv.yaml) for more details.
 
 ```yaml
 dataset:
@@ -60,7 +60,7 @@ dataset:
 
 ### Other Supported Dataset Formats
 
-Refer to [load_strategy.py](https://github.com/modelscope/data-juicer/blob/main/data_juicer/core/data/load_strategy.py) for more details and supported dataset formats.
+Refer to [load_strategy.py](https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/load_strategy.py) for more details and supported dataset formats.
 
 
 ## Other features 
@@ -68,7 +68,7 @@ Refer to [load_strategy.py](https://github.com/modelscope/data-juicer/blob/main/
 ### Data Mixture  
 
 The `mixture.yaml` configuration file demonstrates how to specify data mixture rules. DJ will mix the datasets by sampling a portion of the dataset and applying proper weights.
-Refer to [mixture.yaml](https://github.com/modelscope/data-juicer/blob/main/configs/datasets/mixture.yaml) for more details.
+Refer to [mixture.yaml](https://github.com/datajuicer/data-juicer/blob/main/configs/datasets/mixture.yaml) for more details.
 ```yaml 
 dataset:
   max_sample_num: 10000
@@ -85,7 +85,7 @@ dataset:
 ### Data Validation 
 
 The `validator.yaml` configuration file demonstrates how to specify data validation rules. DJ will validate the dataset by sampling a portion of the dataset and applying the validation rules.
-Refer to [data_validator.py](https://github.com/modelscope/data-juicer/blob/main/data_juicer/core/data/data_validator.py) for more details and supported validators.
+Refer to [data_validator.py](https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/data_validator.py) for more details and supported validators.
 ```yaml
 dataset:
   configs:

@@ -79,7 +79,7 @@ curl -X POST \
 **Note**: If you need to call the `run` function of the `Executor` or `Analyzer` classes for data processing and data analysis, you must first call the `init_configs` or `get_init_configs` function to obtain the complete Data-Juicer parameters to construct these two classes. For more details, refer to the demonstration below.
 
 ### Demonstration
-We have integrated [AgentScope](https://github.com/modelscope/agentscope) to enable users to invoke Data-Juicer operators for data cleaning through natural language. The operators are invoked via an API service. For the specific code, please refer to [here](../demos/api_service).
+We have integrated [AgentScope](https://github.com/agentscope-ai/agentscope) to enable users to invoke Data-Juicer operators for data cleaning through natural language. The operators are invoked via an API service. For the specific code, please refer to [here](../demos/api_service).
 
 ## MCP Server
 
@@ -143,7 +143,7 @@ Run the latest version of Data-Juicer MCP directly from the repository without m
         "command": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/modelscope/data-juicer",
+          "git+https://github.com/datajuicer/data-juicer",
           "dj-mcp",
           "recipe-flow"
         ]
@@ -160,7 +160,7 @@ Run the latest version of Data-Juicer MCP directly from the repository without m
         "command": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/modelscope/data-juicer",
+          "git+https://github.com/datajuicer/data-juicer",
           "dj-mcp",
           "granular-ops",
           "--transport",
@@ -179,7 +179,7 @@ Run the latest version of Data-Juicer MCP directly from the repository without m
 
 1. Clone the Data-Juicer repository locally:
    ```bash
-   git clone https://github.com/modelscope/data-juicer.git
+   git clone https://github.com/datajuicer/data-juicer.git
    ```
 2. Run Data-Juicer MCP using uv:
 - Recipe-Flow mode:
@@ -229,7 +229,7 @@ To use SSE deployment, first start the MCP server separately.
 1. Run the MCP server: Execute the MCP server script and specify the port number:
    - Using uvx:
      ```bash
-     uvx --from git+https://github.com/modelscope/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
+     uvx --from git+https://github.com/datajuicer/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
      ```
    - Local execution:
      ```bash

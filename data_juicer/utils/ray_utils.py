@@ -6,6 +6,7 @@ from loguru import logger
 
 from data_juicer.utils.constant import RAY_JOB_ENV_VAR
 from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.mm_utils import SPECIAL_TOKEN_ENV_PREFIX
 
 ray = LazyLoader("ray")
 
@@ -23,16 +24,25 @@ def initialize_ray(cfg=None, force=False):
     if ray.is_initialized() and not force:
         return
 
-    from ray.runtime_env import RuntimeEnv
-
     if cfg is None:
         ray_address = "auto"
         logger.warning("No ray config provided, using default ray address 'auto'.")
     else:
         ray_address = cfg.ray_address
 
-    runtime_env = RuntimeEnv(env_vars={RAY_JOB_ENV_VAR: os.environ.get(RAY_JOB_ENV_VAR, "0")})
-    ray.init(ray_address, ignore_reinit_error=True, runtime_env=runtime_env)
+    # collect ray envs
+    env_vars = {RAY_JOB_ENV_VAR: os.environ.get(RAY_JOB_ENV_VAR, "0")}
+    for k, v in dict(os.environ).items():
+        if k.startswith(SPECIAL_TOKEN_ENV_PREFIX):
+            env_vars.update({k: v})
+
+    ray.init(
+        ray_address,
+        ignore_reinit_error=True,
+        runtime_env=dict(
+            py_modules=cfg.custom_operator_paths if cfg.get("custom_operator_paths", None) else None, env_vars=env_vars
+        ),
+    )
 
 
 def check_and_initialize_ray(cfg=None):
@@ -83,6 +93,8 @@ def get_ray_nodes_info(cfg=None):
     initialize_ray(cfg)
 
     nodes = ray.nodes()
+    logger.info(f"Ray nodes:\n{nodes}")
+
     alive_nodes = [node for node in nodes if node["Alive"]]
     # skip head node
     worker_nodes = [node for node in alive_nodes if "head" not in node["NodeManagerHostname"]]

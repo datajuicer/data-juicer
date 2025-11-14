@@ -5,7 +5,7 @@ import numpy as np
 import pyarrow as pa
 
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.mm_utils import SpecialTokens, size_to_bytes
+from data_juicer.utils.mm_utils import size_to_bytes
 from data_juicer.utils.model_utils import free_models
 from data_juicer.utils.process_utils import calculate_np
 from data_juicer.utils.ray_utils import is_ray_mode
@@ -176,8 +176,6 @@ class OP:
         self.history_key = kwargs.get("history_key", "history")
 
         self.index_key = kwargs.get("index_key", None)
-
-        self.batch_size = kwargs.get("batch_size", DEFAULT_BATCH_SIZE)
         self.work_dir = kwargs.get("work_dir", None)
 
         # for unittest, do not skip the error.
@@ -191,6 +189,11 @@ class OP:
         else:
             self.accelerator = self._accelerator
 
+        if self.accelerator == "cuda":
+            self.batch_size = kwargs.get("batch_size", 10)
+        else:
+            self.batch_size = kwargs.get("batch_size", DEFAULT_BATCH_SIZE)
+
         # parameters to determine the number of procs for this op
         self.num_proc = kwargs.get("num_proc", -1)  # -1 means automatic calculation of concurrency
         self.cpu_required = kwargs.get("cpu_required", None)
@@ -200,11 +203,6 @@ class OP:
             self.mem_required = size_to_bytes(self.mem_required) / 1024**3
 
         self.turbo = kwargs.get("turbo", False)
-        # update special tokens
-        SpecialTokens.image = kwargs.get("image_special_token", SpecialTokens.image)
-        SpecialTokens.audio = kwargs.get("audio_special_token", SpecialTokens.audio)
-        SpecialTokens.video = kwargs.get("video_special_token", SpecialTokens.video)
-        SpecialTokens.eoc = kwargs.get("eoc_special_token", SpecialTokens.eoc)
 
         # nested wrappers
         from data_juicer.core.data import wrap_func_with_nested_access
@@ -306,6 +304,9 @@ class OP:
         return dataset
 
     def empty_history(self):
+        if is_ray_mode():
+            return []
+
         return np.empty((0, 0), dtype=str)
 
 

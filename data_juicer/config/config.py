@@ -44,14 +44,8 @@ def timing_context(description):
 
 
 def _generate_module_name(abs_path):
-    """Generate a unique module name based on the absolute path of the file."""
-    abs_path_without_ext = os.path.splitext(abs_path)[0]
-
-    # handle path delimiters for different operating systems
-    normalized_path = os.path.normpath(abs_path_without_ext)
-    module_name = normalized_path.replace(os.path.sep, "_")
-
-    return module_name
+    """Generate a module name based on the absolute path of the file."""
+    return os.path.splitext(os.path.basename(abs_path))[0]
 
 
 def load_custom_operators(paths):
@@ -674,7 +668,7 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     # check number of processes np
     from data_juicer.utils.resource_utils import cpu_count
 
-    sys_cpu_count = cpu_count()
+    sys_cpu_count = cpu_count(cfg)
     if cfg.get("np", None) and cfg.np > sys_cpu_count:
         logger.warning(
             f"Number of processes `np` is set as [{cfg.np}], which "
@@ -744,6 +738,12 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         text_key = cfg.text_keys[0]
     else:
         text_key = cfg.text_keys
+
+    SpecialTokens.image = cfg.get("image_special_token", SpecialTokens.image)
+    SpecialTokens.audio = cfg.get("audio_special_token", SpecialTokens.audio)
+    SpecialTokens.video = cfg.get("video_special_token", SpecialTokens.video)
+    SpecialTokens.eoc = cfg.get("eoc_special_token", SpecialTokens.eoc)
+
     op_attrs = {
         "text_key": text_key,
         "image_key": cfg.get("image_key", "images"),
@@ -753,10 +753,6 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         "turbo": cfg.get("turbo", False),
         "skip_op_error": cfg.get("skip_op_error", True),
         "work_dir": cfg.work_dir,
-        "image_special_token": cfg.get("image_special_token", SpecialTokens.image),
-        "audio_special_token": cfg.get("audio_special_token", SpecialTokens.audio),
-        "video_special_token": cfg.get("video_special_token", SpecialTokens.video),
-        "eoc_special_token": cfg.get("eoc_special_token", SpecialTokens.eoc),
     }
     if not is_ray_mode():
         op_attrs.update({"num_proc": cfg.get("np", None)})
@@ -958,7 +954,10 @@ def namespace_to_arg_list(namespace, prefix="", includes=None, excludes=None):
                 continue
             if excludes is not None and concat_key in excludes:
                 continue
-            arg_list.append(f"--{concat_key}={value}")
+            if key == "process":
+                arg_list.append(f"--{concat_key}={json.dumps(value, ensure_ascii=False)}")
+            else:
+                arg_list.append(f"--{concat_key}={value}")
 
     return arg_list
 

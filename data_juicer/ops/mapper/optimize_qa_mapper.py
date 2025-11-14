@@ -11,6 +11,7 @@ from data_juicer.utils.model_utils import (
     prepare_model,
     update_sampling_params,
 )
+from data_juicer.utils.ray_utils import is_ray_mode
 
 torch = LazyLoader("torch")
 vllm = LazyLoader("vllm")
@@ -103,16 +104,9 @@ class OptimizeQAMapper(Mapper):
         sampling_params = update_sampling_params(sampling_params, api_or_hf_model, self.enable_vllm)
 
         if enable_vllm:
-            assert torch.cuda.device_count() >= 1, "must be executed in CUDA"
-            # cannot initialize vllm replicas on different GPUs
-            self.num_proc = 1
-            if model_params.get("tensor_parallel_size") is None:
-                tensor_parallel_size = torch.cuda.device_count()
-                logger.info(
-                    f"Set tensor_parallel_size to \
-                    {tensor_parallel_size} for vllm."
-                )
-                model_params["tensor_parallel_size"] = tensor_parallel_size
+            if not is_ray_mode():
+                # cannot initialize vllm replicas on different GPUs
+                self.num_proc = 1
             self.model_key = prepare_model(
                 model_type="vllm", pretrained_model_name_or_path=api_or_hf_model, **model_params
             )

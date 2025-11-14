@@ -1,7 +1,7 @@
 # Data Recipe Gallery
 
 - The recipe [folder](../configs) contains fruitful sample configuration files of Data-Juicer data recipes, which helps users easily understand, reuse and expand the configurations in various functional scenarios.
-- 📣📣📣 Community contributors can submit PRs to add customized data recipes to promote dissemination, reuse and related technology evolution. We welcome co-construction and will highlight [acknowledgements](https://github.com/modelscope/data-juicer?tab=readme-ov-file#acknowledgement)!
+- 📣📣📣 Community contributors can submit PRs to add customized data recipes to promote dissemination, reuse and related technology evolution. We welcome co-construction and will highlight [acknowledgements](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#acknowledgement)!
 
 Table of Contents
 - [1. Data-Juicer Minimal Example Recipe](#1-data-juicer-minimal-example-recipe)
@@ -62,7 +62,7 @@ Take the Alpaca-CoT dataset as an example:
 | Alpaca-Cot ZH     |        21,197,246        |             9,873,214              |  46.58%   | [alpaca-cot-zh-refine.yaml](../configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml)                                                                                                                                                                   | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/CFT/alpaca-cot-zh-refine_result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/alpaca-cot-zh-refined-by-data-juicer/summary) <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/alpaca-cot-zh-refined-by-data-juicer)   | [28 subsets from Alpaca-CoT](../configs/data_juicer_recipes/alpaca_cot/README.md) |
 
 ## 5. Synthetic Contrastive Learning Image-text datasets
-Data-Juicer has built-in rich operators to support image multimodal data synthesis, such as the Img-Diff dataset. This synthetic data brings a 12-point performance improvement on the MMVP benchmark. For more details, see the Img-Diff [paper](https://arxiv.org/abs/2408.04594), and the corresponding recipe implementation can refer to [ImgDiff-Dev](https://github.com/modelscope/data-juicer/tree/ImgDiff).
+Data-Juicer has built-in rich operators to support image multimodal data synthesis, such as the Img-Diff dataset. This synthetic data brings a 12-point performance improvement on the MMVP benchmark. For more details, see the Img-Diff [paper](https://arxiv.org/abs/2408.04594), and the corresponding recipe implementation can refer to [ImgDiff-Dev](https://github.com/datajuicer/data-juicer/tree/ImgDiff).
 
 ## 6. Improved Open Source Image-text datasets
 
@@ -103,7 +103,7 @@ We provide users with a video dataset processing recipe sample to help better us
 Users can start their video dataset processing workflow based on this recipe.
 
 ## 8. Synthesize Human-centric Video Benchmarks 
-Data-Juicer can also support video benchmark synthesis, such as [HumanVBench](https://arxiv.org/abs/2412.17574), which converts in-the-wild videos into human-centric video benchmarks. The corresponding data recipes and construction process can be found in [HumanVBench-dev](https://github.com/modelscope/data-juicer/tree/HumanVBench).
+Data-Juicer can also support video benchmark synthesis, such as [HumanVBench](https://arxiv.org/abs/2412.17574), which converts in-the-wild videos into human-centric video benchmarks. The corresponding data recipes and construction process can be found in [HumanVBench-dev](https://github.com/datajuicer/data-juicer/tree/HumanVBench).
 
 ## 9. Improve Existing Open Source Video Datasets
 

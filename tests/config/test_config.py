@@ -1,4 +1,6 @@
 import os
+import sys
+import copy
 import unittest
 from contextlib import redirect_stdout, redirect_stderr
 from io import StringIO
@@ -7,7 +9,9 @@ from jsonargparse import Namespace, namespace_to_dict
 
 from data_juicer.config import init_configs, get_default_cfg, update_op_attr, export_config, merge_config, prepare_side_configs
 from data_juicer.ops import load_ops
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
+from data_juicer.utils.constant import RAY_JOB_ENV_VAR
+
 
 test_yaml_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                               'demo_4_test.yaml')
@@ -36,6 +40,8 @@ class ConfigTest(DataJuicerTestCaseBase):
 
         if os.path.exists(self.tmp_dir):
             os.system(f'rm -rf {self.tmp_dir}')
+
+        os.environ[RAY_JOB_ENV_VAR] = "0"
 
     def test_help_info(self):
         out = StringIO()
@@ -71,10 +77,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'accelerator': None,
                         'num_proc': 4,
                         'cpu_required': None,
@@ -102,10 +104,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -186,10 +184,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -221,10 +215,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -256,10 +246,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -291,10 +277,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -326,10 +308,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'query_key': 'query',
                         'response_key': 'response',
                         'history_key': 'history',
-                        'audio_special_token': '<__dj__audio>',
-                        'eoc_special_token': '<|__dj__eoc|>',
-                        'image_special_token': '<__dj__image>',
-                        'video_special_token': '<__dj__video>',
                         'min_closed_interval': True,
                         'max_closed_interval': True,
                         'reversed_range': False,
@@ -366,7 +344,6 @@ class ConfigTest(DataJuicerTestCaseBase):
             for base_param in base_class_params:
                 base_param_key = f'{op_name}.{base_param}'
                 self.assertIn(base_param_key, params)
-
 
     def test_get_default_cfg(self):
         """Test getting default configuration from config_all.yaml"""
@@ -611,7 +588,6 @@ class ConfigTest(DataJuicerTestCaseBase):
             with self.assertRaises(TypeError):
                 prepare_side_configs('xxx.txt')
 
-
     def test_cli_custom_operator_paths(self):
         """Test arg custom_operator_paths"""
 
@@ -655,6 +631,71 @@ from . import new_op2
         
         OPERATORS.modules.pop('custom_mapper1')
         OPERATORS.modules.pop('custom_mapper2')
+
+    # TODO: TEST_TAG("ray ") and RayExecutor will repeatedly execute ray init, 
+    # resulting in the custom module not being found
+    # @TEST_TAG("ray")
+    @unittest.skip('affect other test cases')
+    def test_cli_custom_operator_paths_ray(self):
+        """Test arg custom_operator_paths"""
+
+        new_ops_dir = f'{WORKDIR}/custom_ops'
+        new_op_path1 = os.path.join(new_ops_dir, 'new_op3.py')
+        new_op_path2 = os.path.join(new_ops_dir, 'test_dir_module2/new_op4.py')
+        os.makedirs(os.path.dirname(new_op_path1), exist_ok=True)
+        os.makedirs(os.path.dirname(new_op_path2), exist_ok=True)
+        tmp_yaml_path = f'{WORKDIR}/demo_4_test_ray_tmp.yaml'
+        
+        with open(tmp_yaml_path, 'w') as f:
+            f.write("""
+project_name: 'test_demo'
+dataset_path: './demos/data/demo-dataset.jsonl'
+executor_type: ray
+ray_address: auto
+export_path: './outputs/demo/demo-processed.parquet'
+process:
+  - custom_mapper3:
+  - custom_mapper4:
+""")
+
+        with open(new_op_path1, 'w') as f:
+            f.write("""
+from data_juicer.ops.base_op import OPERATORS, Mapper
+                                              
+@OPERATORS.register_module('custom_mapper3')
+class CustomMapper3(Mapper):
+    def process_single(self, data):
+        data['text'] += 'tag1'
+        return data
+""")
+        with open(new_op_path2, 'w') as f:
+            f.write("""
+from data_juicer.ops.base_op import OPERATORS, Mapper
+                                              
+@OPERATORS.register_module('custom_mapper4')
+class CustomMapper4(Mapper):
+    def process_single(self, data):
+        data['text'] += 'tag2'
+        return data
+""")
+            
+        with open(os.path.join(os.path.dirname(new_op_path2), '__init__.py'), 'w') as f:
+            f.write("""
+from . import new_op4
+""")
+
+        cfg = init_configs(args=[
+            '--config', tmp_yaml_path,
+            '--custom-operator-paths', new_op_path1, os.path.dirname(new_op_path2)
+        ])
+        from data_juicer.core.executor.ray_executor import RayExecutor
+
+        executor = RayExecutor(cfg)
+        ds = executor.run()
+        for data in ds.to_list():
+            self.assertTrue(data['text'].endswith('tag1tag2'))
+
+        os.environ[RAY_JOB_ENV_VAR] = "0"
 
 
 if __name__ == '__main__':

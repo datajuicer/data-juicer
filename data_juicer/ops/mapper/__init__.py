@@ -75,6 +75,7 @@ from .sdxl_prompt2prompt_mapper import SDXLPrompt2PromptMapper
 from .sentence_augmentation_mapper import SentenceAugmentationMapper
 from .sentence_split_mapper import SentenceSplitMapper
 from .text_chunk_mapper import TextChunkMapper
+from .vggt_mapper import VggtMapper
 from .video_captioning_from_audio_mapper import VideoCaptioningFromAudioMapper
 from .video_captioning_from_frames_mapper import VideoCaptioningFromFramesMapper
 from .video_captioning_from_summarizer_mapper import VideoCaptioningFromSummarizerMapper
@@ -165,6 +166,7 @@ __all__ = [
     "SentenceAugmentationMapper",
     "SentenceSplitMapper",
     "TextChunkMapper",
+    "VggtMapper",
     "VideoCaptioningFromAudioMapper",
     "VideoCaptioningFromFramesMapper",
     "VideoCaptioningFromSummarizerMapper",

@@ -18,6 +18,7 @@ from data_juicer.utils.nltk_utils import (
     ensure_nltk_resource,
     patch_nltk_pickle_security,
 )
+from data_juicer.utils.ray_utils import is_ray_mode
 from data_juicer.utils.resource_utils import cuda_device_count
 
 from .cache_utils import DATA_JUICER_EXTERNAL_MODELS_HOME as DJEMH
@@ -887,6 +888,27 @@ def prepare_yolo_model(model_path, **model_params):
     return model
 
 
+def prepare_vggt_model(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+
+    import subprocess
+
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    vggt_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "vggt")
+    if not os.path.exists(vggt_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/facebookresearch/vggt.git", vggt_repo_path], check=True)
+    import sys
+
+    sys.path.append(vggt_repo_path)
+
+    from vggt.models.vggt import VGGT
+
+    model = VGGT.from_pretrained(check_model_home(model_path)).to(device)
+
+    return model
+
+
 def prepare_vllm_model(pretrained_model_name_or_path, return_processor=False, **model_params):
     """
     Prepare and load a HuggingFace model with the corresponding processor.
@@ -900,6 +922,12 @@ def prepare_vllm_model(pretrained_model_name_or_path, return_processor=False, **
 
     if "device" in model_params:
         model_params.pop("device")
+
+    if is_ray_mode():
+        tensor_parallel_size = model_params.get("tensor_parallel_size", 1)
+    else:
+        tensor_parallel_size = model_params.get("tensor_parallel_size", torch.cuda.device_count())
+    logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")
 
     model = vllm.LLM(model=check_model_home(pretrained_model_name_or_path), generation_config="auto", **model_params)
     tokenizer = model.get_tokenizer()
@@ -1061,6 +1089,7 @@ MODEL_FUNCTION_MAPPING = {
     "sentencepiece": prepare_sentencepiece_for_lang,
     "simple_aesthetics": prepare_simple_aesthetics_model,
     "spacy": prepare_spacy_model,
+    "vggt": prepare_vggt_model,
     "video_blip": prepare_video_blip_model,
     "vllm": prepare_vllm_model,
     "yolo": prepare_yolo_model,

@@ -91,7 +91,7 @@ class RayExecutor(ExecutorBase):
         # 1. load data
         logger.info("Loading dataset with Ray...")
         dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
-        columns = dataset.schema().columns
+        columns = dataset.data.columns()
 
         # 2. extract processes
         logger.info("Preparing process operators...")

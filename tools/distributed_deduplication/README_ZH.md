@@ -4,7 +4,7 @@
 **模糊去重的一般描述**：
 这里的模糊去重方法主要指的是 [GPT-3论文](https://arxiv.org/pdf/2005.14165.pdf)附录A中提到的模糊去重方法。
 > 为了进一步提高模型质量并防止过拟合（随着模型容量的增加越来越重要），我们使用Spark的MinHashLSH实现对每个数据集中的文档进行了模糊去重（即移除了与其他文档高度重合的文档），使用了10个哈希，使用的**特征与上面用于分类的特征相同**。我们还从Common Crawl中模糊移除了WebText。总体而言，这使数据集的大小平均减少了10％。
-正如论文中提到的，使用的特征与前文描述的质量分类器（[quality_classifier tools](../quality_classifier/README.md)）中所用的一致。
+正如论文中提到的，使用的特征与前文描述的质量分类器（[quality_classifier tools](../../data_juicer/tools/quality_classifier/README.md)）中所用的一致。
 整个工具包基于PySpark。
 - 分词器：由于pyspark的标准分词器无法很好地处理中文等语言的文本，所以使用了PySpark的[标准分词器](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.ml.feature.Tokenizer.html#tokenizer)或[sentencepiece](https://github.com/google/sentencepiece)模型。
 - 特征提取器：[HashingTF](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.ml.feature.HashingTF.html)

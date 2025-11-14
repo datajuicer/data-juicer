@@ -21,7 +21,7 @@
   - [Postprocess Tools](../../tools/postprocess/README.md)
   - [Sandbox](../Sandbox.md)
   - [API Service](../DJ_service.md)
-  - [Data Scoring](../../tools/quality_classifier/README.md)
+  - [Data Scoring](../../data_juicer/tools/quality_classifier/README.md)
   - [Auto Evaluation](../../tools/evaluator/README.md)
   - [Third-parties Integration](../../thirdparty/LLM_ecosystems/README.md)
 

@@ -34,17 +34,19 @@ Data-Juicer (DJ, 228k)模型输出样例如下表所示。
   | A corgi's head depicted as an explosion of a nebula | [![Case 4](https://img.alicdn.com/imgextra/i2/O1CN014oPB8Q1IrJg0AbUUg_!!6000000000946-2-tps-2048-320.png)](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/show_cases/case4.mp4) |
   | A graceful ballerina doing a pirouette on a dimly lit stage, with soft spotlight highlighting her movements. | [![Case 5](https://img.alicdn.com/imgextra/i4/O1CN01yNlsVu1ymvkJgkvY8_!!6000000006622-2-tps-2048-320.png)](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/show_cases/case5.mp4) |
 
-复现论文实验请参考下面的sandbox使用指南，下图的实验流程，[初始数据集](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/data_juicer_t2v_init_data_pool.zip)，以及该流程的工作流的配置文件demo： [1_single_op_pipeline.yaml](../configs/data_juicer_recipes/sandbox/easyanimate_text_to_video/1_single_op_pipeline.yaml) 、[2_multi_op_pipeline.yaml](../configs/data_juicer_recipes/sandbox/easyanimate_text_to_video/2_multi_op_pipeline.yaml)、[3_duplicate_pipeline.yaml](../configs/data_juicer_recipes/sandbox/easyanimate_text_to_video/3_duplicate_pipeline.yaml)。
+复现论文实验请参考下面的sandbox使用指南，下图的实验流程，[初始数据集](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/data_juicer_t2v_init_data_pool.zip)，以及该流程的工作流的配置文件demo： [1_single_op_pipeline.yaml](https://github.com/datajuicer/data-juicer-sandbox/tree/main/configs/easyanimate_text_to_video/1_single_op_pipeline.yaml) 、[2_multi_op_pipeline.yaml](https://github.com/datajuicer/data-juicer-sandbox/tree/main/configs/easyanimate_text_to_video/2_multi_op_pipeline.yaml)、[3_duplicate_pipeline.yaml](https://github.com/datajuicer/data-juicer-sandbox/tree/main/configs/easyanimate_text_to_video/3_duplicate_pipeline.yaml)。
 ![bench_bottom_up](https://img.alicdn.com/imgextra/i2/O1CN01xvu2fo1HU80biR6Q5_!!6000000000760-2-tps-7756-3693.png)
 
 ### 快速上手
 
 #### 依赖准备
 
-在使用沙盒实验室前，你可能需要使用如下命令安装沙盒相关的依赖：
+在使用沙盒实验室前，你可能需要使用如下命令安装沙盒：
 
 ```shell
-uv pip install -v -e .[sandbox]
+git clone https://github.com/datajuicer/data-juicer-sandbox.git
+cd data-juicer-sandbox/
+uv pip install -e ".[all]"
 ```
 
 并根据官方说明准备好沙盒中使用的第三方库（例如 EasyAnimate 、 VBench 、 InternVL 等），或者您也可以简单地从 GitHub 克隆第三方存储库，并在沙盒运行期间将安装过程留给我们的 `EnvManager` 完成。
@@ -100,7 +102,7 @@ execution_job_configs:
   - hook: 'TrainModelHook'
     meta_name:
     dj_configs:
-    extra_configs: 'configs/demo/sandbox/gpt3_extra_train_config.json'
+    extra_configs: 'configs/demo/gpt3_extra_train_config.json'
 
 evaluation_job_configs:
   - hook: 'ProbeViaAnalyzerHook'
@@ -110,7 +112,7 @@ evaluation_job_configs:
   - hook: 'EvaluateDataHook'
     meta_name: 'eval_data'
     dj_configs:
-    extra_configs: 'configs/demo/sandbox/gpt3_data_quality_eval_config.yaml'
+    extra_configs: 'configs/demo/gpt3_data_quality_eval_config.yaml'
 ```
 根据这个配置文件，sandbox：
 
@@ -152,7 +154,7 @@ pipelines:
       xxx
 ```
 
-在本例中，`pipelines` 字段包括 3 个 pipeline，分别名为 `pipeline_1`、`pipeline_2` 和 `pipeline_3`。它们各自都有不同类型的作业。您可以在 `configs/data_juicer_recipes/sandbox/internvl_coco_caption/sandbox_internvl_coco_caption.yaml` 中找到 InternVL 沙盒实验的此类配置文件的实际示例。
+在本例中，`pipelines` 字段包括 3 个 pipeline，分别名为 `pipeline_1`、`pipeline_2` 和 `pipeline_3`。它们各自都有不同类型的作业。您可以在 [这里](https://github.com/datajuicer/data-juicer-sandbox/blob/main/configs/internvl_coco_caption/sandbox_internvl_coco_caption.yaml) 找到 InternVL 沙盒实验的此类配置文件的实际示例。
 
 对于单 pipeline 格式，这个唯一的 pipeline 会默认命名为 "anonymous"。
 
@@ -163,10 +165,11 @@ pipelines:
 
 #### 运行沙盒
 
-沙盒的运行入口为`tools/sandbox_starter.py`，使用方法和数据处理与分析工具类似，需要指定沙盒配置文件：
+沙盒的运行入口为`dj-sandbox`，使用方法和数据处理与分析工具类似，需要指定沙盒配置文件：
 
 ```yaml
-python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
+# in data-juicer-sandbox
+dj-sandbox --config configs/sandbox/sandbox.yaml
 ```
 
 运行开始后，沙盒会根据预定义好的流水线以及配置文件依次运行各个步骤。流水线默认的单次运行主要包括4个大步骤：
@@ -178,7 +181,7 @@ python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
 
 如此便完成了一轮沙盒流水线运行，最终用户只需比较数据菜谱微调以及数据集处理前后的洞察结果和评估结果，即可验证该轮实验对于数据生产的有效性。
 
-如果在配置文件里设置了`hpo_config`，并在其中配置了合适的优化目标以及待优化的算子超参，则沙盒会以HPO的形式进行多轮的流水线运行，并自动进行算子超参的多轮迭代微调优化。该配置文件的准备可参考 [hpo工具](https://github.com/datajuicer/data-juicer/tree/main/tools/hpo) 。
+如果在配置文件里设置了`hpo_config`，并在其中配置了合适的优化目标以及待优化的算子超参，则沙盒会以HPO的形式进行多轮的流水线运行，并自动进行算子超参的多轮迭代微调优化。该配置文件的准备可参考 [hpo工具](https://github.com/datajuicer/data-juicer/tree/main/data_juicer/tools/hpo) 。
 
 ### 组件工厂
 
@@ -235,7 +238,7 @@ python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
 
 | 组件 | 功能                                     | `run`方法说明 | 参考材料 |
 | --- |----------------------------------------| --- | --- |
-| `Gpt3QualityEvaluator` | 使用Data-Juicer复现的GPT-3文本质量分类器对数据集进行质量评估 | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：待评估数据集样本质量打分均值<br /> | [Data-Juicer质量分类器工具集](https://github.com/datajuicer/data-juicer/tree/main/tools/quality_classifier) |
+| `Gpt3QualityEvaluator` | 使用Data-Juicer复现的GPT-3文本质量分类器对数据集进行质量评估 | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：待评估数据集样本质量打分均值<br /> | [Data-Juicer质量分类器工具集](https://github.com/datajuicer/data-juicer/tree/main/data_juicer/tools/quality_classifier) |
 | `VBenchEvaluator` | 使用VBench对基于prompt生成的视频进行多维度的评估         | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：待评生成视频集各维度打分均值<br /> | [VBench论文](https://arxiv.org/abs/2311.17982) |
 | `InceptionEvaluator` | 通过视频分类模型抽取特征测评生成的视频                    | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：根据给定的metric返回对应的字典<br /> | [Inception Metrics](https://github.com/NVlabs/long-video-gan/tree/main/metrics) |
 | `AccuracyEvaluator` | 评测预测标签和真实标签比较得到的准确率                    | <br />- `eval_type`：该评估器评估对象类型，目前只支持`"data"`<br />- `eval_obj`：未使用的参数<br />- 返回值：根据给定的metric返回对应的字典<br /> | [Inception Metrics](https://github.com/NVlabs/long-video-gan/tree/main/metrics) |
@@ -280,7 +283,7 @@ python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
 | `InternVLCOCOCaptionEvaluator`  | 为 InternVL COCO Caption 任务评测 Bleu-1/2/3/4 ，METEOR ， ROUGE_L ， 和 CIDEr 指标 | -                      | [InternVL COCO Caption](https://internvl.readthedocs.io/en/latest/tutorials/coco_caption_finetune.html#evaluating-the-fine-tuned-model)  |
 
 
-详细定义可参考`data_juicer/core/sandbox/factories.py`。
+详细定义可参考[组件工厂](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/factories.py)。
 
 ### 上下文共享
 
@@ -345,9 +348,9 @@ xxx_hook:
 
 目前组件主要分为三个大类：
 
-- **执行器（Executor）**：由于数据执行器已经由Data-Juicer的Executor承担，因此此处的执行器特指模型的执行器，包括模型训练、推理、评估等执行器。代码位于`data_juicer/core/sandbox/model_executors.py`
-- **评估器（Evaluator）**：用于对数据集或者模型进行质量以及性能的评估。代码位于`data_juicer/core/sandbox/evaluators.py`
-- **数据池操作器（DataPoolManipulator）**：用于操作数据池，例如构建、组合、采样等。代码位于 `data_juicer/core/sandbox/data_pool_manipulators.py`
+- **执行器（Executor）**：由于数据执行器已经由Data-Juicer的Executor承担，因此此处的执行器特指模型的执行器，包括模型训练、推理、评估等执行器。代码位于 [这里](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/model_executors.py)
+- **评估器（Evaluator）**：用于对数据集或者模型进行质量以及性能的评估。代码位于 [这里](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/evaluators.py)
+- **数据池操作器（DataPoolManipulator）**：用于操作数据池，例如构建、组合、采样等。代码位于 [这里](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/data_pool_manipulators.py)
 
 #### 执行器
 
@@ -375,7 +378,7 @@ xxx_hook:
 
 数据池操作器的核心功能是操作数据池，例如构造、组合、采样等。数据池操作器需要继承自基类 `BaseDataPoolManipulator`，并实现 `run` 方法。`run` 方法所需的参数通常来自 `__init__` 方法中的输入数据池配置，涵盖输入数据池、导出路径以及每种操作器的具体参数。
 
-用户可以参考 `data_juicer/core/sandbox/data_pool_manipulators.py` 中每种操作器的 `run` 方法的 doc string 了解更多详细信息。
+用户可以参考 [这里](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/data_pool_manipulators.py) 每种操作器的 `run` 方法的 doc string 了解更多详细信息。
 
 ### 流水线钩子
 
@@ -461,7 +464,7 @@ xxx_hook:
 
 Sandbox 支持不同类型的第三方库，用于训练、评估等。如果将它们全部放在一个环境中，一些重要且复杂的依赖项可能会发生版本冲突。因此，我们提供了一个易于使用的环境管理器，用于将不同第三方库在不同环境中分别进行管理，允许用户在独立的环境中运行命令。
 
-环境的基本类是 `Env`，位于 `data_juicer/core/sandbox/env_manager.py` 中，其实现如下：
+环境的基本类是 `Env`，位于 [这里](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/env_manager.py)，其实现如下：
 
 ```python
 class Env(ABC):
@@ -521,7 +524,7 @@ class Env(ABC):
 在初始化环境管理器时，我们可以通过设置配置文件中的 `env_manager` 参数来指定要使用的环境管理器，并通过设置 `env_name` 参数来指定环境的名称。基本用法示例如下：
 
 ```python
-from data_juicer.core.sandbox.env_manager import ENV_ROUTER
+from data_juicer_sandbox.env_manager import ENV_ROUTER
 
 env_manager = 'conda'
 env_name = 'new_conda_env'
@@ -550,7 +553,7 @@ cmd = "python train.py"
 env.run_cmd(cmd)
 ```
 
-`data_juicer/core/sandbox/specific_hooks/intervl_coco_captioning/model_hooks.py` 中的 `InternVLCOCOCaptionEvaluator` 类提供了在钩子中使用环境管理器的完整示例。
+[这里](https://github.com/datajuicer/data-juicer-sandbox/blob/main/data_juicer_sandbox/specific_hooks/intervl_coco_captioning/model_hooks.py) 的 `InternVLCOCOCaptionEvaluator` 类提供了在钩子中使用环境管理器的完整示例。
 
 ## Q&A
 

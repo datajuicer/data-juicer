@@ -24,7 +24,11 @@
 import fire
 from loguru import logger
 
-from tools.quality_classifier.qc_utils import eval, init_spark, load_datasets
+from data_juicer.tools.quality_classifier.qc_utils import (
+    eval,
+    init_spark,
+    load_datasets,
+)
 
 
 @logger.catch(reraise=True)

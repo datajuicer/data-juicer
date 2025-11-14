@@ -148,7 +148,7 @@ The data sandbox laboratory (DJ-Sandbox) provides users with the best practices 
 
 The sandbox is run using the following commands by default, and for more information and details, please refer to the [sandbox documentation](../Sandbox.md).
 ```shell
-python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
+dj-sandbox --config configs/demo/sandbox/sandbox.yaml
 ```
 
 ## Preprocess Raw Data (Optional)

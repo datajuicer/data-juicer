@@ -4827,30 +4827,47 @@ and $(1+M)Nb$ for ‘all’ mode.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoExtractFramesMapper">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoExtractFramesMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_sampling_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'all_keyframes'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'video_frames'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_extract_frames_mapper.html#VideoExtractFramesMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoExtractFramesMapper" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoExtractFramesMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_sampling_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'all_keyframes'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'path'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'video_frames'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_extract_frames_mapper.html#VideoExtractFramesMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoExtractFramesMapper" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
 <p>Mapper to extract frames from video files according to specified methods.</p>
 <p>Extracts frames from video files using either all keyframes or a uniform sampling
-method. The extracted frames are saved in a directory, and the mapping from video keys
-to frame directories is stored in the sample’s metadata. The data format for the
-extracted frames is a dictionary mapping video keys to their respective frame
-directories:
-- “video_key_1”: “/${frame_dir}/video_key_1_filename/”
-- “video_key_2”: “/${frame_dir}/video_key_2_filename/”</p>
+method.</p>
+<p>Supported output formats are: [“path”, “bytes”].
+If format is “path”, the output is a list of lists, where each inner
+list contains the path of the frames of a single video.
+e.g.[</p>
+<blockquote>
+<div><blockquote>
+<div><p>[video1_frame1_path, video1_frame2_path, …],
+[video2_frame1_path, video2_frame2_path, …],
+…</p>
+</div></blockquote>
+<p>] (In the order of the videos).</p>
+</div></blockquote>
+<p>If format is “bytes”, the output is a list of lists, where each inner
+list contains the bytes of the frames of a single video.
+e.g. [</p>
+<blockquote>
+<div><blockquote>
+<div><p>[video1_byte1, video1_byte2, …],
+[video2_byte1, video2_byte2, …],
+…</p>
+</div></blockquote>
+<p>] (In the order of the videos).</p>
+</div></blockquote>
 <ul class="simple">
 <li><p><strong>Frame Sampling Methods</strong>:</p></li>
 <li><p>“all_keyframes”: Extracts all keyframes from the video.</p></li>
 <li><p>“uniform”: Extracts a specified number of frames uniformly from the video.</p></li>
 <li><p>If <cite>duration</cite> is set, the video is segmented into multiple segments based on the
 duration, and frames are extracted from each segment.</p></li>
-<li><p>The output directory for the frames can be specified; otherwise, a default directory
-is used.</p></li>
+<li><p>The output directory for the frames can be specified if output format is “path”, else left to None.</p></li>
 <li><p>The field name in the sample’s metadata where the frame information is stored can be
 customized.</p></li>
 </ul>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoExtractFramesMapper.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_sampling_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'all_keyframes'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'video_frames'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_extract_frames_mapper.html#VideoExtractFramesMapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoExtractFramesMapper.__init__" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_sampling_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'all_keyframes'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'path'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'video_frames'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_extract_frames_mapper.html#VideoExtractFramesMapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoExtractFramesMapper.__init__" title="Link to this definition">¶</a></dt>
 <dd><p>Initialization method.
 :param frame_sampling_method: sampling method of extracting frame</p>
 <blockquote>
@@ -4865,6 +4882,31 @@ Default: “all_keyframes”.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>output_format</strong> – <p>The output format of the frame videos.
+Supported formats are: [“path”, “bytes”].
+If format is “path”, the output is a list of lists, where each inner
+list contains the path of the frames of a single video.
+e.g.[</p>
+<blockquote>
+<div><blockquote>
+<div><p>[video1_frame1_path, video1_frame2_path, …],
+[video2_frame1_path, video2_frame2_path, …],
+…</p>
+</div></blockquote>
+<p>] (In the order of the videos).</p>
+</div></blockquote>
+<p>If format is “bytes”, the output is a list of lists, where each inner
+list contains the bytes of the frames of a single video.
+e.g. [</p>
+<blockquote>
+<div><blockquote>
+<div><p>[video1_byte1, video1_byte2, …],
+[video2_byte1, video2_byte2, …],
+…</p>
+</div></blockquote>
+<p>] (In the order of the videos).</p>
+</div></blockquote>
+</p></li>
 <li><p><strong>frame_num</strong> – the number of frames to be extracted uniformly from
 the video. Only works when frame_sampling_method is “uniform”. If
 it’s 1, only the middle frame will be extracted. If it’s 2, only
@@ -4877,7 +4919,7 @@ If 0, frames are extracted from the entire video.
 If duration &gt; 0, the video is segmented into multiple segments
 based on duration, and frames are extracted from each segment.</p></li>
 <li><p><strong>frame_dir</strong> – Output directory to save extracted frames.
-If None, a default directory based on the video file path is used.</p></li>
+If output_format is “path”, must specify a directory.</p></li>
 <li><p><strong>frame_key</strong> – The name of field to save generated frames info.</p></li>
 <li><p><strong>args</strong> – extra args</p></li>
 <li><p><strong>kwargs</strong> – extra args</p></li>
@@ -4885,6 +4927,11 @@ If None, a default directory based on the video file path is used.</p></li>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoExtractFramesMapper.extract_frames">
+<span class="sig-name descname"><span class="pre">extract_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_extract_frames_mapper.html#VideoExtractFramesMapper.extract_frames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoExtractFramesMapper.extract_frames" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoExtractFramesMapper.process_single">
@@ -6043,6 +6090,7 @@ comprehensive list of whitespace characters, which can be found at
 </li>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.VideoExtractFramesMapper"><code class="docutils literal notranslate"><span class="pre">VideoExtractFramesMapper</span></code></a><ul>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.VideoExtractFramesMapper.__init__"><code class="docutils literal notranslate"><span class="pre">VideoExtractFramesMapper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoExtractFramesMapper.extract_frames"><code class="docutils literal notranslate"><span class="pre">VideoExtractFramesMapper.extract_frames()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.VideoExtractFramesMapper.process_single"><code class="docutils literal notranslate"><span class="pre">VideoExtractFramesMapper.process_single()</span></code></a></li>
 </ul>
 </li>

@@ -362,7 +362,7 @@
 
 
 <div class="viewcode-block" id="triangle_area">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.triangle_area">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.video_ocr_area_ratio_filter.triangle_area">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">triangle_area</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compute the triangle area according to its coordinates.</span>
@@ -376,7 +376,7 @@
 
 
 <div class="viewcode-block" id="VideoOcrAreaRatioFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoOcrAreaRatioFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.video_ocr_area_ratio_filter.VideoOcrAreaRatioFilter">[docs]</a>
 <span class="nd">@UNFORKABLE</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
@@ -396,7 +396,7 @@
     <span class="n">_accelerator</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
 
 <div class="viewcode-block" id="VideoOcrAreaRatioFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoOcrAreaRatioFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.video_ocr_area_ratio_filter.VideoOcrAreaRatioFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">min_area_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
@@ -451,7 +451,7 @@
 
 
 <div class="viewcode-block" id="VideoOcrAreaRatioFilter.get_reader">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoOcrAreaRatioFilter.get_reader">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.video_ocr_area_ratio_filter.VideoOcrAreaRatioFilter.get_reader">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_reader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">():</span>
             <span class="n">rank</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">rank</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rank</span>
@@ -462,7 +462,7 @@
 
 
 <div class="viewcode-block" id="VideoOcrAreaRatioFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoOcrAreaRatioFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.video_ocr_area_ratio_filter.VideoOcrAreaRatioFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it&#39;s computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_ocr_area_ratio</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -542,7 +542,7 @@
 
 
 <div class="viewcode-block" id="VideoOcrAreaRatioFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoOcrAreaRatioFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_ocr_area_ratio_filter.html#data_juicer.ops.filter.video_ocr_area_ratio_filter.VideoOcrAreaRatioFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="n">video_ocr_area_ratios</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_ocr_area_ratio</span><span class="p">]</span>
         <span class="n">keep_bools</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>

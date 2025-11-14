@@ -346,6 +346,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.constant</span><span class="w"> </span><span class="kn">import</span> <span class="n">RAY_JOB_ENV_VAR</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.lazy_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.mm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">SPECIAL_TOKEN_ENV_PREFIX</span>
 
 <span class="n">ray</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">&quot;ray&quot;</span><span class="p">)</span>
 
@@ -368,16 +369,25 @@
     <span class="k">if</span> <span class="n">ray</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
         <span class="k">return</span>
 
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ray.runtime_env</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeEnv</span>
-
     <span class="k">if</span> <span class="n">cfg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ray_address</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No ray config provided, using default ray address &#39;auto&#39;.&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">ray_address</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">ray_address</span>
 
-    <span class="n">runtime_env</span> <span class="o">=</span> <span class="n">RuntimeEnv</span><span class="p">(</span><span class="n">env_vars</span><span class="o">=</span><span class="p">{</span><span class="n">RAY_JOB_ENV_VAR</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">RAY_JOB_ENV_VAR</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)})</span>
-    <span class="n">ray</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">ray_address</span><span class="p">,</span> <span class="n">ignore_reinit_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">runtime_env</span><span class="o">=</span><span class="n">runtime_env</span><span class="p">)</span></div>
+    <span class="c1"># collect ray envs</span>
+    <span class="n">env_vars</span> <span class="o">=</span> <span class="p">{</span><span class="n">RAY_JOB_ENV_VAR</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">RAY_JOB_ENV_VAR</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">dict</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">SPECIAL_TOKEN_ENV_PREFIX</span><span class="p">):</span>
+            <span class="n">env_vars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">})</span>
+
+    <span class="n">ray</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
+        <span class="n">ray_address</span><span class="p">,</span>
+        <span class="n">ignore_reinit_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">runtime_env</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">py_modules</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">custom_operator_paths</span> <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;custom_operator_paths&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="n">env_vars</span>
+        <span class="p">),</span>
+    <span class="p">)</span></div>
 
 
 
@@ -434,6 +444,8 @@
     <span class="n">initialize_ray</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
 
     <span class="n">nodes</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">nodes</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ray nodes:</span><span class="se">\n</span><span class="si">{</span><span class="n">nodes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="n">alive_nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="k">if</span> <span class="n">node</span><span class="p">[</span><span class="s2">&quot;Alive&quot;</span><span class="p">]]</span>
     <span class="c1"># skip head node</span>
     <span class="n">worker_nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">alive_nodes</span> <span class="k">if</span> <span class="s2">&quot;head&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">[</span><span class="s2">&quot;NodeManagerHostname&quot;</span><span class="p">]]</span>

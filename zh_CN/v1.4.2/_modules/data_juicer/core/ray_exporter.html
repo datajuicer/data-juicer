@@ -479,8 +479,8 @@
         <span class="p">}</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_shard_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c1"># compute the min_rows_per_file for export methods</span>
-            <span class="n">dataset_nbytes</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">size_bytes</span><span class="p">()</span>
-            <span class="n">dataset_num_rows</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+            <span class="n">dataset_nbytes</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">size_bytes</span><span class="p">()</span>
+            <span class="n">dataset_num_rows</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
             <span class="n">num_shards</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dataset_nbytes</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_shard_size</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="n">num_shards</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_shards</span><span class="p">,</span> <span class="n">dataset_num_rows</span><span class="p">)</span>
             <span class="n">rows_per_file</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dataset_num_rows</span> <span class="o">/</span> <span class="n">num_shards</span><span class="p">)</span>

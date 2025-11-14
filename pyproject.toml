@@ -148,7 +148,7 @@ ai_services = [
 ]
 
 
-# All dependencies (default + all optional, except sandbox)
+# All dependencies (default + all optional)
 all = [
     "py-data-juicer[generic]",
     "py-data-juicer[vision]",

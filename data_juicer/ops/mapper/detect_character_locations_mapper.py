@@ -26,7 +26,17 @@ ultralytics = LazyLoader("ultralytics")
 @OPERATORS.register_module(OP_NAME)
 @LOADED_IMAGES.register_module(OP_NAME)
 class DetectCharacterLocationsMapper(Mapper):
-    """Given an image and a list of main character names, extract the bounding boxes for each present character."""
+    """Given an image and a list of main character names, extract the bounding boxes for each present character.
+
+    Detects and extracts bounding boxes for main characters in an image, this operator uses
+    a YOLOE model to detect the presence of these characters. It then generates and refines
+    bounding boxes for each detected character using a multimodal language model and an
+    image-text matching filter. The final bounding boxes are stored in the metadata under
+    'main_character_locations_list'. The operator considers two bounding boxes as
+    overlapping if their Intersection over Union (IoU) score exceeds a specified threshold.
+    Additionally, it uses a matching score threshold to determine if a cropped image region
+    matches the character's name. The operator utilizes a Hugging Face tokenizer and a BLIP
+    model for image-text matching."""
 
     _accelerator = "cuda"
 

@@ -58,14 +58,14 @@ class VideoCaptioningFromVLMMapper(Mapper):
     def __init__(
         self,
         hf_model: str = 'Qwen/Qwen3-VL-8B-Instruct',
-        enable_vllm: bool = True,
+        enable_vllm: bool = False,
         caption_num: PositiveInt = 1,
         keep_candidate_mode: str = 'random_any',
         keep_original_sample: bool = True,
         prompt: Optional[str] = None,
         prompt_key: Optional[str] = None,
-        model_params: Dict = {},
-        sampling_params: Dict = {},
+        model_params: Dict = None,
+        sampling_params: Dict = None,
         *args,
         **kwargs,
     ):
@@ -115,8 +115,12 @@ class VideoCaptioningFromVLMMapper(Mapper):
         :param args: extra args
         :param kwargs: extra kwargs
         """
-        kwargs["mem_required"] = "20GB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
+        kwargs["mem_required"] = "70GB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
         super().__init__(*args, **kwargs)
+        if model_params is None:
+            model_params = {}
+        if sampling_params is None:
+            sampling_params = {}
 
         if keep_candidate_mode not in [
                 'random_any', 'similar_one_simhash', 'all'
@@ -174,6 +178,7 @@ class VideoCaptioningFromVLMMapper(Mapper):
             self.model_key = prepare_model(
                 model_type='vllm',
                 pretrained_model_name_or_path=hf_model,
+                return_processor=True,
                 **model_params,
             )
             self.sampling_params = vllm.SamplingParams(**sampling_params)
@@ -181,7 +186,7 @@ class VideoCaptioningFromVLMMapper(Mapper):
             self.model_key = prepare_model(
                 model_type='huggingface',
                 pretrained_model_name_or_path=hf_model,
-                return_pipe=True,
+                return_pipe=False,
                 trust_remote_code=True,
                 **model_params,
             )
@@ -226,8 +231,6 @@ class VideoCaptioningFromVLMMapper(Mapper):
                 ]
                 for video_key in loaded_video_keys[offset:offset +
                                                    video_count]:
-                    video = videos[video_key]
-
                     # construct prompts
                     if self.prompt_key and isinstance(
                             ori_sample[self.prompt_key], str):
@@ -250,17 +253,17 @@ class VideoCaptioningFromVLMMapper(Mapper):
                                 },
                                 {
                                     "type": "video",
-                                    "video": video,
+                                    "video": video_key,
                                 }
                             ]
                         }
                     ]
 
                     if self.enable_vllm:
-                        inputs = prepare_qwen_vl_inputs_for_vllm(messages, processor)
+                        inputs = [prepare_qwen_vl_inputs_for_vllm(messages, processor)]
                         for i in range(self.caption_num):
                             outputs = model.generate(inputs, sampling_params=self.sampling_params)
-                            generated_text_candidates_single_chunk[i] += outputs.outputs[0].text
+                            generated_text_candidates_single_chunk[i].append(outputs[0].outputs[0].text)
                     else:
                         inputs = processor.apply_chat_template(
                             messages,

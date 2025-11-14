@@ -471,6 +471,7 @@ def prepare_huggingface_model(
         model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
 
         if return_pipe:
+            pipe_params = {}
             if isinstance(processor, transformers.PreTrainedTokenizerBase):
                 pipe_params = {"tokenizer": processor}
             elif isinstance(processor, transformers.SequenceFeatureExtractor):
@@ -883,23 +884,28 @@ def prepare_yolo_model(model_path, **model_params):
     return model
 
 
-def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
+def prepare_vllm_model(pretrained_model_name_or_path, return_processor=False, **model_params):
     """
     Prepare and load a HuggingFace model with the corresponding processor.
 
     :param pretrained_model_name_or_path: model name or path
+    :param return_processor: whether to return the processor instead of the tokenizer
     :param model_params: LLM initialization parameters.
     :return: a tuple of (model, tokenizer)
     """
     os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 
-    if model_params.get("device", "").startswith("cuda:"):
-        model_params["device"] = "cuda"
+    if "device" in model_params:
+        model_params.pop("device")
 
     model = vllm.LLM(model=check_model_home(pretrained_model_name_or_path), generation_config="auto", **model_params)
     tokenizer = model.get_tokenizer()
 
-    return (model, tokenizer)
+    if return_processor:
+        processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path)
+        return model, processor
+    else:
+        return model, tokenizer
 
 
 def prepare_embedding_model(model_path, **model_params):

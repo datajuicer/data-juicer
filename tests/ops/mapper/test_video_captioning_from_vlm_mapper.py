@@ -41,6 +41,7 @@ class VideoCaptioningFromVLMMapperTest(DataJuicerTestCaseBase):
         op = VideoCaptioningFromVLMMapper(hf_model=self.hf_model)
         self._run_mapper(ds_list, op, caption_num=len(ds_list) * 2)
 
+    @unittest.skip('Possible OOM')
     def test_enable_vllm(self):
 
         ds_list = [

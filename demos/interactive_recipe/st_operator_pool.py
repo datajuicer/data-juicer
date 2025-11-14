@@ -341,19 +341,19 @@ class StOperator(Operator):
                     )
                     st.line_chart(chart_data)
 
-            if self.name == "language_id_score_filter":
-                # display word cloud of language id
-                if st.session_state.get("analyzed_dataset", None) is not None:
-                    stats = st.session_state.analyzed_dataset[Fields.stats]
-                    language_ids = [s[StatsKeys.lang] for s in stats]
-                    fig, ax = plt.subplots()
-                    text = " ".join(language_ids)
-                    wordcloud = WordCloud(width=800, height=400, background_color="white", random_state=0).generate(
-                        text
-                    )
-                    ax.imshow(wordcloud, interpolation="bilinear")
-                    ax.axis("off")
-                    st.pyplot(fig)
+                if self.name == "language_id_score_filter":
+                    # display word cloud of language id
+                    if st.session_state.get("analyzed_dataset", None) is not None:
+                        stats = st.session_state.analyzed_dataset[Fields.stats]
+                        language_ids = [s[StatsKeys.lang] for s in stats]
+                        fig, ax = plt.subplots()
+                        text = " ".join(language_ids)
+                        wordcloud = WordCloud(width=800, height=400, background_color="white", random_state=0).generate(
+                            text
+                        )
+                        ax.imshow(wordcloud, interpolation="bilinear")
+                        ax.axis("off")
+                        st.pyplot(fig)
 
     def st_sync(self):
         st.session_state[f"{self.name}_enabled"] = self.enabled

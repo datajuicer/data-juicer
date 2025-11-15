@@ -66,7 +66,6 @@ dependencies = [
 generic = [
     "torch==2.8.0",  # PyTorch
     "transformers==4.57.1",  # Hugging Face Transformers
-    "transformers_stream_generator",  # Stream generation for Transformers
     "einops",  # Tensor operations
     "accelerate",  # Model acceleration
     "vllm==0.11.0",  # LLM serving
@@ -107,6 +106,7 @@ nlp = [
 # Audio Processing
 audio = [
     "torchaudio",  # Audio processing with PyTorch
+    "torchcodec==0.7",
     "soundfile",  # audio handling
     "ffmpeg-python",
     "audiomentations",

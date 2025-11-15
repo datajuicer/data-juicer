@@ -7,7 +7,7 @@ from data_juicer.ops.mapper.video_captioning_from_vlm_mapper import \
 from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-
+@unittest.skip('Possible OOM. Requires about 70GB GPU memory, but only 44GB provided.')
 class VideoCaptioningFromVLMMapperTest(DataJuicerTestCaseBase):
 
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
@@ -41,7 +41,6 @@ class VideoCaptioningFromVLMMapperTest(DataJuicerTestCaseBase):
         op = VideoCaptioningFromVLMMapper(hf_model=self.hf_model)
         self._run_mapper(ds_list, op, caption_num=len(ds_list) * 2)
 
-    @unittest.skip('Possible OOM')
     def test_enable_vllm(self):
 
         ds_list = [

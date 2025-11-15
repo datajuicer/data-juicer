@@ -34,7 +34,15 @@ class VideoCaptioningFromAudioMapper(Mapper):
         """
         kwargs["mem_required"] = "30GB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(["transformers", "transformers_stream_generator", "einops", "accelerate", "tiktoken"])
+        LazyLoader.check_packages(
+            [
+                "transformers",
+                "git+https://github.com/HYLcool/transformers-stream-generator.git",
+                "einops",
+                "accelerate",
+                "tiktoken",
+            ]
+        )
 
         self.keep_original_sample = keep_original_sample
         self.extra_args = kwargs

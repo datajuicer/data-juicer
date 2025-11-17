@@ -29,7 +29,7 @@ Tags 标签: cpu, video
 | `frame_num` | typing.Annotated[int, Gt(gt=0)] | `3` | The number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration. If "duration" > 0, frame_num is the number of frames per segment. |
 | `duration` | <class 'float'> | `0` | The duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment. |
 | `tag_field_name` | <class 'str'> | `'vggt_tags'` | The field name to store the tags. It's "vggt_tags" in default. |
-| `frame_dir` | <class 'str'> | `'/home/cmgzn/.cache/data_juicer/assets'` | Output directory to save extracted frames. |
+| `frame_dir` | <class 'str'> | `DATA_JUICER_ASSETS_CACHE` | Output directory to save extracted frames. |
 | `if_output_camera_parameters` | <class 'bool'> | `True` | Determines whether to output camera parameters. |
 | `if_output_depth_maps` | <class 'bool'> | `True` | Determines whether to output depth maps. |
 | `if_output_point_maps_from_projection` | <class 'bool'> | `True` | Determines whether to output point maps directly inferred by VGGT. |

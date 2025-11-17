@@ -154,6 +154,7 @@ class VideoCaptioningFromVLMMapper(Mapper):
 
         if not sampling_params:
             sampling_params = {
+                "do_sample": True,
                 "temperature": 0,
                 "max_tokens": 1024,
                 "top_k": -1,
@@ -274,7 +275,7 @@ class VideoCaptioningFromVLMMapper(Mapper):
                         ).to(model.device)
                         with torch.no_grad():
                             for i in range(self.caption_num):
-                                generated_ids = model.generate(**inputs, max_new_tokens=128)
+                                generated_ids = model.generate(**inputs, max_new_tokens=128, **self.sampling_params)
                                 generated_ids_trimmed = [
                                     out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
                                 ]
@@ -397,8 +398,10 @@ class VideoCaptioningFromVLMMapper(Mapper):
             if len(generated_samples) != 0:
                 samples_after_generation.extend(generated_samples)
         # reconstruct samples from "list of dicts" to "dict of lists"
-        keys = samples_after_generation[0].keys()
         res_samples = {}
+        if len(samples_after_generation) > 0:
+            return res_samples
+        keys = samples_after_generation[0].keys()
         for key in keys:
             res_samples[key] = [s[key] for s in samples_after_generation]
 

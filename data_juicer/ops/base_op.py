@@ -498,14 +498,14 @@ class Filter(OP):
     def process_batched(self, samples):
         return map(lambda stat: self.process_single({Fields.stats: stat}), samples[Fields.stats])
 
-    def compute_stats_single(self, sample, context=False):
+    def compute_stats_single(self, sample, *args, **kwargs):
         """
         Compute stats for the sample which is used as a metric to decide
         whether to filter this sample.
 
         :param sample: input sample.
-        :param context: whether to store context information of intermediate
-            vars in the sample temporarily.
+        :param args: additional positional arguments
+        :param kwargs: additional keyword arguments (e.g., context=False, rank=None)
         :return: sample with computed stats
         """
         raise NotImplementedError

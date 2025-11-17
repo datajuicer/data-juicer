@@ -1,0 +1,92 @@
+# Fused Operations Demo Configuration
+# This config demonstrates how to use fused operations for optimal performance
+
+project_name: 'fused_operations_demo'
+dataset_path: 'path/to/your/dataset.jsonl'  # Replace with your dataset path
+export_path: 'output/fused_processed_dataset.jsonl'
+export_shard_size: 0
+export_in_parallel: false
+np: 4
+text_keys: 'text'
+suffixes: []
+turbo: false
+skip_op_error: true
+use_cache: true
+ds_cache_dir: null
+open_monitor: true
+use_checkpoint: false
+temp_dir: null
+open_tracer: false
+op_list_to_trace: []
+trace_num: 10
+
+# Enable fused operations for optimal performance
+op_fusion: true
+fusion_strategy: 'probe'  # Use probe strategy for optimal ordering
+cache_compress: null
+keep_stats_in_res_ds: false
+keep_hashes_in_res_ds: false
+adaptive_batch_size: false
+
+# For multimodal data processing
+image_key: 'images'
+image_special_token: '<__dj__image>'
+audio_key: 'audios'
+audio_special_token: '<__dj__audio>'
+video_key: 'videos'
+video_special_token: '<__dj__video>'
+eoc_special_token: '<|__dj__eoc|>'
+
+# Executor configuration
+executor_type: default
+ray_address: auto
+
+# Process pipeline with operations that will be automatically fused
+process:
+  # Phase 1: Text cleaning mappers (these run first)
+  - clean_html_mapper: {}                    # Remove HTML tags
+  - clean_links_mapper: {}                   # Remove URLs
+  - clean_email_mapper: {}                   # Remove email addresses
+  - clean_copyright_mapper: {}               # Remove copyright notices
+
+  # Phase 2: Text quality filters (these will be fused automatically)
+  # Basic text characteristics
+  - text_length_filter:                      # Filter by text length
+      min_len: 50
+      max_len: 2000
+  - words_num_filter:                        # Filter by word count
+      min_num: 10
+      max_num: 500
+  - character_repetition_filter:             # Filter repetitive characters
+      repetition_ratio: 0.8
+  - word_repetition_filter:                  # Filter repetitive words
+      min_ratio: 0.0
+      max_ratio: 0.5
+  - special_characters_filter:               # Filter special character ratio
+      min_ratio: 0.0
+      max_ratio: 0.3
+  - alphanumeric_filter:                     # Filter alphanumeric ratio
+      min_ratio: 0.3
+  - average_line_length_filter:              # Filter by average line length
+      min_len: 10
+      max_len: 100
+  - maximum_line_length_filter:              # Filter by maximum line length
+      min_len: 10
+      max_len: 200
+
+  # Phase 3: Content quality filters (these will also be fused)
+  - perplexity_filter:                       # Filter by language model perplexity
+      max_ppl: 1500
+  - stopwords_filter:                        # Filter by stopword ratio
+      min_ratio: 0.1
+  - flagged_words_filter:                    # Filter by flagged word ratio
+      max_ratio: 0.05
+  - language_id_score_filter:                # Filter by language confidence
+      lang: 'en'
+      min_score: 0.5
+      max_score: 1.0
+
+  # Phase 4: Text transformation mappers (these run after filtering)
+  - expand_macro_mapper: {}                  # Expand LaTeX macros
+  - chinese_convert_mapper:                  # Convert Chinese text
+      mode: 's2t'  # Simplified to Traditional

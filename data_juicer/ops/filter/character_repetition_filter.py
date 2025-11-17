@@ -43,7 +43,27 @@ class CharacterRepetitionFilter(Filter):
         self.min_ratio = min_ratio
         self.max_ratio = max_ratio
 
-    def compute_stats_batched(self, samples):
+    def _compute_char_rep_ratio(self, text):
+        """Compute character repetition ratio for a given text."""
+        char_ngrams = [text[i : i + self.n] for i in range(len(text) - self.n + 1)]
+        freq_char_ngrams = {}
+        for char_ngram in char_ngrams:
+            freq_char_ngrams[char_ngram] = freq_char_ngrams.get(char_ngram, 0) + 1
+
+        if len(freq_char_ngrams) == 0:
+            return 0.0
+
+        freq_char_ngrams = sorted(list(freq_char_ngrams.values()), reverse=True)
+        num_no_rep_char_ngrams = len([el for el in freq_char_ngrams if el == 1])
+        num_rep_char_ngrams = min(
+            int(np.sqrt(len(freq_char_ngrams))),
+            len(freq_char_ngrams) - num_no_rep_char_ngrams,
+        )
+        return (
+            (sum(freq_char_ngrams[:num_rep_char_ngrams]) / sum(freq_char_ngrams)) if sum(freq_char_ngrams) != 0 else 0.0
+        )
+
+    def compute_stats_batched(self, samples, *args, **kwargs):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
 

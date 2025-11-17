@@ -34,7 +34,7 @@ class TextLengthFilter(Filter):
         self.min_len = min_len
         self.max_len = max_len
 
-    def compute_stats_batched(self, samples):
+    def compute_stats_batched(self, samples, *args, **kwargs):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
         for i, stat in enumerate(samples_stats):

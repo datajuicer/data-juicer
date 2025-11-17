@@ -118,6 +118,9 @@ def check_model(model_name, force=False):
         except:  # noqa: E722
             backup_model_link = get_backup_model_link(model_name)
             if backup_model_link is not None:
+                # Ensure backup_model_link is a string, not bytes
+                if isinstance(backup_model_link, bytes):
+                    backup_model_link = backup_model_link.decode("utf-8")
                 backup_model_link = os.path.join(backup_model_link, model_name)
             try:
                 wget.download(backup_model_link, cached_model_path)
@@ -495,7 +498,13 @@ def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):
 
     model_name = name_pattern.format(lang)
 
-    logger.info("Loading kenlm language model...")
+    # Add stack trace to see where this is being called from
+    import traceback
+
+    stack_trace = traceback.format_stack()[-3:]  # Last 3 frames
+    logger.info(f"Loading kenlm language model... (lang={lang}, model_name={model_name})")
+    logger.debug(f"Call stack:\n{''.join(stack_trace)}")
+
     try:
         kenlm_model = kenlm.Model(check_model(model_name), **model_params)
     except:  # noqa: E722
@@ -639,7 +648,13 @@ def prepare_sentencepiece_model(model_path, **model_params):
     :param model_path: input model path
     :return: model instance
     """
-    logger.info("Loading sentencepiece model...")
+    # Add stack trace to see where this is being called from
+    import traceback
+
+    stack_trace = traceback.format_stack()[-3:]  # Last 3 frames
+    logger.info(f"Loading sentencepiece model... (model_path={model_path})")
+    logger.debug(f"Call stack:\n{''.join(stack_trace)}")
+
     sentencepiece_model = sentencepiece.SentencePieceProcessor()
     try:
         sentencepiece_model.load(check_model(model_path))

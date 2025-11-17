@@ -41,6 +41,9 @@ ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
 qwen_vl_utils = LazyLoader("qwen_vl_utils", "qwen-vl-utils")
+transformers_stream_generator = LazyLoader(
+    "transformers_stream_generator", "git+https://github.com/HYLcool/transformers-stream-generator.git"
+)
 
 MODEL_ZOO = {}
 

@@ -37,7 +37,7 @@ class VideoCaptioningFromAudioMapper(Mapper):
         LazyLoader.check_packages(
             [
                 "transformers",
-                "git+https://github.com/HYLcool/transformers-stream-generator.git",
+                "transformers-stream-generator",
                 "einops",
                 "accelerate",
                 "tiktoken",

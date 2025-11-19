@@ -120,7 +120,9 @@ class VideoWholeBodyPoseEstimationMapper(Mapper):
         if self.if_save_visualization:
             if not os.path.exists(self.save_visualization_dir):
                 os.makedirs(self.save_visualization_dir, exist_ok=True)
-            frame_dir_for_temp_video = os.path.join(self.save_visualization_dir, frames_root + "_pose_output")
+            frame_dir_for_temp_video = os.path.join(
+                self.save_visualization_dir, os.path.basename(frames_root) + "_pose_output"
+            )
             if not os.path.exists(frame_dir_for_temp_video):
                 os.makedirs(frame_dir_for_temp_video, exist_ok=True)
 

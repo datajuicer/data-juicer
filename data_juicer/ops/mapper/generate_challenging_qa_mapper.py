@@ -6,10 +6,10 @@ from data_juicer.ops.base_op import OPERATORS, Mapper
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
 
-torch = LazyLoader('torch', 'torch')
-vllm = LazyLoader('vllm', 'vllm')
+torch = LazyLoader("torch", "torch")
+vllm = LazyLoader("vllm", "vllm")
 
-OP_NAME = 'generate_challenging_qa_mapper'
+OP_NAME = "generate_challenging_qa_mapper"
 
 
 def retry_on_error(func, max_retries=5, delay=1):
@@ -28,7 +28,7 @@ def retry_on_error(func, max_retries=5, delay=1):
                 return func(*args, **kwargs)
             except Exception as e:
                 retries += 1
-                print(f'Error: {e}, retry {retries}/{max_retries}...')
+                print(f"Error: {e}, retry {retries}/{max_retries}...")
                 if retries >= max_retries:
                     raise
                 time.sleep(delay)
@@ -47,14 +47,16 @@ class GenerateChallengingQAMapper(Mapper):
     It helps AI models autonomously create high-quality, reasoning-focused ​​QA pairs​​ without human input.
     """
 
-    _accelerator = 'cuda'
+    _accelerator = "cuda"
 
-    def __init__(self,
-                 hf_model: str = 'Qwen/Qwen2.5-VL-7B-Instruct',
-                 category: str = 'Mathematical Reasoning',
-                 model_name: str = 'Qwen',
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        hf_model: str = "Qwen/Qwen2.5-VL-7B-Instruct",
+        category: str = "Mathematical Reasoning",
+        model_name: str = "Qwen",
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -99,8 +101,7 @@ class GenerateChallengingQAMapper(Mapper):
         """
         super().__init__(*args, **kwargs)
         self.hf_model = hf_model
-        self.model_key = prepare_model(model_type='huggingface',
-                                       pretrained_model_name_or_path=hf_model)
+        self.model_key = prepare_model(model_type="huggingface", pretrained_model_name_or_path=hf_model)
         self.category = category
         self.model_name = model_name
         self.system_prompt = system_prompt
@@ -111,18 +112,14 @@ class GenerateChallengingQAMapper(Mapper):
 
         # tensor_parallel_size = torch.cuda.device_count()
         model_params = {}
-        model_params['tensor_parallel_size'] = 4
-        self.model_key = prepare_model(model_type='vllm',
-                                       pretrained_model_name_or_path=hf_model,
-                                       **model_params)
-        self.sampling_params = vllm.SamplingParams(temperature=0.9,
-                                                   top_p=0.95,
-                                                   top_k=40,
-                                                   repetition_penalty=1.1,
-                                                   max_tokens=2048)
+        model_params["tensor_parallel_size"] = 4
+        self.model_key = prepare_model(model_type="vllm", pretrained_model_name_or_path=hf_model, **model_params)
+        self.sampling_params = vllm.SamplingParams(
+            temperature=0.9, top_p=0.95, top_k=40, repetition_penalty=1.1, max_tokens=2048
+        )
 
     def extract_json(self, text):
-        pattern = r'```json\s*(\{.*?\})\s*```'
+        pattern = r"```json\s*(\{.*?\})\s*```"
 
         match = re.search(pattern, text, re.DOTALL)
 
@@ -132,71 +129,55 @@ class GenerateChallengingQAMapper(Mapper):
                 json_data = json.loads(json_str)
                 return json_data
             except json.JSONDecodeError as e:
-                print(f'JSON parse error: {e}')
+                print(f"JSON parse error: {e}")
                 return None
         else:
-            print('None of valid JSON data')
+            print("None of valid JSON data")
             return None
 
     @retry_on_error
     def process_single(self, sample=None, rank=None):
 
         if self.category is None:
-            print(
-                'This OP requires processing multiple fields, and you need to specify valid `category`'
-            )
+            print("This OP requires processing multiple fields, and you need to specify valid `category`")
 
         model, _ = get_model(self.model_key, rank, self.use_cuda())
 
-        messages = [{
-            'role':
-            'system',
-            'content':
-            self.system_prompt.replace('Qwen', self.model_name)
-        }, {
-            'role':
-            'user',
-            'content':
-            self.user_prompt_background.format(category=self.category).replace(
-                'Qwen', self.model_name)
-        }]
+        messages = [
+            {"role": "system", "content": self.system_prompt.replace("Qwen", self.model_name)},
+            {
+                "role": "user",
+                "content": self.user_prompt_background.format(category=self.category).replace("Qwen", self.model_name),
+            },
+        ]
         background = model.chat(messages, self.sampling_params)
 
-        messages.extend([{
-            'role': 'system',
-            'content': background[0].outputs[0].text
-        }, {
-            'role':
-            'user',
-            'content':
-            self.user_prompt_subquestion.replace('Qwen', self.model_name)
-        }])
+        messages.extend(
+            [
+                {"role": "system", "content": background[0].outputs[0].text},
+                {"role": "user", "content": self.user_prompt_subquestion.replace("Qwen", self.model_name)},
+            ]
+        )
         sub_questions = model.chat(messages, self.sampling_params)
 
-        messages.extend([{
-            'role': 'system',
-            'content': sub_questions[0].outputs[0].text
-        }, {
-            'role':
-            'user',
-            'content':
-            self.user_prompt_multihop.replace('Qwen', self.model_name)
-        }])
+        messages.extend(
+            [
+                {"role": "system", "content": sub_questions[0].outputs[0].text},
+                {"role": "user", "content": self.user_prompt_multihop.replace("Qwen", self.model_name)},
+            ]
+        )
         multihop = model.chat(messages, self.sampling_params)
 
-        messages.extend([{
-            'role': 'system',
-            'content': multihop[0].outputs[0].text
-        }, {
-            'role':
-            'user',
-            'content':
-            self.extract_prompt_qa.replace('Qwen', self.model_name)
-        }])
+        messages.extend(
+            [
+                {"role": "system", "content": multihop[0].outputs[0].text},
+                {"role": "user", "content": self.extract_prompt_qa.replace("Qwen", self.model_name)},
+            ]
+        )
         qa = model.chat(messages, self.sampling_params)
 
         qa = self.extract_json(qa[0].outputs[0].text)
-        qa['thinking'] = multihop[0].outputs[0].text
+        qa["thinking"] = multihop[0].outputs[0].text
 
         sample.clear()
         sample.update(qa)

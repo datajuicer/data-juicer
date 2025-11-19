@@ -46,7 +46,7 @@ Data-Juicer 中的算子分为以下 7 种类型。
 | [filter](#filter) | 54 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 87 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 88 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [selector](#selector) | 5 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
 All the specific operators are listed below, each featured with several capability tags. 
@@ -205,6 +205,7 @@ All the specific operators are listed below, each featured with several capabili
 | extract_support_text_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts a supporting sub-text from the original text based on a given summary. 根据给定的摘要从原始文本中提取支持子文本。 | [info](operators/mapper/extract_support_text_mapper.md) | - |
 | extract_tables_from_html_mapper | 🔤Text 💻CPU 🟡Beta | Extracts tables from HTML content and stores them in a specified field. 从HTML内容中提取表并将其存储在指定字段中。 | [info](operators/mapper/extract_tables_from_html_mapper.md) | - |
 | fix_unicode_mapper | 🔤Text 💻CPU 🟢Stable | Fixes unicode errors in text samples. 修复文本示例中的unicode错误。 | [info](operators/mapper/fix_unicode_mapper.md) | - |
+| generate_challenging_qa_mapper | 🚀GPU 🧩HF 🌊vLLM 🟡Beta | Mapper to generate self-challenging question and answer pairs. 映射器生成自我挑战的问题和答案对。 | - | - |
 | generate_qa_from_examples_mapper | 🚀GPU 🌊vLLM 🧩HF 🟢Stable | Generates question and answer pairs from examples using a Hugging Face model. 使用拥抱面部模型从示例生成问题和答案对。 | [info](operators/mapper/generate_qa_from_examples_mapper.md) | - |
 | generate_qa_from_text_mapper | 🔤Text 🚀GPU 🌊vLLM 🧩HF 🟢Stable | Generates question and answer pairs from text using a specified model. 使用指定的模型从文本生成问题和答案对。 | [info](operators/mapper/generate_qa_from_text_mapper.md) | - |
 | image_blur_mapper | 🏞Image 💻CPU 🟢Stable | Blurs images in the dataset with a specified probability and blur type. 使用指定的概率和模糊类型对数据集中的图像进行模糊处理。 | [info](operators/mapper/image_blur_mapper.md) | - |

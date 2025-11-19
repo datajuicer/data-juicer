@@ -10,6 +10,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 
 
+@unittest.skip('Users need to download MANO_RIGHT.pkl.')
 class VideoHandReconstructionMapperTest(DataJuicerTestCaseBase):
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              'data')

@@ -23,9 +23,6 @@ OP_NAME = "video_hand_reconstruction_mapper"
 # Note that pyrender requires numpy==1.26 to correctly generate rendering results.
 
 numpy = LazyLoader("numpy")
-LazyLoader.check_packages(["chumpy @ git+https://github.com/mattloper/chumpy"])
-LazyLoader.check_packages(["smplx==0.1.28", "yacs", "timm", "pyrender", "pytorch_lightning"])
-LazyLoader.check_packages(["scikit-image"], pip_args=["--no-deps"])
 cv2 = LazyLoader("cv2", "opencv-python")
 torch = LazyLoader("torch")
 
@@ -91,6 +88,15 @@ class VideoHandReconstructionMapper(Mapper):
         """
 
         super().__init__(*args, **kwargs)
+
+        # LazyLoader.check_packages(["chumpy @ git+https://github.com/mattloper/chumpy"], pip_args=["-i https://pypi.tuna.tsinghua.edu.cn/simple/"])
+        LazyLoader.check_packages(
+            ["smplx==0.1.28", "yacs", "timm", "pyrender", "pytorch_lightning"],
+            pip_args=["-i https://pypi.tuna.tsinghua.edu.cn/simple/"],
+        )
+        LazyLoader.check_packages(
+            ["scikit-image"], pip_args=["--no-deps", "-i https://pypi.tuna.tsinghua.edu.cn/simple/"]
+        )
 
         self.video_extract_frames_mapper_args = {
             "frame_sampling_method": "uniform",
@@ -165,8 +171,6 @@ class VideoHandReconstructionMapper(Mapper):
         frame_names = os.listdir(frames_root)
         frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
 
-        wilor_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "WiLoR")
-        sys.path.append(wilor_repo_path)
         wilor_model, detector, model_cfg, renderer = get_model(self.model_key, rank, self.use_cuda())
         if rank is not None:
             device = f"cuda:{rank}" if self.use_cuda() else "cpu"
@@ -174,20 +178,12 @@ class VideoHandReconstructionMapper(Mapper):
             device = "cuda" if self.use_cuda() else "cpu"
 
         if self.if_save_visualization:
-            if not os.path.exists(self.save_visualization_dir):
-                os.makedirs(self.save_visualization_dir, exist_ok=True)
-
             visualization_frame_dir = os.path.join(self.save_visualization_dir, temp_frame_name)
-            if not os.path.exists(visualization_frame_dir):
-                os.makedirs(visualization_frame_dir, exist_ok=True)
+            os.makedirs(visualization_frame_dir, exist_ok=True)
 
         if self.if_save_mesh:
-            if not os.path.exists(self.save_mesh_dir):
-                os.makedirs(self.save_mesh_dir, exist_ok=True)
-
             mesh_frame_dir = os.path.join(self.save_mesh_dir, temp_frame_name)
-            if not os.path.exists(mesh_frame_dir):
-                os.makedirs(mesh_frame_dir, exist_ok=True)
+            os.makedirs(mesh_frame_dir, exist_ok=True)
 
         final_all_verts = []
         final_all_cam_t = []
@@ -300,11 +296,12 @@ class VideoHandReconstructionMapper(Mapper):
 
                 cv2.imwrite(os.path.join(visualization_frame_dir, f"{img_fn}.jpg"), 255 * input_img_overlay[:, :, ::-1])
 
-        sample[Fields.meta][self.tag_field_name] = {}
-        sample[Fields.meta][self.tag_field_name]["vertices"] = final_all_verts
-        sample[Fields.meta][self.tag_field_name]["camera_translation"] = final_all_cam_t
-        sample[Fields.meta][self.tag_field_name]["if_right_hand"] = final_all_right
-        sample[Fields.meta][self.tag_field_name]["joints"] = final_all_joints
-        sample[Fields.meta][self.tag_field_name]["keypoints"] = final_all_kpts
+        sample[Fields.meta][self.tag_field_name] = {
+            "vertices": final_all_verts,
+            "camera_translation": final_all_cam_t,
+            "if_right_hand": final_all_right,
+            "joints": final_all_joints,
+            "keypoints": final_all_kpts,
+        }
 
         return sample

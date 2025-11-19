@@ -950,32 +950,20 @@ def prepare_wilor_model(wilor_model_path, wilor_model_config, detector_model_pat
     from wilor.models.wilor import WiLoR
     from wilor.utils.renderer import Renderer
 
-    if not os.path.exists(wilor_model_path):
-        if not os.path.exists(DJMC):
-            os.makedirs(DJMC)
-        if not os.path.exists(wilor_DJMC_model_path):
-            os.makedirs(wilor_DJMC_model_path)
-        wilor_model_path = os.path.join(wilor_DJMC_model_path, "wilor_final.ckpt")
-        if not os.path.exists(wilor_model_path):
-            wget.download(BACKUP_MODEL_LINKS["wilor_model_path"], wilor_DJMC_model_path)
+    def _get_model_path(model_path, default_filename, download_key):
+        if not os.path.exists(model_path):
+            if not os.path.exists(DJMC):
+                os.makedirs(DJMC)
+            if not os.path.exists(wilor_DJMC_model_path):
+                os.makedirs(wilor_DJMC_model_path)
+            model_path = os.path.join(wilor_DJMC_model_path, default_filename)
+            if not os.path.exists(model_path):
+                wget.download(BACKUP_MODEL_LINKS[download_key], wilor_DJMC_model_path)
+        return model_path
 
-    if not os.path.exists(wilor_model_config):
-        if not os.path.exists(DJMC):
-            os.makedirs(DJMC)
-        if not os.path.exists(wilor_DJMC_model_path):
-            os.makedirs(wilor_DJMC_model_path)
-        wilor_model_config = os.path.join(wilor_DJMC_model_path, "model_config.yaml")
-        if not os.path.exists(wilor_model_config):
-            wget.download(BACKUP_MODEL_LINKS["wilor_model_config"], wilor_DJMC_model_path)
-
-    if not os.path.exists(detector_model_path):
-        if not os.path.exists(DJMC):
-            os.makedirs(DJMC)
-        if not os.path.exists(wilor_DJMC_model_path):
-            os.makedirs(wilor_DJMC_model_path)
-        detector_model_path = os.path.join(wilor_DJMC_model_path, "detector.pt")
-        if not os.path.exists(detector_model_path):
-            wget.download(BACKUP_MODEL_LINKS["wilor_detector_model_path"], wilor_DJMC_model_path)
+    wilor_model_path = _get_model_path(wilor_model_path, "wilor_final.ckpt", "wilor_model_path")
+    wilor_model_config = _get_model_path(wilor_model_config, "model_config.yaml", "wilor_model_config")
+    detector_model_path = _get_model_path(detector_model_path, "detector.pt", "wilor_detector_model_path")
 
     model_cfg = get_config(wilor_model_config, update_cachedir=True)
     # Override some config values, to crop bbox correctly

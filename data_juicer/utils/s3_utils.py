@@ -16,7 +16,7 @@ try:
     from dotenv import load_dotenv
 
     # Load environment variables from .env file if it exists
-    load_dotenv(override=True)  # override=True means .env file takes precedence over environment variables
+    load_dotenv()  # By default, override=False, so environment variables take precedence
 except ImportError:
     # python-dotenv not installed, .env files won't be automatically loaded
     pass

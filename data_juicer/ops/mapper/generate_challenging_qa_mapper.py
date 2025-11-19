@@ -13,7 +13,6 @@ vllm = LazyLoader("vllm", "vllm")
 OP_NAME = "generate_challenging_qa_mapper"
 
 
-# TODO: Extend LLM-based OPs into API-based implementation.
 @OPERATORS.register_module(OP_NAME)
 class GenerateChallengingQAMapper(Mapper):
     """
@@ -127,7 +126,7 @@ class GenerateChallengingQAMapper(Mapper):
         ]
 
         max_retries = 5
-        for attempt in range(max_retries + 1):  # 包括首次尝试
+        for attempt in range(max_retries + 1):
             try:
                 background = model.chat(messages, self.sampling_params)
 
@@ -160,12 +159,12 @@ class GenerateChallengingQAMapper(Mapper):
                     raise ValueError("Failed to extract valid JSON from model output.")
                 qa["thinking"] = multihop[0].outputs[0].text
             except Exception as e:
-                if attempt < max_retries:  # 如果还有重试机会
+                if attempt < max_retries:
                     logger.warning(f"Attempt {attempt + 1} failed with error: {e}. Retrying...")
                     continue
-                else:  # 重试次数已用完
+                else:
                     logger.warning(f"All {max_retries + 1} attempts failed.")
-                    raise  # 重新抛出最后一次的异常
+                    raise
 
         sample.clear()
         sample.update(qa)

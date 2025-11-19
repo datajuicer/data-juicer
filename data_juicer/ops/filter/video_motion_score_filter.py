@@ -86,7 +86,7 @@ class VideoMotionScoreFilter(Filter):
             all videos. 'any': keep this sample if any videos meet the
             condition. 'all': keep this sample only if all videos meet the
             condition.
-        :param if_output_camera_parameters: Determines whether to output
+        :param if_output_optical_flow: Determines whether to output
             the computed optical flows into the metas. The optical flows for each
             video will be stored in the shape of (num_frame, H, W, 2)
         :param optical_flow_key: The field name to store the optical flows. It's
@@ -205,7 +205,7 @@ class VideoMotionScoreFilter(Filter):
             else:
                 unique_motion_scores[video_key] = np.mean(video_motion_scores or [-1])
 
-            video_optical_flows[video_key] = np.stack(optical_flows)
+            video_optical_flows[video_key] = np.stack(optical_flows) if optical_flows else np.array([])
 
         sample[Fields.stats][StatsKeys.video_motion_score] = [unique_motion_scores[key] for key in loaded_video_keys]
         if self.if_output_optical_flow:

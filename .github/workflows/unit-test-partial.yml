@@ -31,7 +31,7 @@ jobs:
     - name: Install data-juicer
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
+        docker compose exec ray-head bash -c 'UV_HTTP_TIMEOUT=3600 /root/.local/bin/uv pip install --system -e .\[all\]'
 
     - name: Print Pip Dependency Tree
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
@@ -90,8 +90,8 @@ jobs:
     - name: Install data-juicer
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
-        docker compose exec ray-worker bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
+        docker compose exec ray-head bash -c 'UV_HTTP_TIMEOUT=3600 /root/.local/bin/uv pip install --system -e .\[all\]'
+        docker compose exec ray-worker bash -c 'UV_HTTP_TIMEOUT=3600 /root/.local/bin/uv pip install --system -e .\[all\]'
 
     - name: Clean dataset cache
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker

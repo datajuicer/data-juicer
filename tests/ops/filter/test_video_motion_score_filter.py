@@ -1,5 +1,6 @@
 import os
 import unittest
+import numpy as np
 
 from datasets import Dataset
 
@@ -204,6 +205,10 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
         dataset = dataset.filter(op.process, num_proc=1)
         metas = dataset.select_columns(column_names=[Fields.meta])
         self.assertIn(MetaKeys.video_optical_flow, metas.features)
+        sample_optical_flow = metas[0][Fields.meta][MetaKeys.video_optical_flow]
+        self.assertIsInstance(sample_optical_flow, np.ndarray)
+        self.assertEqual(len(sample_optical_flow.shape), 4)
+        self.assertEqual(sample_optical_flow.shape[-1], 2)
 
         dataset = dataset.select_columns(column_names=[op.video_key])
         res_list = dataset.to_list()

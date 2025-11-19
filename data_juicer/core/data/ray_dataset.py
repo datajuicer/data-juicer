@@ -369,7 +369,7 @@ def read_json_stream(
     except (ImportError, AttributeError):
         # Fall back to standard ray.data.read_json for older PyArrow versions
         # This works with filesystem parameter for S3
-        ray.data.read_json(paths, filesystem=filesystem)
+        return ray.data.read_json(paths, filesystem=filesystem)
 
     if meta_provider is None:
         meta_provider = ray.data.read_api.DefaultFileMetadataProvider()

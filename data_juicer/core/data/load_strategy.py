@@ -501,17 +501,17 @@ class DefaultS3DataLoadStrategy(DefaultDataLoadStrategy):
         # HuggingFace datasets uses storage_options (not fs parameter) for filesystem configuration
         # storage_options are passed to fsspec/s3fs internally
         # For public buckets without credentials, use anonymous access
-        if not storage_options:
-            # If no credentials provided, try anonymous access for public buckets
-            storage_options = {"anon": True}
-            logger.info("No credentials provided - using anonymous access for public S3 bucket")
-
-        if storage_options.get("anon"):
-            logger.info("Using anonymous access for public S3 bucket")
-        elif storage_options.get("key") or storage_options.get("secret"):
+        # HuggingFace datasets uses storage_options for filesystem configuration.
+        # If storage_options is empty, s3fs will use its default credential chain (e.g., IAM role, ~/.aws/credentials).
+        if storage_options.get("key") or storage_options.get("secret"):
             logger.info("Using explicit AWS credentials for S3 access")
         else:
             logger.info("Using default AWS credential chain for S3 access")
+
+        # Allow explicit anonymous access via config
+        if self.ds_config.get("anon"):
+            storage_options["anon"] = True
+            logger.info("Anonymous access for public S3 bucket enabled via config.")
 
         try:
             # Pass storage_options to load_dataset (not fs parameter)

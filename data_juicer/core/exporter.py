@@ -94,13 +94,16 @@ class Exporter:
                 storage_options["endpoint_url"] = s3_config["endpoint_url"]
 
             # If no credentials provided, try anonymous access for public buckets
-            if not storage_options:
-                storage_options = {"anon": True}
-                logger.info("No credentials provided - using anonymous access for public S3 bucket")
-            elif storage_options.get("key") or storage_options.get("secret"):
+            # If storage_options is empty, s3fs will use its default credential chain (e.g. IAM role).
+            if storage_options.get("key") or storage_options.get("secret"):
                 logger.info("Using explicit AWS credentials for S3 export")
             else:
                 logger.info("Using default AWS credential chain for S3 export")
+
+            # Allow explicit anonymous access via kwargs
+            if kwargs.get("anon"):
+                storage_options["anon"] = True
+                logger.info("Anonymous access for public S3 bucket enabled via config.")
 
             self.storage_options = storage_options
             logger.info(f"Detected S3 export path: {export_path}. S3 storage_options configured.")

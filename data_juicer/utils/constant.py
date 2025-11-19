@@ -61,6 +61,8 @@ class MetaKeys(object):
     video_audio_tags = "video_audio_tags"
     # # video frames
     video_frames = "video_frames"
+    # # video optical flow
+    video_optical_flow = "video_optical_flow"
     # # info extracted by VGGT
     vggt_tags = "vggt_tags"
     # # image tags

@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Union
 import numpy as np
 from pydantic import PositiveFloat, PositiveInt
 
-from data_juicer.utils.constant import Fields, StatsKeys
+from data_juicer.utils.constant import Fields, MetaKeys, StatsKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import calculate_resized_dimensions
 
@@ -57,6 +57,8 @@ class VideoMotionScoreFilter(Filter):
         divisible: PositiveInt = 1,
         relative: bool = False,
         any_or_all: str = "any",
+        if_output_optical_flow: bool = False,
+        optical_flow_key: str = MetaKeys.video_optical_flow,
         *args,
         **kwargs,
     ):
@@ -84,6 +86,11 @@ class VideoMotionScoreFilter(Filter):
             all videos. 'any': keep this sample if any videos meet the
             condition. 'all': keep this sample only if all videos meet the
             condition.
+        :param if_output_camera_parameters: Determines whether to output
+            the computed optical flows into the metas. The optical flows for each
+            video will be stored in the shape of (num_frame, H, W, 2)
+        :param optical_flow_key: The field name to store the optical flows. It's
+            "video_optical_flow" in default.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -113,6 +120,9 @@ class VideoMotionScoreFilter(Filter):
             raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
         self.any = any_or_all == "any"
 
+        self.if_output_optical_flow = if_output_optical_flow
+        self.optical_flow_key = optical_flow_key
+
     def setup_model(self, rank=None):
         self.model = cv2.calcOpticalFlowFarneback
 
@@ -141,12 +151,14 @@ class VideoMotionScoreFilter(Filter):
         # load videos
         loaded_video_keys = sample[self.video_key]
         unique_motion_scores = {}
+        video_optical_flows = {}
         for video_key in loaded_video_keys:
             # skip duplicate videos
             if video_key in unique_motion_scores:
                 continue
 
             video_motion_scores = []
+            optical_flows = []
             with VideoCapture(video_key) as cap:
                 if cap.isOpened():
                     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -176,6 +188,7 @@ class VideoMotionScoreFilter(Filter):
                     flow, prev_frame = self.compute_flow(prev_frame, frame)
                     if flow is None:
                         continue
+                    optical_flows.append(flow)
                     mag, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
                     frame_motion_score = np.mean(mag)
                     if self.relative:
@@ -192,7 +205,11 @@ class VideoMotionScoreFilter(Filter):
             else:
                 unique_motion_scores[video_key] = np.mean(video_motion_scores or [-1])
 
+            video_optical_flows[video_key] = np.stack(optical_flows)
+
         sample[Fields.stats][StatsKeys.video_motion_score] = [unique_motion_scores[key] for key in loaded_video_keys]
+        if self.if_output_optical_flow:
+            sample[Fields.meta][self.optical_flow_key] = [video_optical_flows[key] for key in loaded_video_keys]
         return sample
 
     def process_single(self, sample):

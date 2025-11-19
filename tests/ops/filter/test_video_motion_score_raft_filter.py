@@ -5,7 +5,7 @@ from datasets import Dataset
 
 from data_juicer.ops.filter.video_motion_score_raft_filter import \
     VideoMotionScoreRaftFilter
-from data_juicer.utils.constant import Fields
+from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class VideoMotionScoreRaftFilterTest(DataJuicerTestCaseBase):
 
@@ -178,6 +178,38 @@ class VideoMotionScoreRaftFilterTest(DataJuicerTestCaseBase):
         tgt_list = [{'videos': [self.vid2_path]}]
         op = VideoMotionScoreRaftFilter(min_score=3, max_score=10.2)
         self._run_helper(op, ds_list, tgt_list, np=2)
+
+    def test_output_optical_flow(self):
+        ds_list = [{
+            'videos': [self.vid1_path]
+        }, {
+            'videos': [self.vid2_path]
+        }, {
+            'videos': [self.vid3_path]
+        }]
+        tgt_list = [{
+            'videos': [self.vid1_path]
+        }, {
+            'videos': [self.vid2_path]
+        }, {
+            'videos': [self.vid3_path]
+        }]
+        op = VideoMotionScoreRaftFilter(if_output_optical_flow=True)
+        dataset = Dataset.from_list(ds_list)
+        if Fields.stats not in dataset.features:
+            dataset = dataset.add_column(name=Fields.stats,
+                                         column=[{}] * dataset.num_rows)
+        if Fields.meta not in dataset.features:
+            dataset = dataset.add_column(name=Fields.meta,
+                                         column=[{}] * dataset.num_rows)
+        dataset = dataset.map(op.compute_stats, num_proc=1)
+        dataset = dataset.filter(op.process, num_proc=1)
+        metas = dataset.select_columns(column_names=[Fields.meta])
+        self.assertIn(MetaKeys.video_optical_flow, metas.features)
+
+        dataset = dataset.select_columns(column_names=[op.video_key])
+        res_list = dataset.to_list()
+        self.assertEqual(res_list, tgt_list)
 
 
 if __name__ == '__main__':

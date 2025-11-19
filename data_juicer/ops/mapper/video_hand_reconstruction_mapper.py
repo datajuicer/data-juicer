@@ -89,14 +89,9 @@ class VideoHandReconstructionMapper(Mapper):
 
         super().__init__(*args, **kwargs)
 
-        # LazyLoader.check_packages(["chumpy @ git+https://github.com/mattloper/chumpy"], pip_args=["-i https://pypi.tuna.tsinghua.edu.cn/simple/"])
-        LazyLoader.check_packages(
-            ["smplx==0.1.28", "yacs", "timm", "pyrender", "pytorch_lightning"],
-            pip_args=["-i https://pypi.tuna.tsinghua.edu.cn/simple/"],
-        )
-        LazyLoader.check_packages(
-            ["scikit-image"], pip_args=["--no-deps", "-i https://pypi.tuna.tsinghua.edu.cn/simple/"]
-        )
+        LazyLoader.check_packages(["chumpy @ git+https://github.com/mattloper/chumpy"])
+        LazyLoader.check_packages(["smplx==0.1.28", "yacs", "timm", "pyrender", "pytorch_lightning"])
+        LazyLoader.check_packages(["scikit-image"], pip_args=["--no-deps"])
 
         self.video_extract_frames_mapper_args = {
             "frame_sampling_method": "uniform",

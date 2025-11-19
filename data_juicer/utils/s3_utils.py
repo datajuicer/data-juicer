@@ -25,9 +25,8 @@ except ImportError:
 def get_aws_credentials(ds_config: Dict = {}) -> Tuple[str, str, str, str]:
     """
     Get AWS credentials with priority order:
-    1. Environment variables (most secure, recommended for production)
-    2. Explicit config parameters (for development/testing)
-    3. Default AWS credential chain (boto3-style: env vars, ~/.aws/credentials, IAM roles)
+    1. Environment variables (e.g., AWS_ACCESS_KEY_ID)
+    2. Explicit config parameters (e.g., in a dataset config dict)
 
     Args:
         ds_config: Dataset configuration dictionary containing optional AWS credentials.

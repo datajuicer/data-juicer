@@ -1,6 +1,7 @@
 import json
 import re
-import time
+
+from loguru import logger
 
 from data_juicer.ops.base_op import OPERATORS, Mapper
 from data_juicer.utils.lazy_loader import LazyLoader
@@ -10,30 +11,6 @@ torch = LazyLoader("torch", "torch")
 vllm = LazyLoader("vllm", "vllm")
 
 OP_NAME = "generate_challenging_qa_mapper"
-
-
-def retry_on_error(func, max_retries=5, delay=1):
-    """
-    Decorator function with retry mechanism
-    :param func: function to be retried
-    :param max_retries: maximum number of retries
-    :param delay: delay time before each retry (seconds)
-    :return: function execution result
-    """
-
-    def wrapper(*args, **kwargs):
-        retries = 0
-        while retries < max_retries:
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                retries += 1
-                print(f"Error: {e}, retry {retries}/{max_retries}...")
-                if retries >= max_retries:
-                    raise
-                time.sleep(delay)
-
-    return wrapper
 
 
 # TODO: Extend LLM-based OPs into API-based implementation.
@@ -110,9 +87,8 @@ class GenerateChallengingQAMapper(Mapper):
         self.user_prompt_multihop = user_prompt_multihop
         self.extract_prompt_qa = extract_prompt_qa
 
-        # tensor_parallel_size = torch.cuda.device_count()
         model_params = {}
-        model_params["tensor_parallel_size"] = 4
+        model_params["tensor_parallel_size"] = torch.cuda.device_count()
         self.model_key = prepare_model(model_type="vllm", pretrained_model_name_or_path=hf_model, **model_params)
         self.sampling_params = vllm.SamplingParams(
             temperature=0.9, top_p=0.95, top_k=40, repetition_penalty=1.1, max_tokens=2048
@@ -129,17 +105,16 @@ class GenerateChallengingQAMapper(Mapper):
                 json_data = json.loads(json_str)
                 return json_data
             except json.JSONDecodeError as e:
-                print(f"JSON parse error: {e}")
+                logger.warning(f"JSON parse error: {e}")
                 return None
         else:
-            print("None of valid JSON data")
+            logger.warning("No valid JSON data found in model output.")
             return None
 
-    @retry_on_error
     def process_single(self, sample=None, rank=None):
 
         if self.category is None:
-            print("This OP requires processing multiple fields, and you need to specify valid `category`")
+            raise ValueError("This OP requires processing multiple fields, and you need to specify a valid `category`")
 
         model, _ = get_model(self.model_key, rank, self.use_cuda())
 
@@ -150,34 +125,47 @@ class GenerateChallengingQAMapper(Mapper):
                 "content": self.user_prompt_background.format(category=self.category).replace("Qwen", self.model_name),
             },
         ]
-        background = model.chat(messages, self.sampling_params)
 
-        messages.extend(
-            [
-                {"role": "system", "content": background[0].outputs[0].text},
-                {"role": "user", "content": self.user_prompt_subquestion.replace("Qwen", self.model_name)},
-            ]
-        )
-        sub_questions = model.chat(messages, self.sampling_params)
+        max_retries = 5
+        for attempt in range(max_retries + 1):  # 包括首次尝试
+            try:
+                background = model.chat(messages, self.sampling_params)
 
-        messages.extend(
-            [
-                {"role": "system", "content": sub_questions[0].outputs[0].text},
-                {"role": "user", "content": self.user_prompt_multihop.replace("Qwen", self.model_name)},
-            ]
-        )
-        multihop = model.chat(messages, self.sampling_params)
+                messages.extend(
+                    [
+                        {"role": "system", "content": background[0].outputs[0].text},
+                        {"role": "user", "content": self.user_prompt_subquestion.replace("Qwen", self.model_name)},
+                    ]
+                )
+                sub_questions = model.chat(messages, self.sampling_params)
 
-        messages.extend(
-            [
-                {"role": "system", "content": multihop[0].outputs[0].text},
-                {"role": "user", "content": self.extract_prompt_qa.replace("Qwen", self.model_name)},
-            ]
-        )
-        qa = model.chat(messages, self.sampling_params)
+                messages.extend(
+                    [
+                        {"role": "system", "content": sub_questions[0].outputs[0].text},
+                        {"role": "user", "content": self.user_prompt_multihop.replace("Qwen", self.model_name)},
+                    ]
+                )
+                multihop = model.chat(messages, self.sampling_params)
 
-        qa = self.extract_json(qa[0].outputs[0].text)
-        qa["thinking"] = multihop[0].outputs[0].text
+                messages.extend(
+                    [
+                        {"role": "system", "content": multihop[0].outputs[0].text},
+                        {"role": "user", "content": self.extract_prompt_qa.replace("Qwen", self.model_name)},
+                    ]
+                )
+                qa = model.chat(messages, self.sampling_params)
+
+                qa = self.extract_json(qa[0].outputs[0].text)
+                if qa is None:
+                    raise ValueError("Failed to extract valid JSON from model output.")
+                qa["thinking"] = multihop[0].outputs[0].text
+            except Exception as e:
+                if attempt < max_retries:  # 如果还有重试机会
+                    logger.warning(f"Attempt {attempt + 1} failed with error: {e}. Retrying...")
+                    continue
+                else:  # 重试次数已用完
+                    logger.warning(f"All {max_retries + 1} attempts failed.")
+                    raise  # 重新抛出最后一次的异常
 
         sample.clear()
         sample.update(qa)

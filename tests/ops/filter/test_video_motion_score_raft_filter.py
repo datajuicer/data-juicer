@@ -206,7 +206,7 @@ class VideoMotionScoreRaftFilterTest(DataJuicerTestCaseBase):
         dataset = dataset.map(op.compute_stats, num_proc=1)
         dataset = dataset.filter(op.process, num_proc=1)
         metas = dataset.select_columns(column_names=[Fields.meta])
-        self.assertIn(MetaKeys.video_optical_flow, metas.features)
+        self.assertIn(MetaKeys.video_optical_flow, metas.features[Fields.meta])
         sample_optical_flow = metas[0][Fields.meta][MetaKeys.video_optical_flow]
         self.assertIsInstance(sample_optical_flow, np.ndarray)
         self.assertEqual(len(sample_optical_flow.shape), 4)

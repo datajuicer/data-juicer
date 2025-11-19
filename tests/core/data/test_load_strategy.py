@@ -506,7 +506,7 @@ class TestDefaultS3DataLoadStrategy(DataJuicerTestCaseBase):
     @patch('data_juicer.core.data.load_strategy.datasets.load_dataset')
     @patch('data_juicer.utils.s3_utils.get_aws_credentials')
     def test_load_data_without_credentials(self, mock_get_credentials, mock_load_dataset):
-        """Test load_data without credentials (anonymous access)"""
+        """Test load_data without credentials (uses default credential chain)"""
         from datasets import Dataset
         
         # Mock no credentials
@@ -527,13 +527,19 @@ class TestDefaultS3DataLoadStrategy(DataJuicerTestCaseBase):
         # Mock unify_format to return the dataset as-is
         with patch('data_juicer.core.data.load_strategy.unify_format') as mock_unify:
             mock_unify.return_value = test_dataset
-            result = strategy.load_data()
+            _ = strategy.load_data()
             
-            # Verify load_dataset was called with anonymous access
+            # Verify load_dataset was called
             mock_load_dataset.assert_called_once()
             call_args = mock_load_dataset.call_args
             storage_options = call_args[1]['storage_options']
-            self.assertTrue(storage_options.get('anon', False))
+            # With no credentials, storage_options should be empty (or minimal)
+            # This allows s3fs to use default credential chain (IAM role, ~/.aws/credentials)
+            # Anonymous access is NOT automatically enabled
+            self.assertNotIn('key', storage_options)
+            self.assertNotIn('secret', storage_options)
+            self.assertNotIn('token', storage_options)
+            self.assertNotIn('anon', storage_options)
 
 
 class TestRayS3DataLoadStrategy(DataJuicerTestCaseBase):

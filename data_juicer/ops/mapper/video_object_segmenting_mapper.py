@@ -14,7 +14,6 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_object_segmenting_mapper"
 
-LazyLoader._install_package("transformers>=4.56.0.dev0")
 ultralytics = LazyLoader("ultralytics")
 cv2 = LazyLoader("cv2", "opencv-python")
 torch = LazyLoader("torch")
@@ -58,6 +57,7 @@ class VideoObjectSegmentingMapper(Mapper):
         """
 
         super().__init__(*args, **kwargs)
+        LazyLoader._install_package("transformers>=4.56.0.dev0")
 
         # Requires the weights for YOLOE and mobileclip_blt.
         self.yoloe_model_key = prepare_model(model_type="yolo", model_path=yoloe_path)

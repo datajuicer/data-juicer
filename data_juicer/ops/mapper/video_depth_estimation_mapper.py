@@ -14,7 +14,6 @@ from ..op_fusion import LOADED_VIDEOS
 OP_NAME = "video_depth_estimation_mapper"
 
 
-LazyLoader.check_packages(["easydict", "xformers"])
 cv2 = LazyLoader("cv2", "opencv-python")
 torch = LazyLoader("torch")
 open3d = LazyLoader("open3d")
@@ -61,6 +60,7 @@ class VideoDepthEstimationMapper(Mapper):
         """
 
         super().__init__(*args, **kwargs)
+        LazyLoader.check_packages(["easydict", "xformers", "imageio", "imageio-ffmpeg"])
 
         video_depth_anything_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "Video-Depth-Anything")
         if not os.path.exists(video_depth_anything_repo_path):
@@ -131,6 +131,7 @@ class VideoDepthEstimationMapper(Mapper):
             self.save_video(depths, depth_vis_path, fps=fps, is_depths=True, grayscale=self.grayscale)
 
         if self.metric:
+            os.makedirs(self.point_cloud_dir_for_metric, exist_ok=True)
             width, height = depths[0].shape[-1], depths[0].shape[-2]
             x, y = np.meshgrid(np.arange(width), np.arange(height))
             x = (x - width / 2) / 470.4

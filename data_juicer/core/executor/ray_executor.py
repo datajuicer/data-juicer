@@ -78,8 +78,9 @@ class RayExecutor(ExecutorBase):
         # 2. dataset config (for backward compatibility)
         # 3. environment variables (handled by exporter)
         if self.cfg.export_path.startswith("s3://"):
-            # Priority 1: Check for export-specific credentials
-            if hasattr(self.cfg, "export_aws_credentials"):
+            # Pass export-specific credentials if provided.
+            # The RayExporter will handle falling back to environment variables or other credential mechanisms.
+            if hasattr(self.cfg, "export_aws_credentials") and self.cfg.export_aws_credentials:
                 export_aws_creds = self.cfg.export_aws_credentials
                 if hasattr(export_aws_creds, "aws_access_key_id"):
                     export_extra_args["aws_access_key_id"] = export_aws_creds.aws_access_key_id
@@ -91,8 +92,6 @@ class RayExecutor(ExecutorBase):
                     export_extra_args["aws_region"] = export_aws_creds.aws_region
                 if hasattr(export_aws_creds, "endpoint_url"):
                     export_extra_args["endpoint_url"] = export_aws_creds.endpoint_url
-            else:
-                raise ValueError(f"No AWS credentials provided for S3 export: {self.cfg.export_path}")
 
         self.exporter = RayExporter(
             self.cfg.export_path,

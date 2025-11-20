@@ -123,6 +123,9 @@ class VideoMotionScoreFilter(Filter):
         self.if_output_optical_flow = if_output_optical_flow
         self.optical_flow_key = optical_flow_key
 
+        # setup model
+        self.model = None
+
     def setup_model(self, rank=None):
         self.model = cv2.calcOpticalFlowFarneback
 
@@ -205,7 +208,7 @@ class VideoMotionScoreFilter(Filter):
             else:
                 unique_motion_scores[video_key] = np.mean(video_motion_scores or [-1])
 
-            video_optical_flows[video_key] = np.stack(optical_flows) if optical_flows else np.array([])
+            video_optical_flows[video_key] = np.stack(optical_flows).tolist() if optical_flows else []
 
         sample[Fields.stats][StatsKeys.video_motion_score] = [unique_motion_scores[key] for key in loaded_video_keys]
         if self.if_output_optical_flow:

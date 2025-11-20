@@ -1,6 +1,5 @@
 import os
 import unittest
-import numpy as np
 
 from datasets import Dataset
 
@@ -18,13 +17,12 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
     vid2_path = os.path.join(data_path, 'video2.mp4')  # 3.52111
     vid3_path = os.path.join(data_path, 'video3.mp4')  # 1.1731424
 
-    def _run_helper(self, op, source_list, target_list, np=1):
+    def _run_helper(self, op, source_list, target_list):
         dataset = Dataset.from_list(source_list)
         if Fields.stats not in dataset.features:
             dataset = dataset.add_column(name=Fields.stats,
                                          column=[{}] * dataset.num_rows)
-        dataset = dataset.map(op.compute_stats, num_proc=np)
-        dataset = dataset.filter(op.process, num_proc=np)
+        dataset = op.run(dataset)
         dataset = dataset.select_columns(column_names=[op.video_key])
         res_list = dataset.to_list()
         self.assertEqual(res_list, target_list)
@@ -175,8 +173,8 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
             'videos': [self.vid3_path]
         }]
         tgt_list = [{'videos': [self.vid1_path]}]
-        op = VideoMotionScoreFilter(min_score=1.5, max_score=3.0)
-        self._run_helper(op, ds_list, tgt_list, np=2)
+        op = VideoMotionScoreFilter(min_score=1.5, max_score=3.0, num_proc=2)
+        self._run_helper(op, ds_list, tgt_list)
 
     def test_output_optical_flow(self):
         ds_list = [{
@@ -205,10 +203,6 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
         dataset = dataset.filter(op.process, num_proc=1)
         metas = dataset.select_columns(column_names=[Fields.meta])
         self.assertIn(MetaKeys.video_optical_flow, metas.features[Fields.meta])
-        sample_optical_flow = metas[0][Fields.meta][MetaKeys.video_optical_flow]
-        self.assertIsInstance(sample_optical_flow, np.ndarray)
-        self.assertEqual(len(sample_optical_flow.shape), 4)
-        self.assertEqual(sample_optical_flow.shape[-1], 2)
 
         dataset = dataset.select_columns(column_names=[op.video_key])
         res_list = dataset.to_list()

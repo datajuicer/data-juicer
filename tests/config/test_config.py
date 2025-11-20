@@ -9,7 +9,7 @@ from io import StringIO
 
 from jsonargparse import Namespace, namespace_to_dict
 
-from data_juicer.config import init_configs, get_default_cfg, validate_work_dir_config, resolve_job_id, resolve_job_directories
+from data_juicer.config import init_configs, get_default_cfg, validate_work_dir_config, resolve_job_id, resolve_job_directories, update_op_attr, export_config, merge_config, prepare_side_configs
 from data_juicer.ops import load_ops
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 from data_juicer.utils.constant import RAY_JOB_ENV_VAR
@@ -65,6 +65,16 @@ class ConfigTest(DataJuicerTestCaseBase):
             cfg = init_configs(args=f'--config {test_yaml_path}'.split())
             self.assertIsInstance(cfg, Namespace)
             self.assertEqual(cfg.project_name, 'test_demo')
+            
+            # work_dir now includes auto-generated job_id, so check it starts with WORKDIR
+            # and ends with a job_id pattern (YYYYMMDD_HHMMSS_xxxxxx)
+            actual_work_dir = cfg.process[0]['whitespace_normalization_mapper']['work_dir']
+            self.assertTrue(actual_work_dir.startswith(WORKDIR), 
+                          f'work_dir {actual_work_dir} should start with {WORKDIR}')
+            import re
+            self.assertRegex(actual_work_dir, rf'^{re.escape(WORKDIR)}/\d{{8}}_\d{{6}}_[a-f0-9]{{6}}$',
+                           f'work_dir {actual_work_dir} should match pattern {WORKDIR}/YYYYMMDD_HHMMSS_xxxxxx')
+            
             self.assertDictEqual(
                 cfg.process[0], {
                     'whitespace_normalization_mapper': {
@@ -87,7 +97,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'turbo': False,
                         'index_key': None,
                         'skip_op_error': True,
-                        'work_dir': WORKDIR,
+                        'work_dir': actual_work_dir,  # Use actual work_dir with job_id
                     }
                 }, 'nested dict load fail, for nonparametric op')
             self.assertDictEqual(
@@ -118,7 +128,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'gpu_required': None,
                         'index_key': None,
                         'skip_op_error': True,
-                        'work_dir': WORKDIR,
+                        'work_dir': actual_work_dir,  # Use actual work_dir with job_id
                     }
                 }, 'nested dict load fail, un-expected internal value')
 
@@ -170,6 +180,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                 '--language_id_score_filter.lang=en '
                 '--language_id_score_filter.min_score=0.5'.split())
             print(f'ori_cfg.process[1] = {ori_cfg.process[1]}')
+            # work_dir now includes job_id suffix due to resolve_job_directories
+            expected_work_dir = ori_cfg.work_dir
             self.assertDictEqual(
                 ori_cfg.process[1], {
                     'language_id_score_filter': {
@@ -198,9 +210,11 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'turbo': False,
                         'index_key': None,
                         'skip_op_error': True,
-                        'work_dir': WORKDIR,
+                        'work_dir': expected_work_dir,
                     }
                 })
+            # work_dir now includes job_id suffix due to resolve_job_directories
+            expected_work_dir_1 = mixed_cfg_1.work_dir
             self.assertDictEqual(
                 mixed_cfg_1.process[1], {
                     'language_id_score_filter': {
@@ -229,9 +243,11 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'gpu_required': None,
                         'index_key': None,
                         'skip_op_error': True,
-                        'work_dir': WORKDIR,
+                        'work_dir': expected_work_dir_1,
                     }
                 })
+            # work_dir now includes job_id suffix due to resolve_job_directories
+            expected_work_dir_2 = mixed_cfg_2.work_dir
             self.assertDictEqual(
                 mixed_cfg_2.process[1], {
                     'language_id_score_filter': {
@@ -260,9 +276,11 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'gpu_required': None,
                         'index_key': None,
                         'skip_op_error': True,
-                        'work_dir': WORKDIR,
+                        'work_dir': expected_work_dir_2,
                     }
                 })
+            # work_dir now includes job_id suffix due to resolve_job_directories
+            expected_work_dir_3 = mixed_cfg_3.work_dir
             self.assertDictEqual(
                 mixed_cfg_3.process[1], {
                     'language_id_score_filter': {
@@ -291,9 +309,11 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'gpu_required': None,
                         'index_key': None,
                         'skip_op_error': True,
-                        'work_dir': WORKDIR,
+                        'work_dir': expected_work_dir_3,
                     }
                 })
+            # work_dir now includes job_id suffix due to resolve_job_directories
+            expected_work_dir_4 = mixed_cfg_4.work_dir
             self.assertDictEqual(
                 mixed_cfg_4.process[1], {
                     'language_id_score_filter': {
@@ -322,7 +342,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'gpu_required': None,
                         'index_key': None,
                         'skip_op_error': True,
-                        'work_dir': WORKDIR,
+                        'work_dir': expected_work_dir_4,
                     }
                 })
 
@@ -430,6 +450,274 @@ class ConfigTest(DataJuicerTestCaseBase):
             out_str = out.getvalue()
             self.assertIn('language_id_score_filter.min_score', out_str)
             self.assertIn('float', out_str)
+
+    def test_auto_mode(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            # not in analyzer
+            with self.assertRaises(NotImplementedError):
+                init_configs(args=[
+                    '--auto',
+                ], which_entry="NoneAnalyzerClass")
+
+            # in analyzer
+            from data_juicer.core import Analyzer
+            cfg = init_configs(args=[
+                '--config', test_yaml_path,
+            ])
+            analyzer = Analyzer(cfg)
+
+            cfg_auto = init_configs(args=[
+                '--auto',
+            ], which_entry=analyzer)
+            self.assertTrue(cfg_auto.auto)
+            self.assertGreater(len(cfg_auto.process), 0)
+
+    def test_debug_mode(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            cfg = init_configs(args=[
+                '--config', test_yaml_path,
+                '--debug',
+            ])
+            self.assertEqual(cfg.debug, True)
+
+    def test_different_np(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            # too many
+            cfg = init_configs(args=[
+                '--config', test_yaml_path,
+                '--np', f'{os.cpu_count() + 100}',
+            ])
+            self.assertEqual(cfg.np, os.cpu_count())
+
+    def test_op_fusion(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            with self.assertRaises(NotImplementedError):
+                init_configs(args=[
+                    '--config', test_yaml_path,
+                    '--op_fusion', 'True',
+                    '--fusion_strategy', 'invalid',
+                ])
+
+    def test_multiple_text_keys(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            cfg = init_configs(args=[
+                '--config', test_text_keys_yaml_path,
+            ])
+            self.assertEqual(cfg.text_keys, ['text1', 'text2'])
+            first_op = cfg.process[0]
+            first_op_name = list(first_op.keys())[0]
+            self.assertEqual(first_op[first_op_name]['text_key'], 'text1')
+
+    def test_update_op_attr(self):
+        ori_ops = [
+            {'text_mapper': {'text_key': 'text'}},
+            {'language_id_score_filter': {'lang': 'en', 'min_score': 0.5}},
+            {'whitespace_normalization_mapper': {'batch_size': 2000}},
+            {'remove_table_text_mapper': {'min_col': 3}}
+        ]
+        op_attrs = {
+            'text_key': 'text2'
+        }
+        res_ops = update_op_attr(ori_ops, op_attrs)
+        self.assertEqual(res_ops, [
+            {'text_mapper': {'text_key': 'text'}},
+            {'language_id_score_filter': {'lang': 'en', 'min_score': 0.5, 'text_key': 'text2'}},
+            {'whitespace_normalization_mapper': {'batch_size': 2000, 'text_key': 'text2'}},
+            {'remove_table_text_mapper': {'min_col': 3, 'text_key': 'text2'}}
+        ])
+
+        self.assertEqual(update_op_attr(ori_ops, None), ori_ops)
+
+    def test_same_ops(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            cfg = init_configs(args=[
+                '--config', test_same_ops_yaml_path,
+            ])
+            op_name_groups = {}
+            for op_cfg in cfg.process:
+                op_name = list(op_cfg.keys())[0]
+                op_name_groups.setdefault(op_name, []).append(op_cfg)
+            self.assertEqual(len(op_name_groups['language_id_score_filter']), 2)
+            self.assertEqual(op_name_groups['language_id_score_filter'][0]['language_id_score_filter']['lang'], 'zh')
+            self.assertEqual(op_name_groups['language_id_score_filter'][1]['language_id_score_filter']['lang'], 'en')
+
+    def test_export_config(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            cfg = init_configs(args=[
+                '--config', test_yaml_path,
+            ])
+            export_path = os.path.join(self.tmp_dir, 'export_config.json')
+            export_config(cfg, export_path, format='json', skip_none=False)
+            self.assertTrue(os.path.exists(export_path))
+            import json
+            exported_json = json.load(open(export_path))
+            if isinstance(cfg, Namespace):
+                cfg = namespace_to_dict(cfg)
+            for key in exported_json:
+                self.assertIn(key, cfg)
+                self.assertEqual(exported_json[key], cfg[key])
+
+    def test_merge_config(self):
+        ori_cfg = Namespace({
+            'export_path': os.path.join(self.tmp_dir, 'res.jsonl'),
+            'work_dir': self.tmp_dir,
+            'process': [
+                {'text_mapper': {'text_key': 'text'}},
+                {'language_id_score_filter': {'lang': 'en', 'min_score': 0.5}},
+                {'whitespace_normalization_mapper': {'batch_size': 2000}},
+                {'remove_table_text_mapper': {'min_col': 3}}
+            ]
+        })
+        new_cfg = Namespace({
+            'process': [
+                {'text_mapper': {'text_key': 'text2'}},
+                {'language_id_score_filter': {'lang': 'zh'}},
+                {'whitespace_normalization_mapper': {'batch_size': 2000}},
+                {'remove_table_text_mapper': {'min_col': 3}}
+            ]
+        })
+        res_cfg = merge_config(ori_cfg, new_cfg)
+        for i, op in enumerate(res_cfg.process):
+            op_name = list(op.keys())[0]
+            op_cfg = op[op_name]
+            ori_op_cfg = ori_cfg.process[i][op_name]
+            new_op_cfg = new_cfg.process[i][op_name]
+            for key in op_cfg:
+                if key in ori_op_cfg:
+                    self.assertEqual(op_cfg[key], ori_op_cfg[key])
+                else:
+                    self.assertEqual(op_cfg[key], new_op_cfg[key])
+
+    def test_prepare_side_configs(self):
+        out = StringIO()
+        with redirect_stdout(out):
+            cfg = prepare_side_configs(test_yaml_path)
+            self.assertEqual(cfg['np'], 4)
+
+            cfg = prepare_side_configs({'key': 'value'})
+            self.assertEqual(cfg['key'], 'value')
+
+            with self.assertRaises(TypeError):
+                prepare_side_configs(1)
+
+            with self.assertRaises(TypeError):
+                prepare_side_configs('xxx.txt')
+
+    def test_cli_custom_operator_paths(self):
+        """Test arg custom_operator_paths"""
+
+        new_ops_dir = f'{WORKDIR}/custom_ops'
+        new_op_path1 = os.path.join(new_ops_dir, 'new_op1.py')
+        new_op_path2 = os.path.join(new_ops_dir, 'test_dir_module/new_op2.py')
+        os.makedirs(os.path.dirname(new_op_path1), exist_ok=True)
+        os.makedirs(os.path.dirname(new_op_path2), exist_ok=True)
+
+        with open(new_op_path1, 'w') as f:
+            f.write("""
+from data_juicer.ops.base_op import OPERATORS, Mapper
+                                              
+@OPERATORS.register_module('custom_mapper1')
+class CustomMapper1(Mapper):
+    def process_single(self, data):
+        return data
+""")
+        with open(new_op_path2, 'w') as f:
+            f.write("""
+from data_juicer.ops.base_op import OPERATORS, Mapper
+                                              
+@OPERATORS.register_module('custom_mapper2')
+class CustomMapper2(Mapper):
+    def process_single(self, data):
+        return data
+""")
+            
+        with open(os.path.join(os.path.dirname(new_op_path2), '__init__.py'), 'w') as f:
+            f.write("""
+from . import new_op2
+""")
+
+        init_configs(args=[
+            '--config', test_yaml_path,
+            '--custom-operator-paths', new_op_path1, os.path.dirname(new_op_path2)
+        ])
+        from data_juicer.ops.base_op import OPERATORS
+        self.assertIn('custom_mapper1', list(OPERATORS.modules.keys()))
+        self.assertIn('custom_mapper2', list(OPERATORS.modules.keys()))
+        
+        OPERATORS.modules.pop('custom_mapper1')
+        OPERATORS.modules.pop('custom_mapper2')
+
+    # TODO: TEST_TAG("ray ") and RayExecutor will repeatedly execute ray init, 
+    # resulting in the custom module not being found
+    # @TEST_TAG("ray")
+    @unittest.skip('affect other test cases')
+    def test_cli_custom_operator_paths_ray(self):
+        """Test arg custom_operator_paths"""
+
+        new_ops_dir = f'{WORKDIR}/custom_ops'
+        new_op_path1 = os.path.join(new_ops_dir, 'new_op3.py')
+        new_op_path2 = os.path.join(new_ops_dir, 'test_dir_module2/new_op4.py')
+        os.makedirs(os.path.dirname(new_op_path1), exist_ok=True)
+        os.makedirs(os.path.dirname(new_op_path2), exist_ok=True)
+        tmp_yaml_path = f'{WORKDIR}/demo_4_test_ray_tmp.yaml'
+        
+        with open(tmp_yaml_path, 'w') as f:
+            f.write("""
+project_name: 'test_demo'
+dataset_path: './demos/data/demo-dataset.jsonl'
+executor_type: ray
+ray_address: auto
+export_path: './outputs/demo/demo-processed.parquet'
+process:
+  - custom_mapper3:
+  - custom_mapper4:
+""")
+
+        with open(new_op_path1, 'w') as f:
+            f.write("""
+from data_juicer.ops.base_op import OPERATORS, Mapper
+                                              
+@OPERATORS.register_module('custom_mapper3')
+class CustomMapper3(Mapper):
+    def process_single(self, data):
+        data['text'] += 'tag1'
+        return data
+""")
+        with open(new_op_path2, 'w') as f:
+            f.write("""
+from data_juicer.ops.base_op import OPERATORS, Mapper
+                                              
+@OPERATORS.register_module('custom_mapper4')
+class CustomMapper4(Mapper):
+    def process_single(self, data):
+        data['text'] += 'tag2'
+        return data
+""")
+            
+        with open(os.path.join(os.path.dirname(new_op_path2), '__init__.py'), 'w') as f:
+            f.write("""
+from . import new_op4
+""")
+
+        cfg = init_configs(args=[
+            '--config', tmp_yaml_path,
+            '--custom-operator-paths', new_op_path1, os.path.dirname(new_op_path2)
+        ])
+        from data_juicer.core.executor.ray_executor import RayExecutor
+
+        executor = RayExecutor(cfg)
+        ds = executor.run()
+        for data in ds.to_list():
+            self.assertTrue(data['text'].endswith('tag1tag2'))
+
+        os.environ[RAY_JOB_ENV_VAR] = "0"
 
     def test_validate_work_dir_config_valid_cases(self):
         """Test validate_work_dir_config with valid configurations."""
@@ -541,8 +829,6 @@ class ConfigTest(DataJuicerTestCaseBase):
         
         # work_dir should be substituted
         self.assertEqual(cfg.work_dir, './outputs/my_project/20250804_143022_abc123')
-        # job_dir should equal work_dir since job_id is at the end
-        self.assertEqual(cfg.job_dir, './outputs/my_project/20250804_143022_abc123')
         # Other directories should be under job_dir
         self.assertEqual(cfg.event_log_dir, './outputs/my_project/20250804_143022_abc123/logs')
         self.assertEqual(cfg.checkpoint_dir, './outputs/my_project/20250804_143022_abc123/checkpoints')
@@ -554,16 +840,11 @@ class ConfigTest(DataJuicerTestCaseBase):
     def test_resolve_job_directories_without_job_id_placeholder(self):
         """Test resolve_job_directories when work_dir doesn't contain {job_id}."""
         cfg = Namespace()
-        cfg.work_dir = './outputs/my_project'
         cfg.job_id = '20250804_143022_abc123'
-        
+        cfg.work_dir = './outputs/my_project'
         cfg = resolve_job_directories(cfg)
-        
-        # work_dir should remain unchanged
-        self.assertEqual(cfg.work_dir, './outputs/my_project')
-        # job_dir should be work_dir + job_id
-        self.assertEqual(cfg.job_dir, './outputs/my_project/20250804_143022_abc123')
-        # Other directories should be under job_dir
+
+        self.assertEqual(cfg.work_dir, './outputs/my_project/20250804_143022_abc123')
         self.assertEqual(cfg.event_log_dir, './outputs/my_project/20250804_143022_abc123/logs')
         self.assertEqual(cfg.checkpoint_dir, './outputs/my_project/20250804_143022_abc123/checkpoints')
 
@@ -642,9 +923,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                 self.assertIn(cfg.job_id, cfg.work_dir)
                 self.assertNotIn('{job_id}', cfg.work_dir)
                 
-                # Verify job_dir is correct
-                self.assertEqual(cfg.job_dir, cfg.work_dir)
-                
                 # Verify export_path was substituted
                 self.assertIn(cfg.job_id, cfg.export_path)
                 self.assertNotIn('{work_dir}', cfg.export_path)
@@ -677,11 +955,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                 self.assertIsNotNone(cfg.job_id)
                 self.assertRegex(cfg.job_id, r'^\d{8}_\d{6}_[a-f0-9]{6}$')
                 
-                # Verify work_dir was not changed
-                self.assertEqual(cfg.work_dir, './outputs/test_project')
-                
-                # Verify job_dir is work_dir + job_id
-                self.assertEqual(cfg.job_dir, f'./outputs/test_project/{cfg.job_id}')
+                # Verify work_dir
+                self.assertEqual(cfg.work_dir, f'./outputs/test_project/{cfg.job_id}')
                 
                 # Note: When there's no {job_id} placeholder, {work_dir} in export_path is still substituted
                 # The system substitutes {work_dir} with the actual work_dir value
@@ -752,7 +1027,6 @@ class ConfigTest(DataJuicerTestCaseBase):
                 
                 # Verify work_dir was substituted
                 self.assertEqual(cfg.work_dir, './outputs/test_project/my_custom_job_123')
-                self.assertEqual(cfg.job_dir, './outputs/test_project/my_custom_job_123')
                 
         finally:
             os.unlink(temp_config_path)

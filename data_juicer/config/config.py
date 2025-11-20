@@ -695,7 +695,7 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
             parser.add_argument(
                 "--custom-operator-paths", nargs="+", help="Paths to custom operator scripts or directories."
             )
-            parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode.")
+            parser.add_argument("--debug", action="store_true", default=False, help="Whether to run in debug mode.")
 
             # Filter out non-essential arguments for initial parsing
             essential_args = []
@@ -784,7 +784,7 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         global_cfg = cfg
         global_parser = parser
 
-        if cfg.debug:
+        if cfg.get("debug", False):
             logger.debug("In DEBUG mode.")
 
         return cfg
@@ -838,10 +838,8 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         setup_logger(
             save_dir=cfg.event_log_dir,
             filename=logfile_name,
-            level="DEBUG" if cfg.debug else "INFO",
-            redirect=cfg.executor_type == "default",
-            max_log_size_mb=getattr(cfg, "max_log_size_mb", 100),
-            backup_count=getattr(cfg, "backup_count", 5),
+            level="DEBUG" if cfg.get("debug", False) else "INFO",
+            redirect=cfg.get("executor_type", "default") == "default",
         )
 
     # check and get dataset dir

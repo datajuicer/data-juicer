@@ -7,7 +7,6 @@ from jsonargparse import Namespace
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.core.adapter import Adapter
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
@@ -62,11 +61,6 @@ class RayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin):
 
         # Initialize DAGExecutionMixin for AST/DAG functionality
         DAGExecutionMixin.__init__(self)
-
-        self.adapter = Adapter(self.cfg)
-
-        # TODO: support ray
-        # self.adapter = Adapter(self.cfg)
 
         # init ray
         logger.info("Initializing Ray ...")

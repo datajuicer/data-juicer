@@ -1007,7 +1007,7 @@ process:
       redis_address: 'redis://localhost:6379'                 # the address of redis server
       lowercase: false                                        # whether to convert text to lower case
       ignore_non_character: false                             # whether to ignore non-alphabet characters, including whitespaces, digits, and punctuations
-  - ray_bts_minhash_deduplicator:                            # the document deduplicator that can run on multi-nodes using minhashLSH algorithm
+  - ray_bts_minhash_deduplicator:                           # the document deduplicator that can run on multi-nodes using minhashLSH algorithm
       tokenization: space                                     # tokenization method for text. One of [space, punctuation, character, sentencepiece]
       window_size: 5                                          # window size of shingling
       num_permutations: 256                                   # number of permutations in minhash computing
@@ -1027,6 +1027,16 @@ process:
       tmp_file_name: './outputs/ray-dedup-tmp/'               # the temporary folder name for deduplication.
 
   # Selector ops
+  - domain_diversity_selector:                              # selector to select samples based on the data's domain diversity
+      api_or_hf_model: 'text-embedding-v3'                    # API or huggingface embedding model name
+      is_hf_model: False                                      # indicates if the model is from HuggingFace
+      api_endpoint: '/embeddings'                             # embedding URL endpoint for the API
+      response_path: 'data.0.embedding'                       # path to extract content from the API response
+      model_params: {}                                        # parameters for initializing the API model
+      select_ratio:                                           # the ratio to be sampled
+      init_k: 3                                               # the value of k in k-means algorithm
+      ebd_dim: 512                                            # the embedding's dimension via API
+      strategy: 'inter'                                       # the selection strategy based on the relation across domains
   - frequency_specified_field_selector:                     # selector to select samples based on the sorted frequency of specified field value
       field_key: ''                                           # the target keys corresponding to multi-level field information need to be separated by '.'
       top_ratio:                                              # ratio of selected top specified field value

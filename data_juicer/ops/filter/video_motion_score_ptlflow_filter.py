@@ -51,7 +51,7 @@ class VideoMotionScorePtlflowFilter(VideoMotionScoreFilter):
         min_score: float = 1.0,
         max_score: float = sys.float_info.max,
         model_name: str = "dpflow",
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[str] = "things",
         get_model_args: Optional[dict] = None,
         sampling_fps: PositiveFloat = 2,
         size: Union[PositiveInt, Tuple[PositiveInt], Tuple[PositiveInt, PositiveInt], None] = None,
@@ -104,7 +104,8 @@ class VideoMotionScorePtlflowFilter(VideoMotionScoreFilter):
             frames = [prev_frame, curr_frame]
             inputs = io_adapter.prepare_inputs(frames)
             inputs = {key: value.to(self.device) for key, value in inputs.items()}
-            predictions = self.model(inputs)
+            with torch.no_grad():
+                predictions = self.model(inputs)
             flows = predictions.get("flows")  # shape: (1, 1, 2, H, W)
-            flow = flows[-1][0].cpu().detach().numpy().transpose((1, 2, 0))  # 2, H, W -> H, W, 2
+            flow = flows[-1][0].detach().cpu().numpy().transpose((1, 2, 0))  # 2, H, W -> H, W, 2
         return flow, curr_frame

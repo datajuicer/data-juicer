@@ -1,5 +1,4 @@
-from typing import Union
-
+from .base import ExecutorBase
 from .default_executor import DefaultExecutor
 from .ray_executor import RayExecutor
 from .ray_executor_partitioned import PartitionedRayExecutor
@@ -7,7 +6,7 @@ from .ray_executor_partitioned import PartitionedRayExecutor
 
 class ExecutorFactory:
     @staticmethod
-    def create_executor(executor_type: str) -> Union[DefaultExecutor, RayExecutor, PartitionedRayExecutor]:
+    def create_executor(executor_type: str) -> ExecutorBase:
         if executor_type in ("local", "default"):
             return DefaultExecutor
         elif executor_type == "ray":

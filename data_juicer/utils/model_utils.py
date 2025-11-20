@@ -65,6 +65,10 @@ BACKUP_MODEL_LINKS = {
     "*_core_web_md-3.*.0": "https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/" "data_juicer/models/",
     # YOLO
     "yolo11n.pt": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt",
+    # WiLoR
+    "wilor_model_path": "https://huggingface.co/spaces/rolpotamias/WiLoR/resolve/main/pretrained_models/wilor_final.ckpt",
+    "wilor_model_config": "https://raw.githubusercontent.com/rolpotamias/WiLoR/refs/heads/main/pretrained_models/model_config.yaml",
+    "wilor_detector_model_path": "https://huggingface.co/spaces/rolpotamias/WiLoR/resolve/main/pretrained_models/detector.pt",
 }
 
 
@@ -929,6 +933,79 @@ def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
     return (model, tokenizer)
 
 
+def prepare_wilor_model(wilor_model_path, wilor_model_config, detector_model_path, mano_right_path, **model_params):
+    device = model_params.pop("device", "cpu")
+    wilor_DJMC_model_path = os.path.join(DJMC, "WiLoR")
+
+    if not os.path.exists(mano_right_path):
+        raise ValueError(
+            "Users need to download 'MANO_RIGHT.pkl' from https://mano.is.tue.mpg.de/ and comply with the MANO license."
+        )
+
+    import subprocess
+
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    wilor_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "WiLoR")
+    if not os.path.exists(wilor_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/rolpotamias/WiLoR.git", wilor_repo_path], check=True)
+
+    import sys
+
+    sys.path.append(wilor_repo_path)
+    from wilor.configs import get_config
+    from wilor.models.wilor import WiLoR
+    from wilor.utils.renderer import Renderer
+
+    def _get_model_path(model_path, default_filename, download_key):
+        if not os.path.exists(model_path):
+            if not os.path.exists(DJMC):
+                os.makedirs(DJMC)
+            if not os.path.exists(wilor_DJMC_model_path):
+                os.makedirs(wilor_DJMC_model_path)
+            model_path = os.path.join(wilor_DJMC_model_path, default_filename)
+            if not os.path.exists(model_path):
+                wget.download(BACKUP_MODEL_LINKS[download_key], wilor_DJMC_model_path)
+        return model_path
+
+    wilor_model_path = _get_model_path(wilor_model_path, "wilor_final.ckpt", "wilor_model_path")
+    wilor_model_config = _get_model_path(wilor_model_config, "model_config.yaml", "wilor_model_config")
+    detector_model_path = _get_model_path(detector_model_path, "detector.pt", "wilor_detector_model_path")
+
+    model_cfg = get_config(wilor_model_config, update_cachedir=True)
+    # Override some config values, to crop bbox correctly
+    if ("vit" in model_cfg.MODEL.BACKBONE.TYPE) and ("BBOX_SHAPE" not in model_cfg.MODEL):
+
+        model_cfg.defrost()
+        assert (
+            model_cfg.MODEL.IMAGE_SIZE == 256
+        ), f"MODEL.IMAGE_SIZE ({model_cfg.MODEL.IMAGE_SIZE}) should be 256 for ViT backbone"
+        model_cfg.MODEL.BBOX_SHAPE = [192, 256]
+        model_cfg.freeze()
+
+    # Update config to be compatible with demo
+    if "PRETRAINED_WEIGHTS" in model_cfg.MODEL.BACKBONE:
+        model_cfg.defrost()
+        model_cfg.MODEL.BACKBONE.pop("PRETRAINED_WEIGHTS")
+        model_cfg.freeze()
+
+        # Update config to be compatible with demo
+    if "DATA_DIR" in model_cfg.MANO:
+        model_cfg.defrost()
+        model_cfg.MANO.DATA_DIR = os.path.join(wilor_repo_path, "mano_data/")
+        model_cfg.MANO.MODEL_PATH = mano_right_path
+        model_cfg.MANO.MEAN_PARAMS = os.path.join(wilor_repo_path, "mano_data/mano_mean_params.npz")
+        model_cfg.freeze()
+
+    model = WiLoR.load_from_checkpoint(wilor_model_path, strict=False, cfg=model_cfg)
+    detector = ultralytics.YOLO(detector_model_path)
+    renderer = Renderer(model_cfg, faces=model.mano.faces)
+    model = model.to(device)
+    detector = detector.to(device)
+
+    return model, detector, model_cfg, renderer
+
+
 def prepare_embedding_model(model_path, **model_params):
     """
     Prepare and load an embedding model using transformers.
@@ -1063,6 +1140,7 @@ MODEL_FUNCTION_MAPPING = {
     "vggt": prepare_vggt_model,
     "video_blip": prepare_video_blip_model,
     "vllm": prepare_vllm_model,
+    "wilor": prepare_wilor_model,
     "yolo": prepare_yolo_model,
     "embedding": prepare_embedding_model,
 }

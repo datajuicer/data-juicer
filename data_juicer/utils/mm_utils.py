@@ -49,6 +49,8 @@ class _MetaSpecialTokens(type):
             env_var = f"{SPECIAL_TOKEN_ENV_PREFIX}{name.upper()}"
             os.environ[env_var] = value
             super().__setattr__(name, value)
+        elif name.startswith("__") and name.endswith("__"):
+            super().__setattr__(name, value)
         else:
             raise ValueError(
                 f"{name} is not a valid special token name, "

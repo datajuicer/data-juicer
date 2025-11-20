@@ -350,7 +350,7 @@
 
 
 <div class="viewcode-block" id="SpecifiedFieldFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedFieldFilter">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_field_filter.html#data_juicer.ops.filter.SpecifiedFieldFilter">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SpecifiedFieldFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter samples based on the specified field information.</span>
@@ -367,7 +367,7 @@
 <span class="sd">    - Converts non-list/tuple field values to a list for comparison.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SpecifiedFieldFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedFieldFilter.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_field_filter.html#data_juicer.ops.filter.SpecifiedFieldFilter.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">target_value</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialization method.</span>
@@ -387,7 +387,7 @@
 
 
 <div class="viewcode-block" id="SpecifiedFieldFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedFieldFilter.compute_stats_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_field_filter.html#data_juicer.ops.filter.SpecifiedFieldFilter.compute_stats_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="c1"># get the value from the original field</span>
         <span class="n">field_value</span> <span class="o">=</span> <span class="n">sample</span>
@@ -401,7 +401,7 @@
 
 
 <div class="viewcode-block" id="SpecifiedFieldFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedFieldFilter.process_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_field_filter.html#data_juicer.ops.filter.SpecifiedFieldFilter.process_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_key</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">True</span>

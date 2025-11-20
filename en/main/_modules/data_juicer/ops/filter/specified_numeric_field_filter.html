@@ -346,7 +346,7 @@
 
 
 <div class="viewcode-block" id="is_number">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_numeric_field_filter.html#data_juicer.ops.filter.specified_numeric_field_filter.is_number">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_numeric_field_filter.html#data_juicer.ops.filter.is_number">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">is_number</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -362,7 +362,7 @@
 
 
 <div class="viewcode-block" id="SpecifiedNumericFieldFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_numeric_field_filter.html#data_juicer.ops.filter.specified_numeric_field_filter.SpecifiedNumericFieldFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedNumericFieldFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SpecifiedNumericFieldFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter samples based on a specified numeric field value.</span>
@@ -379,7 +379,7 @@
 <span class="sd">    - Returns False for non-numeric or out-of-range values, filtering the sample.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SpecifiedNumericFieldFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_numeric_field_filter.html#data_juicer.ops.filter.specified_numeric_field_filter.SpecifiedNumericFieldFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedNumericFieldFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">field_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">min_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">,</span> <span class="n">max_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
@@ -406,7 +406,7 @@
 
 
 <div class="viewcode-block" id="SpecifiedNumericFieldFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_numeric_field_filter.html#data_juicer.ops.filter.specified_numeric_field_filter.SpecifiedNumericFieldFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedNumericFieldFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="c1"># get the value from the original field</span>
         <span class="n">field_value</span> <span class="o">=</span> <span class="n">sample</span>
@@ -420,7 +420,7 @@
 
 
 <div class="viewcode-block" id="SpecifiedNumericFieldFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.specified_numeric_field_filter.html#data_juicer.ops.filter.specified_numeric_field_filter.SpecifiedNumericFieldFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecifiedNumericFieldFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_key</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>

@@ -352,6 +352,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.download.downloader</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_snapshot_format</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.format.formatter</span><span class="w"> </span><span class="kn">import</span> <span class="n">unify_format</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.format.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_formatter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.s3_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_pyarrow_s3_filesystem</span><span class="p">,</span> <span class="n">validate_s3_path</span>
 
 <span class="c1"># based on executor type and data source type, use different</span>
 <span class="c1"># data load strategy to product corresponding datasets</span>
@@ -843,6 +844,237 @@
 <a class="viewcode-back" href="../../../../api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultCommonCrawlDataLoadStrategy.load_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;CommonCrawl data load strategy is not implemented&quot;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DefaultS3DataLoadStrategy">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultS3DataLoadStrategy">[docs]</a>
+<span class="nd">@DataLoadStrategyRegistry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;remote&quot;</span><span class="p">,</span> <span class="s2">&quot;s3&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DefaultS3DataLoadStrategy</span><span class="p">(</span><span class="n">DefaultDataLoadStrategy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    data load strategy for S3 datasets for LocalExecutor</span>
+<span class="sd">    Uses fsspec/s3fs to access S3 files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">CONFIG_VALIDATION_RULES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;required_fields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;optional_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;aws_access_key_id&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;aws_secret_access_key&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;aws_session_token&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;aws_region&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;endpoint_url&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;field_types&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span>
+        <span class="s2">&quot;custom_validators&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="DefaultS3DataLoadStrategy.load_data">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultS3DataLoadStrategy.load_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+        <span class="kn">import</span><span class="w"> </span><span class="nn">datasets</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.format.formatter</span><span class="w"> </span><span class="kn">import</span> <span class="n">unify_format</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.s3_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_aws_credentials</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span>
+        <span class="n">validate_s3_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="n">load_data_np</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;num_proc&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Get config values with defaults</span>
+        <span class="n">text_keys</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">&quot;text_keys&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading dataset from S3: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Determine file format from extension (reuse logic from RayLocalJsonDataLoadStrategy)</span>
+        <span class="n">file_extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">file_extension_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;.json&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.jsonl&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.txt&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.csv&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.tsv&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">data_format</span> <span class="o">=</span> <span class="n">file_extension_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">file_extension</span><span class="p">,</span> <span class="s2">&quot;json&quot;</span><span class="p">)</span>  <span class="c1"># Default to json</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected format: </span><span class="si">{</span><span class="n">data_format</span><span class="si">}</span><span class="s2"> for S3 path: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create S3FileSystem with credentials from config</span>
+        <span class="c1"># Get credentials with priority order (env vars first, then config)</span>
+        <span class="n">aws_access_key_id</span><span class="p">,</span> <span class="n">aws_secret_access_key</span><span class="p">,</span> <span class="n">aws_session_token</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_aws_credentials</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="p">)</span>
+        <span class="c1"># Region is auto-detected from S3 path for HuggingFace datasets, don&#39;t need it from credentials</span>
+
+        <span class="c1"># Build storage_options for S3FileSystem</span>
+        <span class="c1"># Note: region should NOT be in storage_options for HuggingFace datasets</span>
+        <span class="c1"># as it causes issues with AioSession. Region is auto-detected from S3 path.</span>
+        <span class="n">storage_options</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">aws_access_key_id</span><span class="p">:</span>
+            <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aws_access_key_id</span>
+        <span class="k">if</span> <span class="n">aws_secret_access_key</span><span class="p">:</span>
+            <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;secret&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aws_secret_access_key</span>
+        <span class="k">if</span> <span class="n">aws_session_token</span><span class="p">:</span>
+            <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aws_session_token</span>
+        <span class="c1"># Region is auto-detected from S3 path, don&#39;t pass it in storage_options</span>
+        <span class="c1"># If explicit region is needed, it should be set via AWS_REGION env var</span>
+        <span class="k">if</span> <span class="s2">&quot;endpoint_url&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="p">:</span>
+            <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;endpoint_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="p">[</span><span class="s2">&quot;endpoint_url&quot;</span><span class="p">]</span>
+
+        <span class="c1"># HuggingFace datasets uses storage_options (not fs parameter) for filesystem configuration</span>
+        <span class="c1"># storage_options are passed to fsspec/s3fs internally</span>
+        <span class="c1"># For public buckets without credentials, use anonymous access</span>
+        <span class="c1"># HuggingFace datasets uses storage_options for filesystem configuration.</span>
+        <span class="c1"># If storage_options is empty, s3fs will use its default credential chain (e.g., IAM role, ~/.aws/credentials).</span>
+        <span class="k">if</span> <span class="n">storage_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;key&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">storage_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;secret&quot;</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using explicit AWS credentials for S3 access&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using default AWS credential chain for S3 access&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Allow explicit anonymous access via config</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;anon&quot;</span><span class="p">):</span>
+            <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;anon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Anonymous access for public S3 bucket enabled via config.&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Pass storage_options to load_dataset (not fs parameter)</span>
+            <span class="c1"># storage_options are used by fsspec/s3fs internally</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+                <span class="n">data_format</span><span class="p">,</span>
+                <span class="n">data_files</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>  <span class="c1"># Direct S3 path</span>
+                <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">,</span>  <span class="c1"># Pass storage_options for S3 filesystem configuration</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Handle DatasetDict (multiple splits) vs Dataset (single)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">datasets</span><span class="o">.</span><span class="n">DatasetDict</span><span class="p">):</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedDataset</span>
+
+                <span class="n">ds</span> <span class="o">=</span> <span class="n">NestedDataset</span><span class="p">(</span><span class="n">datasets</span><span class="o">.</span><span class="n">concatenate_datasets</span><span class="p">([</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">()]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedDataset</span>
+
+                <span class="n">ds</span> <span class="o">=</span> <span class="n">NestedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># Unify format</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">unify_format</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">text_keys</span><span class="o">=</span><span class="n">text_keys</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">load_data_np</span><span class="p">,</span> <span class="n">global_cfg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ds</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to load dataset from S3 path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Ensure s3fs is installed and your AWS credentials are configured. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RayS3DataLoadStrategy">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayS3DataLoadStrategy">[docs]</a>
+<span class="nd">@DataLoadStrategyRegistry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;ray&quot;</span><span class="p">,</span> <span class="s2">&quot;remote&quot;</span><span class="p">,</span> <span class="s2">&quot;s3&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RayS3DataLoadStrategy</span><span class="p">(</span><span class="n">RayDataLoadStrategy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    data load strategy for S3 datasets for RayExecutor</span>
+<span class="sd">    Uses PyArrow&#39;s filesystem to read from S3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">CONFIG_VALIDATION_RULES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;required_fields&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;optional_fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;aws_access_key_id&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;aws_secret_access_key&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;aws_session_token&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;aws_region&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;endpoint_url&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;field_types&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span>
+        <span class="s2">&quot;custom_validators&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="RayS3DataLoadStrategy.load_data">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayS3DataLoadStrategy.load_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.ray_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RayDataset</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span>
+        <span class="n">validate_s3_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="c1"># Create S3 filesystem using utility function</span>
+        <span class="n">s3_fs</span> <span class="o">=</span> <span class="n">create_pyarrow_s3_filesystem</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading dataset from S3: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Determine file format from extension or config</span>
+        <span class="n">file_extension_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;.json&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.jsonl&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.txt&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.csv&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.tsv&quot;</span><span class="p">:</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.npy&quot;</span><span class="p">:</span> <span class="s2">&quot;numpy&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.tfrecords&quot;</span><span class="p">:</span> <span class="s2">&quot;tfrecords&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.lance&quot;</span><span class="p">:</span> <span class="s2">&quot;lance&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">auto_detect</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">data_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">data_source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">auto_detect</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">suffix</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">data_source</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">file_extension_map</span><span class="p">:</span>
+                <span class="n">data_format</span> <span class="o">=</span> <span class="n">file_extension_map</span><span class="p">[</span><span class="n">suffix</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">data_source</span> <span class="ow">in</span> <span class="n">file_extension_map</span><span class="p">:</span>
+                <span class="n">data_format</span> <span class="o">=</span> <span class="n">file_extension_map</span><span class="p">[</span><span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">data_source</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">auto_detect</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">auto_detect</span><span class="p">:</span>
+            <span class="c1"># Extract extension from path</span>
+            <span class="n">file_extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">data_format</span> <span class="o">=</span> <span class="n">file_extension_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">file_extension</span><span class="p">,</span> <span class="s2">&quot;parquet&quot;</span><span class="p">)</span>  <span class="c1"># Default to parquet for S3</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Auto-detected data format: </span><span class="si">{</span><span class="n">data_format</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using specified data format: </span><span class="si">{</span><span class="n">data_format</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">ray.data</span>
+
+            <span class="c1"># Use ray.data functions directly with PyArrow filesystem support</span>
+            <span class="c1"># Ray&#39;s read functions support filesystem parameter via PyArrow</span>
+            <span class="k">if</span> <span class="n">data_format</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="s2">&quot;jsonl&quot;</span><span class="p">}:</span>
+                <span class="c1"># For JSON, we need to use read_json_stream with filesystem</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.ray_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_json_stream</span>
+
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">read_json_stream</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3_fs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data_format</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3_fs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data_format</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3_fs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data_format</span> <span class="o">==</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3_fs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data_format</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_numpy</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3_fs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data_format</span> <span class="o">==</span> <span class="s2">&quot;tfrecords&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_tfrecords</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3_fs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data_format</span> <span class="o">==</span> <span class="s2">&quot;lance&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_lance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3_fs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported data format for S3: </span><span class="si">{</span><span class="n">data_format</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">RayDataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">dataset_path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">cfg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to load </span><span class="si">{</span><span class="n">data_format</span><span class="si">}</span><span class="s2"> data from S3 path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Ensure your AWS credentials are configured. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
 </div>
 
 </pre></div>

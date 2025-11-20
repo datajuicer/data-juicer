@@ -626,6 +626,12 @@
             <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
             <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
+<div class="viewcode-block" id="RayDataset.count">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.ray_dataset.html#data_juicer.core.data.ray_dataset.RayDataset.count">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">count</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="RayDataset.read">
 <a class="viewcode-back" href="../../../../api/data_juicer.core.data.ray_dataset.html#data_juicer.core.data.ray_dataset.RayDataset.read">[docs]</a>
     <span class="nd">@classmethod</span>
@@ -691,7 +697,22 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_read_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="s2">&quot;pyarrow.NativeFile&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_json</span>
+        <span class="c1"># Check if open_json is available (PyArrow 20.0.0+)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_json</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="c1"># Fall back to read_json for older PyArrow versions</span>
+            <span class="c1"># This will read the entire file into memory, but works with older PyArrow</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">js</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Read the entire file as a table</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">arrow_json_args</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">num_rows</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">table</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to read JSON file: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+            <span class="k">return</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">reader</span> <span class="o">=</span> <span class="n">open_json</span><span class="p">(</span>
@@ -734,6 +755,17 @@
     <span class="n">override_num_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">arrow_json_args</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+    <span class="c1"># Check if open_json is available (PyArrow 20.0.0+)</span>
+    <span class="c1"># If not, fall back to ray.data.read_json which works with older PyArrow</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">js</span>
+
+        <span class="n">js</span><span class="o">.</span><span class="n">open_json</span>  <span class="c1"># Check if attribute exists</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ImportError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+        <span class="c1"># Fall back to standard ray.data.read_json for older PyArrow versions</span>
+        <span class="c1"># This works with filesystem parameter for S3</span>
+        <span class="k">return</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">filesystem</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">meta_provider</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">meta_provider</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_api</span><span class="o">.</span><span class="n">DefaultFileMetadataProvider</span><span class="p">()</span>
 

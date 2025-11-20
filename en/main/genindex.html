@@ -1962,11 +1962,15 @@
 </li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultLocalDataLoadStrategy.CONFIG_VALIDATION_RULES">(data_juicer.core.data.load_strategy.DefaultLocalDataLoadStrategy attribute)</a>
 </li>
+          <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultS3DataLoadStrategy.CONFIG_VALIDATION_RULES">(data_juicer.core.data.load_strategy.DefaultS3DataLoadStrategy attribute)</a>
+</li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultWikiDataLoadStrategy.CONFIG_VALIDATION_RULES">(data_juicer.core.data.load_strategy.DefaultWikiDataLoadStrategy attribute)</a>
 </li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayHuggingfaceDataLoadStrategy.CONFIG_VALIDATION_RULES">(data_juicer.core.data.load_strategy.RayHuggingfaceDataLoadStrategy attribute)</a>
 </li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayLocalJsonDataLoadStrategy.CONFIG_VALIDATION_RULES">(data_juicer.core.data.load_strategy.RayLocalJsonDataLoadStrategy attribute)</a>
+</li>
+          <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayS3DataLoadStrategy.CONFIG_VALIDATION_RULES">(data_juicer.core.data.load_strategy.RayS3DataLoadStrategy attribute)</a>
 </li>
         </ul></li>
         <li><a href="api/data_juicer.core.data.config_validator.html#data_juicer.core.data.config_validator.ConfigValidationError">ConfigValidationError</a>
@@ -1997,6 +2001,20 @@
           <li><a href="api/data_juicer.analysis.correlation_analysis.html#data_juicer.analysis.correlation_analysis.CorrelationAnalysis">(class in data_juicer.analysis.correlation_analysis)</a>
 </li>
         </ul></li>
+        <li><a href="api/data_juicer.core.data.dj_dataset.html#data_juicer.core.data.dj_dataset.DJDataset.count">count() (data_juicer.core.data.dj_dataset.DJDataset method)</a>
+
+        <ul>
+          <li><a href="api/data_juicer.core.data.dj_dataset.html#data_juicer.core.data.dj_dataset.NestedDataset.count">(data_juicer.core.data.dj_dataset.NestedDataset method)</a>
+</li>
+          <li><a href="api/data_juicer.core.data.html#data_juicer.core.data.DJDataset.count">(data_juicer.core.data.DJDataset method)</a>
+</li>
+          <li><a href="api/data_juicer.core.data.html#data_juicer.core.data.NestedDataset.count">(data_juicer.core.data.NestedDataset method)</a>
+</li>
+          <li><a href="api/data_juicer.core.data.ray_dataset.html#data_juicer.core.data.ray_dataset.RayDataset.count">(data_juicer.core.data.ray_dataset.RayDataset method)</a>
+</li>
+          <li><a href="api/data_juicer.core.html#data_juicer.core.NestedDataset.count">(data_juicer.core.NestedDataset method)</a>
+</li>
+        </ul></li>
         <li><a href="api/data_juicer.utils.resource_utils.html#data_juicer.utils.resource_utils.cpu_count">cpu_count() (in module data_juicer.utils.resource_utils)</a>
 </li>
         <li><a href="api/data_juicer.utils.file_utils.html#data_juicer.utils.file_utils.create_directory_if_not_exists">create_directory_if_not_exists() (in module data_juicer.utils.file_utils)</a>
@@ -2018,6 +2036,8 @@
         <li><a href="api/data_juicer.tools.DJ_mcp_granular_ops.html#data_juicer.tools.DJ_mcp_granular_ops.create_operator_function">create_operator_function() (in module data_juicer.tools.DJ_mcp_granular_ops)</a>
 </li>
         <li><a href="api/data_juicer.utils.nltk_utils.html#data_juicer.utils.nltk_utils.create_physical_resource_alias">create_physical_resource_alias() (in module data_juicer.utils.nltk_utils)</a>
+</li>
+        <li><a href="api/data_juicer.utils.s3_utils.html#data_juicer.utils.s3_utils.create_pyarrow_s3_filesystem">create_pyarrow_s3_filesystem() (in module data_juicer.utils.s3_utils)</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_split_by_duration_mapper.html#data_juicer.ops.mapper.video_split_by_duration_mapper.create_replacer">create_replacer() (in module data_juicer.ops.mapper.video_split_by_duration_mapper)</a>
 
@@ -3480,8 +3500,6 @@
           <li><a href="api/data_juicer.ops.mapper.video_face_blur_mapper.html#module-data_juicer.ops.mapper.video_face_blur_mapper">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper
 
@@ -3489,6 +3507,8 @@
           <li><a href="api/data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper.html#module-data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     data_juicer.ops.mapper.video_remove_watermark_mapper
 
@@ -3781,6 +3801,13 @@
 
         <ul>
           <li><a href="api/data_juicer.utils.resource_utils.html#module-data_juicer.utils.resource_utils">module</a>
+</li>
+        </ul></li>
+        <li>
+    data_juicer.utils.s3_utils
+
+        <ul>
+          <li><a href="api/data_juicer.utils.s3_utils.html#module-data_juicer.utils.s3_utils">module</a>
 </li>
         </ul></li>
         <li>
@@ -4376,6 +4403,8 @@
 </li>
         <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultModelScopeDataLoadStrategy">DefaultModelScopeDataLoadStrategy (class in data_juicer.core.data.load_strategy)</a>
 </li>
+        <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultS3DataLoadStrategy">DefaultS3DataLoadStrategy (class in data_juicer.core.data.load_strategy)</a>
+</li>
         <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultWikiDataLoadStrategy">DefaultWikiDataLoadStrategy (class in data_juicer.core.data.load_strategy)</a>
 </li>
         <li><a href="api/data_juicer.utils.common_utils.html#data_juicer.utils.common_utils.deprecated">deprecated() (in module data_juicer.utils.common_utils)</a>
@@ -4956,6 +4985,8 @@
 </li>
         <li><a href="api/data_juicer.download.downloader.html#data_juicer.download.downloader.get_arxiv_urls">get_arxiv_urls() (in module data_juicer.download.downloader)</a>
 </li>
+        <li><a href="api/data_juicer.utils.s3_utils.html#data_juicer.utils.s3_utils.get_aws_credentials">get_aws_credentials() (in module data_juicer.utils.s3_utils)</a>
+</li>
         <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.get_backup_model_link">get_backup_model_link() (in module data_juicer.utils.model_utils)</a>
 </li>
         <li><a href="api/data_juicer.utils.logger_utils.html#data_juicer.utils.logger_utils.get_caller_name">get_caller_name() (in module data_juicer.utils.logger_utils)</a>
@@ -4990,10 +5021,10 @@
 </li>
         <li><a href="api/data_juicer.analysis.diversity_analysis.html#data_juicer.analysis.diversity_analysis.get_diversity">get_diversity() (in module data_juicer.analysis.diversity_analysis)</a>
 </li>
-        <li><a href="api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer.get_edges">get_edges() (data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer method)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer.get_edges">get_edges() (data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer method)</a>
+</li>
         <li><a href="api/data_juicer.utils.mm_utils.html#data_juicer.utils.mm_utils.get_file_size">get_file_size() (in module data_juicer.utils.mm_utils)</a>
 </li>
         <li><a href="api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.image_deduplicator.get_hash_method">get_hash_method() (in module data_juicer.ops.deduplicator.image_deduplicator)</a>
@@ -5539,6 +5570,8 @@
 </li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultModelScopeDataLoadStrategy.load_data">(data_juicer.core.data.load_strategy.DefaultModelScopeDataLoadStrategy method)</a>
 </li>
+          <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultS3DataLoadStrategy.load_data">(data_juicer.core.data.load_strategy.DefaultS3DataLoadStrategy method)</a>
+</li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.DefaultWikiDataLoadStrategy.load_data">(data_juicer.core.data.load_strategy.DefaultWikiDataLoadStrategy method)</a>
 </li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayDataLoadStrategy.load_data">(data_juicer.core.data.load_strategy.RayDataLoadStrategy method)</a>
@@ -5546,6 +5579,8 @@
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayHuggingfaceDataLoadStrategy.load_data">(data_juicer.core.data.load_strategy.RayHuggingfaceDataLoadStrategy method)</a>
 </li>
           <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayLocalJsonDataLoadStrategy.load_data">(data_juicer.core.data.load_strategy.RayLocalJsonDataLoadStrategy method)</a>
+</li>
+          <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayS3DataLoadStrategy.load_data">(data_juicer.core.data.load_strategy.RayS3DataLoadStrategy method)</a>
 </li>
         </ul></li>
     </ul></td>
@@ -6251,6 +6286,8 @@
           <li><a href="api/data_juicer.utils.registry.html#module-data_juicer.utils.registry">data_juicer.utils.registry</a>
 </li>
           <li><a href="api/data_juicer.utils.resource_utils.html#module-data_juicer.utils.resource_utils">data_juicer.utils.resource_utils</a>
+</li>
+          <li><a href="api/data_juicer.utils.s3_utils.html#module-data_juicer.utils.s3_utils">data_juicer.utils.s3_utils</a>
 </li>
           <li><a href="api/data_juicer.utils.sample.html#module-data_juicer.utils.sample">data_juicer.utils.sample</a>
 </li>
@@ -7497,6 +7534,8 @@
         </ul></li>
         <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayLocalJsonDataLoadStrategy">RayLocalJsonDataLoadStrategy (class in data_juicer.core.data.load_strategy)</a>
 </li>
+        <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayS3DataLoadStrategy">RayS3DataLoadStrategy (class in data_juicer.core.data.load_strategy)</a>
+</li>
         <li><a href="api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayVideoDeduplicator">RayVideoDeduplicator (class in data_juicer.ops.deduplicator)</a>
 
         <ul>
@@ -8293,6 +8332,8 @@
           <li><a href="api/data_juicer.core.data.data_validator.html#data_juicer.core.data.data_validator.SwiftMessagesValidator.validate_conversation">(data_juicer.core.data.data_validator.SwiftMessagesValidator method)</a>
 </li>
         </ul></li>
+        <li><a href="api/data_juicer.utils.s3_utils.html#data_juicer.utils.s3_utils.validate_s3_path">validate_s3_path() (in module data_juicer.utils.s3_utils)</a>
+</li>
         <li><a href="api/data_juicer.download.downloader.html#data_juicer.download.downloader.validate_snapshot_format">validate_snapshot_format() (in module data_juicer.download.downloader)</a>
 </li>
         <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.vggt_tags">vggt_tags (data_juicer.utils.constant.MetaKeys attribute)</a>
@@ -8371,14 +8412,14 @@
         </ul></li>
         <li><a href="api/data_juicer.ops.filter.video_motion_score_filter.html#data_juicer.ops.filter.video_motion_score_filter.VideoCapture">VideoCapture() (in module data_juicer.ops.filter.video_motion_score_filter)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator">VideoDeduplicator (class in data_juicer.ops.deduplicator)</a>
 
         <ul>
           <li><a href="api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.video_deduplicator.VideoDeduplicator">(class in data_juicer.ops.deduplicator.video_deduplicator)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoDurationFilter">VideoDurationFilter (class in data_juicer.ops.filter)</a>
 
         <ul>

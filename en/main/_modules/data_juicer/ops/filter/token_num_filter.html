@@ -350,7 +350,7 @@
 
 
 <div class="viewcode-block" id="TokenNumFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.token_num_filter.html#data_juicer.ops.filter.token_num_filter.TokenNumFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TokenNumFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TokenNumFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter to keep samples with a total token number within a specified range.</span>
@@ -362,7 +362,7 @@
 <span class="sd">    tokenizer.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="TokenNumFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.token_num_filter.html#data_juicer.ops.filter.token_num_filter.TokenNumFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TokenNumFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hf_tokenizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;EleutherAI/pythia-6.9b-deduped&quot;</span><span class="p">,</span>
@@ -394,7 +394,7 @@
 
 
 <div class="viewcode-block" id="TokenNumFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.token_num_filter.html#data_juicer.ops.filter.token_num_filter.TokenNumFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TokenNumFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="c1"># check if it&#39;s computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">num_token</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -407,7 +407,7 @@
 
 
 <div class="viewcode-block" id="TokenNumFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.token_num_filter.html#data_juicer.ops.filter.token_num_filter.TokenNumFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.TokenNumFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_keep_boolean</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">num_token</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num</span><span class="p">)</span></div>
 </div>

@@ -348,7 +348,7 @@
 
 <span class="c1"># TODO: LLM-based inference.</span>
 <div class="viewcode-block" id="CalibrateQueryMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.CalibrateQueryMapper">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.calibrate_query_mapper.html#data_juicer.ops.mapper.CalibrateQueryMapper">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CalibrateQueryMapper</span><span class="p">(</span><span class="n">CalibrateQAMapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calibrate query in question-answer pairs based on reference text.</span>
@@ -364,7 +364,7 @@
 <span class="s2">        使其更加详细、准确，且仍可以由原答案回答。只输出校准后的问题，不要输出多余内容。&quot;</span>
 
 <div class="viewcode-block" id="CalibrateQueryMapper.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.CalibrateQueryMapper.parse_output">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.calibrate_query_mapper.html#data_juicer.ops.mapper.CalibrateQueryMapper.parse_output">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_output</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">raw_output</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="kc">None</span></div>
 </div>

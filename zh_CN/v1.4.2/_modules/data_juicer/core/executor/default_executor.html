@@ -417,6 +417,30 @@
 
         <span class="c1"># prepare exporter and check export path suffix</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Preparing exporter...&quot;</span><span class="p">)</span>
+        <span class="c1"># Prepare export extra args, including S3 credentials if export_path is S3</span>
+        <span class="n">export_extra_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_extra_args</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">&quot;export_extra_args&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+
+        <span class="c1"># If export_path is S3, extract AWS credentials with priority:</span>
+        <span class="c1"># 1. export_aws_credentials (export-specific)</span>
+        <span class="c1"># 2. dataset config (for backward compatibility)</span>
+        <span class="c1"># 3. environment variables (handled by exporter)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+            <span class="c1"># Priority 1: Check for export-specific credentials</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">&quot;export_aws_credentials&quot;</span><span class="p">):</span>
+                <span class="n">export_aws_creds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_aws_credentials</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">export_aws_creds</span><span class="p">,</span> <span class="s2">&quot;aws_access_key_id&quot;</span><span class="p">):</span>
+                    <span class="n">export_extra_args</span><span class="p">[</span><span class="s2">&quot;aws_access_key_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">export_aws_creds</span><span class="o">.</span><span class="n">aws_access_key_id</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">export_aws_creds</span><span class="p">,</span> <span class="s2">&quot;aws_secret_access_key&quot;</span><span class="p">):</span>
+                    <span class="n">export_extra_args</span><span class="p">[</span><span class="s2">&quot;aws_secret_access_key&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">export_aws_creds</span><span class="o">.</span><span class="n">aws_secret_access_key</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">export_aws_creds</span><span class="p">,</span> <span class="s2">&quot;aws_session_token&quot;</span><span class="p">):</span>
+                    <span class="n">export_extra_args</span><span class="p">[</span><span class="s2">&quot;aws_session_token&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">export_aws_creds</span><span class="o">.</span><span class="n">aws_session_token</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">export_aws_creds</span><span class="p">,</span> <span class="s2">&quot;aws_region&quot;</span><span class="p">):</span>
+                    <span class="n">export_extra_args</span><span class="p">[</span><span class="s2">&quot;aws_region&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">export_aws_creds</span><span class="o">.</span><span class="n">aws_region</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">export_aws_creds</span><span class="p">,</span> <span class="s2">&quot;endpoint_url&quot;</span><span class="p">):</span>
+                    <span class="n">export_extra_args</span><span class="p">[</span><span class="s2">&quot;endpoint_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">export_aws_creds</span><span class="o">.</span><span class="n">endpoint_url</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No AWS credentials provided for S3 export&quot;</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">exporter</span> <span class="o">=</span> <span class="n">Exporter</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_type</span><span class="p">,</span>
@@ -425,7 +449,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">np</span><span class="p">,</span>
             <span class="n">keep_stats_in_res_ds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">keep_stats_in_res_ds</span><span class="p">,</span>
             <span class="n">keep_hashes_in_res_ds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">keep_hashes_in_res_ds</span><span class="p">,</span>
-            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_extra_args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">export_extra_args</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># setup tracer</span>

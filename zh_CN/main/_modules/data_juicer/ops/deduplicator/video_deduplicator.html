@@ -355,7 +355,7 @@
 
 
 <div class="viewcode-block" id="VideoDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoDeduplicator</span><span class="p">(</span><span class="n">Deduplicator</span><span class="p">):</span>
@@ -370,7 +370,7 @@
 <span class="sd">    &#39;hash&#39; if text is considered.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="VideoDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">consider_text</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialization.</span>
@@ -388,7 +388,7 @@
 
 
 <div class="viewcode-block" id="VideoDeduplicator.compute_hash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator.compute_hash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator.compute_hash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># get hash of text first</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">consider_text</span><span class="p">:</span>
@@ -422,7 +422,7 @@
 
 
 <div class="viewcode-block" id="VideoDeduplicator.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator.process">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator.process">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">show_num</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        For doc-level, dataset --&gt; dataset.</span>

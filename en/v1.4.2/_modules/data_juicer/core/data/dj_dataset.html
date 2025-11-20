@@ -442,6 +442,13 @@
 <span class="sd">            bool: True if the dataset contains the column, False otherwise</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">()</span><span class="o">.</span><span class="n">columns</span></div>
+
+
+<div class="viewcode-block" id="DJDataset.count">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.dj_dataset.html#data_juicer.core.DJDataset.count">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;return the count of the dataset&quot;&quot;&quot;</span></div>
 </div>
 
 
@@ -740,6 +747,12 @@
                     <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error occurred when making log summarization&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">dataset</span></div>
+
+
+<div class="viewcode-block" id="NestedDataset.count">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.dj_dataset.html#data_juicer.core.NestedDataset.count">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows</span></div>
 
 
 <div class="viewcode-block" id="NestedDataset.update_args">

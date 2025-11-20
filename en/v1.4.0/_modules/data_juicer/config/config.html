@@ -608,6 +608,14 @@
                 <span class="s2">&quot;the WebDataset format.&quot;</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+                <span class="s2">&quot;--export_aws_credentials&quot;</span><span class="p">,</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">Dict</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Export-specific AWS credentials for S3 export. If export_path is S3 and this is not provided, &quot;</span>
+                <span class="s2">&quot;an error will be raised. Should contain aws_access_key_id, aws_secret_access_key, aws_region, &quot;</span>
+                <span class="s2">&quot;and optionally aws_session_token and endpoint_url.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
                 <span class="s2">&quot;--keep_stats_in_res_ds&quot;</span><span class="p">,</span>
                 <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
                 <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -985,12 +993,30 @@
 <span class="sd">    :param cfg: an updated cfg</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">)</span>
+    <span class="c1"># Handle S3 paths differently from local paths</span>
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+        <span class="c1"># For S3 paths, keep as-is (don&#39;t use os.path.abspath)</span>
+        <span class="c1"># If work_dir is not provided, use a default local directory for logs/checkpoints</span>
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Use a default local work directory for S3 exports</span>
+            <span class="c1"># This is where logs, checkpoints, and other local artifacts will be stored</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;./outputs&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using default work_dir [</span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span><span class="si">}</span><span class="s2">] for S3 export_path [</span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># For local paths, convert to absolute path</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">)</span>
+
     <span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">load_configs_only</span><span class="p">:</span>
-        <span class="n">export_rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span><span class="p">)</span>
+        <span class="c1"># For S3 paths, use a simplified export path for log filename</span>
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+            <span class="c1"># Extract bucket and key from S3 path for log filename</span>
+            <span class="n">s3_path_parts</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">export_rel_path</span> <span class="o">=</span> <span class="n">s3_path_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s3_path_parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">s3_path_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">export_rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span><span class="p">)</span>
         <span class="n">log_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">work_dir</span><span class="p">,</span> <span class="s2">&quot;log&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">log_dir</span><span class="p">):</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">log_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

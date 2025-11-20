@@ -400,6 +400,56 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span> <span class="o">=</span> <span class="n">num_proc</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_shard_size_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
+        <span class="c1"># Check if export_path is S3 and create storage_options if needed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">export_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+            <span class="c1"># Extract AWS credentials from kwargs (if provided)</span>
+            <span class="n">s3_config</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="s2">&quot;aws_access_key_id&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">s3_config</span><span class="p">[</span><span class="s2">&quot;aws_access_key_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;aws_access_key_id&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;aws_secret_access_key&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">s3_config</span><span class="p">[</span><span class="s2">&quot;aws_secret_access_key&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;aws_secret_access_key&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;aws_session_token&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">s3_config</span><span class="p">[</span><span class="s2">&quot;aws_session_token&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;aws_session_token&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;aws_region&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">s3_config</span><span class="p">[</span><span class="s2">&quot;aws_region&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;aws_region&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;endpoint_url&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">s3_config</span><span class="p">[</span><span class="s2">&quot;endpoint_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;endpoint_url&quot;</span><span class="p">)</span>
+
+            <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.s3_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_aws_credentials</span>
+
+            <span class="c1"># Get credentials with priority order: environment variables &gt; explicit config</span>
+            <span class="c1"># This matches the pattern used in load strategies</span>
+            <span class="n">aws_access_key_id</span><span class="p">,</span> <span class="n">aws_secret_access_key</span><span class="p">,</span> <span class="n">aws_session_token</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_aws_credentials</span><span class="p">(</span><span class="n">s3_config</span><span class="p">)</span>
+
+            <span class="c1"># Build storage_options for HuggingFace datasets</span>
+            <span class="c1"># Note: region should NOT be in storage_options for HuggingFace datasets</span>
+            <span class="c1"># as it causes issues with AioSession. Region is auto-detected from S3 path.</span>
+            <span class="n">storage_options</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">aws_access_key_id</span><span class="p">:</span>
+                <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aws_access_key_id</span>
+            <span class="k">if</span> <span class="n">aws_secret_access_key</span><span class="p">:</span>
+                <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;secret&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aws_secret_access_key</span>
+            <span class="k">if</span> <span class="n">aws_session_token</span><span class="p">:</span>
+                <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aws_session_token</span>
+            <span class="k">if</span> <span class="s2">&quot;endpoint_url&quot;</span> <span class="ow">in</span> <span class="n">s3_config</span><span class="p">:</span>
+                <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;endpoint_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s3_config</span><span class="p">[</span><span class="s2">&quot;endpoint_url&quot;</span><span class="p">]</span>
+
+            <span class="c1"># If no credentials provided, try anonymous access for public buckets</span>
+            <span class="c1"># If storage_options is empty, s3fs will use its default credential chain (e.g. IAM role).</span>
+            <span class="k">if</span> <span class="n">storage_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;key&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">storage_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;secret&quot;</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using explicit AWS credentials for S3 export&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using default AWS credential chain for S3 export&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Allow explicit anonymous access via kwargs</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;anon&quot;</span><span class="p">):</span>
+                <span class="n">storage_options</span><span class="p">[</span><span class="s2">&quot;anon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Anonymous access for public S3 bucket enabled via config.&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected S3 export path: </span><span class="si">{</span><span class="n">export_path</span><span class="si">}</span><span class="s2">. S3 storage_options configured.&quot;</span><span class="p">)</span>
+
         <span class="c1"># get the string format of shard size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_shard_size_str</span> <span class="o">=</span> <span class="n">byte_size_to_size_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">export_shard_size</span><span class="p">)</span>
 
@@ -453,7 +503,11 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">export_columns</span><span class="p">):</span>
                 <span class="n">ds_stats</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select_columns</span><span class="p">(</span><span class="n">export_columns</span><span class="p">)</span>
                 <span class="n">stats_file</span> <span class="o">=</span> <span class="n">export_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">,</span> <span class="s2">&quot;_stats.jsonl&quot;</span><span class="p">)</span>
-                <span class="n">Exporter</span><span class="o">.</span><span class="n">to_jsonl</span><span class="p">(</span><span class="n">ds_stats</span><span class="p">,</span> <span class="n">stats_file</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_in_parallel</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">export_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;num_proc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_in_parallel</span> <span class="k">else</span> <span class="mi">1</span><span class="p">}</span>
+                <span class="c1"># Add storage_options if available (for S3 export)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">export_kwargs</span><span class="p">[</span><span class="s2">&quot;storage_options&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span>
+                <span class="n">Exporter</span><span class="o">.</span><span class="n">to_jsonl</span><span class="p">(</span><span class="n">ds_stats</span><span class="p">,</span> <span class="n">stats_file</span><span class="p">,</span> <span class="o">**</span><span class="n">export_kwargs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_ds</span><span class="p">:</span>
             <span class="c1"># fetch the corresponding export method according to the suffix</span>
@@ -477,7 +531,11 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_shard_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># export the whole dataset into one single file.</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Export dataset into a single file...&quot;</span><span class="p">)</span>
-                <span class="n">export_method</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">export_path</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_in_parallel</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">export_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;num_proc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_in_parallel</span> <span class="k">else</span> <span class="mi">1</span><span class="p">}</span>
+                <span class="c1"># Add storage_options if available (for S3 export)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">export_kwargs</span><span class="p">[</span><span class="s2">&quot;storage_options&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span>
+                <span class="n">export_method</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">export_path</span><span class="p">,</span> <span class="o">**</span><span class="n">export_kwargs</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># compute the dataset size and number of shards to split</span>
                 <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -499,26 +557,49 @@
 
                 <span class="c1"># regard the export path as a directory and set file names for</span>
                 <span class="c1"># each shard</span>
-                <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">export_path</span><span class="p">))</span>
-                <span class="n">basename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">export_path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dirname</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                        <span class="n">dirname</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">num_fmt</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">index</span><span class="si">}</span><span class="s2">-of-&quot;</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_fmt</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">num_shards</span><span class="si">}</span><span class="s2">&quot;</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shards</span><span class="p">)</span>
-                <span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+                    <span class="c1"># For S3 paths, construct S3 paths for each shard</span>
+                    <span class="c1"># Extract bucket and prefix from S3 path</span>
+                    <span class="n">s3_path_parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">bucket</span> <span class="o">=</span> <span class="n">s3_path_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">prefix</span> <span class="o">=</span> <span class="n">s3_path_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s3_path_parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                    <span class="c1"># Remove extension from prefix</span>
+                    <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">prefix</span><span class="p">:</span>
+                        <span class="n">prefix_base</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">prefix_base</span> <span class="o">=</span> <span class="n">prefix</span>
+                    <span class="c1"># Construct shard filenames</span>
+                    <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="sa">f</span><span class="s2">&quot;s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">prefix_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">num_fmt</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">index</span><span class="si">}</span><span class="s2">-of-</span><span class="si">{</span><span class="n">num_fmt</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">num_shards</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shards</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># For local paths, use standard directory structure</span>
+                    <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">export_path</span><span class="p">))</span>
+                    <span class="n">basename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">export_path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dirname</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                            <span class="n">dirname</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">num_fmt</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">index</span><span class="si">}</span><span class="s2">-of-&quot;</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_fmt</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">num_shards</span><span class="si">}</span><span class="s2">&quot;</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shards</span><span class="p">)</span>
+                    <span class="p">]</span>
 
                 <span class="c1"># export dataset into multiple shards using multiprocessing</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start to exporting to </span><span class="si">{</span><span class="n">num_shards</span><span class="si">}</span><span class="s2"> shards.&quot;</span><span class="p">)</span>
                 <span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shards</span><span class="p">):</span>
+                    <span class="n">export_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;num_proc&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>  <span class="c1"># Each shard export uses single process</span>
+                    <span class="c1"># Add storage_options if available (for S3 export)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">export_kwargs</span><span class="p">[</span><span class="s2">&quot;storage_options&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span>
                     <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
                         <span class="n">export_method</span><span class="p">,</span>
                         <span class="n">args</span><span class="o">=</span><span class="p">(</span>
                             <span class="n">shards</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                             <span class="n">filenames</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                         <span class="p">),</span>
+                        <span class="n">kwds</span><span class="o">=</span><span class="n">export_kwargs</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
@@ -560,7 +641,12 @@
 <span class="sd">        :param kwargs: extra arguments.</span>
 <span class="sd">        :return:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dataset</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">force_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">)</span></div>
+        <span class="c1"># Add storage_options if provided (for S3 export)</span>
+        <span class="n">storage_options</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;storage_options&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">force_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">force_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Exporter.to_json">
@@ -576,7 +662,14 @@
 <span class="sd">        :param kwargs: extra arguments.</span>
 <span class="sd">        :return:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dataset</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">force_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+        <span class="c1"># Add storage_options if provided (for S3 export)</span>
+        <span class="n">storage_options</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;storage_options&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span>
+                <span class="n">export_path</span><span class="p">,</span> <span class="n">force_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">force_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Exporter.to_parquet">
@@ -591,7 +684,12 @@
 <span class="sd">        :param kwargs: extra arguments.</span>
 <span class="sd">        :return:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dataset</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span></div>
+        <span class="c1"># Add storage_options if provided (for S3 export)</span>
+        <span class="n">storage_options</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;storage_options&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span></div>
 
 
     <span class="c1"># suffix to export method</span>

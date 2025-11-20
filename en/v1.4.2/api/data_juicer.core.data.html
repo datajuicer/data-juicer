@@ -368,6 +368,12 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.data.DJDataset.count">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#DJDataset.count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.data.DJDataset.count" title="Link to this definition">¶</a></dt>
+<dd><p>return the count of the dataset</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.core.data.DJDataset.get">
 <em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#DJDataset.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.data.DJDataset.get" title="Link to this definition">¶</a></dt>
 <dd><p>Get k rows from the dataset.</p>
@@ -457,6 +463,12 @@ can be accessed by nested manner.</p>
 <span class="sig-name descname"><span class="pre">cleanup_cache_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.cleanup_cache_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.data.NestedDataset.cleanup_cache_files" title="Link to this definition">¶</a></dt>
 <dd><p>Override the cleanup_cache_files func, clear raw and compressed
 cache files.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.data.NestedDataset.count">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.data.NestedDataset.count" title="Link to this definition">¶</a></dt>
+<dd><p>return the count of the dataset</p>
 </dd></dl>
 
 <dl class="py method">
@@ -676,6 +688,7 @@ function in parallel instead of using add_column.
 <li><a class="reference internal" href="#">data_juicer.core.data</a><ul>
 <li><a class="reference internal" href="#data_juicer.core.data.DJDataset"><code class="docutils literal notranslate"><span class="pre">DJDataset</span></code></a><ul>
 <li><a class="reference internal" href="#data_juicer.core.data.DJDataset.contain_column"><code class="docutils literal notranslate"><span class="pre">DJDataset.contain_column()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.data.DJDataset.count"><code class="docutils literal notranslate"><span class="pre">DJDataset.count()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.DJDataset.get"><code class="docutils literal notranslate"><span class="pre">DJDataset.get()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.DJDataset.get_column"><code class="docutils literal notranslate"><span class="pre">DJDataset.get_column()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.DJDataset.process"><code class="docutils literal notranslate"><span class="pre">DJDataset.process()</span></code></a></li>
@@ -687,6 +700,7 @@ function in parallel instead of using add_column.
 <li><a class="reference internal" href="#data_juicer.core.data.NestedDataset.__init__"><code class="docutils literal notranslate"><span class="pre">NestedDataset.__init__()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.NestedDataset.add_column"><code class="docutils literal notranslate"><span class="pre">NestedDataset.add_column()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.NestedDataset.cleanup_cache_files"><code class="docutils literal notranslate"><span class="pre">NestedDataset.cleanup_cache_files()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.data.NestedDataset.count"><code class="docutils literal notranslate"><span class="pre">NestedDataset.count()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.NestedDataset.filter"><code class="docutils literal notranslate"><span class="pre">NestedDataset.filter()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.NestedDataset.from_dict"><code class="docutils literal notranslate"><span class="pre">NestedDataset.from_dict()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.NestedDataset.from_list"><code class="docutils literal notranslate"><span class="pre">NestedDataset.from_list()</span></code></a></li>

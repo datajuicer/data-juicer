@@ -411,7 +411,8 @@ concurrency semantics while optimizing resource utilization.</p>
 <li><dl class="simple">
 <dt>Auto-calculation returns tuple (min_concurrency, max_concurrency):</dt><dd><ol class="lowerroman simple">
 <li><dl class="simple">
-<dt>Minimum: Ensures baseline resource allocation in remaining resources</dt><dd><p>when all operators are active simultaneously (proportionally)</p>
+<dt>Minimum: Ensures baseline resource allocation in remaining resources</dt><dd><p>when all operators are active simultaneously in streaming mode (proportionally).
+If the resources are insufficient, back to the batch mode, only guarantee the actor operators.</p>
 </dd>
 </dl>
 </li>

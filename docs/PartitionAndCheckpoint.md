@@ -13,7 +13,6 @@ This directory contains the implementation of fault-tolerant, resumable DataJuic
 
 ### ✅ Checkpointing Strategies
 - `EVERY_OP`: Checkpoint after every operation (most resilient, slower)
-- `EVERY_PARTITION`: Checkpoint only at partition completion (balanced)
 - `EVERY_N_OPS`: Checkpoint after every N operations (configurable)
 - `MANUAL`: Checkpoint only after specified operations
 - `DISABLED`: Disable checkpointing entirely
@@ -154,7 +153,7 @@ job_id: my_experiment_001  # Optional: auto-generated if not provided
 # Checkpointing configuration
 checkpoint:
   enabled: true
-  strategy: every_op  # every_op, every_partition, every_n_ops, manual, disabled
+  strategy: every_op  # every_op, every_n_ops, manual, disabled
   n_ops: 2            # For every_n_ops strategy
   op_names:           # For manual strategy
     - clean_links_mapper
@@ -244,43 +243,43 @@ partition:
 #### Auto Partition Mode (Recommended)
 ```bash
 # Run with auto-generated job ID and auto partition optimization
-dj-process --config configs/demo/partition-auto-mode.yaml
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --partition.mode auto
 
 # Run with custom job ID
-dj-process --config configs/demo/partition-auto-mode.yaml --job_id my_experiment_001
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --partition.mode auto --job_id my_experiment_001
 ```
 
 #### Manual Partition Mode
 ```bash
-# Run with manual partition configuration (8 partitions)
-dj-process --config configs/demo/partition-manual-mode.yaml
+# Run with manual partition configuration (4 partitions)
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --partition.mode manual --partition.num_of_partitions 4
 
 # Run with custom job ID
-dj-process --config configs/demo/partition-manual-mode.yaml --job_id my_experiment_001
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --partition.mode manual --partition.num_of_partitions 4 --job_id my_experiment_001
 ```
 
 ### 2. Resume a Job
 ```bash
 # Resume using the job ID
-dj-process --config configs/demo/checkpoint_config_example.yaml --job_id my_experiment_001
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --job_id my_experiment_001
 ```
 
 ### 3. Different Checkpoint Strategies
 ```bash
-# Checkpoint every partition
-dj-process --config configs/demo/checkpoint_config_example.yaml --job_id partition_test --checkpoint.strategy every_partition
+# Checkpoint every operation (most resilient)
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --job_id every_op_test --checkpoint.strategy every_op
 
 # Checkpoint every 3 operations
-dj-process --config configs/demo/checkpoint_config_example.yaml --job_id n_ops_test --checkpoint.strategy every_n_ops --checkpoint.n_ops 3
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --job_id n_ops_test --checkpoint.strategy every_n_ops --checkpoint.n_ops 3
 
 # Manual checkpointing
-dj-process --config configs/demo/checkpoint_config_example.yaml --job_id manual_test --checkpoint.strategy manual --checkpoint.op_names clean_links_mapper,whitespace_normalization_mapper
+dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --job_id manual_test --checkpoint.strategy manual --checkpoint.op_names clean_links_mapper,whitespace_normalization_mapper
 ```
 
 ### 4. Run Comprehensive Demo
 ```bash
 # Run the full demo showcasing all features
-python demos/partition_and_checkpoint/run_comprehensive_demo.py
+python demos/partition_and_checkpoint/run_demo.py
 ```
 
 ## 📊 Monitoring and Debugging
@@ -646,29 +645,29 @@ DataJuicer now includes an intelligent auto-configuration system that automatica
 
 | Modality | Default Size | Max Size | Memory Multiplier | Use Case |
 |----------|--------------|----------|-------------------|----------|
-| **Text** | 200 samples | 1000 | 1.0x | Efficient processing, low memory |
-| **Image** | 50 samples | 200 | 5.0x | Moderate memory, image processing |
-| **Audio** | 30 samples | 100 | 8.0x | High memory, audio processing |
-| **Video** | 10 samples | 50 | 20.0x | Very high memory, complex processing |
-| **Multimodal** | 20 samples | 100 | 10.0x | Multiple modalities, moderate complexity |
+| **Text** | 5000 samples | 20000 | 1.0x | Efficient processing, low memory, target 64MB partitions |
+| **Image** | 1000 samples | 5000 | 5.0x | Moderate memory, image processing, target 64MB partitions |
+| **Audio** | 500 samples | 2000 | 8.0x | High memory, audio processing, target 64MB partitions |
+| **Video** | 200 samples | 1000 | 20.0x | Very high memory, complex processing, target 64MB partitions |
+| **Multimodal** | 800 samples | 3000 | 10.0x | Multiple modalities, moderate complexity, target 64MB partitions |
 
 #### **Enable Auto-Configuration**
 
 ```yaml
 partition:
-  auto_configure: true  # Enable automatic optimization
-  # Manual settings are ignored when auto_configure is true
-  size: 200
-  max_size_mb: 32
+  mode: "auto"  # Enable automatic optimization
+  # Fallback values used if auto-analysis fails
+  size: 5000
+  max_size_mb: 64
 ```
 
 #### **Manual Override**
 
 ```yaml
 partition:
-  auto_configure: false  # Disable auto-configuration
-  size: 100  # Use your own partition size
-  max_size_mb: 64
+  mode: "manual"  # Use manual partition configuration
+  num_of_partitions: 8  # Specify exact number of partitions
+  # size and max_size_mb are ignored in manual mode
 ```
 
 ## 📊 Partition Sizing Guidelines
@@ -829,9 +828,9 @@ Intermediate data refers to temporary results generated during the processing pi
 
 ### Checkpointing Overhead
 - `EVERY_OP`: Highest overhead, maximum resilience
-- `EVERY_PARTITION`: Balanced overhead and resilience
-- `EVERY_N_OPS`: Configurable overhead
+- `EVERY_N_OPS`: Configurable overhead (balance between resilience and performance)
 - `MANUAL`: Minimal overhead, requires careful planning
+- `DISABLED`: No overhead, no resilience
 
 ### Storage Recommendations
 - **Event logs**: Use fast storage (SSD) for real-time monitoring

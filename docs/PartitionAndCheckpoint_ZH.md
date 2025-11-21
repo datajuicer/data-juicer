@@ -216,7 +216,7 @@ dj-process --config configs/demo/checkpoint_config_example.yaml --job_id manual_
 ### 4. 运行综合演示
 ```bash
 # 运行展示所有功能的完整演示
-python demos/partition_and_checkpoint/run_comprehensive_demo.py
+python demos/partition_and_checkpoint/run_demo.py
 ```
 
 ## 📊 监控和调试

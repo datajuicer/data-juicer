@@ -357,7 +357,7 @@
 
 
 <div class="viewcode-block" id="AudioAddGaussianNoiseMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AudioAddGaussianNoiseMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.audio_add_gaussian_noise_mapper.html#data_juicer.ops.mapper.AudioAddGaussianNoiseMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_AUDIOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AudioAddGaussianNoiseMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -371,7 +371,7 @@
 <span class="sd">    present in the sample, it is returned unchanged.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="AudioAddGaussianNoiseMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AudioAddGaussianNoiseMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.audio_add_gaussian_noise_mapper.html#data_juicer.ops.mapper.AudioAddGaussianNoiseMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">min_amplitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
@@ -414,7 +414,7 @@
 
 
 <div class="viewcode-block" id="AudioAddGaussianNoiseMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AudioAddGaussianNoiseMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.audio_add_gaussian_noise_mapper.html#data_juicer.ops.mapper.AudioAddGaussianNoiseMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># there is no audio in this sample</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audio_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">audio_key</span><span class="p">]:</span>

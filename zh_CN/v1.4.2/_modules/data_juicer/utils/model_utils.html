@@ -406,6 +406,9 @@
     <span class="s2">&quot;*_core_web_md-3.*.0&quot;</span><span class="p">:</span> <span class="s2">&quot;https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/&quot;</span> <span class="s2">&quot;data_juicer/models/&quot;</span><span class="p">,</span>
     <span class="c1"># YOLO</span>
     <span class="s2">&quot;yolo11n.pt&quot;</span><span class="p">:</span> <span class="s2">&quot;https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt&quot;</span><span class="p">,</span>
+    <span class="c1"># DWPose</span>
+    <span class="s2">&quot;dwpose_onnx_det_model&quot;</span><span class="p">:</span> <span class="s2">&quot;https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dwpose_onnx_pose_model&quot;</span><span class="p">:</span> <span class="s2">&quot;https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx&quot;</span><span class="p">,</span>
 <span class="p">}</span>
 
 
@@ -766,6 +769,30 @@
         <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_dwpose_model">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_dwpose_model">[文档]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_dwpose_model</span><span class="p">(</span><span class="n">onnx_det_model</span><span class="p">,</span> <span class="n">onnx_pose_model</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops.common.dwpose_func</span><span class="w"> </span><span class="kn">import</span> <span class="n">DWposeDetector</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;device&quot;</span><span class="p">,</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_model_path</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">default_filename</span><span class="p">,</span> <span class="n">download_key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">DJMC</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">DJMC</span><span class="p">)</span>
+            <span class="n">model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DJMC</span><span class="p">,</span> <span class="n">default_filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+                <span class="n">wget</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">BACKUP_MODEL_LINKS</span><span class="p">[</span><span class="n">download_key</span><span class="p">],</span> <span class="n">DJMC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model_path</span>
+
+    <span class="n">onnx_det_model</span> <span class="o">=</span> <span class="n">_get_model_path</span><span class="p">(</span><span class="n">onnx_det_model</span><span class="p">,</span> <span class="s2">&quot;yolox_l.onnx&quot;</span><span class="p">,</span> <span class="s2">&quot;dwpose_onnx_det_model&quot;</span><span class="p">)</span>
+    <span class="n">onnx_pose_model</span> <span class="o">=</span> <span class="n">_get_model_path</span><span class="p">(</span><span class="n">onnx_pose_model</span><span class="p">,</span> <span class="s2">&quot;dw-ll_ucoco_384.onnx&quot;</span><span class="p">,</span> <span class="s2">&quot;dwpose_onnx_pose_model&quot;</span><span class="p">)</span>
+
+    <span class="n">dwpose_model</span> <span class="o">=</span> <span class="n">DWposeDetector</span><span class="p">(</span><span class="n">onnx_det_model</span><span class="p">,</span> <span class="n">onnx_pose_model</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dwpose_model</span></div>
 
 
 
@@ -1476,6 +1503,7 @@
 <span class="n">MODEL_FUNCTION_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;api&quot;</span><span class="p">:</span> <span class="n">prepare_api_model</span><span class="p">,</span>
     <span class="s2">&quot;diffusion&quot;</span><span class="p">:</span> <span class="n">prepare_diffusion_model</span><span class="p">,</span>
+    <span class="s2">&quot;dwpose&quot;</span><span class="p">:</span> <span class="n">prepare_dwpose_model</span><span class="p">,</span>
     <span class="s2">&quot;fasttext&quot;</span><span class="p">:</span> <span class="n">prepare_fasttext_model</span><span class="p">,</span>
     <span class="s2">&quot;fastsam&quot;</span><span class="p">:</span> <span class="n">prepare_fastsam_model</span><span class="p">,</span>
     <span class="s2">&quot;huggingface&quot;</span><span class="p">:</span> <span class="n">prepare_huggingface_model</span><span class="p">,</span>

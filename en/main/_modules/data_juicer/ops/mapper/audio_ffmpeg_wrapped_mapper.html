@@ -352,7 +352,7 @@
 
 
 <div class="viewcode-block" id="AudioFFmpegWrappedMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AudioFFmpegWrappedMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.audio_ffmpeg_wrapped_mapper.html#data_juicer.ops.mapper.AudioFFmpegWrappedMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AudioFFmpegWrappedMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Wraps FFmpeg audio filters for processing audio files in a dataset.</span>
@@ -366,7 +366,7 @@
 <span class="sd">    in the dataset after processing.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="AudioFFmpegWrappedMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AudioFFmpegWrappedMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.audio_ffmpeg_wrapped_mapper.html#data_juicer.ops.mapper.AudioFFmpegWrappedMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">filter_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -405,7 +405,7 @@
 
 
 <div class="viewcode-block" id="AudioFFmpegWrappedMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AudioFFmpegWrappedMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.audio_ffmpeg_wrapped_mapper.html#data_juicer.ops.mapper.AudioFFmpegWrappedMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="c1"># there is no audio in this sample</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audio_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">audio_key</span><span class="p">]:</span>

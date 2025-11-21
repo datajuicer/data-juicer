@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_whole\_body\_pose\_estimation\_mapper module
+===========================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_whole_body_pose_estimation_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

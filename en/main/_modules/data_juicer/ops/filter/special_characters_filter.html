@@ -349,7 +349,7 @@
 
 
 <div class="viewcode-block" id="SpecialCharactersFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecialCharactersFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.special_characters_filter.html#data_juicer.ops.filter.SpecialCharactersFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">&quot;special_characters_filter&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SpecialCharactersFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter to keep samples with special-character ratio within a specific range.</span>
@@ -364,7 +364,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="SpecialCharactersFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecialCharactersFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.special_characters_filter.html#data_juicer.ops.filter.SpecialCharactersFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">max_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialization method.</span>
@@ -384,7 +384,7 @@
 
 
 <div class="viewcode-block" id="SpecialCharactersFilter.compute_stats_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecialCharactersFilter.compute_stats_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.special_characters_filter.html#data_juicer.ops.filter.SpecialCharactersFilter.compute_stats_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="n">samples_list</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span>
         <span class="n">samples_stats</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]</span>
@@ -403,7 +403,7 @@
 
 
 <div class="viewcode-block" id="SpecialCharactersFilter.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.SpecialCharactersFilter.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.special_characters_filter.html#data_juicer.ops.filter.SpecialCharactersFilter.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">map</span><span class="p">(</span>

@@ -69,6 +69,8 @@ class MetaKeys(object):
     bbox_tag = DEFAULT_PREFIX + "bbox__"
     # # class label (from detection) tag
     class_label_tag = DEFAULT_PREFIX + "class_label__"
+    # # 2D whole-body pose estimation
+    pose_estimation_tags = "pose_estimation_tags"
 
     # === info extraction related tags ===
     # # for event extraction

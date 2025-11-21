@@ -175,7 +175,7 @@ def _find_optimal_concurrency(resource_ratios, total_resource):
 
     for combo in itertools.product(*candidates):
         total_used = sum(c * r for c, r in zip(combo, resource_ratios))
-        if total_used > total_resource:
+        if total_used > total_resource + 1e-10:
             continue
 
         # calculate the standard deviation of processing capacity
@@ -226,7 +226,8 @@ def calculate_ray_np(operators):
             to calculate automatically based on this setting
         b. Auto-calculation returns tuple (min_concurrency, max_concurrency):
             i. Minimum: Ensures baseline resource allocation in remaining resources
-                when all operators are active simultaneously (proportionally)
+                when all operators are active simultaneously in streaming mode (proportionally).
+                If the resources are insufficient, back to the batch mode, only guarantee the actor operators.
             ii. Maximum: Allows full utilization of remaining resources by single
                 operator when others are idle
     """
@@ -245,7 +246,7 @@ def calculate_ray_np(operators):
     available_gpu_mem = sum(ray_available_gpu_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
     resource_configs = {}
 
-    for op in operators:
+    for op_idx, op in enumerate(operators):
         cpu_req = op.cpu_required
         mem_req = op.mem_required
         gpu_req = 0
@@ -318,7 +319,8 @@ def calculate_ray_np(operators):
             if op.num_proc == -1:
                 op.num_proc = None
 
-        resource_configs[op._name] = {
+        # prevent repeated op
+        resource_configs[op._name + f"_{op_idx}"] = {
             "cpu_required": cpu_req,
             "gpu_required": gpu_req,
             "mem_required": mem_req,
@@ -330,14 +332,12 @@ def calculate_ray_np(operators):
             "is_actor": op.use_cuda(),
         }
 
-    fixed_min_cpu = 0
-    fixed_max_cpu = 0
-    fixed_min_gpu = 0
-    fixed_max_gpu = 0
+    fixed_min_cpu = fixed_max_cpu = fixed_min_gpu = fixed_max_gpu = 0
+    fixed_actor_min_cpu = fixed_actor_max_cpu = fixed_actor_min_gpu = fixed_actor_max_gpu = 0
     auto_resource_frac_map = {}
     for op_name, cfg in resource_configs.items():
         if cfg["auto_proc"]:
-            auto_resource_frac_map[op_name] = (cfg["cpu_required_frac"], cfg["gpu_required_frac"])
+            auto_resource_frac_map[op_name] = (cfg["cpu_required_frac"], cfg["gpu_required_frac"], cfg["is_actor"])
         else:
             num_proc = cfg["num_proc"]
             if cfg["is_actor"]:
@@ -345,32 +345,58 @@ def calculate_ray_np(operators):
             else:
                 min_proc = 1  # when ``fn`` is a function, , only the maximum concurrency can be specified
             max_proc = num_proc[1] if isinstance(num_proc, (tuple, list)) else num_proc
-            fixed_min_cpu += cfg["cpu_required_frac"] * min_proc
-            fixed_min_gpu += cfg["gpu_required_frac"] * min_proc
+            _min_cpu = cfg["cpu_required_frac"] * min_proc
+            _min_gpu = cfg["gpu_required_frac"] * min_proc
             if not max_proc:  # when num_proc is none, at least one process will be started
                 max_proc = min_proc  # 1
-            fixed_max_cpu += cfg["cpu_required_frac"] * max_proc
-            fixed_max_gpu += cfg["gpu_required_frac"] * max_proc
+            _max_cpu = cfg["cpu_required_frac"] * max_proc
+            _max_gpu = cfg["gpu_required_frac"] * max_proc
+
+            if cfg["is_actor"]:
+                fixed_actor_min_cpu += _min_cpu
+                fixed_actor_min_gpu += _min_gpu
+                fixed_actor_max_cpu += _max_cpu
+                fixed_actor_max_gpu += _max_gpu
+
+            fixed_min_cpu += _min_cpu
+            fixed_min_gpu += _min_gpu
+            fixed_max_cpu += _max_cpu
+            fixed_max_gpu += _max_gpu
 
     # Validate resource availability
-    total_auto_base_cpu = sum([i[0] for i in list(auto_resource_frac_map.values())])
-    total_auto_base_gpu = sum([i[1] for i in list(auto_resource_frac_map.values())])
+    total_auto_base_cpu = sum([i[0] for i in auto_resource_frac_map.values()])
+    total_auto_base_gpu = sum([i[1] for i in auto_resource_frac_map.values()])
     total_required_min_cpu = fixed_min_cpu + total_auto_base_cpu
     total_required_min_gpu = fixed_min_gpu + total_auto_base_gpu
-    if total_required_min_cpu > 1 or total_required_min_gpu > 1:
-        warn_str = "If running ray streaming tasks with the current operators configuration, we detected insufficient resources. "
-        if total_required_min_cpu > 1:
-            warn_str += f"At least {total_required_min_cpu * total_cpu} cpus are required,  but only {total_cpu} are available. "
-        if total_required_min_gpu > 1:
-            warn_str += f"At least {total_required_min_gpu * total_gpu} cpus are required,  but only {total_gpu} are available. "
-        logger.warning(
-            warn_str + "Considering scenarios with small dataset or elastic scaling requirements, "
-            "we will skip the automatic parallelism calculation and recommend users manually "
-            "configure 'cpu_required', 'gpu_required' and 'num_proc' for operators."
+    total_auto_base_cpu_actor = sum([i[0] for i in auto_resource_frac_map.values() if i[2]])
+    total_auto_base_gpu_actor = sum([i[1] for i in auto_resource_frac_map.values() if i[2]])
+
+    # Precheck: if actors resources are insufficient,
+    # the job will hang and keep waiting to add more nodes to the Ray cluster
+    error_str = ""
+    if fixed_actor_min_cpu + total_auto_base_cpu_actor > 1:
+        error_str += (
+            "CPU resource is not enough for the current operators configuration. "
+            f"At least {(fixed_actor_min_cpu + total_auto_base_cpu_actor) * total_cpu:.1f} cpus are required, "
+            f"but only {total_cpu} cpus are available. "
+            "Please consider configuring the 'cpu_required' of operators to a smaller value or increase the number of CPUs."
         )
-        for op in operators:
-            op.num_proc = None if op.num_proc == -1 else op.num_proc
-        return operators
+    if fixed_actor_min_gpu + total_auto_base_gpu_actor > 1:
+        error_str += (
+            "GPU resource is not enough for the current operators configuration. "
+            f"At least {(fixed_actor_min_gpu + total_auto_base_gpu_actor) * total_gpu:.1f} gpus are required, "
+            f"but only {total_gpu} gpus are available. "
+            "Please consider configuring the 'gpu_required' of cuda operators to a smaller value or increase the number of GPUs."
+        )
+    if error_str:
+        raise ValueError(error_str)
+
+    if total_required_min_cpu > 1 or total_required_min_gpu > 1:
+        # back to batch processing
+        fixed_min_cpu = fixed_actor_min_cpu
+        fixed_max_cpu = fixed_actor_max_cpu
+        fixed_min_gpu = fixed_actor_min_gpu
+        fixed_max_gpu = fixed_actor_max_gpu
 
     if len(auto_resource_frac_map) > 0:
         remaining_min_frac_cpu = 1 - fixed_max_cpu
@@ -393,6 +419,8 @@ def calculate_ray_np(operators):
                 _gpu_names.append(k)
                 _gpu_resources.append(v)
             _best_combination_gpu, _, _ = _find_optimal_concurrency(_gpu_resources, remaining_min_frac_gpu)
+            if remaining_min_frac_gpu <= 0 or _best_combination_gpu is None:
+                _best_combination_gpu = [1 for _ in range(len(_gpu_names))]
             best_combination_gpu = dict(zip(_gpu_names, _best_combination_gpu))
         if len(op_resources_cpu) > 0:
             _cpu_names, _cpu_resources = [], []
@@ -400,6 +428,8 @@ def calculate_ray_np(operators):
                 _cpu_names.append(k)
                 _cpu_resources.append(v)
             _best_combination_cpu, _, _ = _find_optimal_concurrency(_cpu_resources, remaining_min_frac_cpu)
+            if remaining_min_frac_cpu <= 0 or _best_combination_cpu is None:
+                _best_combination_cpu = [1 for _ in range(len(_cpu_names))]
             best_combination_cpu = dict(zip(_cpu_names, _best_combination_cpu))
 
         best_combination = {}
@@ -430,8 +460,8 @@ def calculate_ray_np(operators):
 
                 cfg["num_proc"] = min_proc if min_proc == max_proc else (min_proc, max_proc)
 
-    for op in operators:
-        cfg = resource_configs[op._name]
+    for op_idx, op in enumerate(operators):
+        cfg = resource_configs[op._name + f"_{op_idx}"]
         auto_proc, num_proc = cfg["auto_proc"], cfg["num_proc"]
         if cfg["is_actor"]:
             op.cpu_required = cfg["cpu_required"]

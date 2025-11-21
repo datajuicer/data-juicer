@@ -252,6 +252,9 @@ class RayDataset(DJDataset):
             traceback.print_exc()
             exit(1)
 
+    def count(self) -> int:
+        return self.data.count()
+
     @classmethod
     def read(cls, data_format: str, paths: Union[str, List[str]]) -> RayDataset:
         if data_format in {"json", "jsonl"}:
@@ -302,7 +305,22 @@ class JSONStreamDatasource(ray.data.read_api.JSONDatasource):
     """
 
     def _read_stream(self, f: "pyarrow.NativeFile", path: str):
-        from pyarrow.json import open_json
+        # Check if open_json is available (PyArrow 20.0.0+)
+        try:
+            from pyarrow.json import open_json
+        except ImportError:
+            # Fall back to read_json for older PyArrow versions
+            # This will read the entire file into memory, but works with older PyArrow
+            import pyarrow.json as js
+
+            try:
+                # Read the entire file as a table
+                table = js.read_json(f, **self.arrow_json_args)
+                if table.num_rows > 0:
+                    yield table
+            except Exception as e:
+                raise ValueError(f"Failed to read JSON file: {path}. Error: {e}") from e
+            return
 
         try:
             reader = open_json(
@@ -342,6 +360,17 @@ def read_json_stream(
     override_num_blocks: Optional[int] = None,
     **arrow_json_args,
 ) -> ray.data.Dataset:
+    # Check if open_json is available (PyArrow 20.0.0+)
+    # If not, fall back to ray.data.read_json which works with older PyArrow
+    try:
+        import pyarrow.json as js
+
+        js.open_json  # Check if attribute exists
+    except (ImportError, AttributeError):
+        # Fall back to standard ray.data.read_json for older PyArrow versions
+        # This works with filesystem parameter for S3
+        return ray.data.read_json(paths, filesystem=filesystem)
+
     if meta_provider is None:
         meta_provider = ray.data.read_api.DefaultFileMetadataProvider()
 

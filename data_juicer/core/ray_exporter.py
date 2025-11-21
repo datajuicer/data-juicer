@@ -59,6 +59,29 @@ class RayExporter:
             )
         self.export_extra_args = kwargs if kwargs is not None else {}
 
+        # Check if export_path is S3 and create filesystem if needed
+        self.s3_filesystem = None
+        if export_path.startswith("s3://"):
+            # Extract AWS credentials from export_extra_args (if provided)
+            s3_config = {}
+            if "aws_access_key_id" in self.export_extra_args:
+                s3_config["aws_access_key_id"] = self.export_extra_args.pop("aws_access_key_id")
+            if "aws_secret_access_key" in self.export_extra_args:
+                s3_config["aws_secret_access_key"] = self.export_extra_args.pop("aws_secret_access_key")
+            if "aws_session_token" in self.export_extra_args:
+                s3_config["aws_session_token"] = self.export_extra_args.pop("aws_session_token")
+            if "aws_region" in self.export_extra_args:
+                s3_config["aws_region"] = self.export_extra_args.pop("aws_region")
+            if "endpoint_url" in self.export_extra_args:
+                s3_config["endpoint_url"] = self.export_extra_args.pop("endpoint_url")
+
+            # Create PyArrow S3FileSystem with credentials
+            # This matches the pattern used in RayS3DataLoadStrategy
+            from data_juicer.utils.s3_utils import create_pyarrow_s3_filesystem
+
+            self.s3_filesystem = create_pyarrow_s3_filesystem(s3_config)
+            logger.info(f"Detected S3 export path: {export_path}. S3 filesystem configured.")
+
         self.max_shard_size_str = ""
 
         # get the string format of shard size
@@ -131,6 +154,9 @@ class RayExporter:
             "export_extra_args": self.export_extra_args,
             "export_format": self.export_format,
         }
+        # Add S3 filesystem if available
+        if self.s3_filesystem is not None:
+            export_kwargs["export_extra_args"]["filesystem"] = self.s3_filesystem
         if self.export_shard_size > 0:
             # compute the min_rows_per_file for export methods
             dataset_nbytes = dataset.size_bytes()
@@ -163,6 +189,9 @@ class RayExporter:
         """
         export_extra_args = kwargs.get("export_extra_args", {})
         filtered_kwargs = filter_arguments(dataset.write_json, export_extra_args)
+        # Add S3 filesystem if available
+        if "filesystem" in export_extra_args:
+            filtered_kwargs["filesystem"] = export_extra_args["filesystem"]
         return dataset.write_json(export_path, force_ascii=False, **filtered_kwargs)
 
     @staticmethod
@@ -184,6 +213,9 @@ class RayExporter:
             reconstruct_func = partial(reconstruct_custom_webdataset_format, field_mapping=field_mapping)
             dataset = dataset.map(reconstruct_func)
         filtered_kwargs = filter_arguments(dataset.write_webdataset, export_extra_args)
+        # Add S3 filesystem if available
+        if "filesystem" in export_extra_args:
+            filtered_kwargs["filesystem"] = export_extra_args["filesystem"]
 
         return dataset.write_webdataset(export_path, encoder=_custom_default_encoder, **filtered_kwargs)
 
@@ -201,7 +233,10 @@ class RayExporter:
         write_method = getattr(dataset, f"write_{export_format}")
         export_extra_args = kwargs.get("export_extra_args", {})
         filtered_kwargs = filter_arguments(write_method, export_extra_args)
-        return getattr(dataset, f"write_{export_format}")(export_path, **filtered_kwargs)
+        # Add S3 filesystem if available
+        if "filesystem" in export_extra_args:
+            filtered_kwargs["filesystem"] = export_extra_args["filesystem"]
+        return write_method(export_path, **filtered_kwargs)
 
     # suffix to export method
     @staticmethod

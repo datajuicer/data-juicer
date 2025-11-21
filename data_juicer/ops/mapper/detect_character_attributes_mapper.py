@@ -21,7 +21,16 @@ OP_NAME = "detect_character_attributes_mapper"
 @OPERATORS.register_module(OP_NAME)
 @LOADED_IMAGES.register_module(OP_NAME)
 class DetectCharacterAttributesMapper(Mapper):
-    """Takes an image, a caption, and main character names as input to extract the characters' attributes."""
+    """Takes an image, a caption, and main character names as input to extract the characters' attributes.
+
+    Extracts and classifies attributes of main characters in an image using a combination of
+    object detection, image-text matching, and language model inference. It first locates the
+    main characters in the image using YOLOE and then uses a Hugging Face tokenizer and a
+    LLaMA-based model to classify each character into categories like 'object', 'animal',
+    'person', 'text', or 'other'. The operator also extracts detailed features such as color,
+    material, and action for each character. The final output includes bounding boxes and a
+    list of characteristics for each main character. The results are stored in the
+    'main_character_attributes_list' field under the 'meta' key."""
 
     _accelerator = "cuda"
 

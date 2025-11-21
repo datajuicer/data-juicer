@@ -1,3 +1,31 @@
+
+/* Make the main brand link a flex container to stack logo and text vertically */
+.sidebar-brand.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center items horizontally */
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.sidebar-logo-container {
+  padding: 0;
+  width: 85%;
+  max-width: 180px;
+}
+
+.sidebar-brand-text {
+  width: 95%; 
+  max-width: 200px; 
+}
+
+/* Styling for the <text> element inside the SVG */
+.sidebar-brand-text text {
+  font-weight: bold;
+  font-family: var(--font-stack-sans-serif, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif);
+  fill: var(--color-brand-content, var(--color-foreground-primary));
+  font-size: 32px;
+}
 .sidebar-bottom-menu {
   position: sticky;
   bottom: 0;

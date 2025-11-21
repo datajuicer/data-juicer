@@ -22,10 +22,21 @@ torch = LazyLoader("torch")
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VggtMapper(Mapper):
-    """Input a video of a single scene, and use VGGT to extract
-    information including Camera Pose, Depth Maps, Point Maps,
-    and 3D Point Tracks (if outputting point tracks is required,
-    the user needs to provide query points)."""
+    """Input a video of a single scene, and use VGGT to extract information including Camera
+    Pose, Depth Maps, Point Maps, and 3D Point Tracks.
+
+    - The operator processes a video and extracts frames based on the specified frame number
+      and duration.
+    - It uses the VGGT model to analyze the extracted frames and generate various outputs
+      such as camera parameters, depth maps, point maps, and 3D point tracks.
+    - If 3D point tracks are required, the user must provide query points in the format [x,
+      y], relative to the top-left corner.
+    - The results are stored in the sample's metadata under the specified tag field name,
+      which defaults to 'vggt_tags'.
+    - The operator can output camera parameters, depth maps, point maps from projection,
+      point maps from unprojection, and 3D point tracks, depending on the configuration.
+    - The VGGT model is loaded from the provided path, and the operator runs in CUDA mode if
+      available."""
 
     _accelerator = "cuda"
 

@@ -29,7 +29,7 @@ from custom_myst import ReplaceVideoLinksTransform
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-project = "data_juicer"
+project = "DataJuicer"
 copyright = "2024, Data-Juicer Team"
 author = "Data-Juicer Team"
 
@@ -70,6 +70,10 @@ exclude_patterns = ["build", "demos/process_video_on_ray/data/Note.md"]
 # See the documentation for a list of builtin themes.
 html_theme = "furo"
 html_title = "Data Juicer"
+
+# Favicon and logo configuration
+html_favicon = "_static/images/icon.png"
+html_logo = "_static/images/logo.png"
 
 # Sidebar configuration
 html_sidebars = {

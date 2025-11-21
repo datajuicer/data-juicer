@@ -19,7 +19,7 @@ Tags 标签: cpu, text
 | `tokenization` | <class 'bool'> | `False` | whether to use model to tokenize documents |
 | `min_ratio` | <class 'float'> | `0.3` | The min filter ratio in this op. |
 | `max_ratio` | <class 'float'> | `1.0` | The max filter ratio in this op. |
-| `stopwords_dir` | <class 'str'> | `'/home/cmgzn/.cache/data_juicer/assets'` | The directory storing the stopwords file(s) whose name includes "stopwords" and in json format |
+| `stopwords_dir` | <class 'str'> | `DATA_JUICER_ASSETS_CACHE` | The directory storing the stopwords file(s) whose name includes "stopwords" and in json format |
 | `use_words_aug` | <class 'bool'> | `False` | Whether to augment words, especially for Chinese and Vietnamese |
 | `words_aug_group_sizes` | typing.List[typing.Annotated[int, Gt(gt=0)]] | `[2]` | The group size of words to augment |
 | `words_aug_join_char` | <class 'str'> | `''` | The join char between words to augment |

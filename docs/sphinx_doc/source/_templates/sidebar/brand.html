@@ -1,0 +1,28 @@
+{#-
+  Custom sidebar brand template.
+  This template adds a responsive SVG text title below the logo.
+-#}
+<a class="sidebar-brand centered" href="{{ pathto(master_doc) }}">
+  {%- block brand_content %}
+    {#- Existing logo logic from your original code -#}
+    {%- if logo_url %}
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo" src="{{ logo_url }}" alt="Logo"/>
+    </div>
+    {%- endif %}
+    {%- if theme_light_logo and theme_dark_logo %}
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo only-light" src="{{ pathto('_static/' + theme_light_logo, 1) }}" alt="Light Logo"/>
+      <img class="sidebar-logo only-dark" src="{{ pathto('_static/' + theme_dark_logo, 1) }}" alt="Dark Logo"/>
+    </div>
+    {%- endif %}
+    <svg class="sidebar-brand-text" viewBox="0 0 200 30">
+        {#-
+          x="100" and text-anchor="middle" horizontally center the text.
+          y="15" and dominant-baseline="middle" vertically center the text.
+        -#}
+        <text x="100" y="15" dominant-baseline="middle" text-anchor="middle">{{ project }}</text>
+    </svg>
+
+  {% endblock brand_content %}
+</a>

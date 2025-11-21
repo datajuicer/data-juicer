@@ -820,7 +820,7 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     """
     Do some extra setup tasks after parsing config file or command line.
 
-    1. create working directory and a log directory
+    1. create working directory and logs directory
     2. update cache directory
     3. update checkpoint and `temp_dir` of tempfile
 
@@ -860,11 +860,8 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
             export_rel_path = s3_path_parts[1] if len(s3_path_parts) > 1 else s3_path_parts[0]
         else:
             export_rel_path = os.path.relpath(cfg.export_path, start=cfg.work_dir)
-        log_dir = os.path.join(cfg.work_dir, "log")
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir, exist_ok=True)
-        export_rel_path = os.path.relpath(cfg.export_path, start=cfg.work_dir)
 
+        # Ensure event_log_dir (logs/) exists - this is where logs are actually saved
         if not os.path.exists(cfg.event_log_dir):
             os.makedirs(cfg.event_log_dir, exist_ok=True)
         logfile_name = f"export_{export_rel_path}_time_{timestamp}.txt"

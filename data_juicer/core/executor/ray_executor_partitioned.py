@@ -340,8 +340,15 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
         self._initialize_dag_execution(self.cfg)
 
         # Log job start with DAG context
+        # Handle both dataset_path (string) and dataset (dict) configurations
+        dataset_info = {}
+        if hasattr(self.cfg, "dataset_path") and self.cfg.dataset_path:
+            dataset_info["dataset_path"] = self.cfg.dataset_path
+        if hasattr(self.cfg, "dataset") and self.cfg.dataset:
+            dataset_info["dataset"] = self.cfg.dataset
+
         job_config = {
-            "dataset_path": self.cfg.dataset_path,
+            **dataset_info,
             "work_dir": self.work_dir,
             "executor_type": self.executor_type,
             "dag_node_count": len(self.pipeline_dag.nodes) if self.pipeline_dag else 0,

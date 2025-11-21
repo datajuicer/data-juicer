@@ -460,10 +460,17 @@ class EventLoggingMixin:
     # Add new logging methods for job, partition, and op events
     def log_job_start(self, config, total_partitions):
         """Log job start with detailed configuration."""
+        # Handle both dataset_path (string) and dataset (dict) configurations
+        dataset_info = {}
+        if "dataset_path" in config:
+            dataset_info["dataset_path"] = config.get("dataset_path")
+        if "dataset" in config:
+            dataset_info["dataset"] = config.get("dataset")
+
         metadata = {
             "total_partitions": total_partitions,
             "config_summary": {
-                "dataset_path": config.get("dataset_path"),
+                **dataset_info,
                 "executor_type": config.get("executor_type"),
                 "partition_size": config.get("partition_size"),
                 "checkpoint_strategy": config.get("checkpoint_strategy"),

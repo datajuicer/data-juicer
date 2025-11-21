@@ -53,9 +53,6 @@ class DefaultExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin):
         self.executor_type = "default"
         # Checkpoint directory
         self.ckpt_dir = os.path.join(self.work_dir, "ckpt")
-        # Tracer directory
-        if self.cfg.open_tracer:
-            self.tracer = Tracer(self.work_dir, show_num=self.cfg.trace_num)
 
         self.ckpt_manager = None
 

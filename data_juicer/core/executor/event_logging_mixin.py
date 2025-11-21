@@ -427,6 +427,21 @@ class EventLoggingMixin:
 
         return project_name
 
+    def _add_dag_context_to_metadata(
+        self, metadata: Dict[str, Any], operation_name: str, operation_idx: int, partition_id: int
+    ):
+        """Add DAG context to metadata if DAGExecutionMixin is available."""
+        # Check if DAGExecutionMixin is available and has the method to get DAG node
+        if hasattr(self, "_get_dag_node_for_operation"):
+            try:
+                node_id = self._get_dag_node_for_operation(operation_name, operation_idx, partition_id=partition_id)
+                if node_id:
+                    metadata["dag_node_id"] = node_id
+                else:
+                    logger.debug(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
+            except Exception as e:
+                logger.debug(f"Error getting DAG node for operation {operation_name}: {e}")
+
     def _log_event(self, event_type: EventType, message: str, **kwargs):
         """Log an event if event logging is enabled."""
         if self.event_logger is None:
@@ -604,6 +619,9 @@ class EventLoggingMixin:
         if "metadata" in kwargs:
             metadata.update(kwargs["metadata"])
 
+        # Automatically add DAG context if DAGExecutionMixin is available
+        self._add_dag_context_to_metadata(metadata, operation_name, operation_idx, partition_id)
+
         event_id = f"op_start_{partition_id}_{operation_idx}_{int(time.time())}"
         self._log_event(
             EventType.OP_START,
@@ -638,6 +656,9 @@ class EventLoggingMixin:
         if "metadata" in kwargs:
             metadata.update(kwargs["metadata"])
 
+        # Automatically add DAG context if DAGExecutionMixin is available
+        self._add_dag_context_to_metadata(metadata, operation_name, operation_idx, partition_id)
+
         event_id = f"op_complete_{partition_id}_{operation_idx}_{int(time.time())}"
         self._log_event(
             EventType.OP_COMPLETE,
@@ -665,6 +686,9 @@ class EventLoggingMixin:
         # Merge any additional metadata from kwargs
         if "metadata" in kwargs:
             metadata.update(kwargs["metadata"])
+
+        # Automatically add DAG context if DAGExecutionMixin is available
+        self._add_dag_context_to_metadata(metadata, operation_name, operation_idx, partition_id)
 
         event_id = f"op_failed_{partition_id}_{operation_idx}_{int(time.time())}"
         self._log_event(

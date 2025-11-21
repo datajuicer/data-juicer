@@ -64,7 +64,7 @@ class PartitionResult:
     error: Optional[str] = None
 
 
-class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin):
+class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
     """
     Simplified Ray executor with dataset partitioning using .split().
 

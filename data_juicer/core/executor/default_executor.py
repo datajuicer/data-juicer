@@ -26,7 +26,7 @@ from data_juicer.utils.ckpt_utils import CheckpointManager
 from data_juicer.utils.sample import random_sample
 
 
-class DefaultExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin):
+class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
     """
     This Executor class is used to process a specific dataset.
 

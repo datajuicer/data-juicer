@@ -33,7 +33,7 @@ class TempDirManager:
             shutil.rmtree(self.tmp_dir)
 
 
-class RayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin):
+class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
     """
     Executor based on Ray.
 

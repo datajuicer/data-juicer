@@ -1,9 +1,8 @@
 """
 DAG Execution Mixin for Data-Juicer Executors
 
-This mixin provides AST-based pipeline parsing and DAG execution planning
-that can be integrated into existing executors to provide intelligent
-pipeline analysis and execution monitoring.
+This mixin provides DAG execution planning and monitoring that can be integrated
+into existing executors to provide intelligent pipeline analysis and execution tracking.
 """
 
 import json
@@ -21,7 +20,6 @@ from data_juicer.core.executor.dag_execution_strategies import (
     is_global_operation,
 )
 from data_juicer.core.executor.event_logging_mixin import EventType
-from data_juicer.core.pipeline_ast import PipelineAST
 from data_juicer.core.pipeline_dag import DAGNodeStatus, PipelineDAG
 
 
@@ -30,7 +28,6 @@ class DAGExecutionMixin:
     Mixin that provides DAG-based execution planning and monitoring.
 
     This mixin can be integrated into any executor to provide:
-    - AST-based pipeline parsing
     - DAG execution planning
     - Execution monitoring tied to DAG nodes
     - Event logging with DAG context
@@ -39,7 +36,6 @@ class DAGExecutionMixin:
     def __init__(self):
         """Initialize the DAG execution mixin."""
         self.pipeline_dag: Optional[PipelineDAG] = None
-        self.pipeline_ast: Optional[PipelineAST] = None
         self.dag_initialized = False
         self.current_dag_node: Optional[str] = None
         self.dag_execution_start_time: Optional[float] = None
@@ -95,12 +91,7 @@ class DAGExecutionMixin:
 
     def _generate_dag_with_strategy(self, cfg) -> None:
         """Generate DAG using the selected strategy."""
-        # Create pipeline AST
-        self.pipeline_ast = PipelineAST()
-        config = {"process": cfg.process}
-        self.pipeline_ast.build_from_config(config)
-
-        # Get operations from AST
+        # Get operations directly from config
         operations = self._get_operations_from_config(cfg)
 
         # Get strategy-specific parameters
@@ -121,11 +112,9 @@ class DAGExecutionMixin:
             ast_info = {
                 "config_source": "process_config",
                 "build_start_time": time.time(),
-                "node_count": len(self.pipeline_ast.root.children) if self.pipeline_ast.root else 0,
-                "depth": self._calculate_ast_depth(self.pipeline_ast.root) if self.pipeline_ast.root else 0,
-                "operation_types": (
-                    self._extract_operation_types(self.pipeline_ast.root) if self.pipeline_ast.root else []
-                ),
+                "node_count": len(operations),
+                "depth": len(operations),  # AST is linear, so depth equals number of operations
+                "operation_types": self._extract_operation_types_from_ops(operations),
             }
             self.log_dag_build_start(ast_info)
 
@@ -298,65 +287,6 @@ class DAGExecutionMixin:
         elif event_type == "op_failed" and hasattr(self, "log_op_failed"):
             self.log_op_failed(0, op_name, op_idx, kwargs.get("error", "Unknown error"), kwargs.get("retry_count", 0))
 
-    def log_op_start(self, partition_id, operation_name, operation_idx, op_args, **kwargs):
-        """Override to add DAG context to operation start events."""
-        # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx, partition_id=partition_id)
-
-        # Create metadata with DAG context
-        if "metadata" not in kwargs:
-            kwargs["metadata"] = {}
-        if node_id:
-            kwargs["metadata"]["dag_node_id"] = node_id
-        else:
-            logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
-
-        # Call the parent method with metadata
-        super().log_op_start(partition_id, operation_name, operation_idx, op_args, **kwargs)
-
-    def log_op_complete(
-        self, partition_id, operation_name, operation_idx, duration, checkpoint_path, input_rows, output_rows, **kwargs
-    ):
-        """Override to add DAG context to operation complete events."""
-        # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx, partition_id=partition_id)
-
-        # Create metadata with DAG context
-        if "metadata" not in kwargs:
-            kwargs["metadata"] = {}
-        if node_id:
-            kwargs["metadata"]["dag_node_id"] = node_id
-        else:
-            logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
-
-        # Call the parent method with metadata
-        super().log_op_complete(
-            partition_id,
-            operation_name,
-            operation_idx,
-            duration,
-            checkpoint_path,
-            input_rows,
-            output_rows,
-            **kwargs,
-        )
-
-    def log_op_failed(self, partition_id, operation_name, operation_idx, error_message, retry_count, **kwargs):
-        """Override to add DAG context to operation failed events."""
-        # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx, partition_id=partition_id)
-
-        # Create metadata with DAG context
-        if "metadata" not in kwargs:
-            kwargs["metadata"] = {}
-        if node_id:
-            kwargs["metadata"]["dag_node_id"] = node_id
-        else:
-            logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
-
-        # Call the parent method with metadata
-        super().log_op_failed(partition_id, operation_name, operation_idx, error_message, retry_count, **kwargs)
-
     def _execute_operations_with_dag_monitoring(self, dataset, ops: List) -> None:
         """Execute operations with DAG monitoring."""
         if not self.pipeline_dag:
@@ -402,29 +332,32 @@ class DAGExecutionMixin:
                 if hasattr(self, "log_op_complete"):
                     self.log_op_complete(0, op_name, op_idx, 0.0, None, 0, 0)
 
-    def _calculate_ast_depth(self, node) -> int:
-        """Calculate the depth of an AST node."""
-        if not node or not node.children:
-            return 0
-
-        max_depth = 0
-        for child in node.children:
-            child_depth = self._calculate_ast_depth(child)
-            max_depth = max(max_depth, child_depth)
-
-        return max_depth + 1
-
-    def _extract_operation_types(self, node) -> List[str]:
-        """Extract operation types from AST node."""
+    def _extract_operation_types_from_ops(self, operations: List) -> List[str]:
+        """Extract operation types from operations list."""
         types = set()
+        for op in operations:
+            # Determine op type from operation name or class
+            op_name = getattr(op, "_name", "")
+            if op_name.endswith("_filter"):
+                types.add("filter")
+            elif op_name.endswith("_mapper"):
+                types.add("mapper")
+            elif op_name.endswith("_deduplicator"):
+                types.add("deduplicator")
+            elif op_name.endswith("_selector"):
+                types.add("selector")
+            elif op_name.endswith("_grouper"):
+                types.add("grouper")
+            elif op_name.endswith("_aggregator"):
+                types.add("aggregator")
+            else:
+                # Try to infer from class hierarchy
+                from data_juicer.ops.base_op import Filter, Mapper
 
-        if node and node.op_type.value != "root":
-            types.add(node.op_type.value)
-
-        if node and node.children:
-            for child in node.children:
-                types.update(self._extract_operation_types(child))
-
+                if isinstance(op, Filter):
+                    types.add("filter")
+                elif isinstance(op, Mapper):
+                    types.add("mapper")
         return list(types)
 
     def get_dag_execution_status(self) -> Dict[str, Any]:

@@ -2,26 +2,17 @@
 Pipeline DAG Representation for Data-Juicer Pipelines
 
 This module provides Pipeline DAG (Directed Acyclic Graph) representation and planning
-capabilities that convert pipeline ASTs into executable DAGs with proper dependency
-management, parallel execution planning, and event logging integration.
+capabilities for tracking execution state, dependencies, and monitoring.
 """
 
 import json
 import time
-from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from loguru import logger
-
-from data_juicer.core.pipeline_ast import (
-    OP_TYPE_DEPENDENCIES,
-    OpNode,
-    OpType,
-    PipelineAST,
-)
 
 
 class DAGNodeStatus(Enum):
@@ -45,11 +36,14 @@ class DAGEdgeType(Enum):
 
 @dataclass
 class DAGNode:
-    """Node in the execution DAG."""
+    """Node in the execution DAG.
+
+    Note: This is kept for backward compatibility, but strategies typically use dict nodes.
+    """
 
     node_id: str
     op_name: str
-    op_type: OpType
+    node_type: str  # Changed from op_type: OpType to node_type: str
     config: Dict[str, Any]
     status: DAGNodeStatus = DAGNodeStatus.PENDING
     dependencies: Set[str] = field(default_factory=set)
@@ -67,7 +61,7 @@ class DAGNode:
         return {
             "node_id": self.node_id,
             "op_name": self.op_name,
-            "op_type": self.op_type.value,
+            "node_type": self.node_type,
             "config": self.config,
             "status": self.status.value,
             "dependencies": list(self.dependencies),
@@ -120,200 +114,9 @@ class PipelineDAG:
 
         # DAG structure - support both DAGNode objects and dict nodes from strategies
         self.nodes: Dict[str, Any] = {}
-        self.edges: List[DAGEdge] = []
-        self.execution_plan: List[str] = []
-        self.parallel_groups: List[List[str]] = []
-
-    def build_from_ast(self, ast: PipelineAST) -> None:
-        """Build DAG from pipeline AST.
-
-        Args:
-            ast: Pipeline AST to convert to DAG
-        """
-        logger.info("Building DAG from pipeline AST...")
-
-        # Clear existing DAG
-        self.nodes.clear()
-        self.edges.clear()
-        self.execution_plan.clear()
-        self.parallel_groups.clear()
-
-        if not ast.root:
-            logger.warning("Empty AST provided")
-            return
-
-        # Convert AST nodes to DAG nodes
-        self._convert_ast_to_dag_nodes(ast.root)
-
-        # Build dependencies based on operation types
-        self._build_dependencies()
-
-        # Generate execution plan
-        self._generate_execution_plan()
-
-        # Identify parallel execution groups
-        self._identify_parallel_groups()
-
-        logger.info(f"DAG built successfully: {len(self.nodes)} nodes, {len(self.edges)} edges")
-
-    def _convert_ast_to_dag_nodes(self, ast_node: OpNode, parent_id: Optional[str] = None) -> str:
-        """Convert AST node to DAG node recursively.
-
-        Args:
-            ast_node: AST node to convert
-            parent_id: Parent node ID for dependency tracking
-
-        Returns:
-            Node ID of the created DAG node
-        """
-        # Create DAG node
-        node_id = f"op_{len(self.nodes):03d}_{ast_node.name}"
-        dag_node = DAGNode(
-            node_id=node_id,
-            op_name=ast_node.name,
-            op_type=ast_node.op_type,
-            config=ast_node.config,
-        )
-
-        self.nodes[node_id] = dag_node
-
-        # Add dependency on parent if exists
-        if parent_id:
-            dag_node.dependencies.add(parent_id)
-            self.nodes[parent_id].dependents.add(node_id)
-            self.edges.append(DAGEdge(source_id=parent_id, target_id=node_id, edge_type=DAGEdgeType.SEQUENTIAL))
-
-        # Process children
-        for child in ast_node.children:
-            self._convert_ast_to_dag_nodes(child, node_id)
-
-        return node_id
-
-    def _build_dependencies(self) -> None:
-        """Build dependencies based on operation types and optimization rules."""
-        logger.info("Building operation dependencies...")
-
-        # For now, we'll use a simpler approach that respects the AST structure
-        # and only adds minimal dependencies to ensure proper execution order
-
-        # Get all nodes in execution order (based on AST traversal)
-        all_nodes = list(self.nodes.values())
-
-        # Sort nodes by their position in the AST (assuming they were added in order)
-        # This is a simplified approach - in a real implementation, you'd want to
-        # analyze the AST structure more carefully
-
-        # For now, let's just ensure that filters come before deduplicators
-        # and mappers can come at any point
-        for i, node in enumerate(all_nodes):
-            if node.op_type == OpType.ROOT:
-                continue
-
-            # Add dependencies based on operation type rules
-            if node.op_type == OpType.DEDUPLICATOR:
-                # Deduplicators should come after filters
-                for j, other_node in enumerate(all_nodes):
-                    if j < i and other_node.op_type == OpType.FILTER and other_node.node_id != node.node_id:
-                        node.dependencies.add(other_node.node_id)
-                        other_node.dependents.add(node.node_id)
-                        self.edges.append(
-                            DAGEdge(
-                                source_id=other_node.node_id, target_id=node.node_id, edge_type=DAGEdgeType.SEQUENTIAL
-                            )
-                        )
-
-    def _get_op_type_dependencies(self, op_type: OpType) -> Set[OpType]:
-        """Get dependencies for a given operation type."""
-        return OP_TYPE_DEPENDENCIES.get(op_type, set())
-
-    def _generate_execution_plan(self) -> None:
-        """Generate topological sort for execution order."""
-        logger.info("Generating execution plan...")
-
-        # Topological sort using Kahn's algorithm
-        in_degree = {node_id: len(node.dependencies) for node_id, node in self.nodes.items()}
-        queue = deque([node_id for node_id, degree in in_degree.items() if degree == 0])
-
-        execution_order = []
-
-        while queue:
-            node_id = queue.popleft()
-            execution_order.append(node_id)
-
-            # Update in-degree for dependents
-            for dependent_id in self.nodes[node_id].dependents:
-                in_degree[dependent_id] -= 1
-                if in_degree[dependent_id] == 0:
-                    queue.append(dependent_id)
-
-        # Check for cycles
-        if len(execution_order) != len(self.nodes):
-            raise ValueError("DAG contains cycles - cannot generate execution plan")
-
-        # Update execution order in nodes
-        for i, node_id in enumerate(execution_order):
-            self.nodes[node_id].execution_order = i
-
-        self.execution_plan = execution_order
-        logger.info(f"Execution plan generated: {len(execution_order)} operations")
-
-    def _identify_parallel_groups(self) -> None:
-        """Identify groups of operations that can run in parallel."""
-        logger.info("Identifying parallel execution groups...")
-
-        # Group operations by execution level (operations with same dependencies)
-        level_groups = defaultdict(list)
-
-        for node_id in self.execution_plan:
-            node = self.nodes[node_id]
-            level_key = tuple(sorted(node.dependencies))
-            level_groups[level_key].append(node_id)
-
-        # Create parallel groups
-        for level_key, node_ids in level_groups.items():
-            if len(node_ids) > 1:
-                # Check if operations can run in parallel (same type or compatible types)
-                parallel_group = []
-                for node_id in node_ids:
-                    node = self.nodes[node_id]
-                    if self._can_run_in_parallel(node, parallel_group):
-                        parallel_group.append(node_id)
-
-                if len(parallel_group) > 1:
-                    self.parallel_groups.append(parallel_group)
-                    logger.info(f"Parallel group identified: {parallel_group}")
-
-    def _can_run_in_parallel(self, node: DAGNode, parallel_group: List[str]) -> bool:
-        """Check if a node can run in parallel with existing group."""
-        if not parallel_group:
-            return True
-
-        # For now, allow same operation types to run in parallel
-        # This can be enhanced with more sophisticated rules
-        group_nodes = [self.nodes[node_id] for node_id in parallel_group]
-        return all(group_node.op_type == node.op_type for group_node in group_nodes)
-
-    def _would_create_cycle(self, source_id: str, target_id: str) -> bool:
-        """Check if adding an edge from source to target would create a cycle."""
-        # Use DFS to check if there's already a path from target to source
-        visited = set()
-
-        def dfs(node_id: str) -> bool:
-            if node_id == source_id:
-                return True
-            if node_id in visited:
-                return False
-
-            visited.add(node_id)
-            node = self.nodes[node_id]
-
-            for dependent_id in node.dependents:
-                if dfs(dependent_id):
-                    return True
-
-            return False
-
-        return dfs(target_id)
+        self.edges: List[DAGEdge] = []  # Not currently populated by strategies
+        self.execution_plan: List[str] = []  # Not currently populated by strategies
+        self.parallel_groups: List[List[str]] = []  # Not currently populated by strategies
 
     def save_execution_plan(self, filename: str = "dag_execution_plan.json") -> str:
         """Save the execution plan to file.
@@ -397,23 +200,23 @@ class PipelineDAG:
             # Reconstruct nodes (static structure only)
             self.nodes.clear()
             for node_id, node_data in plan_data["nodes"].items():
-                node = DAGNode(
-                    node_id=node_data["node_id"],
-                    op_name=node_data["op_name"],
-                    op_type=OpType(node_data["op_type"]),
-                    config=node_data["config"],
-                    status=DAGNodeStatus.PENDING,  # Always start with pending status
-                    dependencies=set(node_data["dependencies"]),
-                    dependents=set(node_data["dependents"]),
-                    execution_order=node_data["execution_order"],
-                    estimated_duration=node_data.get("estimated_duration", 0.0),
-                    actual_duration=0.0,  # Reset execution state
-                    start_time=None,  # Reset execution state
-                    end_time=None,  # Reset execution state
-                    error_message=None,  # Reset execution state
-                    metadata=node_data.get("metadata", {}),
-                )
-                self.nodes[node_id] = node
+                # Keep as dict to match strategy format
+                self.nodes[node_id] = {
+                    "node_id": node_data["node_id"],
+                    "operation_name": node_data.get("op_name", node_data.get("operation_name", "")),
+                    "node_type": node_data.get("node_type", node_data.get("op_type", "operation")),
+                    "config": node_data.get("config", {}),
+                    "status": "pending",  # Always start with pending status
+                    "dependencies": node_data.get("dependencies", []),
+                    "dependents": node_data.get("dependents", []),
+                    "execution_order": node_data.get("execution_order", 0),
+                    "estimated_duration": node_data.get("estimated_duration", 0.0),
+                    "actual_duration": 0.0,  # Reset execution state
+                    "start_time": None,  # Reset execution state
+                    "end_time": None,  # Reset execution state
+                    "error_message": None,  # Reset execution state
+                    "metadata": node_data.get("metadata", {}),
+                }
 
             # Reconstruct edges
             self.edges.clear()
@@ -446,30 +249,51 @@ class PipelineDAG:
         lines = ["DAG Execution Plan:"]
         lines.append("=" * 50)
 
-        # Show execution order
-        lines.append("Execution Order:")
-        for i, node_id in enumerate(self.execution_plan):
-            node = self.nodes[node_id]
-            # Handle both DAGNode objects and dict nodes from strategies
-            if hasattr(node, "status"):
-                status = node.status
-                op_name = node.op_name
-                op_type = node.op_type.value
-            else:
-                status = DAGNodeStatus.PENDING  # Default for dict nodes
-                op_name = node.get("operation_name", "unknown")
-                op_type = node.get("node_type", "operation")
+        # Show execution order (if available, otherwise show all nodes)
+        if self.execution_plan:
+            lines.append("Execution Order:")
+            for i, node_id in enumerate(self.execution_plan):
+                node = self.nodes[node_id]
+                status = DAGNodeStatus(node.get("status", "pending")) if isinstance(node, dict) else node.status
+                op_name = node.get("operation_name", "unknown") if isinstance(node, dict) else node.op_name
+                op_type = (
+                    node.get("node_type", "operation")
+                    if isinstance(node, dict)
+                    else getattr(node, "node_type", "operation")
+                )
 
-            status_icon = {
-                DAGNodeStatus.PENDING: "⏳",
-                DAGNodeStatus.READY: "✅",
-                DAGNodeStatus.RUNNING: "🔄",
-                DAGNodeStatus.COMPLETED: "✅",
-                DAGNodeStatus.FAILED: "❌",
-                DAGNodeStatus.SKIPPED: "⏭️",
-            }.get(status, "❓")
+                status_icon = {
+                    DAGNodeStatus.PENDING: "⏳",
+                    DAGNodeStatus.READY: "✅",
+                    DAGNodeStatus.RUNNING: "🔄",
+                    DAGNodeStatus.COMPLETED: "✅",
+                    DAGNodeStatus.FAILED: "❌",
+                    DAGNodeStatus.SKIPPED: "⏭️",
+                }.get(status, "❓")
 
-            lines.append(f"  {i+1:2d}. {status_icon} {op_name} ({op_type})")
+                lines.append(f"  {i+1:2d}. {status_icon} {op_name} ({op_type})")
+        else:
+            # No execution plan, show all nodes
+            lines.append("Nodes:")
+            for i, (node_id, node) in enumerate(self.nodes.items()):
+                status = DAGNodeStatus(node.get("status", "pending")) if isinstance(node, dict) else node.status
+                op_name = node.get("operation_name", "unknown") if isinstance(node, dict) else node.op_name
+                op_type = (
+                    node.get("node_type", "operation")
+                    if isinstance(node, dict)
+                    else getattr(node, "node_type", "operation")
+                )
+
+                status_icon = {
+                    DAGNodeStatus.PENDING: "⏳",
+                    DAGNodeStatus.READY: "✅",
+                    DAGNodeStatus.RUNNING: "🔄",
+                    DAGNodeStatus.COMPLETED: "✅",
+                    DAGNodeStatus.FAILED: "❌",
+                    DAGNodeStatus.SKIPPED: "⏭️",
+                }.get(status, "❓")
+
+                lines.append(f"  {i+1:2d}. {status_icon} {op_name} ({op_type})")
 
         # Show parallel groups
         if self.parallel_groups:
@@ -487,22 +311,21 @@ class PipelineDAG:
         # Show dependencies
         lines.append("\nDependencies:")
         for node_id, node in self.nodes.items():
-            # Handle both DAGNode objects and dict nodes from strategies
-            if hasattr(node, "dependencies"):
-                dependencies = node.dependencies
-                op_name = node.op_name
-            else:
-                dependencies = node.get("dependencies", [])
-                op_name = node.get("operation_name", "unknown")
+            dependencies = node.get("dependencies", []) if isinstance(node, dict) else getattr(node, "dependencies", [])
+            op_name = (
+                node.get("operation_name", "unknown") if isinstance(node, dict) else getattr(node, "op_name", "unknown")
+            )
 
             if dependencies:
                 dep_names = []
                 for dep_id in dependencies:
-                    dep_node = self.nodes[dep_id]
-                    if hasattr(dep_node, "op_name"):
-                        dep_names.append(dep_node.op_name)
-                    else:
-                        dep_names.append(dep_node.get("operation_name", "unknown"))
+                    dep_node = self.nodes.get(dep_id, {})
+                    dep_name = (
+                        dep_node.get("operation_name", "unknown")
+                        if isinstance(dep_node, dict)
+                        else getattr(dep_node, "op_name", "unknown")
+                    )
+                    dep_names.append(dep_name)
                 lines.append(f"  {op_name} depends on: {', '.join(dep_names)}")
 
         return "\n".join(lines)

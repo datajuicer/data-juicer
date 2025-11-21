@@ -1,7 +1,5 @@
 from .base import ExecutorBase
 from .default_executor import DefaultExecutor
-from .ray_executor import RayExecutor
-from .ray_executor_partitioned import PartitionedRayExecutor
 
 
 class ExecutorFactory:
@@ -10,10 +8,13 @@ class ExecutorFactory:
         if executor_type in ("local", "default"):
             return DefaultExecutor
         elif executor_type == "ray":
+            from .ray_executor import RayExecutor
+
             return RayExecutor
         elif executor_type == "ray_partitioned":
-            return PartitionedRayExecutor
+            from .ray_executor_partitioned import PartitionedRayExecutor
 
+            return PartitionedRayExecutor
         # TODO: add nemo support
         #  elif executor_type == "nemo":
         #    return NemoExecutor

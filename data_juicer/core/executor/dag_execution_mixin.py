@@ -275,10 +275,20 @@ class DAGExecutionMixin:
 
         self.current_dag_node = None
 
-    def _log_operation_with_dag_context(self, op_name: str, op_idx: int, event_type: str, **kwargs) -> None:
-        """Log an operation event with DAG context."""
+    def _log_operation_with_dag_context(
+        self, op_name: str, op_idx: int, event_type: str, partition_id: int = 0, **kwargs
+    ) -> None:
+        """Log an operation event with DAG context.
+
+        Args:
+            op_name: Operation name
+            op_idx: Operation index
+            event_type: Type of event ("op_start", "op_complete", "op_failed")
+            partition_id: Partition ID for partitioned executors (default: 0)
+            **kwargs: Additional arguments for logging
+        """
         # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(op_name, op_idx)
+        node_id = self._get_dag_node_for_operation(op_name, op_idx, partition_id=partition_id)
 
         # Add DAG node ID to metadata if found
         if "metadata" not in kwargs:
@@ -292,10 +302,10 @@ class DAGExecutionMixin:
 
         # Call the original logging method with correct parameters
         if event_type == "op_start" and hasattr(self, "log_op_start"):
-            self.log_op_start(0, op_name, op_idx, kwargs.get("metadata", {}))
+            self.log_op_start(partition_id, op_name, op_idx, kwargs.get("metadata", {}))
         elif event_type == "op_complete" and hasattr(self, "log_op_complete"):
             self.log_op_complete(
-                0,
+                partition_id,
                 op_name,
                 op_idx,
                 kwargs.get("duration", 0),
@@ -304,62 +314,87 @@ class DAGExecutionMixin:
                 kwargs.get("output_rows", 0),
             )
         elif event_type == "op_failed" and hasattr(self, "log_op_failed"):
-            self.log_op_failed(0, op_name, op_idx, kwargs.get("error", "Unknown error"), kwargs.get("retry_count", 0))
+            self.log_op_failed(
+                partition_id, op_name, op_idx, kwargs.get("error", "Unknown error"), kwargs.get("retry_count", 0)
+            )
 
-    def _execute_operations_with_dag_monitoring(self, dataset, ops: List, **kwargs):
-        """Execute operations with DAG monitoring.
+    def _pre_execute_operations_with_dag_monitoring(self, ops: List, partition_id: int = 0) -> None:
+        """Log operation start events with DAG monitoring before execution.
+
+        This method should be called before dataset.process() to log operation start events.
+        Each executor can then call dataset.process() with its own specific parameters.
 
         Args:
-            dataset: Dataset to process
-            ops: List of operations to apply
-            **kwargs: Additional arguments passed to dataset.process()
-
-        Returns:
-            Processed dataset
+            ops: List of operations that will be executed
+            partition_id: Partition ID for partitioned executors (default: 0)
         """
         if not self.pipeline_dag:
-            logger.warning("Pipeline DAG not initialized, falling back to normal execution")
-            return dataset.process(ops, **kwargs)
+            return
 
         # Log operation start events for all operations
         for op_idx, op in enumerate(ops):
             op_name = op._name
-            node_id = self._get_dag_node_for_operation(op_name, op_idx)
+            node_id = self._get_dag_node_for_operation(op_name, op_idx, partition_id=partition_id)
 
             if node_id:
                 # Mark DAG node as started
                 self._mark_dag_node_started(node_id)
 
                 # Log operation start with DAG context
-                self._log_operation_with_dag_context(op_name, op_idx, "op_start")
+                if partition_id != 0:
+                    # Partitioned executor - pass partition_id
+                    self._log_operation_with_dag_context(op_name, op_idx, "op_start", partition_id=partition_id)
+                else:
+                    # Non-partitioned executor
+                    self._log_operation_with_dag_context(op_name, op_idx, "op_start")
             else:
                 # Log operation start without DAG context
                 logger.warning(f"DAG node not found for operation {op_name}, logging without DAG context")
                 if hasattr(self, "log_op_start"):
-                    self.log_op_start(0, op_name, op_idx, {})
+                    self.log_op_start(partition_id, op_name, op_idx, {})
 
-        # Execute all operations normally (this is what actually processes the data)
-        result_dataset = dataset.process(ops, **kwargs)
+    def _post_execute_operations_with_dag_monitoring(self, ops: List, partition_id: int = 0) -> None:
+        """Log operation completion events with DAG monitoring after execution.
+
+        This method should be called after dataset.process() to log operation completion events.
+
+        Args:
+            ops: List of operations that were executed
+            partition_id: Partition ID for partitioned executors (default: 0)
+        """
+        if not self.pipeline_dag:
+            return
 
         # Log operation completion events for all operations
         for op_idx, op in enumerate(ops):
             op_name = op._name
-            node_id = self._get_dag_node_for_operation(op_name, op_idx)
+            node_id = self._get_dag_node_for_operation(op_name, op_idx, partition_id=partition_id)
 
             if node_id:
                 # Mark DAG node as completed
                 self._mark_dag_node_completed(node_id, 0.0)  # Duration will be updated from events
 
                 # Log operation completion with DAG context
-                self._log_operation_with_dag_context(
-                    op_name, op_idx, "op_complete", duration=0.0, input_rows=0, output_rows=0
-                )
+                if partition_id != 0:
+                    # Partitioned executor - pass partition_id
+                    self._log_operation_with_dag_context(
+                        op_name,
+                        op_idx,
+                        "op_complete",
+                        partition_id=partition_id,
+                        duration=0.0,
+                        input_rows=0,
+                        output_rows=0,
+                    )
+                else:
+                    # Non-partitioned executor
+                    self._log_operation_with_dag_context(
+                        op_name, op_idx, "op_complete", duration=0.0, input_rows=0, output_rows=0
+                    )
             else:
                 # Log operation completion without DAG context
                 if hasattr(self, "log_op_complete"):
-                    self.log_op_complete(0, op_name, op_idx, 0.0, None, 0, 0)
-
-        return result_dataset
+                    self.log_op_complete(partition_id, op_name, op_idx, 0.0, None, 0, 0)
 
     def _extract_operation_types_from_ops(self, operations: List) -> List[str]:
         """Extract operation types from operations list."""

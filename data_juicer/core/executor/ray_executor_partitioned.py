@@ -19,7 +19,6 @@ from jsonargparse import Namespace
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.core.adapter import Adapter
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.core.executor import ExecutorBase
@@ -82,7 +81,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         self.executor_type = "ray_partitioned"
         self.work_dir = self.cfg.work_dir
-        self.adapter = Adapter(self.cfg)
         self.job_id = self.cfg.get("job_id", None)
 
         # Initialize temporary directory for Ray operations
@@ -485,14 +483,16 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             logger.info("Processing merged dataset with global operations...")
             merged_ray_dataset = RayDataset(merged_dataset, cfg=self.cfg)
 
-            # Use DAG-aware execution if available
+            # Pre-execute DAG monitoring (log operation start events)
             if self.pipeline_dag:
-                final_dataset = self._execute_operations_with_dag_monitoring(
-                    merged_ray_dataset, post_convergence_ops, partition_id=0
-                )
-            else:
-                # Fallback to normal execution
-                final_dataset = merged_ray_dataset.process(post_convergence_ops)
+                self._pre_execute_operations_with_dag_monitoring(post_convergence_ops, partition_id=0)
+
+            # Execute operations
+            final_dataset = merged_ray_dataset.process(post_convergence_ops)
+
+            # Post-execute DAG monitoring (log operation completion events)
+            if self.pipeline_dag:
+                self._post_execute_operations_with_dag_monitoring(post_convergence_ops, partition_id=0)
 
             logger.info("Global operations completed. Final dataset ready for export")
             return final_dataset
@@ -509,8 +509,18 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         if not self.ckpt_manager.checkpoint_enabled:
             logger.info(f"Checkpointing disabled, processing all operations at once for partition {partition_id}")
-            # Still use DAG monitoring even when checkpointing is disabled
-            return self._execute_operations_with_dag_monitoring(dataset, ops, partition_id)
+            # Pre-execute DAG monitoring (log operation start events)
+            if self.pipeline_dag:
+                self._pre_execute_operations_with_dag_monitoring(ops, partition_id=partition_id)
+
+            # Execute operations
+            processed_dataset = dataset.process(ops)
+
+            # Post-execute DAG monitoring (log operation completion events)
+            if self.pipeline_dag:
+                self._post_execute_operations_with_dag_monitoring(ops, partition_id=partition_id)
+
+            return processed_dataset
 
         # check the latest checkpoint for the partition
         latest_checkpoint = self.ckpt_manager.find_latest_checkpoint(partition_id)
@@ -566,14 +576,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     f"Partition {partition_id}: Processing {len(group_ops)} operations in group {group_idx + 1}"
                 )
 
-                # Use DAG-aware execution if available
+                # Pre-execute DAG monitoring (log operation start events)
                 if self.pipeline_dag:
-                    current_dataset = self._execute_operations_with_dag_monitoring(
-                        current_dataset, group_ops, partition_id
-                    )
+                    self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
                 else:
-                    # Fallback to normal execution with manual logging
-                    # Log operation start events
+                    # Fallback to manual logging without DAG
                     for op_idx, op in enumerate(group_ops):
                         self._log_event(
                             event_type=EventType.OP_START,
@@ -583,17 +590,22 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                             partition_id=partition_id,
                         )
 
+                    # Execute operations
                     current_dataset = current_dataset.process(group_ops)
 
-                    # Log operation completion events
-                    for op_idx, op in enumerate(group_ops):
-                        self._log_event(
-                            event_type=EventType.OP_COMPLETE,
-                            message=f"Completed operation: {op._name}",
-                            operation_name=op._name,
-                            operation_idx=start_idx + op_idx,
-                            partition_id=partition_id,
-                        )
+                    # Post-execute DAG monitoring (log operation completion events)
+                    if self.pipeline_dag:
+                        self._post_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
+                    else:
+                        # Fallback to manual logging without DAG
+                        for op_idx, op in enumerate(group_ops):
+                            self._log_event(
+                                event_type=EventType.OP_COMPLETE,
+                                message=f"Completed operation: {op._name}",
+                                operation_name=op._name,
+                                operation_idx=start_idx + op_idx,
+                                partition_id=partition_id,
+                            )
 
             # Checkpoint after the last operation in the group
             if group_ops:
@@ -688,14 +700,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Check for op_fusion configuration with safe attribute access
         if hasattr(self.cfg, "op_fusion") and self.cfg.op_fusion:
-            probe_res = None
-            fusion_strategy = getattr(self.cfg, "fusion_strategy", "basic")
-            if fusion_strategy == "probe":
-                logger.info("Probe the OP speed for OP reordering...")
-                probe_res, _ = self.adapter.probe_small_batch(self.dataset, ops)
-
-            logger.info(f"Start OP fusion and reordering with strategy [{fusion_strategy}]...")
-            ops = fuse_operators(ops, probe_res)
+            logger.info(f"Start OP fusion and reordering with strategy [{self.cfg.fusion_strategy}]...")
+            ops = fuse_operators(ops)
 
         return ops
 
@@ -744,82 +750,3 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             return None
 
         return self.dag_execution_strategy.get_dag_node_id(op_name, op_idx, partition_id=partition_id, **kwargs)
-
-    def _execute_operations_with_dag_monitoring(self, dataset, ops: List, partition_id: int = 0):
-        """Execute operations with DAG monitoring for partitioned execution."""
-        if not self.pipeline_dag:
-            logger.warning("Pipeline DAG not initialized, falling back to normal execution")
-            return dataset.process(ops)
-
-        # Log operation start events for all operations
-        for op_idx, op in enumerate(ops):
-            op_name = op._name
-            node_id = self._get_dag_node_for_operation(op_name, op_idx, partition_id=partition_id)
-
-            if node_id:
-                # Mark DAG node as started
-                self._mark_dag_node_started(node_id)
-
-                # Log operation start with DAG context
-                self._log_operation_with_dag_context(op_name, op_idx, "op_start", partition_id)
-            else:
-                # Log operation start without DAG context
-                logger.warning(f"DAG node not found for operation {op_name}, logging without DAG context")
-                if hasattr(self, "log_op_start"):
-                    self.log_op_start(0, op_name, op_idx, {})
-
-        # Execute all operations normally (this is what actually processes the data)
-        processed_dataset = dataset.process(ops)
-
-        # Log operation completion events for all operations
-        for op_idx, op in enumerate(ops):
-            op_name = op._name
-            node_id = self._get_dag_node_for_operation(op_name, op_idx, partition_id=partition_id)
-
-            if node_id:
-                # Mark DAG node as completed
-                self._mark_dag_node_completed(node_id, 0.0)  # Duration will be updated from events
-
-                # Log operation completion with DAG context
-                self._log_operation_with_dag_context(
-                    op_name, op_idx, "op_complete", partition_id, duration=0.0, input_rows=0, output_rows=0
-                )
-            else:
-                # Log operation completion without DAG context
-                if hasattr(self, "log_op_complete"):
-                    self.log_op_complete(0, op_name, op_idx, 0.0, None, 0, 0)
-
-        return processed_dataset
-
-    def _log_operation_with_dag_context(
-        self, op_name: str, op_idx: int, event_type: str, partition_id: int = 0, **kwargs
-    ) -> None:
-        """Log an operation event with DAG context for partitioned execution."""
-        # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(op_name, op_idx, partition_id=partition_id)
-
-        # Add DAG node ID to metadata if found
-        if "metadata" not in kwargs:
-            kwargs["metadata"] = {}
-
-        if node_id:
-            kwargs["metadata"]["dag_node_id"] = node_id
-        else:
-            # Log warning if DAG node not found
-            logger.warning(f"DAG node not found for operation {op_name} (idx {op_idx})")
-
-        # Call the original logging method with correct parameters
-        if event_type == "op_start" and hasattr(self, "log_op_start"):
-            self.log_op_start(0, op_name, op_idx, kwargs.get("metadata", {}))
-        elif event_type == "op_complete" and hasattr(self, "log_op_complete"):
-            self.log_op_complete(
-                0,
-                op_name,
-                op_idx,
-                kwargs.get("duration", 0),
-                kwargs.get("checkpoint_path"),
-                kwargs.get("input_rows", 0),
-                kwargs.get("output_rows", 0),
-            )
-        elif event_type == "op_failed" and hasattr(self, "log_op_failed"):
-            self.log_op_failed(0, op_name, op_idx, kwargs.get("error", "Unknown error"), kwargs.get("retry_count", 0))

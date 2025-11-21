@@ -202,29 +202,24 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         logger.info("Processing data with DAG monitoring...")
         tstart = time()
 
-        # Use DAG-aware execution if available, otherwise use normal execution
+        # Pre-execute DAG monitoring (log operation start events)
         if self.pipeline_dag:
-            dataset = self._execute_operations_with_dag_monitoring(
-                dataset,
-                ops,
-                work_dir=self.work_dir,
-                exporter=self.exporter,
-                checkpointer=self.ckpt_manager,
-                tracer=self.tracer if self.cfg.open_tracer else None,
-                adapter=self.adapter,
-                open_monitor=self.cfg.open_monitor,
-            )
-        else:
-            # Fallback to normal execution (DAG disabled for standalone mode)
-            dataset = dataset.process(
-                ops,
-                work_dir=self.work_dir,
-                exporter=self.exporter,
-                checkpointer=self.ckpt_manager,
-                tracer=self.tracer if self.cfg.open_tracer else None,
-                adapter=self.adapter,
-                open_monitor=self.cfg.open_monitor,
-            )
+            self._pre_execute_operations_with_dag_monitoring(ops)
+
+        # Execute operations with executor-specific parameters
+        dataset = dataset.process(
+            ops,
+            work_dir=self.work_dir,
+            exporter=self.exporter,
+            checkpointer=self.ckpt_manager,
+            tracer=self.tracer if self.cfg.open_tracer else None,
+            adapter=self.adapter,
+            open_monitor=self.cfg.open_monitor,
+        )
+
+        # Post-execute DAG monitoring (log operation completion events)
+        if self.pipeline_dag:
+            self._post_execute_operations_with_dag_monitoring(ops)
 
         tend = time()
         logger.info(f"All OPs are done in {tend - tstart:.3f}s.")

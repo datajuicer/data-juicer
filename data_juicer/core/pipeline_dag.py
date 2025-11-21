@@ -16,7 +16,12 @@ from typing import Any, Dict, List, Optional, Set
 
 from loguru import logger
 
-from data_juicer.core.pipeline_ast import OpNode, OpType, PipelineAST
+from data_juicer.core.pipeline_ast import (
+    OP_TYPE_DEPENDENCIES,
+    OpNode,
+    OpType,
+    PipelineAST,
+)
 
 
 class DAGNodeStatus(Enum):
@@ -219,14 +224,7 @@ class PipelineDAG:
 
     def _get_op_type_dependencies(self, op_type: OpType) -> Set[OpType]:
         """Get dependencies for a given operation type."""
-        dependencies = {
-            OpType.FILTER: {OpType.MAPPER},
-            OpType.DEDUPLICATOR: {OpType.MAPPER, OpType.FILTER},
-            OpType.SELECTOR: {OpType.MAPPER, OpType.FILTER, OpType.DEDUPLICATOR},
-            OpType.GROUPER: {OpType.MAPPER, OpType.FILTER, OpType.DEDUPLICATOR, OpType.SELECTOR},
-            OpType.AGGREGATOR: {OpType.GROUPER},
-        }
-        return dependencies.get(op_type, set())
+        return OP_TYPE_DEPENDENCIES.get(op_type, set())
 
     def _generate_execution_plan(self) -> None:
         """Generate topological sort for execution order."""

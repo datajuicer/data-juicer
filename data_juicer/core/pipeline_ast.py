@@ -20,6 +20,26 @@ class OpType(Enum):
     AGGREGATOR = "aggregator"
 
 
+# Operation dependencies and optimization rules
+# This defines which operation types can depend on which other operation types
+OP_TYPE_DEPENDENCIES = {
+    OpType.FILTER: {OpType.MAPPER},  # Filters can depend on mappers
+    OpType.DEDUPLICATOR: {OpType.MAPPER, OpType.FILTER},  # Deduplicators can depend on mappers and filters
+    OpType.SELECTOR: {
+        OpType.MAPPER,
+        OpType.FILTER,
+        OpType.DEDUPLICATOR,
+    },  # Selectors can depend on all previous ops
+    OpType.GROUPER: {
+        OpType.MAPPER,
+        OpType.FILTER,
+        OpType.DEDUPLICATOR,
+        OpType.SELECTOR,
+    },  # Groupers can depend on all previous ops
+    OpType.AGGREGATOR: {OpType.GROUPER},  # Aggregators can only depend on groupers
+}
+
+
 @dataclass
 class OpNode:
     """Node in the pipeline AST representing an operation."""
@@ -64,22 +84,8 @@ class PipelineAST:
         }
 
         # Operation dependencies and optimization rules
-        self._op_dependencies = {
-            OpType.FILTER: {OpType.MAPPER},  # Filters can depend on mappers
-            OpType.DEDUPLICATOR: {OpType.MAPPER, OpType.FILTER},  # Deduplicators can depend on mappers and filters
-            OpType.SELECTOR: {
-                OpType.MAPPER,
-                OpType.FILTER,
-                OpType.DEDUPLICATOR,
-            },  # Selectors can depend on all previous ops
-            OpType.GROUPER: {
-                OpType.MAPPER,
-                OpType.FILTER,
-                OpType.DEDUPLICATOR,
-                OpType.SELECTOR,
-            },  # Groupers can depend on all previous ops
-            OpType.AGGREGATOR: {OpType.GROUPER},  # Aggregators can only depend on groupers
-        }
+        # Use the module-level constant to avoid duplication
+        self._op_dependencies = OP_TYPE_DEPENDENCIES
 
     def _get_op_type(self, op_name: str) -> OpType:
         """Determine the operation type from its name."""

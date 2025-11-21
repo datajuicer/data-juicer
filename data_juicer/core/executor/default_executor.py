@@ -51,8 +51,6 @@ class DefaultExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin):
         DAGExecutionMixin.__init__(self)
         # Set executor type for strategy selection
         self.executor_type = "default"
-        # Checkpoint directory
-        self.ckpt_dir = os.path.join(self.work_dir, "ckpt")
 
         self.ckpt_manager = None
 

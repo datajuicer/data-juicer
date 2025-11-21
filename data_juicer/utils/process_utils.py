@@ -364,12 +364,12 @@ def calculate_ray_np(operators):
             fixed_max_gpu += _max_gpu
 
     # Validate resource availability
-    total_auto_base_cpu = sum([i[0] for i in list(auto_resource_frac_map.values())])
-    total_auto_base_gpu = sum([i[1] for i in list(auto_resource_frac_map.values())])
+    total_auto_base_cpu = sum([i[0] for i in auto_resource_frac_map.values()])
+    total_auto_base_gpu = sum([i[1] for i in auto_resource_frac_map.values()])
     total_required_min_cpu = fixed_min_cpu + total_auto_base_cpu
     total_required_min_gpu = fixed_min_gpu + total_auto_base_gpu
-    total_auto_base_cpu_actor = sum([i[0] for i in list(auto_resource_frac_map.values()) if i[2]])
-    total_auto_base_gpu_actor = sum([i[1] for i in list(auto_resource_frac_map.values()) if i[2]])
+    total_auto_base_cpu_actor = sum([i[0] for i in auto_resource_frac_map.values() if i[2]])
+    total_auto_base_gpu_actor = sum([i[1] for i in auto_resource_frac_map.values() if i[2]])
 
     # Precheck: if actors resources are insufficient,
     # the job will hang and keep waiting to add more nodes to the Ray cluster
@@ -379,14 +379,14 @@ def calculate_ray_np(operators):
             "CPU resource is not enough for the current operators configuration. "
             f"At least {(fixed_actor_min_cpu + total_auto_base_cpu_actor) * total_cpu:.1f} cpus are required, "
             f"but only {total_cpu} cpus are available. "
-            "Please consider configuring the 'cpu_reqiured' of operators to a smaller value or increase the number of CPUs."
+            "Please consider configuring the 'cpu_required' of operators to a smaller value or increase the number of CPUs."
         )
     if fixed_actor_min_gpu + total_auto_base_gpu_actor > 1:
         error_str += (
             "GPU resource is not enough for the current operators configuration. "
             f"At least {(fixed_actor_min_gpu + total_auto_base_gpu_actor) * total_gpu:.1f} gpus are required, "
             f"but only {total_gpu} gpus are available. "
-            "Please consider configuring the 'gpu_reqiured' of cuda operators to a smaller value or increase the number of GPUs."
+            "Please consider configuring the 'gpu_required' of cuda operators to a smaller value or increase the number of GPUs."
         )
     if error_str:
         raise ValueError(error_str)

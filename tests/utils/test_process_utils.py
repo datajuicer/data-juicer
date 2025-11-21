@@ -325,7 +325,7 @@ class CalculateRayNPTest(DataJuicerTestCaseBase):
         self.assertEqual(str(cm.exception), 
                          "GPU resource is not enough for the current operators configuration. "
                          "At least 2.0 gpus are required, but only 1 gpus are available. "
-                         "Please consider configuring the 'gpu_reqiured' of cuda operators to "
+                         "Please consider configuring the 'gpu_required' of cuda operators to "
                          "a smaller value or increase the number of GPUs.")
     
     def test_batch_mode(self):

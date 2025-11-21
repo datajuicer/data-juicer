@@ -42,8 +42,27 @@ class DAGExecutionMixin:
         self.dag_execution_strategy: Optional[DAGExecutionStrategy] = None
 
     def _initialize_dag_execution(self, cfg) -> None:
-        """Initialize DAG execution planning with appropriate strategy."""
+        """Initialize DAG execution planning with appropriate strategy.
+
+        Note: For standalone mode (default executor), DAG execution can be disabled
+        by setting cfg.use_dag = False. DAG execution is primarily useful for
+        distributed/partitioned executors where execution planning and monitoring
+        provide significant value.
+        """
         if self.dag_initialized:
+            return
+
+        # Check if DAG execution is enabled (default: True for distributed executors, False for standalone)
+        use_dag = getattr(cfg, "use_dag", None)
+        if use_dag is None:
+            # Default: enable for partitioned executors, disable for standalone (default executor)
+            use_dag = self._is_partitioned_executor() or (
+                hasattr(self, "executor_type") and self.executor_type != "default"
+            )
+
+        if not use_dag:
+            logger.info("DAG execution disabled for standalone mode")
+            self.dag_initialized = True  # Mark as initialized to skip future attempts
             return
 
         logger.info("Initializing DAG execution planning...")
@@ -287,12 +306,20 @@ class DAGExecutionMixin:
         elif event_type == "op_failed" and hasattr(self, "log_op_failed"):
             self.log_op_failed(0, op_name, op_idx, kwargs.get("error", "Unknown error"), kwargs.get("retry_count", 0))
 
-    def _execute_operations_with_dag_monitoring(self, dataset, ops: List) -> None:
-        """Execute operations with DAG monitoring."""
+    def _execute_operations_with_dag_monitoring(self, dataset, ops: List, **kwargs):
+        """Execute operations with DAG monitoring.
+
+        Args:
+            dataset: Dataset to process
+            ops: List of operations to apply
+            **kwargs: Additional arguments passed to dataset.process()
+
+        Returns:
+            Processed dataset
+        """
         if not self.pipeline_dag:
             logger.warning("Pipeline DAG not initialized, falling back to normal execution")
-            dataset.process(ops)
-            return
+            return dataset.process(ops, **kwargs)
 
         # Log operation start events for all operations
         for op_idx, op in enumerate(ops):
@@ -312,7 +339,7 @@ class DAGExecutionMixin:
                     self.log_op_start(0, op_name, op_idx, {})
 
         # Execute all operations normally (this is what actually processes the data)
-        dataset.process(ops)
+        result_dataset = dataset.process(ops, **kwargs)
 
         # Log operation completion events for all operations
         for op_idx, op in enumerate(ops):
@@ -331,6 +358,8 @@ class DAGExecutionMixin:
                 # Log operation completion without DAG context
                 if hasattr(self, "log_op_complete"):
                     self.log_op_complete(0, op_name, op_idx, 0.0, None, 0, 0)
+
+        return result_dataset
 
     def _extract_operation_types_from_ops(self, operations: List) -> List[str]:
         """Extract operation types from operations list."""

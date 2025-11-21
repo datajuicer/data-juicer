@@ -159,10 +159,10 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
             # Use DAG-aware execution if available
             if self.pipeline_dag:
-                self._execute_operations_with_dag_monitoring(dataset, ops)
+                dataset = self._execute_operations_with_dag_monitoring(dataset, ops)
             else:
                 # Fallback to normal execution
-                dataset.process(ops)
+                dataset = dataset.process(ops)
 
             # 4. data export
             if not skip_export:

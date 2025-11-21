@@ -202,11 +202,20 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         logger.info("Processing data with DAG monitoring...")
         tstart = time()
 
-        # Use DAG-aware execution if available
+        # Use DAG-aware execution if available, otherwise use normal execution
         if self.pipeline_dag:
-            self._execute_operations_with_dag_monitoring(dataset, ops)
+            dataset = self._execute_operations_with_dag_monitoring(
+                dataset,
+                ops,
+                work_dir=self.work_dir,
+                exporter=self.exporter,
+                checkpointer=self.ckpt_manager,
+                tracer=self.tracer if self.cfg.open_tracer else None,
+                adapter=self.adapter,
+                open_monitor=self.cfg.open_monitor,
+            )
         else:
-            # Fallback to normal execution
+            # Fallback to normal execution (DAG disabled for standalone mode)
             dataset = dataset.process(
                 ops,
                 work_dir=self.work_dir,

@@ -528,9 +528,18 @@ class PipelineDAG:
                     ready_nodes.append(node_id)
         return ready_nodes
 
-    def _get_node_status(self, node_id: str) -> DAGNodeStatus:
-        """Get status of a node, handling both DAGNode objects and dict nodes."""
-        node = self.nodes[node_id]
+    def _get_node_status(self, node: Any) -> DAGNodeStatus:
+        """Get status of a node, handling both DAGNode objects and dict nodes.
+
+        Args:
+            node: Can be a node_id (str), DAGNode object, or dict representation of a node.
+
+        Returns:
+            DAGNodeStatus of the node.
+        """
+        if isinstance(node, str):
+            # Argument `node` is node_id
+            node = self.nodes[node]
         if hasattr(node, "status"):
             return node.status
         elif isinstance(node, dict):
@@ -590,15 +599,6 @@ class PipelineDAG:
         """Get execution summary statistics."""
         total_nodes = len(self.nodes)
 
-        # Handle both DAGNode objects and dict nodes
-        def get_node_status(node):
-            if hasattr(node, "status"):
-                return node.status
-            elif isinstance(node, dict):
-                return DAGNodeStatus(node.get("status", "pending"))
-            else:
-                return DAGNodeStatus.PENDING
-
         def get_node_duration(node):
             if hasattr(node, "actual_duration"):
                 duration = node.actual_duration
@@ -609,10 +609,12 @@ class PipelineDAG:
             else:
                 return 0
 
-        completed_nodes = sum(1 for node in self.nodes.values() if get_node_status(node) == DAGNodeStatus.COMPLETED)
-        failed_nodes = sum(1 for node in self.nodes.values() if get_node_status(node) == DAGNodeStatus.FAILED)
-        running_nodes = sum(1 for node in self.nodes.values() if get_node_status(node) == DAGNodeStatus.RUNNING)
-        pending_nodes = sum(1 for node in self.nodes.values() if get_node_status(node) == DAGNodeStatus.PENDING)
+        completed_nodes = sum(
+            1 for node in self.nodes.values() if self._get_node_status(node) == DAGNodeStatus.COMPLETED
+        )
+        failed_nodes = sum(1 for node in self.nodes.values() if self._get_node_status(node) == DAGNodeStatus.FAILED)
+        running_nodes = sum(1 for node in self.nodes.values() if self._get_node_status(node) == DAGNodeStatus.RUNNING)
+        pending_nodes = sum(1 for node in self.nodes.values() if self._get_node_status(node) == DAGNodeStatus.PENDING)
 
         total_duration = sum(get_node_duration(node) for node in self.nodes.values())
 

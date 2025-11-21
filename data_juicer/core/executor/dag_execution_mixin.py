@@ -78,34 +78,20 @@ class DAGExecutionMixin:
 
     def _create_partitioned_strategy(self, cfg) -> DAGExecutionStrategy:
         """Create partitioned execution strategy."""
-        num_partitions = self._determine_partition_count(cfg)
+        # Partition count should be determined by the executor, not the DAG mixin
+        # Get it from the executor's attribute if available, otherwise use a default
+        if hasattr(self, "num_partitions"):
+            num_partitions = self.num_partitions
+        else:
+            # Last resort: use a default (shouldn't happen in practice)
+            logger.error("Partition count not found in executor")
+            raise ValueError("Partition count not found in executor")
+
         return PartitionedDAGStrategy(num_partitions)
 
     def _create_non_partitioned_strategy(self, cfg) -> DAGExecutionStrategy:
         """Create non-partitioned execution strategy."""
         return NonPartitionedDAGStrategy()
-
-    def _determine_partition_count(self, cfg) -> int:
-        """Determine partition count - can be overridden by executors."""
-        # Default implementation - can be customized by specific executors
-        dataset_size = self._analyze_dataset_size(cfg.dataset_path)
-        partition_size = getattr(cfg, "partition_size", 10000)
-        return max(1, dataset_size // partition_size)
-
-    def _analyze_dataset_size(self, dataset_path: str) -> int:
-        """Analyze dataset size for partition count determination."""
-        # Default implementation - can be overridden by executors
-        try:
-            import os
-
-            file_size = os.path.getsize(dataset_path)
-            # Rough estimate: assume 1KB per line
-            estimated_lines = file_size // 1024
-            return estimated_lines
-        except Exception as e:
-            logger.error(f"Error analyzing dataset size: {e}")
-            # Fallback to default
-            return 100000
 
     def _generate_dag_with_strategy(self, cfg) -> None:
         """Generate DAG using the selected strategy."""
@@ -312,32 +298,34 @@ class DAGExecutionMixin:
         elif event_type == "op_failed" and hasattr(self, "log_op_failed"):
             self.log_op_failed(0, op_name, op_idx, kwargs.get("error", "Unknown error"), kwargs.get("retry_count", 0))
 
-    def log_op_start(self, partition_id, operation_name, operation_idx, op_args):
+    def log_op_start(self, partition_id, operation_name, operation_idx, op_args, **kwargs):
         """Override to add DAG context to operation start events."""
         # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx)
+        node_id = self._get_dag_node_for_operation(operation_name, operation_idx, partition_id=partition_id)
 
         # Create metadata with DAG context
-        metadata = {}
+        if "metadata" not in kwargs:
+            kwargs["metadata"] = {}
         if node_id:
-            metadata["dag_node_id"] = node_id
+            kwargs["metadata"]["dag_node_id"] = node_id
         else:
             logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
 
         # Call the parent method with metadata
-        super().log_op_start(partition_id, operation_name, operation_idx, op_args, metadata=metadata)
+        super().log_op_start(partition_id, operation_name, operation_idx, op_args, **kwargs)
 
     def log_op_complete(
-        self, partition_id, operation_name, operation_idx, duration, checkpoint_path, input_rows, output_rows
+        self, partition_id, operation_name, operation_idx, duration, checkpoint_path, input_rows, output_rows, **kwargs
     ):
         """Override to add DAG context to operation complete events."""
         # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx)
+        node_id = self._get_dag_node_for_operation(operation_name, operation_idx, partition_id=partition_id)
 
         # Create metadata with DAG context
-        metadata = {}
+        if "metadata" not in kwargs:
+            kwargs["metadata"] = {}
         if node_id:
-            metadata["dag_node_id"] = node_id
+            kwargs["metadata"]["dag_node_id"] = node_id
         else:
             logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
 
@@ -350,25 +338,24 @@ class DAGExecutionMixin:
             checkpoint_path,
             input_rows,
             output_rows,
-            metadata=metadata,
+            **kwargs,
         )
 
-    def log_op_failed(self, partition_id, operation_name, operation_idx, error_message, retry_count):
+    def log_op_failed(self, partition_id, operation_name, operation_idx, error_message, retry_count, **kwargs):
         """Override to add DAG context to operation failed events."""
         # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx)
+        node_id = self._get_dag_node_for_operation(operation_name, operation_idx, partition_id=partition_id)
 
         # Create metadata with DAG context
-        metadata = {}
+        if "metadata" not in kwargs:
+            kwargs["metadata"] = {}
         if node_id:
-            metadata["dag_node_id"] = node_id
+            kwargs["metadata"]["dag_node_id"] = node_id
         else:
             logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
 
         # Call the parent method with metadata
-        super().log_op_failed(
-            partition_id, operation_name, operation_idx, error_message, retry_count, metadata=metadata
-        )
+        super().log_op_failed(partition_id, operation_name, operation_idx, error_message, retry_count, **kwargs)
 
     def _execute_operations_with_dag_monitoring(self, dataset, ops: List) -> None:
         """Execute operations with DAG monitoring."""

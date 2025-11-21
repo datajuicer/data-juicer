@@ -701,27 +701,11 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
 
     def _override_strategy_methods(self):
         """Override strategy methods for partitioned execution."""
-        # Override partition count determination
-        self._determine_partition_count = self._determine_partition_count_partitioned
-        self._analyze_dataset_size = self._analyze_dataset_size_partitioned
+        # Override DAG-related methods for partitioned execution
+        # Note: Partition count is determined by the executor (self.num_partitions),
+        # not by the DAG mixin, so we don't override _determine_partition_count here
         self._detect_convergence_points = self._detect_convergence_points_partitioned
         self._get_dag_node_for_operation = self._get_dag_node_for_operation_partitioned
-
-    def _determine_partition_count_partitioned(self, cfg) -> int:
-        """Determine partition count for partitioned execution."""
-        return self.num_partitions
-
-    def _analyze_dataset_size_partitioned(self, dataset_path: str) -> int:
-        """Analyze dataset size for partition count determination."""
-        try:
-            file_size = os.path.getsize(dataset_path)
-            # More accurate estimate for partitioned execution
-            estimated_lines = file_size // 512  # Assume 512 bytes per line
-            return estimated_lines
-        except Exception as e:
-            logger.error(f"Error analyzing dataset size: {e}")
-            # Fallback to default
-            return 100000
 
     def _detect_convergence_points_partitioned(self, cfg) -> List[int]:
         """Detect convergence points for partitioned execution."""
@@ -839,72 +823,3 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
             )
         elif event_type == "op_failed" and hasattr(self, "log_op_failed"):
             self.log_op_failed(0, op_name, op_idx, kwargs.get("error", "Unknown error"), kwargs.get("retry_count", 0))
-
-    def log_op_start(self, partition_id, operation_name, operation_idx, op_args, metadata=None):
-        """Override to add DAG context to operation start events."""
-        # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx)
-
-        # Create metadata with DAG context
-        if metadata is None:
-            metadata = {}
-        if node_id:
-            metadata["dag_node_id"] = node_id
-        else:
-            logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
-
-        # Call the parent method with metadata
-        super().log_op_start(partition_id, operation_name, operation_idx, op_args, metadata=metadata)
-
-    def log_op_complete(
-        self,
-        partition_id,
-        operation_name,
-        operation_idx,
-        duration,
-        checkpoint_path,
-        input_rows,
-        output_rows,
-        metadata=None,
-    ):
-        """Override to add DAG context to operation complete events."""
-        # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx)
-
-        # Create metadata with DAG context
-        if metadata is None:
-            metadata = {}
-        if node_id:
-            metadata["dag_node_id"] = node_id
-        else:
-            logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
-
-        # Call the parent method with metadata
-        super().log_op_complete(
-            partition_id,
-            operation_name,
-            operation_idx,
-            duration,
-            checkpoint_path,
-            input_rows,
-            output_rows,
-            metadata=metadata,
-        )
-
-    def log_op_failed(self, partition_id, operation_name, operation_idx, error_message, retry_count, metadata=None):
-        """Override to add DAG context to operation failed events."""
-        # Get the corresponding DAG node
-        node_id = self._get_dag_node_for_operation(operation_name, operation_idx)
-
-        # Create metadata with DAG context
-        if metadata is None:
-            metadata = {}
-        if node_id:
-            metadata["dag_node_id"] = node_id
-        else:
-            logger.warning(f"DAG node not found for operation {operation_name} (idx {operation_idx})")
-
-        # Call the parent method with metadata
-        super().log_op_failed(
-            partition_id, operation_name, operation_idx, error_message, retry_count, metadata=metadata
-        )

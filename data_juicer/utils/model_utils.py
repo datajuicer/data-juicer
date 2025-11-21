@@ -34,12 +34,16 @@ nltk = LazyLoader("nltk")
 aes_pred = LazyLoader("aesthetics_predictor", "simple-aesthetics-predictor")
 vllm = LazyLoader("vllm")
 diffusers = LazyLoader("diffusers")
-ram = LazyLoader("ram", "git+https://github.com/xinyu1205/recognize-anything.git")
+ram = LazyLoader("ram", "git+https://github.com/HYLcool/recognize-anything.git")
 cv2 = LazyLoader("cv2", "opencv-python")
 openai = LazyLoader("openai")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
+qwen_vl_utils = LazyLoader("qwen_vl_utils", "qwen-vl-utils")
+transformers_stream_generator = LazyLoader(
+    "transformers_stream_generator", "git+https://github.com/HYLcool/transformers-stream-generator.git"
+)
 
 MODEL_ZOO = {}
 
@@ -495,6 +499,7 @@ def prepare_huggingface_model(
         model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
 
         if return_pipe:
+            pipe_params = {}
             if isinstance(processor, transformers.PreTrainedTokenizerBase):
                 pipe_params = {"tokenizer": processor}
             elif isinstance(processor, transformers.SequenceFeatureExtractor):
@@ -894,10 +899,13 @@ def prepare_video_blip_model(pretrained_model_name_or_path, *, return_model=True
             self.post_init()
 
     pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
-    processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path, **model_params)
+    processor = transformers.AutoProcessor.from_pretrained(
+        pretrained_model_name_or_path, num_query_tokens=32, **model_params
+    )
     if return_model:
         model_class = VideoBlipForConditionalGeneration
         model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
+        model.config.image_token_index = 50265
     return (model, processor) if return_model else processor
 
 
@@ -928,18 +936,19 @@ def prepare_vggt_model(model_path, **model_params):
     return model
 
 
-def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
+def prepare_vllm_model(pretrained_model_name_or_path, return_processor=False, **model_params):
     """
     Prepare and load a HuggingFace model with the corresponding processor.
 
     :param pretrained_model_name_or_path: model name or path
+    :param return_processor: whether to return the processor instead of the tokenizer
     :param model_params: LLM initialization parameters.
     :return: a tuple of (model, tokenizer)
     """
     os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 
-    if model_params.get("device", "").startswith("cuda:"):
-        model_params["device"] = "cuda"
+    if "device" in model_params:
+        model_params.pop("device")
 
     if is_ray_mode():
         tensor_parallel_size = model_params.get("tensor_parallel_size", 1)
@@ -950,7 +959,11 @@ def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
     model = vllm.LLM(model=check_model_home(pretrained_model_name_or_path), generation_config="auto", **model_params)
     tokenizer = model.get_tokenizer()
 
-    return (model, tokenizer)
+    if return_processor:
+        processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path)
+        return model, processor
+    else:
+        return model, tokenizer
 
 
 def prepare_embedding_model(model_path, **model_params):
@@ -1067,6 +1080,25 @@ def update_sampling_params(sampling_params, pretrained_model_name_or_path, enabl
         sampling_params[key] = th
         logger.debug(f"Use the threshold {th} as the sampling param {key}.")
     return sampling_params
+
+
+def prepare_qwen_vl_inputs_for_vllm(messages, processor):
+    text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    # qwen_vl_utils 0.0.14+ required
+    image_inputs, video_inputs, video_kwargs = qwen_vl_utils.process_vision_info(
+        messages,
+        image_patch_size=processor.image_processor.patch_size,
+        return_video_kwargs=True,
+        return_video_metadata=True,
+    )
+
+    mm_data = {}
+    if image_inputs is not None:
+        mm_data["image"] = image_inputs
+    if video_inputs is not None:
+        mm_data["video"] = video_inputs
+
+    return {"prompt": text, "multi_modal_data": mm_data, "mm_processor_kwargs": video_kwargs}
 
 
 MODEL_FUNCTION_MAPPING = {

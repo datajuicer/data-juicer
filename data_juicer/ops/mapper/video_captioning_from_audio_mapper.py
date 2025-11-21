@@ -34,7 +34,15 @@ class VideoCaptioningFromAudioMapper(Mapper):
         """
         kwargs["mem_required"] = "30GB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(["transformers", "transformers_stream_generator", "einops", "accelerate", "tiktoken"])
+        LazyLoader.check_packages(
+            [
+                "transformers",
+                "transformers-stream-generator",
+                "einops",
+                "accelerate",
+                "tiktoken",
+            ]
+        )
 
         self.keep_original_sample = keep_original_sample
         self.extra_args = kwargs
@@ -85,7 +93,8 @@ class VideoCaptioningFromAudioMapper(Mapper):
                 audio_info = processor.process_audio(query)
                 inputs = processor(query, return_tensors="pt", audio_info=audio_info).to(model.device)
                 with torch.no_grad():
-                    outputs = model.generate(**inputs, audio_info=audio_info)
+                    # with newer transformers, we need to set use_cache=False. True will cause error
+                    outputs = model.generate(**inputs, audio_info=audio_info, use_cache=False)
                 response = processor.decode(outputs[0], skip_special_tokens=True, audio_info=audio_info)
                 # remove audio path
                 response = response.replace(extracted_audio_path, "").replace("<audio>", "").replace("</audio>", "")

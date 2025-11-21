@@ -246,6 +246,8 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
     @TEST_TAG('ray')
     def test_global_operation_detection(self):
         """Test detection of global operations that require convergence."""
+        from data_juicer.core.executor.dag_execution_strategies import is_global_operation
+        
         cfg = init_configs([
             '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
             '--partition.mode', 'manual',
@@ -257,12 +259,12 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
         # Test deduplicator detection
         from data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator import RayBTSMinhashDeduplicator
         deduplicator = RayBTSMinhashDeduplicator(hash_func='sha1', threshold=0.7)
-        self.assertTrue(executor._is_global_operation_partitioned(deduplicator))
+        self.assertTrue(is_global_operation(deduplicator))
         
         # Test non-global operation
         from data_juicer.ops.filter.text_length_filter import TextLengthFilter
         text_filter = TextLengthFilter(min_len=10)
-        self.assertFalse(executor._is_global_operation_partitioned(text_filter))
+        self.assertFalse(is_global_operation(text_filter))
 
     @TEST_TAG('ray')
     def test_executor_initialization_with_legacy_config(self):

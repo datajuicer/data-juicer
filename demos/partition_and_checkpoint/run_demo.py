@@ -14,7 +14,9 @@ This script demonstrates all the implemented job management features:
 9. Comprehensive job management
 
 Usage:
-    python run_demo.py
+    # IMPORTANT: This script must be run from the Data-Juicer root directory
+    cd /path/to/data-juicer
+    python demos/partition_and_checkpoint/run_demo.py
 """
 
 import os
@@ -210,6 +212,17 @@ def main():
     """Run the comprehensive demo."""
     print("🚀 DataJuicer Job Management & Monitoring Demo")
     print("=" * 80)
+    
+    # IMPORTANT: This script must be run from the Data-Juicer root directory
+    # Check if we're in the root directory by looking for key files/directories
+    if not os.path.exists("configs") or not os.path.exists("data_juicer"):
+        print("❌ Error: This script must be run from the Data-Juicer root directory!")
+        print("   Current directory:", os.getcwd())
+        print("   Expected to find: configs/ and data_juicer/ directories")
+        print("\n   Please run:")
+        print("   cd /path/to/data-juicer")
+        print("   python demos/partition_and_checkpoint/run_demo.py")
+        return
     
     config_file = "configs/demo/partition-checkpoint-eventlog.yaml"
     work_dir = "./outputs/partition-checkpoint-eventlog"

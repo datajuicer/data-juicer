@@ -12,9 +12,8 @@ import os
 import shutil
 import time
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 
 from jsonargparse import Namespace
 from loguru import logger
@@ -29,6 +28,7 @@ from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin, Eve
 from data_juicer.core.ray_exporter import RayExporter
 from data_juicer.ops import load_ops
 from data_juicer.ops.op_fusion import fuse_operators
+from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
 from data_juicer.utils.lazy_loader import LazyLoader
 
 ray = LazyLoader("ray")
@@ -51,15 +51,6 @@ class TempDirManager:
 
 
 # Note: Using Ray Data's built-in map_batches for parallel processing instead of custom remote functions
-
-
-class CheckpointStrategy(Enum):
-    """Checkpoint strategies for controlling when to create checkpoints."""
-
-    EVERY_OP = "every_op"  # Checkpoint after every operation
-    EVERY_N_OPS = "every_n_ops"  # Checkpoint after every N operations
-    MANUAL = "manual"  # Checkpoint only after specified operations
-    DISABLED = "disabled"  # Disable checkpointing entirely
 
 
 # Simplified classes for basic functionality
@@ -111,45 +102,49 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
         # Partition configuration
         self._configure_partitioning()
 
-        # Checkpoint configuration
+        # Checkpoint configuration and manager initialization
         checkpoint_cfg = getattr(self.cfg, "checkpoint", None)
+        checkpoint_dir = getattr(self.cfg, "checkpoint_dir", os.path.join(self.work_dir, "checkpoints"))
+
         if checkpoint_cfg:
             # Handle both dict and object configurations
             if isinstance(checkpoint_cfg, dict):
-                self.checkpoint_enabled = checkpoint_cfg.get("enabled", True)
+                checkpoint_enabled = checkpoint_cfg.get("enabled", True)
                 strategy_str = checkpoint_cfg.get("strategy", "every_op")
-                self.checkpoint_n_ops = checkpoint_cfg.get("n_ops", 1)
-                self.checkpoint_op_names = set(checkpoint_cfg.get("op_names", []))
+                checkpoint_n_ops = checkpoint_cfg.get("n_ops", 1)
+                checkpoint_op_names = checkpoint_cfg.get("op_names", [])
             else:
-                self.checkpoint_enabled = getattr(checkpoint_cfg, "enabled", True)
+                checkpoint_enabled = getattr(checkpoint_cfg, "enabled", True)
                 strategy_str = getattr(checkpoint_cfg, "strategy", "every_op")
-                self.checkpoint_n_ops = getattr(checkpoint_cfg, "n_ops", 1)
-                self.checkpoint_op_names = set(getattr(checkpoint_cfg, "op_names", []))
+                checkpoint_n_ops = getattr(checkpoint_cfg, "n_ops", 1)
+                checkpoint_op_names = getattr(checkpoint_cfg, "op_names", [])
 
             # Parse checkpoint strategy with validation
             try:
-                self.checkpoint_strategy = CheckpointStrategy(strategy_str)
+                checkpoint_strategy = CheckpointStrategy(strategy_str)
             except ValueError:
                 logger.warning(f"Unknown checkpoint strategy: {strategy_str}, defaulting to EVERY_OP")
-                self.checkpoint_strategy = CheckpointStrategy.EVERY_OP
+                checkpoint_strategy = CheckpointStrategy.EVERY_OP
         else:
-            self.checkpoint_enabled = False
-            self.checkpoint_strategy = CheckpointStrategy.DISABLED
-            self.checkpoint_n_ops = 1
-            self.checkpoint_op_names = set()
+            checkpoint_enabled = False
+            checkpoint_strategy = CheckpointStrategy.DISABLED
+            checkpoint_n_ops = 1
+            checkpoint_op_names = []
 
-        # If strategy is DISABLED, disable checkpointing regardless of enabled flag
-        if self.checkpoint_strategy == CheckpointStrategy.DISABLED:
-            self.checkpoint_enabled = False
+        # Initialize Ray checkpoint manager
+        self.ckpt_manager = RayCheckpointManager(
+            ckpt_dir=checkpoint_dir,
+            checkpoint_enabled=checkpoint_enabled,
+            checkpoint_strategy=checkpoint_strategy,
+            checkpoint_n_ops=checkpoint_n_ops,
+            checkpoint_op_names=checkpoint_op_names,
+            event_logger=self,
+        )
 
-        # Checkpoint directory
-        self.checkpoint_dir = getattr(self.cfg, "checkpoint_dir", os.path.join(self.work_dir, "checkpoints"))
-        os.makedirs(self.checkpoint_dir, exist_ok=True)
-
-        logger.info(f"Checkpointing: {'enabled' if self.checkpoint_enabled else 'disabled'}")
-        if self.checkpoint_enabled:
-            logger.info(f"Checkpoint strategy: {self.checkpoint_strategy.value}")
-            logger.info(f"Checkpoint directory: {self.checkpoint_dir}")
+        logger.info(f"Checkpointing: {'enabled' if self.ckpt_manager.checkpoint_enabled else 'disabled'}")
+        if self.ckpt_manager.checkpoint_enabled:
+            logger.info(f"Checkpoint strategy: {self.ckpt_manager.checkpoint_strategy.value}")
+            logger.info(f"Checkpoint directory: {self.ckpt_manager.ckpt_dir}")
 
         # Initialize RayExporter for final output
         logger.info("Preparing exporter...")
@@ -263,102 +258,6 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
             logger.warning(f"Auto partition configuration failed: {e}")
             logger.info("Falling back to manual partition configuration")
 
-    def _resolve_checkpoint_filename(self, op_idx: int, partition_id: int) -> str:
-        """Resolve checkpoint filename using consistent format."""
-        return f"checkpoint_op_{op_idx:04d}_partition_{partition_id:04d}.parquet"
-
-    def _should_checkpoint(self, op_idx: int, op_name: str) -> bool:
-        """Determine if checkpoint should be created based on configuration strategy."""
-        if not self.checkpoint_enabled:
-            return False
-
-        if self.checkpoint_strategy == CheckpointStrategy.EVERY_OP:
-            return True
-        elif self.checkpoint_strategy == CheckpointStrategy.EVERY_N_OPS:
-            return (op_idx + 1) % self.checkpoint_n_ops == 0
-        elif self.checkpoint_strategy == CheckpointStrategy.MANUAL:
-            return op_name in self.checkpoint_op_names
-        elif self.checkpoint_strategy == CheckpointStrategy.DISABLED:
-            return False
-        else:
-            logger.warning(f"Unknown checkpoint strategy: {self.checkpoint_strategy}, defaulting to every_op")
-            return True
-
-    def _save_checkpoint(self, dataset: RayDataset, op_idx: int, op_name: str = None, partition_id: int = 0) -> str:
-        """Save dataset checkpoint to parquet format."""
-        checkpoint_filename = self._resolve_checkpoint_filename(op_idx, partition_id)
-        checkpoint_path = os.path.join(self.checkpoint_dir, checkpoint_filename)
-
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-
-        # Save as parquet
-        dataset.data.write_parquet(checkpoint_path)
-
-        # Log checkpoint save event
-        self._log_event(
-            event_type=EventType.CHECKPOINT_SAVE,
-            message=f"Saved checkpoint after operation {op_idx}: {op_name}",
-            partition_id=partition_id,
-            operation_name=op_name,
-            operation_idx=op_idx,
-            metadata={"checkpoint_path": checkpoint_path},
-        )
-
-        logger.info(f"Saved checkpoint: {checkpoint_path}")
-        return checkpoint_path
-
-    def _load_checkpoint(self, op_idx: int, op_name: str = None, partition_id: int = 0) -> Optional[RayDataset]:
-        """Load dataset checkpoint from parquet format."""
-        checkpoint_filename = self._resolve_checkpoint_filename(op_idx, partition_id)
-        checkpoint_path = os.path.join(self.checkpoint_dir, checkpoint_filename)
-
-        if not os.path.exists(checkpoint_path):
-            return None
-
-        try:
-            # Load from parquet
-            ray_dataset = ray.data.read_parquet(checkpoint_path)
-
-            # Log checkpoint load event
-            self._log_event(
-                event_type=EventType.CHECKPOINT_LOAD,
-                message=f"Loaded checkpoint from operation {op_idx}",
-                partition_id=partition_id,
-                operation_name=op_name or f"op_{op_idx:04d}",
-                operation_idx=op_idx,
-                metadata={"checkpoint_path": checkpoint_path},
-            )
-
-            return RayDataset(ray_dataset, cfg=self.cfg)
-        except Exception as e:
-            logger.warning(f"Failed to load checkpoint {checkpoint_path}: {e}")
-        return None
-
-    def _find_latest_checkpoint(self, partition_id: int = 0) -> Optional[Tuple[int, str, str]]:
-        """Find the latest checkpoint for a partition. Returns (op_idx, op_name, checkpoint_path)."""
-        checkpoint_files = []
-
-        for filename in os.listdir(self.checkpoint_dir):
-            if filename.startswith(f"checkpoint_op_") and filename.endswith(f"_partition_{partition_id:04d}.parquet"):
-                try:
-                    # Parse filename: checkpoint_op_XXXX_partition_YYYY.parquet
-                    parts = filename.replace(".parquet", "").split("_")
-                    if len(parts) >= 4:
-                        op_idx = int(parts[2])
-                        # For backward compatibility, we'll use a generic op_name
-                        op_name = f"op_{op_idx:04d}"
-                        checkpoint_files.append((op_idx, op_name, os.path.join(self.checkpoint_dir, filename)))
-                except (ValueError, IndexError):
-                    continue
-
-        if not checkpoint_files:
-            return None
-
-        # Return the latest checkpoint (highest op_idx)
-        latest = max(checkpoint_files, key=lambda x: x[0])
-        return latest
-
     def run(self, load_data_np: Optional[PositiveInt] = None, skip_return=False):
         """
         Run the simplified partitioned dataset processing pipeline.
@@ -418,7 +317,7 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
             ),
             metadata={
                 "num_partitions": self.num_partitions,
-                "checkpoint_enabled": self.checkpoint_enabled,
+                "checkpoint_enabled": self.ckpt_manager.checkpoint_enabled,
                 "is_resuming": is_resuming,
                 "job_id": self.job_id,
                 "user_provided_job_id": user_provided_job_id,
@@ -601,16 +500,16 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
         """
         logger.info(f"Processing partition {partition_id} with checkpointing support...")
 
-        if not self.checkpoint_enabled:
+        if not self.ckpt_manager.checkpoint_enabled:
             logger.info(f"Checkpointing disabled, processing all operations at once for partition {partition_id}")
             # Still use DAG monitoring even when checkpointing is disabled
             return self._execute_operations_with_dag_monitoring(dataset, ops, partition_id)
 
         # check the latest checkpoint for the partition
-        latest_checkpoint = self._find_latest_checkpoint(partition_id)
+        latest_checkpoint = self.ckpt_manager.find_latest_checkpoint(partition_id)
 
         # Group operations based on checkpoint strategy
-        op_groups = self._group_operations_for_checkpointing(ops)
+        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
         logger.info(f"Grouped {len(ops)} operations into {len(op_groups)} groups for checkpointing")
         logger.info(f"Detailed op gruops: {op_groups}")
 
@@ -629,7 +528,9 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
 
             if latest_checkpoint and latest_checkpoint[0] >= start_idx:
                 logger.info(f"Partition {partition_id}: Resuming from checkpoint at operation {latest_checkpoint[0]}")
-                current_dataset = self._load_checkpoint(latest_checkpoint[0], latest_checkpoint[1], partition_id)
+                current_dataset = self.ckpt_manager.load_checkpoint(
+                    latest_checkpoint[0], latest_checkpoint[1], partition_id, cfg=self.cfg
+                )
                 if current_dataset is None:
                     logger.warning(f"Partition {partition_id}: Failed to load checkpoint, starting from beginning")
                     current_dataset = dataset
@@ -691,33 +592,15 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
             if group_ops:
                 last_op_idx = end_idx - 1
                 last_op_name = ops[last_op_idx]._name
-                if self._should_checkpoint(last_op_idx, last_op_name):
+                if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
                     logger.info(
                         f"Partition {partition_id}: Creating checkpoint after operation {last_op_idx}: {last_op_name}"
                     )
-                    self._save_checkpoint(current_dataset, last_op_idx, last_op_name, partition_id)
+                    self.ckpt_manager.save_checkpoint(
+                        current_dataset, last_op_idx, last_op_name, partition_id, cfg=self.cfg
+                    )
 
         return current_dataset
-
-    def _group_operations_for_checkpointing(self, ops: List) -> List[Tuple[int, int, List]]:
-        """
-        Group operations based on checkpoint strategy.
-        Returns list of (start_idx, end_idx, group_ops) tuples.
-        """
-        groups = []
-        current_start = 0
-
-        for i, op in enumerate(ops):
-            if self._should_checkpoint(i, op._name):
-                # This operation should trigger a checkpoint
-                groups.append((current_start, i + 1, ops[current_start : i + 1]))
-                current_start = i + 1
-
-        # Add remaining operations as the last group
-        if current_start < len(ops):
-            groups.append((current_start, len(ops), ops[current_start:]))
-
-        return groups
 
     def _find_work_directory(self, job_id: str) -> Optional[str]:
         """Find the work directory based on job_id."""
@@ -785,8 +668,8 @@ class PartitionedRayExecutor(ExecutorBase, EventLoggingMixin, DAGExecutionMixin)
         # Update checkpoint directory to use the work directory's checkpoint directory
         work_checkpoint_dir = os.path.join(work_dir, "checkpoints")
         if os.path.exists(work_checkpoint_dir):
-            self.checkpoint_dir = work_checkpoint_dir
-            logger.info(f"Using checkpoint directory from work directory: {self.checkpoint_dir}")
+            self.ckpt_manager.ckpt_dir = work_checkpoint_dir
+            logger.info(f"Using checkpoint directory from work directory: {self.ckpt_manager.ckpt_dir}")
         else:
             logger.warning(f"No checkpoint directory found in work directory: {work_checkpoint_dir}")
 

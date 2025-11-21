@@ -31,3 +31,10 @@ tests/ops/data/*dup*
 tests/tools/tmp_*/
 tests/ops/deduplicator/chinese_dedup/
 tests/ops/deduplicator/english_dedup/
+
+
+# perf bench data
+perf_bench_data/
+
+# env file
+.env

@@ -115,6 +115,7 @@ audio = [
 distributed = [
     "ray[default]==2.47.1",  # distributed computing
     "pyspark==3.5.5",  # distributed data processing
+    "s3fs",  # S3 filesystem support for cloud storage
 ]
 
 # Development & Tools

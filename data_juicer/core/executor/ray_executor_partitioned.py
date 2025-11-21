@@ -386,7 +386,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             self._configure_auto_partitioning(dataset, ops)
 
         # Detect convergence points for global operations
-        convergence_points = self._detect_convergence_points_partitioned(self.cfg)
+        convergence_points = self._detect_convergence_points(self.cfg)
 
         if convergence_points:
             logger.info(f"Found convergence points at operations: {convergence_points}")
@@ -736,37 +736,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Override DAG-related methods for partitioned execution
         # Note: Partition count is determined by the executor (self.num_partitions),
         # not by the DAG mixin, so we don't override _determine_partition_count here
-        self._detect_convergence_points = self._detect_convergence_points_partitioned
+        # Note: _detect_convergence_points is reused from DAGExecutionMixin (no override needed)
         self._get_dag_node_for_operation = self._get_dag_node_for_operation_partitioned
-
-    def _detect_convergence_points_partitioned(self, cfg) -> List[int]:
-        """Detect convergence points for partitioned execution."""
-        # Get operations from config first
-        operations = self._get_operations_from_config(cfg)
-        convergence_points = []
-
-        for op_idx, op in enumerate(operations):
-            # Detect global operations (deduplicators, etc.)
-            if self._is_global_operation_partitioned(op):
-                convergence_points.append(op_idx)
-
-            # Detect manual convergence points
-            if hasattr(op, "converge_after") and op.converge_after:
-                convergence_points.append(op_idx)
-
-        return convergence_points
-
-    def _is_global_operation_partitioned(self, operation) -> bool:
-        """Check if an operation is a global operation for partitioned execution."""
-        # Deduplicators are typically global operations
-        if hasattr(operation, "_name") and "deduplicator" in operation._name:
-            return True
-
-        # Check for explicit global operation flag
-        if hasattr(operation, "is_global_operation") and operation.is_global_operation:
-            return True
-
-        return False
 
     def _get_dag_node_for_operation_partitioned(
         self, op_name: str, op_idx: int, partition_id: int = 0, **kwargs

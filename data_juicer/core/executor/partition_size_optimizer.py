@@ -298,15 +298,15 @@ class PartitionSizeOptimizer:
             modalities.append(ModalityType.TEXT)
 
         # Check for images
-        if self.image_key in sample and sample[self.image_key]:
+        if sample.get(self.image_key):
             modalities.append(ModalityType.IMAGE)
 
         # Check for audio
-        if self.audio_key in sample and sample[self.audio_key]:
+        if sample.get(self.audio_key):
             modalities.append(ModalityType.AUDIO)
 
         # Check for video
-        if self.video_key in sample and sample[self.video_key]:
+        if sample.get(self.video_key):
             modalities.append(ModalityType.VIDEO)
 
         # Determine primary modality
@@ -468,14 +468,17 @@ class PartitionSizeOptimizer:
                 size_mb += sum(len(t) for t in sample[self.text_key]) / (1024 * 1024)
 
         # Media size estimates
-        if self.image_key in sample and sample[self.image_key]:
-            size_mb += len(sample[self.image_key]) * 0.5  # Assume 0.5MB per image
+        images = sample.get(self.image_key, [])
+        if images:
+            size_mb += len(images) * 0.5  # Assume 0.5MB per image
 
-        if self.audio_key in sample and sample[self.audio_key]:
-            size_mb += len(sample[self.audio_key]) * 2.0  # Assume 2MB per audio file
+        audios = sample.get(self.audio_key, [])
+        if audios:
+            size_mb += len(audios) * 2.0  # Assume 2MB per audio file
 
-        if self.video_key in sample and sample[self.video_key]:
-            size_mb += len(sample[self.video_key]) * 10.0  # Assume 10MB per video file
+        videos = sample.get(self.video_key, [])
+        if videos:
+            size_mb += len(videos) * 10.0  # Assume 10MB per video file
 
         return max(0.001, size_mb)  # Minimum 1KB
 

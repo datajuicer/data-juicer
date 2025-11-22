@@ -1692,9 +1692,12 @@ def resolve_job_directories(cfg):
         cfg.work_dir = os.path.join(cfg.work_dir, job_id)
 
     # All job-specific directories are under work_dir
-    cfg.event_log_dir = os.path.join(cfg.work_dir, "logs")
-    cfg.checkpoint_dir = os.path.join(cfg.work_dir, "checkpoints")
-    cfg.partition_dir = os.path.join(cfg.work_dir, "partitions")
+    if getattr(cfg, 'event_log_dir', None) is None:
+        cfg.event_log_dir = os.path.join(cfg.work_dir, "logs")
+    if getattr(cfg, 'checkpoint_dir', None) is None:
+        cfg.checkpoint_dir = os.path.join(cfg.work_dir, "checkpoints")
+    if getattr(cfg, 'partition_dir', None) is None:
+        cfg.partition_dir = os.path.join(cfg.work_dir, "partitions")
     cfg.metadata_dir = os.path.join(cfg.work_dir, "metadata")
     cfg.results_dir = os.path.join(cfg.work_dir, "results")
     cfg.event_log_file = os.path.join(cfg.work_dir, "events.jsonl")

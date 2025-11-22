@@ -124,6 +124,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [How-to Guide for Developers](docs/DeveloperGuide.md)
   - [Distributed Data Processing in Data-Juicer](docs/Distributed.md)
   - [Sandbox](docs/Sandbox.md)
+  - [Job Management & Monitoring](docs/JobManagement.md)
   - [Data-Juicer Agent](docs/DJ_agent.md)
 - Demos
   - [demos](demos/README.md)
@@ -141,6 +142,10 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [Postprocess Tools](tools/postprocess/README.md)
   - [Preprocess Tools](tools/preprocess/README.md)
   - [Data Scoring](tools/quality_classifier/README.md)
+- Job Management & Monitoring
+  - [Processing Snapshot Utility](data_juicer/utils/job/snapshot.py) - Comprehensive job status analysis with JSON output
+  - [Job Management Tools](data_juicer/utils/job/) - Monitor and manage Data-Juicer processing jobs
+  - [Resource-Aware Partitioning](data_juicer/core/executor/partition_size_optimizer.py) - Automatic resource optimization for distributed processing
 - Third-party
   - [LLM Ecosystems](thirdparty/LLM_ecosystems/README.md)
   - [Third-party Model Library](thirdparty/models/README.md)

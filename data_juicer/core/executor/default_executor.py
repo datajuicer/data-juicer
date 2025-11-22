@@ -11,6 +11,8 @@ from data_juicer.core.adapter import Adapter
 from data_juicer.core.data import NestedDataset
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.executor import ExecutorBase
+from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
+from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
 from data_juicer.core.exporter import Exporter
 from data_juicer.core.tracer import Tracer
 from data_juicer.ops import load_ops
@@ -24,7 +26,7 @@ from data_juicer.utils.ckpt_utils import CheckpointManager
 from data_juicer.utils.sample import random_sample
 
 
-class DefaultExecutor(ExecutorBase):
+class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
     """
     This Executor class is used to process a specific dataset.
 
@@ -39,10 +41,17 @@ class DefaultExecutor(ExecutorBase):
         :param cfg: optional jsonargparse Namespace.
         """
         super().__init__(cfg)
-        self.executor_type = "default"
+        # If work_dir contains job_id, all outputs go under it
         self.work_dir = self.cfg.work_dir
 
-        self.tracer = None
+        # Initialize EventLoggingMixin for job management and event logging
+        EventLoggingMixin.__init__(self, cfg)
+
+        # Initialize DAGExecutionMixin for AST/DAG functionality
+        DAGExecutionMixin.__init__(self)
+        # Set executor type for strategy selection
+        self.executor_type = "default"
+
         self.ckpt_manager = None
 
         self.adapter = Adapter(self.cfg)
@@ -145,6 +154,27 @@ class DefaultExecutor(ExecutorBase):
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process)
 
+        # Initialize DAG execution planning
+        self._initialize_dag_execution(self.cfg)
+
+        # Log job start with DAG context
+        # Handle both dataset_path (string) and dataset (dict) configurations
+        dataset_info = {}
+        if hasattr(self.cfg, "dataset_path") and self.cfg.dataset_path:
+            dataset_info["dataset_path"] = self.cfg.dataset_path
+        if hasattr(self.cfg, "dataset") and self.cfg.dataset:
+            dataset_info["dataset"] = self.cfg.dataset
+
+        job_config = {
+            **dataset_info,
+            "work_dir": self.work_dir,
+            "executor_type": self.executor_type,
+            "dag_node_count": len(self.pipeline_dag.nodes) if self.pipeline_dag else 0,
+            "dag_edge_count": len(self.pipeline_dag.edges) if self.pipeline_dag else 0,
+            "parallel_groups_count": len(self.pipeline_dag.parallel_groups) if self.pipeline_dag else 0,
+        }
+        self.log_job_start(job_config, len(ops))
+
         # OP fusion
         if self.cfg.op_fusion:
             probe_res = None
@@ -166,20 +196,31 @@ class DefaultExecutor(ExecutorBase):
                 if op.is_batched_op():
                     op.batch_size = bs_per_op[i]
 
-        # 3. data process
+        # 3. data process with DAG monitoring
         # - If tracer is open, trace each op after it's processed
         # - If checkpoint is open, clean the cache files after each process
-        logger.info("Processing data...")
+        logger.info("Processing data with DAG monitoring...")
         tstart = time()
+
+        # Pre-execute DAG monitoring (log operation start events)
+        if self.pipeline_dag:
+            self._pre_execute_operations_with_dag_monitoring(ops)
+
+        # Execute operations with executor-specific parameters
         dataset = dataset.process(
             ops,
             work_dir=self.work_dir,
             exporter=self.exporter,
             checkpointer=self.ckpt_manager,
-            tracer=self.tracer,
+            tracer=self.tracer if self.cfg.open_tracer else None,
             adapter=self.adapter,
             open_monitor=self.cfg.open_monitor,
         )
+
+        # Post-execute DAG monitoring (log operation completion events)
+        if self.pipeline_dag:
+            self._post_execute_operations_with_dag_monitoring(ops)
+
         tend = time()
         logger.info(f"All OPs are done in {tend - tstart:.3f}s.")
 
@@ -192,6 +233,10 @@ class DefaultExecutor(ExecutorBase):
             from data_juicer.utils.compress import compress
 
             compress(dataset)
+
+        # Log job completion with DAG context
+        job_duration = time() - tstart
+        self.log_job_complete(job_duration, self.cfg.export_path)
 
         if not skip_return:
             return dataset

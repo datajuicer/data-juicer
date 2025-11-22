@@ -9,6 +9,8 @@ from pydantic import PositiveInt
 
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.executor import ExecutorBase
+from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
+from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
 from data_juicer.core.ray_exporter import RayExporter
 from data_juicer.ops import load_ops
 from data_juicer.ops.op_fusion import fuse_operators
@@ -31,7 +33,7 @@ class TempDirManager:
             shutil.rmtree(self.tmp_dir)
 
 
-class RayExecutor(ExecutorBase):
+class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
     """
     Executor based on Ray.
 
@@ -50,10 +52,15 @@ class RayExecutor(ExecutorBase):
         :param cfg: optional config dict.
         """
         super().__init__(cfg)
+
         self.executor_type = "ray"
         self.work_dir = self.cfg.work_dir
-        # TODO: support ray
-        # self.adapter = Adapter(self.cfg)
+
+        # Initialize EventLoggingMixin for job management and event logging
+        EventLoggingMixin.__init__(self, cfg)
+
+        # Initialize DAGExecutionMixin for AST/DAG functionality
+        DAGExecutionMixin.__init__(self)
 
         # init ray
         logger.info("Initializing Ray ...")
@@ -120,15 +127,46 @@ class RayExecutor(ExecutorBase):
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process)
 
+        # Initialize DAG execution planning
+        self._initialize_dag_execution(self.cfg)
+
+        # Log job start with DAG context
+        # Handle both dataset_path (string) and dataset (dict) configurations
+        dataset_info = {}
+        if hasattr(self.cfg, "dataset_path") and self.cfg.dataset_path:
+            dataset_info["dataset_path"] = self.cfg.dataset_path
+        if hasattr(self.cfg, "dataset") and self.cfg.dataset:
+            dataset_info["dataset"] = self.cfg.dataset
+
+        job_config = {
+            **dataset_info,
+            "work_dir": self.work_dir,
+            "executor_type": self.executor_type,
+            "dag_node_count": len(self.pipeline_dag.nodes) if self.pipeline_dag else 0,
+            "dag_edge_count": len(self.pipeline_dag.edges) if self.pipeline_dag else 0,
+            "parallel_groups_count": len(self.pipeline_dag.parallel_groups) if self.pipeline_dag else 0,
+        }
+        self.log_job_start(job_config, len(ops))
+
         if self.cfg.op_fusion:
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
             ops = fuse_operators(ops)
 
         with TempDirManager(self.tmp_dir):
-            # 3. data process
-            logger.info("Processing data...")
+            # 3. data process with DAG monitoring
+            logger.info("Processing data with DAG monitoring...")
             tstart = time.time()
-            dataset.process(ops)
+
+            # Pre-execute DAG monitoring (log operation start events)
+            if self.pipeline_dag:
+                self._pre_execute_operations_with_dag_monitoring(ops)
+
+            # Execute operations (Ray executor uses simple dataset.process)
+            dataset = dataset.process(ops)
+
+            # Post-execute DAG monitoring (log operation completion events)
+            if self.pipeline_dag:
+                self._post_execute_operations_with_dag_monitoring(ops)
 
             # 4. data export
             if not skip_export:
@@ -136,6 +174,10 @@ class RayExecutor(ExecutorBase):
                 self.exporter.export(dataset.data, columns=columns)
             tend = time.time()
             logger.info(f"All Ops are done in {tend - tstart:.3f}s.")
+
+        # Log job completion with DAG context
+        job_duration = time.time() - tstart
+        self.log_job_complete(job_duration, self.cfg.export_path)
 
         if not skip_return:
             return dataset

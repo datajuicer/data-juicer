@@ -48,3 +48,6 @@ streamlit run app.py
 
 - Data mixture (`data_mixture`)
   - This demo selects and mixes samples from multiple datasets and exports them into a new dataset.
+
+- Partition and checkpoint (`partition_and_checkpoint`)
+  - This demo showcases distributed processing with partitioning, checkpointing, and event logging. It demonstrates the new job management features including resource-aware partitioning, comprehensive event logging, and the processing snapshot utility for monitoring job progress.

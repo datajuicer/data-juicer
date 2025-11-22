@@ -27,6 +27,14 @@ def main():
             from data_juicer.core.executor.ray_executor import RayExecutor
 
             executor = RayExecutor(cfg)
+        elif cfg.executor_type == "ray_partitioned":
+            from data_juicer.core.executor.ray_executor_partitioned import (
+                PartitionedRayExecutor,
+            )
+
+            executor = PartitionedRayExecutor(cfg)
+        else:
+            raise ValueError(f"Unsupported executor type: {cfg.executor_type}")
 
     with timing_context("Running executor"):
         executor.run()

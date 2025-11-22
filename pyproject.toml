@@ -204,6 +204,7 @@ extend-ignore = [
     "E203",  # whitespace before ':' (black handles this)
     "E501",  # line too long (black handles this)
     "BLK100",  # black would make changes (black handles this)
+    "F541",  # f-string is missing placeholders
 ]
 
 [tool.black]

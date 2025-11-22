@@ -7,8 +7,10 @@ import shutil
 import sys
 import tempfile
 import time
+import uuid
 from argparse import ArgumentError
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 import yaml
@@ -174,8 +176,8 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "--executor_type",
                 type=str,
                 default="default",
-                choices=["default", "ray"],
-                help='Type of executor, support "default" or "ray" for now.',
+                choices=["default", "ray", "ray_partitioned"],
+                help='Type of executor, support "default", "ray", or "ray_partitioned".',
             )
             parser.add_argument(
                 "--dataset_path",
@@ -418,6 +420,72 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "checkpoint are changed, all ops will be rerun from the "
                 "beginning.",
             )
+            # Enhanced checkpoint configuration for PartitionedRayExecutor
+            parser.add_argument(
+                "--checkpoint.enabled",
+                type=bool,
+                default=True,
+                help="Enable enhanced checkpointing for PartitionedRayExecutor",
+            )
+            parser.add_argument(
+                "--checkpoint.strategy",
+                type=str,
+                default="every_op",
+                choices=["every_op", "every_partition", "every_n_ops", "manual", "disabled"],
+                help="Checkpoint strategy: every_op, every_partition, every_n_ops, manual, disabled",
+            )
+            parser.add_argument(
+                "--checkpoint.n_ops",
+                type=int,
+                default=1,
+                help="Number of operations between checkpoints for every_n_ops strategy",
+            )
+            parser.add_argument(
+                "--checkpoint.op_names",
+                type=List[str],
+                default=[],
+                help="List of operation names to checkpoint for manual strategy",
+            )
+            # Event logging configuration
+            parser.add_argument(
+                "--event_logging.enabled",
+                type=bool,
+                default=True,
+                help="Enable event logging for job tracking and resumption",
+            )
+            # Logging configuration
+            parser.add_argument(
+                "--max_log_size_mb",
+                type=int,
+                default=100,
+                help="Maximum log file size in MB before rotation",
+            )
+            parser.add_argument(
+                "--backup_count",
+                type=int,
+                default=5,
+                help="Number of backup log files to keep",
+            )
+            # Storage configuration
+            parser.add_argument(
+                "--event_log_dir",
+                type=str,
+                default=None,
+                help="Separate directory for event logs (fast storage)",
+            )
+            parser.add_argument(
+                "--checkpoint_dir",
+                type=str,
+                default=None,
+                help="Separate directory for checkpoints (large storage)",
+            )
+            # Job management
+            parser.add_argument(
+                "--job_id",
+                type=str,
+                default=None,
+                help="Custom job ID for resumption and tracking. If not provided, a unique ID will be auto-generated.",
+            )
             parser.add_argument(
                 "--temp_dir",
                 type=str,
@@ -523,10 +591,119 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 help="Whether to save all stats to only one file. Only used in " "Analysis.",
             )
             parser.add_argument("--ray_address", type=str, default="auto", help="The address of the Ray cluster.")
+
+            # Partitioning configuration for PartitionedRayExecutor
+            # Support both flat and nested partition configuration
+            parser.add_argument(
+                "--partition_size",
+                type=int,
+                default=10000,
+                help="Number of samples per partition for PartitionedRayExecutor (legacy flat config)",
+            )
+            parser.add_argument(
+                "--max_partition_size_mb",
+                type=int,
+                default=128,
+                help="Maximum partition size in MB for PartitionedRayExecutor (legacy flat config)",
+            )
+
+            parser.add_argument(
+                "--preserve_intermediate_data",
+                type=bool,
+                default=False,
+                help="Preserve intermediate data for debugging (legacy flat config)",
+            )
+
+            # partition configuration
+            parser.add_argument(
+                "--partition.mode",
+                type=str,
+                default="auto",
+                choices=["manual", "auto"],
+                help="Partition mode: manual (specify num_of_partitions) or auto (use partition size optimizer)",
+            )
+            parser.add_argument(
+                "--partition.num_of_partitions",
+                type=int,
+                default=4,
+                help="Number of partitions for manual mode (ignored in auto mode)",
+            )
+
+            # Resource optimization configuration
+            parser.add_argument(
+                "--resource_optimization.auto_configure",
+                type=bool,
+                default=False,
+                help="Enable automatic optimization of partition size, worker count, and other resource-dependent settings (nested resource_optimization config)",
+            )
+
+            # Intermediate storage configuration
+            parser.add_argument(
+                "--intermediate_storage.preserve_intermediate_data",
+                type=bool,
+                default=False,
+                help="Preserve intermediate data for debugging (nested intermediate_storage config)",
+            )
+            parser.add_argument(
+                "--intermediate_storage.cleanup_temp_files",
+                type=bool,
+                default=True,
+                help="Clean up temporary files after processing (nested intermediate_storage config)",
+            )
+            parser.add_argument(
+                "--intermediate_storage.cleanup_on_success",
+                type=bool,
+                default=False,
+                help="Clean up intermediate files even on successful completion (nested intermediate_storage config)",
+            )
+            parser.add_argument(
+                "--intermediate_storage.retention_policy",
+                type=str,
+                default="keep_all",
+                choices=["keep_all", "keep_failed_only", "cleanup_all"],
+                help="File retention policy (nested intermediate_storage config)",
+            )
+            parser.add_argument(
+                "--intermediate_storage.max_retention_days",
+                type=int,
+                default=7,
+                help="Maximum retention days for files (nested intermediate_storage config)",
+            )
+
+            # Intermediate storage format configuration
+            parser.add_argument(
+                "--intermediate_storage.format",
+                type=str,
+                default="parquet",
+                choices=["parquet", "arrow", "jsonl"],
+                help="Storage format for checkpoints and intermediate data (nested intermediate_storage config)",
+            )
+            parser.add_argument(
+                "--intermediate_storage.compression",
+                type=str,
+                default="snappy",
+                choices=["snappy", "gzip", "none"],
+                help="Compression format for storage files (nested intermediate_storage config)",
+            )
+
+            parser.add_argument(
+                "--intermediate_storage.write_partitions",
+                type=bool,
+                default=True,
+                help="Whether to write intermediate partition files to disk (nested intermediate_storage config). Set to false for better performance when intermediate files aren't needed.",
+            )
+
+            parser.add_argument(
+                "--partition_dir",
+                type=str,
+                default=None,
+                help="Directory to store partition files. Supports {work_dir} placeholder. If not set, defaults to {work_dir}/partitions.",
+            )
+
             parser.add_argument(
                 "--custom-operator-paths", nargs="+", help="Paths to custom operator scripts or directories."
             )
-            parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode.")
+            parser.add_argument("--debug", action="store_true", default=False, help="Whether to run in debug mode.")
 
             # Filter out non-essential arguments for initial parsing
             essential_args = []
@@ -593,6 +770,16 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         with timing_context("Updating operator process"):
             cfg = update_op_process(cfg, parser, used_ops)
 
+        # Validate config for resumption if job_id is provided
+        if not load_configs_only and hasattr(cfg, "job_id") and cfg.job_id:
+            # Check if this is a resumption attempt by looking for existing job directory
+            if cfg.work_dir and os.path.exists(cfg.work_dir):
+                logger.info(f"🔍 Checking for job resumption: {cfg.job_id}")
+                cfg._same_yaml_config = validate_config_for_resumption(cfg, cfg.work_dir, args)
+            else:
+                # New job, set flag to True
+                cfg._same_yaml_config = True
+
         # copy the config file into the work directory
         if not load_configs_only:
             config_backup(cfg)
@@ -605,7 +792,7 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         global_cfg = cfg
         global_parser = parser
 
-        if cfg.debug:
+        if cfg.get("debug", False):
             logger.debug("In DEBUG mode.")
 
         return cfg
@@ -633,7 +820,7 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     """
     Do some extra setup tasks after parsing config file or command line.
 
-    1. create working directory and a log directory
+    1. create working directory and logs directory
     2. update cache directory
     3. update checkpoint and `temp_dir` of tempfile
 
@@ -656,6 +843,14 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         if cfg.work_dir is None:
             cfg.work_dir = os.path.dirname(cfg.export_path)
 
+    cfg.export_path = os.path.abspath(cfg.export_path)
+    if cfg.work_dir is None:
+        cfg.work_dir = os.path.dirname(cfg.export_path)
+
+    # Call resolve_job_directories to finalize all job-related paths
+    cfg = resolve_job_id(cfg)
+    cfg = resolve_job_directories(cfg)
+
     timestamp = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
     if not load_configs_only:
         # For S3 paths, use a simplified export path for log filename
@@ -665,12 +860,13 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
             export_rel_path = s3_path_parts[1] if len(s3_path_parts) > 1 else s3_path_parts[0]
         else:
             export_rel_path = os.path.relpath(cfg.export_path, start=cfg.work_dir)
-        log_dir = os.path.join(cfg.work_dir, "log")
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir, exist_ok=True)
+
+        # Ensure event_log_dir (logs/) exists - this is where logs are actually saved
+        if not os.path.exists(cfg.event_log_dir):
+            os.makedirs(cfg.event_log_dir, exist_ok=True)
         logfile_name = f"export_{export_rel_path}_time_{timestamp}.txt"
         setup_logger(
-            save_dir=log_dir,
+            save_dir=cfg.event_log_dir,
             filename=logfile_name,
             level="DEBUG" if cfg.get("debug", False) else "INFO",
             redirect=cfg.get("executor_type", "default") == "default",
@@ -988,15 +1184,198 @@ def namespace_to_arg_list(namespace, prefix="", includes=None, excludes=None):
     return arg_list
 
 
+def save_cli_arguments(cfg: Namespace):
+    """Save CLI arguments to cli.yaml in the work directory."""
+    if not hasattr(cfg, "work_dir") or not cfg.work_dir:
+        return
+
+    # Get the original CLI arguments if available
+    original_args = getattr(cfg, "_original_args", None)
+    if not original_args:
+        # Try to reconstruct from sys.argv if available
+        import sys
+
+        original_args = sys.argv[1:] if len(sys.argv) > 1 else []
+
+    if not original_args:
+        logger.warning("No CLI arguments available to save")
+        return
+
+    # Create cli.yaml in work directory
+    cli_path = os.path.join(cfg.work_dir, "cli.yaml")
+
+    # Convert args to a simple format
+    cli_data = {"arguments": original_args}
+
+    # Save as YAML
+    import yaml
+
+    with open(cli_path, "w") as f:
+        yaml.dump(cli_data, f, default_flow_style=False, indent=2)
+
+    logger.info(f"💾 Saved CLI arguments to: {cli_path}")
+
+
+def validate_config_for_resumption(cfg: Namespace, work_dir: str, original_args: List[str] = None) -> bool:
+    """Validate that the current config matches the job's saved config for safe resumption.
+
+    Does verbatim comparison between:
+    1. Original config.yaml + cli.yaml (saved during job creation)
+    2. Current config (from current command)
+
+    Sets cfg._same_yaml_config = True/False for the executor to use.
+    """
+    try:
+        from pathlib import Path
+
+        # Find the original config file in the work directory
+        config_files = list(Path(work_dir).glob("*.yaml")) + list(Path(work_dir).glob("*.yml"))
+        if not config_files:
+            logger.warning(f"No config file found in work directory: {work_dir}")
+            cfg._same_yaml_config = False
+            return False
+
+        # Find the original config.yaml (not cli.yaml)
+        original_config_file = None
+        for config_file in config_files:
+            if config_file.name != "cli.yaml":
+                original_config_file = config_file
+                break
+
+        if not original_config_file:
+            logger.warning(f"No original config file found in work directory: {work_dir}")
+            cfg._same_yaml_config = False
+            return False
+
+        # 1. Direct file comparison for config files
+        current_config_file = cfg.config[0] if hasattr(cfg, "config") and cfg.config else None
+        if not current_config_file:
+            logger.error("No current config file found")
+            cfg._same_yaml_config = False
+            return False
+
+        with open(original_config_file, "r") as f:
+            original_config_content = f.read()
+        with open(current_config_file, "r") as f:
+            current_config_content = f.read()
+
+        config_match = original_config_content.strip() == current_config_content.strip()
+
+        # 2. Per-key comparison for CLI arguments
+        cli_file = Path(work_dir) / "cli.yaml"
+        cli_config = {}
+        if cli_file.exists():
+            with open(cli_file, "r") as f:
+                cli_data = yaml.safe_load(f)
+                cli_config = _parse_cli_to_config(cli_data.get("arguments", []))
+
+        # Get current CLI arguments from the original args passed to init_configs
+        current_cli_args = original_args
+        if not current_cli_args:
+            # Fallback: try to get from sys.argv
+            import sys
+
+            current_cli_args = sys.argv[1:] if len(sys.argv) > 1 else []
+
+        current_cli_config = _parse_cli_to_config(current_cli_args)
+
+        # Compare CLI arguments per key
+        cli_differences = []
+        all_cli_keys = set(cli_config.keys()) | set(current_cli_config.keys())
+        excluded_keys = {"config", "_original_args", "backed_up_config_path", "_same_yaml_config", "job_id", "work_dir"}
+
+        for key in all_cli_keys:
+            if key in excluded_keys:
+                continue
+
+            original_value = cli_config.get(key)
+            current_value = current_cli_config.get(key)
+
+            if original_value != current_value:
+                cli_differences.append({"key": key, "original": original_value, "current": current_value})
+
+        cli_match = len(cli_differences) == 0
+
+        if not config_match or not cli_match:
+            logger.error("❌ Config validation failed - configurations don't match:")
+            if not config_match:
+                logger.error("   [config] Config file content differs")
+            if not cli_match:
+                logger.error("   [cli] CLI arguments differ:")
+                for diff in cli_differences:
+                    logger.error(f"      {diff['key']}: {diff['original']} → {diff['current']}")
+            logger.error("💡 Use the same config file and CLI arguments for resumption")
+            cfg._same_yaml_config = False
+            return False
+
+        logger.info("✅ Config validation passed - configurations match exactly")
+        cfg._same_yaml_config = True
+        return True
+
+    except Exception as e:
+        logger.error(f"Error validating config for resumption: {e}")
+        cfg._same_yaml_config = False
+        return False
+
+
+def _parse_cli_to_config(cli_args: list) -> dict:
+    """Parse CLI arguments into config dictionary format."""
+    config = {}
+
+    i = 0
+    while i < len(cli_args):
+        arg = cli_args[i]
+
+        if arg.startswith("--"):
+            key = arg[2:]  # Remove '--'
+
+            # Check if next arg is a value (not another flag)
+            if i + 1 < len(cli_args) and not cli_args[i + 1].startswith("--"):
+                value = cli_args[i + 1]
+
+                # Try to parse as different types
+                if value.lower() in ["true", "false"]:
+                    config[key] = value.lower() == "true"
+                elif value.isdigit():
+                    config[key] = int(value)
+                elif value.replace(".", "").isdigit():
+                    config[key] = float(value)
+                else:
+                    config[key] = value
+
+                i += 2  # Skip both key and value
+            else:
+                # Boolean flag (no value)
+                config[key] = True
+                i += 1
+        else:
+            i += 1
+
+    return config
+
+
 def config_backup(cfg: Namespace):
     if not cfg.get("config", None):
         return
     cfg_path = os.path.abspath(cfg.config[0])
-    work_dir = cfg.work_dir
-    target_path = os.path.join(work_dir, os.path.basename(cfg_path))
-    logger.info(f"Back up the input config file [{cfg_path}] into the " f"work_dir [{work_dir}]")
+
+    # Use the backed_up_config_path which should be set by resolve_job_directories
+    if hasattr(cfg, "backed_up_config_path"):
+        target_path = cfg.backed_up_config_path
+    else:
+        # Fallback: use work_dir with original filename
+        work_dir = cfg.work_dir
+        original_config_name = os.path.basename(cfg_path)
+        target_path = os.path.join(work_dir, original_config_name)
+
     if not os.path.exists(target_path):
+        logger.info(f"Back up the input config file [{cfg_path}] to [{target_path}]")
         shutil.copyfile(cfg_path, target_path)
+    else:
+        logger.info(f"Config file [{cfg_path}] already exists at [{target_path}]")
+
+    # Also save CLI arguments
+    save_cli_arguments(cfg)
 
 
 def display_config(cfg: Namespace):
@@ -1158,6 +1537,24 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
     temp_file = os.path.join(temp_dir, "job_dj_config.json")
     if isinstance(cfg, Namespace):
         cfg = namespace_to_dict(cfg)
+
+    # Remove internal attributes that are not part of the configuration schema
+    # to avoid validation errors when re-initializing the config
+    if isinstance(cfg, dict):
+        cfg = cfg.copy()
+        # Remove internal attributes that are added during config processing
+        internal_attrs = [
+            "_user_provided_job_id",
+            "_same_yaml_config",
+            "metadata_dir",
+            "results_dir",
+            "event_log_file",
+            "job_summary_file",
+            "backed_up_config_path",
+        ]
+        for attr in internal_attrs:
+            cfg.pop(attr, None)
+
     # create a temp config file
     with open(temp_file, "w") as f:
         json.dump(prepare_cfgs_for_export(cfg), f)
@@ -1199,4 +1596,117 @@ def prepare_cfgs_for_export(cfg):
     for op in OPERATORS.modules.keys():
         if op in cfg:
             _ = cfg.pop(op)
+    return cfg
+
+
+def resolve_job_id(cfg):
+    """Resolve or auto-generate job_id and set it on cfg."""
+    job_id = getattr(cfg, "job_id", None)
+
+    # Track whether job_id was user-provided
+    if job_id is not None:
+        # User explicitly provided a job_id
+        setattr(cfg, "_user_provided_job_id", True)
+    else:
+        # No job_id provided by user
+        setattr(cfg, "_user_provided_job_id", False)
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        short_hash = uuid.uuid4().hex[:6]
+        job_id = f"{timestamp}_{short_hash}"
+        setattr(cfg, "job_id", job_id)
+    return cfg
+
+
+def validate_work_dir_config(work_dir: str) -> None:
+    """
+    Validate work_dir configuration to ensure {job_id} placement rules are followed.
+
+    Args:
+        work_dir: The work_dir string to validate
+
+    Raises:
+        ValueError: If {job_id} is not at the end of the path
+    """
+    if "{job_id}" in work_dir:
+        # Check if {job_id} is at the end of the path
+        if not work_dir.rstrip("/").endswith("{job_id}"):
+            raise ValueError(
+                f"Invalid work_dir configuration: '{{job_id}}' must be the last part of the path. "
+                f"Current: '{work_dir}'. "
+                f"Expected format: 'path/to/directory/{{job_id}}'"
+            )
+
+
+def resolve_job_directories(cfg):
+    """
+    Centralize directory resolution and placeholder substitution. Assumes job_id is already set.
+
+    Job Directory Rules:
+    - If work_dir contains '{job_id}' placeholder, it MUST be the last part of the path
+    - Examples:
+      ✅ work_dir: "./outputs/my_project/{job_id}"     # Valid
+      ✅ work_dir: "/data/experiments/{job_id}"        # Valid
+      ❌ work_dir: "./outputs/{job_id}/results"        # Invalid - {job_id} not at end
+      ❌ work_dir: "./{job_id}/outputs/data"           # Invalid - {job_id} not at end
+
+    - If work_dir does NOT contain '{job_id}', job_id will be appended automatically
+    - Examples:
+      work_dir: "./outputs/my_project" → work_dir: "./outputs/my_project/20250804_143022_abc123"
+
+    After resolution, work_dir will always include job_id at the end.
+    """
+    # 1. placeholder map
+    placeholder_map = {"work_dir": cfg.work_dir, "job_id": getattr(cfg, "job_id", "")}
+
+    # 2. Validate {job_id} placement in work_dir before substitution
+    original_work_dir = cfg.work_dir
+    validate_work_dir_config(original_work_dir)
+
+    # 3. substitute placeholders in all relevant paths (change-detection loop)
+    max_passes = 10
+    for _ in range(max_passes):
+        changed = False
+        for key in ["work_dir", "event_log_dir", "checkpoint_dir", "export_path", "dataset_path", "partition_dir"]:
+            val = getattr(cfg, key, None)
+            if isinstance(val, str):
+                new_val = val.format(**placeholder_map)
+                if new_val != val:
+                    setattr(cfg, key, new_val)
+                    changed = True
+        # update placeholder_map in case work_dir or job_id changed
+        placeholder_map = {"work_dir": cfg.work_dir, "job_id": getattr(cfg, "job_id", "")}
+        if not changed:
+            break
+    else:
+        raise RuntimeError("Too many placeholder substitution passes (possible recursive placeholders?)")
+
+    # 4. directory resolution
+    job_id = getattr(cfg, "job_id", None)
+    if not job_id:
+        raise ValueError("job_id must be set before resolving job directories.")
+
+    # Ensure work_dir always includes job_id at the end
+    # If work_dir already ends with job_id (from placeholder substitution), keep it as-is
+    # Otherwise, append job_id automatically
+    if not (cfg.work_dir.endswith(job_id) or os.path.basename(cfg.work_dir) == job_id):
+        cfg.work_dir = os.path.join(cfg.work_dir, job_id)
+
+    # All job-specific directories are under work_dir
+    if getattr(cfg, 'event_log_dir', None) is None:
+        cfg.event_log_dir = os.path.join(cfg.work_dir, "logs")
+    if getattr(cfg, 'checkpoint_dir', None) is None:
+        cfg.checkpoint_dir = os.path.join(cfg.work_dir, "checkpoints")
+    if getattr(cfg, 'partition_dir', None) is None:
+        cfg.partition_dir = os.path.join(cfg.work_dir, "partitions")
+    cfg.metadata_dir = os.path.join(cfg.work_dir, "metadata")
+    cfg.results_dir = os.path.join(cfg.work_dir, "results")
+    cfg.event_log_file = os.path.join(cfg.work_dir, "events.jsonl")
+    cfg.job_summary_file = os.path.join(cfg.work_dir, "job_summary.json")
+    # Set backed_up_config_path using original config filename
+    if hasattr(cfg, "config") and cfg.config:
+        original_config_name = os.path.basename(cfg.config[0])
+        cfg.backed_up_config_path = os.path.join(cfg.work_dir, original_config_name)
+    else:
+        cfg.backed_up_config_path = os.path.join(cfg.work_dir, "config.yaml")
+
     return cfg

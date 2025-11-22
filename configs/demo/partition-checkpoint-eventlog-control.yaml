@@ -1,47 +1,29 @@
 # =============================================================================
-# COMPREHENSIVE DATAJUICER DEMO: Checkpointing, Event Logging & Job Management
+# CONTROL CONFIG FOR partition-checkpoint-eventlog.yaml
 # =============================================================================
-# This demo showcases:
-# 1. Configurable checkpointing strategies
-# 2. Event logging with job-specific directories
-# 3. Flexible storage architecture
-# 4. Job resumption capabilities
-# 5. Real DataJuicer operations
+# This is a control configuration file for partition-checkpoint-eventlog.yaml
+# that uses the non-partitioned Ray executor (executor_type: "ray") instead of
+# the partitioned executor (executor_type: "ray_partitioned").
+#
+# This config is useful for:
+# 1. Comparing performance between partitioned and non-partitioned executors
+# 2. Testing DAG execution without partitioning
+# 3. Simpler execution flow without partition management
+#
+# Key differences from partition-checkpoint-eventlog.yaml:
+# - executor_type: "ray" (instead of "ray_partitioned")
+# - No partition configuration needed
+# - Simpler execution model (no partition splitting/merging)
 # =============================================================================
 
-# Data location configuration (Mandatory)
 dataset_path: './demos/data/demo-dataset.jsonl'
 
-# Work directory configuration
-# IMPORTANT: If using {job_id} placeholder, it MUST be the last part of the path
-# Examples:
-#   ✅ work_dir: "./outputs/my_project/{job_id}"     # Valid
-#   ✅ work_dir: "/data/experiments/{job_id}"        # Valid
-#   ❌ work_dir: "./outputs/{job_id}/results"        # Invalid - {job_id} not at end
-#   ❌ work_dir: "./{job_id}/outputs/data"           # Invalid - {job_id} not at end
-#
-# If no {job_id} is specified, job_id will be automatically appended:
-#   work_dir: "./outputs/my_project" → job_dir: "./outputs/my_project/20250804_143022_abc123"
 work_dir: "./outputs/partition-checkpoint-eventlog/{job_id}"
 export_path: '{work_dir}/processed.jsonl'
 np: 8
 
-# Executor configuration
-executor_type: "ray"  # Use our enhanced partitioned executor
+executor_type: "ray"  # Non-partitioned Ray executor (control config)
 ray_address: "auto"
-# np will be auto-configured based on available cluster resources when partition.auto_configure: true
-# np: 2  # Number of Ray workers (auto-configured when partition.auto_configure: true)
-
-# Separate storage configuration
-# Partition directory (Optional) is used to store the partitions of the dataset if using ray_partitioned executor
-partition_dir: "{work_dir}/partitions"
-
-# Event logs: Fast storage (SSD, local disk) - small files, frequent writes (Optional)
-event_log_dir: "{work_dir}/event_logs"  # Optional: separate fast storage for event logs
-
-# Event logging configuration
-event_logging:
-  enabled: true
 
 # Process pipeline with real DataJuicer operations
 process:
@@ -94,37 +76,14 @@ keep_stats_in_res_ds: true
 keep_hashes_in_res_ds: true
 
 # =============================================================================
-# COMPLETE USER EXPERIENCE:
+# USAGE:
 # =============================================================================
-# 1. Start job:
+# This control config uses the non-partitioned Ray executor for comparison.
+# To use this config:
+#
+#    dj-process --config configs/demo/partition-checkpoint-eventlog-control.yaml
+#
+# For the partitioned executor version, use:
 #    dj-process --config configs/demo/partition-checkpoint-eventlog.yaml
-#    # Output shows: Job ID (timestamp_configname_suffix), job directory, resumption command
-#    # Example: 20241201_143022_partition-checkpoint-eventlog_abc123
-#
-# 2. If job fails, resume with:
-#    dj-process --config configs/demo/partition-checkpoint-eventlog.yaml --job_id <job_id>
-#    # System validates job_id and shows previous status
-#
-# 3. Directory structure (flexible storage):
-#    outputs/partition-checkpoint-eventlog/{job_id}/
-#    ├── partitions/           # Dataset partitions (large files)
-#    ├── checkpoints/          # Operation checkpoints (large files)
-#    ├── event_logs/           # Event logs (small files, frequent writes)
-#    ├── metadata/             # Job metadata and mapping
-#    ├── results/              # Final processed dataset
-#    └── processed.jsonl       # Final output file
-#
-# 4. Resource Optimization:
-#    - resource_optimization.auto_configure: true automatically optimizes:
-#      * Partition size based on data characteristics and available memory
-#      * Worker count (np) based on available CPU cores
-#      * Processing efficiency based on data modality (text, image, audio, video)
-#    - No manual tuning required - system adapts to your hardware and data
-#
-# 5. Monitoring and Debugging:
-#    - Real-time event logs in event_logs/ directory
-#    - Processing summary with statistics and timing
-#    - Checkpoint recovery for fault tolerance
-#    - Detailed resource utilization analysis
 #
 # =============================================================================

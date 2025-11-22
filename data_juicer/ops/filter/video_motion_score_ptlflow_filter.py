@@ -1,6 +1,7 @@
 import sys
 from typing import Optional, Tuple, Union
 
+from jsonargparse import dict_to_namespace
 from pydantic import PositiveFloat, PositiveInt
 
 from data_juicer.ops.filter.video_motion_score_filter import VideoMotionScoreFilter
@@ -13,34 +14,33 @@ from ..base_op import OPERATORS, UNFORKABLE
 torch = LazyLoader("torch")
 tvm = LazyLoader("torchvision.models")
 tvt = LazyLoader("torchvision.transforms")
+ptlflow = LazyLoader("ptlflow")
+ptlflow_io_adapter = LazyLoader("ptlflow.utils.io_adapter")
 
-OP_NAME = "video_motion_score_raft_filter"
+OP_NAME = "video_motion_score_ptlflow_filter"
 
 
 @UNFORKABLE.register_module(OP_NAME)
 @OPERATORS.register_module(OP_NAME)
-class VideoMotionScoreRaftFilter(VideoMotionScoreFilter):
+class VideoMotionScorePtlflowFilter(VideoMotionScoreFilter):
     """Filter to keep samples with video motion scores within a specified range.
 
-    This operator utilizes the RAFT (Recurrent All-Pairs Field Transforms) model from
-    torchvision to predict optical flow between video frames. It keeps samples where the
+    This operator utilizes the ptlflow library (https://github.com/hmorimitsu/ptlflow) to
+    predict optical flow between video frames. It keeps samples where the
     video motion score is within the given min and max score range. The motion score is
-    computed based on the optical flow between frames, which is estimated using the RAFT
-    model. The operator can sample frames at a specified FPS and apply transformations to
-    the frames before computing the flow.
+    computed based on the optical flow between frames, which is estimated using the models
+    supported in ptlflow. The operator can sample frames at a specified FPS and apply
+    transformations to the frames before computing the flow.
 
-    - The RAFT model is used to estimate the optical flow.
+    - The models in ptlflow is used to estimate the optical flow.
     - Frames are preprocessed using a series of transformations including normalization and
       color channel flipping.
     - The motion score is calculated from the optical flow data.
     - The operator can be configured to filter based on any or all frames in the video.
     - The device for model inference (CPU or CUDA) is automatically detected and set.
 
-    For further details, refer to the official torchvision documentation:
-    https://pytorch.org/vision/main/models/raft.html
-
-    The original paper on RAFT is available here:
-    https://arxiv.org/abs/2003.12039
+    For further details, refer to the official documentation:
+    https://ptlflow.readthedocs.io/
     """
 
     _accelerator = "cuda"
@@ -50,6 +50,9 @@ class VideoMotionScoreRaftFilter(VideoMotionScoreFilter):
         self,
         min_score: float = 1.0,
         max_score: float = sys.float_info.max,
+        model_name: str = "dpflow",
+        ckpt_path: Optional[str] = "things",
+        get_model_args: Optional[dict] = None,
         sampling_fps: PositiveFloat = 2,
         size: Union[PositiveInt, Tuple[PositiveInt], Tuple[PositiveInt, PositiveInt], None] = None,
         max_size: Optional[PositiveInt] = None,
@@ -76,8 +79,14 @@ class VideoMotionScoreRaftFilter(VideoMotionScoreFilter):
             **kwargs,
         )
 
+        self.model_name = model_name
+        self.ckpt_path = ckpt_path
+        if get_model_args is not None:
+            get_model_args = dict_to_namespace(get_model_args)
+        self.get_model_args = get_model_args
+
     def setup_model(self, rank=None):
-        self.model = tvm.optical_flow.raft_large(weights=tvm.optical_flow.Raft_Large_Weights.DEFAULT, progress=False)
+        self.model = ptlflow.get_model(self.model_name, ckpt_path=self.ckpt_path, args=self.get_model_args)
         if self.use_cuda():
             rank = rank if rank is not None else 0
             rank = rank % cuda_device_count()
@@ -87,20 +96,16 @@ class VideoMotionScoreRaftFilter(VideoMotionScoreFilter):
         self.model.to(self.device)
         self.model.eval()
 
-        self.transforms = tvt.Compose(
-            [
-                tvt.ToTensor(),
-                tvt.Normalize(mean=0.5, std=0.5),  # map [0, 1] into [-1, 1]
-                tvt.Lambda(lambda img: img.flip(-3).unsqueeze(0)),  # BGR to RGB
-            ]
-        )
-
     def compute_flow(self, prev_frame, curr_frame):
-        curr_frame = self.transforms(curr_frame).to(self.device)
         if prev_frame is None:
             flow = None
         else:
-            with torch.inference_mode():
-                flows = self.model(prev_frame, curr_frame)
-            flow = flows[-1][0].cpu().numpy().transpose((1, 2, 0))  # 2, H, W -> H, W, 2
+            io_adapter = ptlflow_io_adapter.IOAdapter(self.model, prev_frame.shape[:2])
+            frames = [prev_frame, curr_frame]
+            inputs = io_adapter.prepare_inputs(frames)
+            inputs = {key: value.to(self.device) for key, value in inputs.items()}
+            with torch.no_grad():
+                predictions = self.model(inputs)
+            flows = predictions.get("flows")  # shape: (1, 1, 2, H, W)
+            flow = flows[-1][0].detach().cpu().numpy().transpose((1, 2, 0))  # 2, H, W -> H, W, 2
         return flow, curr_frame

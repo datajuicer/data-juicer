@@ -8,7 +8,7 @@ The fuzzy deduplication method here mainly refer to the fuzzy deduplication meth
 
 > To further improve model quality and prevent overfitting (which becomes increasingly important as model capacity increases), we fuzzily deduplicated documents (i.e. removed documents with high overlap with other documents) within each dataset using Spark’s MinHashLSH implementation with 10 hashes, using **the same features as were used for classification above**. We also fuzzily removed WebText from Common Crawl. Overall this decreased dataset size by an average of 10%.
 
-As the paper mentioned, the features used are the same as were used for  quality classification, as described in [quality_classifier tools](../quality_classifier/README.md).
+As the paper mentioned, the features used are the same as were used for  quality classification, as described in [quality_classifier tools](../../data_juicer/tools/quality_classifier/README.md).
 
 The whole toolkit is based on PySpark.
 

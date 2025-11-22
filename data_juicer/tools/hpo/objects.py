@@ -2,7 +2,7 @@ import os
 import shutil
 
 from data_juicer.core import DefaultExecutor
-from tools.quality_classifier.predict import predict_score
+from data_juicer.tools.quality_classifier.predict import predict_score
 
 
 def get_hpo_objective(obj_name):

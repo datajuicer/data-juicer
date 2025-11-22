@@ -114,7 +114,7 @@ audio = [
 # Distributed Computing
 distributed = [
     "ray[default]==2.47.1",  # distributed computing
-    "pyspark",  # distributed data processing
+    "pyspark==3.5.5",  # distributed data processing
     "s3fs",  # S3 filesystem support for cloud storage
 ]
 
@@ -149,17 +149,7 @@ ai_services = [
 ]
 
 
-# Sandbox Environment
-# Todo: the sandbox dependencies will be provided in
-# micro-services rather than all-in-one env
-sandbox = [
-    "torch==2.6.0",
-    "fire",
-    "pyspark",
-]
-
-
-# All dependencies (default + all optional, except sandbox)
+# All dependencies (default + all optional)
 all = [
     "py-data-juicer[generic]",
     "py-data-juicer[vision]",
@@ -168,7 +158,6 @@ all = [
     "py-data-juicer[distributed]",
     "py-data-juicer[dev]",
     "py-data-juicer[ai_services]",
-    "py-data-juicer[sandbox]",
 ]
 
 [project.scripts]

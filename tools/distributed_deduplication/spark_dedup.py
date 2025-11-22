@@ -8,15 +8,15 @@ from pyspark.ml.feature import HashingTF, MinHashLSH, Tokenizer
 from pyspark.sql import functions as F
 from pyspark.sql.functions import posexplode
 
+from data_juicer.tools.quality_classifier.qc_utils import (
+    export_result,
+    load_dataset,
+    tokenize_dataset,
+)
 from tools.distributed_deduplication.dedup_utils import (
     find_components,
     generate_edges,
     init_spark,
-)
-from tools.quality_classifier.qc_utils import (
-    export_result,
-    load_dataset,
-    tokenize_dataset,
 )
 
 

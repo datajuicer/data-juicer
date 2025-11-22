@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '4' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
@@ -5832,11 +5832,6 @@ nlp = [
     { name = "spacy-pkuseg" },
     { name = "tiktoken" },
 ]
-sandbox = [
-    { name = "fire" },
-    { name = "pyspark" },
-    { name = "torch" },
-]
 vision = [
     { name = "diffusers" },
     { name = "imagededup" },
@@ -5885,7 +5880,6 @@ requires-dist = [
     { name = "ffmpeg-python", marker = "extra == 'audio'" },
     { name = "fire", marker = "extra == 'all'" },
     { name = "fire", marker = "extra == 'dev'" },
-    { name = "fire", marker = "extra == 'sandbox'" },
     { name = "flake8-black", marker = "extra == 'all'" },
     { name = "flake8-black", marker = "extra == 'dev'" },
     { name = "fsspec", specifier = "==2023.5.0" },
@@ -5938,9 +5932,8 @@ requires-dist = [
     { name = "psutil" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pylance" },
-    { name = "pyspark", marker = "extra == 'all'" },
-    { name = "pyspark", marker = "extra == 'distributed'" },
-    { name = "pyspark", marker = "extra == 'sandbox'" },
+    { name = "pyspark", marker = "extra == 'all'", specifier = "==3.5.5" },
+    { name = "pyspark", marker = "extra == 'distributed'", specifier = "==3.5.5" },
     { name = "pytest", marker = "extra == 'all'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'all'" },
@@ -5992,7 +5985,6 @@ requires-dist = [
     { name = "tomli-w" },
     { name = "torch", marker = "extra == 'all'", specifier = "==2.6.0" },
     { name = "torch", marker = "extra == 'generic'", specifier = "==2.6.0" },
-    { name = "torch", marker = "extra == 'sandbox'", specifier = "==2.6.0" },
     { name = "torchaudio", marker = "extra == 'all'" },
     { name = "torchaudio", marker = "extra == 'audio'" },
     { name = "tqdm" },
@@ -6011,7 +6003,7 @@ requires-dist = [
     { name = "wordcloud" },
     { name = "zstandard" },
 ]
-provides-extras = ["ai-services", "all", "audio", "dev", "distributed", "generic", "nlp", "sandbox", "vision"]
+provides-extras = ["ai-services", "all", "audio", "dev", "distributed", "generic", "nlp", "vision"]
 
 [[package]]
 name = "py-spy"
@@ -6030,11 +6022,11 @@ wheels = [
 
 [[package]]
 name = "py4j"
-version = "0.10.9.9"
+version = "0.10.9.7"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/38/31/0b210511177070c8d5d3059556194352e5753602fa64b85b7ab81ec1a009/py4j-0.10.9.9.tar.gz", hash = "sha256:f694cad19efa5bd1dee4f3e5270eb406613c974394035e5bfc4ec1aba870b879", size = 761089, upload-time = "2025-01-15T03:53:18.624Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/f2/b34255180c72c36ff7097f7c2cdca02abcbd89f5eebf7c7c41262a9a0637/py4j-0.10.9.7.tar.gz", hash = "sha256:0b6e5315bb3ada5cf62ac651d107bb2ebc02def3dee9d9548e3baac644ea8dbb", size = 1508234, upload-time = "2022-08-12T22:49:09.792Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/db/ea0203e495be491c85af87b66e37acfd3bf756fd985f87e46fc5e3bf022c/py4j-0.10.9.9-py2.py3-none-any.whl", hash = "sha256:c7c26e4158defb37b0bb124933163641a2ff6e3a3913f7811b0ddbe07ed61533", size = 203008, upload-time = "2025-01-15T03:53:15.648Z" },
+    { url = "https://files.pythonhosted.org/packages/10/30/a58b32568f1623aaad7db22aa9eafc4c6c194b429ff35bdc55ca2726da47/py4j-0.10.9.7-py2.py3-none-any.whl", hash = "sha256:85defdfd2b2376eb3abf5ca6474b51ab7e0de341c75a02f46dc9b5976f5a5c1b", size = 200481, upload-time = "2022-08-12T22:49:07.05Z" },
 ]
 
 [[package]]
@@ -6479,12 +6471,12 @@ wheels = [
 
 [[package]]
 name = "pyspark"
-version = "4.0.0"
+version = "3.5.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "py4j" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9d/0e/5b38d51f1b1c2618cccfbf35093268665af9a3bdb493e5a3ecd991def633/pyspark-4.0.0.tar.gz", hash = "sha256:38db1b4f6095a080d7605e578d775528990e66dc326311d93e94a71cfc24e5a5", size = 434132212, upload-time = "2025-05-23T03:29:33.916Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/8f/b616ef710932ccdbabd8511e08890a677482ab2967b7cf276c09a02bc64c/pyspark-3.5.5.tar.gz", hash = "sha256:6effc9ce98edf231f4d683fd14f7270629bf8458c628d6a2620ded4bb34f3cb9", size = 317214975, upload-time = "2025-02-27T09:16:31.75Z" }
 
 [[package]]
 name = "pytest"

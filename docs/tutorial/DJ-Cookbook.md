@@ -10,7 +10,7 @@
 - Basics
   - [Overview of DJ](../../README.md)
   - [Quick Start](QuickStart.md)
-  - [Configuration](../RecipeGallery.md)
+  - [Configuration](../hub/RecipeGallery.md)
   - [Data Format Conversion](../../tools/fmt_conversion/README.md)
 - Lookup Materials
   - [DJ OperatorZoo](../Operators.md)
@@ -27,7 +27,7 @@
 
 
 ## Use Cases & Data Recipes
-- [Data Recipe Gallery](../RecipeGallery.md)
+- [Data Recipe Gallery](../hub/RecipeGallery.md)
   - Data-Juicer Minimal Example Recipe
   - Reproducing Open Source Text Datasets
   - Improving Open Source Pre-training Text Datasets

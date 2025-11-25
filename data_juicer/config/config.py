@@ -1171,7 +1171,7 @@ def get_default_cfg():
 
     # Get path to config_all.yaml
     config_dir = os.path.dirname(os.path.abspath(__file__))
-    default_config_path = os.path.join(config_dir, "../../configs/config_min.yaml")
+    default_config_path = os.path.join(config_dir, "config_min.yaml")
 
     # Load default values from yaml
     with open(default_config_path, "r", encoding="utf-8") as f:

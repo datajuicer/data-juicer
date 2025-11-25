@@ -124,7 +124,7 @@ process:
 
 ## 2. Build Your Own Data Recipes and Configs
 - We provide easy configuration based on [jsonargparse](https://github.com/omni-us/jsonargparse/) to reduce cost for boilerplate codes.
-- We provide fruitful examples in [Data Recipe Gallery](RecipeGallery.md) for reference reuse and extension.
+- We provide fruitful examples in [Data Recipe Gallery](hub/RecipeGallery.md) for reference reuse and extension.
 - 📣📣📣 Community contributors can submit PRs in the *Data Recipe Gallery* to add customized data recipes to promote dissemination, reuse and related technical evolution. We greatly welcome co-construction and will highlight [acknowledgements](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)!
 
 ### 2.1 Fruitful Config Sources & Type Hints
@@ -612,7 +612,7 @@ class PerplexityFilter(Filter):
 
 
 ### 4.4 Contribute Your New Recipes 
-- Community contributors can submit PRs in the [Data Recipe Gallery](RecipeGallery.md) to add customized data recipes to promote dissemination, reuse and related technical evolution. 
+- Community contributors can submit PRs in the [Data Recipe Gallery](hub/RecipeGallery.md) to add customized data recipes to promote dissemination, reuse and related technical evolution. 
 
 - Feel free to add the corresponding references of your new recipe, or just propose some requirements/ideas to improve the existing recipes.
 

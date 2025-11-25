@@ -4,6 +4,6 @@
 
 ## Oscar
 
-原始文件可以参照 [BLOOM/Oscar](https://github.com/bigscience-workshop/data-preparation/tree/main/preprocessing/training/01b_oscar_cleaning_and_filtering) 下载，然后使用 [bloom-oscar.yaml](bloom-oscar.yaml) 进行完整的处理流程。
+原始文件可以参照 [BLOOM/Oscar](https://github.com/bigscience-workshop/data-preparation/tree/main/preprocessing/training/01b_oscar_cleaning_and_filtering) 下载，然后使用 [bloom-oscar.yaml](../../configs/reproduced_bloom/bloom-oscar.yaml) 进行完整的处理流程。
 
 对我们复现结果的分析将在稍后发布。

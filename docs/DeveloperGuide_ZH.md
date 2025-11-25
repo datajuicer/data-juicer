@@ -125,7 +125,7 @@ process:
 ## 2. 构建你自己的数据菜谱和配置项
 
 - 我们提供基于 [jsonargparse](https://github.com/omni-us/jsonargparse/) 的简单配置以降低样板代码的成本。
-- 我们提供大量的示例性菜谱以供参阅复用和扩展，[数据菜谱Gallery](RecipeGallery_ZH.md)。
+- 我们提供大量的示例性菜谱以供参阅复用和扩展，[数据菜谱Gallery](hub/RecipeGallery_ZH.md)。
 - 📣📣📣 社区贡献者可提PR在*数据菜谱Gallery*中添加自定义的数据菜谱，促进传播、复用和相关技术演进。更多细节请参考下方第4节。我们非常欢迎共建，并会[高亮致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
 
 ### 2.1 丰富的配置源和类型提示
@@ -591,7 +591,7 @@ class PerplexityFilter(Filter):
 
 
 ### 4.4 贡献您的新配方
-- 社区贡献者可以在[数据配方库](RecipeGallery_ZH.md)中提交 PR，添加自定义数据配方，以促进传播、复用和相关技术演进。
+- 社区贡献者可以在[数据配方库](hub/RecipeGallery_ZH.md)中提交 PR，添加自定义数据配方，以促进传播、复用和相关技术演进。
 
 - 欢迎添加您新配方的相应参考文献，或提出一些新需求、以及改进现有配方的想法。
 

@@ -15,7 +15,7 @@ python tools/preprocess/raw_arxiv_to_jsonl.py           \
     --num_proc            <num_proc>
 ```
 
-After conversion, modify the path configurations in [redpajama-arxiv.yaml](redpajama-arxiv.yaml) and execute the following command to reproduce the processing flow of RedPajama:
+After conversion, modify the path configurations in [redpajama-arxiv.yaml](../../configs/reproduced_redpajama/redpajama-arxiv.yaml) and execute the following command to reproduce the processing flow of RedPajama:
 
 ```shell
 python tools/process_data.py --config configs/reproduced_redpajama/redpajama-arxiv.yaml
@@ -32,7 +32,7 @@ python tools/process_data.py --config configs/reproduced_redpajama/redpajama-arx
 
 The raw data files can be downloaded from the same HuggingFace datasets as in [Redpajama/Books](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep/book).
 
-Once downloaded, modify the path configurations in [redpajama-books.yaml](redpajama-books.yaml) and execute the following command to reproduce the processing flow of RedPajama.
+Once downloaded, modify the path configurations in [redpajama-books.yaml](../../configs/reproduced_redpajama/redpajama-books.yaml) and execute the following command to reproduce the processing flow of RedPajama.
 
 ```shell
 python tools/process_data.py --config configs/reproduced_redpajama/redpajama-books.yaml
@@ -55,7 +55,7 @@ Once downloaded, unzip and delete files whose extensions are not in the followin
 .asm, .bat, .cmd, .c, .h, .cs, .cpp, .hpp, .c++, .h++, .cc, .hh, .C, .H, .cmake, .css, .dockerfile, .f90, .f, .f03, .f08, .f77, .f95, .for, .fpp, .go, .hs, .html, .java, .js, .jl, .lua, .md, .markdown, .php, .php3, .php4, .php5, .phps, .phpt, .pl, .pm, .pod, .perl,  ps1, .psd1, .psm1, .py, .rb, .rs, .sql, .scala, .sh, .bash, .command, .zsh, .ts, .tsx, .tex, .vb, Dockerfile, Makefile, .xml, .rst, .m, .smali
 ```
 
-After preparation, modify the path configurations in [redpajama-code.yaml](redpajama-code.yaml) and execute the following command to reproduce the processing flow of redpajama:
+After preparation, modify the path configurations in [redpajama-code.yaml](../../configs/reproduced_redpajama/redpajama-code.yaml) and execute the following command to reproduce the processing flow of redpajama:
 
 ```shell
 python tools/process_data.py --config configs/redpajama/redpajama-code.yaml
@@ -82,7 +82,7 @@ python tools/preprocess/raw_arxiv_stackexchange_to_jsonl.py           \
     --num_proc      <num_proc>     \
 ```
 
-After conversion, modify the path configurations in [redpajama-stackexchange.yaml](redpajama-stackexchange.yaml) and execute the following command to reproduce the processing flow of redpajama:
+After conversion, modify the path configurations in [redpajama-stackexchange.yaml](../../configs/reproduced_redpajama/redpajama-stackexchange.yaml) and execute the following command to reproduce the processing flow of redpajama:
 
 ```shell
 python tools/process_data.py --config configs/redpajama/redpajama-stackexchange.yaml

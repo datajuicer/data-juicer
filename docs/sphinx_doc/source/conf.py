@@ -29,7 +29,7 @@ from custom_myst import ReplaceVideoLinksTransform
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-project = "DataJuicer"
+project = "Data-Juicer"
 copyright = "2024, Data-Juicer Team"
 author = "Data-Juicer Team"
 

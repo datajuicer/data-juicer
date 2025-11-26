@@ -10,7 +10,7 @@ Detects and extracts bounding boxes for main characters in an image, this operat
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu
+Tags 标签: gpu
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

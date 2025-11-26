@@ -22,7 +22,7 @@ Tags 标签: cpu, text
 | `guidance_scale` | <class 'float'> | `7.5` | A higher guidance scale value encourages the model to generate images closely linked to the text prompt at the expense of lower image quality. Guidance scale is enabled when |
 | `text_key` |  | `None` | the key name used to store the first caption in the caption pair. |
 | `text_key_second` |  | `None` | the key name used to store the second caption in the caption pair. |
-| `output_dir` |  | `'/home/cmgzn/.cache/data_juicer/assets'` | the storage location of the generated images. |
+| `output_dir` |  | `DATA_JUICER_ASSETS_CACHE` | the storage location of the generated images. |
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 

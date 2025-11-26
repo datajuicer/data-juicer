@@ -115,7 +115,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [Quick Start](docs/tutorial/QuickStart.md)
 - Useful documents
   - [Operator Schemas](docs/Operators.md)
-  - [Data Recipe Gallery](docs/RecipeGallery.md)
+  - [Data Recipe Gallery](docs/hub/RecipeGallery.md)
   - [Dataset Configuration Guide](docs/DatasetCfg.md)
   - [Awesome Data-Model Co-Development of MLLMs](docs/awesome_llm_data.md)
   - ["Bad" Data Exhibition](docs/BadDataExhibition.md)

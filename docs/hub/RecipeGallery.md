@@ -1,45 +1,37 @@
-import os
-from pathlib import Path
+# Data Recipe Gallery
 
-import jsonlines
-import pandas as pd
-import streamlit as st
-from loguru import logger
+- The [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) contains fruitful sample configuration files of Data-Juicer data recipes, which helps users easily understand, reuse and expand the configurations in various functional scenarios.
+- 📣📣📣 Community contributors can submit PRs to add customized data recipes to promote dissemination, reuse and related technology evolution. We welcome co-construction and will highlight [acknowledgements](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#acknowledgement)!
 
-from data_juicer.config import init_configs
-from data_juicer.core import Analyzer, DefaultExecutor
-from data_juicer.utils.constant import HashKeys
+Table of Contents
+- [1. Data-Juicer Minimal Example Recipe](#1-data-juicer-minimal-example-recipe)
+- [2. Reproduce Open Source Text Datasets](#2-reproduce-open-source-text-datasets)
+- [3. Improved Open Source Pre-training Text Datasets](#3-improved-open-source-pre-training-text-datasets)
+- [4. Improved Open Source Post-tuning Text Dataset](#4-improved-open-source-post-tuning-text-dataset)
+- [5. Synthetic Contrastive Learning Image-text datasets](#5-synthetic-contrastive-learning-image-text-datasets)
+- [6. Improved Open Source Image-text datasets](#6-improved-open-source-image-text-datasets)
+  - [6.1. Evaluation and Verification](#61-evaluation-and-verification)
+- [7. Basic Example Recipes for Video Data](#7-basic-example-recipes-for-video-data)
+- [8. Synthesize Human-centric Video Benchmarks](#8-synthesize-human-centric-video-benchmarks)
+- [9. Improve Existing Open Source Video Datasets](#9-improve-existing-open-source-video-datasets)
+  - [9.1. Evaluation and Verification](#91-evaluation-and-verification)
 
-demo_path = os.path.dirname(os.path.abspath(__file__))
-project_path = os.path.dirname(os.path.dirname(demo_path))
 
-arxiv_recipe_desc = '''
-# RedPajama -- arXiv (refined by Data-Juicer)
+## 1. Data-Juicer Minimal Example Recipe
+Some basic configuration files are placed in the [Data-Juicer-Hub](https://github.com/datajuicer/data-juicer-hub/tree/main/demo) to help users quickly familiarize themselves with the basic functions of Data-Juicer. Please refer to the folder for detailed description.
 
-A refined version of arXiv dataset in RedPajama by [Data-Juicer](https://github.com/alibaba/data-juicer). Removing some "bad" samples from the original dataset to make it higher-quality.
+## 2. Reproduce Open Source Text Datasets
+- We reproduced the processing flow of part of the Redpajama dataset. Please refer to the [reproduced_redpajama](https://datajuicer.github.io/data-juicer/en/main/docs/hub/RedPajama.html) folder for detailed description.
+- We reproduced the processing flow of part of the BLOOM dataset. Please refer to the [reproduced_bloom](https://datajuicer.github.io/data-juicer/en/main/docs/hub/BLOOM.html) folder for detailed description.
 
-This dataset is usually used to pretrain a Large Language Model.
+## 3. Improved Open Source Pre-training Text Datasets
 
-The whole dataset is available [here](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-arxiv-refine-result.jsonl) (About 85GB).
+We found that there are still some "bad" data samples in the existing processed datasets (such as Redpajama, The Pile, etc.). So we use our Data-Juicer to refine these datasets and try to feed them to LLM to get better performance.
 
-## Dataset Information
+We use a simple 3-σ rule to set the hyperparameters of the operators in each data processing recipe.
 
-- Number of samples: 1,655,259 (Keep ~95.99% from the original dataset)
-
-## Refining Recipe
-'''
-
-data_juicer_recipe_desc = '''
-# Refined open source dataset by Data-Juicer
-
-We found that there are still some "bad" samples in existing processed datasets (e.g. RedPajama, The Pile.). So we use our Data-Juicer to refine them and try to feed them to LLMs for better performance.
-
-We use simple 3-σ rule to set the hyperparameters for ops in each recipe.
-
-## Before and after refining for Pretraining Dataset
-
-| subset               |       #samples before       | #samples after | keep ratio |data link                                                                                                                                                                                                                                                                                  | source                  |
-|----------------------|:---------------------------:|:--------------:|:----------:|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|
+| Data subset | Number of samples before refinement | Number of samples after refinement | Sample retention rate | Config link | Data link | Source |
+|----------------------|:---------------------------:|:--------------:|:---------:|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
 | arXiv                |          1,724,497          |   1,655,259    |   95.99%   | [redpajama-arxiv-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/redpajama-arxiv-refine.yaml)                                                                                                                                                                         | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-arxiv-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-arxiv-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-arxiv-refined-by-data-juicer)                                        | Redpajama               |
 | Books                |           205,182           |    195,983     |   95.51%   | [redpajama-book-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/redpajama-book-refine.yaml)                                                                                                                                                                           | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-book-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-book-refined-by-data-juicer/summary)   <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-book-refined-by-data-juicer)                                        | Redpajama               |
 | Wikipedia            |         29,834,171          |   26,990,659   |   90.47%   | [redpajama-wiki-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/redpajama-wiki-refine.yaml)                                                                                                                                                                           | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-wiki-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-wiki-refined-by-data-juicer/summary)   <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-wiki-refined-by-data-juicer)                                        | Redpajama               |
@@ -49,7 +41,7 @@ We use simple 3-σ rule to set the hyperparameters for ops in each recipe.
 | Common Crawl 2021-04 |         98,878,523          |   44,724,752   |   45.23%   | [redpajama-cc-2021-04-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/redpajama-cc-2021-04-refine.yaml)                                                                                                                                                                           | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-cc-refine-results/redpajama-cc-2021-04-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-cc-2021-04-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-cc-2021-04-refined-by-data-juicer)  | Redpajama               |
 | Common Crawl 2022-05 |         94,058,868          |   42,648,496   |   45.34%   | [redpajama-cc-2022-05-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/redpajama-cc-2022-05-refine.yaml)                                                                                                                                                                           | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-cc-refine-results/redpajama-cc-2022-05-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-cc-2022-05-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-cc-2022-05-refined-by-data-juicer)  | Redpajama               |
 | Common Crawl 2023-06 |         111,402,716         |   50,643,699   |   45.46%   | [redpajama-cc-2023-06-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/redpajama-cc-2023-06-refine.yaml)                                                                                                                                                                           | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-cc-refine-results/redpajama-cc-2023-06-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-cc-2023-06-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-cc-2023-06-refined-by-data-juicer) | Redpajama               |
-| Github Code          | 73,208,524 <br>+ 21,387,703 |   49,279,344   |   52.09%   | [redpajama-code-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/github_code/redpajama-code-refine.yaml)<br>[stack-code-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/github_code/stack-code-refine.yaml)<br>[redpajama-stack-code-deduplicate.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/github_code/redpajama-stack-code-deduplicate.yaml) | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-stack-code-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-stack-code-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-stack-code-refined-by-data-juicer)                             | Redpajama<br>The Stack  |
+| Github Code          | 73,208,524 <br>+ 21,387,703 |   49,279,344   |   52.09%   | [redpajama-code-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/github_code/redpajama-code-refine.yaml)<br>[stack-code-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/github_code/stack-code-refine.yaml)<br>[redpajama-stack-code-deduplicate.yaml](github_code/redpajama-stack-code-deduplicate.yaml) | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-stack-code-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-stack-code-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-stack-code-refined-by-data-juicer)                             | Redpajama<br>The Stack  |
 | StackExchange        |         45,447,328          |   26,309,203   |   57.89%   | [redpajama-pile-stackexchange-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/redpajama-pile-stackexchange-refine.yaml)                                                                                                                                               | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/redpajama-pile-stackexchange-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/redpajama-pile-stackexchange-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/redpajama-pile-stackexchange-refined-by-data-juicer)             | Redpajama<br>The Pile   |
 | EuroParl             |           69,814            |     61,601     |   88.23%   | [pile-europarl-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/pile-europarl-refine.yaml)                                                                                                                                                                             | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/the-pile-europarl-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/the-pile-europarl-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/the-pile-europarl-refined-by-data-juicer)                                   | The Pile                |
 | FreeLaw              |          3,562,015          |   2,942,612    |   82.61%   | [pile-freelaw-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/pile-freelaw-refine.yaml)                                                                                                                                                                               | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/the-pile-freelaw-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/the-pile-freelaw-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/the-pile-freelaw-refined-by-data-juicer)                                     | The Pile                |
@@ -61,169 +53,59 @@ We use simple 3-σ rule to set the hyperparameters for ops in each recipe.
 | USPTO                |          5,883,024          |   4,516,283    |   76.77%   | [pile-uspto-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/pretrain/pile-uspto-refine.yaml)                                                                                                                                                                                   | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/pretraining/the-pile-uspto-refine-result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/the-pile-uspto-refined-by-data-juicer/summary) <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/the-pile-uspto-refined-by-data-juicer) | The Pile                |
 
 
-## Before and after refining for Alpaca-CoT Dataset
+## 4. Improved Open Source Post-tuning Text Dataset
+Take the Alpaca-CoT dataset as an example:
 
-| subset | #samples before     |             #samples after             | keep ratio | config link                                                                                                                                                                                                                        | data link                                                                                                                                                         | source                 |
-|------------------|:-------------------------:|:--------------------------------------:|:----------:|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|
-| Alpaca-Cot EN | 136,219,879               | 72,855,345 |   54.48%   | [alpaca-cot-en-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-en-refine.yaml)                                                                                                                                                                         | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/CFT/alpaca-cot-en-refine_result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/alpaca-cot-en-refined-by-data-juicer/summary) <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/alpaca-cot-en-refined-by-data-juicer)                          | [39 Subsets of Alpaca-CoT](alpaca_cot/AlpacaCOT.md#refined-alpaca-cot-dataset-meta-info)              |
-| Alpaca-Cot ZH | 21,197,246               |               9,873,214                |   46.58%   | [alpaca-cot-zh-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml)                                                                                                                                                                         | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/CFT/alpaca-cot-zh-refine_result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/alpaca-cot-zh-refined-by-data-juicer/summary) <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/alpaca-cot-zh-refined-by-data-juicer)                          | [28 Subsets of Alpaca-CoT](alpaca_cot/AlpacaCOT.md#refined-alpaca-cot-dataset-meta-info)              |
-'''
+| Data subset | Number of samples before improvement | Number of samples after improvement | Sample retention rate | Configuration link | Data link | Source |
+|-------------------|:------------------------:|:----------------------------------:|:---------:|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|
+| Alpaca-Cot EN     |       136,219,879        | 72,855,345 |   54.48%   | [alpaca-cot-en-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-en-refine.yaml)                                                                                                                                                                   | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/CFT/alpaca-cot-en-refine_result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/alpaca-cot-en-refined-by-data-juicer/summary) <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/alpaca-cot-en-refined-by-data-juicer)   | [39 subsets from Alpaca-CoT](AlpacaCOT.md) |
+| Alpaca-Cot ZH     |        21,197,246        |             9,873,214              |  46.58%   | [alpaca-cot-zh-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml)                                                                                                                                                                   | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/LLM_data/our_refined_datasets/CFT/alpaca-cot-zh-refine_result.jsonl) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/alpaca-cot-zh-refined-by-data-juicer/summary) <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/alpaca-cot-zh-refined-by-data-juicer)   | [28 subsets from Alpaca-CoT](AlpacaCOT.md) |
 
+## 5. Synthetic Contrastive Learning Image-text datasets
+Data-Juicer has built-in rich operators to support image multimodal data synthesis, such as the Img-Diff dataset. This synthetic data brings a 12-point performance improvement on the MMVP benchmark. For more details, see the Img-Diff [paper](https://arxiv.org/abs/2408.04594), and the corresponding recipe implementation can refer to [ImgDiff-Dev](https://github.com/datajuicer/data-juicer/tree/ImgDiff).
 
-@st.cache_data
-def convert_to_csv(df):
-    # IMPORTANT: Cache the conversion to prevent computation on every rerun
-    return df.to_csv().encode('utf_8_sig')
+## 6. Improved Open Source Image-text datasets
 
+| Data subset | Number of samples before improvement | Number of samples after improvement | Sample retention rate | Configuration link | Data link | Source |
+|---------------------------|:---------------------------:|:--------------:|:----------:|--------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| LLaVA pretrain (LCS-558k) |          558,128          |   500,380    |   89.65%   | [llava-pretrain-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/image/llava-pretrain-refine.yaml) | [Aliyun](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/LLaVA-1.5/public/llava-pretrain-refine-result.json) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/llava-pretrain-refined-by-data-juicer/summary)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/llava-pretrain-refined-by-data-juicer)                                        | [LLaVA-1.5](https://github.com/haotian-liu/LLaVA) |
 
-@st.cache_data
-def convert_to_jsonl(df):
-    # IMPORTANT: Cache the conversion to prevent computation on every rerun
-    return df.to_json(orient='records', lines=True,
-                      force_ascii=False).encode('utf_8_sig')
+### 6.1. Evaluation and Verification
+- LLaVA pretrain (LCS-558k): The model pre-trained with **the improved pre-training dataset** and fine-tuned with the original instruction dataset outperformed the baseline model LLaVA-1.5-13B on 10 of the 12 evaluation sets.
 
+| Models | VQAv2 | GQA | VizWiz | SQA | TextVQA | POPE | MME | MM-Bench | MM-Bench-CN | SEED | LLaVA-Bench-Wild | MM-Vet |
+|---------------------------------|-------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| LLaVA-1.5-13B <br> (Baseline) | **80.0** | 63.3 | 53.6 | 71.6 | **61.3** | 85.9 | 1531.3 | 67.7 | 63.6 | 61.6 | 72.5 | 36.1 |
+| LLaVA-1.5-13B <br> (Rectified Pretraining Dataset) | 79.94 | **63.5** | **54.09** | **74.20** | 60.82 | **86.67** | **1565.53** | **68.2** | **63.9** | **61.8** | **75.9** | **37.4** |
 
-def process_and_show_res():
-    config_file = os.path.join(
-        project_path,
-        'data-juicer-hub/refined_recipes/pretrain/redpajama-arxiv-refine.yaml')
-    dataset_path = os.path.join(demo_path, 'data/arxiv.jsonl')
-    export_path = os.path.join(demo_path, 'outputs/processed_arxiv.jsonl')
-    cfg_cmd = f'--config {config_file} --dataset_path {dataset_path} --export_path {export_path}'
-    args_in_cmd = cfg_cmd.split()
-    cfg = init_configs(args=args_in_cmd)
-    cfg.open_tracer = True
-    cfg.np = 1
-    logger.info('=========Stage 1: analyze original data=========')
-    analyzer = Analyzer(cfg)
-    analyzed_dataset = analyzer.run()
+## 7. Basic Example Recipes for Video Data
+We provide users with a video dataset processing recipe sample to help better use video-related operators: [general-video-refine-example.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/video/general-video-refine-example.yaml) . Here we apply three types of operators:
+- Text-only: Improve the dataset quality based on video description
+- Video-only: Improve the dataset quality based on video properties
+- Text-Video: Improve the dataset quality based on the alignment between text and video
+Users can start their video dataset processing workflow based on this recipe.
 
-    logger.info('=========Stage 2: process original data=========')
-    executor = DefaultExecutor(cfg)
-    processed_dataset = executor.run()
-    trace_dir = executor.tracer.work_dir
-    trace_files = list(Path(trace_dir).glob('*jsonl'))
-    return analyzed_dataset, processed_dataset, trace_files
+## 8. Synthesize Human-centric Video Benchmarks 
+Data-Juicer can also support video benchmark synthesis, such as [HumanVBench](https://arxiv.org/abs/2412.17574), which converts in-the-wild videos into human-centric video benchmarks. The corresponding data recipes and construction process can be found in [HumanVBench-dev](https://github.com/datajuicer/data-juicer/tree/HumanVBench).
 
+## 9. Improve Existing Open Source Video Datasets
 
-class Visualize:
+| Data subset | Number of samples before improvement | Number of samples after improvement | Sample retention rate | Configuration link | Data link | Source |
+|---------------------------|:---------------------------:|:--------------:|:----------:|--------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| Data-Juicer (T2V, 147k) |          1,217,346          |   147,176    |   12.09%   | [data-juicer-sandbox-optimal.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/video/data-juicer-sandbox-optimal.yaml) | [Aliyun](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/data_juicer_t2v_optimal_data_pool.zip) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/data-juicer-t2v-optimal-data-pool)  <br> [HuggingFace](https://huggingface.co/datasets/datajuicer/data-juicer-t2v-optimal-data-pool)                                        | [InternVid (606k)](https://github.com/OpenGVLab/InternVideo/tree/main/Data/InternVid) <br> [Panda-70M (605k)](https://github.com/snap-research/Panda-70M) <br> [MSR-VTT (6k)](https://www.microsoft.com/en-us/research/publication/msr-vtt-a-large-video-description-dataset-for-bridging-video-and-language/) |
+| Data-Juicer (DJ, 228k) |          3,408,553          |   227,867    |   8.15%   | [data-juicer-sandbox-self-evolution.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/video/data-juicer-sandbox-self-evolution.yaml) | [Aliyun](http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/MM_data/our_refined_data/Data-Juicer-T2V/data_juicer_t2v_optimal_data_pool_s2.zip) <br> [ModelScope](https://modelscope.cn/datasets/Data-Juicer/data-juicer-t2v-evolution-data-pool)                                        | [InternVid (606k)](https://github.com/OpenGVLab/InternVideo/tree/main/Data/InternVid) <br> [Panda-70M (2,599k)](https://github.com/snap-research/Panda-70M) <br> [Pexels (198k)](https://github.com/cj-mills/pexels-dataset) <br> [MSR-VTT (6k)](https://www.microsoft.com/en-us/research/publication/msr-vtt-a-large-video-description-dataset-for-bridging-video-and-language/) |
 
-    @staticmethod
-    def setup():
-        # get data-juicer-hub
-        if not os.path.exists(os.path.join(project_path, 'data-juicer-hub')):
-            import subprocess
-            subprocess.run(
-                ['git', 'clone',
-                 'https://github.com/datajuicer/data-juicer-hub.git'],
-                cwd=project_path,
-                check=True)
+### 9.1. Evaluation and Verification
+- Data-Juicer (T2V, 147k) and Data-Juicer (DJ, 228k): Using the **refined dataset**, they fully surpass the baseline model [T2V-Turbo](https://github.com/Ji4chenLi/t2v-turbo) in [VBench](https://huggingface.co/spaces/Vchitect/VBench_Leaderboard). Here, T2V-Turbo is the teacher model of Data-Juicer (T2V, 147k), and Data-Juicer (T2V, 147k) is the teacher model of Data-Juicer (DJ, 228k). For details, please refer to [Sandbox Lab](./Sandbox-ZH.md).
 
-        st.set_page_config(
-            page_title='Data-Juicer',
-            page_icon=':smile',
-            layout='wide',
-            # initial_sidebar_state="expanded",
-        )
+| model                         | Total Score | Quality Score | Semantic Score | subject consistency | background consistency | temporal flickering | motion smoothness | dynamic degree | aesthetic quality |
+|-------------------------------|-------| --- | --- | --- | --- | --- | --- | --- | --- |
+| T2V-Turbo               | 81.01 | 82.57 | 74.76 | 96.28 | 97.02 | 97.48 | 97.34 | 49.17 | 63.04 |
+| Data-Juicer (T2V, 147k) | 82.10 | 83.14 | 77.93 | 97.32 | 99.03 | 96.60 | 96.51 | **51.67** | **68.92** |
+| Data-Juicer (DJ, 228k)  | **82.53** | **83.38** | **79.13** | **97.92** | **99.27** | **98.14** | **97.77** | 38.89 | 67.39 |
 
-        readme_link = 'https://github.com/alibaba/data-juicer'
-        st.markdown(
-            '<div align = "center"> <font size = "70"> Data-Juicer \
-            </font> </div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f'<div align = "center"> A One-Stop Data Processing System for \
-                Large Language Models, \
-                see more details in our <a href={readme_link}>Github</a></div>',
-            unsafe_allow_html=True,
-        )
-
-    @staticmethod
-    def show_recipe():
-
-        def show_yaml(config_file):
-            with open(config_file, 'r') as f:
-                st.code(f.read(), language='yaml', line_numbers=False)
-
-        with st.expander('Data-Juicer-arxiv Recipe', expanded=False):
-            st.markdown(arxiv_recipe_desc)
-            config_file = os.path.join(
-                project_path,
-                'data-juicer-hub/refined_recipes/pretrain/redpajama-arxiv-refine.yaml')
-            show_yaml(config_file)
-
-    @staticmethod
-    def analyze_process():
-
-        start_btn_process = st.button('Start to process data',
-                                      use_container_width=True)
-
-        with st.expander('Data Processing Results', expanded=True):
-            analyzed_dataset = None
-            processed_dataset = None
-            trace_files = []
-            if start_btn_process:
-                with st.spinner('Wait for process...'):
-                    analyzed_dataset, processed_dataset, trace_files = process_and_show_res(
-                    )
-
-            col1, col2 = st.columns(2)
-            with col1:
-                st.header('Original Data')
-                st.dataframe(analyzed_dataset, use_container_width=True)
-                st.download_button('Download Original data as JSONL',
-                                   data=convert_to_jsonl(
-                                       pd.DataFrame(analyzed_dataset)),
-                                   file_name='original_dataset.jsonl')
-
-            with col2:
-                st.header('Processed Data')
-                st.dataframe(processed_dataset, use_container_width=True)
-                st.download_button('Download Processed data as JSONL',
-                                   data=convert_to_jsonl(
-                                       pd.DataFrame(processed_dataset)),
-                                   file_name='processed_dataset.jsonl')
-
-            def display_tracer_result(op_type, prefix, files):
-                st.subheader(op_type)
-                for file in files:
-
-                    filename = file.stem
-                    filepath = str(file)
-
-                    if filename.startswith(prefix):
-                        st.markdown(f'- {filename.split(prefix)[1]}')
-                        with jsonlines.open(filepath, 'r') as reader:
-                            objs = [obj for obj in reader]
-                        for obj in objs:
-                            # simhash value may exceed the range of
-                            # integer type of streamlit
-                            if 'simhash_deduplicator' in filename:
-                                obj['dup1'].pop(HashKeys.simhash)
-                                obj['dup2'].pop(HashKeys.simhash)
-
-                        st.dataframe(objs)
-
-            if len(trace_files) > 0:
-                st.header('Tracer Results')
-                for op_type, prefix in zip(
-                    ['Mapper', 'Filter', 'Deduplicator'],
-                    ['mapper-', 'filter-', 'duplicate-']):
-                    display_tracer_result(op_type, prefix, trace_files)
-        with st.expander('Refined Datasets by Data-Juicer', expanded=False):
-            st.markdown(data_juicer_recipe_desc)
-
-    @staticmethod
-    def visualize():
-        Visualize.setup()
-        Visualize.show_recipe()
-        Visualize.analyze_process()
-
-
-def main():
-    Visualize.visualize()
-
-
-if __name__ == '__main__':
-    main()
+| model                         | imaging quality | object class | multiple objects | human action | color | spatial relationship | scene | appearance style | temporal style | overall consistency |
+|-------------------------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T2V-Turbo               | **72.49** | 93.96 | 54.65 | 95.20 | 89.90 | 38.67 | 55.58 | 24.42 | 25.51 | 28.16 |
+| Data-Juicer (T2V, 147k) | 70.42 | 95.85 | 61.63 | **95.60** | 94.06 | 46.95 | **57.57** | 24.42 | 26.34 | 28.90 |
+| Data-Juicer (DJ, 228k)  | 70.41 | **96.44** | **64.51** | 95.40 | **95.51** | **47.17** | 57.30 | **25.55** | **26.82** | **29.25** |

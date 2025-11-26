@@ -108,7 +108,7 @@ Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详
   - [快速上手](docs/tutorial/QuickStart_ZH.md)
 - 其他帮助文档
   - [算子提要](docs/Operators.md)
-  - [数据菜谱Gallery](docs/RecipeGallery_ZH.md)
+  - [数据菜谱Gallery](docs/hub/RecipeGallery_ZH.md)
   - [数据集配置指南](docs/DatasetCfg_ZH.md)
   - [Awesome Data-Model Co-Development of MLLMs](docs/awesome_llm_data.md)
   - [“坏”数据展览](docs/BadDataExhibition_ZH.md)

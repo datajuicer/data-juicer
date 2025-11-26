@@ -37,7 +37,7 @@ import json
 
 json_prefix = '<json_dumps>'
 url = 'http://localhost:8000/data_juicer/config/init_configs'
-params = {"args": json_prefix + json.dumps(['--config', './configs/demo/process.yaml'])}
+params = {"args": json_prefix + json.dumps(['--config', './demos/process_simple/process.yaml'])}
 response = requests.get(url, params=params)
 print(json.loads(response.text))
 ```
@@ -47,7 +47,7 @@ print(json.loads(response.text))
 ```bash
 curl -G "http://localhost:8000/data_juicer/config/init_configs" \
      --data-urlencode "args=--config" \
-     --data-urlencode "args=./configs/demo/process.yaml"
+     --data-urlencode "args=./demos/process_simple/process.yaml"
 ```
 
 #### 类的函数调用
@@ -120,7 +120,14 @@ Data-Juicer MCP 服务器提供数据处理算子，以协助完成数据清洗�
 
 可通过指定环境变量 `DJ_OPS_LIST_PATH` 控制 MCP 服务器返回的算子工具：
 1. 创建一个 `.txt` 文件
-2. 将算子名称添加到文件中，例如：[ops_list_example.txt](../configs/mcp/ops_list_example.txt)
+2. 将算子名称添加到文件中，例如：
+```text
+text_length_filter
+flagged_words_filter
+image_nsfw_filter
+text_pair_similarity_filter
+```
+
 3. 将算子列表的路径设置为环境变量 `DJ_OPS_LIST_PATH`
 
 ### 配置

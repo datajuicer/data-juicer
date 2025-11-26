@@ -346,7 +346,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                 self.assertIn(base_param_key, params)
 
     def test_get_default_cfg(self):
-        """Test getting default configuration from config_all.yaml"""
+        """Test getting default configuration from config_min.yaml"""
         # Get default config
         cfg = get_default_cfg()
         

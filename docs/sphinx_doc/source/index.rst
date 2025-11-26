@@ -41,6 +41,14 @@ Data Processing for and with Foundation Models
 
 .. toctree::
    :maxdepth: 2
+   :caption: hub
+   :glob:
+   :hidden:
+
+   docs/hub/*
+
+.. toctree::
+   :maxdepth: 2
    :caption: tools
    :glob:
    :hidden:

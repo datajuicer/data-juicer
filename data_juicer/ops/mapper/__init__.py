@@ -84,6 +84,7 @@ from .video_captioning_from_vlm_mapper import VideoCaptioningFromVLMMapper
 from .video_extract_frames_mapper import VideoExtractFramesMapper
 from .video_face_blur_mapper import VideoFaceBlurMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
+from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
 from .video_resize_aspect_ratio_mapper import VideoResizeAspectRatioMapper
 from .video_resize_resolution_mapper import VideoResizeResolutionMapper
@@ -92,6 +93,7 @@ from .video_split_by_key_frame_mapper import VideoSplitByKeyFrameMapper
 from .video_split_by_scene_mapper import VideoSplitBySceneMapper
 from .video_tagging_from_audio_mapper import VideoTaggingFromAudioMapper
 from .video_tagging_from_frames_mapper import VideoTaggingFromFramesMapper
+from .video_whole_body_pose_estimation_mapper import VideoWholeBodyPoseEstimationMapper
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
 
 __all__ = [
@@ -174,6 +176,7 @@ __all__ = [
     "VideoCaptioningFromVLMMapper",
     "VideoExtractFramesMapper",
     "VideoFFmpegWrappedMapper",
+    "VideoHandReconstructionMapper",
     "VideoFaceBlurMapper",
     "VideoRemoveWatermarkMapper",
     "VideoResizeAspectRatioMapper",
@@ -183,5 +186,6 @@ __all__ = [
     "VideoSplitBySceneMapper",
     "VideoTaggingFromAudioMapper",
     "VideoTaggingFromFramesMapper",
+    "VideoWholeBodyPoseEstimationMapper",
     "WhitespaceNormalizationMapper",
 ]

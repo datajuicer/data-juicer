@@ -1,4 +1,0 @@
-text_length_filter
-flagged_words_filter
-image_nsfw_filter
-text_pair_similarity_filter

@@ -125,7 +125,7 @@ process:
 ## 2. 构建你自己的数据菜谱和配置项
 
 - 我们提供基于 [jsonargparse](https://github.com/omni-us/jsonargparse/) 的简单配置以降低样板代码的成本。
-- 我们提供大量的示例性菜谱以供参阅复用和扩展，[数据菜谱Gallery](RecipeGallery_ZH.md)。
+- 我们提供大量的示例性菜谱以供参阅复用和扩展，[数据菜谱Gallery](hub/RecipeGallery_ZH.md)。
 - 📣📣📣 社区贡献者可提PR在*数据菜谱Gallery*中添加自定义的数据菜谱，促进传播、复用和相关技术演进。更多细节请参考下方第4节。我们非常欢迎共建，并会[高亮致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements)！
 
 ### 2.1 丰富的配置源和类型提示
@@ -368,7 +368,7 @@ if __name__ == '__main__':
 
 - （![beta](https://img.shields.io/badge/beta-yellow?style=plastic) 强烈推荐）为了方便其他用户理解和使用，最好将新增的算子信息更新到相应的文档中，具体包括如下两个基本动作：
    1. 请在算子基类的doc string中补充基础信息，确保其完整可读（包括算子基本功能描述、入参、出参等）。无需用户麻烦地多处撰写，我们的`pre-commit`和sphinx构建脚本会自动抽取doc string形成算子池文档和API文档。
-   2. `configs/config_all.yaml`：该全集配置文件保存了所有算子及参数的一个列表，作为一些自动化特性的信息来源以及用户参考可用算子的一个重要文档之一。因此，在新增算子后，请将其也添加到该文档process列表里（按算子类型分组并按字母序排序）：
+   2. `data_juicer/config/config_all.yaml`：该全集配置文件保存了所有算子及参数的一个列表，作为一些自动化特性的信息来源以及用户参考可用算子的一个重要文档之一。因此，在新增算子后，请将其也添加到该文档process列表里（按算子类型分组并按字母序排序）：
    
    ```yaml
    ...
@@ -591,7 +591,7 @@ class PerplexityFilter(Filter):
 
 
 ### 4.4 贡献您的新配方
-- 社区贡献者可以在[数据配方库](RecipeGallery_ZH.md)中提交 PR，添加自定义数据配方，以促进传播、复用和相关技术演进。
+- 社区贡献者可以在[数据配方库](hub/RecipeGallery_ZH.md)中提交 PR，添加自定义数据配方，以促进传播、复用和相关技术演进。
 
 - 欢迎添加您新配方的相应参考文献，或提出一些新需求、以及改进现有配方的想法。
 

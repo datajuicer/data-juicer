@@ -37,7 +37,7 @@ import json
 
 json_prefix = '<json_dumps>'
 url = 'http://localhost:8000/data_juicer/config/init_configs'
-params = {"args": json_prefix + json.dumps(['--config', './configs/demo/process.yaml'])}
+params = {"args": json_prefix + json.dumps(['--config', './demos/process_simple/process.yaml'])}
 response = requests.get(url, params=params)
 print(json.loads(response.text))
 ```
@@ -47,7 +47,7 @@ The corresponding curl command is as follows:
 ```bash
 curl -G "http://localhost:8000/data_juicer/config/init_configs" \
      --data-urlencode "args=--config" \
-     --data-urlencode "args=./configs/demo/process.yaml"
+     --data-urlencode "args=./demos/process_simple/process.yaml"
 ```
 
 #### Class Function Calls
@@ -120,7 +120,13 @@ By default, this MCP server returns all Data-Juicer operator tools, each running
 
 To control the operator tools returned by the MCP server, specify the environment variable `DJ_OPS_LIST_PATH`:
 1. Create a `.txt` file.
-2. Add operator names to the file, e.g., [ops_list_example.txt](../configs/mcp/ops_list_example.txt).
+2. Add operator names to the file. For example:
+```text
+text_length_filter
+flagged_words_filter
+image_nsfw_filter
+text_pair_similarity_filter
+```
 3. Set the path to the operator list as the environment variable `DJ_OPS_LIST_PATH`.
 
 ### Configuration

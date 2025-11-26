@@ -2,6 +2,11 @@
 
 This folder contains some configuration files to allow users to easily and quickly refine [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT).
 
+Before starting, please clone the [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) to local, which contains lots of data processing recipes.
+```shell
+git clone https://github.com/datajuicer/data-juicer-hub.git
+```
+
 ## Preprocess
 
 The raw data files can be downloaded from [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT) on HuggingFace.
@@ -28,13 +33,13 @@ python tools/preprocess/dataset_split_by_language.py    \
 ```
 
 ## Process
-After preprocess, modify the dataset path in [alpaca-cot-en-refine.yaml](../../configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml) and [alpaca-cot-zh-refine.yaml](../../configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml), and then execute the following command to reproduce the processing flow of refined Alpaca-CoT.
+After preprocess, modify the dataset path in [alpaca-cot-en-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-en-refine.yaml) and [alpaca-cot-zh-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml), and then execute the following command to reproduce the processing flow of refined Alpaca-CoT.
 ```shell
 # refine English dataset
-python tools/process_data.py --config configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/refined_recipes/alpaca_cot/alpaca-cot-en-refine.yaml
 
 # refine Chinese dataset
-python tools/process_data.py --config configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/refined_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml
 ```
 
 ### Meta Info <a name="meta_info"/>

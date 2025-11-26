@@ -1,0 +1,15 @@
+# Process config example for dataset
+
+# global parameters
+project_name: 'demo-process'
+dataset_path: './demos/data/demo-dataset.jsonl'  # path to your dataset directory or file
+np: 4  # number of subprocess to process your dataset
+
+export_path: './outputs/demo-process/demo-processed.jsonl'
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  - language_id_score_filter:
+      lang: 'zh'
+      min_score: 0.8

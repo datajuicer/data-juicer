@@ -80,7 +80,7 @@ def calculate_np(name, mem_required, cpu_required, use_cuda=False, gpu_required=
                 f"The required cuda memory and gpu of Op[{name}] "
                 f"has not been specified. "
                 f"Please specify the mem_required field or gpu_required field in the "
-                f"config file. You can reference the config_all.yaml file."
+                f"config file. You can reference data_juicer/config/config_all.yaml."
                 f"Set the auto `num_proc` to number of GPUs {auto_num_proc}."
             )
         else:
@@ -276,7 +276,7 @@ def calculate_ray_np(operators):
                 logger.warning(
                     f"Neither the required cuda memory nor gpu of Op[{op._name}] is specified. "
                     f"We recommend specifying the `mem_required` field or `gpu_required` field in the "
-                    f"config file. You can reference the `config_all.yaml` file."
+                    f"config file. You can reference data_juicer/config/config_all.yaml."
                     f"Set the `gpu_required` to 1 now."
                 )
                 gpu_req = 1
@@ -305,7 +305,7 @@ def calculate_ray_np(operators):
                     logger.warning(
                         f"Neither the required memory nor cpu of Op[{op._name}] is specified. "
                         f"We recommend specifying the `cpu_required` field in the "
-                        f"config file. You can reference the `config_all.yaml` file."
+                        f"config file. You can reference data_juicer/config/config_all.yaml."
                     )
                 # if no cpu is specified, ray will apply for 1 cpu by default
                 cpu_required_frac = 1 / total_cpu

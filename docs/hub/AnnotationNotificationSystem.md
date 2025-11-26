@@ -127,5 +127,5 @@ email:
 ### Examples
 
 See these example configuration files:
-- [`annotation_with_notifications.yaml`](https://github.com/datajuicer/data-juicer-hub/annotation_config/annotation_with_notifications.yaml): Shows how to use notifications with annotation operations.
+- [`annotation_with_notifications.yaml`](https://github.com/datajuicer/data-juicer-hub/blob/main/annotation_config/annotation_with_notifications.yaml): Shows how to use notifications with annotation operations.
 - [`notification_alibaba_email.yaml`](notification_alibaba_email.yaml): Demonstrates Alibaba email server configuration. 

@@ -576,7 +576,9 @@ class Visualize:
 
             col1, col2 = st.columns(2)
             with col1:
-                example_cfg_f = os.path.abspath(os.path.join(os.path.dirname(__file__), "./configs/demo/process.yaml"))
+                example_cfg_f = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "./demos/process_simple/process.yaml")
+                )
                 st.text_area(label="(i) Input Cfg Commands", key="input_cfg_cmd", value=f"--config {example_cfg_f}")
                 example_my_cmd = (
                     "--dataset_path "

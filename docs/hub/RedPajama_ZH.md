@@ -2,6 +2,11 @@
 
 此文件夹包含的配置文件用于轻松复现 [Redpajama](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep) 的处理流程。
 
+在开始前，请将 [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) 仓库克隆到本地，其已经包含了大量的数据处理菜谱。
+```shell
+git clone https://github.com/datajuicer/data-juicer-hub.git
+```
+
 ## arXiv
 
 原始数据文件从 [Redpajama/arXiv](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep/arxiv) 中相同的 AWS 链接下载。
@@ -16,10 +21,10 @@ python tools/preprocess/raw_arxiv_to_jsonl.py           \
     --num_proc            <num_proc>
 ```
 
-预处理完成后，修改 [redpajama-arxiv.yaml](../../configs/reproduced_redpajama/redpajama-arxiv.yaml) 中的数据路径，执行以下命令复现 RedPajama 的处理流程：
+预处理完成后，修改 [redpajama-arxiv.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/reproduced_redpajama/redpajama-arxiv.yaml) 中的数据路径，执行以下命令复现 RedPajama 的处理流程：
 
 ```shell
-python tools/process_data.py --config configs/reproduced_redpajama/redpajama-arxiv.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/reproduced_redpajama/redpajama-arxiv.yaml
 ```
 
 ### 指标对比
@@ -33,10 +38,10 @@ python tools/process_data.py --config configs/reproduced_redpajama/redpajama-arx
 
 原始数据文件从 [Redpajama/Books](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep/book) 中相同的 HuggingFace 链接下载。
 
-下载完成后，修改 [redpajama-books.yaml](../../configs/reproduced_redpajama/redpajama-books.yaml) 中的数据路径，执行以下命令复现 RedPajama 的处理流程：
+下载完成后，修改 [redpajama-books.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/reproduced_redpajama/redpajama-books.yaml) 中的数据路径，执行以下命令复现 RedPajama 的处理流程：
 
 ```shell
-python tools/process_data.py --config configs/reproduced_redpajama/redpajama-books.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/reproduced_redpajama/redpajama-books.yaml
 ```
 
 ### 指标对比
@@ -56,10 +61,10 @@ python tools/process_data.py --config configs/reproduced_redpajama/redpajama-boo
 .asm, .bat, .cmd, .c, .h, .cs, .cpp, .hpp, .c++, .h++, .cc, .hh, .C, .H, .cmake, .css, .dockerfile, .f90, .f, .f03, .f08, .f77, .f95, .for, .fpp, .go, .hs, .html, .java, .js, .jl, .lua, .md, .markdown, .php, .php3, .php4, .php5, .phps, .phpt, .pl, .pm, .pod, .perl,  ps1, .psd1, .psm1, .py, .rb, .rs, .sql, .scala, .sh, .bash, .command, .zsh, .ts, .tsx, .tex, .vb, Dockerfile, Makefile, .xml, .rst, .m, .smali
 ```
 
-修改 [redpajama-code.yaml](../../configs/reproduced_redpajama/redpajama-code.yaml) 中的数据路径，执行以下命令复现 redpajama 的处理流程：
+修改 [redpajama-code.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/reproduced_redpajama/redpajama-code.yaml) 中的数据路径，执行以下命令复现 redpajama 的处理流程：
 
 ```shell
-python tools/process_data.py --config configs/redpajama/redpajama-code.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/reproduced_redpajama/redpajama-code.yaml
 ```
 
 ### 指标对比
@@ -83,10 +88,10 @@ python tools/preprocess/raw_arxiv_stackexchange_to_jsonl.py           \
     --num_proc      <num_proc>     \
 ```
 
-预处理完成后，修改 [redpajama-stackexchange.yaml](../../configs/reproduced_redpajama/redpajama-stackexchange.yaml) 中的数据路径，执行以下命令复现 redpajama 的处理流程：
+预处理完成后，修改 [redpajama-stackexchange.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/reproduced_redpajama/redpajama-stackexchange.yaml) 中的数据路径，执行以下命令复现 redpajama 的处理流程：
 
 ```shell
-python tools/process_data.py --config configs/redpajama/redpajama-stackexchange.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/reproduced_redpajama/redpajama-stackexchange.yaml
 ```
 
 ### 指标对比

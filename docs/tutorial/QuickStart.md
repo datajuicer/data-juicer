@@ -28,16 +28,16 @@ Refer to [Dataset Configuration Guide](../DatasetCfg.md) for more details.
 
 ```shell
 # only for installation from source
-python tools/process_data.py --config configs/demo/process.yaml
+python tools/process_data.py --config demos/process_simple/process.yaml
 
 # use command line tool
-dj-process --config configs/demo/process.yaml
+dj-process --config demos/process_simple/process.yaml
 ```
 
 - **Note:** For some operators that involve third-party models or resources that are not stored locally on your computer, it might be slow for the first running because these ops need to download corresponding resources into a directory first.
 The default download cache directory is `~/.cache/data_juicer`. Change the cache location by setting the shell environment variable, `DATA_JUICER_CACHE_HOME` to another directory, and you can also change `DATA_JUICER_MODELS_CACHE` or `DATA_JUICER_ASSETS_CACHE` in the same way:
 
-- **Note:** When using operators with third-party models, it's necessary to declare the corresponding `mem_required` in the configuration file (you can refer to the settings in the `config_all.yaml` file). During runtime, Data-Juicer will control the number of processes based on memory availability and the memory requirements of the operator models to achieve better data processing efficiency. When running with CUDA environments, if the mem_required for an operator is not declared correctly, it could potentially lead to a CUDA Out of Memory issue.
+- **Note:** When using operators with third-party models, it's necessary to declare the corresponding `mem_required` in the configuration file (you can refer to the settings in the `data_juicer/config/config_all.yaml` file). During runtime, Data-Juicer will control the number of processes based on memory availability and the memory requirements of the operator models to achieve better data processing efficiency. When running with CUDA environments, if the mem_required for an operator is not declared correctly, it could potentially lead to a CUDA Out of Memory issue.
 
 ```shell
 # cache home
@@ -86,10 +86,10 @@ python tools/process_data.py --config ./demos/process_video_on_ray/configs/demo.
 
 ```shell
 # only for installation from source
-python tools/analyze_data.py --config configs/demo/analyzer.yaml
+python tools/analyze_data.py --config demos/analyze_simple/analyzer.yaml
 
 # use command line tool
-dj-analyze --config configs/demo/analyzer.yaml
+dj-analyze --config demos/analyze_simple/analyzer.yaml
 
 # you can also use auto mode to avoid writing a recipe. It will analyze a small
 # part (e.g. 1000 samples, specified by argument `auto_num`) of your dataset 
@@ -103,7 +103,7 @@ dj-analyze --auto --dataset_path xx.jsonl [--auto_num 1000]
 - Sometimes, "Glyph missing" warning occurs and invalid characters show in the analyzed results figures. Users can specify appropriate font using the environment variable `ANALYZER_FONT`. For example:
 ```shell
 export ANALYZER_FONT="Heiti TC"  # Use Heiti for Chinese characters. And it's the default font for analyzer.
-python tools/analyze_data.py --config configs/demo/analyzer.yaml
+python tools/analyze_data.py --config demos/analyze_simple/analyzer.yaml
 ```
 
 ## Data Visualization
@@ -122,17 +122,17 @@ streamlit run app.py
   - Global arguments: input/output dataset path, number of workers, etc.
   - Operator list: list operators with their arguments used to process the dataset.
 - You can build up your own config files by:
-  - ➖：Modify from our example config file [`config_all.yaml`](../../configs/config_all.yaml) which includes **all** ops and default
+  - ➖：Modify from our example config file [`config_all.yaml`](../../data_juicer/config/config_all.yaml) which includes **all** ops and default
     arguments. You just need to **remove** ops that you won't use and refine
     some arguments of ops.
   - ➕：Build up your own config files **from scratch**. You can refer our
-    example config file [`config_all.yaml`](../../configs/config_all.yaml), [op documents](../Operators.md), and advanced [Build-Up Guide for developers](../DeveloperGuide.md#2-build-your-own-ops).
+    example config file [`config_all.yaml`](../../data_juicer/config/config_all.yaml), [op documents](../Operators.md), and advanced [Build-Up Guide for developers](../DeveloperGuide.md#2-build-your-own-ops).
   - Besides the yaml files, you also have the flexibility to specify just
     one (of several) parameters on the command line, which will override
     the values in yaml files.
 
 ```shell
-python xxx.py --config configs/demo/process.yaml --language_id_score_filter.lang=en
+python xxx.py --config demos/process_simple/process.yaml --language_id_score_filter.lang=en
 ```
 
 - The basic config format and definition is shown below.
@@ -146,10 +146,7 @@ The data sandbox laboratory (DJ-Sandbox) provides users with the best practices 
 - In the sandbox, users can quickly experiment, iterate, and refine data recipes based on small-scale datasets and models, before scaling up to produce high-quality data to serve large-scale models.
 - In addition to the basic data optimization and recipe refinement features offered by Data-Juicer, users can seamlessly use configurable components such as data probe and analysis, model training and evaluation, and data and model feedback-based recipe refinement to form a complete one-stop data-model research and development pipeline.
 
-The sandbox is run using the following commands by default, and for more information and details, please refer to the [sandbox documentation](../Sandbox.md).
-```shell
-python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
-```
+For more information and details, please refer to the [sandbox documentation](../Sandbox.md).
 
 ## Preprocess Raw Data (Optional)
 - Our Formatters support some common input dataset formats for now:

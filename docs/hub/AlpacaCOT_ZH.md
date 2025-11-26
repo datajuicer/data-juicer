@@ -2,6 +2,11 @@
 
 该文件夹包含的配置文件能够让用户轻松快速地完善 [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)。
 
+在开始前，请将 [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) 仓库克隆到本地，其已经包含了大量的数据处理菜谱。
+```shell
+git clone https://github.com/datajuicer/data-juicer-hub.git
+```
+
 ## 预处理
 
 原始数据文件在 HuggingFace 中的 [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT) 下载。
@@ -28,14 +33,14 @@ python tools/preprocess/dataset_split_by_language.py    \
 ```
 
 ## 处理
-在预处理完成之后，修改 [alpaca-cot-en-refine.yaml](../../configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml) 和 [alpaca-cot-zh-refine.yaml](../../configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml) 中的数据集路径，然后执行以下命令来复现完善过的 Alpaca-CoT 的处理流程。
+在预处理完成之后，修改 [alpaca-cot-en-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-en-refine.yaml) 和 [alpaca-cot-zh-refine.yaml](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml) 中的数据集路径，然后执行以下命令来复现完善过的 Alpaca-CoT 的处理流程。
 
 ```shell
 # refine English dataset
-python tools/process_data.py --config configs/data_juicer_recipes/alpaca_cot/alpaca-cot-en-refine.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/refined_recipes/alpaca_cot/alpaca-cot-en-refine.yaml
 
 # refine Chinese dataset
-python tools/process_data.py --config configs/data_juicer_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml
+python tools/process_data.py --config <path-to-data-juicer-hub>/refined_recipes/alpaca_cot/alpaca-cot-zh-refine.yaml
 ```
 
 ### 元信息 <a name="meta_info"/>

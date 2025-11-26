@@ -64,7 +64,7 @@ class CalculateNpTest(DataJuicerTestCaseBase):
             logger.warning.assert_called_with(
                 "The required cuda memory and gpu of Op[test_op] has not been specified. "
                 "Please specify the mem_required field or gpu_required field in the config file. "
-                "You can reference the data_juicer/config/config_all.yaml file.Set the auto "
+                "You can reference data_juicer/config/config_all.yaml.Set the auto "
                 "`num_proc` to number of GPUs 2."
             )
     @TEST_TAG('ray')

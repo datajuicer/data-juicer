@@ -1,6 +1,6 @@
 # Redpajama 配置文件
 
-此文件夹包含的配置文件用于轻松复现 [Redpajama](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep) 的处理流程。
+Data-Juicer-Hub 中的[文件夹](https://github.com/datajuicer/data-juicer-hub/tree/main/reproduced_redpajama)包含的配置文件用于轻松复现 [Redpajama](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep) 的处理流程。
 
 在开始前，请将 [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) 仓库克隆到本地，其已经包含了大量的数据处理菜谱。
 ```shell

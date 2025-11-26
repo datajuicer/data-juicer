@@ -1,6 +1,6 @@
 # Data Recipe Gallery
 
-- The recipe [folder](../../configs) contains fruitful sample configuration files of Data-Juicer data recipes, which helps users easily understand, reuse and expand the configurations in various functional scenarios.
+- The [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) contains fruitful sample configuration files of Data-Juicer data recipes, which helps users easily understand, reuse and expand the configurations in various functional scenarios.
 - 📣📣📣 Community contributors can submit PRs to add customized data recipes to promote dissemination, reuse and related technology evolution. We welcome co-construction and will highlight [acknowledgements](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#acknowledgement)!
 
 Table of Contents

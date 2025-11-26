@@ -1,6 +1,6 @@
 # BLOOM 配置文件
 
-此文件夹包含的配置文件用于轻松复现 [ROOTS](https://github.com/bigscience-workshop/data-preparation) 的处理流程，该数据集由 BigScience 创建并用于训练 BLOOM 模型。
+Data-Juicer-Hub 中的[文件夹](https://github.com/datajuicer/data-juicer-hub/tree/main/reproduced_bloom)包含的配置文件用于轻松复现 [ROOTS](https://github.com/bigscience-workshop/data-preparation) 的处理流程，该数据集由 BigScience 创建并用于训练 BLOOM 模型。
 
 ## Oscar
 

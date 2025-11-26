@@ -1,6 +1,6 @@
 # 数据菜谱Gallery
 
-- 菜谱[文件夹](../../configs)下包含丰富的Data-Juicer数据菜谱的示例文件，帮助用户轻松理解、复用、扩展各种功能场景下的配置。
+- [Data-Juicer-Hub](https://github.com/datajuicer/data-juicer-hub)中包含丰富的Data-Juicer数据菜谱的示例文件，帮助用户轻松理解、复用、扩展各种功能场景下的配置。
 - 📣📣📣 社区贡献者可提PR添加自定义的数据菜谱，促进传播、复用和相关技术演进。我们非常欢迎共建，并会高亮[致谢](https://github.com/datajuicer/data-juicer?tab=readme-ov-file#acknowledgement)！
 
 目录

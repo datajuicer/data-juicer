@@ -1,6 +1,6 @@
 # Alpaca-CoT 完善配置文件
 
-该文件夹包含的配置文件能够让用户轻松快速地完善 [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)。
+Data-Juicer-Hub 中的[文件夹](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot)包含的配置文件能够让用户轻松快速地完善 [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)。
 
 在开始前，请将 [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) 仓库克隆到本地，其已经包含了大量的数据处理菜谱。
 ```shell

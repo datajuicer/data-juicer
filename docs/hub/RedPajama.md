@@ -1,6 +1,6 @@
 # Redpajama Config Files
 
-This folder contains example configuration files to easily and quickly reproduce the processing flow of [Redpajama](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep).
+The [folder](https://github.com/datajuicer/data-juicer-hub/tree/main/reproduced_redpajama) in Data-Juicer-Hub contains example configuration files to easily and quickly reproduce the processing flow of [Redpajama](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/data_prep).
 
 Before starting, please clone the [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) to local, which contains lots of data processing recipes.
 ```shell

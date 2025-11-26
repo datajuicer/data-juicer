@@ -1,6 +1,6 @@
 # Refine Alpaca-CoT Config Files
 
-This folder contains some configuration files to allow users to easily and quickly refine [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT).
+The [folder](https://github.com/datajuicer/data-juicer-hub/tree/main/refined_recipes/alpaca_cot) in Data-Juicer-Hub contains some configuration files to allow users to easily and quickly refine [Alpaca-CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT).
 
 Before starting, please clone the [data-juicer-hub](https://github.com/datajuicer/data-juicer-hub) to local, which contains lots of data processing recipes.
 ```shell

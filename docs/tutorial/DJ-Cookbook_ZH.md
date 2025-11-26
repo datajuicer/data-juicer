@@ -19,7 +19,7 @@
   - [后处理工具](../../tools/postprocess/README_ZH.md)
   - [沙盒](../Sandbox_ZH.md)
   - [API服务化](../DJ_service_ZH.md)
-  - [给数据打分](../../tools/quality_classifier/README_ZH.md)
+  - [给数据打分](../../data_juicer/tools/quality_classifier/README_ZH.md)
   - [自动评估](../../tools/evaluator/README_ZH.md)
   - [第三方集成](../../thirdparty/LLM_ecosystems/README_ZH.md)
 

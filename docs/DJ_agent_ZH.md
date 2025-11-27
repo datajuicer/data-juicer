@@ -419,7 +419,7 @@ A: 确保 Data-Juicer 路径配置正确，并查看代码开发智能体提供�
 **Q: MCP 服务连接失败怎么办？**
 A: 检查 MCP 服务器是否正在运行，确认配置文件中的 URL 地址正确。
 
-**Q: 报错requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: http://localhost: 3000/trpc/pushMessage**
+**Q: 报错requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: http://localhost:3000/trpc/pushMessage**
 A: 请检查是否在agentscope studio中上传了非文本信息（例如数据文件），agent通过文件路径等进行数据处理，暂不接受直接上传文件。
 
 ### 优化建议

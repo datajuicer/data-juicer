@@ -89,7 +89,7 @@ PROMPTS = {
         "the original output of the operator. "
         "For example: 'For clarity, we show the (width, height) of each video in the raw output; "
         "the actual raw output from the operator is four cropped videos.'"
-        "if output data is that original output of the operator, no additional specification is require"
+        "if output data is that original output of the operator, no additional specification is required"
     ),
     "select_json_example": (
         '{"selected": ["test_xxx", "test_yyy"], "explanations": {"test_xxx": "English explanation.\\n中文解释。", '

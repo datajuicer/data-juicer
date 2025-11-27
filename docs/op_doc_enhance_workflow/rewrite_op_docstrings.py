@@ -183,7 +183,7 @@ def replace_class_docstring_in_source(
         start_idx = _offset_of(start_line, start_col, line_offsets)
         end_idx = _offset_of(end_line, end_col, line_offsets)
         indent = " " * start_col
-        replacement = _build_docstring_literal(new_doc, "")  # 缩进过多
+        replacement = _build_docstring_literal(new_doc, "")
         new_source = source[:start_idx] + replacement + source[end_idx:]
         action = "replaced"
     else:

@@ -96,8 +96,8 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
 - **User-Friendly & Extensible**: 
   Designed for simplicity and flexibility, with easy-start [guides](docs/tutorial/QuickStart.md), and [DJ-Cookbook](docs/tutorial/DJ-Cookbook.md) containing fruitful demo usages. Feel free to [implement your own OPs](docs/DeveloperGuide.md#build-your-own-ops) for customizable data processing.
 
-  Data-Juicer now uses AI to automatically rewrite and optimize operator docstrings, generating detailed operator documentation to help users quickly understand the functionality and usage of each operator.  
-  For details about the implementation of this documentation enhancement workflow, please visit the [demos/op_doc_enhance_workflow folder under the `dj_agents` branch](https://github.com/datajuicer/data-juicer/tree/dj_agents/demos/op_doc_enhance_workflow).
+    Data-Juicer now uses AI to automatically rewrite and optimize operator docstrings, generating detailed operator documentation to help users quickly understand the functionality and usage of each operator.  
+    For details about the implementation of this documentation enhancement workflow, please visit the [op_doc_enhance_workflow](https://github.com/datajuicer/data-juicer/tree/main/docs/op_doc_enhance_workflow).
 
 - **Efficient & Robust**: Providing performance-optimized [parallel data processing](docs/Distributed.md) (Aliyun-PAI\Ray\CUDA\OP Fusion),
   faster with less resource usage, verified in large-scale production environments.

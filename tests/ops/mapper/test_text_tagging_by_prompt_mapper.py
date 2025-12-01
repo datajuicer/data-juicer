@@ -19,7 +19,7 @@ class TextTaggingByPromptTest(DataJuicerTestCaseBase):
 
     def _run_tagging(self, samples, enable_vllm=False, sampling_params={}, **kwargs):
         op = TextTaggingByPromptMapper(
-            hf_model='Qwen/Qwen2-7B-Instruct',
+            hf_model='Qwen/Qwen2.5-7B-Instruct',
             prompt=DEFAULT_CLASSIFICATION_PROMPT,
             enable_vllm=enable_vllm,
             sampling_params=sampling_params,

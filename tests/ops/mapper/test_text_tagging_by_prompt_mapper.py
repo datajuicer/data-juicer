@@ -1,9 +1,7 @@
 import unittest
-import json
 from data_juicer.ops.mapper.text_tagging_by_prompt_mapper import TextTaggingByPromptMapper, DEFAULT_CLASSIFICATION_PROMPT, DEFAULT_CLASSIFICATION_LIST
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.unittest_utils import (SKIPPED_TESTS,
-                                              DataJuicerTestCaseBase)
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 def check_string_in_list(string_list, output):
     if not string_list: 
@@ -15,9 +13,7 @@ def check_string_in_list(string_list, output):
         
     assert False, f"没有字符串在输出中"
 
-# Skip tests for this OP in the GitHub actions due to disk space limitation.
-# These tests have been tested locally.
-@SKIPPED_TESTS.register_module()
+
 class TextTaggingByPromptTest(DataJuicerTestCaseBase):
     text_key = 'text'
 

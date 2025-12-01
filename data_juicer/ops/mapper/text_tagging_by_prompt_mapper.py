@@ -121,6 +121,11 @@ class TextTaggingByPromptMapper(Mapper):
         self.prompt = prompt
         self.tag_list = tag_list
         self.enable_vllm = enable_vllm
+        model_params = {"trust_remote_code": trust_remote_code, "max_num_seqs": max_num_seqs}
+        if tensor_parallel_size is not None:
+            model_params["tensor_parallel_size"] = tensor_parallel_size
+        if max_model_len is not None:
+            model_params["max_model_len"] = max_model_len
         sampling_params = sampling_params or {}
         sampling_params = update_sampling_params(sampling_params, hf_model, self.enable_vllm)
 
@@ -131,10 +136,7 @@ class TextTaggingByPromptMapper(Mapper):
             self.model_key = prepare_model(
                 model_type="vllm",
                 pretrained_model_name_or_path=hf_model,
-                trust_remote_code=trust_remote_code,
-                tensor_parallel_size=tensor_parallel_size,
-                max_model_len=max_model_len,
-                max_num_seqs=max_num_seqs,
+                **model_params,
             )
             self.sampling_params = vllm.SamplingParams(**sampling_params)
         else:

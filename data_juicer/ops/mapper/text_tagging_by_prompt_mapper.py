@@ -58,10 +58,6 @@ DEFAULT_BINARY_LIST = ["是", "否"]
 class TextTaggingByPromptMapper(Mapper):
     """
     Mapper to generate text tags using prompt with LLM.
-    Recommended model list: [
-        'Qwen/Qwen2-7B-Instruct',
-        'meta-llama/Meta-Llama-3.1-8B-Instruct',
-    ]
     Other opensourced models with good instruction following ability
     also works.
     """
@@ -70,7 +66,7 @@ class TextTaggingByPromptMapper(Mapper):
 
     def __init__(
         self,
-        hf_model: str = "Qwen/Qwen2-7B-Instruct",
+        hf_model: str = "Qwen/Qwen2.5-7B-Instruct",
         trust_remote_code: bool = False,
         prompt: str = DEFAULT_CLASSIFICATION_PROMPT,
         tag_list: List[str] = DEFAULT_CLASSIFICATION_LIST,
@@ -141,24 +137,25 @@ class TextTaggingByPromptMapper(Mapper):
             self.sampling_params = vllm.SamplingParams(**sampling_params)
         else:
             self.model_key = prepare_model(
-                model_type="huggingface", pretrained_model_name_or_path=hf_model, trust_remote_code=trust_remote_code
+                model_type="huggingface",
+                pretrained_model_name_or_path=hf_model,
+                trust_remote_code=trust_remote_code,
+                return_pipe=True,
             )
             self.sampling_params = sampling_params
 
     def process_single(self, sample, rank=None):
-        model, processor = get_model(self.model_key, rank, self.use_cuda())
+        input_prompt = self.prompt.format(text=sample[self.text_key], tag_list=self.tag_list)
+        messages = [{"role": "user", "content": input_prompt}]
 
         if self.enable_vllm:
-            response = model.generate(
-                [self.prompt.format(text=sample[self.text_key], tag_list=self.tag_list)], self.sampling_params
-            )
+            model = get_model(self.model_key, rank, self.use_cuda())
+            response = model.chat(messages, self.sampling_params)
             output = response[0].outputs[0].text
         else:
-            inputs = processor(
-                [self.prompt.format(text=sample[self.text_key], tag_list=self.tag_list)], return_tensors="pt"
-            ).to(model.device)
-            response = model.generate(**inputs, **self.sampling_params)
-            output = processor.decode(response.cpu()[0], skip_special_tokens=True)
+            model, _ = get_model(self.model_key, rank, self.use_cuda())
+            response = model(messages, return_full_text=False, **self.sampling_params)
+            output = response[0]["generated_text"]
 
         text_tags = [output.strip()]
         sample[Fields.text_tags] = text_tags

@@ -147,13 +147,12 @@ class TextTaggingByPromptMapper(Mapper):
     def process_single(self, sample, rank=None):
         input_prompt = self.prompt.format(text=sample[self.text_key], tag_list=self.tag_list)
         messages = [{"role": "user", "content": input_prompt}]
+        model, _ = get_model(self.model_key, rank, self.use_cuda())
 
         if self.enable_vllm:
-            model = get_model(self.model_key, rank, self.use_cuda())
             response = model.chat(messages, self.sampling_params)
             output = response[0].outputs[0].text
         else:
-            model, _ = get_model(self.model_key, rank, self.use_cuda())
             response = model(messages, return_full_text=False, **self.sampling_params)
             output = response[0]["generated_text"]
 

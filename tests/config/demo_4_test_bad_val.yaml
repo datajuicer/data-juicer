@@ -13,7 +13,8 @@ process:
   - whitespace_normalization_mapper:
   - language_id_score_filter:
       lang: 'zh'
-      min_score: 1.1 #  !! a bad value !!
   - document_deduplicator: # deduplicate text samples using md5 hashing exact matching method
       lowercase: false   # whether to convert text to lower case
       ignore_non_character: false
+  - remove_table_text_mapper:
+      max_col: 30  #  !! a bad value !!

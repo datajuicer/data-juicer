@@ -1,0 +1,57 @@
+# global parameters
+project_name: 'role-play-demo-process'
+dataset_path: 'demos/role_playing_system_prompt/wukong_mini_test.json'
+np: 1  # number of subprocess to process your dataset
+
+export_path: 'path_to_output_jsonl_file'
+
+# process schedule
+process:
+#   # chunk the novel if necessary
+#   - text_chunk_mapper: 
+#       max_len: 8000
+#       split_pattern: '\n\n'
+#       overlap_len: 400
+#       tokenizer: 'qwen2.5-72b-instruct'
+#       trust_remote_code: True
+  # extract language_style, role_character and role_skill
+  - extract_entity_attribute_mapper:                  
+      api_model: 'qwen2.5-72b-instruct'                                   
+      query_entities: ['孙悟空']
+      query_attributes: ["角色性格", "角色武艺和能力", "语言风格"]
+  # extract nickname
+  - extract_nickname_mapper:
+      api_model: 'qwen2.5-72b-instruct'
+  # extract events
+  - extract_event_mapper:
+      api_model: 'qwen2.5-72b-instruct'
+      index_key: 'chunk_id'                # chunk_id for deduplicating attributes and nicknames
+  # group all events
+  - naive_grouper:
+  # role experiences summary from events
+  - entity_attribute_aggregator:
+      api_model: 'qwen2.5-72b-instruct' 
+      entity: '孙悟空'
+      attribute: '身份背景'
+      input_key: 'event_description'
+      output_key: 'role_background'
+      word_limit: 50
+  - entity_attribute_aggregator:
+      api_model: 'qwen2.5-72b-instruct' 
+      entity: '孙悟空'
+      attribute: '主要经历'
+      input_key: 'event_description'
+      output_key: 'role_experience'
+      word_limit: 150
+  # most relevant roles summary from events
+  - most_relevant_entities_aggregator: 
+      api_model: 'qwen2.5-72b-instruct' 
+      entity: '孙悟空'
+      query_entity_type: '人物'
+      input_key: 'event_description'
+      output_key: 'important_relevant_roles'
+  # generate the system prompt
+  - python_file_mapper:
+      file_path: 'demos/role_playing_system_prompt/system_prompt_generator.py'
+      function_name: 'get_system_prompt'
+  

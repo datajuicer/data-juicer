@@ -9,20 +9,28 @@ import regex as re
 from ..base_op import OPERATORS, Mapper
 
 
-@OPERATORS.register_module('remove_comments_mapper')
+@OPERATORS.register_module("remove_comments_mapper")
 class RemoveCommentsMapper(Mapper):
-    """
-    Mapper to remove comments in different kinds of documents.
+    """Removes comments from documents, currently supporting only 'tex' format.
 
-    Only support 'tex' for now.
-    """
+    This operator removes inline and multiline comments from text samples. It supports both
+    inline and multiline comment removal, controlled by the `inline` and `multiline`
+    parameters. Currently, it is designed to work with 'tex' documents. The operator
+    processes each sample in the batch and applies regular expressions to remove comments.
+    The processed text is then updated in the original samples.
 
-    def __init__(self,
-                 doc_type: Union[str, List[str]] = 'tex',
-                 inline: bool = True,
-                 multiline: bool = True,
-                 *args,
-                 **kwargs):
+    - Inline comments are removed using the pattern `[^\\]%.+$`.
+    - Multiline comments are removed using the pattern `^%.*\n?`.
+
+    Important notes:
+    - Only 'tex' document type is supported at present.
+    - The operator processes the text in place and updates the original samples."""
+
+    _batched_op = True
+
+    def __init__(
+        self, doc_type: Union[str, List[str]] = "tex", inline: bool = True, multiline: bool = True, *args, **kwargs
+    ):
         """
         Initialization method.
 
@@ -37,19 +45,17 @@ class RemoveCommentsMapper(Mapper):
         self.inline = inline
         self.multiline = multiline
 
-    def process(self, sample):
+    def process_batched(self, samples):
         # TODO: remove different comments by sample type
 
-        if self.inline:
-            # remove all in comments within a line
-            sample[self.text_key] = re.sub(pattern=r'[^\\]%.+$',
-                                           repl=r'',
-                                           string=sample[self.text_key],
-                                           flags=re.MULTILINE)
+        for idx, text in enumerate(samples[self.text_key]):
+            if self.inline:
+                # remove all in comments within a line
+                text = re.sub(pattern=r"[^\\]%.+$", repl=r"", string=text, flags=re.MULTILINE)
 
-        if self.multiline:
-            sample[self.text_key] = re.sub(pattern=r'(?m)^%.*\n?',
-                                           repl=r'',
-                                           string=sample[self.text_key],
-                                           flags=re.MULTILINE)
-        return sample
+            if self.multiline:
+                text = re.sub(pattern=r"(?m)^%.*\n?", repl=r"", string=text, flags=re.MULTILINE)
+
+            samples[self.text_key][idx] = text
+
+        return samples

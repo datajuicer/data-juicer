@@ -9,12 +9,13 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class DocumentDeduplicatorTest(DataJuicerTestCaseBase):
 
-    def _run_doc_dedup(self, dataset: Dataset, target_list, op):
+    def _run_doc_dedup(self, dataset: Dataset, target_list, op, show_num=0):
         dataset = dataset.map(op.compute_hash)
-        dataset, _ = op.process(dataset)
+        dataset, dup_pairs = op.process(dataset, show_num=show_num)
         dataset = dataset.select_columns(column_names=['text'])
         res_list = dataset.to_list()
         self.assertEqual(res_list, target_list)
+        return dup_pairs
 
     def test_english_deduplication(self):
         ds_list = [
@@ -48,7 +49,44 @@ class DocumentDeduplicatorTest(DataJuicerTestCaseBase):
         }]
         dataset = Dataset.from_list(ds_list)
         op = DocumentDeduplicator(lowercase=False, ignore_non_character=False)
-        self._run_doc_dedup(dataset, tgt_list, op)
+        dup_pairs = self._run_doc_dedup(dataset, tgt_list, op)
+        self.assertEqual(len(dup_pairs), 0)
+        
+    def test_english_deduplication_with_params(self):
+        ds_list = [
+            {
+                'text': 'Today is Sunday and it\'s a happy day!'
+            },
+            {
+                'text': 'Do you need a cup of coffee?'
+            },
+            {
+                'text': 'Today is sunday and it\'s a happy day!'
+            },
+            {
+                'text': 'Today is sunday and it\'s a happy day?'
+            },
+            {
+                'text':
+                'This paper proposed a novel method on LLM pretraining.'
+            },
+            {
+                'text':
+                'This paper proposed a novel method on LLM pretraining.'
+            },
+        ]
+        tgt_list = [{
+            'text': 'Today is Sunday and it\'s a happy day!'
+        }, {
+            'text': 'Do you need a cup of coffee?'
+        }, {
+            'text':
+            'This paper proposed a novel method on LLM pretraining.'
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = DocumentDeduplicator(lowercase=True, ignore_non_character=True)
+        dup_pairs = self._run_doc_dedup(dataset, tgt_list, op)
+        self.assertEqual(len(dup_pairs), 0)
 
     def test_chinese_deduplication(self):
         ds_list = [
@@ -94,7 +132,43 @@ class DocumentDeduplicatorTest(DataJuicerTestCaseBase):
         ]
         dataset = Dataset.from_list(ds_list)
         op = DocumentDeduplicator(lowercase=False, ignore_non_character=False)
-        self._run_doc_dedup(dataset, tgt_list, op)
+        dup_pairs = self._run_doc_dedup(dataset, tgt_list, op)
+        self.assertEqual(len(dup_pairs), 0)
+    
+    def test_show_num(self):
+        ds_list = [
+            {
+                'text': 'Today is Sunday and it\'s a happy day!'
+            },
+            {
+                'text': 'Do you need a cup of coffee?'
+            },
+            {
+                'text': 'Today is sunday and it\'s a happy day!'
+            },
+            {
+                'text':
+                'This paper proposed a novel method on LLM pretraining.'
+            },
+            {
+                'text':
+                'This paper proposed a novel method on LLM pretraining.'
+            },
+        ]
+        tgt_list = [{
+            'text': 'Today is Sunday and it\'s a happy day!'
+        }, {
+            'text': 'Do you need a cup of coffee?'
+        }, {
+            'text': 'Today is sunday and it\'s a happy day!'
+        }, {
+            'text':
+            'This paper proposed a novel method on LLM pretraining.'
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = DocumentDeduplicator(lowercase=False, ignore_non_character=False)
+        dup_pairs = self._run_doc_dedup(dataset, tgt_list, op, show_num=1)
+        self.assertEqual(len(dup_pairs), 1)
 
 
 if __name__ == '__main__':

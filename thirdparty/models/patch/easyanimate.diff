@@ -584,6 +584,27 @@ index 0000000..25b3377
 +
 +wait
 +
+diff --git a/requirements.txt b/requirements.txt
+index 1d66be0..b9352d6 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -3,7 +3,7 @@ einops
+ safetensors
+ timm
+ tomesd
+-torch>=2.1.2
++torch>=2.1.2,<2.7.0
+ torchdiffeq
+ torchsde
+ xformers
+@@ -22,5 +22,5 @@ beautifulsoup4
+ ftfy
+ accelerate>=0.25.0
+ gradio>=3.41.2
+-diffusers>=0.28.2
++diffusers>=0.28.2,<=0.31.0
+ transformers>=4.37.2
+\ No newline at end of file
 diff --git a/scripts/train_lora.py b/scripts/train_lora.py
 index 5999f95..7cb46a4 100644
 --- a/scripts/train_lora.py
@@ -597,10 +618,10 @@ index 5999f95..7cb46a4 100644
 \ No newline at end of file
 diff --git a/train_lora.py b/train_lora.py
 new file mode 100644
-index 0000000..55fbb68
+index 0000000..96d2f45
 --- /dev/null
 +++ b/train_lora.py
-@@ -0,0 +1,1186 @@
+@@ -0,0 +1,1184 @@
 +"""Modified from https://github.com/huggingface/diffusers/blob/main/examples/text_to_image/train_text_to_image.py
 +"""
 +#!/usr/bin/env python
@@ -1317,7 +1338,6 @@ index 0000000..55fbb68
 +
 +        m, u = transformer3d.load_state_dict(state_dict, strict=False)
 +        print(f"missing keys: {len(m)}, unexpected keys: {len(u)}")
-+        assert len(u) == 0
 +
 +    if args.vae_path is not None:
 +        print(f"From checkpoint: {args.vae_path}")
@@ -1331,7 +1351,6 @@ index 0000000..55fbb68
 +
 +        m, u = vae.load_state_dict(state_dict, strict=False)
 +        print(f"missing keys: {len(m)}, unexpected keys: {len(u)}")
-+        assert len(u) == 0
 +
 +    if args.enable_xformers_memory_efficient_attention:
 +        if is_xformers_available():

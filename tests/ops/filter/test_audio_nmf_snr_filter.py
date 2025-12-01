@@ -7,7 +7,6 @@ from data_juicer.ops.filter.audio_nmf_snr_filter import AudioNMFSNRFilter
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-
 class AudioNMFSNRFilterTest(DataJuicerTestCaseBase):
 
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',

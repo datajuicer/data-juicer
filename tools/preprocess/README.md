@@ -120,7 +120,7 @@ python tools/preprocess/reformat_csv_nan_value.py --help
 - `src_dir`: you just need to set this argument to the path which stores filenames are like `*.csv` or `*.tsv`.
 - `target_dir`: result directory to store the converted jsonl files.
 - `suffixes`: what kind of suffixes you want to process, multi-suffixes args like  `--suffixes '.tsv', '.csv'`.
-- `is_tsv`: if true, sep will be set to `'\t'`, otherwize `','` as default.
+- `is_tsv`: if true, sep will be set to `'\t'`, otherwise `','` as default.
 - `keep_default_na`: if False, strings will be parsed as NaN, otherwise only the default NaN values are used for parsing.
 - `num_proc` (optional): number of process workers. Default it's 1.
 
@@ -163,6 +163,6 @@ python tools/preprocess/serialize_meta.py --help
 ```
 - `src_dir`: path to store jsonl files.
 - `target_dir`: path to save the converted jsonl files.
-- `text_key`: the key corresponding to the field that will not be serialized. Defaul it's 'text'.
+- `text_key`: the key corresponding to the field that will not be serialized. Default it's 'text'.
 - `serialized_key`: the key corresponding to the field that the serialized info saved. Default it's 'source_info'.
 - `num_proc` (optional): number of process workers. Default it's 1.

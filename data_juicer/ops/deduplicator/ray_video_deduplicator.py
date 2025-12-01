@@ -1,41 +1,34 @@
 import hashlib
 
-from jsonargparse.typing import PositiveInt
-
-from data_juicer.utils.mm_utils import (close_video, load_data_with_context,
-                                        load_video)
+from data_juicer.utils.mm_utils import close_video, load_data_with_context, load_video
 
 from ..base_op import OPERATORS
 from ..op_fusion import LOADED_VIDEOS
 from .ray_basic_deduplicator import RayBasicDeduplicator
 
-OP_NAME = 'ray_video_deduplicator'
+OP_NAME = "ray_video_deduplicator"
 
 
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class RayVideoDeduplicator(RayBasicDeduplicator):
-    """
-    Deduplicator to deduplicate samples at document-level using exact matching
-    of videos between documents.
-    """
+    """Deduplicates samples at document-level using exact matching of videos in Ray distributed mode.
 
-    def __init__(self,
-                 redis_host: str = 'localhost',
-                 redis_port: PositiveInt = 6380,
-                 *args,
-                 **kwargs):
+    This operator computes the MD5 hash of video streams in each sample and compares them to
+    identify duplicates. It uses Ray distributed mode for parallel processing. The hash is
+    computed by demuxing the video streams and updating the MD5 hash with each video packet.
+    If a sample does not contain a valid video, it is assigned an empty hash value. The
+    operator supports 'ray_actor' or 'redis' backends for deduplication."""
+
+    def __init__(self, backend: str = "ray_actor", redis_address: str = "redis://localhost:6379", *args, **kwargs):
         """
         Initialization.
-        :param redis_host: the hostname of redis server
-        :param redis_port: the port of redis server
+        :param backend: the backend for dedup, either 'ray_actor' or 'redis'
+        :param redis_address: the address of redis server
         :param args: extra args
         :param kwargs: extra args
         """
-        super().__init__(redis_host=redis_host,
-                         redis_port=redis_port,
-                         *args,
-                         **kwargs)
+        super().__init__(backend=backend, redis_address=redis_address, *args, **kwargs)
 
     def calculate_hash(self, sample, context=False):
         if self.video_key not in sample or not sample[self.video_key]:
@@ -43,14 +36,13 @@ class RayVideoDeduplicator(RayBasicDeduplicator):
 
         # load videos
         loaded_video_keys = sample[self.video_key]
-        sample, videos = load_data_with_context(sample, context,
-                                                loaded_video_keys, load_video)
+        sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
         # compute hash
         md5_hash = hashlib.md5()
         for key in videos:
             # consider the multi stream of video in one container
             for packet in videos[key].demux():
-                if packet.stream.type == 'video':
+                if packet.stream.type == "video":
                     md5_hash.update(bytes(packet))
 
         for key in videos:

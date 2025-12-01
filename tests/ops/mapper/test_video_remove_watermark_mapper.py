@@ -7,11 +7,9 @@ from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.video_remove_watermark_mapper import \
     VideoRemoveWatermarkMapper
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.unittest_utils import (SKIPPED_TESTS,
-                                              DataJuicerTestCaseBase)
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
-@SKIPPED_TESTS.register_module()
 class VideoRemoveWatermarkMapperTest(DataJuicerTestCaseBase):
 
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',

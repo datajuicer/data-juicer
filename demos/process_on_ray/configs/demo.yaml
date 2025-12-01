@@ -2,10 +2,11 @@
 
 # global parameters
 project_name: 'ray-demo'
-executor_type: 'ray'
 dataset_path: './demos/process_on_ray/data/demo-dataset.jsonl'  # path to your dataset directory or file
-ray_address: 'auto'                     # change to your ray cluster address, e.g., ray://<hostname>:<port>
 export_path: './outputs/demo/demo-processed'
+
+executor_type: 'ray'
+ray_address: 'auto'                     # change to your ray cluster address, e.g., ray://<hostname>:<port>
 
 # process schedule
 # a list of several process operators with their arguments

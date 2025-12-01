@@ -18,8 +18,8 @@ class SpecialCharactersFilterTest(DataJuicerTestCaseBase):
             # only add stats when calling filter op
             dataset = dataset.add_column(name=Fields.stats,
                                          column=[{}] * dataset.num_rows)
-        dataset = dataset.map(op.compute_stats)
-        dataset = dataset.filter(op.process)
+        dataset = dataset.map(op.compute_stats, batch_size=op.batch_size)
+        dataset = dataset.filter(op.process, batch_size=op.batch_size)
         dataset = dataset.select_columns(column_names=['text'])
         res_list = dataset.to_list()
         self.assertEqual(res_list, target_list)
@@ -49,7 +49,7 @@ class SpecialCharactersFilterTest(DataJuicerTestCaseBase):
             'text': 'Do you need a cup of coffee?'
         }]
         dataset = Dataset.from_list(ds_list)
-        op = SpecialCharactersFilter(min_ratio=0.0, max_ratio=0.25)
+        op = SpecialCharactersFilter(min_ratio=0.0, max_ratio=0.25, batch_size=2)
         self._run_special_characters_filter(dataset, tgt_list, op)
 
 

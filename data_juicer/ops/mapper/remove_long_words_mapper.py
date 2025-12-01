@@ -4,22 +4,29 @@
 
 import sys
 
-from jsonargparse.typing import PositiveInt
-
 from ..base_op import OPERATORS, Mapper
-from ..common import (SPECIAL_CHARACTERS, merge_on_whitespace_tab_newline,
-                      split_on_newline_tab_whitespace, strip)
+from ..common import (
+    SPECIAL_CHARACTERS,
+    merge_on_whitespace_tab_newline,
+    split_on_newline_tab_whitespace,
+    strip,
+)
 
 
-@OPERATORS.register_module('remove_long_words_mapper')
+@OPERATORS.register_module("remove_long_words_mapper")
 class RemoveLongWordsMapper(Mapper):
-    """Mapper to remove long words within a specific range."""
+    """Mapper to remove long words within a specific range.
 
-    def __init__(self,
-                 min_len: PositiveInt = 1,
-                 max_len: PositiveInt = sys.maxsize,
-                 *args,
-                 **kwargs):
+    This operator filters out words in the text that are either shorter than the specified
+    minimum length or longer than the specified maximum length. Words are first checked with
+    their original length, and if they do not meet the criteria, they are stripped of
+    special characters and re-evaluated. The key metric used is the character-based length
+    of each word. The processed text retains only the words that fall within the defined
+    length range. This operator processes text in batches for efficiency."""
+
+    _batched_op = True
+
+    def __init__(self, min_len: int = 1, max_len: int = sys.maxsize, *args, **kwargs):
         """
         Initialization method.
 
@@ -37,17 +44,17 @@ class RemoveLongWordsMapper(Mapper):
     def should_keep_long_word(self, word):
         if self.min_len <= len(word) <= self.max_len:
             return True
-        elif self.min_len <= len(strip(word,
-                                       SPECIAL_CHARACTERS)) <= self.max_len:
+        elif self.min_len <= len(strip(word, SPECIAL_CHARACTERS)) <= self.max_len:
             return True
         else:
             return False
 
-    def process(self, sample):
-
-        sentences = split_on_newline_tab_whitespace(sample[self.text_key])
-        sentences = [[[
-            word for word in subsentence if self.should_keep_long_word(word)
-        ] for subsentence in sentence] for sentence in sentences]
-        sample[self.text_key] = merge_on_whitespace_tab_newline(sentences)
-        return sample
+    def process_batched(self, samples):
+        for idx, text in enumerate(samples[self.text_key]):
+            sentences = split_on_newline_tab_whitespace(text)
+            sentences = [
+                [[word for word in subsentence if self.should_keep_long_word(word)] for subsentence in sentence]
+                for sentence in sentences
+            ]
+            samples[self.text_key][idx] = merge_on_whitespace_tab_newline(sentences)
+        return samples

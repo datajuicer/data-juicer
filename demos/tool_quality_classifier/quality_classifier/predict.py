@@ -30,7 +30,7 @@
 #       "gpt3" in default. Should be one of ["gpt3", "label"].
 #   - text_key: the field key name to hold texts to be classified. It's "text"
 #       in default.
-#   - overall_statics: whether to output an overall statics report on predicted
+#   - overall_statistics: whether to output an overall statistics report on predicted
 #       document scores. It's False in default.
 #
 # Recommended arguments for provided trained models:
@@ -71,7 +71,7 @@ def main(dataset_path,
          tokenizer=None,
          keep_method='gpt3',
          text_key='text',
-         overall_statics=False):
+         overall_statistics=False):
     """
     Apply quality classifier for your dataset.
     :param dataset_path: the path to the dataset you want to predict for.
@@ -87,7 +87,7 @@ def main(dataset_path,
         It's "gpt3" in default. Should be one of ["gpt3", "label"].
     :param text_key: the field key name to hold texts to be classified. It's
         "text" in default.
-    :param overall_statics: whether to output an overall statics report on
+    :param overall_statistics: whether to output an overall statistics report on
         predicted document scores. It's False in default.
     :return:
     """
@@ -109,7 +109,7 @@ def main(dataset_path,
     export_result(pred, result_path)
 
     # generate overall statistics on doc scores
-    if overall_statics:
+    if overall_statistics:
         overall = pred.select('doc_score').toPandas().describe(include='all')
         # export to result report file
         overall.to_csv(os.path.join(result_path, 'overall.csv'))

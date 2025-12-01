@@ -1,0 +1,74 @@
+name: Publish Docker Image
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  IMAGE_NAME: datajuicer/data-juicer
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+
+jobs:
+  build:
+    runs-on: [docker]
+    timeout-minutes: 600 # 10 hours
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          path: dj-${{ github.run_id }}
+
+      # Set up BuildKit Docker container builder to be able to build
+      # multi-platform images and export cache
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log into Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+
+      - name: Get the current version tag
+        id: get-version-tag
+        working-directory: dj-${{ github.run_id }}
+        run: |
+          grep "__version__" data_juicer/__init__.py | awk -F"['\"]" '{print $2}' | xargs -I {} echo "version={}" >> $GITHUB_OUTPUT
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: dj-${{ github.run_id }}
+          push: true
+          outputs: type=docker,dest=data-juicer-v${{ steps.get-version-tag.outputs.version }}.tar
+          tags: ${{ env.IMAGE_NAME }}:v${{ steps.get-version-tag.outputs.version }},${{ env.IMAGE_NAME }}:latest
+          labels: ${{ steps.meta.outputs.labels }}

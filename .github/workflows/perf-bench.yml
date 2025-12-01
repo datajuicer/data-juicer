@@ -1,0 +1,56 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: performance_benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+jobs:
+  perf_bench:
+    runs-on: [GPU, unittest]
+    environment: Testing
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        path: dj-${{ github.run_id }}
+
+    - name: Setup docker compose
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose up -d
+
+    - name: Install data-juicer
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
+
+    - name: Clean dataset cache
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose exec ray-head rm -rf /data/huggingface/dataset
+
+    - name: Run performance benchmark standalone
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose exec ray-head bash tests/benchmark_performance/run.sh ${{ secrets.INTERNAL_WANDB_URL }} ${{ secrets.INTERNAL_WANDB_API_KEY }}
+
+    - name: Remove docker compose
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      if: always()
+      run: |
+        docker compose down --remove-orphans
+
+    - name: Cleanup workspace
+      if: always()
+      run: |
+        rm -rf  dj-${{ github.run_id }}

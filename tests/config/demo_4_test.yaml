@@ -16,3 +16,4 @@ process:
   - document_deduplicator: # deduplicate text samples using md5 hashing exact matching method
       lowercase: false   # whether to convert text to lower case
       ignore_non_character: false
+  - remove_table_text_mapper:

@@ -1,9 +1,6 @@
 import unittest
 
-from data_juicer.core.data import NestedDataset as Dataset
-
 from data_juicer.ops.filter.alphanumeric_filter import AlphanumericFilter
-from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 
 
@@ -39,7 +36,7 @@ class AlphanumericFilterTest(DataJuicerTestCaseBase):
             'text': 'emoji表情测试下😊，😸31231\n'
         }]
         dataset = self.generate_dataset(ds_list)
-        op = AlphanumericFilter(min_ratio=0.2, max_ratio=0.9)
+        op = AlphanumericFilter(min_ratio=0.2, max_ratio=0.9, batch_size=3, num_proc=1)
         result = self.run_single_op(dataset, op, ["text"])
         self.assertDatasetEqual(result, tgt_list)
 
@@ -67,7 +64,7 @@ class AlphanumericFilterTest(DataJuicerTestCaseBase):
             'text': 'Do you need a cup of coffee?'
         }]
         dataset = self.generate_dataset(ds_list)
-        op = AlphanumericFilter(tokenization=True, min_ratio=1.5)
+        op = AlphanumericFilter(tokenization=True, min_ratio=1.5, batch_size=2, num_proc=1)
         result = self.run_single_op(dataset, op, ["text"])
         self.assertDatasetEqual(result, tgt_list)
 

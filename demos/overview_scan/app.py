@@ -43,14 +43,14 @@ quick_start_desc = '''
   your dataset.
 
 ```shell
-python tools/process_data.py --config configs/demo/process.yaml
+python tools/process_data.py --config demos/process_simple/process.yaml
 ```
 
 ### Data Analysis
 - Run `analyze_data.py` tool with your config as the argument to analyze your dataset.
 
 ```shell
-python tools/analyze_data.py --config configs/demo/analyzer.yaml
+python tools/analyze_data.py --config demos/analyze_simple/analyzer.yaml
 ```
 
 - **Note:** Analyzer only compute stats of Filter ops. So extra Mapper or Deduplicator ops will be ignored in the analysis process.
@@ -121,7 +121,7 @@ demo_desc = '''
 
 def run_demo():
 
-    config_file = os.path.join(project_path, 'configs/demo/analyzer.yaml')
+    config_file = os.path.join(project_path, 'demos/analyze_simple/analyzer.yaml')
     data_path = os.path.join(demo_path, 'data/demo-dataset.jsonl')
     st.markdown(f'dataset: `{data_path}`')
     start_btn = st.button(' Start to analyze', use_container_width=True)
@@ -207,6 +207,15 @@ class Visualize:
                 with open(config_file, 'r') as f:
                     st.code(f.read(), language='yaml', line_numbers=False)
 
+            # get data-juicer-hub
+            if not os.path.exists(os.path.join(project_path, 'data-juicer-hub')):
+                import subprocess
+                subprocess.run(
+                    ['git', 'clone',
+                     'https://github.com/datajuicer/data-juicer-hub.git'],
+                    cwd=project_path,
+                    check=True)
+
             with tab1:
                 label = 'Data-Juicer have reproduced the processing \
                          flow of some RedPajama datasets.'
@@ -214,7 +223,7 @@ class Visualize:
                 config_files = Path(
                     os.path.join(
                         project_path,
-                        'configs/reproduced_redpajama')).glob('*.yaml')
+                        'data-juicer-hub/reproduced_redpajama')).glob('*.yaml')
                 config_dict = {
                     config.stem: str(config)
                     for config in config_files
@@ -232,7 +241,7 @@ class Visualize:
 
                 config_files = Path(
                     os.path.join(project_path,
-                                 'configs/reproduced_bloom')).glob('*.yaml')
+                                 'data-juicer-hub/reproduced_bloom')).glob('*.yaml')
                 config_dict = {
                     config.stem: str(config)
                     for config in config_files
@@ -251,7 +260,7 @@ class Visualize:
                 config_files = Path(
                     os.path.join(
                         project_path,
-                        'configs/data_juicer_recipes')).rglob('*.yaml')
+                        'data-juicer-hub/refined_recipes')).rglob('*.yaml')
                 config_dict = {
                     config.stem: str(config)
                     for config in config_files
@@ -265,7 +274,7 @@ class Visualize:
             with tab4:
                 st.markdown(config_all_desc)
                 show_yaml(os.path.join(project_path,
-                                       'configs/config_all.yaml'))
+                                       'data_juicer/config/config_all.yaml'))
 
         with st.expander('Operators', expanded=False):
 

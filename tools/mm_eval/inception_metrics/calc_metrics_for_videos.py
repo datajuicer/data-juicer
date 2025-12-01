@@ -41,10 +41,10 @@ def calc_metrics(
         :param real_data_path: The path to ground truth dataset. 
             Only support for `jsonl` format. The video paths are put 
             in the list under `videos` keys. Required when computing FVD.
-        :param fake_mm_dir: The root diretory to store the fake videos.
+        :param fake_mm_dir: The root directory to store the fake videos.
             If it is not none, the paths in jsonl file at fake_data_path
             are relative paths on it, else are absolute path.
-        :param real_mm_dir: The root diretory to store the real videos.
+        :param real_mm_dir: The root directory to store the real videos.
             If it is not none, the paths in jsonl file at real_data_path
             are relative paths on it, else are absolute path.
         :param metric: Metric to compute, can be one of 

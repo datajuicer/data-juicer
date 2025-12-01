@@ -1,5 +1,7 @@
 import sys
 
+from data_juicer.utils.constant import Fields
+
 from ..base_op import OPERATORS, Filter
 
 
@@ -13,21 +15,27 @@ def is_number(s):
     return False
 
 
-@OPERATORS.register_module('specified_numeric_field_filter')
+OP_NAME = "specified_numeric_field_filter"
+
+
+@OPERATORS.register_module(OP_NAME)
 class SpecifiedNumericFieldFilter(Filter):
-    """
-    Filter based on specified numeric field information.
+    """Filter samples based on a specified numeric field value.
 
-    If the specified numeric information in the sample is not within the
-    specified range, the sample will be filtered.
-    """
+    This operator filters out samples if the numeric value in the specified field is not
+    within the given range. The field can be multi-level, with keys separated by dots. The
+    sample is kept if the numeric value is between the minimum and maximum values,
+    inclusive. If the field key is not provided, all samples are retained. The operator
+    ensures that the field exists in the sample and that its value is numeric before
+    performing the comparison.
 
-    def __init__(self,
-                 field_key: str = '',
-                 min_value: float = -sys.maxsize,
-                 max_value: float = sys.maxsize,
-                 *args,
-                 **kwargs):
+    - Uses the 'min_value' and 'max_value' to define the acceptable range.
+    - Supports multi-level fields using dot-separated keys.
+    - Returns False for non-numeric or out-of-range values, filtering the sample."""
+
+    def __init__(
+        self, field_key: str = "", min_value: float = -sys.maxsize, max_value: float = sys.maxsize, *args, **kwargs
+    ):
         """
         Initialization method.
 
@@ -49,21 +57,25 @@ class SpecifiedNumericFieldFilter(Filter):
         self.min_value = min_value
         self.max_value = max_value
 
-    def compute_stats(self, sample):
+    def compute_stats_single(self, sample):
+        # get the value from the original field
+        field_value = sample
+        for key in self.field_key.split("."):
+            assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
+            field_value = field_value[key]
+        # copy it into the stats field
+        if self.field_key not in sample[Fields.stats]:
+            sample[Fields.stats][self.field_key] = field_value
         return sample
 
-    def process(self, sample):
+    def process_single(self, sample):
         if not self.field_key:
             return True
 
-        field_value = sample
-        for key in self.field_key.split('.'):
-            assert key in field_value.keys(), "'{}' not in {}".format(
-                key, field_value.keys())
-            field_value = field_value[key]
+        field_value = sample[Fields.stats][self.field_key]
 
         if is_number(field_value):
             field_value = float(field_value)
-            return self.min_value <= field_value <= self.max_value
+            return self.get_keep_boolean(field_value, self.min_value, self.max_value)
         else:
             return False

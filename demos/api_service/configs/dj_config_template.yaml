@@ -1,0 +1,13 @@
+# data-juicer config template
+
+# global parameters
+project_name: 'dj_agent'
+dataset_path: ''  # path to your dataset directory or file, specified in the agent
+np: 4  # number of subprocess to process your dataset
+
+export_path: '' # path to the output path, specified in the agent
+export_original_dataset: true
+
+# process schedule
+# a list of several process operators with their arguments, specified in the agent
+process: []

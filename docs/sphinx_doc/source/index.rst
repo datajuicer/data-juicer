@@ -1,39 +1,76 @@
-.. data-juicer documentation master file, created by
-   sphinx-quickstart on Mon May 22 16:16:12 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. _Data Processing for and with Foundation Models:
+.. role:: raw-html-m2r(raw)
+   :format: html
 
-Welcome to data-juicer's documentation!
-=======================================
+`[中文主页] <../../zh_CN/main/index_ZH>`_ | `[DJ-Cookbook] <docs/tutorial/DJ-Cookbook>`_ | `[OperatorZoo] <docs/Operators>`_ | `[API] <api>`_ | `[Awesome LLM Data] <docs/awesome_llm_data>`_
 
-Tutorial
----------------------------------------
+Data Processing for and with Foundation Models
+==============================================
 
-We will give a tutorial on KDD'24, Multi-modal Data Processing for Foundation Models: Practical Guidances and Use Cases, see more details `here <_static/tutorial_kdd24.html>`_!
-
-
-
-
+.. include:: README.md
+   :start-after: # Data Processing for and with Foundation Models
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :maxdepth: 2
+   :caption: Tutorial
    :glob:
+   :hidden:
+
+   docs/tutorial/*
+
+.. toctree::
+   :maxdepth: 2
+   :caption: docs
+   :glob:
+   :hidden:
+
+   docs/Operators
+   docs/DatasetCfg
+   docs/*
+
+.. toctree::
+   :maxdepth: 2
+   :caption: demos
+   :glob:
+   :hidden:
+
+   demos/*
+   demos/**/*
+
+.. toctree::
+   :maxdepth: 2
+   :caption: hub
+   :glob:
+   :hidden:
+
+   docs/hub/RecipeGallery
+   docs/hub/*
+
+.. toctree::
+   :maxdepth: 2
+   :caption: tools
+   :glob:
+   :hidden:
+
+   tools/*
+   tools/**/*
+
+.. toctree::
+   :maxdepth: 2
+   :caption: thirdparty
+   :glob:
+   :hidden:
+
+   thirdparty/*
+   thirdparty/**/*
+
+.. toctree::
+   :maxdepth: 2
    :caption: API Reference
+   :hidden:
 
-   data_juicer.core
-   data_juicer.ops
-   data_juicer.ops.filter
-   data_juicer.ops.mapper
-   data_juicer.ops.deduplicator
-   data_juicer.ops.selector
-   data_juicer.ops.common
-   data_juicer.analysis
-   data_juicer.config
-   data_juicer.format
+   api
 
-Indices and Tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+

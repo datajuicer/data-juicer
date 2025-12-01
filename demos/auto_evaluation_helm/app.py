@@ -36,8 +36,8 @@ def main():
 
     def make_image(line):
         pattern = r'!\[(.*?)\]\((.*?)\)'
-        maches = re.findall(pattern, line)
-        st.image(maches[0][1], output_format='png', use_column_width=True)
+        matches = re.findall(pattern, line)
+        st.image(matches[0][1], output_format='png', use_column_width=True)
 
     Visualize.visualize()
     buffer = []

@@ -22,8 +22,26 @@ from io import StringIO
 
 from loguru import logger
 from loguru._file_sink import FileSink
+from tabulate import tabulate
+
+from data_juicer.utils.file_utils import add_suffix_to_filename
+
+try:
+    from IPython import get_ipython
+except Exception:
+    get_ipython = None
 
 LOGGER_SETUP = False
+
+
+def is_notebook():
+    try:
+        if get_ipython is None:
+            return False
+        ip = get_ipython()
+        return ip is not None and ip.__class__.__name__ == "ZMQInteractiveShell"
+    except Exception:
+        return False
 
 
 def get_caller_name(depth=0):
@@ -38,13 +56,13 @@ def get_caller_name(depth=0):
     for _ in range(depth):
         frame = frame.f_back
 
-    return frame.f_globals['__name__']
+    return frame.f_globals["__name__"]
 
 
 class StreamToLoguru:
     """Stream object that redirects writes to a logger instance."""
 
-    def __init__(self, level='INFO', caller_names=('datasets', 'logging')):
+    def __init__(self, level="INFO", caller_names=("datasets", "logging")):
         """
         Initialization method.
 
@@ -57,9 +75,12 @@ class StreamToLoguru:
         self.buffer = StringIO()
         self.BUFFER_SIZE = 1024 * 1024
 
+    def fileno(self):
+        return self.buffer.fileno()
+
     def write(self, buf):
         full_name = get_caller_name(depth=1)
-        module_name = full_name.rsplit('.', maxsplit=-1)[0]
+        module_name = full_name.rsplit(".", maxsplit=-1)[0]
         self.buffer.write(buf)
         if module_name in self.caller_names:
             for line in buf.rstrip().splitlines():
@@ -77,13 +98,18 @@ class StreamToLoguru:
     def flush(self):
         self.buffer.flush()
 
+    def isatty(self):
+        return False  # Log streams are usually not terminal devices
 
-def redirect_sys_output(log_level='INFO'):
+
+def redirect_sys_output(log_level="INFO"):
     """
     Redirect stdout/stderr to loguru with log level.
 
     :param log_level: log level string of loguru. Default value: "INFO".
     """
+    if is_notebook():
+        return
     redirect_logger = StreamToLoguru(level=log_level)
     sys.stderr = redirect_logger
     sys.stdout = redirect_logger
@@ -100,12 +126,7 @@ def get_log_file_path():
             return handler._sink._file.name
 
 
-def setup_logger(save_dir,
-                 distributed_rank=0,
-                 filename='log.txt',
-                 mode='o',
-                 level='INFO',
-                 redirect=True):
+def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", level="INFO", redirect="auto"):
     """
     Setup logger for training and testing.
 
@@ -114,7 +135,7 @@ def setup_logger(save_dir,
     :param filename: log file name to save
     :param mode: log file write mode, `append` or `override`. default is `o`.
     :param level: log severity level. It's "INFO" in default.
-    :param redirect: whether to redirect system output
+    :param redirect: whether to redirect system output, `auto`, True or False.
     :return: logger instance.
     """
     global LOGGER_SETUP
@@ -123,14 +144,20 @@ def setup_logger(save_dir,
         return
 
     loguru_format = (
-        '<green>{time:YYYY-MM-DD HH:mm:ss}</green> | '
-        '<level>{level: <8}</level> | '
-        '<cyan>{name}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>')
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+    )
 
     logger.remove()
     save_file = os.path.join(save_dir, filename)
-    if mode == 'o' and os.path.exists(save_file):
+    if mode == "o" and os.path.exists(save_file):
         os.remove(save_file)
+
+    if redirect == "auto":
+        redirect = not is_notebook()
+    else:
+        redirect = bool(redirect)
 
     # only keep logger in rank0 process
     if distributed_rank == 0:
@@ -138,14 +165,97 @@ def setup_logger(save_dir,
             sys.stderr,
             format=loguru_format,
             level=level,
-            enqueue=True,
+            enqueue=not is_notebook(),
         )
         logger.add(save_file)
+
+    # for interest of levels: debug, error, warning
+    logger.add(
+        add_suffix_to_filename(save_file, "_DEBUG"),
+        level="DEBUG",
+        filter=lambda x: "DEBUG" == x["level"].name,
+        format=loguru_format,
+        enqueue=True,
+        serialize=True,
+    )
+    logger.add(
+        add_suffix_to_filename(save_file, "_ERROR"),
+        level="ERROR",
+        filter=lambda x: "ERROR" == x["level"].name,
+        format=loguru_format,
+        enqueue=True,
+        serialize=True,
+    )
+    logger.add(
+        add_suffix_to_filename(save_file, "_WARNING"),
+        level="WARNING",
+        filter=lambda x: "WARNING" == x["level"].name,
+        format=loguru_format,
+        enqueue=True,
+        serialize=True,
+    )
 
     # redirect stdout/stderr to loguru
     if redirect:
         redirect_sys_output(level)
     LOGGER_SETUP = True
+
+
+def make_log_summarization(max_show_item=10):
+    error_pattern = r"^An error occurred in (.*?) when " r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
+    log_file = get_log_file_path()
+    if log_file is None:
+        return
+    log_file = log_file.replace("_ERROR", "").replace("_WARNING", "").replace("_DEBUG", "")
+    error_log_file = add_suffix_to_filename(log_file, "_ERROR")
+    warning_log_file = add_suffix_to_filename(log_file, "_WARNING")
+    error_pattern = r"^An error occurred in (.*?) when " r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
+    log_file = get_log_file_path().replace("_ERROR", "").replace("_WARNING", "").replace("_DEBUG", "")
+    error_log_file = add_suffix_to_filename(log_file, "_ERROR")
+    warning_log_file = add_suffix_to_filename(log_file, "_WARNING")
+
+    import jsonlines as jl
+    import regex as re
+
+    # make error summarization
+    error_dict = {}
+    if os.path.exists(error_log_file):
+        with jl.open(error_log_file) as reader:
+            for error_log in reader:
+                error_msg = error_log["record"]["message"]
+                find_res = re.findall(error_pattern, error_msg, flags=re.DOTALL)
+                if len(find_res) > 0:
+                    op_name, sample, err_type, err_msg, _ = find_res[0]
+                    error = (op_name, err_type, err_msg)
+                    error_dict.setdefault(error, 0)
+                    error_dict[error] += 1
+    total_error_count = sum(error_dict.values())
+    # make warning summarization
+    warning_count = 0
+    if os.path.exists(warning_log_file):
+        with jl.open(warning_log_file) as reader:
+            for _ in reader:
+                warning_count += 1
+    # make summary log
+    summary = (
+        f"Processing finished with:\n"
+        f"<yellow>Warnings</yellow>: {warning_count}\n"
+        f"<red>Errors</red>: {total_error_count}\n"
+    )
+    error_items = list(error_dict.items())
+    error_items.sort(key=lambda it: it[1], reverse=True)
+    error_items = error_items[:max_show_item]
+    # convert error items to a table
+    if len(error_items) > 0:
+        error_table = []
+        table_header = ["OP/Method", "Error Type", "Error Message", "Error Count"]
+        for key, num in error_items:
+            op_name, error_type, error_msg = key
+            error_table.append([op_name, error_type, error_msg, num])
+        table = tabulate(error_table, table_header, tablefmt="fancy_grid")
+        summary += table
+    summary += f"\nError/Warning details can be found in the log file " f"[{log_file}] and its related log files."
+    logger.opt(ansi=True).info(summary)
 
 
 class HiddenPrints:
@@ -157,7 +267,7 @@ class HiddenPrints:
         null when entering this range.
         """
         self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
+        sys.stdout = open(os.devnull, "w")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """

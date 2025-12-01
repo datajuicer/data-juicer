@@ -1,0 +1,21 @@
+[run]
+dynamic_context = test_function
+concurrency = multiprocessing
+sigterm = True
+parallel = True
+
+omit =
+    # avoid measuring strange non-existing files
+    /workspace/config.py
+    /workspace/config-3.py
+
+    # avoid measuring third-party dist packages
+    */dist-packages/*
+
+    # avoid measuring code of unittest
+    tests/*
+
+relative_files = True
+
+[report]
+ignore_errors = True

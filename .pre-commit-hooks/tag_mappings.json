@@ -1,0 +1,62 @@
+{
+  "Modality Tags": {
+    "text": {
+      "icon": "🔤Text",
+      "desc": "process text data specifically. 专用于处理文本。"
+    },
+    "image": {
+      "icon": "🏞Image",
+      "desc": "process image data specifically. 专用于处理图像。"
+    },
+    "audio": {
+      "icon": "📣Audio",
+      "desc": "process audio data specifically. 专用于处理音频。"
+    },
+    "video": {
+      "icon": "🎬Video",
+      "desc": "process video data specifically. 专用于处理视频。"
+    },
+    "multimodal": {
+      "icon": "🔮Multimodal",
+      "desc": "process multimodal data. 用于处理多模态数据。"
+    }
+  },
+  "Resource Tags": {
+    "cpu": {
+      "icon": "💻CPU",
+      "desc": "only requires CPU resource. 只需要 CPU 资源。"
+    },
+    "gpu": {
+      "icon": "🚀GPU",
+      "desc": "requires GPU/CUDA resource as well. 额外需要 GPU/CUDA 资源。"
+    }
+  },
+  "Usability Tags": {
+    "alpha": {
+      "icon": "🔴Alpha",
+      "desc": "alpha version OP. Only the basic OP implementations are finished. 表示 alpha 版本算子。只完成了基础的算子实现。"
+    },
+    "beta": {
+      "icon": "🟡Beta",
+      "desc": "beta version OP. Based on the alpha version, unittests for this OP are added as well. 表示 beta 版本算子。基于 alpha 版本，添加了算子的单元测试。"
+    },
+    "stable": {
+      "icon": "🟢Stable",
+      "desc": "stable version OP. Based on the beta version, OP optimizations related to DJ (e.g. model management, batched processing, OP fusion, ...) are added to this OP. 表示 stable 版本算子。基于 beta 版本，完善了DJ相关的算子优化项（如模型管理，批处理，算子融合等）。"
+    }
+  },
+  "Model Tags": {
+    "api": {
+      "icon": "🔗API",
+      "desc": "equipped with API-based models. (e.g. ChatGPT, GPT-4o). 支持基于 API 调用模型（如 ChatGPT，GPT-4o）。"
+    },
+    "vllm": {
+      "icon": "🌊vLLM",
+      "desc": "equipped with models supported by vLLM. 支持基于 vLLM 进行模型推理。"
+    },
+    "hf": {
+      "icon": "🧩HF",
+      "desc": "equipped with models from HuggingFace Hub. 支持来自于 HuggingFace Hub 的模型。"
+    }
+  }
+}

@@ -5,14 +5,19 @@ from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.filter.specified_numeric_field_filter import \
     SpecifiedNumericFieldFilter
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.constant import Fields
 
 
 class SpecifiedNumericFieldFilterTest(DataJuicerTestCaseBase):
 
     def _run_specified_numeric_field_filter(self, dataset: Dataset,
                                             target_list, op):
+        if Fields.stats not in dataset.features:
+            dataset = dataset.add_column(name=Fields.stats,
+                                         column=[{}] * dataset.num_rows)
         dataset = dataset.map(op.compute_stats)
         dataset = dataset.filter(op.process)
+        dataset = dataset.remove_columns(Fields.stats)
         res_list = dataset.to_list()
         self.assertEqual(res_list, target_list)
 

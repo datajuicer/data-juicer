@@ -8,7 +8,8 @@ class JsonFormatter(LocalFormatter):
 
     Default suffixes is `['.json', '.jsonl', '.jsonl.zst']`
     """
-    SUFFIXES = ['.json', '.jsonl', '.jsonl.zst']
+
+    SUFFIXES = [".json", ".jsonl", ".jsonl.zst"]
 
     def __init__(self, dataset_path, suffixes=None, **kwargs):
         """
@@ -21,6 +22,6 @@ class JsonFormatter(LocalFormatter):
         super().__init__(
             dataset_path=dataset_path,
             suffixes=suffixes if suffixes else self.SUFFIXES,
-            type='json',
+            type="json",
             **kwargs,
         )

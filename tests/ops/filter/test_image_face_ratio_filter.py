@@ -5,10 +5,9 @@ from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.image_face_ratio_filter import ImageFaceRatioFilter
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, SKIPPED_TESTS
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
-@SKIPPED_TESTS.register_module()
 class ImageFaceRatioFilterTest(DataJuicerTestCaseBase):
 
     maxDiff = None

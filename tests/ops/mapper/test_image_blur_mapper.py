@@ -1,13 +1,13 @@
 import os
 import unittest
-
 import numpy as np
-from data_juicer.core.data import NestedDataset as Dataset
 
+from PIL import ImageFilter
+
+from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.image_blur_mapper import ImageBlurMapper
 from data_juicer.utils.mm_utils import load_image
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-
 
 class ImageBlurMapperTest(DataJuicerTestCaseBase):
 
@@ -18,7 +18,6 @@ class ImageBlurMapperTest(DataJuicerTestCaseBase):
     img3_path = os.path.join(data_path, 'img3.jpg')
 
     def _get_blur_kernel(self, blur_type='gaussian', radius=2):
-        from PIL import ImageFilter
         if blur_type == 'mean':
             return ImageFilter.BLUR
         elif blur_type == 'box':

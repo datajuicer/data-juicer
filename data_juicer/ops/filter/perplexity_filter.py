@@ -2,9 +2,6 @@
 # https://huggingface.co/spaces/huggingface/text-data-filtering
 # --------------------------------------------------------
 
-from jsonargparse.typing import PositiveFloat
-
-from data_juicer.utils.availability_utils import AvailabilityChecking
 from data_juicer.utils.constant import Fields, InterVars, StatsKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
@@ -12,67 +9,73 @@ from ..base_op import OPERATORS, Filter
 from ..common import get_words_from_document
 from ..op_fusion import INTER_WORDS
 
-OP_NAME = 'perplexity_filter'
-
-with AvailabilityChecking(['sentencepiece', 'kenlm'], OP_NAME):
-    import kenlm  # noqa: F401
-    import sentencepiece  # noqa: F401
+OP_NAME = "perplexity_filter"
 
 
 @OPERATORS.register_module(OP_NAME)
 @INTER_WORDS.register_module(OP_NAME)
 class PerplexityFilter(Filter):
-    """Filter to keep samples with perplexity score less than a specific max
-    value."""
+    """Filter to keep samples with perplexity score in a specified range.
 
-    def __init__(self,
-                 lang: str = 'en',
-                 max_ppl: PositiveFloat = 1500,
-                 *args,
-                 **kwargs):
+    This operator computes the perplexity of text samples using a Hugging Face tokenizer and
+    a KenLM language model. It keeps samples with perplexity scores within the specified
+    minimum and maximum values. The perplexity is calculated character-based by default. If
+    the perplexity is already computed, it will be reused from the 'perplexity' field in the
+    sample's stats. The operator supports batched operations for efficiency."""
+
+    _batched_op = True
+
+    def __init__(self, lang: str = "en", min_ppl: float = 0, max_ppl: float = 1500, *args, **kwargs):
         """
         Initialization method.
 
         :param lang: Compute perplexity for samples in which language.
-        :param max_ppl: The max filter perplexity in this op, samples
-            will be filtered if their perplexity exceeds this parameter.
+        :param min_ppl: The min filter perplexity in this op.
+        :param max_ppl: The max filter perplexity in this op.
         :param args: extra args
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
+        self.min_ppl = min_ppl
         self.max_ppl = max_ppl
         self.lang = lang
-        self.sp_model_key = prepare_model(model_type='sentencepiece',
-                                          lang=lang)
-        self.kl_model_key = prepare_model(model_type='kenlm', lang=lang)
+        self.sp_model_key = prepare_model(model_type="sentencepiece", lang=lang)
+        self.kl_model_key = prepare_model(model_type="kenlm", lang=lang)
 
-    def compute_stats(self, sample, context=False):
-        # check if it's computed already
-        if StatsKeys.perplexity in sample[Fields.stats]:
-            return sample
+    def compute_stats_batched(self, samples, context=False):
+        samples_list = samples[self.text_key]
+        samples_stats = samples[Fields.stats]
+        words_key = f"{InterVars.words}-{self.sp_model_key}"
+        tokenizer = get_model(self.sp_model_key)
 
-        # tokenization
-        words_key = f'{InterVars.words}-{self.sp_model_key}'
-        if context and words_key in sample[Fields.context]:
-            words = sample[Fields.context][words_key]
-        else:
-            tokenizer = get_model(self.sp_model_key)
-            words = get_words_from_document(
-                sample[self.text_key],
-                token_func=tokenizer.encode_as_pieces if tokenizer else None)
-            if context:
-                sample[Fields.context][words_key] = words
-        text = ' '.join(words)
-        # compute perplexity
-        logits, length = 0, 0
-        kenlm_model = get_model(self.kl_model_key)
-        for line in text.splitlines():
-            logits += kenlm_model.score(line)
-            length += (len(line.split()) + 1)
-        ppl = (10.0**(-logits / length)) if length != 0 else 0.0
-        sample[Fields.stats][StatsKeys.perplexity] = round(ppl, 1)
+        for idx, stat in enumerate(samples_stats):
+            # check if it's computed already
+            if StatsKeys.perplexity in stat:
+                continue
+            # tokenization
+            if context and words_key in samples[Fields.context][idx]:
+                words = samples[Fields.context][idx][words_key]
+            else:
+                words = get_words_from_document(
+                    samples_list[idx], token_func=tokenizer.encode_as_pieces if tokenizer else None
+                )
+                if context:
+                    samples[Fields.context][idx][words_key] = words
+            text = " ".join(words)
+            # compute perplexity
+            logits, length = 0, 0
+            kenlm_model = get_model(self.kl_model_key)
+            for line in text.splitlines():
+                logits += kenlm_model.score(line)
+                length += len(line.split()) + 1
+            ppl = (10.0 ** (-logits / length)) if length != 0 else 0.0
+            samples_stats[idx][StatsKeys.perplexity] = round(ppl, 1)
 
-        return sample
+        return samples
 
-    def process(self, sample):
-        return sample[Fields.stats][StatsKeys.perplexity] <= self.max_ppl
+    def process_batched(self, samples):
+        assert isinstance(samples[Fields.stats], list)
+        return map(
+            lambda stat: self.get_keep_boolean(stat[StatsKeys.perplexity], self.min_ppl, self.max_ppl),
+            samples[Fields.stats],
+        )

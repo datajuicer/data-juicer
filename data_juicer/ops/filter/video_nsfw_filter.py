@@ -1,50 +1,63 @@
 import numpy as np
-from jsonargparse.typing import ClosedUnitInterval, PositiveInt
+from pydantic import PositiveInt
 
-from data_juicer.utils.availability_utils import AvailabilityChecking
 from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.mm_utils import (close_video, extract_key_frames,
-                                        extract_video_frames_uniformly,
-                                        load_data_with_context, load_video)
+from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.mm_utils import (
+    close_video,
+    extract_key_frames,
+    extract_video_frames_uniformly,
+    load_data_with_context,
+    load_video,
+)
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, Filter
 from ..op_fusion import INTER_SAMPLED_FRAMES, LOADED_VIDEOS
 
-OP_NAME = 'video_nsfw_filter'
+torch = LazyLoader("torch")
 
-with AvailabilityChecking(['torch', 'transformers'], OP_NAME):
-
-    import torch
-    import transformers  # noqa: F401
-
-    # avoid hanging when calling nsfw detection in multiprocessing
-    torch.set_num_threads(1)
+OP_NAME = "video_nsfw_filter"
 
 
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 @INTER_SAMPLED_FRAMES.register_module(OP_NAME)
 class VideoNSFWFilter(Filter):
-    """Filter to keep samples whose videos have low nsfw scores."""
+    """Filter to keep samples whose videos have nsfw scores in a specified range.
 
-    _accelerator = 'cuda'
+    This operator uses a Hugging Face model to detect NSFW content in video frames. It keeps
+    samples where the NSFW score is below a specified threshold. The operator supports two
+    frame sampling methods: "all_keyframes" and "uniform". For "uniform", it extracts a
+    specified number of frames. The NSFW scores are reduced using one of three modes: "avg",
+    "max", or "min". The key metric, 'video_nsfw_score', is computed for each video and
+    stored in the sample's stats. The operator can use either an "any" or "all" strategy to
+    decide if a sample should be kept based on the NSFW scores of its videos."""
 
-    def __init__(self,
-                 hf_nsfw_model='Falconsai/nsfw_image_detection',
-                 trust_remote_code=False,
-                 score_threshold: ClosedUnitInterval = 0.5,
-                 frame_sampling_method: str = 'all_keyframes',
-                 frame_num: PositiveInt = 3,
-                 reduce_mode: str = 'avg',
-                 any_or_all: str = 'any',
-                 *args,
-                 **kwargs):
+    _accelerator = "cuda"
+
+    def __init__(
+        self,
+        hf_nsfw_model: str = "Falconsai/nsfw_image_detection",
+        trust_remote_code: bool = False,
+        min_score: float = 0.0,
+        max_score: float = 0.5,
+        frame_sampling_method: str = "all_keyframes",
+        frame_num: PositiveInt = 3,
+        reduce_mode: str = "avg",
+        any_or_all: str = "any",
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
         :param hf_nsfw_model: nsfw detection model name on huggingface.
-        :param score_threshold: the nsfw score threshold for samples.
+        :param trust_remote_code: whether to trust the remote code of HF models.
+        :param min_score: the nsfw score threshold for samples.
+            range from 0 to 1. Samples with nsfw score greater than this
+            threshold will be kept.
+        :param max_score: the nsfw score threshold for samples.
             range from 0 to 1. Samples with nsfw score less than this threshold
             will be kept.
         :param frame_sampling_method: sampling method of extracting frame
@@ -71,47 +84,47 @@ class VideoNSFWFilter(Filter):
         :param args: extra args
         :param kwargs: extra args
         """
+        kwargs["mem_required"] = "1GB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
         super().__init__(*args, **kwargs)
-        self.score_threshold = score_threshold
-        if frame_sampling_method not in ['all_keyframes', 'uniform']:
+        self.min_score = min_score
+        self.max_score = max_score
+        if frame_sampling_method not in ["all_keyframes", "uniform"]:
             raise ValueError(
-                f'Frame sampling method '
-                f'[{frame_sampling_method}] is not supported. '
-                f'Can only be one of ["all_keyframes", "uniform"].')
-        if reduce_mode not in ['avg', 'max', 'min']:
-            raise ValueError(f'Reduce mode [{reduce_mode}] is not supported. '
-                             f'Can only be one of ["avg", "max", "min"].')
-        if any_or_all not in ['any', 'all']:
-            raise ValueError(f'Keep strategy [{any_or_all}] is not supported. '
-                             f'Can only be one of ["any", "all"].')
-        self.any = (any_or_all == 'any')
+                f"Frame sampling method "
+                f"[{frame_sampling_method}] is not supported. "
+                f'Can only be one of ["all_keyframes", "uniform"].'
+            )
+        if reduce_mode not in ["avg", "max", "min"]:
+            raise ValueError(
+                f"Reduce mode [{reduce_mode}] is not supported. " f'Can only be one of ["avg", "max", "min"].'
+            )
+        if any_or_all not in ["any", "all"]:
+            raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
+        self.any = any_or_all == "any"
         self.model_key = prepare_model(
-            model_type='huggingface',
-            pretrained_model_name_or_path=hf_nsfw_model,
-            trust_remote_code=trust_remote_code)
+            model_type="huggingface", pretrained_model_name_or_path=hf_nsfw_model, trust_remote_code=trust_remote_code
+        )
         self.reduce_mode = reduce_mode
         self.frame_sampling_method = frame_sampling_method
         self.frame_num = frame_num
 
-        self.sampled_frames_key_suffix = f'-{frame_sampling_method}' + \
-            ('' if frame_sampling_method == 'all_keyframes'
-             else f'-{frame_num}')
+        self.sampled_frames_key_suffix = f"-{frame_sampling_method}" + (
+            "" if frame_sampling_method == "all_keyframes" else f"-{frame_num}"
+        )
 
-    def compute_stats(self, sample, rank=None, context=False):
+    def compute_stats_single(self, sample, rank=None, context=False):
         # check if it's computed already
         if StatsKeys.video_nsfw_score in sample[Fields.stats]:
             return sample
 
         # there is no videos in this sample
         if self.video_key not in sample or not sample[self.video_key]:
-            sample[Fields.stats][StatsKeys.video_nsfw_score] = np.array(
-                [], dtype=np.float64)
+            sample[Fields.stats][StatsKeys.video_nsfw_score] = np.array([], dtype=np.float64)
             return sample
 
         # load videos
         loaded_video_keys = sample[self.video_key]
-        sample, videos = load_data_with_context(sample, context,
-                                                loaded_video_keys, load_video)
+        sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
 
         nsfw_scores = []
         model, processor = get_model(self.model_key, rank, self.use_cuda())
@@ -124,11 +137,10 @@ class VideoNSFWFilter(Filter):
                 # context hit
                 frames = sample[Fields.context][sampled_frames_key]
             else:
-                if self.frame_sampling_method == 'all_keyframes':
+                if self.frame_sampling_method == "all_keyframes":
                     frames = extract_key_frames(video)
-                elif self.frame_sampling_method == 'uniform':
-                    frames = extract_video_frames_uniformly(
-                        video, self.frame_num)
+                elif self.frame_sampling_method == "uniform":
+                    frames = extract_video_frames_uniformly(video, self.frame_num)
                 else:
                     frames = []
 
@@ -139,18 +151,16 @@ class VideoNSFWFilter(Filter):
             frame_images = [frame.to_image() for frame in frames]
 
             if len(frame_images) > 0:
-                inputs = processor(images=frame_images, return_tensors='pt')
+                inputs = processor(images=frame_images, return_tensors="pt")
                 inputs = inputs.to(model.device)
                 outputs = model(**inputs)
                 logits = outputs.logits
-                cur_scores = [
-                    scores[1] for scores in torch.softmax(logits, dim=-1)
-                ]
+                cur_scores = [scores[1] for scores in torch.softmax(logits, dim=-1)]
                 cur_scores = torch.Tensor(cur_scores)
 
-                if self.reduce_mode == 'avg':
+                if self.reduce_mode == "avg":
                     cur_score = cur_scores.mean()
-                elif self.reduce_mode == 'max':
+                elif self.reduce_mode == "max":
                     cur_score = cur_scores.max()
                 else:
                     cur_score = cur_scores.min()
@@ -167,13 +177,14 @@ class VideoNSFWFilter(Filter):
 
         return sample
 
-    def process(self, sample, rank=None):
+    def process_single(self, sample, rank=None):
         itm_scores = sample[Fields.stats][StatsKeys.video_nsfw_score]
         if len(itm_scores) <= 0:
             return True
 
         keep_bools = np.array(
-            [itm_score < self.score_threshold for itm_score in itm_scores])
+            [self.get_keep_boolean(itm_score, self.min_score, self.max_score) for itm_score in itm_scores]
+        )
 
         # different strategies
         if self.any:

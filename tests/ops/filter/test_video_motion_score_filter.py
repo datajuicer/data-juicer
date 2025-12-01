@@ -13,9 +13,9 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
 
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              'data')
-    vid1_path = os.path.join(data_path, 'video1.mp4')  # 1.8210126
-    vid2_path = os.path.join(data_path, 'video2.mp4')  # 3.600746
-    vid3_path = os.path.join(data_path, 'video3.mp4')  # 1.1822891
+    vid1_path = os.path.join(data_path, 'video1.mp4')  # 1.869317
+    vid2_path = os.path.join(data_path, 'video2.mp4')  # 3.52111
+    vid3_path = os.path.join(data_path, 'video3.mp4')  # 1.1731424
 
     def _run_helper(self, op, source_list, target_list, np=1):
         dataset = Dataset.from_list(source_list)

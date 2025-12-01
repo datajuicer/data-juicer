@@ -8,7 +8,8 @@ class CsvFormatter(LocalFormatter):
 
     Default suffixes is `['.csv']`
     """
-    SUFFIXES = ['.csv']
+
+    SUFFIXES = [".csv"]
 
     def __init__(self, dataset_path, suffixes=None, **kwargs):
         """
@@ -21,6 +22,6 @@ class CsvFormatter(LocalFormatter):
         super().__init__(
             dataset_path=dataset_path,
             suffixes=suffixes if suffixes else self.SUFFIXES,
-            type='csv',
+            type="csv",
             **kwargs,
         )

@@ -42,7 +42,7 @@
             openai_organization: <str>
             openai_api_key: <str>
             model: <str> # the type of model，e.g., gpt-3.5-turbo
-            max_retry: <int> # the maxium number of retries when api access fails
+            max_retry: <int> # the maximum number of retries when api access fails
         ```
     3. Run the script.
         ```shell
@@ -54,7 +54,7 @@
         - question_file: the benchmark dataset file in previous step
         - answer_file: the answer file of your model in previous step
         - baseline_file: the answer file of the baseline model in previous step
-        - prompt_file: a file contains multiple prompt templates, the toolkit has provided a sample file ([`config/prompt.json`](config/prompt.json))
+        - prompt_file: a file contains multiple prompt templates, the toolkit has provided a sample file ([`config/prompt.jsonl`](config/prompt.jsonl))
         - reviewer_file: a file contains multiple reviewer templates (including the model type and other parameters used in the OpenAI api request)，the toolkit has provided a sample file ([`config/reviewer.json`](config/reviewer.jsonl))
     2. Build the config file (`config.yaml`). The format of the file is as follows:
         ```yaml
@@ -66,7 +66,7 @@
           baseline_file: <str>
           prompt_file: <str>
           reviewer_file: <str>
-          result_file: <str>    # path of the evaulation result
+          result_file: <str>    # path of the evaluation result
         ```
     3. Run the script.
         ```shell

@@ -1,17 +1,16 @@
-from data_juicer.utils.availability_utils import AvailabilityChecking
+from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import OPERATORS, Mapper
 
-OP_NAME = 'chinese_convert_mapper'
+opencc = LazyLoader("opencc")
 
-with AvailabilityChecking(['opencc'], OP_NAME):
-    import opencc  # noqa: F401
+OP_NAME = "chinese_convert_mapper"
 
 OPENCC_CONVERTER = None
 
 
 def prepare_converter(mode):
-    mode_path = mode + '.json'
+    mode_path = mode + ".json"
     global OPENCC_CONVERTER
     if OPENCC_CONVERTER is None:
         # empty converter
@@ -24,10 +23,20 @@ def prepare_converter(mode):
 
 @OPERATORS.register_module(OP_NAME)
 class ChineseConvertMapper(Mapper):
-    """Mapper to convert Chinese between Traditional Chinese, Simplified Chinese
-    and Japanese Kanji."""
+    """Mapper to convert Chinese text between Traditional, Simplified, and Japanese Kanji.
 
-    def __init__(self, mode: str = 's2t', *args, **kwargs):
+    This operator converts Chinese text based on the specified mode. It supports conversions
+    between Simplified Chinese, Traditional Chinese (including Taiwan and Hong Kong
+    variants), and Japanese Kanji. The conversion is performed using a pre-defined set of
+    rules. The available modes include 's2t' for Simplified to Traditional, 't2s' for
+    Traditional to Simplified, and other specific variants like 's2tw', 'tw2s', 's2hk',
+    'hk2s', 's2twp', 'tw2sp', 't2tw', 'tw2t', 'hk2t', 't2hk', 't2jp', and 'jp2t'. The
+    operator processes text in batches and applies the conversion to the specified text key
+    in the samples."""
+
+    _batched_op = True
+
+    def __init__(self, mode: str = "s2t", *args, **kwargs):
         """
         Initialization method.
 
@@ -74,16 +83,27 @@ class ChineseConvertMapper(Mapper):
         """
         super().__init__(*args, **kwargs)
         mode_list = [
-            's2t', 't2s', 's2tw', 'tw2s', 's2hk', 'hk2s', 's2twp', 'tw2sp',
-            't2tw', 'tw2t', 'hk2t', 't2hk', 't2jp', 'jp2t'
+            "s2t",
+            "t2s",
+            "s2tw",
+            "tw2s",
+            "s2hk",
+            "hk2s",
+            "s2twp",
+            "tw2sp",
+            "t2tw",
+            "tw2t",
+            "hk2t",
+            "t2hk",
+            "t2jp",
+            "jp2t",
         ]
-        assert mode in mode_list, 'Please make sure mode is one of {}'.format(
-            mode_list)
+        assert mode in mode_list, "Please make sure mode is one of {}".format(mode_list)
         self.mode = mode
         prepare_converter(self.mode)
 
-    def process(self, sample):
+    def process_batched(self, samples):
         prepare_converter(self.mode)
 
-        sample[self.text_key] = OPENCC_CONVERTER.convert(sample[self.text_key])
-        return sample
+        samples[self.text_key] = [OPENCC_CONVERTER.convert(text) for text in samples[self.text_key]]
+        return samples

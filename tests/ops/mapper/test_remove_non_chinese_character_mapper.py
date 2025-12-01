@@ -1,5 +1,6 @@
 import unittest
 
+from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.remove_non_chinese_character_mapper import \
     RemoveNonChineseCharacterlMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
@@ -8,13 +9,16 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class RemoveNonChineseCharacterlMapperrTest(DataJuicerTestCaseBase):
 
     def setUp(self, keep_alphabet=True, keep_number=True, keep_punc=True):
+        super().setUp()
         self.op = RemoveNonChineseCharacterlMapper(keep_alphabet, keep_number,
                                                    keep_punc)
 
     def _run_remove_non_chinese_character(self, samples):
-        for sample in samples:
-            result = self.op.process(sample)
-            self.assertEqual(result['text'], result['target'])
+        dataset = Dataset.from_list(samples)
+        dataset = dataset.map(self.op.process, batch_size=2)
+                
+        for data in dataset:
+            self.assertEqual(data['text'], data['target'])
 
     def test_remove_non_chinese_character(self):
 

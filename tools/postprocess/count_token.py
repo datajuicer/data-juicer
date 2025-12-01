@@ -19,15 +19,11 @@ def count_token_single(sample, text_keys):
 
 def prepare_tokenizer(tokenizer_method):
     global TOKENIZER
-    logger.info('Loading tokenizer from HuggingFace...')
-    TOKENIZER = AutoTokenizer.from_pretrained(tokenizer_method,
-                                              trust_remote_code=True)
+    logger.info("Loading tokenizer from HuggingFace...")
+    TOKENIZER = AutoTokenizer.from_pretrained(tokenizer_method, trust_remote_code=True)
 
 
-def main(data_path,
-         text_keys='text',
-         tokenizer_method='EleutherAI/pythia-6.9b-deduped',
-         num_proc=1):
+def main(data_path, text_keys="text", tokenizer_method="EleutherAI/pythia-6.9b-deduped", num_proc=1):
     """
     Count the number of tokens for given dataset and tokenizer.
 
@@ -47,16 +43,19 @@ def main(data_path,
         with Pool(num_proc) as p:
             for sample in tqdm(reader):
                 result_list.append(
-                    p.apply_async(count_token_single,
-                                  args=(
-                                      sample,
-                                      text_keys,
-                                  )))
+                    p.apply_async(
+                        count_token_single,
+                        args=(
+                            sample,
+                            text_keys,
+                        ),
+                    )
+                )
             for res in tqdm(result_list):
                 token_count += res.get()
 
-        logger.info(f'Total num of tokens: {token_count}')
+        logger.info(f"Total num of tokens: {token_count}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

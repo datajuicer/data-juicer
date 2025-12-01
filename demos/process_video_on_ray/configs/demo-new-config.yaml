@@ -1,0 +1,36 @@
+# Process config example for dataset
+
+# global parameters
+project_name: 'ray-demo'
+executor_type: 'ray'
+dataset:
+  configs:
+    - type: local
+      path: './demos/process_video_on_ray/data/demo-dataset.jsonl'  # path to your dataset directory or file
+ray_address: 'auto'                     # change to your ray cluster address, e.g., ray://<hostname>:<port>
+export_path: './outputs/demo/demo-processed-ray-videos'
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  # Filter ops
+  - video_duration_filter:
+      min_duration: 20
+      max_duration: 100
+  - video_resolution_filter:                                # filter samples according to the resolution of videos in them
+      min_width: 200                                         # the min resolution of horizontal resolution filter range (unit p)
+      max_width: 4096                                         # the max resolution of horizontal resolution filter range (unit p)
+      min_height: 200                                         # the min resolution of vertical resolution filter range (unit p)
+      max_height: 4096                                        # the max resolution of vertical resolution filter range (unit p)
+      any_or_all: any
+  # Mapper ops
+  - video_split_by_duration_mapper:                         # Mapper to split video by duration.
+      split_duration: 10                                      # duration of each video split in seconds.
+      min_last_split_duration: 0                              # the minimum allowable duration in seconds for the last video split. If the duration of the last split is less than this value, it will be discarded.
+      keep_original_sample: true   
+  - video_resize_aspect_ratio_mapper:
+      min_ratio: 1
+      max_ratio: 1.1
+      strategy: increase
+  - video_split_by_key_frame_mapper:                          # Mapper to split video by key frame.
+      keep_original_sample: true                              # whether to keep the original sample. If it's set to False, there will be only cut sample in the final datasets and the original sample will be removed. It's True in default

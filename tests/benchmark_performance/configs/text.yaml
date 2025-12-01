@@ -1,0 +1,21 @@
+# The config file for performance benchmark to measure the processing speed for
+# the current Data-Juicer system. OPs are selected according to their tags and
+# types (https://github.com/datajuicer/data-juicer/blob/main/docs/Operators.md)
+
+project_name: 'performance-benchmark-text'
+dataset_path: 'perf_bench_data/text/wiki-10k.jsonl'
+export_path: 'outputs/performance_benchmark_text/res.jsonl'
+np: 16
+use_cache: false
+
+process:
+  - whitespace_normalization_mapper:
+  - token_num_filter:
+      hf_tokenizer: 'EleutherAI/pythia-6.9b-deduped'
+      min_num: 0
+  - document_deduplicator:
+      lowercase: false
+      ignore_non_character: false
+  - topk_specified_field_selector:
+      field_key: '__dj__stats__.num_token'
+      topk: 1000

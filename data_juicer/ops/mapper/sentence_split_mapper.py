@@ -1,20 +1,25 @@
-from data_juicer.utils.availability_utils import AvailabilityChecking
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.nltk_utils import patch_nltk_pickle_security
 
 from ..base_op import OPERATORS, Mapper
 from ..common import get_sentences_from_document
 
-OP_NAME = 'sentence_split_mapper'
-
-with AvailabilityChecking(['nltk'], OP_NAME):
-    import nltk  # noqa: F401
+OP_NAME = "sentence_split_mapper"
 
 
 @OPERATORS.register_module(OP_NAME)
 class SentenceSplitMapper(Mapper):
-    """Mapper to split text samples to sentences."""
+    """Splits text samples into individual sentences based on the specified language.
 
-    def __init__(self, lang: str = 'en', *args, **kwargs):
+    This operator uses an NLTK-based tokenizer to split the input text into sentences. The
+    language for the tokenizer is specified during initialization. The original text in each
+    sample is replaced with a list of sentences. This operator processes samples in batches
+    for efficiency. Ensure that the `lang` parameter is set to the appropriate language code
+    (e.g., "en" for English) to achieve accurate sentence splitting."""
+
+    _batched_op = True
+
+    def __init__(self, lang: str = "en", *args, **kwargs):
         """
         Initialization method.
 
@@ -24,12 +29,20 @@ class SentenceSplitMapper(Mapper):
         """
         super().__init__(*args, **kwargs)
         self.lang = lang
-        self.model_key = prepare_model(model_type='nltk', lang=lang)
 
-    def process(self, sample):
+        # Ensure NLTK pickle security patch is applied
+        patch_nltk_pickle_security()
 
+        # Prepare the sentence tokenizer model
+        self.model_key = prepare_model(model_type="nltk", lang=lang)
+
+    def process_batched(self, samples):
+        # Get the sentence tokenizer model
         nltk_model = get_model(self.model_key)
-        sample[self.text_key] = get_sentences_from_document(
-            sample[self.text_key],
-            model_func=nltk_model.tokenize if nltk_model else None)
-        return sample
+
+        samples[self.text_key] = [
+            get_sentences_from_document(text, model_func=nltk_model.tokenize if nltk_model else None)
+            for text in samples[self.text_key]
+        ]
+
+        return samples

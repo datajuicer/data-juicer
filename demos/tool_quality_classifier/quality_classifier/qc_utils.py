@@ -38,7 +38,7 @@ def init_spark():
 def prepare_model(model_name, model_path=DATA_JUICER_MODELS_CACHE):
     udm = False
     if model_name not in ['gpt3', 'chinese', 'code']:
-        # use user-specific mdoel
+        # use user-specific model
         real_model_path = model_name
         udm = True
     else:

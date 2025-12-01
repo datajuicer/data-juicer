@@ -4,13 +4,15 @@ import os
 import unittest
 
 from data_juicer.core.data import NestedDataset as Dataset
+from data_juicer.utils.lazy_loader import LazyLoader
 
-from data_juicer import _cuda_device_count
+from data_juicer.utils.resource_utils import cuda_device_count
 from data_juicer.ops.filter.image_watermark_filter import ImageWatermarkFilter
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, SKIPPED_TESTS
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-@SKIPPED_TESTS.register_module()
+cv2 = LazyLoader('cv2', 'opencv-python')
+
 class ImageWatermarkFilterTest(DataJuicerTestCaseBase):
 
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
@@ -115,7 +117,7 @@ class ImageWatermarkFilterTest(DataJuicerTestCaseBase):
 
         # set num_proc <= the number of CUDA if it is available
         num_proc = 2
-        if _cuda_device_count() == 1:
+        if cuda_device_count() == 1:
             num_proc = 1
 
         dataset = Dataset.from_list(ds_list)

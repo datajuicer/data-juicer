@@ -69,7 +69,7 @@ auto_eval:
     merge_path: <str>      # configuration for gpt2 tokenizer type, path to merge file
     tokenizer_path: <str>  # configuration for sentencepiece tokenizer type, path to model file
     max_tokens: <int>      # max tokens to generate in inference
-    token_per_iteration: <float> # billions tokens per iteraion
+    token_per_iteration: <float> # billions tokens per iteration
   helm:
     helm_spec_template_path: <str> # path of helm spec template file, default is tools/evaluator/config/helm_spec_template.conf
     helm_output_path: <str>  # path of helm output dir

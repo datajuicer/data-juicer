@@ -1,26 +1,29 @@
 import regex as re
-from jsonargparse.typing import restricted_number_type
+from pydantic import Field
+from typing_extensions import Annotated
 
 from ..base_op import OPERATORS, Mapper
 
-from_2_to_20 = restricted_number_type('from_2_to_20', int, [('>=', 2),
-                                                            ('<=', 20)])
 
-
-@OPERATORS.register_module('remove_table_text_mapper')
+@OPERATORS.register_module("remove_table_text_mapper")
 class RemoveTableTextMapper(Mapper):
-    """
-    Mapper to remove table texts from text samples.
+    """Mapper to remove table texts from text samples.
 
-    Regular expression is used to remove tables in the range of column
-    number of tables.
-    """
+    This operator uses regular expressions to identify and remove tables from the text. It
+    targets tables with a specified range of columns, defined by the minimum and maximum
+    number of columns. The operator iterates over each sample, applying the regex pattern to
+    remove tables that match the column criteria. The processed text, with tables removed,
+    is then stored back in the sample. This operation is batched for efficiency."""
 
-    def __init__(self,
-                 min_col: from_2_to_20 = 2,
-                 max_col: from_2_to_20 = 20,
-                 *args,
-                 **kwargs):
+    _batched_op = True
+
+    def __init__(
+        self,
+        min_col: Annotated[int, Field(ge=2, le=20)] = 2,
+        max_col: Annotated[int, Field(ge=2, le=20)] = 20,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -32,14 +35,14 @@ class RemoveTableTextMapper(Mapper):
         super().__init__(*args, **kwargs)
         self.min_col = min_col
         self.max_col = max_col
-        self.pattern = r'(?<=\n)((\S+?)([ |\t](\S+?)){%d}\n+){2,}'
+        self.pattern = r"(?<=\n)((\S+?)([ |\t](\S+?)){%d}\n+){2,}"
 
-    def process(self, sample):
+    def process_batched(self, samples):
+        for idx, text in enumerate(samples[self.text_key]):
+            for i in range(self.min_col - 1, self.max_col):
+                pattern = re.compile(self.pattern % i)
+                text = pattern.sub("", text)
 
-        text = sample[self.text_key]
-        for i in range(self.min_col - 1, self.max_col):
-            pattern = re.compile(self.pattern % i)
-            text = pattern.sub('', text)
+            samples[self.text_key][idx] = text
 
-        sample[self.text_key] = text
-        return sample
+        return samples

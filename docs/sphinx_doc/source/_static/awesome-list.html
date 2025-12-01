@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<!--[if IE 8]>
+<html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Awesome Data-Model Co-Development of MLLMs</title>
+    <!-- Bootstrap -->
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #111111;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* 添加阴影 */
+            border: 1px solid rgba(0, 0, 0, 0.1); /* 添加描边 */
+        }
+        #dropdown-container {
+            display: inline-block;
+            white-space: nowrap;
+            width: auto; /* 自动调整宽度 */
+        }
+
+        .select2-container--default .select2-selection--multiple {
+            width: 130%; /* 取消固定宽度 */
+            min-width: 100%;
+        }
+
+        .select2-dropdown {
+            width: auto !important; /* 强制下拉框自动宽度 */
+        }
+
+        .select2-results__option {
+            white-space: nowrap; /* 单行显示 */
+        }
+        .select2-selection__choice {
+            display: inline-flex !important;
+            align-items: center;
+            background-color: initial !important;
+            border: none !important;
+            border-radius: 12px !important;
+            color: black;
+            margin: 2px !important;
+            padding: 4px 8px !important;
+            background-color: #d3f0aa; /* 或其他背景颜色 */
+        }
+        .select2-selection__choice__remove {
+            color: black;
+            margin-right: 4px;
+            cursor: pointer;
+            border: none; /* 移除默认边框 */
+            padding: 0 4px; /* 调整内边距以适应标签 */
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#tag-filter').select2({
+                placeholder: "Select tags",
+                dropdownParent: $('#dropdown-container'),
+                templateResult: formatState,
+                templateSelection: formatSelected
+            });
+            var table = $('#example').DataTable({
+                pageLength: -1,
+                lengthChange: false,
+                drawCallback: function(settings) {
+            var api = this.api();
+            
+            // 获取可见行的数量
+            var visibleRows = api.rows({ page: 'current', filter: 'applied' }).nodes().toArray().filter(node => $(node).is(':visible')).length;
+            
+            // 获取总过滤后的数据量
+            var filteredTotal = api.rows({ filter: 'applied' }).nodes().toArray().filter(node => $(node).is(':visible')).length;
+            
+            // 自定义信息显示
+            $('#example_info').html('showing ' + visibleRows + ' items');
+        }
+        });
+        $('#tag-filter').on('change', function() {
+        var selectedTags = $(this).val() || [];
+        table.rows().every(function() {
+            var rowData = this.data();
+            var tags = $(rowData[1]).text().split(/\n {2,}/).filter(Boolean);
+            var showRow = selectedTags.every(tag => tags.includes(tag));
+            $(this.node()).toggle(showRow);
+        });
+        // 触发表格的重新绘制以更新信息
+        table.draw(false);
+    });
+        });
+        function formatState(state) {
+            if (!state.id) {
+                return state.text;
+            }
+            var color = $(state.element).data('color') || '#000';
+            return $('<span style="background-color: ' + color + '; color: black; padding: 2px 4px; border-radius: 4px;">' + state.text + '</span>');
+        }
+        function formatSelected(state) {
+            if (!state.id) {
+                return state.text;
+            }
+            var color = $(state.element).data('color') || '#000';
+            return $('<span style="background-color: ' + color + '; color: black; padding: 2px 8px; border-radius: 12px;">' + state.text + '</span>');
+        }
+    </script>
+</head>
+
+<body>
+<!-- <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">KDD 2024 Hands-on Tutorial</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false"
+            aria-label="Toggle navigation"><span
+            class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active"><a class="nav-link" href="#">Home <span
+                    class="sr-only">(current)</span></a></li>
+            <li class="nav-item"><a class="nav-link"
+                                    href="#Schedule">Schedule</a></li>
+            <li class="nav-item"><a class="nav-link" href="#Organizers">Organizers</a>
+            </li>
+        </ul>
+    </div>
+</nav> -->
+<header>
+    <div class="jumbotron">
+        <div class="container">
+            <div class="row">
+                <div class="col-10 col-lg-12">
+                    <h1 class="text-center"><strong>Awesome Data-Model Co-Development of MLLMs</strong></h1>
+                </div>
+            </div>
+        </div>
+        <p>Welcome to the "Awesome List" for data-model co-development of Multi-Modal Large Language Models (MLLMs), a continually updated resource tailored for the open-source community. This compilation features cutting-edge research, insightful articles focusing on improving MLLMs involving with the data-model co-development of MLLMs, and tagged based on the proposed <strong>taxonomy</strong> from our data-model co-development <a href="https://arxiv.org/abs/2407.08583">survey</a>, as illustrated below.</p>
+
+        <img src="https://img.alicdn.com/imgextra/i1/O1CN01aN3TVo1mgGZAuSHJ4_!!6000000004983-2-tps-3255-1327.png" style="width: 100%;" alt="Overview of Our Taxonomy">
+
+        <p>Due to the rapid development in the field, this repository and our paper are continuously being updated and synchronized with each other. <strong>Please feel free to make pull requests or open issues to <a href="https://github.com/datajuicer/data-juicer/blob/main/docs/awesome_llm_data.md#contribution-to-this-survey">contribute to</a> this list and add more related resources!</strong></p>
+        
+    </div>
+
+
+</header>
+<section>
+
+<div class="container">
+
+<h1>Detailed Paper List</h1>
+
+<label for="tag-filter">Filter by tag:</label>
+<div id="dropdown-container">
+    <select id="tag-filter" multiple>
+        <option value="Data4Model->Scaling Up->Acquisition" data-color="#f1db9d">Data4Model->Scaling Up->Acquisition</option>
+        <option value="Data4Model->Scaling Up->Augmentation" data-color="#f1db9d">Data4Model->Scaling Up->Augmentation</option>
+        <option value="Data4Model->Scaling Up->Diversity" data-color="#f1db9d">Data4Model->Scaling Up->Diversity</option>
+        <option value="Data4Model->Scaling Effectiveness->Condensation" data-color="#f1db9d">Data4Model->Scaling Effectiveness->Condensation</option>
+        <option value="Data4Model->Scaling Effectiveness->Mixture" data-color="#f1db9d">Data4Model->Scaling Effectiveness->Mixture</option>
+        <option value="Data4Model->Scaling Effectiveness->Packing" data-color="#f1db9d">Data4Model->Scaling Effectiveness->Packing</option>
+        <option value="Data4Model->Scaling Effectiveness->CrossModalAlignment" data-color="#f1db9d">Data4Model->Scaling Effectiveness->CrossModalAlignment</option>
+        <option value="Data4Model->Usability->Following->Prompt" data-color="#d3f0aa">Data4Model->Usability->Following->Prompt</option>
+        <option value="Data4Model->Usability->Following->ICL" data-color="#d3f0aa">Data4Model->Usability->Following->ICL</option>
+        <option value="Data4Model->Usability->Following->HumanBehavior" data-color="#d3f0aa">Data4Model->Usability->Following->HumanBehavior</option>
+        <option value="Data4Model->Usability->Reasoning->SingleHop" data-color="#d3f0aa">Data4Model->Usability->Reasoning->SingleHop</option>
+        <option value="Data4Model->Usability->Reasoning->MultiHop" data-color="#d3f0aa">Data4Model->Usability->Reasoning->MultiHop</option>
+        <option value="Data4Model->Usability->Ethic->Toxicity" data-color="#d3f0aa">Data4Model->Usability->Ethic->Toxicity</option>
+        <option value="Data4Model->Usability->Ethic->Privacy&IP" data-color="#d3f0aa">Data4Model->Usability->Ethic->Privacy&IP</option>
+        <option value="Data4Model->Usability->Eval->Understanding" data-color="#d3f0aa">Data4Model->Usability->Eval->Understanding</option>
+        <option value="Data4Model->Usability->Eval->Generation" data-color="#d3f0aa">Data4Model->Usability->Eval->Generation</option>
+        <option value="Data4Model->Usability->Eval->Retrieval" data-color="#d3f0aa">Data4Model->Usability->Eval->Retrieval</option>
+        <option value="Data4Model->Usability->Eval->Reasoning" data-color="#d3f0aa">Data4Model->Usability->Eval->Reasoning</option>
+        <option value="Model4Data->Synthesis->Creator" data-color="#b4d4fb">Model4Data->Synthesis->Creator</option>
+        <option value="Model4Data->Synthesis->Mapper" data-color="#b4d4fb">Model4Data->Synthesis->Mapper</option>
+        <option value="Model4Data->Synthesis->Filter" data-color="#b4d4fb">Model4Data->Synthesis->Filter</option>
+        <option value="Model4Data->Synthesis->Evaluator" data-color="#b4d4fb">Model4Data->Synthesis->Evaluator</option>
+        <option value="Model4Data->Insights->Navigator" data-color="#f2c0c6">Model4Data->Insights->Navigator</option>
+        <option value="Model4Data->Insights->Extractor" data-color="#f2c0c6">Model4Data->Insights->Extractor</option>
+        <option value="Model4Data->Insights->Analyzer" data-color="#f2c0c6">Model4Data->Insights->Analyzer</option>
+        <option value="Model4Data->Insights->Visualizer" data-color="#f2c0c6">Model4Data->Insights->Visualizer</option>
+    </select>
+</div>
+<table id="example" class="display" style="width: 100%; margin-top: 20px;">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Tags</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>No "Zero-Shot" Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Evaluator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>What Makes for Good Visual Instructions? Synthesizing Complex Visual Reasoning Instructions for Visual Instruction Tuning</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Med-MMHL: A Multi-Modal Dataset for Detecting Human- and LLM-Generated Misinformation in the Medical Domain</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Probing Heterogeneous Pretraining Datasets with Small Curated Datasets</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ChartLlama: A Multimodal LLM for Chart Understanding and Generation</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Visualizer</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>VideoChat: Chat-Centric Video Understanding</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Aligned with LLM: a new multi-modal training paradigm for encoding fMRI activity in visual cortex</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>3DMIT: 3D Multi-modal Instruction Tuning for Scene Understanding</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>GPT4MTS: Prompt-based Large Language Model for Multimodal Time-series Forecasting</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Large-scale Contrastive Language-Audio Pretraining with Feature Fusion and Keyword-to-Caption Augmentation</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Audio Retrieval with WavText5K and CLAP Training</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Retrieval</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>The Devil is in the Details: A Deep Dive into the Rabbit Hole of Data Filtering</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Demystifying CLIP Data</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Mixture</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Learning Transferable Visual Models From Natural Language Supervision</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>DataComp: In search of the next generation of multimodal datasets</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Filter</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Beyond neural scaling laws: beating power law scaling via data pruning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Flamingo: a visual language model for few-shot learning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Mixture</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Quality not quantity: On the interaction between dataset design and robustness of clip</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Mixture</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>VBench: Comprehensive Benchmark Suite for Video Generative Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>EvalCraftr: Benchmarking and Evaluating Large Video Generation Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Training Compute-Optimal Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>NExT-GPT: Any-to-Any Multimodal LLM</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ChartThinker: A Contextual Chain-of-Thought Approach to Optimized Chart Summarization</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ChartReformer: Natural Language-Driven Chart Image Editing</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Visualizer</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>GroundingGPT: Language Enhanced Multi-modal Grounding Model</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->ICL</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Shikra: Unleashing Multimodal LLM’s Referential Dialogue Magic</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Kosmos-2: Grounding Multimodal Large Language Models to the World</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Finetuned Multimodal Language Models Are High-Quality Image-Text Data Filters</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Filter</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Filtering, Distillation, and Hard Negatives for Vision-Language Pre-Training</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>3DBench: A Scalable 3D Benchmark and Instruction-Tuning Dataset</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Structured Packing in LLM Training Improves Long Context Utilization</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Packing</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Packing</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MoDE: CLIP Data Experts via Clustering</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Packing</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Efficient Multimodal Learning from Data-centric Perspective</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Improved Baselines for Data-efficient Perceptual Augmentation of LLMs</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MVBench: A Comprehensive Multi-modal Video Understanding Benchmark</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>SEED-Bench: Benchmarking Multimodal LLMs with Generative Comprehension</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Video-ChatGPT: Towards Detailed Video Understanding via Large Vision and Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Perception Test: A Diagnostic Benchmark for Multimodal Video Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>FunQA: Towards Surprising Video ComprehensionFunQA: Towards Surprising Video Comprehension</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Reasoning</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>OneChart: Purify the Chart Structural Extraction via One Auxiliary Token</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ChartQA: A Benchmark for Question Answering about Charts with Visual and Logical Reasoning</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Reasoning</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>StructChart: Perception, Structuring, Reasoning for Visual Chart Understanding</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->SingleHop</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MMC: Advancing Multimodal Chart Understanding with Large-scale Instruction Tuning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ChartX & ChartVLM: A Versatile Benchmark and Foundation Model for Complicated Chart Reasoning</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>WorldGPT: Empowering LLM as Multimodal World Model</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>List Items One by One: A New Data Source and Learning Paradigm for Multimodal LLMs</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->ICL</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>TextSquare: Scaling up Text-Centric Visual Instruction Tuning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Filter</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Evaluator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ImplicitAVE: An Open-Source Dataset and Multimodal LLMs Benchmark for Implicit Attribute Value Extraction</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>How Does the Textual Information Affect the Retrieval of Multimodal In-Context Learning?</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->ICL</span>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Navigator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Draw-and-Understand: Leveraging Visual Prompts to Enable MLLMs to Comprehend What You Want</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Patch n' Pack: NaViT, a Vision Transformer for any Aspect Ratio and Resolution</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Packing</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Fewer Truncations Improve Language Modeling</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Packing</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MedThink: Explaining Medical Visual Question Answering via Multimodal Decision-Making Rationale</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>AesExpert: Towards Multi-modality Foundation Model for Image Aesthetics Perception</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>UNIAA: A Unified Multi-modal Image Aesthetic Data AugmentationAssessment Baseline and Benchmark</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Improving Composed Image Retrieval via Contrastive Learning with Scaling Positives and Negatives</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Eyes Closed, Safety On: Protecting Multimodal LLMs via Image-to-Text Transformation</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Evaluator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>TextHawk: Exploring Efficient Fine-Grained Perception of Multimodal Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>The Wolf Within: Covert Injection of Malice into MLLM Societies via an MLLM Operative</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>BuboGPT: Enabling Visual Grounding in Multi-Modal LLMs</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MLLM-Bench: Evaluating Multimodal LLMs with Per-sample Criteria</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Evaluator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MM-SafetyBench: A Benchmark for Safety Evaluation of Multimodal Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Retrieval-augmented Multi-modal Chain-of-Thoughts Reasoning for Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->ICL</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>M3DBench: Let’s Instruct Large Models with Multi-modal 3D Prompts</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MoqaGPT: Zero-Shot Multi-modal Open-domain Question Answering with Large Language Model</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Analyzer</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>mPLUG-DocOwl: Modularized Multimodal Large Language Model for Document Understanding</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Analyzer</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>mPLUG-DocOwl 1.5: Unified Structure Learning for OCR-free Document Understanding</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Analyzer</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>mPLUG-Owl2: Revolutionizing Multi-modal Large Language Model with Modality Collaboration</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>mPLUG-PaperOwl: Scientific Diagram Analysis with the Multimodal Large Language Model</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Analyzer</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Open-TransMind: A New Baseline and Benchmark for 1st Foundation Model Challenge of Intelligent Transportation</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Retrieval</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>On the Adversarial Robustness of Multi-Modal Foundation Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>What If the TV Was Off? Examining Counterfactual Reasoning Abilities of Multi-modal Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->SingleHop</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Filter</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ShareGPT4V: Improving Large Multi-Modal Models with Better Captions</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>PaLM-E: An Embodied Multimodal Language Model</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Multimodal Data Curation via Object Detection and Filter Ensembles</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Sieve: Multimodal Dataset Pruning Using Image Captioning Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Towards a statistical theory of data selection under weak supervision</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>𝐷2 Pruning: Message Passing for Balancing Diversity & Difficulty in Data Pruning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>UIClip: A Data-driven Model for Assessing User Interface Design</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>CapsFusion: Rethinking Image-Text Data at Scale</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Improving CLIP Training with Language Rewrites</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>OpenLEAF: Open-Domain Interleaved Image-Text Generation and Evaluation</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>A Decade's Battle on Dataset Bias: Are We There Yet?</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Mixture</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Stable Video Diffusion: Scaling Latent Video Diffusion Models to Large Datasets</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Data Filtering Networks</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>T-MARS: Improving Visual Representations by Circumventing Text Feature Learning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>InstructionGPT-4: A 200-Instruction Paradigm for Fine-Tuning MiniGPT-4</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Align and Attend: Multimodal Summarization with Dual Contrastive Losses</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MathVerse: Does Your Multi-modal LLM Truly See the Diagrams in Visual Math Problems?</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->SingleHop</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Reasoning</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Text-centric Alignment for Multi-Modality Learning</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Noisy Correspondence Learning with Meta Similarity Correction</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Grounding-Prompter: Prompting LLM with Multimodal Information for Temporal Sentence Grounding in Long Videos</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Language-Image Models with 3D Understanding</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->SingleHop</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Scaling Laws for Generative Mixed-Modal Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>BLINK: Multimodal Large Language Models Can See but Not Perceive</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Visual Hallucinations of Multi-modal Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>DDCoT: Duty-Distinct Chain-of-Thought Prompting for Multimodal Reasoning in Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>EmbodiedGPT: Vision-Language Pre-Training via Embodied Chain of Thought</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Learn to Explain: Multimodal Reasoning via Thought Chains for Science Question Answering</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Reasoning->MultiHop</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Visual Instruction Tuning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Time-LLM: Time Series Forecasting by Reprogramming Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>On the De-duplication of LAION-2B</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Hunyuan-DiT: A Powerful Multi-Resolution Diffusion Transformer with Fine-Grained Chinese Understanding</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Mixture</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>LAMM: Language-Assisted Multi-Modal Instruction-Tuning Dataset, Framework, and Benchmark</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>LLMs as Bridges: Reformulating Grounded Multimodal Named Entity Recognition</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Data Augmentation for Text-based Person Retrieval Using Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Mixture</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Aligning Actions and Walking to LLM-Generated Textual Descriptions</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>GPT4Tools: Teaching Large Language Model to Use Tools via Self-instruction</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Augmentation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>SPHINX-X: Scaling Data and Parameters for a Family of Multi-modal Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>AlignGPT: Multi-modal Large Language Models with Adaptive Alignment Capability</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>AnyGPT: Unified Multimodal LLM with Discrete Sequence Modeling</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Probing Multimodal LLMs as World Models for Driving</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Reasoning</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Unified Hallucination Detection for Multimodal Large Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Extractor</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Semdedup: Data-efficient learning at web-scale through semantic deduplication</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Automated Multi-level Preference for MLLMs</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Silkie: Preference distillation for large visual language models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Mitigating Hallucination in Large Multi-Modal Models via Robust Instruction Tuning</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>M3it: A large-scale dataset towards multi-modal multilingual instruction tuning</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Aligning Large Multimodal Models with Factually Augmented RLHF</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>DRESS: Instructing Large Vision-Language Models to Align and Interact with Humans via Natural Language Feedback</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->HumanBehavior</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>RLHF-V: Towards Trustworthy MLLMs via Behavior Alignment from Fine-grained Correctional Human Feedback</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->CrossModalAlignment</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MLLM-as-a-Judge: Assessing Multimodal LLM-as-a-Judge with Vision-Language Benchmark</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Generation</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Evaluator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MMT-Bench: A Comprehensive Multimodal Benchmark for Evaluating Large Vision-Language Models Towards Multitask AGI</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Understanding</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Retrieval</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>M3CoT: A Novel Benchmark for Multi-Domain Multi-step Multi-modal Chain-of-Thought</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Eval->Reasoning</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ImgTrojan: Jailbreaking Vision-Language Models with ONE Image</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Evaluator</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>VL-Trojan: Multimodal Instruction Backdoor Attacks against Autoregressive Visual Language Models</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Jailbreaking GPT-4V via Self-Adversarial Attacks with System Prompts</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Toxicity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Improving Multimodal Datasets with Image Captioning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Bridging Research and Readers: A Multi-Modal Automated Academic Papers Interpretation System</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Analyzer</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>LLMs as Bridges: Reformulating Grounded Multimodal Named Entity Recognition</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Extractor</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>PDFChatAnnotator: A Human-LLM Collaborative Multi-Modal Data Annotation Tool for PDF-Format Catalogs</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Extractor</span>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Mapper</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>CiT: Curation in Training for Effective Vision-Language Data</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Condensation</span>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Effectiveness->Mixture</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>InstructPix2Pix: Learning to Follow Image Editing Instructions</td>
+            <td>
+                <span class="tag" style="background-color:#b4d4fb;">Model4Data->Synthesis->Creator</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Automated Data Visualization from Natural Language via Large Language Models: An Exploratory Study</td>
+            <td>
+                <span class="tag" style="background-color:#f2c0c6;">Model4Data->Insights->Visualizer</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ModelGo: A Practical Tool for Machine Learning License Analysis</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Ethic->Privacy&IP</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Scaling Laws of Synthetic Images for Model Training ... for Now</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Cambrian-1: A Fully Open, Vision-Centric Exploration of Multimodal LLMs</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Diversity</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Set-of-Mark Prompting Unleashes Extraordinary Visual Grounding in GPT-4V</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->Prompt</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Segment Anything</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>AIM: Let Any Multi-modal Large Language Models Embrace Efficient In-Context Learning</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->ICL</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>MMICL: Empowering Vision-language Model with Multi-Modal In-Context Learning</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->ICL</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>All in an Aggregated Image for In-Image Learning</td>
+            <td>
+                <span class="tag" style="background-color:#d3f0aa;">Data4Model->Usability->Responsiveness->ICL</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Panda-70m: Captioning 70m videos with multiple cross-modality teachers</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>Multimodal C4: An Open, Billion-scale Corpus of Images Interleaved With Text</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td>ChartAssisstant: A Universal Chart Multimodal Language Model via Chart-to-Table Pre-training and Multitask Instruction Tuning</td>
+            <td>
+                <span class="tag" style="background-color:#f1db9d;">Data4Model->Scaling Up->Acquisition</span>
+            </td>
+        </tr>
+
+
+    </tbody>
+
+</table>
+
+</div>
+</section>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="js/jquery-3.2.1.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="js/popper.min.js"></script>
+<script src="js/bootstrap-4.0.0.js"></script>
+</body>
+</html>

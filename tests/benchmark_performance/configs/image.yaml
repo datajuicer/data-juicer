@@ -1,0 +1,23 @@
+# The config file for performance benchmark to measure the processing speed for
+# the current Data-Juicer system. OPs are selected according to their tags and
+# types (https://github.com/datajuicer/data-juicer/blob/main/docs/Operators.md)
+
+project_name: 'performance-benchmark-image'
+dataset_path: 'perf_bench_data/image/10k.jsonl'
+export_path: 'outputs/performance_benchmark_image/res.jsonl'
+np: 16
+use_cache: false
+
+process:
+  - image_aesthetics_filter:
+      hf_scorer_model: 'shunk031/aesthetics-predictor-v2-sac-logos-ava1-l14-linearMSE'
+      min_score: 0.0
+      mem_required: '1500MB'
+  - image_captioning_mapper:
+      hf_img2seq: 'Salesforce/blip2-opt-2.7b'
+      caption_num: 1
+      keep_original_sample: false
+      mem_required: '16GB'
+  - image_shape_filter:
+  - image_blur_mapper:
+  - image_deduplicator:

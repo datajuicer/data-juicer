@@ -1,0 +1,15 @@
+# Process config example for dataset
+
+# global parameters
+project_name: 'demo-dedup'
+dataset_path: './demos/process_on_ray/data/'
+export_path: './outputs/demo-dedup/demo-ray-bts-dedup-processed'
+
+executor_type: 'ray'
+ray_address: 'auto'
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  - ray_bts_minhash_deduplicator:
+      tokenization: 'character'

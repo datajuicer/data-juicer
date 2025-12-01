@@ -7,7 +7,7 @@ import yaml
 from loguru import logger
 
 from data_juicer.config import init_configs
-from data_juicer.core import Analyzer, Executor
+from data_juicer.core import Analyzer, DefaultExecutor
 from data_juicer.ops.base_op import OPERATORS
 
 
@@ -119,7 +119,7 @@ def process_and_show_res():
     # force generating separate figures
     cfg['save_stats_in_one_file'] = True
     logger.info('=========Stage 2: process original data=========')
-    executor = Executor(cfg)
+    executor = DefaultExecutor(cfg)
     processed_dataset = executor.run()
 
     logger.info('=========Stage 3: analyze the processed data==========')

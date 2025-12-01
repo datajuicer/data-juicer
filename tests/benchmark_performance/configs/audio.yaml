@@ -1,0 +1,14 @@
+# The config file for performance benchmark to measure the processing speed for
+# the current Data-Juicer system. OPs are selected according to their tags and
+# types (https://github.com/datajuicer/data-juicer/blob/main/docs/Operators.md)
+
+project_name: 'performance-benchmark-audio'
+dataset_path: 'perf_bench_data/audio/audio-10k.jsonl'
+export_path: 'outputs/performance_benchmark_audio/res.jsonl'
+np: 16
+use_cache: false
+
+process:
+  - audio_duration_filter:
+  - audio_nmf_snr_filter:
+  - audio_size_filter:

@@ -9,7 +9,7 @@ import sys
 from importlib import abc, util
 from pathlib import Path
 
-_TOOLS_PATH = Path(__file__).resolve().parent.parent.parent / 'tools'
+_TOOLS_PATH = Path(__file__).resolve().parent.parent.parent / "tools"
 
 if _TOOLS_PATH.is_dir():
     # This is true only for in-place installation
@@ -18,11 +18,10 @@ if _TOOLS_PATH.is_dir():
     # https://github.com/pypa/setuptools/issues/230
 
     class _PathFinder(abc.MetaPathFinder):
-
         def find_spec(self, name, path, target=None):
-            if not name.startswith('data_juicer.tools.'):
+            if not name.startswith("data_juicer.tools."):
                 return
-            project_name = name.split('.')[-1] + '.py'
+            project_name = name.split(".")[-1] + ".py"
             target_file = _TOOLS_PATH / project_name
             if not target_file.is_file():
                 return

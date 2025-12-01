@@ -1,13 +1,15 @@
 import os
 import unittest
 
-import ffmpeg
 from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.mapper.video_resize_resolution_mapper import \
     VideoResizeResolutionMapper
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.lazy_loader import LazyLoader
+
+ffmpeg = LazyLoader('ffmpeg', 'ffmpeg-python')
 
 
 class VideoResizeResolutionMapperTest(DataJuicerTestCaseBase):

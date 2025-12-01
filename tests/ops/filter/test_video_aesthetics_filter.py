@@ -7,9 +7,8 @@ from data_juicer.ops.filter.video_aesthetics_filter import \
     VideoAestheticsFilter
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.mm_utils import SpecialTokens
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, SKIPPED_TESTS
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-@SKIPPED_TESTS.register_module()
 class VideoAestheticsFilterTest(DataJuicerTestCaseBase):
 
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
@@ -153,7 +152,7 @@ class VideoAestheticsFilterTest(DataJuicerTestCaseBase):
         op = VideoAestheticsFilter(self.hf_aesthetics_scorer,
                                    min_score=0.411,
                                    max_score=0.45,
-                                   frame_sampling_method='keyframe')
+                                   frame_sampling_method='all_keyframes')
         self._run_video_aesthetics_filter(dataset, tgt_list, op)
 
     def test_filter_uniform_frames_with_different_frame_num(self):

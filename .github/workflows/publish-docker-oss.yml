@@ -1,0 +1,42 @@
+name: Sync Docker Image to Aliyun OSS
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 16 * * 1'  # Every Monday at 16:00 UTC -- Every Tuesday at 0:00 in Beijing Time
+
+env:
+  IMAGE_NAME: datajuicer/data-juicer
+  IMAGE_TAG: latest
+  REGISTRY_MIRROR: docker.xiaogenban1993.com
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+
+jobs:
+  build:
+    runs-on: [docker-internal]
+    timeout-minutes: 1440 # 24 hours
+
+    steps:
+      - name: Pull Docker image
+        run: |
+          docker pull ${{ env.REGISTRY_MIRROR }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Export to tar file
+        run: |
+          docker save ${{ env.REGISTRY_MIRROR }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} | gzip > data-juicer-${{ env.IMAGE_TAG }}.tar.gz
+
+      - name: Sync Docker image to Aliyun OSS
+        id: sync_to_oss
+        run: |
+          curl -s "http://127.0.0.1:5006/sync2oss?file_path=data-juicer-${{ env.IMAGE_TAG }}.tar.gz" > /dev/null
+
+      - name: Clean up resources
+        if: success()
+        run: |
+          rm -rf data-juicer-${{ env.IMAGE_TAG }}.tar.gz

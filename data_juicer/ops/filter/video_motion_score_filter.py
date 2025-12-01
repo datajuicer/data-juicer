@@ -1,19 +1,19 @@
 import sys
 from contextlib import contextmanager
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
-from jsonargparse.typing import PositiveFloat, PositiveInt
+from pydantic import PositiveFloat, PositiveInt
 
-from data_juicer.utils.availability_utils import AvailabilityChecking
 from data_juicer.utils.constant import Fields, StatsKeys
+from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.mm_utils import calculate_resized_dimensions
 
 from ..base_op import OPERATORS, UNFORKABLE, Filter
 
-OP_NAME = 'video_motion_score_filter'
+cv2 = LazyLoader("cv2", "opencv-python")
 
-with AvailabilityChecking(['opencv-python'], OP_NAME):
-    import cv2
+OP_NAME = "video_motion_score_filter"
 
 
 @contextmanager
@@ -28,31 +28,38 @@ def VideoCapture(*args, **kwargs):
 @UNFORKABLE.register_module(OP_NAME)
 @OPERATORS.register_module(OP_NAME)
 class VideoMotionScoreFilter(Filter):
-    """Filter to keep samples with video motion scores within a specific range. The
-    Farneback's algorith from OpenCV is used to compute dense optical flow.
-    """
+    """Filter to keep samples with video motion scores within a specific range.
+
+    The operator uses Farneback's algorithm from OpenCV to compute dense optical flow. It
+    calculates the average motion score for each video and retains samples based on the
+    specified minimum and maximum score thresholds. The 'any' or 'all' strategy determines
+    whether to keep a sample if any or all videos meet the criteria. The motion score is
+    computed as the mean magnitude of the optical flow, which can be normalized relative to
+    the frame's diagonal length. The stats are cached under the key 'video_motion_score'."""
 
     _default_kwargs = {
-        'pyr_scale': 0.5,
-        'levels': 3,
-        'winsize': 15,
-        'iterations': 3,
-        'poly_n': 5,
-        'poly_sigma': 1.2,
-        'flags': 0
+        "pyr_scale": 0.5,
+        "levels": 3,
+        "winsize": 15,
+        "iterations": 3,
+        "poly_n": 5,
+        "poly_sigma": 1.2,
+        "flags": 0,
     }
 
-    def __init__(self,
-                 min_score: float = 0.25,
-                 max_score: float = sys.float_info.max,
-                 sampling_fps: PositiveFloat = 2,
-                 size: Optional[Union[PositiveInt,
-                                      Sequence[PositiveInt]]] = None,
-                 max_size: Optional[PositiveInt] = None,
-                 relative: bool = False,
-                 any_or_all: str = 'any',
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        min_score: float = 0.25,
+        max_score: float = sys.float_info.max,
+        sampling_fps: PositiveFloat = 2,
+        size: Union[PositiveInt, Tuple[PositiveInt], Tuple[PositiveInt, PositiveInt], None] = None,
+        max_size: Optional[PositiveInt] = None,
+        divisible: PositiveInt = 1,
+        relative: bool = False,
+        any_or_all: str = "any",
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -70,6 +77,7 @@ class VideoMotionScoreFilter(Filter):
             being resized according to size, size will be overruled so that the
             longer edge is equal to max_size. As a result, the smaller edge may
             be shorter than size. This is only supported if size is an int.
+        :param divisible: The number that the dimensions must be divisible by.
         :param relative: If `True`, the optical flow magnitude is normalized to
             a [0, 1] range, relative to the frame's diagonal length.
         :param any_or_all: keep this sample with 'any' or 'all' strategy of
@@ -87,12 +95,13 @@ class VideoMotionScoreFilter(Filter):
         if isinstance(size, (list, tuple)):
             if len(size) not in [1, 2]:
                 raise ValueError(
-                    f'Size must be an int or a 1 or 2 element tuple/list,'
-                    f'not a {len(size)} element tuple/list.')
+                    f"Size must be an int or a 1 or 2 element tuple/list," f"not a {len(size)} element tuple/list."
+                )
         if isinstance(size, int):
-            size = [size]
+            size = (size,)
         self.size = size
         self.max_size = max_size
+        self.divisible = divisible
         self.relative = relative
 
         self.extra_kwargs = self._default_kwargs
@@ -100,21 +109,34 @@ class VideoMotionScoreFilter(Filter):
             if key in self.extra_kwargs:
                 self.extra_kwargs[key] = kwargs[key]
 
-        if any_or_all not in ['any', 'all']:
-            raise ValueError(f'Keep strategy [{any_or_all}] is not supported. '
-                             f'Can only be one of ["any", "all"].')
-        self.any = (any_or_all == 'any')
+        if any_or_all not in ["any", "all"]:
+            raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
+        self.any = any_or_all == "any"
 
-    def compute_stats(self, sample, context=False):
+    def setup_model(self, rank=None):
+        self.model = cv2.calcOpticalFlowFarneback
+
+    def compute_flow(self, prev_frame, curr_frame):
+        curr_frame = cv2.cvtColor(curr_frame, cv2.COLOR_BGR2GRAY)
+        if prev_frame is None:
+            flow = None
+        else:
+            flow = self.model(prev_frame, curr_frame, None, **self.extra_kwargs)
+        return flow, curr_frame
+
+    def compute_stats_single(self, sample, rank=None, context=False):
+        self.rank = rank
+
         # check if it's computed already
         if StatsKeys.video_motion_score in sample[Fields.stats]:
             return sample
 
         # there is no video in this sample
         if self.video_key not in sample or not sample[self.video_key]:
-            sample[Fields.stats][StatsKeys.video_motion_score] = np.array(
-                [], dtype=np.float64)
+            sample[Fields.stats][StatsKeys.video_motion_score] = np.array([], dtype=np.float64)
             return sample
+
+        self.setup_model(rank)
 
         # load videos
         loaded_video_keys = sample[self.video_key]
@@ -132,8 +154,10 @@ class VideoMotionScoreFilter(Filter):
                     sampling_step = round(fps / sampling_fps)
                     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                     # at least two frames for computing optical flow
-                    sampling_step = max(min(sampling_step, total_frames - 1),
-                                        1)
+                    sampling_step = max(min(sampling_step, total_frames - 1), 1)
+                    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                    new_size = calculate_resized_dimensions((height, width), self.size, self.max_size, self.divisible)
 
                 prev_frame = None
                 frame_count = 0
@@ -144,27 +168,19 @@ class VideoMotionScoreFilter(Filter):
                         # a corrupt frame or reaching the end of the video.
                         break
 
-                    height, width, _ = frame.shape
-                    new_size = _compute_resized_output_size(
-                        (height, width), self.size, self.max_size)
                     if new_size != (height, width):
-                        frame = cv2.resize(frame,
-                                           new_size,
-                                           interpolation=cv2.INTER_AREA)
+                        frame = cv2.resize(frame, new_size, interpolation=cv2.INTER_AREA)
 
-                    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    if prev_frame is None:
-                        prev_frame = gray_frame
+                    # return flow of shape (H, W, 2) and transformed frame
+                    # of shape (H, W, 3) in BGR mode
+                    flow, prev_frame = self.compute_flow(prev_frame, frame)
+                    if flow is None:
                         continue
-
-                    flow = cv2.calcOpticalFlowFarneback(
-                        prev_frame, gray_frame, None, **self.extra_kwargs)
                     mag, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
                     frame_motion_score = np.mean(mag)
                     if self.relative:
-                        frame_motion_score /= np.hypot(*flow.shape[:2])
+                        frame_motion_score /= np.hypot(*frame.shape[:2])
                     video_motion_scores.append(frame_motion_score)
-                    prev_frame = gray_frame
 
                     # quickly skip frames
                     frame_count += sampling_step
@@ -174,22 +190,20 @@ class VideoMotionScoreFilter(Filter):
             if not video_motion_scores:
                 unique_motion_scores[video_key] = -1
             else:
-                unique_motion_scores[video_key] = np.mean(video_motion_scores
-                                                          or [-1])
+                unique_motion_scores[video_key] = np.mean(video_motion_scores or [-1])
 
-        sample[Fields.stats][StatsKeys.video_motion_score] = [
-            unique_motion_scores[key] for key in loaded_video_keys
-        ]
+        sample[Fields.stats][StatsKeys.video_motion_score] = [unique_motion_scores[key] for key in loaded_video_keys]
         return sample
 
-    def process(self, sample):
-        video_motion_scores = sample[Fields.stats][
-            StatsKeys.video_motion_score]
+    def process_single(self, sample):
+        video_motion_scores = sample[Fields.stats][StatsKeys.video_motion_score]
 
-        keep_bools = np.array([
-            self.min_score <= motion_score <= self.max_score
-            for motion_score in video_motion_scores
-        ])
+        keep_bools = np.array(
+            [
+                self.get_keep_boolean(motion_score, self.min_score, self.max_score)
+                for motion_score in video_motion_scores
+            ]
+        )
         if len(keep_bools) <= 0:
             return True
 
@@ -198,27 +212,3 @@ class VideoMotionScoreFilter(Filter):
             return keep_bools.any()
         else:
             return keep_bools.all()
-
-
-def _compute_resized_output_size(
-    frame_size: Tuple[int, int],
-    size: Optional[List[int]],
-    max_size: Optional[int] = None,
-) -> List[int]:
-    h, w = frame_size
-    short, long = (w, h) if w <= h else (h, w)
-
-    if size is None:  # no change
-        new_short, new_long = short, long
-    elif len(size) == 1:  # specified size only for the smallest edge
-        new_short = size[0]
-        new_long = int(new_short * long / short)
-    else:  # specified both h and w
-        new_short, new_long = min(size), max(size)
-
-    if max_size is not None and new_long > max_size:
-        new_short = int(max_size * new_short / new_long)
-        new_long = max_size
-
-    new_w, new_h = (new_short, new_long) if w <= h else (new_long, new_short)
-    return new_h, new_w

@@ -10,6 +10,7 @@ services:
       - TORCH_HOME=/data/torch
       - NLTK_DATA=/data/nltk
       - DATA_JUICER_CACHE_HOME=/data/dj
+      - EASYOCR_MODULE_PATH=/data/EasyOCR
       - RAY_ADDRESS=auto
     working_dir: /workspace
     networks:
@@ -20,7 +21,7 @@ services:
     ports:
       - "6379:6379"
       - "8265:8265"
-    shm_size: "64G"
+    shm_size: "256G"
     deploy:
       resources:
         reservations:
@@ -39,6 +40,7 @@ services:
       - TORCH_HOME=/data/torch
       - NLTK_DATA=/data/nltk
       - DATA_JUICER_CACHE_HOME=/data/dj
+      - EASYOCR_MODULE_PATH=/data/EasyOCR
     working_dir: /workspace
     volumes:
       - huggingface_cache:/data
@@ -47,7 +49,7 @@ services:
       - ray-head
     networks:
       - ray-network
-    shm_size: "64G"
+    shm_size: "256G"
     deploy:
       resources:
         reservations:

@@ -1,5 +1,6 @@
 import unittest
 
+from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper import \
     RemoveWordsWithIncorrectSubstringsMapper  # noqa: E501
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
@@ -8,9 +9,11 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class RemoveWordsWithIncorrectSubstringsMapperTest(DataJuicerTestCaseBase):
 
     def _run_remove_words_with_incorrect_sbstrings(self, samples, op):
-        for sample in samples:
-            result = op.process(sample)
-            self.assertEqual(result['text'], result['target'])
+        dataset = Dataset.from_list(samples)
+        dataset = dataset.map(op.process, batch_size=2)
+                
+        for data in dataset:
+            self.assertEqual(data['text'], data['target'])
 
     def test_en_case(self):
 

@@ -10,7 +10,7 @@ auto_eval:
     vocab_path: <path to vocab file>
     merge_path: <path to merge file>
     max_tokens: <max tokens in inference>
-    token_per_iteration: <billions tokens per iteraion>
+    token_per_iteration: <billions tokens per iteration>
     # tokenizer_path:
     # log_path: <default is cache_path/megatron.log>
   helm:

@@ -29,7 +29,7 @@
 docker pull nvcr.io/nvidia/pytorch:22.12-py3
 docker run --gpus all --ipc=host --ulimit memlock=-1 -it --rm -v /dataset:/workspace/data -v /code/data-juicer:/worksapce/data-juicer nvcr.io/nvidia/pytorch:22.12-py3
 ```
-dokcer 容器成功运行后在容器内运行安装脚本并登录 wandb：
+docker 容器成功运行后在容器内运行安装脚本并登录 wandb：
 
 ```shell
 cd /workspace/data-juicer/thirdparty/LLM_ecosystems
@@ -78,10 +78,10 @@ nohup bash /workspace/data-juicer/demos/auto_eval_helm/pretrain_example.sh > tra
 
 ```shell
 cd /workspace/data-juicer/tools/eval
-python evaluator.py --config /workspace/data-juicer/demos/evalutor.yaml --begin-iteration 2000 --end-iteration 200000 --interation-interval 2000 --check-interval 30
+python evaluator.py --config /workspace/data-juicer/demos/evaluator.yaml --begin-iteration 2000 --end-iteration 200000 --interation-interval 2000 --check-interval 30
 ```
 
-该脚本会每隔 30 分钟检测一次 `/workspace/data/checkpoints/GPT2` 目录，并从 2000 iteration 开始每隔 2000 iteraion 对检查点执行一次 HELM 评测并将评测结果记录至 wandb，直到评测完 200000 iteraion 对应的检查点为止，您可以在 wandb 上查看已完成的评测结果，下图展示了模型训练到 140000 iteration 时 wandb 上的可视化展示结果。
+该脚本会每隔 30 分钟检测一次 `/workspace/data/checkpoints/GPT2` 目录，并从 2000 iteration 开始每隔 2000 iteration 对检查点执行一次 HELM 评测并将评测结果记录至 wandb，直到评测完 200000 iteration 对应的检查点为止，您可以在 wandb 上查看已完成的评测结果，下图展示了模型训练到 140000 iteration 时 wandb 上的可视化展示结果。
 
 ![训练过程中的评测结果展示](imgs/eval-02.png)
 

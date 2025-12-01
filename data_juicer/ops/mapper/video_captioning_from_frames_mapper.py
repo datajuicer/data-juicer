@@ -1,58 +1,66 @@
 # yapf: disable
 import copy
 import random
+from typing import Optional
 
 import numpy as np
-from jsonargparse.typing import PositiveInt
 from loguru import logger
 from PIL import ImageOps
+from pydantic import PositiveInt
 
-from data_juicer.utils.availability_utils import AvailabilityChecking
 from data_juicer.utils.constant import HashKeys
-from data_juicer.utils.mm_utils import (SpecialTokens, close_video,
-                                        extract_key_frames,
-                                        extract_video_frames_uniformly,
-                                        insert_texts_after_placeholders,
-                                        load_data_with_context, load_video,
-                                        remove_non_special_tokens,
-                                        remove_special_tokens)
-from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.mm_utils import (
+    SpecialTokens,
+    close_video,
+    extract_key_frames,
+    extract_video_frames_uniformly,
+    insert_texts_after_placeholders,
+    load_data_with_context,
+    load_video,
+    remove_non_special_tokens,
+    remove_special_tokens,
+)
+from data_juicer.utils.model_utils import get_model, prepare_model, torch
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
+simhash = LazyLoader('simhash', 'simhash-pybind')
+
 OP_NAME = 'video_captioning_from_frames_mapper'
-
-with AvailabilityChecking(['torch', 'transformers', 'simhash-pybind'],
-                          OP_NAME):
-
-    import simhash  # noqa: F401
-    import torch
-    import transformers  # noqa: F401
-
-    # avoid hanging when calling clip in multiprocessing
-    torch.set_num_threads(1)
 
 
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoCaptioningFromFramesMapper(Mapper):
-    """Mapper to generate samples whose captions are generated based on
-    an image-to-text model and sampled video frames. Captions from different
-    frames will be concatenated to a single string."""
+    """Generates video captions from sampled frames using an image-to-text model. Captions from
+    different frames are concatenated into a single string.
+
+    - Uses a Hugging Face image-to-text model to generate captions for sampled video frames.
+    - Supports different frame sampling methods: 'all_keyframes' or 'uniform'.
+    - Can apply horizontal and vertical flips to the frames before captioning.
+    - Offers multiple strategies for retaining generated captions: 'random_any',
+    'similar_one_simhash', or 'all'.
+    - Optionally keeps the original sample in the final dataset.
+    - Allows setting a global prompt or per-sample prompts to guide caption generation.
+    - Generates a specified number of candidate captions per video, which can be reduced
+    based on the selected retention strategy.
+    - The number of output samples depends on the retention strategy and whether original
+    samples are kept."""
 
     _accelerator = 'cuda'
     _batched_op = True
 
     def __init__(
         self,
-        hf_img2seq='Salesforce/blip2-opt-2.7b',
-        trust_remote_code=False,
+        hf_img2seq: str = 'Salesforce/blip2-opt-2.7b',
+        trust_remote_code: bool = False,
         caption_num: PositiveInt = 1,
         keep_candidate_mode: str = 'random_any',
         keep_original_sample: bool = True,
-        prompt: str = None,
-        prompt_key: str = None,
+        prompt: Optional[str] = None,
+        prompt_key: Optional[str] = None,
         frame_sampling_method: str = 'all_keyframes',
         frame_num: PositiveInt = 3,
         horizontal_flip: bool = False,
@@ -64,6 +72,7 @@ class VideoCaptioningFromFramesMapper(Mapper):
         Initialization method.
 
         :param hf_img2seq: model name on huggingface to generate caption
+        :param trust_remote_code: whether to trust the remote code of HF models.
         :param caption_num: how many candidate captions to generate
             for each video
         :param keep_candidate_mode: retain strategy for the generated
@@ -115,6 +124,7 @@ class VideoCaptioningFromFramesMapper(Mapper):
         :param args: extra args
         :param kwargs: extra args
         """
+        kwargs["mem_required"] = "20GB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
         super().__init__(*args, **kwargs)
 
         if keep_candidate_mode not in [
@@ -238,15 +248,16 @@ class VideoCaptioningFromFramesMapper(Mapper):
                         images=video_frame_videos_chunk,
                         return_tensors='pt',
                     ).to(model.device)
-                    for i in range(self.caption_num):
-                        generated_ids = model.generate(**inputs,
-                                                       max_new_tokens=128,
-                                                       do_sample=True)
-                        generated_text = processor.batch_decode(
-                            generated_ids, skip_special_tokens=True)
-                        generated_text_candidates_single_chunk[i] += [
-                            '. '.join([txt.strip() for txt in generated_text])
-                        ]
+                    with torch.no_grad():
+                        for i in range(self.caption_num):
+                            generated_ids = model.generate(**inputs,
+                                                           max_new_tokens=128,
+                                                           do_sample=True)
+                            generated_text = processor.batch_decode(
+                                generated_ids, skip_special_tokens=True)
+                            generated_text_candidates_single_chunk[i] += [
+                                '. '.join([txt.strip() for txt in generated_text])
+                            ]
 
                 # 3. insert a list of generated captions into the positions of
                 # subsequent placeholders in the original string
@@ -301,10 +312,9 @@ class VideoCaptioningFromFramesMapper(Mapper):
             generated_text_per_chunk.extend(
                 generated_text_candidates_single_chunk)
         elif self.keep_candidate_mode == 'similar_one_simhash':
-            from simhash import num_differing_bits
-
-            from ..deduplicator.document_simhash_deduplicator import \
-                DocumentSimhashDeduplicator
+            from ..deduplicator.document_simhash_deduplicator import (
+                DocumentSimhashDeduplicator,
+            )
 
             ori_normal_text = remove_special_tokens(chunk)
             # using a simhash OP to calculate their similarity
@@ -324,7 +334,7 @@ class VideoCaptioningFromFramesMapper(Mapper):
                 for candidate_text in generated_text_candidates_single_chunk
             ]
             hamming_distances = [
-                num_differing_bits(ori_text_hash, generated_text_hash)
+                simhash.num_differing_bits(ori_text_hash, generated_text_hash)
                 for generated_text_hash in generated_text_hashes
             ]
             max_index = min(range(len(hamming_distances)),
@@ -333,7 +343,7 @@ class VideoCaptioningFromFramesMapper(Mapper):
                 generated_text_candidates_single_chunk[max_index])
         return generated_text_per_chunk
 
-    def process(self, samples, rank=None, context=False):
+    def process_batched(self, samples, rank=None, context=False):
         """
         :param samples:
         :return:

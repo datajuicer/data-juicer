@@ -6,7 +6,7 @@ from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.optimize_query_mapper import OptimizeQueryMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-@unittest.skip('unknown vllm connection error')
+# @unittest.skip('unknown vllm connection error')
 class OptimizeQueryMapperTest(DataJuicerTestCaseBase):
 
     def _run_op(self, enable_vllm=False, sampling_params=None, num_proc=1):
@@ -38,13 +38,13 @@ class OptimizeQueryMapperTest(DataJuicerTestCaseBase):
         sampling_params = {'max_new_tokens': 200}
         self._run_op(sampling_params=sampling_params)
 
-    def test_multi_process(self):
-        sampling_params = {'max_new_tokens': 200}
-        self._run_op(sampling_params=sampling_params, num_proc=2)
+    # def test_multi_process(self):
+    #     sampling_params = {'max_new_tokens': 200}
+    #     self._run_op(sampling_params=sampling_params, num_proc=2)
 
-    def test_vllm(self):
-        sampling_params = {'max_tokens': 200}
-        self._run_op(enable_vllm=True, sampling_params=sampling_params)
+    # def test_vllm(self):
+    #     sampling_params = {'max_tokens': 200}
+    #     self._run_op(enable_vllm=True, sampling_params=sampling_params)
 
 
 if __name__ == '__main__':

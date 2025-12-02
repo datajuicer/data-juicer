@@ -16,20 +16,20 @@ class RayImageDeduplicatorTest(DataJuicerTestCaseBase):
     img1_path = os.path.join(data_path, 'img1.png')
     img2_path = os.path.join(data_path, 'img2.jpg')
     img3_path = os.path.join(data_path, 'img3.jpg')
-    # img1_dup.png is a duplicate sample of img1.png
-    img4_path = os.path.join(data_path, 'img1_dup.png')
+    # img4.png is a duplicate sample of img1.png
+    img4_path = os.path.join(data_path, 'img4.png')
     if not os.path.exists(img4_path):
         os.symlink(img1_path, img4_path)
-    # img2_dup.jpg is a duplicate sample of img2.jpg
-    img5_path = os.path.join(data_path, 'img2_dup.jpg')
+    # img5.jpg is a duplicate sample of img2.jpg
+    img5_path = os.path.join(data_path, 'img5.jpg')
     if not os.path.exists(img5_path):
         os.symlink(img2_path, img5_path)
-    # img3_dup.jpg is a duplicate sample of img3.jpg
-    img6_path = os.path.join(data_path, 'img3_dup.jpg')
+    # img6.jpg is a duplicate sample of img3.jpg
+    img6_path = os.path.join(data_path, 'img6.jpg')
     if not os.path.exists(img6_path):
         os.symlink(img3_path, img6_path)
-    # img3_dup_dup.jpg is a duplicate sample of img6.jpg
-    img7_path = os.path.join(data_path, 'img3_dup_dup.jpg')
+    # img7.jpg is a duplicate sample of img6.jpg
+    img7_path = os.path.join(data_path, 'img7.jpg')
     if not os.path.exists(img7_path):
         os.symlink(img6_path, img7_path)
 

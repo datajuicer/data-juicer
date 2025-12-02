@@ -12,6 +12,8 @@ class LoadFormatterTest(DataJuicerTestCaseBase):
     """Test cases specifically for the load_formatter function"""
 
     def setUp(self):
+        super().setUp()
+
         # Setup test data paths
         self._path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  'data', 'structured')
@@ -43,6 +45,8 @@ class LoadFormatterTest(DataJuicerTestCaseBase):
         # Clean up any temp files
         if os.path.exists(self._temp_dir):
             shutil.rmtree(self._temp_dir)
+
+        super().tearDown()
 
     def test_load_formatter_with_json_file(self):
         """Test loading a JSONL file directly"""

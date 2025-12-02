@@ -8,6 +8,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class CleanLinksMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
+
         self.op = CleanLinksMapper()
 
     def _run_clean_links(self, op, samples):

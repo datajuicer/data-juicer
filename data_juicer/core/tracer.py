@@ -4,6 +4,9 @@ import pandas as pd
 from datasets import Dataset
 from loguru import logger
 
+from data_juicer.ops import OPERATORS
+from data_juicer.utils.constant import Fields
+
 
 class Tracer:
     """
@@ -13,22 +16,28 @@ class Tracer:
     The comparison results will be stored in the work directory.
     """
 
-    def __init__(self, work_dir, show_num=10):
+    def __init__(self, work_dir, op_list_to_trace=None, show_num=10):
         """
         Initialization method.
 
         :param work_dir: the work directory to store the comparison
             results
+        :param op_list_to_trace: the OP list to be traced.
         :param show_num: the maximum number of samples to show in the
             comparison result files.
         """
-        self.work_dir = os.path.join(work_dir, 'trace')
+        self.work_dir = os.path.join(work_dir, "trace")
         if not os.path.exists(self.work_dir):
             os.makedirs(self.work_dir)
+        self.op_list_to_trace = op_list_to_trace
+        if not op_list_to_trace:
+            logger.info("Trace for all ops.")
+            self.op_list_to_trace = set(OPERATORS.modules.keys())
+        else:
+            self.op_list_to_trace = set(op_list_to_trace)
         self.show_num = show_num
 
-    def trace_mapper(self, op_name: str, previous_ds: Dataset,
-                     processed_ds: Dataset, text_key: str):
+    def trace_mapper(self, op_name: str, previous_ds: Dataset, processed_ds: Dataset, text_key: str):
         """
         Compare datasets before and after a Mapper.
 
@@ -41,6 +50,9 @@ class Tracer:
         :param text_key: which text_key to trace
         :return:
         """
+        if op_name not in self.op_list_to_trace:
+            return
+
         assert len(previous_ds) == len(processed_ds)
         dif_dict = []
         num = 0
@@ -51,34 +63,36 @@ class Tracer:
             previous_sample = previous_ds[i][text_key]
             processed_sample = processed_ds[i][text_key]
             if previous_sample != processed_sample:
-                dif_dict.append({
-                    'original text': previous_sample,
-                    'processed_text': processed_sample,
-                })
+                dif_dict.append(
+                    {
+                        "original text": previous_sample,
+                        "processed_text": processed_sample,
+                    }
+                )
                 num += 1
                 if num >= self.show_num:
                     break
 
         if len(dif_dict) == 0:
-            logger.warning(f'Datasets before and after op [{op_name}] are all '
-                           f'the same. Thus no comparison results would be '
-                           f'generated.')
+            logger.warning(
+                f"Datasets before and after op [{op_name}] are all "
+                f"the same. Thus no comparison results would be "
+                f"generated."
+            )
             return
         elif len(dif_dict) < self.show_num:
-            logger.warning(f'There are {len(dif_dict)} different samples '
-                           f'before and after op [{op_name}] -- less than '
-                           f'expected {self.show_num} samples.')
+            logger.warning(
+                f"There are {len(dif_dict)} different samples "
+                f"before and after op [{op_name}] -- less than "
+                f"expected {self.show_num} samples."
+            )
 
         # export the tracer results.
-        res_name = f'mapper-{op_name}.jsonl'
+        res_name = f"mapper-{op_name}.jsonl"
         dif_df = pd.DataFrame(dif_dict)
-        dif_df.to_json(os.path.join(self.work_dir, res_name),
-                       orient='records',
-                       lines=True,
-                       force_ascii=False)
+        dif_df.to_json(os.path.join(self.work_dir, res_name), orient="records", lines=True, force_ascii=False)
 
-    def trace_batch_mapper(self, op_name: str, previous_ds: Dataset,
-                           processed_ds: Dataset, text_key: str):
+    def trace_batch_mapper(self, op_name: str, previous_ds: Dataset, processed_ds: Dataset, text_key: str):
         """
         Compare datasets before and after a BatchMapper.
 
@@ -90,6 +104,9 @@ class Tracer:
         :param text_key: which text_key to trace
         :return:
         """
+        if op_name not in self.op_list_to_trace:
+            return
+
         assert previous_ds[0][text_key] == processed_ds[0][text_key]
         aug_dict = []
 
@@ -100,25 +117,15 @@ class Tracer:
             if i + 1 >= self.show_num:
                 break
 
-        if len(aug_dict) == 0:
-            logger.warning(f'Datasets before and after op [{op_name}] are '
-                           f'empty. Thus no comparison results would be '
-                           f'generated.')
-            return
-        elif len(aug_dict) < self.show_num:
-            logger.warning(f'There are only {len(aug_dict)} samples -- less '
-                           f'than expected {self.show_num} samples.')
+        if len(aug_dict) < self.show_num:
+            logger.warning(f"There are only {len(aug_dict)} samples -- less " f"than expected {self.show_num} samples.")
 
         # export the tracer results.
-        res_name = f'mapper-{op_name}.jsonl'
+        res_name = f"mapper-{op_name}.jsonl"
         dif_df = pd.DataFrame(aug_dict)
-        dif_df.to_json(os.path.join(self.work_dir, res_name),
-                       orient='records',
-                       lines=True,
-                       force_ascii=False)
+        dif_df.to_json(os.path.join(self.work_dir, res_name), orient="records", lines=True, force_ascii=False)
 
-    def trace_filter(self, op_name: str, previous_ds: Dataset,
-                     processed_ds: Dataset):
+    def trace_filter(self, op_name: str, previous_ds: Dataset, processed_ds: Dataset):
         """
         Compare datasets before and after a Filter.
 
@@ -129,10 +136,15 @@ class Tracer:
         :param processed_ds: dataset processed by the filter
         :return:
         """
+        if op_name not in self.op_list_to_trace:
+            return
+
         if len(previous_ds) == len(processed_ds):
-            logger.warning(f'Datasets before and after op [{op_name}] are all '
-                           f'the same. Thus no comparison results would be '
-                           f'generated.')
+            logger.warning(
+                f"Datasets before and after op [{op_name}] are all "
+                f"the same. Thus no comparison results would be "
+                f"generated."
+            )
             return
 
         # get the number of filtered samples.
@@ -143,9 +155,14 @@ class Tracer:
         # number of found filtered samples. It's the offset between two
         # datasets as well.
         num = 0
+        previous_ds_no_stats = (
+            previous_ds.remove_columns(Fields.stats) if Fields.stats in previous_ds.column_names else previous_ds
+        )
+        processed_ds_no_stats = (
+            processed_ds.remove_columns(Fields.stats) if Fields.stats in processed_ds.column_names else processed_ds
+        )
         while i < len(previous_ds):
-            if i - num >= len(processed_ds) or \
-                    previous_ds[i] != processed_ds[i - num]:
+            if i - num >= len(processed_ds) or previous_ds_no_stats[i] != processed_ds_no_stats[i - num]:
                 # 1. If all samples in processed dataset are checked but there
                 # still some samples left in the previous dataset, all of these
                 # left samples are filtered.
@@ -159,25 +176,19 @@ class Tracer:
                 # have found all filtered samples, just stop.
                 break
             i += 1
-        if len(filter_dict) == 0:
-            logger.warning(f'Datasets before and after op [{op_name}] are all '
-                           f'the same. Thus no comparison results would be '
-                           f'generated.')
-            return
-        elif len(filter_dict) < self.show_num:
-            logger.warning(f'There are {len(filter_dict)} filtered samples '
-                           f'before and after op [{op_name}] -- less than '
-                           f'expected {self.show_num} samples.')
+        if len(filter_dict) < self.show_num:
+            logger.warning(
+                f"There are {len(filter_dict)} filtered samples "
+                f"before and after op [{op_name}] -- less than "
+                f"expected {self.show_num} samples."
+            )
 
         # export the tracer results.
-        res_name = f'filter-{op_name}.jsonl'
+        res_name = f"filter-{op_name}.jsonl"
         filter_df = pd.DataFrame(filter_dict)
-        filter_df.to_json(os.path.join(self.work_dir, res_name),
-                          orient='records',
-                          lines=True,
-                          force_ascii=False)
+        filter_df.to_json(os.path.join(self.work_dir, res_name), orient="records", lines=True, force_ascii=False)
 
-    def trace_deduplicator(self, op_name: str, dup_pairs: list):
+    def trace_deduplicator(self, op_name: str, dup_pairs: dict):
         """
         Compare datasets before and after a Deduplicator.
 
@@ -192,33 +203,41 @@ class Tracer:
             deduplicator
         :return:
         """
+        if op_name not in self.op_list_to_trace:
+            return
+
         if dup_pairs is None:
-            logger.warning(f'Op [{op_name}] does not generate dup_pairs '
-                           f'correctly, thus no comparison results can be '
-                           f'obtained from this op.')
+            logger.warning(
+                f"Op [{op_name}] does not generate dup_pairs "
+                f"correctly, thus no comparison results can be "
+                f"obtained from this op."
+            )
             return
         if len(dup_pairs) == 0:
-            logger.warning(f'Datasets before and after op [{op_name}] are all '
-                           f'the same. Thus no comparison results would be '
-                           f'generated.')
+            logger.warning(
+                f"Datasets before and after op [{op_name}] are all "
+                f"the same. Thus no comparison results would be "
+                f"generated."
+            )
             return
         elif len(dup_pairs) < self.show_num:
-            logger.warning(f'There are {len(dup_pairs)} filtered samples '
-                           f'before and after op [{op_name}] -- less than '
-                           f'expected {self.show_num} samples.')
+            logger.warning(
+                f"There are {len(dup_pairs)} filtered samples "
+                f"before and after op [{op_name}] -- less than "
+                f"expected {self.show_num} samples."
+            )
 
         # reorganize the duplicate pairs
         dup_dict = []
         for key in dup_pairs:
-            dup_dict.append({
-                'dup1': dup_pairs[key][0],
-                'dup2': dup_pairs[key][1],
-            })
+            dup_dict.append(
+                {
+                    "dup1": dup_pairs[key][0],
+                    "dup2": dup_pairs[key][1],
+                }
+            )
 
         # export the tracer result.
-        res_name = f'duplicate-{op_name}.jsonl'
+        res_name = f"duplicate-{op_name}.jsonl"
         dup_df = pd.DataFrame(dup_dict)
-        dup_df.to_json(os.path.join(self.work_dir, res_name),
-                       orient='records',
-                       lines=True,
-                       force_ascii=False)
+        dup_df.to_json(os.path.join(self.work_dir, res_name), orient="records", lines=True, force_ascii=False)

@@ -1,9 +1,11 @@
 import unittest
-from data_juicer.utils.unittest_utils import TEST_TAG
+from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
-class TestRayDataset(unittest.TestCase):
+class TestRayDataset(DataJuicerTestCaseBase):
     def setUp(self):
         """Set up test data"""
+        super().setUp()
+
         import ray
         from data_juicer.core.data.ray_dataset import RayDataset
 
@@ -34,6 +36,7 @@ class TestRayDataset(unittest.TestCase):
     def tearDown(self):
         """Clean up test data"""
         self.dataset = None
+        super().tearDown()
 
     @TEST_TAG('ray')
     def test_get_column_basic(self):
@@ -137,146 +140,6 @@ class TestRayDataset(unittest.TestCase):
         texts = self.dataset.get_column('text', k=2)
         self.assertEqual(texts[0], 'Hello')
         self.assertEqual(texts[1], 'World')
-
-    @TEST_TAG('ray')
-    def test_schema_single_dataset(self):
-        """Test schema for single dataset"""
-        import ray.data
-        from data_juicer.core.data.ray_dataset import RayDataset
-        data = [{'text': 'hello', 'score': 1}]
-        dataset = RayDataset(ray.data.from_items(data))
-
-        schema = dataset.schema()
-        self.assertIn('text', schema.columns)
-        self.assertEqual(schema.column_types['text'], str)
-        self.assertEqual(schema.column_types['score'], int)
-
-    @TEST_TAG('ray')
-    def test_schema_multiple_datasets(self):
-        """Test schema consistency across multiple datasets"""
-        import ray.data
-        from data_juicer.core.data.ray_dataset import RayDataset
-        data1 = [{'text': 'hello', 'score': 1}]
-        data2 = [{'text': 'world', 'score': 2}]
-
-        dataset1 = RayDataset(ray.data.from_items(data1))
-        dataset2 = RayDataset(ray.data.from_items(data2))
-
-        # Verify schemas match
-        schema1 = dataset1.schema()
-        schema2 = dataset2.schema()
-
-        self.assertEqual(schema1.columns, schema2.columns)
-        self.assertEqual(schema1.column_types, schema2.column_types)
-
-    @TEST_TAG('ray')
-    def test_schema_validation(self):
-        """Test schema validation"""
-        import ray.data
-        from data_juicer.core.data.ray_dataset import RayDataset
-        # Test with invalid schema (mixed types)
-        data = [
-            {'text': 'hello', 'value': 1},
-            {'text': 'world', 'value': 'string'}  # Mixed int/str
-        ]
-
-        with self.assertRaises(Exception) as context:
-            dataset = RayDataset(ray.data.from_items(data))
-            _ = dataset.schema()
-
-        # Ray might choose either type
-        self.assertIn("unable to merge", str(context.exception).lower())
-
-    @TEST_TAG('ray')
-    def test_schema_nested_structures(self):
-        """Test schema with nested data structures"""
-        import ray.data
-        from data_juicer.core.data.ray_dataset import RayDataset
-        data = [{
-            'text': 'hello',
-            'int_value': 1,
-            'float_value': 1.0,
-            'bool_value': True,
-            'metadata': {'lang': 'en', 'score': 1},
-            'tags': ['tag1', 'tag2'],
-            'nested': {'a': {'b': {'c': 1}}}
-        }]
-
-        dataset = RayDataset(ray.data.from_items(data))
-        schema = dataset.schema()
-
-        self.assertEqual(schema.column_types['text'], str)
-        self.assertEqual(schema.column_types['int_value'], int)
-        self.assertEqual(schema.column_types['float_value'], float)
-        self.assertEqual(schema.column_types['bool_value'], bool)
-        self.assertEqual(schema.column_types['metadata'], dict)
-        self.assertEqual(schema.column_types['tags'], list)
-        self.assertEqual(schema.column_types['nested'], dict)
-
-    @TEST_TAG('ray')
-    def test_schema_empty_dataset(self):
-        """Test schema with empty dataset"""
-        import ray.data
-        from data_juicer.core.data.ray_dataset import RayDataset
-
-        with self.assertRaises(ValueError) as context:
-            dataset = RayDataset(ray.data.from_items([]))
-            _ = dataset.schema()
-
-        self.assertIn("empty", str(context.exception).lower())
-
-    @TEST_TAG('ray')
-    def test_schema_special_characters(self):
-        """Test schema with special characters in column names"""
-        import ray.data
-        from data_juicer.core.data.ray_dataset import RayDataset
-        data = [{
-            'normal': 1,
-            'with.dot': 2,
-            'with-dash': 3,
-            '_underscore': 4,
-            'with space': 5
-        }]
-
-        dataset = RayDataset(ray.data.from_items(data))
-        schema = dataset.schema()
-
-        expected_columns = {
-            'normal', 'with.dot', 'with-dash',
-            '_underscore', 'with space'
-        }
-        self.assertEqual(set(schema.columns), expected_columns)
-
-    @TEST_TAG('ray')
-    def test_schema_type_consistency(self):
-        """Test schema type consistency across rows"""
-        import ray.data
-        from data_juicer.core.data.ray_dataset import RayDataset
-        data = [
-            {'text': 'hello', 'score': 1, 'flag': True},
-            {'text': 'world', 'score': 2, 'flag': False},
-            {'text': 'test', 'score': 3, 'flag': True}
-        ]
-
-        dataset = RayDataset(ray.data.from_items(data))
-        schema = dataset.schema()
-
-        # Get all rows for type checking
-        rows = list(dataset.data.take())
-
-        # Verify types are consistent
-        self.assertTrue(all(
-            isinstance(row['text'], schema.column_types['text'])
-            for row in rows
-        ))
-        self.assertTrue(all(
-            isinstance(row['score'], schema.column_types['score'])
-            for row in rows
-        ))
-        self.assertTrue(all(
-            isinstance(row['flag'], schema.column_types['flag'])
-            for row in rows
-        ))
 
     @TEST_TAG('ray')
     def test_get(self):

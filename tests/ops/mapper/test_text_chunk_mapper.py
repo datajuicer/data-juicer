@@ -16,7 +16,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
 
     def test_naive_text_chunk(self):
 
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -29,7 +29,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -46,10 +46,10 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             },
         ]
         op = TextChunkMapper(split_pattern='\n')
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
     
     def test_max_len_text_chunk(self):
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -62,7 +62,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and "
             },
@@ -98,10 +98,10 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             },
         ]
         op = TextChunkMapper(max_len=20, split_pattern=None)
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
     
     def test_max_len_text_chunk_overlap_len(self):
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -114,7 +114,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and "
             },
@@ -144,10 +144,10 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             },
         ]
         op = TextChunkMapper(max_len=20, overlap_len=2)
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
     
     def test_max_len_and_split_pattern_text_chunk(self):
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -160,7 +160,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and "
             },
@@ -194,10 +194,10 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             overlap_len=2,
             split_pattern='\n'
         )
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
     def test_tokenizer_text_chunk(self):
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -210,7 +210,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -234,10 +234,10 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             tokenizer='Qwen/Qwen-7B-Chat',
             trust_remote_code=True
         )
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
     def test_tiktoken_tokenizer_text_chunk(self):
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -250,7 +250,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -274,10 +274,10 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             tokenizer='gpt-4o',
             trust_remote_code=True
         )
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
     def test_dashscope_tokenizer_text_chunk(self):
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -290,7 +290,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -314,10 +314,10 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             tokenizer='qwen2.5-72b-instruct',
             trust_remote_code=True
         )
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
     def test_all_text_chunk(self):
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -330,7 +330,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -357,7 +357,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             tokenizer='Qwen/Qwen-7B-Chat',
             trust_remote_code=True
         )
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
 
 if __name__ == '__main__':

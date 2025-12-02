@@ -8,7 +8,7 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 
 作为参考，我们在 25 到 100 个阿里云节点上进行了实验，使用 Ray 模式下的 Data-Juicer 处理不同的数据集。在 6,400 个 CPU 核上处理包含 700 亿条样本的数据集只需要花费 2 小时，在 3,200 个 CPU 核上处理包含 70 亿条样本的数据集只需要花费 0.45 小时。此外，在 Ray 模式下，对 TB 大小级别的数据集，Data-Juicer 的 MinHash-LSH 去重算子在 1,280 个 CPU 核的 8 节点集群上进行去重只需 3 小时。 
 
-更多细节请参考我们的论文：[Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for Foundation Models](arXiv_link_coming_soon) 。
+更多细节请参考我们的论文：[Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for Foundation Models](https://arxiv.org/abs/2501.14755) 。
 
 <img src="https://img.alicdn.com/imgextra/i2/O1CN01EteoQ31taUweAW1UE_!!6000000005918-2-tps-4034-4146.png" align="center" width="600" />
 
@@ -16,7 +16,7 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 
 ### Data-Juicer 的 Ray 处理模式
 
-- 对于 Data-Juicer 的大部分[算子](Operators.md)实现，其核心处理函数是引擎无关的。[RayDataset](../data_juicer/core/ray_data.py) 和 [RayExecutor](../data_juicer/core/ray_executor.py) 封装了与Ray引擎的具体互操作，它们分别是基类 `DJDataset` 和 `BaseExecutor` 的子类，并且都支持 Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) 和 [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) 。
+- 对于 Data-Juicer 的大部分[算子](Operators.md)实现，其核心处理函数是引擎无关的。[RayDataset](../data_juicer/core/ray_data.py) 和 [RayExecutor](../data_juicer/core/executor/ray_executor.py) 封装了与Ray引擎的具体互操作，它们分别是基类 `DJDataset` 和 `BaseExecutor` 的子类，并且都支持 Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) 和 [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) 。
 - 其中，去重算子是例外。它们在单机模式下很难规模化。因此我们提供了针对它们的 Ray 优化版本算子，并以特殊前缀开头：[`ray_xx_deduplicator`](../data_juicer/ops/deduplicator/) 。
 
 ### 数据子集分割
@@ -28,13 +28,13 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 
 ### JSON 文件的流式读取
 
-为了解决 Ray Dataset 类底层框架 Arrow 对流式读取 JSON 数据的原生支持的缺失，我们开发了一个流式载入的接口并贡献到了一个针对 Apache Arrow 的内部 [补丁](https://github.com/modelscope/data-juicer/pull/515)（ [相关 PR](https://github.com/apache/arrow/pull/45084) ） 。这个补丁可以缓解内存不够的问题。
+为了解决 Ray Dataset 类底层框架 Arrow 对流式读取 JSON 数据的原生支持的缺失，我们开发了一个流式载入的接口并贡献到了一个针对 Apache Arrow 的内部 [补丁](https://github.com/datajuicer/data-juicer/pull/515)（ [相关 PR](https://github.com/apache/arrow/pull/45084) ） 。这个补丁可以缓解内存不够的问题。
 
 
 流式读取 JSON 文件是基础模型数据处理中的常见要求，因为许多数据集都以 JSONL 格式存储，并且尺寸巨大。
 但是，Ray Datasets 中当前的实现不支持流式读取 JSON 文件，根因来源于其底层 Arrow 库（截至 Ray 版本 2.40 和 Arrow 版本 18.1.0）。
 
-为了解决不支持流式 JSON 数据的原生读取问题，我们开发了一个流式加载接口，并为 Apache Arrow 贡献了一个第三方 [补丁](https://github.com/modelscope/data-juicer/pull/515)（[PR 到 repo](https://github.com/apache/arrow/pull/45084)）。这将有助于缓解内存不足问题。使用此补丁后， Data-Juicer 的Ray模式将默认使用流式加载接口加载 JSON 文件。此外，如果输入变为 CSV 和 Parquet 文件，Ray模式下流式读取已经会自动开启。
+为了解决不支持流式 JSON 数据的原生读取问题，我们开发了一个流式加载接口，并为 Apache Arrow 贡献了一个第三方 [补丁](https://github.com/datajuicer/data-juicer/pull/515)（[PR 到 repo](https://github.com/apache/arrow/pull/45084)）。这将有助于缓解内存不足问题。使用此补丁后， Data-Juicer 的Ray模式将默认使用流式加载接口加载 JSON 文件。此外，如果输入变为 CSV 和 Parquet 文件，Ray模式下流式读取已经会自动开启。
 
 ### 去重
 
@@ -62,8 +62,8 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 在开始前，你应该安装 Data-Juicer 以及它的 `dist` 依赖需求：
 
 ```shell
-pip install -v -e .  # 安装 Data-Juicer 的最小依赖需求
-pip install -v -e ".[dist]"  # 包括 Ray 以及其他分布式相关的依赖库
+uv pip install -v -e .  # 安装 Data-Juicer 的最小依赖需求
+uv pip install -v -e ".[dist]"  # 包括 Ray 以及其他分布式相关的依赖库
 ```
 
 然后启动一个 Ray 集群（参考 [Ray 文档](https://docs.ray.io/en/latest/ray-core/starting-ray.html) ）：

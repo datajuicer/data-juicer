@@ -42,6 +42,8 @@ class GetRowColFuncTest(DataJuicerTestCaseBase):
 class ColumnWiseAnalysisTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
+
         data_list = [
             {
                 Fields.meta: {
@@ -100,6 +102,8 @@ class ColumnWiseAnalysisTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+
+        super().tearDown()
 
     def test_init(self):
         column_wise_analysis = ColumnWiseAnalysis(

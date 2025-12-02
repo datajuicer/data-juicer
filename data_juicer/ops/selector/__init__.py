@@ -5,7 +5,9 @@ from .tags_specified_field_selector import TagsSpecifiedFieldSelector
 from .topk_specified_field_selector import TopkSpecifiedFieldSelector
 
 __all__ = [
-    'FrequencySpecifiedFieldSelector', 'RandomSelector',
-    'RangeSpecifiedFieldSelector', 'TagsSpecifiedFieldSelector',
-    'TopkSpecifiedFieldSelector'
+    "FrequencySpecifiedFieldSelector",
+    "RandomSelector",
+    "RangeSpecifiedFieldSelector",
+    "TagsSpecifiedFieldSelector",
+    "TopkSpecifiedFieldSelector",
 ]

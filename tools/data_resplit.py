@@ -30,10 +30,10 @@ def split_jsonl(file_path: str, max_size: float, output_dir: str):
     buffer = []
     buffer_size = 0
 
-    with open(file_path, 'r', encoding='utf-8') as infile:
+    with open(file_path, "r", encoding="utf-8") as infile:
         while True:
             # Determine the output file name
-            output_file_name = f'{file_name}_{file_index}.jsonl'
+            output_file_name = f"{file_name}_{file_index}.jsonl"
             output_file_path = os.path.join(output_dir, output_file_name)
 
             # Read lines until we reach the max buffer size
@@ -46,7 +46,7 @@ def split_jsonl(file_path: str, max_size: float, output_dir: str):
 
             # Write the buffered lines to the current output file
             if buffer:
-                with open(output_file_path, 'w', encoding='utf-8') as outfile:
+                with open(output_file_path, "w", encoding="utf-8") as outfile:
                     outfile.writelines(buffer)
                 buffer = []
                 buffer_size = 0
@@ -67,17 +67,11 @@ def get_jsonl_file_names(dataset_dir_path: str) -> List[str]:
         List[str]: list of jsonl file paths
     """
     if os.path.isdir(dataset_dir_path):
-        jsonl_files = [
-            os.path.join(dataset_dir_path, f)
-            for f in os.listdir(dataset_dir_path)
-        ]
-    elif os.path.isfile(dataset_dir_path) and dataset_dir_path.endswith(
-            '.jsonl') or dataset_dir_path.endswith('.json'):
+        jsonl_files = [os.path.join(dataset_dir_path, f) for f in os.listdir(dataset_dir_path)]
+    elif os.path.isfile(dataset_dir_path) and dataset_dir_path.endswith(".jsonl") or dataset_dir_path.endswith(".json"):
         jsonl_files = [dataset_dir_path]
     else:
-        raise ValueError(
-            'Invalid path: it should be a directory containing jsonl files'
-            ' or a single jsonl file.')
+        raise ValueError("Invalid path: it should be a directory containing jsonl files" " or a single jsonl file.")
     return jsonl_files
 
 
@@ -86,40 +80,29 @@ def main(args):
 
     data_dir = args.data_dir
     jsonl_files = get_jsonl_file_names(data_dir)
-    df = pd.DataFrame({'jsonl_files': jsonl_files})
+    df = pd.DataFrame({"jsonl_files": jsonl_files})
     data = ray.data.from_pandas(df)
 
     total_size = sum(os.path.getsize(f) for f in jsonl_files) / 1024 / 1024
-    cpu_num = ray.cluster_resources().get('CPU', 1)
-    max_size = max(DEFAULT_MIN_FILE_SIZE,
-                   min(DEFAULT_MAX_FILE_SIZE, total_size / cpu_num / 4))
-    logger.info(f'Number of files: {len(jsonl_files)}, '
-                f'Total size: {total_size} MB, max size: {max_size} MB')
+    cpu_num = ray.cluster_resources().get("CPU", 1)
+    max_size = max(DEFAULT_MIN_FILE_SIZE, min(DEFAULT_MAX_FILE_SIZE, total_size / cpu_num / 4))
+    logger.info(f"Number of files: {len(jsonl_files)}, " f"Total size: {total_size} MB, max size: {max_size} MB")
 
-    def split_jsonl_dataset(jsonl_paths: pd.DataFrame, ) -> List[str]:
-        for jsonl_path in jsonl_paths['jsonl_files']:
+    def split_jsonl_dataset(
+        jsonl_paths: pd.DataFrame,
+    ) -> List[str]:
+        for jsonl_path in jsonl_paths["jsonl_files"]:
             split_jsonl(jsonl_path, max_size, args.resplit_dir)
         return jsonl_paths
 
     data.map_batches(split_jsonl_dataset).materialize()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ray-address',
-                        type=str,
-                        default='auto',
-                        help='The address of the Ray cluster.')
-    parser.add_argument('--data-dir',
-                        '-i',
-                        type=str,
-                        required=True,
-                        help='Path to your dataset directory.')
-    parser.add_argument('--resplit-dir',
-                        '-o',
-                        type=str,
-                        required=True,
-                        help='Path to resplited dataset directory.')
+    parser.add_argument("--ray-address", type=str, default="auto", help="The address of the Ray cluster.")
+    parser.add_argument("--data-dir", "-i", type=str, required=True, help="Path to your dataset directory.")
+    parser.add_argument("--resplit-dir", "-o", type=str, required=True, help="Path to resplited dataset directory.")
     args = parser.parse_args()
 
     main(args)

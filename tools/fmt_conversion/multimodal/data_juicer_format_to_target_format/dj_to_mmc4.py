@@ -100,7 +100,7 @@ def main(
     target_mmc4_ds_path: str,
     eoc_special_token: str = SpecialTokens.eoc,
     image_special_token: str = SpecialTokens.image,
-    sent_separator: str = ' ',
+    sent_separator: str = " ",
     keep_dj_fields: bool = False,
 ):
     """
@@ -127,37 +127,34 @@ def main(
     """
     # ----- Constant settings. Better not to change them. -----
     # default key of field to store the sample text
-    text_key = 'text'
+    text_key = "text"
     # default key of field to store the image list
-    image_key = 'images'
+    image_key = "images"
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
     # check paths
     if not os.path.exists(dj_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{dj_ds_path}] can not be found.')
-    if not target_mmc4_ds_path.endswith('.jsonl'):
-        raise ValueError(
-            'Only support "jsonl" target dataset file for MMC4 now.')
-    if os.path.dirname(target_mmc4_ds_path) \
-            and not os.path.exists(os.path.dirname(target_mmc4_ds_path)):
-        logger.info(
-            f'Create directory [{os.path.dirname(target_mmc4_ds_path)}] for '
-            f'the target dataset.')
+        raise FileNotFoundError(f"Input dataset [{dj_ds_path}] can not be found.")
+    if not target_mmc4_ds_path.endswith(".jsonl"):
+        raise ValueError('Only support "jsonl" target dataset file for MMC4 now.')
+    if os.path.dirname(target_mmc4_ds_path) and not os.path.exists(os.path.dirname(target_mmc4_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_mmc4_ds_path)}] for " f"the target dataset.")
         os.makedirs(os.path.dirname(target_mmc4_ds_path))
 
     # whether to keep dj fields
     if keep_dj_fields:
-        logger.warning('You choose to keep intermediate fields added when '
-                       'converting to Data-Juicer format, which are usually '
-                       'useless in the final dataset but it will increase the '
-                       'size of the whole dataset file.')
+        logger.warning(
+            "You choose to keep intermediate fields added when "
+            "converting to Data-Juicer format, which are usually "
+            "useless in the final dataset but it will increase the "
+            "size of the whole dataset file."
+        )
 
     # load MMC4 dataset
-    logger.info('Start converting the original dataset to MMC4 format...')
-    with jl.open(dj_ds_path, 'r') as reader:
-        with jl.open(target_mmc4_ds_path, 'w') as writer:
+    logger.info("Start converting the original dataset to MMC4 format...")
+    with jl.open(dj_ds_path, "r") as reader:
+        with jl.open(target_mmc4_ds_path, "w") as writer:
             for line_num, sample in enumerate(tqdm(reader)):
                 text = sample[text_key]
                 images = sample[image_key]
@@ -169,32 +166,31 @@ def main(
                 # image_infos are kept or not?
                 image_infos = []
                 ori_image_infos = []
-                if 'image_info' in sample:
-                    ori_image_infos = sample['image_info']
+                if "image_info" in sample:
+                    ori_image_infos = sample["image_info"]
 
                 # Only keep those image_infos that are still contained by
                 # processed images.
                 for processed_img in images:
                     found = False
                     for img in ori_image_infos:
-                        img_name = img['image_name']
+                        img_name = img["image_name"]
                         if processed_img.endswith(img_name):
                             found = True
                             # update to new image name
-                            img['image_name'] = processed_img
+                            img["image_name"] = processed_img
                             image_infos.append(img)
                             break
                     if not found:
-                        image_infos.append({
-                            'image_name': processed_img,
-                        })
+                        image_infos.append(
+                            {
+                                "image_name": processed_img,
+                            }
+                        )
 
                 # split text into a list of several sentences (chunks)
                 # remove empty chunks (e.g. the last chunk '' after eoc)
-                chunks = [
-                    sent.strip() for sent in text.split(eoc_special_token)
-                    if sent.strip()
-                ]
+                chunks = [sent.strip() for sent in text.split(eoc_special_token) if sent.strip()]
 
                 # construct text_list and update matched_text_index for the
                 # final image_infos
@@ -203,61 +199,62 @@ def main(
                 for text_idx, sent in enumerate(chunks):
                     # remove possible sentence separator
                     if sent.endswith(sent_separator):
-                        sent = sent[:-len(sent_separator)].strip()
+                        sent = sent[: -len(sent_separator)].strip()
                     if sent.startswith(sent_separator):
-                        sent = sent[len(sent_separator):].strip()
+                        sent = sent[len(sent_separator) :].strip()
 
                     # remove possible image_special_token and update
                     # matched_text_index for corresponding image_info
                     found_image_num = 0
                     while sent.startswith(image_special_token):
-                        sent = sent[len(image_special_token):].strip()
+                        sent = sent[len(image_special_token) :].strip()
                         found_image_num += 1
                         if sent.startswith(sent_separator):
-                            sent = sent[len(sent_separator):].strip()
+                            sent = sent[len(sent_separator) :].strip()
                     while sent.endswith(image_special_token):
-                        sent = sent[:-len(image_special_token)].strip()
+                        sent = sent[: -len(image_special_token)].strip()
                         found_image_num += 1
                         if sent.endswith(sent_separator):
-                            sent = sent[:-len(sent_separator)].strip()
+                            sent = sent[: -len(sent_separator)].strip()
                     sentences.append(sent)
                     if found_image_num > 0:
                         for _ in range(found_image_num):
                             if curr_image_idx < len(image_infos):
-                                image_infos[curr_image_idx][
-                                    'matched_text_index'] = text_idx
+                                image_infos[curr_image_idx]["matched_text_index"] = text_idx
                                 curr_image_idx += 1
                             else:
                                 # if there are extra images, just skip them and
                                 # report a warning
-                                logger.warning(f'Sample with line number '
-                                               f'[{line_num}] contains '
-                                               f'unaligned numbers of images '
-                                               f'and image tokens. Please '
-                                               f'check and retry if needed.')
+                                logger.warning(
+                                    f"Sample with line number "
+                                    f"[{line_num}] contains "
+                                    f"unaligned numbers of images "
+                                    f"and image tokens. Please "
+                                    f"check and retry if needed."
+                                )
 
                 # reorder image_info to the same order as the original dataset
                 final_image_info = []
                 for img in ori_image_infos:
-                    img_name = img['image_name']
+                    img_name = img["image_name"]
                     for processed_img in image_infos:
-                        processed_img_name = processed_img['image_name']
+                        processed_img_name = processed_img["image_name"]
                         if processed_img_name.endswith(img_name):
                             final_image_info.append(processed_img)
                             break
 
                 # construct the new sample structure
                 new_sample = deepcopy(sample)
-                new_sample['image_info'] = final_image_info
-                new_sample['text_list'] = sentences
+                new_sample["image_info"] = final_image_info
+                new_sample["text_list"] = sentences
                 if not keep_dj_fields:
                     _ = new_sample.pop(image_key)
                     _ = new_sample.pop(text_key)
 
                 writer.write(new_sample)
 
-    logger.info(f'Store the target dataset into [{target_mmc4_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_mmc4_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

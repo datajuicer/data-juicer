@@ -8,21 +8,28 @@ from pyspark.ml.feature import HashingTF, MinHashLSH, Tokenizer
 from pyspark.sql import functions as F
 from pyspark.sql.functions import posexplode
 
-from tools.distributed_deduplication.dedup_utils import (find_components,
-                                                         generate_edges,
-                                                         init_spark)
-from tools.quality_classifier.qc_utils import (export_result, load_dataset,
-                                               tokenize_dataset)
+from data_juicer.tools.quality_classifier.qc_utils import (
+    export_result,
+    load_dataset,
+    tokenize_dataset,
+)
+from tools.distributed_deduplication.dedup_utils import (
+    find_components,
+    generate_edges,
+    init_spark,
+)
 
 
 @logger.catch
-def dedup_dataset(dataset_path: str,
-                  result_path: str,
-                  tokenizer: Optional[str] = None,
-                  num_features: int = 1047576,
-                  num_hashtables: int = 10,
-                  text_key: str = 'text',
-                  master_url: Optional[str] = None):
+def dedup_dataset(
+    dataset_path: str,
+    result_path: str,
+    tokenizer: Optional[str] = None,
+    num_features: int = 1047576,
+    num_hashtables: int = 10,
+    text_key: str = "text",
+    master_url: Optional[str] = None,
+):
     """
     Perform fuzzy text deduplication on the given dataset.
     :param dataset_path: the path to the dataset to perform deduplication,
@@ -45,50 +52,47 @@ def dedup_dataset(dataset_path: str,
     # provide master url such as "spark://master:7077"
     spark = init_spark(master_url=master_url)
     ds = load_dataset(spark, dataset_path, text_key=text_key)
-    ds = ds.withColumn('id', F.monotonically_increasing_id()).cache()
+    ds = ds.withColumn("id", F.monotonically_increasing_id()).cache()
     df = ds
 
     if tokenizer:
         ds = tokenize_dataset(ds, tokenizer)
     else:
-        ds = Tokenizer(inputCol='text', outputCol='words').transform(ds)
+        ds = Tokenizer(inputCol="text", outputCol="words").transform(ds)
 
-    hashingTF = HashingTF(inputCol='words',
-                          outputCol='features',
-                          numFeatures=num_features)
+    hashingTF = HashingTF(inputCol="words", outputCol="features", numFeatures=num_features)
     ds = hashingTF.transform(ds)
 
-    minHash = MinHashLSH(inputCol='features',
-                         outputCol='hashes',
-                         numHashTables=num_hashtables)
+    minHash = MinHashLSH(inputCol="features", outputCol="hashes", numHashTables=num_hashtables)
     model = minHash.fit(ds)
 
     ds = model.transform(ds)
 
-    ds = ds.select('id', posexplode('hashes').alias('band_idx', 'hash_vector'))
+    ds = ds.select("id", posexplode("hashes").alias("band_idx", "hash_vector"))
 
-    record = ds.rdd.map(lambda x:
-                        (x['band_idx'], int(x['hash_vector'][0]), x['id']))
+    record = ds.rdd.map(lambda x: (x["band_idx"], int(x["hash_vector"][0]), x["id"]))
 
-    edges = (record.groupBy(lambda x: (x[0], x[1])).flatMap(
-        lambda x: generate_edges([i[2] for i in x[1]])).distinct().cache())
+    edges = (
+        record.groupBy(lambda x: (x[0], x[1]))
+        .flatMap(lambda x: generate_edges([i[2] for i in x[1]]))
+        .distinct()
+        .cache()
+    )
 
     results = find_components(edges)
     if len(results) == 0:
-        logger.info('No components found.')
+        logger.info("No components found.")
         sys.exit(0)
 
-    components = spark.createDataFrame(results,
-                                       schema=['id', 'component'
-                                               ]).sort(['component', 'id'])
+    components = spark.createDataFrame(results, schema=["id", "component"]).sort(["component", "id"])
     components.show()
-    df = df.join(components, on='id', how='left')
-    df = df.filter(F.col('component').isNull()).drop('id', 'component').cache()
+    df = df.join(components, on="id", how="left")
+    df = df.filter(F.col("component").isNull()).drop("id", "component").cache()
     export_result(df, result_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     stime = time.time()
     fire.Fire(dedup_dataset)
     etime = time.time()
-    logger.info(f'Execution Done, Total time {etime - stime}')
+    logger.info(f"Execution Done, Total time {etime - stime}")

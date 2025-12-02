@@ -25,11 +25,11 @@ class StatsKeysTest(DataJuicerTestCaseBase):
         with open(self.temp_jsonl, 'w', encoding='utf-8') as f:
             f.write(json.dumps({"text": "hello world"}) + "\n")
 
-    def tearDown(cls) -> None:
+    def tearDown(self) -> None:
         super().tearDown()
         StatsKeys._accessed_by = {}
-        if hasattr(cls, 'temp_dir'):
-            cls.temp_dir.cleanup()
+        if hasattr(self, 'temp_dir'):
+            self.temp_dir.cleanup()
 
     def test_basic_func(self):
         # Create a temporary config with the test dataset path

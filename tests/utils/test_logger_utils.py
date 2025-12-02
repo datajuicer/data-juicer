@@ -13,12 +13,14 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class LoggerUtilsTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
         self.temp_output_path = 'tmp/test_logger_utils/'
         data_juicer.utils.logger_utils.LOGGER_SETUP = False
 
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+        super().tearDown()
 
     def get_log_messages(self, content):
         lines = content.strip().split('\n')

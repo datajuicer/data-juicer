@@ -5,19 +5,22 @@ import regex as re
 from ..base_op import OPERATORS, Mapper
 
 
-@OPERATORS.register_module('replace_content_mapper')
+@OPERATORS.register_module("replace_content_mapper")
 class ReplaceContentMapper(Mapper):
-    """Mapper to replace all content in the text that matches
-    a specific regular expression pattern with a designated
-    replacement string."""
+    """Replaces content in the text that matches a specific regular expression pattern with a
+    designated replacement string.
+
+    This operator processes text by searching for patterns defined in `pattern` and
+    replacing them with the corresponding `repl` string. If multiple patterns and
+    replacements are provided, each pattern is replaced by its respective replacement. The
+    operator supports both single and multiple patterns and replacements. The regular
+    expressions are compiled with the `re.DOTALL` flag to match across multiple lines. If
+    the length of the patterns and replacements do not match, a `ValueError` is raised. This
+    operation is batched, meaning it processes multiple samples at once."""
 
     _batched_op = True
 
-    def __init__(self,
-                 pattern: Union[str, List[str], None] = None,
-                 repl: Union[str, List[str]] = '',
-                 *args,
-                 **kwargs):
+    def __init__(self, pattern: Union[str, List[str], None] = None, repl: Union[str, List[str]] = "", *args, **kwargs):
         """
         Initialization method.
 
@@ -38,9 +41,9 @@ class ReplaceContentMapper(Mapper):
 
     def _prepare_pattern(self, pattern: str) -> re.Pattern:
         """Prepare the regular expression pattern."""
-        if ((pattern is not None and len(pattern) > 2)
-                and (pattern.startswith("r'") and pattern.endswith("'")
-                     or pattern.startswith('r"') and pattern.endswith('"'))):
+        if (pattern is not None and len(pattern) > 2) and (
+            pattern.startswith("r'") and pattern.endswith("'") or pattern.startswith('r"') and pattern.endswith('"')
+        ):
             pattern = pattern[2:-1]
         return re.compile(pattern, flags=re.DOTALL)
 
@@ -53,9 +56,9 @@ class ReplaceContentMapper(Mapper):
                 if isinstance(self.repl, list) and i < len(self.repl):
                     replacement = self.repl[i]
                 elif isinstance(self.repl, list) and i >= len(self.repl):
-                    raise ValueError(f"pattern length: {len(self.pattern)} '"
-                                     f'must be equal to '
-                                     f'repl length: {len(self.repl)}')
+                    raise ValueError(
+                        f"pattern length: {len(self.pattern)} '" f"must be equal to " f"repl length: {len(self.repl)}"
+                    )
                 else:
                     replacement = self.repl
 

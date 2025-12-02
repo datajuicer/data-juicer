@@ -54,7 +54,7 @@
         - question_file: the benchmark dataset file in previous step
         - answer_file: the answer file of your model in previous step
         - baseline_file: the answer file of the baseline model in previous step
-        - prompt_file: a file contains multiple prompt templates, the toolkit has provided a sample file ([`config/prompt.json`](config/prompt.json))
+        - prompt_file: a file contains multiple prompt templates, the toolkit has provided a sample file ([`config/prompt.jsonl`](config/prompt.jsonl))
         - reviewer_file: a file contains multiple reviewer templates (including the model type and other parameters used in the OpenAI api request)，the toolkit has provided a sample file ([`config/reviewer.json`](config/reviewer.jsonl))
     2. Build the config file (`config.yaml`). The format of the file is as follows:
         ```yaml

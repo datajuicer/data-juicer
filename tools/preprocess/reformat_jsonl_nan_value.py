@@ -34,7 +34,7 @@ def get_non_nan_features(src_dir):
     :return: reference feature of dataset.
     """
     for fp in fp_iter(src_dir):
-        with jsonlines.open(fp, 'r') as reader:
+        with jsonlines.open(fp, "r") as reader:
             for obj in reader:
                 if check_dict_non_nan(obj):
                     ds = Dataset.from_list([obj])
@@ -49,7 +49,7 @@ def reformat_jsonl(fp, jsonl_fp, features):
     :param jsonl_fp: formatted jsonl file
     :param features: reference feature to use for dataset.
     """
-    with jsonlines.open(fp, 'r') as reader:
+    with jsonlines.open(fp, "r") as reader:
         objs = [obj for obj in reader]
     ds = Dataset.from_list(objs, features=features)
     ds.to_json(jsonl_fp, force_ascii=False)
@@ -61,7 +61,7 @@ def fp_iter(src_dir):
     :param src_dir: path to source dataset directory
     :return: iterator over jsonl files
     """
-    for fp in pathlib.Path(src_dir).glob('*.jsonl'):
+    for fp in pathlib.Path(src_dir).glob("*.jsonl"):
         yield fp
 
 
@@ -77,8 +77,7 @@ def main(src_dir, target_dir, num_proc=1):
 
     # check if the source directory exists
     if not os.path.exists(src_dir):
-        raise ValueError('The raw source data directory does not exist,'
-                         ' Please check and retry.')
+        raise ValueError("The raw source data directory does not exist," " Please check and retry.")
     if not os.path.exists(target_dir):
         os.makedirs(target_dir, exist_ok=True)
 
@@ -93,5 +92,5 @@ def main(src_dir, target_dir, num_proc=1):
     pool.join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

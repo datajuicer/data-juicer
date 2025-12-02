@@ -6,9 +6,6 @@ name: unittest-partial
 on:
   workflow_dispatch:
   pull_request:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -34,7 +31,13 @@ jobs:
     - name: Install data-juicer
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head pip install -e .\[all\]
+        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
+
+    - name: Print Pip Dependency Tree
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system pipdeptree'
+        docker compose exec ray-head bash -c 'pipdeptree'
 
     - name: Clean dataset cache
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
@@ -44,14 +47,20 @@ jobs:
     - name: Run unittest standalone
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec -e OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }} -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} ray-head python tests/run.py --tag standalone --mode partial
+        if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+          docker compose exec -e OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }} -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} ray-head bash -c 'python tests/run.py --tag standalone --mode partial --from-fork True'
+        else
+          docker compose exec -e OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }} -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} ray-head bash -c 'python tests/run.py --tag standalone --mode partial'
+        fi
+        docker compose exec ray-head bash -c 'coverage combine'
+        docker compose exec ray-head bash -c 'mv .coverage .coverage.standalone'
 
     - name: Upload coverage report of standalone
       uses: actions/upload-artifact@v4
       with:
         name: coverage_report_standalone
         include-hidden-files: true
-        path: dj-${{ github.run_id }}/coverage_report_standalone
+        path: dj-${{ github.run_id }}/.coverage.standalone
 
     - name: Remove docker compose
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
@@ -81,8 +90,8 @@ jobs:
     - name: Install data-juicer
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head pip install -e .\[all\]
-        docker compose exec ray-worker pip install -e .\[all\]
+        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
+        docker compose exec ray-worker bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
 
     - name: Clean dataset cache
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
@@ -92,14 +101,71 @@ jobs:
     - name: Run unittest ray
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head python tests/run.py --tag ray --mode regression
+        docker compose exec ray-head bash -c 'python tests/run.py --tag ray --mode partial'
+        docker compose exec ray-head bash -c 'coverage combine'
+        docker compose exec ray-head bash -c 'mv .coverage .coverage.ray'
 
     - name: Upload coverage report of ray
       uses: actions/upload-artifact@v4
       with:
         name: coverage_report_ray
         include-hidden-files: true
-        path: dj-${{ github.run_id }}/coverage_report_ray
+        path: dj-${{ github.run_id }}/.coverage.ray
+
+    - name: Remove docker compose
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      if: always()
+      run: |
+        docker compose down --remove-orphans
+
+    - name: Cleanup workspace
+      if: always()
+      run: |
+        rm -rf  dj-${{ github.run_id }}
+
+  combine-coverage:
+    needs: [unittest-single, unittest-dist]
+    runs-on: [GPU, unittest]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        path: dj-${{ github.run_id }}
+        fetch-depth: 0
+
+    - name: Setup docker compose
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose up -d
+
+    - name: Install coverage
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system coverage'
+
+    - name: Download Coverage Report Standalone
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage_report_standalone
+        path: dj-${{ github.run_id }}
+
+    - name: Download Coverage Report Ray
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage_report_ray
+        path: dj-${{ github.run_id }}
+
+    - name: Combine Coverage Reports
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose exec ray-head bash -c 'coverage combine'
+        docker compose exec ray-head bash -c 'coverage report -m'
+
+    - name: Upload Overall Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage_report_all
+        include-hidden-files: true
+        path: dj-${{ github.run_id }}/.coverage
 
     - name: Remove docker compose
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker

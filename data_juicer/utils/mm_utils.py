@@ -4,37 +4,75 @@ import io
 import os
 import re
 import shutil
-from typing import List, Optional, Tuple, Union
+from typing import ClassVar, Dict, List, Optional, Tuple, Union
 
 import av
 import numpy as np
+import PIL
 from datasets import Audio, Image
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.utils.constant import DEFAULT_PREFIX, Fields
+from data_juicer.utils.constant import DEFAULT_PREFIX, SPECIAL_TOKEN_ENV_PREFIX, Fields
 from data_juicer.utils.file_utils import add_suffix_to_filename
 from data_juicer.utils.lazy_loader import LazyLoader
 
-cv2 = LazyLoader('cv2', 'cv2')
+cv2 = LazyLoader("cv2", "opencv-python")
 
 # suppress most warnings from av
 av.logging.set_level(av.logging.PANIC)
 
 
+_DEFAULT_TOKEN_FORMATS: Dict[str, str] = {
+    "image": f"<{DEFAULT_PREFIX}image>",
+    "audio": f"<{DEFAULT_PREFIX}audio>",
+    "video": f"<{DEFAULT_PREFIX}video>",
+    # others
+    "eoc": f"<|{DEFAULT_PREFIX}eoc|>",
+}
+
+
+class _MetaSpecialTokens(type):
+    def __new__(cls, name: str, bases: tuple, dct: dict):
+
+        for token_name in list(_DEFAULT_TOKEN_FORMATS.keys()):
+            env_var = f"{SPECIAL_TOKEN_ENV_PREFIX}{token_name.upper()}"
+            if env_var in os.environ:
+                dct[token_name] = os.environ[env_var]
+            else:
+                dct[token_name] = _DEFAULT_TOKEN_FORMATS[token_name]
+
+        return super().__new__(cls, name, bases, dct)
+
+    def __setattr__(cls, name: str, value: str) -> None:
+        if name in list(_DEFAULT_TOKEN_FORMATS.keys()):
+            env_var = f"{SPECIAL_TOKEN_ENV_PREFIX}{name.upper()}"
+            os.environ[env_var] = value
+            super().__setattr__(name, value)
+        elif name.startswith("__") and name.endswith("__"):
+            super().__setattr__(name, value)
+        else:
+            raise ValueError(
+                f"{name} is not a valid special token name, "
+                f"it should be one of {list(_DEFAULT_TOKEN_FORMATS.keys())}"
+            )
+
+
 # A class to keep special tokens for multimodal information in the texts
 # The tokens in this class can be updated by corresponding arguments in config
-class SpecialTokens(object):
+class SpecialTokens(metaclass=_MetaSpecialTokens):
+    """Special tokens for multimodal inputs, configurable via environment variables."""
+
     # modality
-    image = f'<{DEFAULT_PREFIX}image>'
-    audio = f'<{DEFAULT_PREFIX}audio>'
-    video = f'<{DEFAULT_PREFIX}video>'
+    image: ClassVar[str]
+    audio: ClassVar[str]
+    video: ClassVar[str]
 
     # others
-    eoc = f'<|{DEFAULT_PREFIX}eoc|>'
+    eoc: ClassVar[str]
 
 
-AV_STREAM_THREAD_TYPE = 'AUTO'
+AV_STREAM_THREAD_TYPE = "AUTO"
 """
     av stream thread type support "SLICE", "FRAME", "AUTO".
 
@@ -49,46 +87,103 @@ AV_STREAM_THREAD_TYPE = 'AUTO'
 
 
 def get_special_tokens():
-    special_token_dict = {
-        key: value
-        for key, value in SpecialTokens.__dict__.items()
-        if not key.startswith('__')
-    }
+    special_token_dict = {key: value for key, value in SpecialTokens.__dict__.items() if not key.startswith("__")}
     return special_token_dict
 
 
 def remove_special_tokens(text):
     for value in get_special_tokens().values():
-        text = text.replace(value, '').strip()
+        text = text.replace(value, "").strip()
     return text
 
 
 def remove_non_special_tokens(text):
     special_tokens = get_special_tokens().values()
-    patterns = '|'.join(re.escape(token) for token in special_tokens)
+    patterns = "|".join(re.escape(token) for token in special_tokens)
     special_tokens_found = re.findall(patterns, text)
-    text_with_only_special_tokens = ''.join(special_tokens_found)
+    text_with_only_special_tokens = "".join(special_tokens_found)
 
     return text_with_only_special_tokens
 
 
-def load_data_with_context(sample, context, loaded_data_keys, load_func):
+def load_mm_bytes_from_sample(sample, mm_idx, mm_bytes_key=None, sample_idx=None):
+    # if mm_bytes_key is not specified or there is no bytes_key, return None
+    if mm_bytes_key is None or mm_bytes_key not in sample:
+        return None
+
+    mm_bytes_data = sample[mm_bytes_key]
+    if not isinstance(mm_bytes_data, list) or len(mm_bytes_data) == 0:
+        # invalid bytes data or no bytes data stored
+        return None
+    # check if the sample_idx is specified
+    if sample_idx is not None:
+        # it should be a batched sample
+        if sample_idx >= len(mm_bytes_data):
+            # invalid sample_idx
+            return None
+        sample_mm_bytes_data = mm_bytes_data[sample_idx]
+        if not isinstance(sample_mm_bytes_data, list) or len(sample_mm_bytes_data) == 0:
+            # invalid sample_mm_bytes_data or no sample_mm_bytes_data stored
+            return None
+        if mm_idx >= len(sample_mm_bytes_data):
+            # invalid mm_idx
+            return None
+        bytes_data = sample[mm_bytes_key][sample_idx][mm_idx]
+        if not isinstance(bytes_data, bytes):
+            # invalid bytes data
+            return None
+    else:
+        # it should be a single sample
+        if mm_idx >= len(mm_bytes_data):
+            # invalid mm_idx
+            return None
+        bytes_data = sample[mm_bytes_key][mm_idx]
+        if not isinstance(bytes_data, bytes):
+            # invalid bytes data
+            return None
+    return bytes_data
+
+
+def load_data_with_context(sample, context, loaded_data_keys, load_func, mm_bytes_key=None, sample_idx=None):
     """
     The unified loading function with contexts for multimodal data.
+
+    :param sample: can be a single sample or a batch of samples.
+    :param context: whether the context fields is activated.
+    :param loaded_data_keys: the data keys (paths) to load.
+    :param load_func: the function used to load the data.
+    :param mm_bytes_key: the key to store the data bytes if it exists. It's None by default.
+    :param sample_idx: the index of the current sample. Used for batched samples.
     """
     data = {}
-    for loaded_data_key in loaded_data_keys:
-        if context and loaded_data_key in sample[Fields.context]:
+    if context:
+        context_content = sample[Fields.context]
+        if sample_idx is not None and isinstance(context_content, list) and sample_idx < len(context_content):
+            context_content = context_content[sample_idx]
+    for idx, loaded_data_key in enumerate(loaded_data_keys):
+        if context and loaded_data_key in context_content:
             # load from context
-            data[loaded_data_key] = sample[Fields.context][loaded_data_key]
+            data[loaded_data_key] = context_content[loaded_data_key]
         else:
             if loaded_data_key not in data:
+                # check if it's already in bytes key
+                data_item = None
+                bytes_data = load_mm_bytes_from_sample(sample, idx, mm_bytes_key, sample_idx)
+                if bytes_data is not None:
+                    # load data_item from bytes data
+                    data_item = load_func(bytes_data)
                 # avoid load the same data
-                data_item = load_func(loaded_data_key)
+                if data_item is None:
+                    data_item = load_func(loaded_data_key)
                 data[loaded_data_key] = data_item
                 if context:
                     # store the data into context
-                    sample[Fields.context][loaded_data_key] = data_item
+                    if sample_idx is not None and isinstance(sample[Fields.context], list):
+                        if sample_idx < len(sample[Fields.context]):
+                            sample[Fields.context][sample_idx][loaded_data_key] = data_item
+                    else:
+                        sample[Fields.context][loaded_data_key] = data_item
+
     return sample, data
 
 
@@ -101,31 +196,34 @@ def load_images_byte(paths):
     return [load_image_byte(path) for path in paths]
 
 
-def load_image(path):
-    img_feature = Image()
-    img = img_feature.decode_example(img_feature.encode_example(path))
-    img = img.convert('RGB')
+def load_image(path_or_bytes):
+    if isinstance(path_or_bytes, bytes):
+        img = PIL.Image.open(io.BytesIO(path_or_bytes))
+    else:
+        img_feature = Image()
+        img = img_feature.decode_example(img_feature.encode_example(path_or_bytes))
+    img = img.convert("RGB")
     return img
 
 
 def load_image_byte(path):
-    with open(path, 'rb') as image_file:
+    with open(path, "rb") as image_file:
         image_data = image_file.read()
     return image_data
 
 
 def image_path_to_base64(image_path):
-    with open(image_path, 'rb') as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def image_byte_to_base64(image_byte):
-    return base64.b64encode(image_byte).decode('utf-8')
+    return base64.b64encode(image_byte).decode("utf-8")
 
 
 def pil_to_opencv(pil_image):
-    if pil_image.mode != 'RGB':
-        pil_image = pil_image.convert('RGB')
+    if pil_image.mode != "RGB":
+        pil_image = pil_image.convert("RGB")
     numpy_image = np.array(pil_image)
     # RGB to BGR
     opencv_image = numpy_image[:, :, ::-1]
@@ -137,7 +235,7 @@ def detect_faces(image, detector, **extra_kwargs):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     dets = detector.detectMultiScale(gray, **extra_kwargs)
     rectified_dets = []
-    for (x, y, w, h) in dets:
+    for x, y, w, h in dets:
         x = max(x, 0)
         y = max(y, 0)
         w = min(w, image.width - x)
@@ -148,6 +246,7 @@ def detect_faces(image, detector, **extra_kwargs):
 
 def get_file_size(path):
     import os
+
     return os.path.getsize(path)
 
 
@@ -166,10 +265,11 @@ def iou(box1, box2):
 
 
 def calculate_resized_dimensions(
-        original_size: Tuple[PositiveInt, PositiveInt],
-        target_size: Union[PositiveInt, Tuple[PositiveInt, PositiveInt]],
-        max_length: Optional[int] = None,
-        divisible: PositiveInt = 1) -> Tuple[int, int]:
+    original_size: Tuple[PositiveInt, PositiveInt],
+    target_size: Union[PositiveInt, Tuple[PositiveInt, PositiveInt]],
+    max_length: Optional[int] = None,
+    divisible: PositiveInt = 1,
+) -> Tuple[int, int]:
     """
     Resize dimensions based on specified constraints.
 
@@ -186,7 +286,7 @@ def calculate_resized_dimensions(
 
     # Normalize target_size to a tuple
     if isinstance(target_size, int):
-        target_size = (target_size, )
+        target_size = (target_size,)
 
     # Initialize new dimensions
     if target_size:
@@ -206,13 +306,10 @@ def calculate_resized_dimensions(
         new_long_edge = max_length
 
     # Determine final dimensions based on original orientation
-    resized_dimensions = ((new_short_edge,
-                           new_long_edge) if width >= height else
-                          (new_long_edge, new_short_edge))
+    resized_dimensions = (new_short_edge, new_long_edge) if width >= height else (new_long_edge, new_short_edge)
 
     # Ensure final dimensions are divisible by the specified value
-    resized_dimensions = tuple(
-        int(dim / divisible) * divisible for dim in resized_dimensions)
+    resized_dimensions = tuple(int(dim / divisible) * divisible for dim in resized_dimensions)
 
     return resized_dimensions
 
@@ -225,7 +322,7 @@ def load_audios(paths):
 def load_audio(path, sampling_rate=None):
     aud_feature = Audio(sampling_rate)
     aud = aud_feature.decode_example(aud_feature.encode_example(path))
-    return aud['array'], aud['sampling_rate']
+    return aud["array"], aud["sampling_rate"]
 
 
 # Videos
@@ -233,7 +330,7 @@ def load_videos(paths):
     return [load_video(path) for path in paths]
 
 
-def load_video(path, mode='r'):
+def load_video(path, mode="r"):
     """
     Load a video using its path.
 
@@ -243,14 +340,13 @@ def load_video(path, mode='r'):
         in this video (video/audio/...) and can be used to decode these streams
         to frames.
     """
-    if not os.path.exists(path) and 'r' in mode:
-        raise FileNotFoundError(f'Video [{path}] does not exist!')
+    if not os.path.exists(path) and "r" in mode:
+        raise FileNotFoundError(f"Video [{path}] does not exist!")
     container = av.open(path, mode)
     return container
 
 
-def get_video_duration(input_video: Union[str, av.container.InputContainer],
-                       video_stream_index: int = 0):
+def get_video_duration(input_video: Union[str, av.container.InputContainer], video_stream_index: int = 0):
     """
     Get the video's duration from the container
 
@@ -266,18 +362,18 @@ def get_video_duration(input_video: Union[str, av.container.InputContainer],
     elif isinstance(input_video, av.container.InputContainer):
         container = input_video
     else:
-        raise ValueError(f'Unsupported type of input_video. Should be one of '
-                         f'[str, av.container.InputContainer], but given '
-                         f'[{type(input_video)}].')
+        raise ValueError(
+            f"Unsupported type of input_video. Should be one of "
+            f"[str, av.container.InputContainer], but given "
+            f"[{type(input_video)}]."
+        )
 
     input_video_stream = container.streams.video[video_stream_index]
     duration = input_video_stream.duration * input_video_stream.time_base
     return float(duration)
 
 
-def get_decoded_frames_from_video(
-        input_video: Union[str, av.container.InputContainer],
-        video_stream_index: int = 0):
+def get_decoded_frames_from_video(input_video: Union[str, av.container.InputContainer], video_stream_index: int = 0):
     """
     Get the video's frames from the container
 
@@ -303,6 +399,7 @@ def cut_video_by_seconds(
     output_video: str,
     start_seconds: float,
     end_seconds: Optional[float] = None,
+    video_stream_index: int = 0,
 ):
     """
     Cut a video into several segments by times in second.
@@ -312,6 +409,8 @@ def cut_video_by_seconds(
     :param start_seconds: the start time in second.
     :param end_seconds: the end time in second. If it's None, this function
         will cut the video from the start_seconds to the end of the video.
+    :param video_stream_index: the video stream index to decode,
+        default set to 0.
     :return: a boolean flag indicating whether the video was successfully
         cut or not.
     """
@@ -323,13 +422,13 @@ def cut_video_by_seconds(
 
     # create the output video
     if output_video:
-        output_container = load_video(output_video, 'w')
+        output_container = load_video(output_video, "w")
     else:
         output_buffer = io.BytesIO()
-        output_container = av.open(output_buffer, mode='w', format='mp4')
+        output_container = av.open(output_buffer, mode="w", format="mp4")
 
     # add the video stream into the output video according to input video
-    input_video_stream = container.streams.video[0]
+    input_video_stream = container.streams.video[video_stream_index]
     codec_name = input_video_stream.codec_context.name
     fps = input_video_stream.base_rate
     output_video_stream = output_container.add_stream(codec_name, rate=fps)
@@ -346,9 +445,6 @@ def cut_video_by_seconds(
 
     # seek to the start time, time must be in microsecond if no
     # stream is specified
-    container.seek(int(start_seconds * 1000000),
-                   any_frame=False,
-                   backward=True)
 
     # copy the video and audio streams until the end time
     # NOTICE: for different streams, the time have to be converted to be
@@ -356,27 +452,33 @@ def cut_video_by_seconds(
     video_at_the_end = False
     # compute the start/end pts for video/audio streams
     video_start_pts = int(start_seconds / input_video_stream.time_base)
-    video_end_pts = (end_seconds / input_video_stream.time_base
-                     if end_seconds else input_video_stream.duration)
+    video_end_pts = end_seconds / input_video_stream.time_base if end_seconds else input_video_stream.duration
+
+    container.seek(
+        video_start_pts,
+        stream=input_video_stream,
+        any_frame=False,  # only seek to the nearest keyframe
+        backward=True,  # select the nearest keyframe if no exact position is found
+    )
+
     if input_audio_stream is not None:
         audio_start_pts = int(start_seconds / input_audio_stream.time_base)
-        audio_end_pts = (end_seconds / input_audio_stream.time_base
-                         if end_seconds else input_audio_stream.duration)
+        audio_end_pts = end_seconds / input_audio_stream.time_base if end_seconds else input_audio_stream.duration
     for packet in container.demux(input_video_stream, input_audio_stream):
-        if packet.stream.type == 'video':
+        if packet.stream.type == "video":
             for frame in packet.decode():
                 if frame.pts < video_start_pts:
                     continue
                 if frame.pts > video_end_pts:
                     # continue to check until the next P/I frame
-                    if frame.pict_type in {'P', 'I'}:
+                    if frame.pict_type in {"P", "I"}:
                         video_at_the_end = True
                         break
                     continue
                 frame.pts -= video_start_pts  # timestamp alignment
                 for inter_packet in output_video_stream.encode(frame):
                     output_container.mux(inter_packet)
-        elif packet.stream.type == 'audio':
+        elif packet.stream.type == "audio":
             if packet.pts is None or packet.dts is None:
                 continue
             if packet.pts < audio_start_pts or packet.pts > audio_end_pts:
@@ -401,14 +503,15 @@ def cut_video_by_seconds(
         return output_buffer
 
     if not os.path.exists(output_video):
-        logger.warning(f'This video could not be successfully cut in '
-                       f'[{start_seconds}, {end_seconds}] seconds. '
-                       f'Please set more accurate parameters.')
+        logger.warning(
+            f"This video could not be successfully cut in "
+            f"[{start_seconds}, {end_seconds}] seconds. "
+            f"Please set more accurate parameters."
+        )
     return os.path.exists(output_video)
 
 
-def process_each_frame(input_video: Union[str, av.container.InputContainer],
-                       output_video: str, frame_func):
+def process_each_frame(input_video: Union[str, av.container.InputContainer], output_video: str, frame_func):
     """
     Process each frame in video by replacing each frame by
     `frame_func(frame)`.
@@ -427,7 +530,7 @@ def process_each_frame(input_video: Union[str, av.container.InputContainer],
         container = input_video
 
     # create the output video
-    output_container = load_video(output_video, 'w')
+    output_container = load_video(output_video, "w")
 
     # add the audio stream into the output video with template of input audio
     for input_audio_stream in container.streams.audio:
@@ -469,16 +572,13 @@ def process_each_frame(input_video: Union[str, av.container.InputContainer],
         return output_video
     else:
         shutil.rmtree(output_video, ignore_errors=True)
-        return (input_video
-                if isinstance(input_video, str) else input_video.name)
+        return input_video if isinstance(input_video, str) else input_video.name
 
 
-def extract_key_frames_by_seconds(
-        input_video: Union[str, av.container.InputContainer],
-        duration: float = 1):
+def extract_key_frames_by_seconds(input_video: Union[str, av.container.InputContainer], duration: float = 1):
     """Extract key frames by seconds.
-        :param input_video: input video path or av.container.InputContainer.
-        :param duration: duration of each video split in seconds.
+    :param input_video: input video path or av.container.InputContainer.
+    :param duration: duration of each video split in seconds.
     """
     # load the input video
     if isinstance(input_video, str):
@@ -486,19 +586,20 @@ def extract_key_frames_by_seconds(
     elif isinstance(input_video, av.container.InputContainer):
         container = input_video
     else:
-        raise ValueError(f'Unsupported type of input_video. Should be one of '
-                         f'[str, av.container.InputContainer], but given '
-                         f'[{type(input_video)}].')
+        raise ValueError(
+            f"Unsupported type of input_video. Should be one of "
+            f"[str, av.container.InputContainer], but given "
+            f"[{type(input_video)}]."
+        )
 
     video_duration = get_video_duration(container)
     timestamps = np.arange(0, video_duration, duration).tolist()
 
     all_key_frames = []
     for i in range(1, len(timestamps)):
-        output_buffer = cut_video_by_seconds(container, None,
-                                             timestamps[i - 1], timestamps[i])
+        output_buffer = cut_video_by_seconds(container, None, timestamps[i - 1], timestamps[i])
         if output_buffer:
-            cut_inp_container = av.open(output_buffer, format='mp4', mode='r')
+            cut_inp_container = av.open(output_buffer, format="mp4", mode="r")
             key_frames = extract_key_frames(cut_inp_container)
             all_key_frames.extend(key_frames)
             close_video(cut_inp_container)
@@ -506,12 +607,14 @@ def extract_key_frames_by_seconds(
     return all_key_frames
 
 
-def extract_key_frames(input_video: Union[str, av.container.InputContainer]):
+def extract_key_frames(input_video: Union[str, av.container.InputContainer], video_stream_index: int = 0):
     """
     Extract key frames from the input video. If there is no keyframes in the
     video, return the first frame.
 
     :param input_video: input video path or container.
+    :param video_stream_index: the video stream index to decode,
+        default set to 0.
     :return: a list of key frames.
     """
     # load the input video
@@ -520,14 +623,16 @@ def extract_key_frames(input_video: Union[str, av.container.InputContainer]):
     elif isinstance(input_video, av.container.InputContainer):
         container = input_video
     else:
-        raise ValueError(f'Unsupported type of input_video. Should be one of '
-                         f'[str, av.container.InputContainer], but given '
-                         f'[{type(input_video)}].')
+        raise ValueError(
+            f"Unsupported type of input_video. Should be one of "
+            f"[str, av.container.InputContainer], but given "
+            f"[{type(input_video)}]."
+        )
 
     key_frames = []
-    input_video_stream = container.streams.video[0]
+    input_video_stream = container.streams.video[video_stream_index]
     ori_skip_method = input_video_stream.codec_context.skip_frame
-    input_video_stream.codec_context.skip_frame = 'NONKEY'
+    input_video_stream.codec_context.skip_frame = "NONKEY"
     # restore to the beginning of the video
     container.seek(0)
     for frame in container.decode(input_video_stream):
@@ -536,8 +641,7 @@ def extract_key_frames(input_video: Union[str, av.container.InputContainer]):
     input_video_stream.codec_context.skip_frame = ori_skip_method
 
     if len(key_frames) == 0:
-        logger.warning(f'No keyframes in this video [{input_video}]. Return '
-                       f'the first frame instead.')
+        logger.warning(f"No keyframes in this video [{input_video}]. Return " f"the first frame instead.")
         container.seek(0)
         for frame in container.decode(input_video_stream):
             key_frames.append(frame)
@@ -548,8 +652,7 @@ def extract_key_frames(input_video: Union[str, av.container.InputContainer]):
     return key_frames
 
 
-def get_key_frame_seconds(input_video: Union[str,
-                                             av.container.InputContainer]):
+def get_key_frame_seconds(input_video: Union[str, av.container.InputContainer]):
     """
     Get seconds of key frames in the input video.
     """
@@ -560,14 +663,13 @@ def get_key_frame_seconds(input_video: Union[str,
 
 
 def extract_video_frames_uniformly_by_seconds(
-        input_video: Union[str, av.container.InputContainer],
-        frame_num: PositiveInt,
-        duration: float = 1):
+    input_video: Union[str, av.container.InputContainer], frame_num: PositiveInt, duration: float = 1
+):
     """Extract video frames uniformly by seconds.
-        :param input_video: input video path or av.container.InputContainer.
-        :param frame_num: the number of frames to be extracted uniformly from
-            each video split by duration.
-        :param duration: duration of each video split in seconds.
+    :param input_video: input video path or av.container.InputContainer.
+    :param frame_num: the number of frames to be extracted uniformly from
+        each video split by duration.
+    :param duration: duration of each video split in seconds.
     """
     # load the input video
     if isinstance(input_video, str):
@@ -575,21 +677,21 @@ def extract_video_frames_uniformly_by_seconds(
     elif isinstance(input_video, av.container.InputContainer):
         container = input_video
     else:
-        raise ValueError(f'Unsupported type of input_video. Should be one of '
-                         f'[str, av.container.InputContainer], but given '
-                         f'[{type(input_video)}].')
+        raise ValueError(
+            f"Unsupported type of input_video. Should be one of "
+            f"[str, av.container.InputContainer], but given "
+            f"[{type(input_video)}]."
+        )
 
     video_duration = get_video_duration(container)
     timestamps = np.arange(0, video_duration, duration).tolist()
 
     all_frames = []
     for i in range(1, len(timestamps)):
-        output_buffer = cut_video_by_seconds(container, None,
-                                             timestamps[i - 1], timestamps[i])
+        output_buffer = cut_video_by_seconds(container, None, timestamps[i - 1], timestamps[i])
         if output_buffer:
-            cut_inp_container = av.open(output_buffer, format='mp4', mode='r')
-            key_frames = extract_video_frames_uniformly(cut_inp_container,
-                                                        frame_num=frame_num)
+            cut_inp_container = av.open(output_buffer, format="mp4", mode="r")
+            key_frames = extract_video_frames_uniformly(cut_inp_container, frame_num=frame_num)
             all_frames.extend(key_frames)
             close_video(cut_inp_container)
 
@@ -617,16 +719,20 @@ def extract_video_frames_uniformly(
     elif isinstance(input_video, av.container.InputContainer):
         container = input_video
     else:
-        raise ValueError(f'Unsupported type of input_video. Should be one of '
-                         f'[str, av.container.InputContainer], but given '
-                         f'[{type(input_video)}].')
+        raise ValueError(
+            f"Unsupported type of input_video. Should be one of "
+            f"[str, av.container.InputContainer], but given "
+            f"[{type(input_video)}]."
+        )
 
     input_video_stream = container.streams.video[0]
     total_frame_num = input_video_stream.frames
     if total_frame_num < frame_num:
-        logger.warning('Number of frames to be extracted is larger than the '
-                       'total number of frames in this video. Set it to the '
-                       'total number of frames.')
+        logger.warning(
+            "Number of frames to be extracted is larger than the "
+            "total number of frames in this video. Set it to the "
+            "total number of frames."
+        )
         frame_num = total_frame_num
     # calculate the frame seconds to be extracted
     duration = input_video_stream.duration * input_video_stream.time_base
@@ -747,14 +853,18 @@ def extract_audio_from_video(
     elif isinstance(input_video, av.container.InputContainer):
         input_container = input_video
     else:
-        raise ValueError(f'Unsupported type of input_video. Should be one of '
-                         f'[str, av.container.InputContainer], but given '
-                         f'[{type(input_video)}].')
+        raise ValueError(
+            f"Unsupported type of input_video. Should be one of "
+            f"[str, av.container.InputContainer], but given "
+            f"[{type(input_video)}]."
+        )
 
-    if output_audio and not output_audio.endswith('mp3'):
-        raise ValueError(f'Now we only support export the audios into `mp3` '
-                         f'format, but given '
-                         f'[{os.path.splitext(output_audio)[1]}')
+    if output_audio and not output_audio.endswith("mp3"):
+        raise ValueError(
+            f"Now we only support export the audios into `mp3` "
+            f"format, but given "
+            f"[{os.path.splitext(output_audio)[1]}"
+        )
 
     # no audios in the video
     num_audio_streams = len(input_container.streams.audio)
@@ -764,9 +874,7 @@ def extract_audio_from_video(
         valid_stream_indexes = [stream_indexes]
     else:
         # remove indexes that are larger than the total number of audio streams
-        valid_stream_indexes = [
-            idx for idx in stream_indexes if idx < num_audio_streams
-        ]
+        valid_stream_indexes = [idx for idx in stream_indexes if idx < num_audio_streams]
     # no valid expected audio streams
     if len(valid_stream_indexes) == 0:
         return [], [], valid_stream_indexes
@@ -777,19 +885,17 @@ def extract_audio_from_video(
         # read the current audio stream
         input_audio_stream = input_container.streams.audio[idx]
         # get the sampling rate
-        audio_sampling_rate_list.append(float(1 /
-                                              input_audio_stream.time_base))
+        audio_sampling_rate_list.append(float(1 / input_audio_stream.time_base))
 
         if output_audio:
             # if the output_audio is not None, prepare the output audio file
-            this_output_audio = add_suffix_to_filename(output_audio, f'_{idx}')
-            output_container = load_video(this_output_audio, 'w')
-            output_stream = output_container.add_stream('mp3')
+            this_output_audio = add_suffix_to_filename(output_audio, f"_{idx}")
+            output_container = load_video(this_output_audio, "w")
+            output_stream = output_container.add_stream("mp3")
 
         # get the start/end pts
         start_pts = int(start_seconds / input_audio_stream.time_base)
-        end_pts = (end_seconds /
-                   input_audio_stream.time_base if end_seconds else None)
+        end_pts = end_seconds / input_audio_stream.time_base if end_seconds else None
 
         audio_data = []
         for frame in input_container.decode(input_audio_stream):
@@ -830,62 +936,60 @@ def size_to_bytes(size):
     numbers_list = [char for char in size if char.isdigit()]
 
     if len(numbers_list) == 0:
-        raise ValueError(f'Your input `size` does not contain numbers: {size}')
+        raise ValueError(f"Your input `size` does not contain numbers: {size}")
 
-    size_numbers = int(float(''.join(numbers_list)))
+    size_numbers = int(float("".join(numbers_list)))
 
     if len(alphabets_list) == 0:
         # by default, if users do not specify the units, the number will be
         # regarded as in bytes
         return size_numbers
 
-    suffix = ''.join(alphabets_list).lower()
+    suffix = "".join(alphabets_list).lower()
 
-    if suffix == 'kb' or suffix == 'kib':
+    if suffix == "kb" or suffix == "kib":
         return size_numbers << 10
-    elif suffix == 'mb' or suffix == 'mib':
+    elif suffix == "mb" or suffix == "mib":
         return size_numbers << 20
-    elif suffix == 'gb' or suffix == 'gib':
+    elif suffix == "gb" or suffix == "gib":
         return size_numbers << 30
-    elif suffix == 'tb' or suffix == 'tib':
+    elif suffix == "tb" or suffix == "tib":
         return size_numbers << 40
-    elif suffix == 'pb' or suffix == 'pib':
+    elif suffix == "pb" or suffix == "pib":
         return size_numbers << 50
-    elif suffix == 'eb' or suffix == 'eib':
+    elif suffix == "eb" or suffix == "eib":
         return size_numbers << 60
-    elif suffix == 'zb' or suffix == 'zib':
+    elif suffix == "zb" or suffix == "zib":
         return size_numbers << 70
-    elif suffix == 'yb' or suffix == 'yib':
+    elif suffix == "yb" or suffix == "yib":
         return size_numbers << 80
     else:
-        raise ValueError(f'You specified unidentifiable unit: {suffix}, '
-                         f'expected in [KB, MB, GB, TB, PB, EB, ZB, YB, '
-                         f'KiB, MiB, GiB, TiB, PiB, EiB, ZiB, YiB], '
-                         f'(case insensitive, counted by *Bytes*).')
-
-
-def insert_texts_after_placeholders(original_string,
-                                    placeholders,
-                                    new_texts,
-                                    delimiter_in_insert_pos=' '):
-    if len(placeholders) != len(new_texts):
         raise ValueError(
-            'The number of placeholders and new_texts must be equal')
+            f"You specified unidentifiable unit: {suffix}, "
+            f"expected in [KB, MB, GB, TB, PB, EB, ZB, YB, "
+            f"KiB, MiB, GiB, TiB, PiB, EiB, ZiB, YiB], "
+            f"(case insensitive, counted by *Bytes*)."
+        )
+
+
+def insert_texts_after_placeholders(original_string, placeholders, new_texts, delimiter_in_insert_pos=" "):
+    if len(placeholders) != len(new_texts):
+        raise ValueError("The number of placeholders and new_texts must be equal")
 
     modified_string = original_string
     for placeholder, new_text in zip(placeholders, new_texts):
         # Find the index of the next occurrence of the placeholder
         index = modified_string.find(placeholder)
         if index == -1:
-            raise ValueError(
-                f"Placeholder '{placeholder}' not found in the string")
+            raise ValueError(f"Placeholder '{placeholder}' not found in the string")
         # Insert new_text at the found index position
-        modified_string = \
-            modified_string[:index + len(placeholder)] + \
-            delimiter_in_insert_pos + \
-            new_text + \
-            delimiter_in_insert_pos + \
-            modified_string[index + len(placeholder):]
+        modified_string = (
+            modified_string[: index + len(placeholder)]
+            + delimiter_in_insert_pos
+            + new_text
+            + delimiter_in_insert_pos
+            + modified_string[index + len(placeholder) :]
+        )
 
     return modified_string
 
@@ -898,14 +1002,14 @@ def timecode_string_to_seconds(timecode: str):
         format.
     """
     # parse the timecode string
-    dt = datetime.datetime.strptime(timecode, '%H:%M:%S.%f')
+    dt = datetime.datetime.strptime(timecode, "%H:%M:%S.%f")
 
     # compute the start/end time in second
     pts = dt.hour * 3600 + dt.minute * 60 + dt.second + dt.microsecond / 1e6
     return pts
 
 
-def parse_string_to_roi(roi_string, roi_type='pixel'):
+def parse_string_to_roi(roi_string, roi_type="pixel"):
     """
     Convert a roi string to four number x1, y1, x2, y2 stand for the region.
     When the type is 'pixel', (x1, y1), (x2, y2) are the locations of pixels
@@ -920,23 +1024,24 @@ def parse_string_to_roi(roi_string, roi_type='pixel'):
     if not roi_string:
         return None
 
-    pattern = r'^\s*[\[\(]?\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*[\]\)]?\s*$'  # noqa: E501
+    pattern = r"^\s*[\[\(]?\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*[\]\)]?\s*$"  # noqa: E501
 
     match = re.match(pattern, roi_string)
 
     if match:
-        if roi_type == 'pixel':
+        if roi_type == "pixel":
             return tuple(int(num) for num in match.groups())
-        elif roi_type == 'ratio':
+        elif roi_type == "ratio":
             return tuple(min(1.0, float(num)) for num in match.groups())
         else:
             logger.warning('The roi_type must be "pixel" or "ratio".')
             return None
     else:
         logger.warning(
-            'The roi_string must be four no negative numbers in the '
+            "The roi_string must be four no negative numbers in the "
             'format of "x1, y1, x2, y2", "(x1, y1, x2, y2)", or '
-            '"[x1, y1, x2, y2]".')
+            '"[x1, y1, x2, y2]".'
+        )
         return None
 
 

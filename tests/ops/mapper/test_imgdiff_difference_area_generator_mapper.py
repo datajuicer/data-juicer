@@ -12,6 +12,8 @@ from data_juicer.ops.mapper.imgdiff_difference_area_generator_mapper import Diff
 class Difference_Area_Generator_FusedOPTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
+
         data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              'data')
         img_pair_1 = os.path.join(data_path, 'img_pair_1.jpg')

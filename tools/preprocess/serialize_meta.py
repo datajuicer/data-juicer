@@ -13,7 +13,7 @@ def fp_iter(src_dir):
     :param src_dir: path to source dataset directory
     :return: iterator over jsonl files
     """
-    for fp in pathlib.Path(src_dir).glob('*.jsonl'):
+    for fp in pathlib.Path(src_dir).glob("*.jsonl"):
         yield fp
 
 
@@ -26,21 +26,17 @@ def meta_serialize(file_name, target_file, text_key, serialized_key):
     :param serialized_key: the key corresponding to the field that the
         serialized info saved. Default it's 'source_info'.
     """
-    with open(target_file, 'w') as fw:
+    with open(target_file, "w") as fw:
         target = {}
-        with jsonlines.open(file_name, 'r') as fr:
+        with jsonlines.open(file_name, "r") as fr:
             for obj in fr:
                 for key in text_key:
                     target[key] = obj.pop(key)
                 target[serialized_key] = json.dumps(obj, ensure_ascii=False)
-                fw.write(json.dumps(target, ensure_ascii=False) + '\n')
+                fw.write(json.dumps(target, ensure_ascii=False) + "\n")
 
 
-def main(src_dir,
-         target_dir,
-         text_key='text',
-         serialized_key='source_info',
-         num_proc=1):
+def main(src_dir, target_dir, text_key="text", serialized_key="source_info", num_proc=1):
     """
     Serialize all the fields in the jsonl file except the fields specified
     by users to ensure that the jsonl file with inconsistent text format
@@ -54,21 +50,19 @@ def main(src_dir,
     :param num_proc: number of process worker. Default it's 1.
     """
 
-    assert isinstance(
-        text_key, str) or isinstance(text_key, list) or isinstance(
-            text_key, tuple), 'text_key must be a string, list or tuple.'
+    assert (
+        isinstance(text_key, str) or isinstance(text_key, list) or isinstance(text_key, tuple)
+    ), "text_key must be a string, list or tuple."
 
     if isinstance(text_key, str):
         text_key = [text_key]
 
     for key in text_key:
-        assert key != serialized_key, "text_key '{}' cannot be the same as " \
-                                      'serialized_key.'.format(key)
+        assert key != serialized_key, "text_key '{}' cannot be the same as " "serialized_key.".format(key)
 
     # check if the source directory exists
     if not os.path.exists(src_dir):
-        raise ValueError('The raw source data directory does not exist,'
-                         ' Please check and retry.')
+        raise ValueError("The raw source data directory does not exist," " Please check and retry.")
     if not os.path.exists(target_dir):
         os.makedirs(target_dir, exist_ok=True)
 
@@ -76,12 +70,11 @@ def main(src_dir,
     for fp in fp_iter(src_dir):
         print(fp)
         jsonl_fp = os.path.join(target_dir, fp.name)
-        pool.apply_async(meta_serialize,
-                         args=(str(fp), jsonl_fp, text_key, serialized_key))
+        pool.apply_async(meta_serialize, args=(str(fp), jsonl_fp, text_key, serialized_key))
 
     pool.close()
     pool.join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

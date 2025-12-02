@@ -9,7 +9,7 @@ from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.utils.lazy_loader import LazyLoader
 
-ffmpeg = LazyLoader('ffmpeg', 'ffmpeg')
+ffmpeg = LazyLoader('ffmpeg', 'ffmpeg-python')
 
 
 class VideoResizeResolutionMapperTest(DataJuicerTestCaseBase):

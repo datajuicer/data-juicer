@@ -17,7 +17,7 @@ class KeyValueGrouperTest(DataJuicerTestCaseBase):
 
     def test_key_value_grouper(self):
 
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!",
                 'meta': {
@@ -37,7 +37,7 @@ class KeyValueGrouperTest(DataJuicerTestCaseBase):
                 }
             },
         ]
-        target = {
+        tgt_list = {
             'en':[
                 "Today is Sunday and it's a happy day!",
                 "Welcome to Alibaba."
@@ -48,7 +48,7 @@ class KeyValueGrouperTest(DataJuicerTestCaseBase):
         }
 
         op = KeyValueGrouper(['meta.language'])
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
 if __name__ == '__main__':
     unittest.main()

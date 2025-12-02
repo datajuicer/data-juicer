@@ -77,16 +77,12 @@ class Registry(object):
             module_name = module_cls.__name__
 
         if module_name in self._modules and not force:
-            raise KeyError(
-                f'{module_name} is already registered in {self._name}')
+            raise KeyError(f"{module_name} is already registered in {self._name}")
 
         self._modules[module_name] = module_cls
         module_cls._name = module_name
 
-    def register_module(self,
-                        module_name: str = None,
-                        module_cls: type = None,
-                        force=False):
+    def register_module(self, module_name: str = None, module_cls: type = None, force=False):
         """
         Register module class object to registry with the specified modulename.
 
@@ -107,12 +103,9 @@ class Registry(object):
                                         module_cls=TextFormatter2)
         """
         if not (module_name is None or isinstance(module_name, str)):
-            raise TypeError(f'module_name must be either of None, str,'
-                            f'got {type(module_name)}')
+            raise TypeError(f"module_name must be either of None, str," f"got {type(module_name)}")
         if module_cls is not None:
-            self._register_module(module_name=module_name,
-                                  module_cls=module_cls,
-                                  force=force)
+            self._register_module(module_name=module_name, module_cls=module_cls, force=force)
             return module_cls
 
         # if module_cls is None, should return a decorator function
@@ -123,9 +116,7 @@ class Registry(object):
             :param module_cls: module class object
             :return: module class object.
             """
-            self._register_module(module_name=module_name,
-                                  module_cls=module_cls,
-                                  force=force)
+            self._register_module(module_name=module_name, module_cls=module_cls, force=force)
             return module_cls
 
         return _register

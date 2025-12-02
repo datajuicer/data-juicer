@@ -9,6 +9,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class RemoveTableTextMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
         self.op = RemoveTableTextMapper()
 
     def _run_remove_header(self, samples):

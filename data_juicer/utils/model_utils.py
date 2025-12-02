@@ -1,6 +1,8 @@
 import fnmatch
 import inspect
+import io
 import os
+from contextlib import redirect_stderr
 from functools import partial
 from pickle import UnpicklingError
 from typing import Optional, Union
@@ -10,70 +12,66 @@ import multiprocess as mp
 import wget
 from loguru import logger
 
-from data_juicer import cuda_device_count
 from data_juicer.utils.common_utils import nested_access
-from data_juicer.utils.lazy_loader import AUTOINSTALL, LazyLoader
-from data_juicer.utils.nltk_utils import (ensure_nltk_resource,
-                                          patch_nltk_pickle_security)
+from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.nltk_utils import (
+    ensure_nltk_resource,
+    patch_nltk_pickle_security,
+)
+from data_juicer.utils.ray_utils import is_ray_mode
+from data_juicer.utils.resource_utils import cuda_device_count
 
+from .cache_utils import DATA_JUICER_EXTERNAL_MODELS_HOME as DJEMH
 from .cache_utils import DATA_JUICER_MODELS_CACHE as DJMC
 
-torch = LazyLoader('torch', 'torch')
-transformers = LazyLoader('transformers', 'transformers')
-nn = LazyLoader('nn', 'torch.nn')
-fasttext = LazyLoader('fasttext', 'fasttext')
-sentencepiece = LazyLoader('sentencepiece', 'sentencepiece')
-kenlm = LazyLoader('kenlm', 'kenlm')
-nltk = LazyLoader('nltk', 'nltk')
-aes_pre = LazyLoader('aes_pre', 'aesthetics_predictor')
-vllm = LazyLoader('vllm', 'vllm')
-diffusers = LazyLoader('diffusers', 'diffusers')
-ram = LazyLoader('ram', 'ram.models')
-cv2 = LazyLoader('cv2', 'cv2')
-openai = LazyLoader('openai', 'openai')
-ultralytics = LazyLoader('ultralytics', 'ultralytics')
+torch = LazyLoader("torch")
+transformers = LazyLoader("transformers")
+nn = LazyLoader("torch.nn")
+fasttext = LazyLoader("fasttext", "fasttext-wheel")
+sentencepiece = LazyLoader("sentencepiece")
+kenlm = LazyLoader("kenlm")
+nltk = LazyLoader("nltk")
+aes_pred = LazyLoader("aesthetics_predictor", "simple-aesthetics-predictor")
+vllm = LazyLoader("vllm")
+diffusers = LazyLoader("diffusers")
+ram = LazyLoader("ram", "git+https://github.com/xinyu1205/recognize-anything.git")
+cv2 = LazyLoader("cv2", "opencv-python")
+openai = LazyLoader("openai")
+ultralytics = LazyLoader("ultralytics")
+tiktoken = LazyLoader("tiktoken")
+dashscope = LazyLoader("dashscope")
 
 MODEL_ZOO = {}
 
 # Default cached models links for downloading
-MODEL_LINKS = 'https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/' \
-               'data_juicer/models/'
+MODEL_LINKS = "https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/" "data_juicer/models/"
 
 # Backup cached models links for downloading
 BACKUP_MODEL_LINKS = {
     # language identification model from fasttext
-    'lid.176.bin':
-    'https://dl.fbaipublicfiles.com/fasttext/supervised-models/',
-
+    "lid.176.bin": "https://dl.fbaipublicfiles.com/fasttext/supervised-models/",
     # tokenizer and language model for English from sentencepiece and KenLM
-    '*.sp.model':
-    'https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/',
-    '*.arpa.bin':
-    'https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/',
-
+    "*.sp.model": "https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/",
+    "*.arpa.bin": "https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/",
     # sentence split model from nltk punkt
-    'punkt.*.pickle':
-    'https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/'
-    'data_juicer/models/',
-
+    "punkt.*.pickle": "https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/" "data_juicer/models/",
     # ram
-    'ram_plus_swin_large_14m.pth':
-    'http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/models/'
-    'ram_plus_swin_large_14m.pth',
-
+    "ram_plus_swin_large_14m.pth": "http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/models/"
+    "ram_plus_swin_large_14m.pth",
     # FastSAM
-    'FastSAM-s.pt':
-    'https://github.com/ultralytics/assets/releases/download/v8.2.0/'
-    'FastSAM-s.pt',
-    'FastSAM-x.pt':
-    'https://github.com/ultralytics/assets/releases/download/v8.2.0/'
-    'FastSAM-x.pt',
-}
-
-TORCH_DTYPE_MAPPING = {
-    'fp32': torch.float32,
-    'fp16': torch.float16,
-    'bf16': torch.bfloat16,
+    "FastSAM-s.pt": "https://github.com/ultralytics/assets/releases/download/v8.2.0/" "FastSAM-s.pt",
+    "FastSAM-x.pt": "https://github.com/ultralytics/assets/releases/download/v8.2.0/" "FastSAM-x.pt",
+    # spacy
+    "*_core_web_md-3.*.0": "https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/" "data_juicer/models/",
+    # YOLO
+    "yolo11n.pt": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt",
+    # WiLoR
+    "wilor_model_path": "https://huggingface.co/spaces/rolpotamias/WiLoR/resolve/main/pretrained_models/wilor_final.ckpt",
+    "wilor_model_config": "https://raw.githubusercontent.com/rolpotamias/WiLoR/refs/heads/main/pretrained_models/model_config.yaml",
+    "wilor_detector_model_path": "https://huggingface.co/spaces/rolpotamias/WiLoR/resolve/main/pretrained_models/detector.pt",
+    # DWPose
+    "dwpose_onnx_det_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx",
+    "dwpose_onnx_pose_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx",
 }
 
 
@@ -99,6 +97,16 @@ def check_model(model_name, force=False):
     if not force and os.path.exists(model_name):
         return model_name
 
+    if not force and DJEMH:
+        external_paths = DJEMH.split(os.pathsep)
+        for path in external_paths:
+            clean_path = path.strip()
+            if not clean_path:
+                continue
+            model_path = os.path.join(clean_path, model_name)
+            if os.path.exists(model_path):
+                return model_path
+
     if not os.path.exists(DJMC):
         os.makedirs(DJMC)
 
@@ -107,38 +115,69 @@ def check_model(model_name, force=False):
     if force:
         if os.path.exists(cached_model_path):
             os.remove(cached_model_path)
-            logger.info(
-                f'Model [{cached_model_path}] is invalid. Forcing download...')
+            logger.info(f"Model [{cached_model_path}] is invalid. Forcing download...")
         else:
-            logger.info(
-                f'Model [{cached_model_path}] is not found. Downloading...')
+            logger.info(f"Model [{cached_model_path}] is not found. Downloading...")
 
+        model_link = os.path.join(MODEL_LINKS, model_name)
         try:
-            model_link = os.path.join(MODEL_LINKS, model_name)
             wget.download(model_link, cached_model_path)
         except:  # noqa: E722
+            backup_model_link = get_backup_model_link(model_name)
+            if backup_model_link is not None:
+                backup_model_link = os.path.join(backup_model_link, model_name)
             try:
-                backup_model_link = os.path.join(
-                    get_backup_model_link(model_name), model_name)
                 wget.download(backup_model_link, cached_model_path)
             except:  # noqa: E722
-                logger.error(
-                    f'Downloading model [{model_name}] error. '
-                    f'Please retry later or download it into {DJMC} '
-                    f'manually from {model_link} or {backup_model_link} ')
-                exit(1)
+                import traceback
+
+                traceback.print_exc()
+                raise RuntimeError(
+                    f"Downloading model [{model_name}] error. "
+                    f"Please retry later or download it into {DJMC} "
+                    f"manually from {model_link} or {backup_model_link} "
+                )
     return cached_model_path
 
 
-class APIModel:
+def check_model_home(model_name):
+    if not DJEMH:
+        return model_name
 
-    def __init__(self, model, endpoint=None, response_path=None, **kwargs):
+    cached_model_path = os.path.join(DJEMH, model_name)
+    if os.path.exists(cached_model_path):
+        return cached_model_path
+    return model_name
+
+
+def filter_arguments(func, args_dict):
+    """
+    Filters and returns only the valid arguments for a given function
+    signature.
+
+    :param func: The function or callable to inspect.
+    :param args_dict: A dictionary of argument names and values to filter.
+    :return: A dictionary containing only the arguments that match the
+                function's signature, preserving any **kwargs if applicable.
+    """
+    params = inspect.signature(func).parameters
+    filtered_args = {}
+    for name, param in params.items():
+        if param.kind == inspect.Parameter.VAR_KEYWORD:
+            return args_dict
+        if name not in {"self", "cls"} and name in args_dict:
+            filtered_args[name] = args_dict[name]
+    return filtered_args
+
+
+class ChatAPIModel:
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
         """
         Initializes an instance of the APIModel class.
 
         :param model: The name of the model to be used for making API
             calls. This should correspond to a valid model identifier
-            recognized by the API server.
+            recognized by the API server. If it's None, use the first available model from the server.
         :param endpoint: The URL endpoint for the API. If provided as a
             relative path, it will be appended to the base URL (defined by the
             `OPENAI_BASE_URL` environment variable or through an additional
@@ -152,11 +191,17 @@ class APIModel:
             internal OpenAI client.
         """
         self.model = model
-        self.endpoint = endpoint or '/chat/completions'
-        self.response_path = response_path or 'choices.0.message.content'
+        self.endpoint = endpoint or "/chat/completions"
+        self.response_path = response_path or "choices.0.message.content"
 
-        client_args = self._filter_arguments(openai.OpenAI, kwargs)
+        client_args = filter_arguments(openai.OpenAI, kwargs)
         self._client = openai.OpenAI(**client_args)
+        if self.model is None:
+            logger.warning("No model specified. Using the first available model from the server.")
+            models_list = self._client.models.list().data
+            if len(models_list) == 0:
+                raise ValueError("No models available on the server.")
+            self.model = models_list[0].id
 
     def __call__(self, messages, **kwargs):
         """
@@ -171,55 +216,74 @@ class APIModel:
             string if an error occurs.
         """
         body = {
-            'messages': messages,
-            'model': self.model,
+            "messages": messages,
+            "model": self.model,
         }
         body.update(kwargs)
-        stream = kwargs.get('stream', False)
+        stream = kwargs.get("stream", False)
         stream_cls = openai.Stream[openai.types.chat.ChatCompletionChunk]
 
         try:
-            response = self._client.post(self.endpoint,
-                                         body=body,
-                                         cast_to=httpx.Response,
-                                         stream=stream,
-                                         stream_cls=stream_cls)
+            response = self._client.post(
+                self.endpoint, body=body, cast_to=httpx.Response, stream=stream, stream_cls=stream_cls
+            )
             result = response.json()
             return nested_access(result, self.response_path)
         except Exception as e:
             logger.exception(e)
-            return ''
+            return ""
 
-    @staticmethod
-    def _filter_arguments(func, args_dict):
+
+class EmbeddingAPIModel:
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
         """
-        Filters and returns only the valid arguments for a given function
-        signature.
+        Initializes an instance specialized for embedding APIs.
 
-        :param func: The function or callable to inspect.
-        :param args_dict: A dictionary of argument names and values to filter.
-        :return: A dictionary containing only the arguments that match the
-                 function's signature, preserving any **kwargs if applicable.
+        :param model: The model identifier for embedding API calls.
+            If it's None, use the first available model from the server.
+        :param endpoint: API endpoint URL. Defaults to '/embeddings'.
+        :param response_path: Path to extract embeddings from response.
+            Defaults to 'data.0.embedding'.
+        :param kwargs: Configuration for the OpenAI client.
         """
-        params = inspect.signature(func).parameters
-        filtered_args = {}
-        for name, param in params.items():
-            # If **kwargs is found, return without change
-            if param.kind == inspect.Parameter.VAR_KEYWORD:
-                return args_dict
-            # Collect valid parameters
-            if name not in {'self', 'cls'} and name in args_dict:
-                filtered_args[name] = args_dict[name]
-        return filtered_args
+        self.model = model
+        self.endpoint = endpoint or "/embeddings"
+        self.response_path = response_path or "data.0.embedding"
+
+        client_args = filter_arguments(openai.OpenAI, kwargs)
+        self._client = openai.OpenAI(**client_args)
+        if self.model is None:
+            logger.warning("No model specified. Using the first available model from the server.")
+            if len(self._client.models.list().data) == 0:
+                raise ValueError("No models available on the server.")
+            self.model = self._client.models.list().data[0].id
+
+    def __call__(self, input, **kwargs):
+        """
+        Processes input text and returns embeddings.
+
+        :param input: Input text or list of texts to embed.
+        :param kwargs: Additional API parameters.
+        :return: Extracted embeddings or empty list on error.
+        """
+        body = {
+            "model": self.model,
+            "input": input,
+        }
+        body.update(kwargs)
+
+        try:
+            response = self._client.post(self.endpoint, body=body, cast_to=httpx.Response)
+            result = response.json()
+            return nested_access(result, self.response_path) or []
+        except Exception as e:
+            logger.exception(f"Embedding API error: {e}")
+            return []
 
 
-def prepare_api_model(model,
-                      *,
-                      endpoint=None,
-                      response_path=None,
-                      return_processor=False,
-                      processor_config=None,
-                      **model_params):
+def prepare_api_model(
+    model, *, endpoint=None, response_path=None, return_processor=False, processor_config=None, **model_params
+):
     """Creates a callable API model for interacting with OpenAI-compatible API.
     The callable supports custom response parsing and works with proxy servers
     that may be incompatible.
@@ -228,10 +292,13 @@ def prepare_api_model(model,
     :param endpoint: The URL endpoint for the API. If provided as a relative
         path, it will be appended to the base URL (defined by the
         `OPENAI_BASE_URL` environment variable or through an additional
-        `base_url` parameter). By default, it is set to
-        '/chat/completions' for OpenAI compatibility.
+        `base_url` parameter). Supported endpoints include:
+        - '/chat/completions' for chat models
+        - '/embeddings' for embedding models
+        Defaults to `/chat/completions` for OpenAI compatibility.
     :param response_path: The dot-separated  path to extract desired content
-        from the API response. Defaults to 'choices.0.message.content'.
+        from the API response. Defaults to 'choices.0.message.content'
+        for chat models and 'data.0.embedding' for embedding models.
     :param return_processor: A boolean flag indicating whether to return a
         processor along with the model. The processor can be used for tasks
         like tokenization or encoding. Defaults to False.
@@ -242,169 +309,209 @@ def prepare_api_model(model,
     :return: A callable APIModel instance, and optionally a processor
         if `return_processor` is True.
     """
-    client = APIModel(model=model,
-                      endpoint=endpoint,
-                      response_path=response_path,
-                      **model_params)
+    endpoint = endpoint or "/chat/completions"
+
+    ENDPOINT_CLASS_MAP = {
+        "chat": ChatAPIModel,
+        "embeddings": EmbeddingAPIModel,
+    }
+
+    API_Class = next((cls for keyword, cls in ENDPOINT_CLASS_MAP.items() if keyword in endpoint.lower()), None)
+
+    if API_Class is None:
+        raise ValueError(f"Unsupported endpoint: {endpoint}")
+
+    client = API_Class(model=model, endpoint=endpoint, response_path=response_path, **model_params)
 
     if not return_processor:
         return client
 
     def get_processor():
         try:
-            import tiktoken
-            return tiktoken.encoding_for_model(model)
+            return tiktoken.encoding_for_model(check_model_home(model))
         except Exception:
             pass
 
         try:
-            import dashscope
-            return dashscope.get_tokenizer(model)
+            return dashscope.get_tokenizer(check_model_home(model))
         except Exception:
             pass
 
         try:
             processor = transformers.AutoProcessor.from_pretrained(
-                pretrained_model_name_or_path=model, **processor_config)
+                pretrained_model_name_or_path=check_model_home(model), **processor_config
+            )
             return processor
         except Exception:
             pass
 
         raise ValueError(
-            'Failed to initialize the processor. Please check the following:\n'  # noqa: E501
+            "Failed to initialize the processor. Please check the following:\n"  # noqa: E501
             "- For OpenAI models: Install 'tiktoken' via `pip install tiktoken`.\n"  # noqa: E501
             "- For DashScope models: Install both 'dashscope' and 'tiktoken' via `pip install dashscope tiktoken`.\n"  # noqa: E501
             "- For custom models: Use the 'processor_config' parameter to configure a Hugging Face processor."  # noqa: E501
         )
 
-    if processor_config is not None and \
-            'pretrained_model_name_or_path' in processor_config:
-        processor = transformers.AutoProcessor.from_pretrained(
-            **processor_config)
+    if processor_config is not None and "pretrained_model_name_or_path" in processor_config:
+        processor = transformers.AutoProcessor.from_pretrained(**processor_config)
     else:
         processor = get_processor()
     return (client, processor)
 
 
-def prepare_diffusion_model(pretrained_model_name_or_path, diffusion_type,
-                            **model_params):
+def prepare_diffusion_model(pretrained_model_name_or_path, diffusion_type, **model_params):
     """
-        Prepare and load an Diffusion model from HuggingFace.
+    Prepare and load an Diffusion model from HuggingFace.
 
-        :param pretrained_model_name_or_path: input Diffusion model name
-            or local path to the model
-        :param diffusion_type: the use of the diffusion model. It can be
-            'image2image', 'text2image', 'inpainting'
-        :return: a Diffusion model.
+    :param pretrained_model_name_or_path: input Diffusion model name
+        or local path to the model
+    :param diffusion_type: the use of the diffusion model. It can be
+        'image2image', 'text2image', 'inpainting'
+    :return: a Diffusion model.
     """
-    AUTOINSTALL.check(['torch', 'transformers'])
 
-    device = model_params.pop('device', None)
+    TORCH_DTYPE_MAPPING = {
+        "fp32": torch.float32,
+        "fp16": torch.float16,
+        "bf16": torch.bfloat16,
+    }
+
+    LazyLoader.check_packages(["torch", "transformers"])
+
+    device = model_params.pop("device", None)
     if not device:
-        model_params['device_map'] = 'balanced'
-    if 'torch_dtype' in model_params:
-        model_params['torch_dtype'] = TORCH_DTYPE_MAPPING[
-            model_params['torch_dtype']]
+        model_params["device_map"] = "balanced"
+    if "torch_dtype" in model_params:
+        model_params["torch_dtype"] = TORCH_DTYPE_MAPPING[model_params["torch_dtype"]]
 
     diffusion_type_to_pipeline = {
-        'image2image': diffusers.AutoPipelineForImage2Image,
-        'text2image': diffusers.AutoPipelineForText2Image,
-        'inpainting': diffusers.AutoPipelineForInpainting
+        "image2image": diffusers.AutoPipelineForImage2Image,
+        "text2image": diffusers.AutoPipelineForText2Image,
+        "inpainting": diffusers.AutoPipelineForInpainting,
     }
 
     if diffusion_type not in diffusion_type_to_pipeline.keys():
         raise ValueError(
-            f'Not support {diffusion_type} diffusion_type for diffusion '
-            'model. Can only be one of '
-            '["image2image", "text2image", "inpainting"].')
+            f"Not support {diffusion_type} diffusion_type for diffusion "
+            "model. Can only be one of "
+            '["image2image", "text2image", "inpainting"].'
+        )
 
     pipeline = diffusion_type_to_pipeline[diffusion_type]
-    model = pipeline.from_pretrained(pretrained_model_name_or_path,
-                                     **model_params)
+    model = pipeline.from_pretrained(check_model_home(pretrained_model_name_or_path), **model_params)
     if device:
         model = model.to(device)
 
     return model
 
 
+def prepare_dwpose_model(onnx_det_model, onnx_pose_model, **model_params):
+    from data_juicer.ops.common.dwpose_func import DWposeDetector
+
+    device = model_params.pop("device", "cpu")
+
+    def _get_model_path(model_path, default_filename, download_key):
+        if not os.path.exists(model_path):
+            if not os.path.exists(DJMC):
+                os.makedirs(DJMC)
+            model_path = os.path.join(DJMC, default_filename)
+            if not os.path.exists(model_path):
+                wget.download(BACKUP_MODEL_LINKS[download_key], DJMC)
+        return model_path
+
+    onnx_det_model = _get_model_path(onnx_det_model, "yolox_l.onnx", "dwpose_onnx_det_model")
+    onnx_pose_model = _get_model_path(onnx_pose_model, "dw-ll_ucoco_384.onnx", "dwpose_onnx_pose_model")
+
+    dwpose_model = DWposeDetector(onnx_det_model, onnx_pose_model, device)
+    return dwpose_model
+
+
 def prepare_fastsam_model(model_path, **model_params):
-    device = model_params.pop('device', 'cpu')
+    device = model_params.pop("device", "cpu")
     model = ultralytics.FastSAM(check_model(model_path)).to(device)
     return model
 
 
-def prepare_fasttext_model(model_name='lid.176.bin', **model_params):
+def prepare_fasttext_model(model_name="lid.176.bin", **model_params):
     """
     Prepare and load a fasttext model.
 
     :param model_name: input model name
     :return: model instance.
     """
-    logger.info('Loading fasttext language identification model...')
+    logger.info("Loading fasttext language identification model...")
     try:
-        ft_model = fasttext.load_model(check_model(model_name))
-    except:  # noqa: E722
-        ft_model = fasttext.load_model(check_model(model_name, force=True))
+        # Suppress FastText warnings by redirecting stderr
+        with redirect_stderr(io.StringIO()):
+            ft_model = fasttext.load_model(check_model(model_name))
+        # Verify the model has the predict method (for language identification)
+        if not hasattr(ft_model, "predict"):
+            raise AttributeError("Loaded model does not support prediction")
+    except Exception as e:
+        logger.warning(f"Error loading model: {e}. Attempting to force download...")
+        try:
+            with redirect_stderr(io.StringIO()):
+                ft_model = fasttext.load_model(check_model(model_name, force=True))
+            if not hasattr(ft_model, "predict"):
+                raise AttributeError("Loaded model does not support prediction")
+        except Exception as e:
+            logger.error(f"Failed to load model after download attempt: {e}")
+            raise
     return ft_model
 
 
-def prepare_huggingface_model(pretrained_model_name_or_path,
-                              *,
-                              return_model=True,
-                              return_pipe=False,
-                              pipe_task='text-generation',
-                              **model_params):
+def prepare_huggingface_model(
+    pretrained_model_name_or_path, *, return_model=True, return_pipe=False, pipe_task="text-generation", **model_params
+):
     """
-    Prepare and load a HuggingFace model with the corresponding processor.
+    Prepare and load a huggingface model.
 
     :param pretrained_model_name_or_path: model name or path
     :param return_model: return model or not
-    :param return_pipe: whether to wrap model into pipeline
-    :param model_params: model initialization parameters.
-    :return: a tuple of (model, input processor) if `return_model` is True;
+    :param return_pipe: return pipeline or not
+    :param pipe_task: task for pipeline
+    :return: a tuple (model, processor) if `return_model` is True;
         otherwise, only the processor is returned.
     """
-    # require torch for transformer model
-    AUTOINSTALL.check(['torch'])
+    # Check if we need accelerate for device_map
+    if "device" in model_params:
+        device = model_params.pop("device")
+        if device.startswith("cuda"):
+            try:
+                model_params["device_map"] = device
+            except ImportError:
+                # If accelerate is not available, use device directly
+                model_params["device"] = device
+                logger.warning("accelerate not found, using device directly")
 
-    if 'device' in model_params:
-        model_params['device_map'] = model_params.pop('device')
-
-    processor = transformers.AutoProcessor.from_pretrained(
-        pretrained_model_name_or_path, **model_params)
+    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
+    processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path, **model_params)
 
     if return_model:
-        config = transformers.AutoConfig.from_pretrained(
-            pretrained_model_name_or_path, **model_params)
-        if hasattr(config, 'auto_map'):
-            class_name = next(
-                (k for k in config.auto_map if k.startswith('AutoModel')),
-                'AutoModel')
+        config = transformers.AutoConfig.from_pretrained(pretrained_model_name_or_path, **model_params)
+        if hasattr(config, "auto_map"):
+            class_name = next((k for k in config.auto_map if k.startswith("AutoModel")), "AutoModel")
         else:
             # TODO: What happens if more than one
             class_name = config.architectures[0]
 
         model_class = getattr(transformers, class_name)
-        model = model_class.from_pretrained(pretrained_model_name_or_path,
-                                            **model_params)
+        model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
 
         if return_pipe:
             if isinstance(processor, transformers.PreTrainedTokenizerBase):
-                pipe_params = {'tokenizer': processor}
+                pipe_params = {"tokenizer": processor}
             elif isinstance(processor, transformers.SequenceFeatureExtractor):
-                pipe_params = {'feature_extractor': processor}
+                pipe_params = {"feature_extractor": processor}
             elif isinstance(processor, transformers.BaseImageProcessor):
-                pipe_params = {'image_processor': processor}
-            pipe = transformers.pipeline(task=pipe_task,
-                                         model=model,
-                                         config=config,
-                                         **pipe_params)
+                pipe_params = {"image_processor": processor}
+            pipe = transformers.pipeline(task=pipe_task, model=model, config=config, **pipe_params)
             model = pipe
 
     return (model, processor) if return_model else processor
 
 
-def prepare_kenlm_model(lang, name_pattern='{}.arpa.bin', **model_params):
+def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):
     """
     Prepare and load a kenlm model.
 
@@ -412,20 +519,19 @@ def prepare_kenlm_model(lang, name_pattern='{}.arpa.bin', **model_params):
     :param lang: language to render model name
     :return: model instance.
     """
-    model_params.pop('device', None)
+    model_params.pop("device", None)
 
     model_name = name_pattern.format(lang)
 
-    logger.info('Loading kenlm language model...')
+    logger.info("Loading kenlm language model...")
     try:
         kenlm_model = kenlm.Model(check_model(model_name), **model_params)
     except:  # noqa: E722
-        kenlm_model = kenlm.Model(check_model(model_name, force=True),
-                                  **model_params)
+        kenlm_model = kenlm.Model(check_model(model_name, force=True), **model_params)
     return kenlm_model
 
 
-def prepare_nltk_model(lang, name_pattern='punkt.{}.pickle', **model_params):
+def prepare_nltk_model(lang, name_pattern="punkt.{}.pickle", **model_params):
     """
     Prepare and load a nltk punkt model with enhanced resource handling.
 
@@ -433,46 +539,36 @@ def prepare_nltk_model(lang, name_pattern='punkt.{}.pickle', **model_params):
     :param lang: language to render model name
     :return: model instance.
     """
-    model_params.pop('device', None)
+    model_params.pop("device", None)
 
     # Ensure pickle security is patched
     patch_nltk_pickle_security()
 
-    nltk_to_punkt = {
-        'en': 'english',
-        'fr': 'french',
-        'pt': 'portuguese',
-        'es': 'spanish'
-    }
-    assert lang in nltk_to_punkt.keys(
-    ), 'lang must be one of the following: {}'.format(
-        list(nltk_to_punkt.keys()))
+    nltk_to_punkt = {"en": "english", "fr": "french", "pt": "portuguese", "es": "spanish"}
+    assert lang in nltk_to_punkt.keys(), "lang must be one of the following: {}".format(list(nltk_to_punkt.keys()))
 
-    logger.info('Loading nltk punkt split model...')
+    logger.info("Loading nltk punkt split model...")
 
     try:
         # Resource path and fallback for the punkt model
-        resource_path = f'tokenizers/punkt/{nltk_to_punkt[lang]}.pickle'
+        resource_path = f"tokenizers/punkt/{nltk_to_punkt[lang]}.pickle"
 
         # Ensure the resource is available
-        if ensure_nltk_resource(resource_path, 'punkt'):
-            logger.info(f'Successfully verified resource {resource_path}')
+        if ensure_nltk_resource(resource_path, "punkt"):
+            logger.info(f"Successfully verified resource {resource_path}")
         else:
-            logger.warning(
-                f'Could not verify resource {resource_path}, model may not '
-                f'work correctly')
+            logger.warning(f"Could not verify resource {resource_path}, model may not " f"work correctly")
 
         # Load the model
         nltk_model = nltk.data.load(resource_path, **model_params)
     except Exception as e:
         # Fallback to downloading and retrying
-        logger.warning(f'Error loading model: {e}. Attempting to download...')
+        logger.warning(f"Error loading model: {e}. Attempting to download...")
         try:
-            nltk.download('punkt', quiet=False)
+            nltk.download("punkt", quiet=False)
             nltk_model = nltk.data.load(resource_path, **model_params)
         except Exception as download_error:
-            logger.error(f'Failed to load model after download '
-                         f'attempt: {download_error}')
+            logger.error(f"Failed to load model after download " f"attempt: {download_error}")
             raise
 
     return nltk_model
@@ -485,39 +581,37 @@ def prepare_nltk_pos_tagger(**model_params):
 
     :return: The POS tagger model
     """
-    model_params.pop('device', None)
+    model_params.pop("device", None)
 
     # Ensure pickle security is patched
     patch_nltk_pickle_security()
 
-    logger.info('Loading NLTK POS tagger model...')
+    logger.info("Loading NLTK POS tagger model...")
 
     try:
         # Resource path and fallback for the averaged_perceptron_tagger
-        resource_path = 'taggers/averaged_perceptron_tagger/english.pickle'
+        resource_path = "taggers/averaged_perceptron_tagger/english.pickle"
 
         # Ensure the resource is available
-        if ensure_nltk_resource(resource_path, 'averaged_perceptron_tagger'):
-            logger.info(f'Successfully verified resource {resource_path}')
+        if ensure_nltk_resource(resource_path, "averaged_perceptron_tagger"):
+            logger.info(f"Successfully verified resource {resource_path}")
         else:
-            logger.warning(
-                f'Could not verify resource {resource_path}, model may not '
-                f'work correctly')
+            logger.warning(f"Could not verify resource {resource_path}, model may not " f"work correctly")
 
         # Import the POS tagger
         import nltk.tag
+
         tagger = nltk.tag.pos_tag
     except Exception as e:
         # Fallback to downloading and retrying
-        logger.warning(
-            f'Error loading POS tagger: {e}. Attempting to download...')
+        logger.warning(f"Error loading POS tagger: {e}. Attempting to download...")
         try:
-            nltk.download('averaged_perceptron_tagger', quiet=False)
+            nltk.download("averaged_perceptron_tagger", quiet=False)
             import nltk.tag
+
             tagger = nltk.tag.pos_tag
         except Exception as download_error:
-            logger.error(f'Failed to load POS tagger after download '
-                         f'attempt: {download_error}')
+            logger.error(f"Failed to load POS tagger after download " f"attempt: {download_error}")
             raise
 
     return tagger
@@ -529,45 +623,40 @@ def prepare_opencv_classifier(model_path, **model_params):
 
 
 def prepare_recognizeAnything_model(
-        pretrained_model_name_or_path='ram_plus_swin_large_14m.pth',
-        input_size=384,
-        **model_params):
+    pretrained_model_name_or_path="ram_plus_swin_large_14m.pth", input_size=384, **model_params
+):
     """
     Prepare and load recognizeAnything model.
 
     :param model_name: input model name.
     :param input_size: the input size of the model.
     """
-    logger.info('Loading recognizeAnything model...')
+    logger.info("Loading recognizeAnything model...")
 
     try:
-        model = ram.ram_plus(
-            pretrained=check_model(pretrained_model_name_or_path),
-            image_size=input_size,
-            vit='swin_l')
+        model = ram.models.ram_plus(
+            pretrained=check_model(pretrained_model_name_or_path), image_size=input_size, vit="swin_l"
+        )
     except (RuntimeError, UnpicklingError) as e:  # noqa: E722
         logger.warning(e)
-        model = ram.ram_plus(pretrained=check_model(
-            pretrained_model_name_or_path, force=True),
-                             image_size=input_size,
-                             vit='swin_l')
-    device = model_params.pop('device', 'cpu')
+        model = ram.models.ram_plus(
+            pretrained=check_model(pretrained_model_name_or_path, force=True), image_size=input_size, vit="swin_l"
+        )
+    device = model_params.pop("device", "cpu")
     model.to(device).eval()
     return model
 
 
-def prepare_sdxl_prompt2prompt(pretrained_model_name_or_path,
-                               pipe_func,
-                               torch_dtype='fp32',
-                               device='cpu'):
-    if torch_dtype == 'fp32':
-        model = pipe_func.from_pretrained(pretrained_model_name_or_path,
-                                          torch_dtype=torch.float32,
-                                          use_safetensors=True).to(device)
+def prepare_sdxl_prompt2prompt(pretrained_model_name_or_path, pipe_func, torch_dtype="fp32", device="cpu"):
+    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
+    if torch_dtype == "fp32":
+        model = pipe_func.from_pretrained(
+            pretrained_model_name_or_path, torch_dtype=torch.float32, use_safetensors=True
+        ).to(device)
     else:
-        model = pipe_func.from_pretrained(pretrained_model_name_or_path,
-                                          torch_dtype=torch.float16,
-                                          use_safetensors=True).to(device)
+        model = pipe_func.from_pretrained(
+            pretrained_model_name_or_path, torch_dtype=torch.float16, use_safetensors=True
+        ).to(device)
     return model
 
 
@@ -578,7 +667,7 @@ def prepare_sentencepiece_model(model_path, **model_params):
     :param model_path: input model path
     :return: model instance
     """
-    logger.info('Loading sentencepiece model...')
+    logger.info("Loading sentencepiece model...")
     sentencepiece_model = sentencepiece.SentencePieceProcessor()
     try:
         sentencepiece_model.load(check_model(model_path))
@@ -587,9 +676,7 @@ def prepare_sentencepiece_model(model_path, **model_params):
     return sentencepiece_model
 
 
-def prepare_sentencepiece_for_lang(lang,
-                                   name_pattern='{}.sp.model',
-                                   **model_params):
+def prepare_sentencepiece_for_lang(lang, name_pattern="{}.sp.model", **model_params):
     """
     Prepare and load a sentencepiece model for specific language.
 
@@ -602,10 +689,7 @@ def prepare_sentencepiece_for_lang(lang,
     return prepare_sentencepiece_model(model_name)
 
 
-def prepare_simple_aesthetics_model(pretrained_model_name_or_path,
-                                    *,
-                                    return_model=True,
-                                    **model_params):
+def prepare_simple_aesthetics_model(pretrained_model_name_or_path, *, return_model=True, **model_params):
     """
     Prepare and load a simple aesthetics model.
 
@@ -614,34 +698,34 @@ def prepare_simple_aesthetics_model(pretrained_model_name_or_path,
     :return: a tuple (model, input processor) if `return_model` is True;
         otherwise, only the processor is returned.
     """
-    if 'device' in model_params:
-        model_params['device_map'] = model_params.pop('device')
+    # Check if we need accelerate for device_map
+    if "device" in model_params:
+        device = model_params.pop("device")
+        if device.startswith("cuda"):
+            try:
+                model_params["device_map"] = device
+            except ImportError:
+                # If accelerate is not available, use device directly
+                model_params["device"] = device
+                logger.warning("accelerate not found, using device directly")
 
-    processor = transformers.CLIPProcessor.from_pretrained(
-        pretrained_model_name_or_path, **model_params)
+    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
+    processor = transformers.CLIPProcessor.from_pretrained(pretrained_model_name_or_path, **model_params)
     if not return_model:
         return processor
     else:
-        if 'v1' in pretrained_model_name_or_path:
-            model = aes_pre.AestheticsPredictorV1.from_pretrained(
-                pretrained_model_name_or_path, **model_params)
-        elif ('v2' in pretrained_model_name_or_path
-              and 'linear' in pretrained_model_name_or_path):
-            model = aes_pre.AestheticsPredictorV2Linear.from_pretrained(
-                pretrained_model_name_or_path, **model_params)
-        elif ('v2' in pretrained_model_name_or_path
-              and 'relu' in pretrained_model_name_or_path):
-            model = aes_pre.AestheticsPredictorV2ReLU.from_pretrained(
-                pretrained_model_name_or_path, **model_params)
+        if "v1" in pretrained_model_name_or_path:
+            model = aes_pred.AestheticsPredictorV1.from_pretrained(pretrained_model_name_or_path, **model_params)
+        elif "v2" in pretrained_model_name_or_path and "linear" in pretrained_model_name_or_path:
+            model = aes_pred.AestheticsPredictorV2Linear.from_pretrained(pretrained_model_name_or_path, **model_params)
+        elif "v2" in pretrained_model_name_or_path and "relu" in pretrained_model_name_or_path:
+            model = aes_pred.AestheticsPredictorV2ReLU.from_pretrained(pretrained_model_name_or_path, **model_params)
         else:
-            raise ValueError(
-                'Not support {}'.format(pretrained_model_name_or_path))
+            raise ValueError("Not support {}".format(pretrained_model_name_or_path))
         return (model, processor)
 
 
-def prepare_spacy_model(lang,
-                        name_pattern='{}_core_web_md-3.7.0',
-                        **model_params):
+def prepare_spacy_model(lang, name_pattern="{}_core_web_md-3.7.0", **model_params):
     """
     Prepare spacy model for specific language.
 
@@ -651,34 +735,32 @@ def prepare_spacy_model(lang,
     """
     import spacy
 
-    assert lang in ['zh', 'en'], 'Diversity only support zh and en'
+    assert lang in ["zh", "en"], "Diversity only support zh and en"
     model_name = name_pattern.format(lang)
-    logger.info(f'Loading spacy model [{model_name}]...')
-    compressed_model = '{}.tar.gz'.format(model_name)
+    logger.info(f"Loading spacy model [{model_name}]...")
+    compressed_model = "{}.tar.gz".format(model_name)
 
     # decompress the compressed model if it's not decompressed
     def decompress_model(compressed_model_path):
-        if not compressed_model_path.endswith('.tar.gz'):
-            raise ValueError('Only .tar.gz files are supported')
+        if not compressed_model_path.endswith(".tar.gz"):
+            raise ValueError("Only .tar.gz files are supported")
 
-        decompressed_model_path = compressed_model_path.replace('.tar.gz', '')
-        if os.path.exists(decompressed_model_path) \
-                and os.path.isdir(decompressed_model_path):
+        decompressed_model_path = compressed_model_path.replace(".tar.gz", "")
+        if os.path.exists(decompressed_model_path) and os.path.isdir(decompressed_model_path):
             return decompressed_model_path
 
         ver_name = os.path.basename(decompressed_model_path)
-        unver_name = ver_name.rsplit('-', maxsplit=1)[0]
-        target_dir_in_archive = f'{ver_name}/{unver_name}/{ver_name}/'
+        unver_name = ver_name.rsplit("-", maxsplit=1)[0]
+        target_dir_in_archive = f"{ver_name}/{unver_name}/{ver_name}/"
 
         import tarfile
-        with tarfile.open(compressed_model_path, 'r:gz') as tar:
+
+        with tarfile.open(compressed_model_path, "r:gz") as tar:
             for member in tar.getmembers():
                 if member.name.startswith(target_dir_in_archive):
                     # relative path without unnecessary directory levels
-                    relative_path = os.path.relpath(
-                        member.name, start=target_dir_in_archive)
-                    target_path = os.path.join(decompressed_model_path,
-                                               relative_path)
+                    relative_path = os.path.relpath(member.name, start=target_dir_in_archive)
+                    target_path = os.path.join(decompressed_model_path, relative_path)
 
                     if member.isfile():
                         # ensure the directory exists
@@ -686,23 +768,18 @@ def prepare_spacy_model(lang,
                         os.makedirs(target_directory, exist_ok=True)
                         # for files, extract to the specific location
                         with tar.extractfile(member) as source:
-                            with open(target_path, 'wb') as target:
+                            with open(target_path, "wb") as target:
                                 target.write(source.read())
         return decompressed_model_path
 
     try:
-        diversity_model = spacy.load(
-            decompress_model(check_model(compressed_model)))
+        diversity_model = spacy.load(decompress_model(check_model(compressed_model)))
     except:  # noqa: E722
-        diversity_model = spacy.load(
-            decompress_model(check_model(compressed_model, force=True)))
+        diversity_model = spacy.load(decompress_model(check_model(compressed_model, force=True)))
     return diversity_model
 
 
-def prepare_video_blip_model(pretrained_model_name_or_path,
-                             *,
-                             return_model=True,
-                             **model_params):
+def prepare_video_blip_model(pretrained_model_name_or_path, *, return_model=True, **model_params):
     """
     Prepare and load a video-clip model with the corresponding processor.
 
@@ -712,8 +789,8 @@ def prepare_video_blip_model(pretrained_model_name_or_path,
     :return: a tuple (model, input processor) if `return_model` is True;
         otherwise, only the processor is returned.
     """
-    if 'device' in model_params:
-        model_params['device_map'] = model_params.pop('device')
+    if "device" in model_params:
+        model_params["device_map"] = model_params.pop("device")
 
     class VideoBlipVisionModel(transformers.Blip2VisionModel):
         """A simple, augmented version of Blip2VisionModel to handle
@@ -726,8 +803,7 @@ def prepare_video_blip_model(pretrained_model_name_or_path,
             output_hidden_states: Optional[bool] = None,
             return_dict: Optional[bool] = None,
             interpolate_pos_encoding: bool = False,
-        ) -> Union[tuple,
-                   transformers.modeling_outputs.BaseModelOutputWithPooling]:
+        ) -> Union[tuple, transformers.modeling_outputs.BaseModelOutputWithPooling]:
             """Flatten `pixel_values` along the batch and time dimension,
             pass it through the original vision model,
             then unflatten it back.
@@ -751,18 +827,16 @@ def prepare_video_blip_model(pretrained_model_name_or_path,
                     one for each layer
             """
             if pixel_values is None:
-                raise ValueError('You have to specify pixel_values')
+                raise ValueError("You have to specify pixel_values")
 
             batch, _, time, _, _ = pixel_values.size()
 
             # flatten along the batch and time dimension to create a
             # tensor of shape
             # (batch * time, channel, height, width)
-            flat_pixel_values = pixel_values.permute(0, 2, 1, 3,
-                                                     4).flatten(end_dim=1)
+            flat_pixel_values = pixel_values.permute(0, 2, 1, 3, 4).flatten(end_dim=1)
 
-            vision_outputs: transformers.modeling_outputs.BaseModelOutputWithPooling = super(  # noqa: E501
-            ).forward(
+            vision_outputs: transformers.modeling_outputs.BaseModelOutputWithPooling = super().forward(  # noqa: E501
                 pixel_values=flat_pixel_values,
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
@@ -774,24 +848,24 @@ def prepare_video_blip_model(pretrained_model_name_or_path,
             # vision_outputs.last_hidden_state is of shape
             # (batch * time, seq_len, hidden_size)
             seq_len = vision_outputs.last_hidden_state.size(1)
-            last_hidden_state = vision_outputs.last_hidden_state.view(
-                batch, time * seq_len, -1)
+            last_hidden_state = vision_outputs.last_hidden_state.view(batch, time * seq_len, -1)
             # vision_outputs.pooler_output is of shape
             # (batch * time, hidden_size)
             pooler_output = vision_outputs.pooler_output.view(batch, time, -1)
             # hidden_states is a tuple of tensors of shape
             # (batch * time, seq_len, hidden_size)
-            hidden_states = (tuple(
-                hidden.view(batch, time * seq_len, -1)
-                for hidden in vision_outputs.hidden_states)
-                             if vision_outputs.hidden_states is not None else
-                             None)
+            hidden_states = (
+                tuple(hidden.view(batch, time * seq_len, -1) for hidden in vision_outputs.hidden_states)
+                if vision_outputs.hidden_states is not None
+                else None
+            )
             # attentions is a tuple of tensors of shape
             # (batch * time, num_heads, seq_len, seq_len)
-            attentions = (tuple(
-                hidden.view(batch, time, -1, seq_len, seq_len)
-                for hidden in vision_outputs.attentions)
-                          if vision_outputs.attentions is not None else None)
+            attentions = (
+                tuple(hidden.view(batch, time, -1, seq_len, seq_len) for hidden in vision_outputs.attentions)
+                if vision_outputs.attentions is not None
+                else None
+            )
             if return_dict:
                 return transformers.modeling_outputs.BaseModelOutputWithPooling(  # noqa: E501
                     last_hidden_state=last_hidden_state,
@@ -799,48 +873,63 @@ def prepare_video_blip_model(pretrained_model_name_or_path,
                     hidden_states=hidden_states,
                     attentions=attentions,
                 )
-            return (last_hidden_state, pooler_output, hidden_states,
-                    attentions)
+            return (last_hidden_state, pooler_output, hidden_states, attentions)
 
-    class VideoBlipForConditionalGeneration(
-            transformers.Blip2ForConditionalGeneration):
-
+    class VideoBlipForConditionalGeneration(transformers.Blip2ForConditionalGeneration):
         def __init__(self, config: transformers.Blip2Config) -> None:
             # HACK: we call the grandparent super().__init__() to bypass
             # transformers.Blip2ForConditionalGeneration.__init__() so we can
             # replace self.vision_model
-            super(transformers.Blip2ForConditionalGeneration,
-                  self).__init__(config)
+            super(transformers.Blip2ForConditionalGeneration, self).__init__(config)
 
             self.vision_model = VideoBlipVisionModel(config.vision_config)
 
-            self.query_tokens = nn.Parameter(
-                torch.zeros(1, config.num_query_tokens,
-                            config.qformer_config.hidden_size))
-            self.qformer = transformers.Blip2QFormerModel(
-                config.qformer_config)
+            self.query_tokens = nn.Parameter(torch.zeros(1, config.num_query_tokens, config.qformer_config.hidden_size))
+            self.qformer = transformers.Blip2QFormerModel(config.qformer_config)
 
-            self.language_projection = nn.Linear(
-                config.qformer_config.hidden_size,
-                config.text_config.hidden_size)
+            self.language_projection = nn.Linear(config.qformer_config.hidden_size, config.text_config.hidden_size)
             if config.use_decoder_only_language_model:
-                language_model = transformers.AutoModelForCausalLM.from_config(
-                    config.text_config)
+                language_model = transformers.AutoModelForCausalLM.from_config(config.text_config)
             else:
-                language_model = transformers.AutoModelForSeq2SeqLM.from_config(  # noqa: E501
-                    config.text_config)
+                language_model = transformers.AutoModelForSeq2SeqLM.from_config(config.text_config)  # noqa: E501
             self.language_model = language_model
 
             # Initialize weights and apply final processing
             self.post_init()
 
-    processor = transformers.AutoProcessor.from_pretrained(
-        pretrained_model_name_or_path, **model_params)
+    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
+    processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path, **model_params)
     if return_model:
         model_class = VideoBlipForConditionalGeneration
-        model = model_class.from_pretrained(pretrained_model_name_or_path,
-                                            **model_params)
+        model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
     return (model, processor) if return_model else processor
+
+
+def prepare_yolo_model(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+    model = ultralytics.YOLO(check_model(model_path)).to(device)
+    return model
+
+
+def prepare_vggt_model(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+
+    import subprocess
+
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    vggt_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "vggt")
+    if not os.path.exists(vggt_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/facebookresearch/vggt.git", vggt_repo_path], check=True)
+    import sys
+
+    sys.path.append(vggt_repo_path)
+
+    from vggt.models.vggt import VGGT
+
+    model = VGGT.from_pretrained(check_model_home(model_path)).to(device)
+
+    return model
 
 
 def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
@@ -851,99 +940,243 @@ def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
     :param model_params: LLM initialization parameters.
     :return: a tuple of (model, tokenizer)
     """
-    os.environ['VLLM_WORKER_MULTIPROC_METHOD'] = 'spawn'
+    os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 
-    if model_params.get('device', '').startswith('cuda:'):
-        model_params['device'] = 'cuda'
+    if model_params.get("device", "").startswith("cuda:"):
+        model_params["device"] = "cuda"
 
-    model = vllm.LLM(model=pretrained_model_name_or_path,
-                     generation_config='auto',
-                     **model_params)
+    if is_ray_mode():
+        tensor_parallel_size = model_params.get("tensor_parallel_size", 1)
+    else:
+        tensor_parallel_size = model_params.get("tensor_parallel_size", torch.cuda.device_count())
+    logger.info(f"Set tensor_parallel_size to {tensor_parallel_size} for vllm.")
+
+    model = vllm.LLM(model=check_model_home(pretrained_model_name_or_path), generation_config="auto", **model_params)
     tokenizer = model.get_tokenizer()
 
     return (model, tokenizer)
 
 
-def update_sampling_params(sampling_params,
-                           pretrained_model_name_or_path,
-                           enable_vllm=False):
-    if enable_vllm:
-        update_keys = {'max_tokens'}
+def prepare_wilor_model(wilor_model_path, wilor_model_config, detector_model_path, mano_right_path, **model_params):
+    device = model_params.pop("device", "cpu")
+    wilor_DJMC_model_path = os.path.join(DJMC, "WiLoR")
+
+    if not os.path.exists(mano_right_path):
+        raise ValueError(
+            "Users need to download 'MANO_RIGHT.pkl' from https://mano.is.tue.mpg.de/ and comply with the MANO license."
+        )
+
+    import subprocess
+
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    wilor_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "WiLoR")
+    if not os.path.exists(wilor_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/rolpotamias/WiLoR.git", wilor_repo_path], check=True)
+
+    import sys
+
+    sys.path.append(wilor_repo_path)
+    from wilor.configs import get_config
+    from wilor.models.wilor import WiLoR
+    from wilor.utils.renderer import Renderer
+
+    def _get_model_path(model_path, default_filename, download_key):
+        if not os.path.exists(model_path):
+            if not os.path.exists(DJMC):
+                os.makedirs(DJMC)
+            if not os.path.exists(wilor_DJMC_model_path):
+                os.makedirs(wilor_DJMC_model_path)
+            model_path = os.path.join(wilor_DJMC_model_path, default_filename)
+            if not os.path.exists(model_path):
+                wget.download(BACKUP_MODEL_LINKS[download_key], wilor_DJMC_model_path)
+        return model_path
+
+    wilor_model_path = _get_model_path(wilor_model_path, "wilor_final.ckpt", "wilor_model_path")
+    wilor_model_config = _get_model_path(wilor_model_config, "model_config.yaml", "wilor_model_config")
+    detector_model_path = _get_model_path(detector_model_path, "detector.pt", "wilor_detector_model_path")
+
+    model_cfg = get_config(wilor_model_config, update_cachedir=True)
+    # Override some config values, to crop bbox correctly
+    if ("vit" in model_cfg.MODEL.BACKBONE.TYPE) and ("BBOX_SHAPE" not in model_cfg.MODEL):
+
+        model_cfg.defrost()
+        assert (
+            model_cfg.MODEL.IMAGE_SIZE == 256
+        ), f"MODEL.IMAGE_SIZE ({model_cfg.MODEL.IMAGE_SIZE}) should be 256 for ViT backbone"
+        model_cfg.MODEL.BBOX_SHAPE = [192, 256]
+        model_cfg.freeze()
+
+    # Update config to be compatible with demo
+    if "PRETRAINED_WEIGHTS" in model_cfg.MODEL.BACKBONE:
+        model_cfg.defrost()
+        model_cfg.MODEL.BACKBONE.pop("PRETRAINED_WEIGHTS")
+        model_cfg.freeze()
+
+        # Update config to be compatible with demo
+    if "DATA_DIR" in model_cfg.MANO:
+        model_cfg.defrost()
+        model_cfg.MANO.DATA_DIR = os.path.join(wilor_repo_path, "mano_data/")
+        model_cfg.MANO.MODEL_PATH = mano_right_path
+        model_cfg.MANO.MEAN_PARAMS = os.path.join(wilor_repo_path, "mano_data/mano_mean_params.npz")
+        model_cfg.freeze()
+
+    model = WiLoR.load_from_checkpoint(wilor_model_path, strict=False, cfg=model_cfg)
+    detector = ultralytics.YOLO(detector_model_path)
+    renderer = Renderer(model_cfg, faces=model.mano.faces)
+    model = model.to(device)
+    detector = detector.to(device)
+
+    return model, detector, model_cfg, renderer
+
+
+def prepare_embedding_model(model_path, **model_params):
+    """
+    Prepare and load an embedding model using transformers.
+
+    :param model_path: Path to the embedding model.
+    :param model_params: Optional model parameters.
+    :return: Model with encode() returning embedding list.
+    """
+    logger.info("Loading embedding model using transformers...")
+    if "device" in model_params:
+        device = model_params.pop("device")
     else:
-        update_keys = {'max_new_tokens'}
+        device = "cpu"
+        logger.warning("'device' not specified in 'model_params'. Using 'cpu'.")
+    if "pooling" in model_params:
+        # pooling strategy to extract embedding from the hidden states. https://arxiv.org/abs/2503.01807
+        # None: default option, the hidden state of the last token.
+        # "mean": uniform mean of hidden states.
+        # "weighted_mean": weighted mean of hidden states. https://arxiv.org/abs/2202.08904
+        pooling = model_params.pop("pooling")
+    else:
+        pooling = None
+
+    model_path = check_model_home(model_path)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    model = transformers.AutoModel.from_pretrained(model_path, trust_remote_code=True).to(device).eval()
+
+    def last_token_pool(last_hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+        left_padding = attention_mask[:, -1].sum() == attention_mask.shape[0]
+        mask = None
+        if pooling not in ["mean", "weighted_mean"]:
+            # return the embedding of the last token
+            if left_padding:
+                return last_hidden_states[:, -1]
+            else:
+                sequence_lengths = attention_mask.sum(dim=1) - 1
+                batch_size = last_hidden_states.shape[0]
+                return last_hidden_states[torch.arange(batch_size, device=last_hidden_states.device), sequence_lengths]
+        elif pooling == "mean":
+            mask = attention_mask
+        elif pooling == "weighted_mean":
+            if left_padding:
+                sequence_lengths = attention_mask.sum(dim=1)
+                tmp = list(range(1, attention_mask.shape[1] + 1))
+                mask = torch.tensor([tmp[seq_len:] + tmp[:seq_len] for seq_len in sequence_lengths.tolist()]).to(
+                    attention_mask.device
+                )
+            else:
+                mask = torch.arange(1, attention_mask.shape[1] + 1)
+            mask = mask * attention_mask / attention_mask.shape[1]
+        masked_hidden_states = last_hidden_states * mask.unsqueeze(-1)
+        return torch.mean(masked_hidden_states, dim=1)
+
+    def encode(text, prompt_name=None, max_len=4096):
+        if prompt_name:
+            text = f"{prompt_name}: {text}"
+
+        input_dict = tokenizer(text, padding=True, truncation=True, return_tensors="pt", max_length=max_len).to(device)
+
+        with torch.no_grad():
+            outputs = model(**input_dict)
+
+        embedding = last_token_pool(outputs.last_hidden_state, input_dict["attention_mask"])
+        embedding = nn.functional.normalize(embedding, p=2, dim=1)
+        return embedding[0].tolist()
+
+    return type("EmbeddingModel", (), {"encode": encode})()
+
+
+def update_sampling_params(sampling_params, pretrained_model_name_or_path, enable_vllm=False):
+    if enable_vllm:
+        update_keys = {"max_tokens"}
+    else:
+        update_keys = {"max_new_tokens"}
     generation_config_keys = {
-        'max_tokens': ['max_tokens', 'max_new_tokens'],
-        'max_new_tokens': ['max_tokens', 'max_new_tokens'],
+        "max_tokens": ["max_tokens", "max_new_tokens"],
+        "max_new_tokens": ["max_tokens", "max_new_tokens"],
     }
     generation_config_thresholds = {
-        'max_tokens': (max, 512),
-        'max_new_tokens': (max, 512),
+        "max_tokens": (max, 512),
+        "max_new_tokens": (max, 512),
     }
 
     # try to get the generation configs
     from transformers import GenerationConfig
+
+    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
     try:
-        model_generation_config = GenerationConfig.from_pretrained(
-            pretrained_model_name_or_path).to_dict()
+        model_generation_config = GenerationConfig.from_pretrained(pretrained_model_name_or_path).to_dict()
     except:  # noqa: E722
-        logger.warning(f'No generation config found for the model '
-                       f'[{pretrained_model_name_or_path}]')
+        logger.warning(f"No generation config found for the model " f"[{pretrained_model_name_or_path}]")
         model_generation_config = {}
 
     for key in update_keys:
         # if there is this param in the sampling_prams, compare it with the
         # thresholds and apply the specified updating function
         if key in sampling_params:
-            logger.debug(f'Found param {key} in the input `sampling_params`.')
+            logger.debug(f"Found param {key} in the input `sampling_params`.")
             continue
         # if not, try to find it in the generation_config of the model
         found = False
         for config_key in generation_config_keys[key]:
-            if config_key in model_generation_config \
-                    and model_generation_config[config_key]:
+            if config_key in model_generation_config and model_generation_config[config_key]:
                 sampling_params[key] = model_generation_config[config_key]
                 found = True
                 break
         if found:
-            logger.debug(f'Found param {key} in the generation config as '
-                         f'{sampling_params[key]}.')
+            logger.debug(f"Found param {key} in the generation config as " f"{sampling_params[key]}.")
             continue
         # if not again, use the threshold directly
         _, th = generation_config_thresholds[key]
         sampling_params[key] = th
-        logger.debug(f'Use the threshold {th} as the sampling param {key}.')
+        logger.debug(f"Use the threshold {th} as the sampling param {key}.")
     return sampling_params
 
 
 MODEL_FUNCTION_MAPPING = {
-    'api': prepare_api_model,
-    'diffusion': prepare_diffusion_model,
-    'fasttext': prepare_fasttext_model,
-    'fastsam': prepare_fastsam_model,
-    'huggingface': prepare_huggingface_model,
-    'kenlm': prepare_kenlm_model,
-    'nltk': prepare_nltk_model,
-    'nltk_pos_tagger': prepare_nltk_pos_tagger,
-    'opencv_classifier': prepare_opencv_classifier,
-    'recognizeAnything': prepare_recognizeAnything_model,
-    'sdxl-prompt-to-prompt': prepare_sdxl_prompt2prompt,
-    'sentencepiece': prepare_sentencepiece_for_lang,
-    'simple_aesthetics': prepare_simple_aesthetics_model,
-    'spacy': prepare_spacy_model,
-    'video_blip': prepare_video_blip_model,
-    'vllm': prepare_vllm_model,
+    "api": prepare_api_model,
+    "diffusion": prepare_diffusion_model,
+    "dwpose": prepare_dwpose_model,
+    "fasttext": prepare_fasttext_model,
+    "fastsam": prepare_fastsam_model,
+    "huggingface": prepare_huggingface_model,
+    "kenlm": prepare_kenlm_model,
+    "nltk": prepare_nltk_model,
+    "nltk_pos_tagger": prepare_nltk_pos_tagger,
+    "opencv_classifier": prepare_opencv_classifier,
+    "recognizeAnything": prepare_recognizeAnything_model,
+    "sdxl-prompt-to-prompt": prepare_sdxl_prompt2prompt,
+    "sentencepiece": prepare_sentencepiece_for_lang,
+    "simple_aesthetics": prepare_simple_aesthetics_model,
+    "spacy": prepare_spacy_model,
+    "vggt": prepare_vggt_model,
+    "video_blip": prepare_video_blip_model,
+    "vllm": prepare_vllm_model,
+    "wilor": prepare_wilor_model,
+    "yolo": prepare_yolo_model,
+    "embedding": prepare_embedding_model,
 }
 
-_MODELS_WITHOUT_FILE_LOCK = {
-    'fasttext', 'fastsam', 'kenlm', 'nltk', 'recognizeAnything',
-    'sentencepiece', 'spacy'
-}
+_MODELS_WITHOUT_FILE_LOCK = {"fasttext", "fastsam", "kenlm", "nltk", "recognizeAnything", "sentencepiece", "spacy"}
 
 
 def prepare_model(model_type, **model_kwargs):
-    assert (model_type in MODEL_FUNCTION_MAPPING.keys()
-            ), 'model_type must be one of the following: {}'.format(
-                list(MODEL_FUNCTION_MAPPING.keys()))
+    assert model_type in MODEL_FUNCTION_MAPPING.keys(), "model_type must be one of the following: {}".format(
+        list(MODEL_FUNCTION_MAPPING.keys())
+    )
     model_func = MODEL_FUNCTION_MAPPING[model_type]
     model_key = partial(model_func, **model_kwargs)
     if model_type in _MODELS_WITHOUT_FILE_LOCK:
@@ -958,15 +1191,13 @@ def get_model(model_key=None, rank=None, use_cuda=False):
 
     global MODEL_ZOO
     if model_key not in MODEL_ZOO:
-        logger.debug(
-            f'{model_key} not found in MODEL_ZOO ({mp.current_process().name})'
-        )
-        if use_cuda:
+        logger.debug(f"{model_key} not found in MODEL_ZOO ({mp.current_process().name})")
+        if use_cuda and cuda_device_count() > 0:
             rank = rank if rank is not None else 0
             rank = rank % cuda_device_count()
-            device = f'cuda:{rank}'
+            device = f"cuda:{rank}"
         else:
-            device = 'cpu'
+            device = "cpu"
         MODEL_ZOO[model_key] = model_key(device=device)
     return MODEL_ZOO[model_key]
 
@@ -975,8 +1206,12 @@ def free_models(clear_model_zoo=True):
     global MODEL_ZOO
     for model_key in MODEL_ZOO:
         try:
-            MODEL_ZOO[model_key].to('cpu')
+            model = MODEL_ZOO[model_key]
+            model.to("cpu")
+            if clear_model_zoo:
+                del model
         except Exception:
             pass
     if clear_model_zoo:
         MODEL_ZOO.clear()
+    torch.cuda.empty_cache()

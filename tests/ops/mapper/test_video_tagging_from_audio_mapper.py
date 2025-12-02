@@ -1,12 +1,12 @@
 import os
 import unittest
-
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.video_tagging_from_audio_mapper import \
     VideoTaggingFromAudioMapper
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+
 
 class VideoTaggingFromAudioMapperTest(DataJuicerTestCaseBase):
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',

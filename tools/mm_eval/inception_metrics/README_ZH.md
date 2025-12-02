@@ -4,10 +4,10 @@
 
 ## 用法
 
-使用 [calc_metrics_for_dataset.py](calc_metrics_for_dataset.py) 计算生成视频集的FVD或ISV
+使用 [calc_metrics_for_videos.py](calc_metrics_for_videos.py) 计算生成视频集的FVD或ISV
 
 ```shell
-python tools/video_metrics/calc_metrics_for_dataset.py        \
+python tools/video_metrics/calc_metrics_for_videos.py        \
     --fake_data_path    <fake_data_path>        \
     --real_data_path    <real_data_path>        \
     [--fake_mm_dir      <fake_mm_dir>]          \
@@ -23,7 +23,7 @@ python tools/video_metrics/calc_metrics_for_dataset.py        \
     --seed              <seed>
 
 # get help
-python tools/video_metrics/calc_metrics_for_dataset.py --help
+python tools/video_metrics/calc_metrics_for_videos.py --help
 ```
 
 - `fake_data_path`: 生成数据集的路径。目前只支持 `jsonl` 格式。每个sample的视频路径放在`videos`关键词下的列表里。

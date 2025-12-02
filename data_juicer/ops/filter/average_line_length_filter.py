@@ -5,22 +5,23 @@ from data_juicer.utils.constant import Fields, InterVars, StatsKeys
 from ..base_op import OPERATORS, Filter
 from ..op_fusion import INTER_LINES
 
-OP_NAME = 'average_line_length_filter'
+OP_NAME = "average_line_length_filter"
 
 
 @OPERATORS.register_module(OP_NAME)
 @INTER_LINES.register_module(OP_NAME)
 class AverageLineLengthFilter(Filter):
-    """Filter to keep samples with average line length within a specific
-    range."""
+    """Filter to keep samples with average line length within a specific range.
+
+    This operator filters out samples based on their average line length. It keeps samples
+    where the average line length is between the specified minimum and maximum values. The
+    average line length is calculated as the total text length divided by the number of
+    lines. If the context is provided, it uses precomputed lines from the context. The
+    computed average line length is stored in the 'avg_line_length' key in the stats field."""
 
     _batched_op = True
 
-    def __init__(self,
-                 min_len: int = 10,
-                 max_len: int = sys.maxsize,
-                 *args,
-                 **kwargs):
+    def __init__(self, min_len: int = 10, max_len: int = sys.maxsize, *args, **kwargs):
         """
         Initialization method.
 
@@ -40,7 +41,7 @@ class AverageLineLengthFilter(Filter):
     def compute_stats_batched(self, samples, context=False):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
-        context_key = f'{InterVars.lines}'
+        context_key = f"{InterVars.lines}"
 
         for idx, stat in enumerate(samples_stats):
             # check if it's computed already
@@ -54,19 +55,12 @@ class AverageLineLengthFilter(Filter):
                 lines = cur_text.splitlines()
                 if context:
                     samples[Fields.context][idx][context_key] = lines
-            samples_stats[idx][StatsKeys.avg_line_length] = \
-                len(cur_text) / len(lines) if len(lines) != 0 else 0.0
+            samples_stats[idx][StatsKeys.avg_line_length] = len(cur_text) / len(lines) if len(lines) != 0 else 0.0
         return samples
 
     def process_batched(self, samples):
-        if isinstance(samples[Fields.stats], list):
-            return map(
-                lambda stat: self.min_len <= stat[StatsKeys.avg_line_length] <=
-                self.max_len, samples[Fields.stats])
-        else:
-            # single sample for ray filter
-            if self.min_len <= samples[Fields.stats][
-                    StatsKeys.avg_line_length] <= self.max_len:
-                return True
-            else:
-                return False
+        assert isinstance(samples[Fields.stats], list)
+        return map(
+            lambda stat: self.get_keep_boolean(stat[StatsKeys.avg_line_length], self.min_len, self.max_len),
+            samples[Fields.stats],
+        )

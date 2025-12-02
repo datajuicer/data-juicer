@@ -11,6 +11,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class OverallAnalysisTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
+
         data_list = [
             {
                 Fields.meta: {
@@ -68,6 +70,8 @@ class OverallAnalysisTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+
+        super().tearDown()
 
     def test_single_column_analysis(self):
         df = self.dataset.flatten().to_pandas()

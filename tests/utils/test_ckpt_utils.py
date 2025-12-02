@@ -9,11 +9,13 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class CkptUtilsTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
         self.temp_output_path = 'tmp/test_ckpt_utils/'
 
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+        super().tearDown()
 
     def test_basic_func(self):
         ckpt_path = os.path.join(self.temp_output_path, 'ckpt_1')

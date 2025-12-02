@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from datasets import Dataset, concatenate_datasets
 from datasets.config import DEFAULT_MAX_BATCH_SIZE
+from jsonargparse import Namespace
 
 from data_juicer.analysis.measure import RelatedTTestMeasure
 from data_juicer.core.monitor import Monitor
@@ -14,15 +15,13 @@ from data_juicer.utils.process_utils import setup_mp
 
 
 class Adapter:
-
     MAX_BATCH_SIZE = 10000
 
-    def __init__(self, cfg: dict):
+    def __init__(self, cfg: Namespace):
         self.cfg = cfg
 
         # insight mining related
-        self.enable_insight_mining = self.cfg.open_insight_mining if hasattr(
-            self.cfg, 'open_insight_mining') else False
+        self.enable_insight_mining = self.cfg.open_insight_mining if hasattr(self.cfg, "open_insight_mining") else False
 
         # resource probe related
         self.idle_resources = Monitor.monitor_current_resources()
@@ -52,14 +51,12 @@ class Adapter:
         unforkable_operators = set(UNFORKABLE.modules.keys())
         for op in operators:
             # select suitable mp method for each OP
-            mp_context = ['forkserver', 'spawn'] if (
-                op.use_cuda() or op._name in unforkable_operators) else None
+            mp_context = ["forkserver", "spawn"] if (op.use_cuda() or op._name in unforkable_operators) else None
             setup_mp(mp_context)
             # expand the test dataset according to the runtime number of
             # processes to ensure enough data for a batch and probe the true
             # resource utilization for each OP
-            expanded_dataset = concatenate_datasets([dataset] *
-                                                    op.runtime_np())
+            expanded_dataset = concatenate_datasets([dataset] * op.runtime_np())
 
             # set the test batch size and save the old one
             if op.is_batched_op():
@@ -68,13 +65,11 @@ class Adapter:
 
             # run single op and monitor the resource utilization
             _, resource_util_per_op = Monitor.monitor_func(
-                op.run,
-                args=(expanded_dataset, ),
-                sample_interval=sample_interval)
+                op.run, args=(expanded_dataset,), sample_interval=sample_interval
+            )
 
             # calculate speed
-            resource_util_per_op[
-                'speed'] = sample_num / resource_util_per_op['time']
+            resource_util_per_op["speed"] = sample_num / resource_util_per_op["time"]
             resource_util_list.append(resource_util_per_op)
 
             # # restore the batch size
@@ -93,7 +88,7 @@ class Adapter:
         :return: An iterator of batches
         """
         # get initial batch size
-        batch_size = config.get('batch_size', DEFAULT_MAX_BATCH_SIZE)
+        batch_size = config.get("batch_size", DEFAULT_MAX_BATCH_SIZE)
         # should be in [1, 10000]
         batch_size = min(max(batch_size, 1), Adapter.MAX_BATCH_SIZE)
 
@@ -112,12 +107,10 @@ class Adapter:
         :param operators: Operators in the data recipe
         """
         # TODO: set batch size to 1 for all OPs for probing
-        load_analysis_res, probed_batch_size = self.probe_small_batch(
-            dataset, operators)
+        load_analysis_res, probed_batch_size = self.probe_small_batch(dataset, operators)
 
         # calculate batch size for each OP according to the analysis results
-        bs_per_op = self.batch_size_strategy(load_analysis_res,
-                                             base_bs=probed_batch_size)
+        bs_per_op = self.batch_size_strategy(load_analysis_res, base_bs=probed_batch_size)
 
         return bs_per_op
 
@@ -160,25 +153,23 @@ class Adapter:
         # compute left utils according to the util_th
         left_utils = {}
         for key in self.idle_resources:
-            if 'util.' not in key or 'GPU' in key:
+            if "util." not in key or "GPU" in key:
                 continue
             left_utils[key] = max(0, util_th - self.idle_resources[key])
 
         for item in load_analysis_res:
             max_util = 1e-5
             max_key = min(left_utils.items(), key=lambda it: it[1])[0]
-            analysis_res = item['resource_analysis']
+            analysis_res = item["resource_analysis"]
             for key in analysis_res:
-                if 'util.' not in key or 'GPU' in key:
+                if "util." not in key or "GPU" in key:
                     continue
-                used_util = max(
-                    0, analysis_res[key]['max'] - self.idle_resources[key])
+                used_util = max(0, analysis_res[key]["max"] - self.idle_resources[key])
                 if used_util > max_util:
                     max_util = used_util
                     max_key = key
             load_factor = left_utils[max_key] / max_util
-            bs_this_op = min(max(int(base_bs * load_factor), 1),
-                             self.MAX_BATCH_SIZE)
+            bs_this_op = min(max(int(base_bs * load_factor), 1), self.MAX_BATCH_SIZE)
             batch_size_per_op.append(bs_this_op)
 
         return batch_size_per_op
@@ -204,20 +195,17 @@ class Adapter:
         new_cfg.auto = True
         new_cfg.config = None
         if len(new_cfg.op_list_to_mine) > 0:
-            new_cfg.process = [{
-                op_name: {}
-            } for op_name in new_cfg.op_list_to_mine]
+            new_cfg.process = [{op_name: {"num_proc": new_cfg.np}} for op_name in new_cfg.op_list_to_mine]
         # update work dir
-        new_cfg.work_dir = os.path.join(new_cfg.work_dir, 'insight_mining',
-                                        current_state)
-        new_cfg.export_path = os.path.join(new_cfg.work_dir,
-                                           f'{current_state}.jsonl')
+        new_cfg.work_dir = os.path.join(new_cfg.work_dir, "insight_mining", current_state)
+        new_cfg.export_path = os.path.join(new_cfg.work_dir, f"{current_state}.jsonl")
         # close insight mining and monitor for inner analysis
         new_cfg.open_insight_mining = False
         new_cfg.open_monitor = False
 
         # init the analyzer
         from data_juicer.core.analyzer import Analyzer
+
         analyzer = Analyzer(new_cfg)
 
         # remove existing stats and meta in dataset
@@ -238,19 +226,14 @@ class Adapter:
 
         :param pval_th: the threshold of p-value.
         """
-        work_dir = os.path.join(self.cfg.work_dir, 'insight_mining')
-        res_order = [
-            d for d in os.listdir(work_dir)
-            if os.path.isdir(os.path.join(work_dir, d))
-        ]
+        work_dir = os.path.join(self.cfg.work_dir, "insight_mining")
+        res_order = [d for d in os.listdir(work_dir) if os.path.isdir(os.path.join(work_dir, d))]
         res_order.sort()
 
         # collect analysis results
         analysis_results = {}
         for res_dir in res_order:
-            res = Dataset.from_json(
-                os.path.join(work_dir, res_dir,
-                             f'{res_dir}_stats.jsonl')).flatten()
+            res = Dataset.from_json(os.path.join(work_dir, res_dir, f"{res_dir}_stats.jsonl")).flatten()
             analysis_results[res_dir] = res
 
         # distribution change significance analysis
@@ -263,19 +246,16 @@ class Adapter:
             curr_res = analysis_results[res_order[i]]
 
             # only consider common stats and meta
-            common_features = list(
-                set(prev_res.features).intersection(set(curr_res.features)))
+            common_features = list(set(prev_res.features).intersection(set(curr_res.features)))
             curr_sig_res = {}
             for feat in common_features:
                 ttest_res = ttest_measure(prev_res[feat], curr_res[feat])
                 curr_sig_res[feat] = {
-                    't-statistic (standardized mean difference)':
-                    ttest_res.statistic,
-                    'p-value': ttest_res.pvalue,
-                    'significant':
-                    True if ttest_res.pvalue < pval_th else False,
+                    "t-statistic (standardized mean difference)": ttest_res.statistic,
+                    "p-value": ttest_res.pvalue,
+                    "significant": True if ttest_res.pvalue < pval_th else False,
                 }
             sig_res[res_order[i]] = curr_sig_res
 
-        with open(os.path.join(work_dir, 'insight_mining.json'), 'w') as out:
+        with open(os.path.join(work_dir, "insight_mining.json"), "w") as out:
             json.dump(sig_res, out)

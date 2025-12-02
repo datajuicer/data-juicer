@@ -10,19 +10,23 @@ from pydantic import PositiveInt
 
 from data_juicer.utils.constant import HashKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import (SpecialTokens, close_video,
-                                        extract_key_frames,
-                                        extract_video_frames_uniformly,
-                                        insert_texts_after_placeholders,
-                                        load_data_with_context, load_video,
-                                        remove_non_special_tokens,
-                                        remove_special_tokens)
-from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.mm_utils import (
+    SpecialTokens,
+    close_video,
+    extract_key_frames,
+    extract_video_frames_uniformly,
+    insert_texts_after_placeholders,
+    load_data_with_context,
+    load_video,
+    remove_non_special_tokens,
+    remove_special_tokens,
+)
+from data_juicer.utils.model_utils import get_model, prepare_model, torch
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
-simhash = LazyLoader('simhash', 'simhash')
+simhash = LazyLoader('simhash', 'simhash-pybind')
 
 OP_NAME = 'video_captioning_from_video_mapper'
 
@@ -30,8 +34,18 @@ OP_NAME = 'video_captioning_from_video_mapper'
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoCaptioningFromVideoMapper(Mapper):
-    """Mapper to generate samples whose captions are generated based on
-    a video-to-text model and sampled video frame."""
+    """Generates video captions using a Hugging Face video-to-text model and sampled video
+    frames.
+
+    This operator processes video samples to generate captions based on the provided video
+    frames.
+    It uses a Hugging Face video-to-text model, such as 'kpyu/video-blip-opt-2.7b-ego4d',
+    to generate multiple caption candidates for each video. The number of generated
+    captions and the strategy to keep or filter these candidates can be configured. The
+    operator supports different frame sampling methods, including extracting all
+    keyframes or uniformly sampling a specified number of frames. Additionally, it allows
+    for horizontal and vertical flipping of the frames. The final output can include both
+    the original sample and the generated captions, depending on the configuration."""
 
     _accelerator = 'cuda'
     _batched_op = True
@@ -57,6 +71,7 @@ class VideoCaptioningFromVideoMapper(Mapper):
 
         :param hf_video_blip: video-blip model name on huggingface
             to generate caption
+        :param trust_remote_code: whether to trust the remote code of HF models.
         :param caption_num: how many candidate captions to generate
             for each video
         :param keep_candidate_mode: retain strategy for the generated
@@ -108,7 +123,7 @@ class VideoCaptioningFromVideoMapper(Mapper):
         :param args: extra args
         :param kwargs: extra args
         """
-        kwargs.setdefault('mem_required', '20GB')
+        kwargs["mem_required"] = "20GB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
         super().__init__(*args, **kwargs)
 
         if keep_candidate_mode not in [
@@ -236,18 +251,19 @@ class VideoCaptioningFromVideoMapper(Mapper):
                     # tchw to bcthw
                     inputs['pixel_values'] = inputs.pixel_values.unsqueeze(
                         0).permute(0, 2, 1, 3, 4)
-                    for i in range(self.caption_num):
-                        generated_ids = model.generate(**inputs,
-                                                       num_beams=4,
-                                                       max_new_tokens=128,
-                                                       temperature=0.7,
-                                                       top_p=0.9,
-                                                       repetition_penalty=1.5,
-                                                       do_sample=True)
-                        generated_text = processor.batch_decode(
-                            generated_ids, skip_special_tokens=True)
-                        generated_text_candidates_single_chunk[
-                            i] += generated_text
+                    with torch.no_grad():
+                        for i in range(self.caption_num):
+                            generated_ids = model.generate(**inputs,
+                                                           num_beams=4,
+                                                           max_new_tokens=128,
+                                                           temperature=0.7,
+                                                           top_p=0.9,
+                                                           repetition_penalty=1.5,
+                                                           do_sample=True)
+                            generated_text = processor.batch_decode(
+                                generated_ids, skip_special_tokens=True)
+                            generated_text_candidates_single_chunk[
+                                i] += generated_text
 
                 # 3. insert a list of generated captions into the positions of
                 # subsequent placeholders in the original string
@@ -302,8 +318,9 @@ class VideoCaptioningFromVideoMapper(Mapper):
             generated_text_per_chunk.extend(
                 generated_text_candidates_single_chunk)
         elif self.keep_candidate_mode == 'similar_one_simhash':
-            from ..deduplicator.document_simhash_deduplicator import \
-                DocumentSimhashDeduplicator
+            from ..deduplicator.document_simhash_deduplicator import (
+                DocumentSimhashDeduplicator,
+            )
 
             ori_normal_text = remove_special_tokens(chunk)
             # using a simhash OP to calculate their similarity

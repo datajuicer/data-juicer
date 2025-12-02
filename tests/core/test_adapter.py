@@ -3,20 +3,22 @@ import unittest
 import datasets
 from datasets import load_dataset
 from loguru import logger
-from data_juicer.core import Adapter
+from unittest.mock import patch
+from data_juicer.core import Adapter, NestedDataset
+from data_juicer.config import get_init_configs
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.ops.mapper import FixUnicodeMapper
 from data_juicer.ops.filter import PerplexityFilter
 from data_juicer.ops.deduplicator import DocumentDeduplicator
 
-@unittest.skip('random resource utilization fluctuation may cause failure')
 class AdapterTest(DataJuicerTestCaseBase):
+    test_file = 'text_only_2.3k.jsonl'
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
 
-        cls.test_file = 'text_only_2.3k.jsonl'
+        # test dataset
         download_link = f'http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/unittest_data/{cls.test_file}'
         os.system(f'wget {download_link}')
 
@@ -26,6 +28,17 @@ class AdapterTest(DataJuicerTestCaseBase):
         os.system(f'rm -f {cls.test_file}')
 
         super().tearDownClass(hf_model_name)
+
+    def setUp(self) -> None:
+        super().setUp()
+        # tmp dir
+        self.tmp_dir = 'tmp/test_adapter/'
+        os.makedirs(self.tmp_dir, exist_ok=True)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            os.system(f'rm -rf {self.tmp_dir}')
 
     def test_take_batch(self):
         ds = load_dataset('json', data_files=self.test_file, split='train')
@@ -114,7 +127,18 @@ class AdapterTest(DataJuicerTestCaseBase):
                                              util_th=0.1)
         self.assertEqual(bs_res, tgt_bs_4)
 
-    def test_execute_and_probe(self):
+    @patch('data_juicer.core.adapter.Monitor.monitor_func')
+    def test_execute_and_probe(self, mock_monitor_func):
+        mock_monitor_func.return_value = None, {
+            'resource': [{
+                'CPU util.': {
+                    'max': 0.5,
+                },
+            }],
+            'sampling_interval': 0.5,
+            'time': 0.54,
+        }
+
         datasets.disable_caching()
         # basic test
         ds = load_dataset('json', data_files=self.test_file, split='train').take(100)
@@ -129,6 +153,20 @@ class AdapterTest(DataJuicerTestCaseBase):
 
         # finer-grained test
         # reinitialize the OPs to avoid warm start.
+        mock_monitor_func.return_value = None, {
+            'resource': [{
+                'CPU util.': {
+                    'max': 0.5,
+                },
+            }, {
+                'CPU util.': {
+                    'max': 0.4,
+                },
+            }
+            ],
+            'sampling_interval': 0.2,
+            'time': 0.55,
+        }
         ops = [
             FixUnicodeMapper(num_proc=1),
             PerplexityFilter(num_proc=1),
@@ -139,6 +177,17 @@ class AdapterTest(DataJuicerTestCaseBase):
         for item1, item2 in zip(resource_util_list, resource_util_list2):
             logger.info(f'         \t{len(item1["resource"])}\t{len(item2["resource"])}')
             self.assertLessEqual(len(item1['resource']), len(item2['resource']))
+
+        datasets.enable_caching()
+
+    def test_execute_and_probe_on_empty_ops(self):
+        datasets.disable_caching()
+        # basic test
+        ds = load_dataset('json', data_files=self.test_file, split='train').take(100)
+        ops = []  # use some batched OPs later
+
+        resource_util_list = Adapter.execute_and_probe(ds, ops)
+        self.assertEqual(resource_util_list, [])
 
         datasets.enable_caching()
 
@@ -194,6 +243,28 @@ class AdapterTest(DataJuicerTestCaseBase):
         logger.info(adapted_batch_sizes)
 
         datasets.enable_caching()
+
+    def test_insight_mining(self):
+        simple_cfg = get_init_configs({
+            'work_dir': os.path.join(self.tmp_dir, 'test_insight_mining'),
+            'open_insight_mining': True,
+            'np': 2,
+            'op_list_to_mine': [
+                'language_id_score_filter',
+                'perplexity_filter',
+            ],
+        })
+        ds = NestedDataset(load_dataset('json', data_files=self.test_file, split='train'))
+
+        adapter = Adapter(simple_cfg)
+        adapter.analyze_small_batch(ds, '0_original')
+        adapter.analyze_small_batch(NestedDataset(ds.shuffle(seed=42)), '1_op')
+        adapter.insight_mining()
+
+        # check the result files
+        self.assertTrue(os.path.exists(os.path.join(simple_cfg.work_dir, 'insight_mining', '0_original', '0_original_stats.jsonl')))
+        self.assertTrue(os.path.exists(os.path.join(simple_cfg.work_dir, 'insight_mining', '1_op', '1_op_stats.jsonl')))
+        self.assertTrue(os.path.exists(os.path.join(simple_cfg.work_dir, 'insight_mining', 'insight_mining.json')))
 
 
 if __name__ == '__main__':

@@ -34,24 +34,20 @@ def get_sites_count(path, topk=28):
         2) a list of topk sites
     """
 
-    logger.info('Got counts for all sites.')
+    logger.info("Got counts for all sites.")
     sites = os.listdir(path)
-    sites = [x for x in sites if x.endswith('.xml')]
+    sites = [x for x in sites if x.endswith(".xml")]
     counts = {}
     for site in tqdm(sites):
-        if site == '.DS_Store':
+        if site == ".DS_Store":
             continue
         # read xml file and count contents
-        with open(os.path.join(path, site), 'r') as f:
+        with open(os.path.join(path, site), "r") as f:
             # read # lines
             count = sum(1 for line in f)
             counts[site] = count - 3  # subtract the header
     # sort the counts
-    counts = {
-        k: v
-        for k, v in sorted(
-            counts.items(), key=lambda item: item[1], reverse=True)
-    }
+    counts = {k: v for k, v in sorted(counts.items(), key=lambda item: item[1], reverse=True)}
     # take first 28
     sites = list(counts.keys())[:topk]
     return counts, sites
@@ -66,27 +62,21 @@ def get_parents(site, counts):
     :return: a dict stores pair of parent question id and list of answer id
     """
     parents = {}
-    with open(site, 'r') as f:
-        for i, line in enumerate(tqdm(f,
-                                      total=counts[os.path.basename(site)])):
+    with open(site, "r") as f:
+        for i, line in enumerate(tqdm(f, total=counts[os.path.basename(site)])):
             # first 2 lines are header
             # e.g., counts = 2: total=5 lines, 2,3 are data
             # last line is footer
             if i > 1 and i <= counts[os.path.basename(site)] + 1:
                 root = ET.fromstring(line)
-                if 'ParentId' in root.attrib:
+                if "ParentId" in root.attrib:
                     # this is an answer
-                    if root.attrib['ParentId'] not in parents:
-                        parents[root.attrib['ParentId']] = []
-                    parents[root.attrib['ParentId']].append({
-                        'id':
-                        root.attrib['Id'],
-                        'text':
-                        root.attrib['Body'],
-                        'score':
-                        root.attrib['Score']
-                    })
-    logger.info((f'Got {len(parents)} questions for {site}.'))
+                    if root.attrib["ParentId"] not in parents:
+                        parents[root.attrib["ParentId"]] = []
+                    parents[root.attrib["ParentId"]].append(
+                        {"id": root.attrib["Id"], "text": root.attrib["Body"], "score": root.attrib["Score"]}
+                    )
+    logger.info((f"Got {len(parents)} questions for {site}."))
     return parents
 
 
@@ -101,42 +91,43 @@ def get_qapairs(site, counts, parents):
     :return: a list of qa pairs
     """
     qa_pairs = []
-    with open(site, 'r') as f:
-        for i, line in enumerate(tqdm(f,
-                                      total=counts[os.path.basename(site)])):
+    with open(site, "r") as f:
+        for i, line in enumerate(tqdm(f, total=counts[os.path.basename(site)])):
             # first 2 lines are header
             # e.g., counts = 2: total=5 lines, 2,3 are data
             # last line is footer
             if i > 1 and i <= counts[os.path.basename(site)] + 1:
                 root = ET.fromstring(line)
-                if 'ParentId' not in root.attrib:
-                    post_id = root.attrib['Id']
+                if "ParentId" not in root.attrib:
+                    post_id = root.attrib["Id"]
                     if post_id in parents:
                         # this is a question
-                        qa_pairs.append({
-                            'question': {
-                                'id': post_id,
-                                'text': f"{root.attrib['Title']} \
+                        qa_pairs.append(
+                            {
+                                "question": {
+                                    "id": post_id,
+                                    "text": f"{root.attrib['Title']} \
                                   {root.attrib['Body']}",
-                                'score': root.attrib['Score']
-                            },
-                            'answers': parents[post_id]
-                        })
-                    else:
-                        if 'Title' in root.attrib:
-                            # if there's a title => then a valid question
-                            body = root.attrib[
-                                'Body'] if 'Body' in root.attrib else ''
-                            score = root.attrib[
-                                'Score'] if 'Score' in root.attrib else 0
-                            qa_pairs.append({
-                                'question': {
-                                    'id': post_id,
-                                    'text': f"{root.attrib['Title']} {body}",
-                                    'score': score
+                                    "score": root.attrib["Score"],
                                 },
-                            })
-    logger.info((f'Got {len(qa_pairs)} qa_pairs for {site}.'))
+                                "answers": parents[post_id],
+                            }
+                        )
+                    else:
+                        if "Title" in root.attrib:
+                            # if there's a title => then a valid question
+                            body = root.attrib["Body"] if "Body" in root.attrib else ""
+                            score = root.attrib["Score"] if "Score" in root.attrib else 0
+                            qa_pairs.append(
+                                {
+                                    "question": {
+                                        "id": post_id,
+                                        "text": f"{root.attrib['Title']} {body}",
+                                        "score": score,
+                                    },
+                                }
+                            )
+    logger.info((f"Got {len(qa_pairs)} qa_pairs for {site}."))
     return qa_pairs
 
 
@@ -151,23 +142,21 @@ def process_qa_pair(pair, site_name, site_count):
     :return: a dict of qa pair, including ["text", "meta"]
     """
     # sort answers by score
-    if 'answers' in pair:
-        pair['answers'] = sorted(pair['answers'],
-                                 key=lambda x: x['score'],
-                                 reverse=True)
-        answers = '\nA: '.join([x['text'] for x in pair['answers']])
+    if "answers" in pair:
+        pair["answers"] = sorted(pair["answers"], key=lambda x: x["score"], reverse=True)
+        answers = "\nA: ".join([x["text"] for x in pair["answers"]])
         text = f"Q: {pair['question']['text']}\nA: {answers}"
     else:
         text = f"Q: {pair['question']['text']}"
     return {
-        'text': text,
-        'meta': {
-            'site_count': site_count,
-            'url': f"https://{site_name}/questions/{pair['question']['id']}",
-            'timestamp': '2023-03-29',
-            'source': 'stackexchange',
-            'question_score': pair['question']['score'],
-        }
+        "text": text,
+        "meta": {
+            "site_count": site_count,
+            "url": f"https://{site_name}/questions/{pair['question']['id']}",
+            "timestamp": "2023-03-29",
+            "source": "stackexchange",
+            "question_score": pair["question"]["score"],
+        },
     }
 
 
@@ -184,27 +173,29 @@ def process_site(site, counts, src_dir, target_dir, num_proc=24):
     :param target_dir: path to save jsonl file
     :param num_proc: number of process workers. Default it's 24.
     """
-    logger.info(f'Processing {site}...')
-    logger.info(f'|{site}|{counts[site]}|')
+    logger.info(f"Processing {site}...")
+    logger.info(f"|{site}|{counts[site]}|")
     site_path = os.path.join(src_dir, site)
     parents = get_parents(site_path, counts)
     qa_pairs = get_qapairs(site_path, counts, parents)
 
-    site_name = site.removesuffix('.xml')
-    if 'stackoverflow_part' in site_name:
-        site_name = 'stackoverflow.com'
+    site_name = site.removesuffix(".xml")
+    if "stackoverflow_part" in site_name:
+        site_name = "stackoverflow.com"
 
     site_name_list = [site_name] * len(qa_pairs)
     counts_list = [counts[site]] * len(qa_pairs)
     tasks = [*zip(qa_pairs, site_name_list, counts_list)]
     with Pool(num_proc) as p:
         results = p.starmap(process_qa_pair, iterable=tasks)
-    logger.info(f"Writing {len(results)} results to \
-        {os.path.join(target_dir, site_name+'.jsonl')}")
+    logger.info(
+        f"Writing {len(results)} results to \
+        {os.path.join(target_dir, site_name+'.jsonl')}"
+    )
 
-    with open(os.path.join(target_dir, site_name + '.jsonl'), 'w') as f:
+    with open(os.path.join(target_dir, site_name + ".jsonl"), "w") as f:
         for result in results:
-            f.write(json.dumps(result) + '\n')
+            f.write(json.dumps(result) + "\n")
 
 
 @logger.catch(reraise=True)
@@ -225,18 +216,16 @@ def main(src_dir, target_dir, topk=28, num_proc=1):
     """
     # check if the source directory exists
     if not os.path.exists(src_dir):
-        raise ValueError(
-            'The raw stack_exchange source data directory does not exist,'
-            ' Please check and retry.')
+        raise ValueError("The raw stack_exchange source data directory does not exist," " Please check and retry.")
     if not os.path.exists(target_dir):
         os.makedirs(target_dir, exist_ok=True)
 
     # select topk sites from src dir by most contents number
     counts, sites = get_sites_count(src_dir, topk=topk)
     for site in sites:
-        logger.info(f'Start to process {site}')
+        logger.info(f"Start to process {site}")
         process_site(site, counts, src_dir, target_dir, num_proc)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

@@ -15,6 +15,7 @@ dist
 wandb/
 __pycache__
 .vscode/
+.ipynb_checkpoints/
 
 # label studio related
 label_studio_data/
@@ -28,3 +29,12 @@ venv/
 # dup files created by tests
 tests/ops/data/*dup*
 tests/tools/tmp_*/
+tests/ops/deduplicator/chinese_dedup/
+tests/ops/deduplicator/english_dedup/
+
+
+# perf bench data
+perf_bench_data/
+
+# env file
+.env

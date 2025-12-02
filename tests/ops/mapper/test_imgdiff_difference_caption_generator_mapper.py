@@ -13,6 +13,8 @@ from data_juicer.utils.constant import Fields, InterVars, MetaKeys
 class Difference_Caption_Generator_MapperTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
+
         data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              'data')
         img_pair_1 = os.path.join(data_path, 'img_pair_1.jpg')

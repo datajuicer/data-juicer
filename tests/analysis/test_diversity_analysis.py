@@ -39,6 +39,8 @@ class FindRootVerbAndItsDobjInStringTest(DataJuicerTestCaseBase):
 class GetDiversityTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
+
         self.test_data = [
             {'verb': 'play', 'noun': 'football'},
             {'verb': 'read', 'noun': 'book'},
@@ -93,6 +95,8 @@ class GetDiversityTest(DataJuicerTestCaseBase):
 class DiversityAnalysisTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
+
         data_dict_en = {
             'text': [
                 'Sam is playing football.',
@@ -125,6 +129,8 @@ class DiversityAnalysisTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+
+        super().tearDown()
 
     def test_analyze(self):
         diversity_analysis = DiversityAnalysis(self.test_data_en, self.temp_output_path)

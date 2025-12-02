@@ -50,7 +50,7 @@ def main(src_dir, target_dir, text_key=None, suffixes=[], num_proc=1):
     cfg = get_default_cfg()
     cfg.dataset_path = src_dir
     dataset_builder = DatasetBuilder(cfg)
-    dataset = dataset_builder.load_dataset(num_proc)
+    dataset = dataset_builder.load_dataset(num_proc=num_proc)
 
     op = LanguageIDScoreFilter(text_key=text_key)
 

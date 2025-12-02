@@ -6,13 +6,10 @@ from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.llm_difficulty_score_filter import LLMDifficultyScoreFilter
 from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
 
-
+@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
 class LLMDifficultyScoreFilterTest(DataJuicerTestCaseBase):
-    # before running this test, set below environment variables:
-    # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
-    # export OPENAI_API_KEY=your_dashscope_key
     api_or_hf_model = 'qwen2.5-72b-instruct'
 
     def _run_test(self, dataset: Dataset, op):

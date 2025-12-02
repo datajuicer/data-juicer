@@ -67,8 +67,8 @@ def main(
     target_youku_ds_path: str,
     eoc_special_token: str = SpecialTokens.eoc,
     video_special_token: str = SpecialTokens.video,
-    sent_separator: str = ' ',
-    subset_type: str = 'classification',
+    sent_separator: str = " ",
+    subset_type: str = "classification",
 ):
     """
     Convert a Data-Juicer-format dataset to a Youku-mPLUG-like dataset.
@@ -90,63 +90,57 @@ def main(
         "classification".
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    video_key = 'videos'  # default key of field to store the video list
+    text_key = "text"  # default key of field to store the sample text
+    video_key = "videos"  # default key of field to store the video list
     fields_infos = {
-        'pretrain': {
-            'video_key': 'video_id:FILE',
-            'text_key': 'title',
-            'other_required_keys': [],
+        "pretrain": {
+            "video_key": "video_id:FILE",
+            "text_key": "title",
+            "other_required_keys": [],
         },
-        'classification': {
-            'video_key': 'video_id:FILE',
-            'text_key': 'title',
-            'other_required_keys': ['label'],
+        "classification": {
+            "video_key": "video_id:FILE",
+            "text_key": "title",
+            "other_required_keys": ["label"],
         },
-        'retrieval': {
-            'video_key': 'clip_name:FILE',
-            'text_key': 'caption',
-            'other_required_keys': [],
+        "retrieval": {
+            "video_key": "clip_name:FILE",
+            "text_key": "caption",
+            "other_required_keys": [],
         },
-        'captioning': {
-            'video_key': 'video_id:FILE',
-            'text_key': 'golden_caption',
-            'other_required_keys': [],
-        }
+        "captioning": {
+            "video_key": "video_id:FILE",
+            "text_key": "golden_caption",
+            "other_required_keys": [],
+        },
     }
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
     # check paths
     if not os.path.exists(dj_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{dj_ds_path}] can not be found.')
-    if not target_youku_ds_path.endswith('.csv'):
-        raise ValueError(
-            'Only support "csv" target dataset file for Youku-mPLUG now.')
-    if os.path.dirname(target_youku_ds_path) \
-            and not os.path.exists(os.path.dirname(target_youku_ds_path)):
-        logger.info(
-            f'Create directory [{os.path.dirname(target_youku_ds_path)}] for '
-            f'the target dataset.')
+        raise FileNotFoundError(f"Input dataset [{dj_ds_path}] can not be found.")
+    if not target_youku_ds_path.endswith(".csv"):
+        raise ValueError('Only support "csv" target dataset file for Youku-mPLUG now.')
+    if os.path.dirname(target_youku_ds_path) and not os.path.exists(os.path.dirname(target_youku_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_youku_ds_path)}] for " f"the target dataset.")
         os.makedirs(os.path.dirname(target_youku_ds_path))
     # check subset type
     if subset_type not in fields_infos:
-        logger.error(f'Arg subset_type should be one of ["pretrain", '
-                     f'"classification", "retrieval", "captioning"], but '
-                     f'given [{subset_type}].')
-    tgt_video_key = fields_infos[subset_type]['video_key']
-    tgt_text_key = fields_infos[subset_type]['text_key']
-    tgt_required_keys = fields_infos[subset_type]['other_required_keys']
+        logger.error(
+            f'Arg subset_type should be one of ["pretrain", '
+            f'"classification", "retrieval", "captioning"], but '
+            f"given [{subset_type}]."
+        )
+    tgt_video_key = fields_infos[subset_type]["video_key"]
+    tgt_text_key = fields_infos[subset_type]["text_key"]
+    tgt_required_keys = fields_infos[subset_type]["other_required_keys"]
 
     # save Youku-mPLUG dataset from Data-Juicer format
-    logger.info(
-        'Start converting the original dataset to Youku-mPLUG format...')
+    logger.info("Start converting the original dataset to Youku-mPLUG format...")
     with jl.open(dj_ds_path) as reader:
-        with open(target_youku_ds_path, 'w') as csvfile:
-            writer = csv.DictWriter(csvfile,
-                                    fieldnames=[tgt_video_key, tgt_text_key] +
-                                    tgt_required_keys)
+        with open(target_youku_ds_path, "w") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=[tgt_video_key, tgt_text_key] + tgt_required_keys)
             # write headers first
             writer.writeheader()
             for line_num, s in enumerate(tqdm(reader)):
@@ -154,8 +148,7 @@ def main(
                 # add required fields
                 for key in tgt_required_keys:
                     if key not in s:
-                        raise ValueError(f'Required key [{key}] is not in the '
-                                         f'original Data-Juicer dataset.')
+                        raise ValueError(f"Required key [{key}] is not in the " f"original Data-Juicer dataset.")
                     new_sample[key] = s[key]
 
                 # add video, only keep the first one
@@ -164,14 +157,12 @@ def main(
 
                 # add text, remove extra special tokens
                 text = s[text_key].strip()
-                text = remove_dj_special_tokens(text, eoc_special_token,
-                                                sent_separator,
-                                                video_special_token)
+                text = remove_dj_special_tokens(text, eoc_special_token, sent_separator, video_special_token)
                 new_sample[tgt_text_key] = text
 
                 writer.writerow(new_sample)
-    logger.info(f'Store the target dataset into [{target_youku_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_youku_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

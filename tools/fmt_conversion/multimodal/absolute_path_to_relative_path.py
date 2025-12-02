@@ -49,14 +49,14 @@ from data_juicer.utils.file_utils import copy_data
 
 def match_prefix(candidates, string):
     for candidate in candidates:
-        if candidate == string[:len(candidate)]:
+        if candidate == string[: len(candidate)]:
             return candidate
-    logger.warning(f'Match no corresponding absolute dir in {string}.')
-    return '/'
+    logger.warning(f"Match no corresponding absolute dir in {string}.")
+    return "/"
 
 
 def get_last_dict(d, nest_key):
-    sub_keys = nest_key.split('.')
+    sub_keys = nest_key.split(".")
     final_key = sub_keys[-1]
     last_dict = d
     for key in sub_keys[:-1]:
@@ -68,29 +68,11 @@ def get_last_dict(d, nest_key):
 
 @logger.catch
 @click.command()
-@click.option('--dj_ds_path', 'dj_ds_path', type=str, required=True)
-@click.option('--absolute_dir',
-              '-d',
-              'absolute_dirs',
-              type=str,
-              required=True,
-              multiple=True)
-@click.option('--path_key',
-              '-k',
-              'path_keys',
-              type=str,
-              required=True,
-              multiple=True)
-@click.option('--target_dj_ds_path',
-              'target_dj_ds_path',
-              type=str,
-              required=False,
-              default=None)
-@click.option('--target_mt_dir',
-              'target_mt_dir',
-              type=str,
-              required=False,
-              default=None)
+@click.option("--dj_ds_path", "dj_ds_path", type=str, required=True)
+@click.option("--absolute_dir", "-d", "absolute_dirs", type=str, required=True, multiple=True)
+@click.option("--path_key", "-k", "path_keys", type=str, required=True, multiple=True)
+@click.option("--target_dj_ds_path", "target_dj_ds_path", type=str, required=False, default=None)
+@click.option("--target_mt_dir", "target_mt_dir", type=str, required=False, default=None)
 def convert_absolute_path_to_relative_path(
     dj_ds_path: str,
     absolute_dirs: list[str],
@@ -114,34 +96,32 @@ def convert_absolute_path_to_relative_path(
         if it is not None.
     """
     if not os.path.exists(dj_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{dj_ds_path}] can not be found.')
-    if target_dj_ds_path is not None\
-            and os.path.dirname(target_dj_ds_path) \
-            and not os.path.exists(os.path.dirname(target_dj_ds_path)):
-        logger.info(
-            f'Create directory [{os.path.dirname(target_dj_ds_path)}] for '
-            f'the target dataset.')
+        raise FileNotFoundError(f"Input dataset [{dj_ds_path}] can not be found.")
+    if (
+        target_dj_ds_path is not None
+        and os.path.dirname(target_dj_ds_path)
+        and not os.path.exists(os.path.dirname(target_dj_ds_path))
+    ):
+        logger.info(f"Create directory [{os.path.dirname(target_dj_ds_path)}] for " f"the target dataset.")
         os.makedirs(os.path.dirname(target_dj_ds_path))
 
-    abs_dir_key = 'abs_dir'
+    abs_dir_key = "abs_dir"
 
     # normalize the dirs
-    absolute_dirs = [str(Path(d)) + '/' for d in absolute_dirs]
+    absolute_dirs = [str(Path(d)) + "/" for d in absolute_dirs]
     # match the deeper paths first
     absolute_dirs = sorted(absolute_dirs, key=lambda p: -len(p))
 
-    logger.info('Start to convert absolute path to relative path.')
+    logger.info("Start to convert absolute path to relative path.")
     samples = []
-    with jl.open(dj_ds_path, 'r') as reader:
+    with jl.open(dj_ds_path, "r") as reader:
         for sample in tqdm(reader):
             if Fields.meta not in sample:
                 sample[Fields.meta] = {}
             sample[Fields.meta][abs_dir_key] = {}
             for path_key in path_keys:
                 last_dict, final_key = get_last_dict(sample, path_key)
-                abs_dir_last_dict, _ = get_last_dict(
-                    sample[Fields.meta][abs_dir_key], path_key)
+                abs_dir_last_dict, _ = get_last_dict(sample[Fields.meta][abs_dir_key], path_key)
                 absolute_paths = last_dict[final_key]
                 if type(absolute_paths) is not list:
                     absolute_paths = [absolute_paths]
@@ -149,13 +129,8 @@ def convert_absolute_path_to_relative_path(
                 # normalize the paths
                 absolute_paths = [str(Path(p)) for p in absolute_paths]
 
-                cur_dirs = [
-                    match_prefix(absolute_dirs, p) for p in absolute_paths
-                ]
-                relative_paths = [
-                    str(os.path.relpath(p, d))
-                    for d, p in zip(cur_dirs, absolute_paths)
-                ]
+                cur_dirs = [match_prefix(absolute_dirs, p) for p in absolute_paths]
+                relative_paths = [str(os.path.relpath(p, d)) for d, p in zip(cur_dirs, absolute_paths)]
 
                 if type(last_dict[final_key]) is not list:
                     last_dict[final_key] = relative_paths[0]
@@ -169,18 +144,17 @@ def convert_absolute_path_to_relative_path(
                     for d, p in zip(cur_dirs, relative_paths):
                         succeed = copy_data(d, target_mt_dir, p)
                         if not succeed:
-                            logger.warning(f'{p} does not exists in {d}.')
+                            logger.warning(f"{p} does not exists in {d}.")
 
             samples.append(sample)
 
     if target_dj_ds_path is not None:
-        logger.info(f'Start to write the converted dataset to '
-                    f'[{target_dj_ds_path}]...')
-        with jl.open(target_dj_ds_path, 'w') as writer:
+        logger.info(f"Start to write the converted dataset to " f"[{target_dj_ds_path}]...")
+        with jl.open(target_dj_ds_path, "w") as writer:
             for sample in samples:
                 writer.write(sample)
     return samples
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     convert_absolute_path_to_relative_path()

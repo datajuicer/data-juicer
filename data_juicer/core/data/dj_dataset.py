@@ -12,15 +12,17 @@ from typing import Any, Dict, List, Optional, Union
 
 from datasets import Dataset, DatasetDict, is_caching_enabled
 from datasets.formatting.formatting import LazyBatch
-from loguru import logger
 
 from data_juicer.core.data.schema import Schema
 from data_juicer.core.monitor import Monitor
 from data_juicer.ops import UNFORKABLE
 from data_juicer.utils import cache_utils
-from data_juicer.utils.compress import (CompressionOff,
-                                        cleanup_compressed_cache_files,
-                                        compress, decompress)
+from data_juicer.utils.compress import (
+    CompressionOff,
+    cleanup_compressed_cache_files,
+    compress,
+    decompress,
+)
 from data_juicer.utils.fingerprint_utils import generate_fingerprint
 from data_juicer.utils.logger_utils import make_log_summarization
 from data_juicer.utils.process_utils import setup_mp
@@ -30,15 +32,8 @@ class DJDataset(ABC):
     """Base dataset of DJ"""
 
     @abstractmethod
-    def process(
-            self,
-            operators,  # TODO: add type hint
-            *,
-            exporter=None,
-            checkpointer=None,
-            tracer=None) -> DJDataset:
+    def process(self, operators, *, exporter=None, checkpointer=None, tracer=None) -> DJDataset:  # TODO: add type hint
         """process a list of operators on the dataset."""
-        pass
 
     @abstractmethod
     def schema(self) -> Schema:
@@ -47,7 +42,6 @@ class DJDataset(ABC):
         Returns:
             Schema: Dataset schema containing column names and types
         """
-        pass
 
     @abstractmethod
     def get(self, k: int) -> List[Dict[str, Any]]:
@@ -59,7 +53,6 @@ class DJDataset(ABC):
         Returns:
             List[Any]: A list of rows from the dataset.
         """
-        pass
 
     @abstractmethod
     def get_column(self, column: str, k: Optional[int] = None) -> List[Any]:
@@ -76,7 +69,25 @@ class DJDataset(ABC):
             KeyError: If column doesn't exist in dataset
             ValueError: If k is negative
         """
-        pass
+
+    @abstractmethod
+    def to_list(self) -> list:
+        """Convert the current dataset to a Python list."""
+
+    def contain_column(self, column: str) -> bool:
+        """Check whether the dataset contains a specific column/field.
+
+        Args:
+            column: Name of the column to check
+
+        Returns:
+            bool: True if the dataset contains the column, False otherwise
+        """
+        return column in self.schema().columns
+
+    @abstractmethod
+    def count(self) -> int:
+        """return the count of the dataset"""
 
 
 def wrap_func_with_nested_access(f):
@@ -90,10 +101,7 @@ def wrap_func_with_nested_access(f):
 
     def wrap_nested_structure(*args, **kargs):
         wrapped_args = [nested_obj_factory(arg) for arg in args]
-        wrapped_kargs = {
-            k: nested_obj_factory(arg)
-            for k, arg in kargs.items()
-        }
+        wrapped_kargs = {k: nested_obj_factory(arg) for k, arg in kargs.items()}
         return wrapped_args, nested_obj_factory(wrapped_kargs)
 
     @wraps(f)
@@ -101,14 +109,8 @@ def wrap_func_with_nested_access(f):
         args, kargs = wrap_nested_structure(*args, **kargs)
         # to ensure the args passing to the final calling of f can be nested,
         # in case of deeper-order wrapper funcs de-wrap this nesting behavior
-        args = [
-            wrap_func_with_nested_access(arg) if callable(arg) else arg
-            for arg in args
-        ]
-        kargs = {
-            k: (wrap_func_with_nested_access(arg) if callable(arg) else arg)
-            for (k, arg) in kargs.items()
-        }
+        args = [wrap_func_with_nested_access(arg) if callable(arg) else arg for arg in args]
+        kargs = {k: (wrap_func_with_nested_access(arg) if callable(arg) else arg) for (k, arg) in kargs.items()}
         return f(*args, **kargs)
 
     return wrapped_f
@@ -173,10 +175,10 @@ class NestedDatasetDict(DatasetDict):
     def map(self, **args):
         """Override the map func, which is called by most common operations,
         such that the processed samples can be accessed by nested manner."""
-        if 'function' not in args or args['function'] is None:
-            args['function'] = lambda x: nested_obj_factory(x)
+        if "function" not in args or args["function"] is None:
+            args["function"] = lambda x: nested_obj_factory(x)
         else:
-            args['function'] = wrap_func_with_nested_access(args['function'])
+            args["function"] = wrap_func_with_nested_access(args["function"])
 
         return super().map(**args)
 
@@ -209,21 +211,12 @@ class NestedDataset(Dataset, DJDataset):
         # Get features dictionary from HF dataset
         features = self.features
 
-        # Convert features to schema dict
-        column_types = {}
-        for name, feature in features.items():
-            # Map HF feature types to Python types
-            column_types[name] = Schema.map_hf_type_to_python(feature)
-
-        # Get column names
-        columns = self.column_names
-
-        return Schema(column_types=column_types, columns=columns)
+        return Schema.from_hf_features(features)
 
     def get(self, k: int) -> List[Dict[str, Any]]:
         """Get k rows from the dataset."""
         if k < 0:
-            raise ValueError(f'k must be non-negative, got {k}')
+            raise ValueError(f"k must be non-negative, got {k}")
 
         if k == 0:
             return []
@@ -250,7 +243,7 @@ class NestedDataset(Dataset, DJDataset):
 
         if k is not None:
             if k < 0:
-                raise ValueError(f'k must be non-negative, got {k}')
+                raise ValueError(f"k must be non-negative, got {k}")
             if k == 0:
                 return []
             k = min(k, len(self))
@@ -269,6 +262,9 @@ class NestedDataset(Dataset, DJDataset):
         adapter=None,
         open_monitor=True,
     ):
+        # Local import to avoid logger being serialized in multiprocessing
+        from loguru import logger
+
         if operators is None:
             return self
 
@@ -281,33 +277,28 @@ class NestedDataset(Dataset, DJDataset):
             resource_util_list = []
 
         # whether to enable insight mining
-        enable_insight_mining = adapter.enable_insight_mining \
-            if adapter else False
+        enable_insight_mining = adapter.enable_insight_mining if adapter else False
         # record the analysis results of the original dataset
         if enable_insight_mining:
-            logger.info('Analyze small batch for the original dataset for '
-                        'insight mining...')
-            adapter.analyze_small_batch(self, '0_original')
+            logger.info("Analyze small batch for the original dataset for " "insight mining...")
+            adapter.analyze_small_batch(self, "0_original")
 
         dataset = self
         op_num = len(operators)
         try:
             for idx, op in enumerate(operators, start=1):
-                mp_context = ['forkserver', 'spawn'] if (
-                    op.use_cuda()
-                    or op._name in unforkable_operators) else None
+                mp_context = ["forkserver", "spawn"] if (op.use_cuda() or op._name in unforkable_operators) else None
                 setup_mp(mp_context)
 
                 start = time()
                 # run single op
                 run_args = {
-                    'dataset': dataset,
-                    'exporter': exporter,
-                    'tracer': tracer,
+                    "dataset": dataset,
+                    "exporter": exporter,
+                    "tracer": tracer,
                 }
                 if open_monitor:
-                    dataset, resource_util_per_op = Monitor.monitor_func(
-                        op.run, args=run_args)
+                    dataset, resource_util_per_op = Monitor.monitor_func(op.run, args=run_args)
                 else:
                     dataset = op.run(**run_args)
                 # record processed ops
@@ -317,45 +308,48 @@ class NestedDataset(Dataset, DJDataset):
                     resource_util_list.append(resource_util_per_op)
                 end = time()
                 logger.info(
-                    f'[{idx}/{op_num}] OP [{op._name}] Done in '
-                    f'{end - start:.3f}s. Left {len(dataset)} samples.')
+                    f"[{idx}/{op_num}] OP [{op._name}] Done in " f"{end - start:.3f}s. Left {len(dataset)} samples."
+                )
 
                 # record the analysis results of the current dataset
                 if enable_insight_mining:
                     logger.info(
-                        f'Analyze small batch for the current dataset after '
-                        f'OP [{op._name}] for insight mining...')
-                    adapter.analyze_small_batch(dataset, f'{idx}_{op._name}')
+                        f"Analyze small batch for the current dataset after " f"OP [{op._name}] for insight mining..."
+                    )
+                    adapter.analyze_small_batch(dataset, f"{idx}_{op._name}")
         except:  # noqa: E722
-            logger.error(f'An error occurred during Op [{op._name}].')
+            logger.error(f"An error occurred during Op [{op._name}].")
             traceback.print_exc()
             exit(1)
         finally:
             if checkpointer and dataset is not self:
-                logger.info('Writing checkpoint of dataset processed by '
-                            'last op...')
+                logger.info("Writing checkpoint of dataset processed by " "last op...")
                 dataset.cleanup_cache_files()
                 checkpointer.save_ckpt(dataset)
             # make summarization on the monitor results
             if work_dir and open_monitor:
                 # get the analyzed version
-                resource_util_list = Monitor.analyze_resource_util_list(
-                    resource_util_list)
-                monitor_dir = os.path.join(work_dir, 'monitor')
+                resource_util_list = Monitor.analyze_resource_util_list(resource_util_list)
+                monitor_dir = os.path.join(work_dir, "monitor")
                 os.makedirs(monitor_dir, exist_ok=True)
-                with open(os.path.join(monitor_dir, 'monitor.json'),
-                          'w') as out:
+                with open(os.path.join(monitor_dir, "monitor.json"), "w") as out:
                     json.dump(resource_util_list, out)
-                Monitor.draw_resource_util_graph(resource_util_list,
-                                                 monitor_dir)
+                Monitor.draw_resource_util_graph(resource_util_list, monitor_dir)
             # make summarization on the insight mining results
             if work_dir and enable_insight_mining:
-                logger.info('Insight mining for each OP...')
+                logger.info("Insight mining for each OP...")
                 adapter.insight_mining()
             # make summarization on the error/warning logs
             if work_dir:
-                make_log_summarization()
+                try:
+                    make_log_summarization()
+                except:  # noqa: E722
+                    traceback.print_exc()
+                    logger.error("Error occurred when making log summarization")
         return dataset
+
+    def count(self) -> int:
+        return self.num_rows
 
     def update_args(self, args, kargs, is_filter=False):
         if args:
@@ -367,40 +361,38 @@ class NestedDataset(Dataset, DJDataset):
                 args[0] = wrap_func_with_nested_access(args[0])
             called_func = args[0]
         else:
-            if 'function' not in kargs or kargs['function'] is None:
-                kargs['function'] = lambda x: nested_obj_factory(x)
+            if "function" not in kargs or kargs["function"] is None:
+                kargs["function"] = lambda x: nested_obj_factory(x)
             else:
-                kargs['function'] = wrap_func_with_nested_access(
-                    kargs['function'])
-            called_func = kargs['function']
+                kargs["function"] = wrap_func_with_nested_access(kargs["function"])
+            called_func = kargs["function"]
 
         # For wrapped function, try to get its unwrapped (bound) method
-        while not inspect.ismethod(called_func) and hasattr(
-                called_func, '__wrapped__'):
+        while not inspect.ismethod(called_func) and hasattr(called_func, "__wrapped__"):
             called_func = called_func.__wrapped__
 
         if inspect.ismethod(called_func):
             # batched is required for fault-tolerant or batched OP
-            if callable(
-                    getattr(called_func.__self__, 'is_batched_op',
-                            None)) and called_func.__self__.is_batched_op():
-                kargs['batched'] = True
-                kargs['batch_size'] = kargs.pop('batch_size', 1)
-            elif not getattr(called_func.__self__, 'turbo', False):
-                kargs['batched'] = True
-                kargs['batch_size'] = 1
+            if callable(getattr(called_func.__self__, "is_batched_op", None)) and called_func.__self__.is_batched_op():
+                kargs["batched"] = True
+                kargs["batch_size"] = kargs.pop("batch_size", 1)
+            elif not getattr(called_func.__self__, "turbo", False):
+                kargs["batched"] = True
+                kargs["batch_size"] = 1
             else:
-                kargs['batched'] = False
+                kargs["batched"] = False
 
             # rank is required for cuda model loading for map
-            if not is_filter and callable(
-                    getattr(called_func.__self__, 'use_cuda',
-                            None)) and called_func.__self__.use_cuda():
-                kargs['with_rank'] = True
+            if (
+                not is_filter
+                and callable(getattr(called_func.__self__, "use_cuda", None))
+                and called_func.__self__.use_cuda()
+            ):
+                kargs["with_rank"] = True
 
-        if 'new_fingerprint' not in kargs or kargs['new_fingerprint'] is None:
+        if "new_fingerprint" not in kargs or kargs["new_fingerprint"] is None:
             new_fingerprint = generate_fingerprint(self, *args, **kargs)
-            kargs['new_fingerprint'] = new_fingerprint
+            kargs["new_fingerprint"] = new_fingerprint
 
         return args, kargs
 
@@ -411,14 +403,12 @@ class NestedDataset(Dataset, DJDataset):
         args, kargs = self.update_args(args, kargs)
 
         if cache_utils.CACHE_COMPRESS:
-            decompress(self, kargs['new_fingerprint'],
-                       kargs['num_proc'] if 'num_proc' in kargs else 1)
+            decompress(self, kargs["new_fingerprint"], kargs["num_proc"] if "num_proc" in kargs else 1)
 
         new_ds = NestedDataset(super().map(*args, **kargs))
 
         if cache_utils.CACHE_COMPRESS:
-            compress(self, new_ds,
-                     kargs['num_proc'] if 'num_proc' in kargs else 1)
+            compress(self, new_ds, kargs["num_proc"] if "num_proc" in kargs else 1)
 
         if self.need_to_cleanup_caches:
             new_ds.cleanup_cache_files()
@@ -435,8 +425,9 @@ class NestedDataset(Dataset, DJDataset):
         # after). So we need to decompress these two sets of compressed cache
         # files
         if cache_utils.CACHE_COMPRESS:
-            decompress(self, [kargs['new_fingerprint'], self._fingerprint],
-                       kargs['num_proc'] if 'num_proc' in kargs else 1)
+            decompress(
+                self, [kargs["new_fingerprint"], self._fingerprint], kargs["num_proc"] if "num_proc" in kargs else 1
+            )
 
         # Turn off the compression due to it invokes map actually in the filter
         # function. For cache file changes, map: A -> B, filter: A -> A, B. If
@@ -450,8 +441,7 @@ class NestedDataset(Dataset, DJDataset):
             self.need_to_cleanup_caches = prev_state
 
         if cache_utils.CACHE_COMPRESS:
-            compress(self, new_ds,
-                     kargs['num_proc'] if 'num_proc' in kargs else 1)
+            compress(self, new_ds, kargs["num_proc"] if "num_proc" in kargs else 1)
 
         if self.need_to_cleanup_caches:
             new_ds.cleanup_cache_files()
@@ -463,12 +453,22 @@ class NestedDataset(Dataset, DJDataset):
         by nested manner."""
         return nested_obj_factory(super().select(*args, **kargs))
 
+    def to_list(self) -> list:
+        return Dataset.to_list(self)
+
     @classmethod
     def from_dict(cls, *args, **kargs):
         """Override the from_dict func, which is called by most from_xx
         constructors, such that the constructed dataset object is
         NestedDataset."""
         return NestedDataset(super().from_dict(*args, **kargs))
+
+    @classmethod
+    def from_list(cls, *args, **kargs):
+        """Override the from_dict func, which is called by most from_xx
+        constructors, such that the constructed dataset object is
+        NestedDataset."""
+        return NestedDataset(super().from_list(*args, **kargs))
 
     def add_column(self, *args, **kargs):
         """Override the add column func, such that the processed samples
@@ -496,8 +496,7 @@ class NestedDataset(Dataset, DJDataset):
         return NestedDataset(Dataset.load_from_disk(*args, **kargs))
 
 
-def nested_query(root_obj: Union[NestedDatasetDict, NestedDataset,
-                                 NestedQueryDict], key):
+def nested_query(root_obj: Union[NestedDatasetDict, NestedDataset, NestedQueryDict], key):
     """
     Find item from a given object, by first checking flatten layer, then
     checking nested layers.
@@ -507,14 +506,13 @@ def nested_query(root_obj: Union[NestedDatasetDict, NestedDataset,
         "meta.date"
     :return:
     """
-    subkeys = key.split('.')
+    subkeys = key.split(".")
 
     tmp = root_obj
     for i in range(len(subkeys)):
         try:
-            key_to_query = '.'.join(subkeys[i:len(subkeys)])
-            if isinstance(tmp,
-                          (NestedQueryDict, NestedDataset, NestedDatasetDict)):
+            key_to_query = ".".join(subkeys[i : len(subkeys)])
+            if isinstance(tmp, (NestedQueryDict, NestedDataset, NestedDatasetDict)):
                 # access field using base_class's func to avoid endless loop
                 res = super(type(tmp), tmp).__getitem__(key_to_query)
             elif isinstance(tmp, list):
@@ -526,27 +524,27 @@ def nested_query(root_obj: Union[NestedDatasetDict, NestedDataset,
             if res is not None:
                 return res
         except Exception as outer_get_error:
-            exist_in_dict = issubclass(type(tmp), dict) and \
-                                '.'.join(subkeys[i:i + 1]) in tmp
-            exist_in_dataset = issubclass(type(tmp), Dataset) and '.'.join(
-                subkeys[i:i + 1]) in tmp.features
+            exist_in_dict = issubclass(type(tmp), dict) and ".".join(subkeys[i : i + 1]) in tmp
+            exist_in_dataset = issubclass(type(tmp), Dataset) and ".".join(subkeys[i : i + 1]) in tmp.features
             if exist_in_dict or exist_in_dataset:
                 # dive into next level
-                tmp = nested_obj_factory(tmp['.'.join(subkeys[i:i + 1])])
+                tmp = nested_obj_factory(tmp[".".join(subkeys[i : i + 1])])
             else:
+                # Local import to avoid logger being serialized in multiprocessing
+                from loguru import logger
+
                 logger.debug(
-                    f'cannot find item given key={key} in dataset='
-                    f'{root_obj}. For the final caught outer-exception,'
-                    f'type is: {type(outer_get_error)}, '
-                    f'info is: {outer_get_error}')
+                    f"cannot find item given key={key} in dataset="
+                    f"{root_obj}. For the final caught outer-exception,"
+                    f"type is: {type(outer_get_error)}, "
+                    f"info is: {outer_get_error}"
+                )
                 return None
 
     return None
 
 
-def add_same_content_to_new_column(sample,
-                                   new_column_name,
-                                   initial_value=None):
+def add_same_content_to_new_column(sample, new_column_name, initial_value=None):
     """
     A helper function to speed up add_column function. Apply map on this
     function in parallel instead of using add_column.

@@ -12,6 +12,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class MeasureTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
+
         self.temp_output_path = 'tmp/test_measure/'
         if not os.path.exists(self.temp_output_path):
             os.makedirs(self.temp_output_path)
@@ -19,6 +21,8 @@ class MeasureTest(DataJuicerTestCaseBase):
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
+
+        super().tearDown()
 
     def test_convert_to_tensor(self):
         measure = Measure()

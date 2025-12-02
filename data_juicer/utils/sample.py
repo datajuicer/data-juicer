@@ -29,7 +29,6 @@ def random_sample(dataset, weight=1.0, sample_number=0, seed=None):
     n_repeat = int(np.ceil(sample_number / ds_samples)) - 1
     if n_repeat > 0:
         remain_samples = sample_number - n_repeat * ds_samples
-        sample_index = chain(*repeat(range(ds_samples), n_repeat),
-                             range(remain_samples))
+        sample_index = chain(*repeat(range(ds_samples), n_repeat), range(remain_samples))
 
     return dataset.shuffle(seed=seed).select(sample_index)

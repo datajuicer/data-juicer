@@ -1,6 +1,8 @@
+import logging
 import math
 import os
 
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
@@ -9,6 +11,13 @@ from wordcloud import WordCloud
 from data_juicer.utils.constant import DEFAULT_PREFIX, Fields
 
 from .overall_analysis import OverallAnalysis
+
+logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+FONT = os.environ.get("ANALYZER_FONT", "Heiti SC")
+FONT_PATH = fm.findfont(FONT)
+
+plt.rcParams["font.sans-serif"] = [FONT]
+plt.rcParams["axes.unicode_minus"] = False
 
 
 def get_row_col(total_num, factor=2):
@@ -57,11 +66,7 @@ def get_row_col(total_num, factor=2):
 class ColumnWiseAnalysis:
     """Apply analysis on each column of stats respectively."""
 
-    def __init__(self,
-                 dataset,
-                 output_path,
-                 overall_result=None,
-                 save_stats_in_one_file=True):
+    def __init__(self, dataset, output_path, overall_result=None, save_stats_in_one_file=True):
         """
         Initialization method
 
@@ -111,8 +116,7 @@ class ColumnWiseAnalysis:
 
         stats_and_meta = pd.concat([self.stats, self.meta], axis=1)
         all_columns = [
-            col_name for col_name in stats_and_meta.columns.to_list()
-            if col_name in self.overall_result.columns
+            col_name for col_name in stats_and_meta.columns.to_list() if col_name in self.overall_result.columns
         ]
         num = len(all_columns)
 
@@ -124,10 +128,9 @@ class ColumnWiseAnalysis:
             # number of columns and rows to initialize the image panel.
             rec_width = rec_col * num_subcol * width_unit
             rec_height = rec_row * height_unit
-            fig = plt.figure(figsize=(rec_width, rec_height),
-                             layout='constrained')
+            fig = plt.figure(figsize=(rec_width, rec_height), layout="constrained")
             subfigs = fig.subfigures(rec_row, rec_col, wspace=0.01)
-        for i, column_name in enumerate(tqdm(all_columns, desc='Column')):
+        for i, column_name in enumerate(tqdm(all_columns, desc="Column")):
             data = stats_and_meta[column_name]
             # explode data to flatten inner list
             data = data.explode().infer_objects()
@@ -142,15 +145,14 @@ class ColumnWiseAnalysis:
                     subfig = subfigs
                 else:
                     subfig = subfigs[grid]
-                subfig.set_facecolor('0.85')
+                subfig.set_facecolor("0.85")
 
             # numeric or string via nan. Apply different plot method for them.
-            sampled_top = self.overall_result[column_name].get('top')
+            sampled_top = self.overall_result[column_name].get("top")
             if pd.isna(sampled_top):
                 # numeric or numeric list -- draw histogram and box plot for
                 # this stat
-                percentiles = self.overall_result[column_name] \
-                    if show_percentiles else None
+                percentiles = self.overall_result[column_name] if show_percentiles else None
 
                 # get axes for each subplot
                 if self.save_stats_in_one_file:
@@ -160,18 +162,17 @@ class ColumnWiseAnalysis:
 
                 if not skip_export:
                     # draw histogram
-                    self.draw_hist(axes[0],
-                                   data,
-                                   os.path.join(self.output_path,
-                                                f'{column_name}-hist.png'),
-                                   percentiles=percentiles)
+                    self.draw_hist(
+                        axes[0],
+                        data,
+                        os.path.join(self.output_path, f"{column_name}-hist.png"),
+                        percentiles=percentiles,
+                    )
 
                     # draw box
-                    self.draw_box(axes[1],
-                                  data,
-                                  os.path.join(self.output_path,
-                                               f'{column_name}-box.png'),
-                                  percentiles=percentiles)
+                    self.draw_box(
+                        axes[1], data, os.path.join(self.output_path, f"{column_name}-box.png"), percentiles=percentiles
+                    )
             else:
                 # object (string) or string list -- only draw histogram for
                 # this stat
@@ -181,26 +182,18 @@ class ColumnWiseAnalysis:
                     axes = [None] * num_subcol
 
                 if not skip_export:
-                    self.draw_hist(
-                        axes[0], data,
-                        os.path.join(self.output_path,
-                                     f'{column_name}-hist.png'))
+                    self.draw_hist(axes[0], data, os.path.join(self.output_path, f"{column_name}-hist.png"))
 
-                    self.draw_wordcloud(
-                        axes[1], data,
-                        os.path.join(self.output_path,
-                                     f'{column_name}-wordcloud.png'))
+                    self.draw_wordcloud(axes[1], data, os.path.join(self.output_path, f"{column_name}-wordcloud.png"))
 
             # add a title to the figure of this stat
             if self.save_stats_in_one_file:
-                subfig.suptitle(f'{data.name}',
-                                fontsize='x-large',
-                                fontweight='bold')
+                subfig.suptitle(f"{data.name}", fontsize="x-large", fontweight="bold")
 
         if self.save_stats_in_one_file:
             fig = plt.gcf()
             if not skip_export:
-                fig.savefig(os.path.join(self.output_path, 'all-stats.png'))
+                fig.savefig(os.path.join(self.output_path, "all-stats.png"))
             if show:
                 plt.show()
             else:
@@ -232,24 +225,20 @@ class ColumnWiseAnalysis:
 
         # set axes
         ax.set_xlabel(data.name)
-        ax.set_ylabel('Count')
+        ax.set_ylabel("Count")
 
         # draw percentile lines if it's not None
         if percentiles is not None:
             ymin, ymax = ax.get_ylim()
             for percentile in percentiles.keys():
                 # skip other information
-                if percentile in {'count', 'unique', 'top', 'freq', 'std'}:
+                if percentile in {"count", "unique", "top", "freq", "std"}:
                     continue
                 value = percentiles[percentile]
 
-                ax.vlines(x=value, ymin=ymin, ymax=ymax, colors='r')
-                ax.text(x=value, y=ymax, s=percentile, rotation=30, color='r')
-                ax.text(x=value,
-                        y=ymax * 0.97,
-                        s=str(round(value, 3)),
-                        rotation=30,
-                        color='r')
+                ax.vlines(x=value, ymin=ymin, ymax=ymax, colors="r")
+                ax.text(x=value, y=ymax, s=percentile, rotation=30, color="r")
+                ax.text(x=value, y=ymax * 0.97, s=str(round(value, 3)), rotation=30, color="r")
 
         if not self.save_stats_in_one_file:
             # save into file
@@ -264,7 +253,7 @@ class ColumnWiseAnalysis:
                 ax.clear()
         else:
             # add a little rotation on labels of x axis to avoid overlapping
-            ax.tick_params(axis='x', rotation=25)
+            ax.tick_params(axis="x", rotation=25)
 
     def draw_box(self, ax, data, save_path, percentiles=None, show=False):
         """
@@ -292,15 +281,12 @@ class ColumnWiseAnalysis:
             xmin, xmax = ax.get_xlim()
             for percentile in percentiles.keys():
                 # skip other information
-                if percentile in {'count', 'unique', 'top', 'freq', 'std'}:
+                if percentile in {"count", "unique", "top", "freq", "std"}:
                     continue
                 value = percentiles[percentile]
 
-                ax.hlines(y=value, xmin=xmin, xmax=xmax, colors='r')
-                ax.text(y=value,
-                        x=xmin + (xmax - xmin) * 0.6,
-                        s=f'{percentile}: {round(value, 3)}',
-                        color='r')
+                ax.hlines(y=value, xmin=xmin, xmax=xmax, colors="r")
+                ax.text(y=value, x=xmin + (xmax - xmin) * 0.6, s=f"{percentile}: {round(value, 3)}", color="r")
 
         if not self.save_stats_in_one_file:
             # save into file
@@ -318,19 +304,21 @@ class ColumnWiseAnalysis:
         word_list = data.tolist()
         word_nums = {}
         for w in word_list:
+            if w is None:
+                continue
             if w in word_nums:
                 word_nums[w] += 1
             else:
                 word_nums[w] = 1
 
-        wc = WordCloud(width=400, height=320)
+        wc = WordCloud(font_path=FONT_PATH, width=400, height=320)
         wc.generate_from_frequencies(word_nums)
 
         if ax is None:
             ax = plt.figure(figsize=(20, 16))
         else:
-            ax.imshow(wc, interpolation='bilinear')
-            ax.axis('off')
+            ax.imshow(wc, interpolation="bilinear")
+            ax.axis("off")
 
         if not self.save_stats_in_one_file:
             # save into file

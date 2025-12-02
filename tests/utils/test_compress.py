@@ -12,6 +12,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class CacheCompressTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
         self.temp_output_path = 'tmp/test_compress/'
         self.test_data_path = self.temp_output_path + 'test.json'
         os.makedirs(self.temp_output_path, exist_ok=True)
@@ -24,6 +25,8 @@ class CacheCompressTest(DataJuicerTestCaseBase):
         if os.path.exists(self.temp_output_path):
             os.system(f'rm -rf {self.temp_output_path}')
         config.HF_DATASETS_CACHE = self.ori_cache_dir
+
+        super().tearDown()
 
     def test_basic_func(self):
         cache_utils.CACHE_COMPRESS = 'zstd'

@@ -18,7 +18,7 @@ cov.start()
 
 from loguru import logger
 
-from data_juicer.utils.unittest_utils import set_clear_model_flag, get_partial_test_cases
+from data_juicer.utils.unittest_utils import set_clear_model_flag, get_partial_test_cases, set_from_fork_flag
 
 file_dir = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(file_dir)
@@ -33,6 +33,9 @@ parser.add_argument('--mode', default='partial',
                          '"regression"]. "partial" means only test on the '
                          'unit tests of the changed files. "regression" means '
                          'test on all unit tests.')
+parser.add_argument('--from-fork', default=False, type=bool,
+                    help='Whether this unittest is conducted on a forked repo '
+                         'instead of a branch in the Data-Juicer repo.')
 parser.add_argument('--test_dir',
                     default='tests',
                     help='directory to be tested')
@@ -44,6 +47,7 @@ parser.add_argument('--clear_model',
 args = parser.parse_args()
 
 set_clear_model_flag(args.clear_model)
+set_from_fork_flag(args.from_fork)
 
 class TaggedTestLoader(unittest.TestLoader):
     def __init__(self, tag="standalone", included_test_files=None):
@@ -104,6 +108,7 @@ def main():
 
     cov.stop()
     cov.save()
+    cov.combine()
 
     if not res.wasSuccessful():
         exit(1)

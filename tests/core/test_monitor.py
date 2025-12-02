@@ -1,11 +1,21 @@
+import os
 import unittest
 import time
 from loguru import logger
 from data_juicer.core import Monitor
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-@unittest.skip('random resource utilization fluctuation may cause failure')
 class MonitorTest(DataJuicerTestCaseBase):
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.work_dir = 'tmp/test_monitor/'
+        os.makedirs(self.work_dir, exist_ok=True)
+
+    def tearDown(self):
+        if os.path.exists(self.work_dir):
+            os.system(f'rm -rf {self.work_dir}')
+        super().tearDown()
 
     def test_monitor_current_resources(self):
         resource_dict = Monitor.monitor_current_resources()
@@ -21,6 +31,7 @@ class MonitorTest(DataJuicerTestCaseBase):
             time.sleep(0.2)
         resource_util_list = [{
             'time': 1,
+            'sampling interval': 0.2,
             'resource': resource_samples,
         }]
         analysis_res = Monitor.analyze_resource_util_list(resource_util_list)
@@ -33,28 +44,25 @@ class MonitorTest(DataJuicerTestCaseBase):
         self.assertIn('min', cpu_util)
         self.assertIn('avg', cpu_util)
 
-    def _increase_mem_func(self, init_len=100000, multiplier=2, times=10, interval=0.5):
-        lst = list(range(init_len))
-        for i in range(times):
-            lst = lst * multiplier
-            time.sleep(interval)
+        # test draw resource util list
+        Monitor.draw_resource_util_graph(resource_util_list, self.work_dir)
+        self.assertTrue(os.path.exists(os.path.join(self.work_dir, 'func_0_CPU_util..jpg')))
+        self.assertTrue(os.path.exists(os.path.join(self.work_dir, 'func_0_Used_mem..jpg')))
 
     def test_monitor_func(self):
-        _, dict1 = Monitor.monitor_func(self._increase_mem_func,
-                                        args=(10 ** 3, 2, 4,),
-                                        sample_interval=0.3)
-        analysis1 = Monitor.analyze_single_resource_util(dict1)
-        logger.info(analysis1['resource_analysis'])
+        def test_func():
+            for _ in range(5):
+                time.sleep(0.2)
 
-        _, dict2 = Monitor.monitor_func(self._increase_mem_func,
-                                        args=(10 ** 7, 2, 4,),
-                                        sample_interval=0.3)
-        analysis2 = Monitor.analyze_single_resource_util(dict2)
-        logger.info(analysis2['resource_analysis'])
+        ret, resource_util_dict = Monitor.monitor_func(test_func, sample_interval=0.3)
+        self.assertIsNone(ret)
+        self.assertIn("resource", resource_util_dict)
+        self.assertIn("sampling interval", resource_util_dict)
+        self.assertIn("time", resource_util_dict)
 
-        self.assertLessEqual(
-            analysis1['resource_analysis']['Mem. util.']['avg'],
-            analysis2['resource_analysis']['Mem. util.']['avg'])
+        self.assertEqual(resource_util_dict["sampling interval"], 0.3)
+        resource_list = resource_util_dict["resource"]
+        self.assertGreater(len(resource_list), 0)
 
 
 if __name__ == '__main__':

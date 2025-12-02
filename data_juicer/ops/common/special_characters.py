@@ -7,8 +7,7 @@ import string
 import emoji
 
 # special characters
-MAIN_SPECIAL_CHARACTERS = string.punctuation + string.digits \
-                          + string.whitespace
+MAIN_SPECIAL_CHARACTERS = string.punctuation + string.digits + string.whitespace
 OTHER_SPECIAL_CHARACTERS = (
     "    　    ￼’“”–ー一▬…✦�­£​•€«»°·═"
     "×士＾˘⇓↓↑←→（）§″′´¿−±∈﻿¢ø‚„½¼¾¹²³―⁃，ˌ¸‹›ʺˈʻ¦‐⠀‰‑≤≥‖"
@@ -24,6 +23,27 @@ SPECIAL_CHARACTERS.update(EMOJI)
 # whitespaces in unicode can be found here:
 # https://en.wikipedia.org/wiki/Whitespace_character
 VARIOUS_WHITESPACES = {
-    ' ', '	', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', '　', '​', '‌', '‍', '⁠', '￼', ''
+    " ",
+    "	",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    "　",
+    "​",
+    "‌",
+    "‍",
+    "⁠",
+    "￼",
+    "",
 }

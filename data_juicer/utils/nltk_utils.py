@@ -14,15 +14,14 @@ from loguru import logger
 # Resource path mappings - direct replacements for problematic resources
 path_mappings = {
     # If any path contains the key, replace with the value
-    'taggers/averaged_perceptron_tagger_eng':
-    'taggers/averaged_perceptron_tagger/english.pickle',
-    'tokenizers/punkt_tab': 'tokenizers/punkt/english.pickle',
+    "taggers/averaged_perceptron_tagger_eng": "taggers/averaged_perceptron_tagger/english.pickle",
+    "tokenizers/punkt_tab": "tokenizers/punkt/english.pickle",
 }
 
 # Resource mappings for fallbacks
 resource_fallbacks = {
-    'averaged_perceptron_tagger_eng': 'averaged_perceptron_tagger',
-    'punkt_tab': 'punkt',
+    "averaged_perceptron_tagger_eng": "averaged_perceptron_tagger",
+    "punkt_tab": "punkt",
 }
 
 
@@ -47,7 +46,8 @@ def ensure_nltk_resource(resource_path, fallback_package=None):
             logger.info(
                 f"Resource path '{resource_path}' contains problematic "
                 f"pattern '{problematic_path}', using '{replacement_path}' "
-                f'instead')
+                f"instead"
+            )
             resource_path = replacement_path
             break
 
@@ -55,16 +55,12 @@ def ensure_nltk_resource(resource_path, fallback_package=None):
     # This ensures the resources are available before we try to access them
     if fallback_package:
         try:
-            logger.info(
-                f"Proactively downloading package '{fallback_package}' for "
-                f"resource '{resource_path}'")
+            logger.info(f"Proactively downloading package '{fallback_package}' for " f"resource '{resource_path}'")
             # Try different download methods, prioritizing the default location
             try:
                 nltk_data_dir = nltk.data.path[0] if nltk.data.path else None
                 if nltk_data_dir:
-                    nltk.download(fallback_package,
-                                  download_dir=nltk_data_dir,
-                                  quiet=False)
+                    nltk.download(fallback_package, download_dir=nltk_data_dir, quiet=False)
                 else:
                     nltk.download(fallback_package, quiet=False)
             except Exception:
@@ -81,14 +77,10 @@ def ensure_nltk_resource(resource_path, fallback_package=None):
         if fallback_package:
             try:
                 # Try a different download method as a last resort
-                logger.warning(
-                    f"Resource '{resource_path}' not found, trying one more "
-                    f'download attempt')
+                logger.warning(f"Resource '{resource_path}' not found, trying one more " f"download attempt")
                 try:
                     # Download to default location w/o download_dir specified
-                    nltk.download(fallback_package,
-                                  download_dir=None,
-                                  quiet=False)
+                    nltk.download(fallback_package, download_dir=None, quiet=False)
                 except Exception:
                     pass
 
@@ -98,27 +90,21 @@ def ensure_nltk_resource(resource_path, fallback_package=None):
                     return True
                 except LookupError:
                     # Special handling for certain resources
-                    if 'averaged_perceptron_tagger' in resource_path:
+                    if "averaged_perceptron_tagger" in resource_path:
                         # Try the direct file location check
-                        nltk_data_dir = nltk.data.path[
-                            0] if nltk.data.path else None
+                        nltk_data_dir = nltk.data.path[0] if nltk.data.path else None
                         if nltk_data_dir:
                             alt_path = os.path.join(
-                                nltk_data_dir,
-                                'taggers/averaged_perceptron_tagger/english.pickle'  # noqa: E501
+                                nltk_data_dir, "taggers/averaged_perceptron_tagger/english.pickle"  # noqa: E501
                             )
                             if os.path.exists(alt_path):
-                                logger.info(f'Found alternative resource at '
-                                            f"'{alt_path}'")
+                                logger.info(f"Found alternative resource at " f"'{alt_path}'")
                                 return True
 
-                    logger.warning(
-                        f"Resource '{resource_path}' still not found despite "
-                        f'download attempts')
+                    logger.warning(f"Resource '{resource_path}' still not found despite " f"download attempts")
                     return False
             except Exception as e:
-                logger.warning(
-                    f"Error ensuring resource '{resource_path}': {e}")
+                logger.warning(f"Error ensuring resource '{resource_path}': {e}")
                 return False
         return False
 
@@ -138,7 +124,7 @@ def clean_nltk_cache(packages=None, complete_reset=False):
         # Get the default NLTK data directory (usually the first in the path)
         nltk_data_dirs = nltk.data.path
         if not nltk_data_dirs:
-            logger.warning('No NLTK data directories found.')
+            logger.warning("No NLTK data directories found.")
             return
 
         # Process each NLTK data directory
@@ -146,22 +132,19 @@ def clean_nltk_cache(packages=None, complete_reset=False):
             if not os.path.exists(nltk_data_dir):
                 continue
 
-            logger.info(f'NLTK data directory: {nltk_data_dir}')
+            logger.info(f"NLTK data directory: {nltk_data_dir}")
 
             # Complete reset - remove all NLTK data
             if complete_reset:
                 shutil.rmtree(nltk_data_dir)
-                logger.info(
-                    f'Completely reset NLTK data directory: {nltk_data_dir}')
+                logger.info(f"Completely reset NLTK data directory: {nltk_data_dir}")
                 os.makedirs(nltk_data_dir, exist_ok=True)
                 continue
 
             # Selective cleaning
             if packages is None:
                 # Clean all cached packages
-                subdirs = [
-                    'tokenizers', 'taggers', 'chunkers', 'corpora', 'stemmers'
-                ]
+                subdirs = ["tokenizers", "taggers", "chunkers", "corpora", "stemmers"]
             else:
                 # Clean only specified packages
                 subdirs = []
@@ -172,10 +155,10 @@ def clean_nltk_cache(packages=None, complete_reset=False):
                 if os.path.exists(subdir_path):
                     shutil.rmtree(subdir_path)
                     os.makedirs(subdir_path, exist_ok=True)
-                    logger.info(f'Cleaned {subdir} cache in {nltk_data_dir}')
+                    logger.info(f"Cleaned {subdir} cache in {nltk_data_dir}")
 
     except Exception as e:
-        logger.error(f'Error cleaning NLTK cache: {e}')
+        logger.error(f"Error cleaning NLTK cache: {e}")
 
 
 def patch_nltk_pickle_security():
@@ -195,12 +178,12 @@ def patch_nltk_pickle_security():
         import nltk.data
 
         # Replace the restricted_pickle_load function with more permissive one
-        if hasattr(nltk.data, 'restricted_pickle_load'):
+        if hasattr(nltk.data, "restricted_pickle_load"):
 
             def unrestricted_pickle_load(file_obj):
                 """Modified pickle loader that allows our model classes."""
                 # Handle both file-like objects and byte strings
-                if hasattr(file_obj, 'read') and hasattr(file_obj, 'readline'):
+                if hasattr(file_obj, "read") and hasattr(file_obj, "readline"):
                     # It's already a file-like object
                     return pickle.load(file_obj)
                 elif isinstance(file_obj, bytes):
@@ -211,27 +194,23 @@ def patch_nltk_pickle_security():
                     return pickle.load(file_obj)
 
             nltk.data.restricted_pickle_load = unrestricted_pickle_load
-            logger.info(
-                'NLTK pickle security patched: replaced restricted_pickle_load'
-            )
+            logger.info("NLTK pickle security patched: replaced restricted_pickle_load")
 
         # Add our needed classes to the allowed classes list
-        if hasattr(nltk.data, 'ALLOWED_PICKLE_CLASSES'):
+        if hasattr(nltk.data, "ALLOWED_PICKLE_CLASSES"):
             classes_to_allow = [
-                'nltk.tokenize.punkt.PunktSentenceTokenizer',
-                'nltk.tokenize.punkt.PunktParameters',
-                'nltk.tokenize.punkt.PunktTrainer',
-                'nltk.tokenize.punkt.PunktLanguageVars',
+                "nltk.tokenize.punkt.PunktSentenceTokenizer",
+                "nltk.tokenize.punkt.PunktParameters",
+                "nltk.tokenize.punkt.PunktTrainer",
+                "nltk.tokenize.punkt.PunktLanguageVars",
             ]
             for cls_name in classes_to_allow:
                 nltk.data.ALLOWED_PICKLE_CLASSES.add(cls_name)
-            logger.info(
-                f"Added {len(classes_to_allow)} classes to NLTK's allowed "
-                f'pickle classes list')
+            logger.info(f"Added {len(classes_to_allow)} classes to NLTK's allowed " f"pickle classes list")
 
         return True
     except Exception as e:
-        logger.warning(f'Failed to patch NLTK pickle security: {e}')
+        logger.warning(f"Failed to patch NLTK pickle security: {e}")
         return False
 
 
@@ -250,8 +229,7 @@ def create_physical_resource_alias(source_path, alias_path):
         bool: True if the alias was created successfully, False otherwise
     """
     if not os.path.exists(source_path):
-        logger.warning(
-            f"Source path '{source_path}' does not exist, cannot create alias")
+        logger.warning(f"Source path '{source_path}' does not exist, cannot create alias")
         return False
 
     # Create the directory structure if it doesn't exist
@@ -262,37 +240,35 @@ def create_physical_resource_alias(source_path, alias_path):
         try:
             os.remove(alias_path)
         except Exception as e:
-            logger.warning(
-                f"Could not remove existing alias '{alias_path}': {e}")
+            logger.warning(f"Could not remove existing alias '{alias_path}': {e}")
             return False
 
     try:
         # Try symlink first (most efficient)
-        if hasattr(os, 'symlink'):
+        if hasattr(os, "symlink"):
             try:
                 os.symlink(source_path, alias_path)
-                logger.info(
-                    f"Created symlink from '{source_path}' to '{alias_path}'")
+                logger.info(f"Created symlink from '{source_path}' to '{alias_path}'")
                 return True
             except Exception as e:
-                logger.warning(f'Failed to create symlink: {e}')
+                logger.warning(f"Failed to create symlink: {e}")
 
         # Try hard link next
         try:
             os.link(source_path, alias_path)
-            logger.info(
-                f"Created hard link from '{source_path}' to '{alias_path}'")
+            logger.info(f"Created hard link from '{source_path}' to '{alias_path}'")
             return True
         except Exception as e:
-            logger.warning(f'Failed to create hard link: {e}')
+            logger.warning(f"Failed to create hard link: {e}")
 
         # Fall back to copy
         import shutil
+
         shutil.copy2(source_path, alias_path)
         logger.info(f"Created copy from '{source_path}' to '{alias_path}'")
         return True
     except Exception as e:
-        logger.error(f'Failed to create any type of alias: {e}')
+        logger.error(f"Failed to create any type of alias: {e}")
         return False
 
 
@@ -305,31 +281,25 @@ def setup_resource_aliases():
     """
     try:
         import nltk
+
         nltk_data_dirs = nltk.data.path
 
         for nltk_data_dir in nltk_data_dirs:
             if os.path.exists(nltk_data_dir):
                 # Map the averaged_perceptron_tagger english.pickle to
                 # averaged_perceptron_tagger_eng
-                source = os.path.join(
-                    nltk_data_dir,
-                    'taggers/averaged_perceptron_tagger/english.pickle')
+                source = os.path.join(nltk_data_dir, "taggers/averaged_perceptron_tagger/english.pickle")
                 if os.path.exists(source):
                     # Create a direct file alias
-                    target = os.path.join(
-                        nltk_data_dir,
-                        'taggers/averaged_perceptron_tagger_eng')
+                    target = os.path.join(nltk_data_dir, "taggers/averaged_perceptron_tagger_eng")
                     create_physical_resource_alias(source, target)
 
                     # Also create a redundant mapping that matches the path
                     # NLTK might try to load
-                    target2 = os.path.join(
-                        nltk_data_dir,
-                        'taggers/averaged_perceptron_tagger_eng/english.pickle'
-                    )
+                    target2 = os.path.join(nltk_data_dir, "taggers/averaged_perceptron_tagger_eng/english.pickle")
                     os.makedirs(os.path.dirname(target2), exist_ok=True)
                     create_physical_resource_alias(source, target2)
         return True
     except Exception as e:
-        logger.warning(f'Failed to create physical resource aliases: {e}')
+        logger.warning(f"Failed to create physical resource aliases: {e}")
         return False

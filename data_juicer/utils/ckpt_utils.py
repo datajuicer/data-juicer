@@ -23,8 +23,8 @@ class CheckpointManager:
         :param num_proc: number of process workers when saving dataset
         """
         self.ckpt_dir = ckpt_dir
-        self.ckpt_ds_dir = os.path.join(self.ckpt_dir, 'latest')
-        self.ckpt_op_record = os.path.join(self.ckpt_dir, 'ckpt_op.json')
+        self.ckpt_ds_dir = os.path.join(self.ckpt_dir, "latest")
+        self.ckpt_op_record = os.path.join(self.ckpt_dir, "ckpt_op.json")
         self.process_list = original_process_list
         self.num_proc = num_proc
         self.op_record = []
@@ -47,11 +47,13 @@ class CheckpointManager:
 
         :return: True when checkpoint is available, else False
         """
-        if os.path.exists(self.ckpt_ds_dir) \
-                and os.path.isdir(self.ckpt_ds_dir) \
-                and os.path.exists(self.ckpt_op_record) \
-                and os.path.isfile(self.ckpt_op_record) \
-                and self.check_ops_to_skip():
+        if (
+            os.path.exists(self.ckpt_ds_dir)
+            and os.path.isdir(self.ckpt_ds_dir)
+            and os.path.exists(self.ckpt_op_record)
+            and os.path.isfile(self.ckpt_op_record)
+            and self.check_ops_to_skip()
+        ):
             return True
         else:
             os.makedirs(self.ckpt_dir, exist_ok=True)
@@ -75,7 +77,7 @@ class CheckpointManager:
         """
 
         # load op records
-        with open(self.ckpt_op_record, 'r') as fin:
+        with open(self.ckpt_op_record, "r") as fin:
             self.op_record = json.load(fin)
 
         # check whether the op records are exactly the same
@@ -86,9 +88,10 @@ class CheckpointManager:
         process_op_num = len(self.process_list)
         if process_op_num < recorded_op_num:
             logger.warning(
-                f'Current config ops ({process_op_num}) are fewer than '
-                f'checkpoint ops ({recorded_op_num}). Cannot reuse checkpoint;'
-                f' all ops will be processed from the beginning.')
+                f"Current config ops ({process_op_num}) are fewer than "
+                f"checkpoint ops ({recorded_op_num}). Cannot reuse checkpoint;"
+                f" all ops will be processed from the beginning."
+            )
             self.op_record = []
             return False
 
@@ -104,14 +107,16 @@ class CheckpointManager:
         if all_the_same:
             for op in self.op_record:
                 op_name = list(op.keys())[0]
-                logger.info(f'Skip op [{op_name}].')
+                logger.info(f"Skip op [{op_name}].")
             self.process_list = self.process_list[recorded_op_num:]
             return True
         else:
-            logger.warning(f'Processed ops of checkpoint are different from '
-                           f'current configs: checkpoint-{dif1} vs. config-'
-                           f'{dif2}. All ops will be processed from the '
-                           f'beginning.')
+            logger.warning(
+                f"Processed ops of checkpoint are different from "
+                f"current configs: checkpoint-{dif1} vs. config-"
+                f"{dif2}. All ops will be processed from the "
+                f"beginning."
+            )
             self.op_record = []
             return False
 
@@ -122,10 +127,9 @@ class CheckpointManager:
         :param ds: input dataset to save
         """
         left_sample_num = len(ds)
-        ds.save_to_disk(self.ckpt_ds_dir,
-                        num_proc=min(self.num_proc, left_sample_num))
+        ds.save_to_disk(self.ckpt_ds_dir, num_proc=min(self.num_proc, left_sample_num))
 
-        with open(self.ckpt_op_record, 'w') as fout:
+        with open(self.ckpt_op_record, "w") as fout:
             json.dump(self.op_record, fout)
 
     def load_ckpt(self):
@@ -135,5 +139,6 @@ class CheckpointManager:
         :return: a dataset stored in checkpoint file.
         """
         from data_juicer.core.data import NestedDataset
+
         ds = NestedDataset.load_from_disk(self.ckpt_ds_dir)
         return ds

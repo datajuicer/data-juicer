@@ -57,7 +57,7 @@
         - question_file: 即上一步中的评测数据文件
         - answer_file: 即上一步得到的待评测模型的回答文件
         - baseline_file: 即上一步得到的对照模型的回答文件
-        - prompt_file: prompt 模板文件，工具包内已提供一份样本 ([`config/prompt.json`](config/prompt.json))
+        - prompt_file: prompt 模板文件，工具包内已提供一份样本 ([`config/prompt.jsonl`](config/prompt.jsonl))
         - reviewer_file: reviewer 模板文件(包括评测时使用的模型类型和其他参数)，工具包内已提供一份样本 ([`config/reviewer.json`](config/reviewer.json))
     2. 编写配置文件。运行脚本所需的 yaml 文件格式如下：
 

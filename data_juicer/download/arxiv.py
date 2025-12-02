@@ -6,11 +6,18 @@ import tarfile
 import tempfile
 
 from datasets import Dataset
-from downloader import (DocumentDownloader, DocumentExtractor,
-                        DocumentIterator, download_and_extract, get_arxiv_urls)
+from downloader import (
+    DocumentDownloader,
+    DocumentExtractor,
+    DocumentIterator,
+    download_and_extract,
+    get_arxiv_urls,
+)
 
-from data_juicer.utils.file_utils import (expand_outdir_and_mkdir,
-                                          get_all_files_paths_under)
+from data_juicer.utils.file_utils import (
+    expand_outdir_and_mkdir,
+    get_all_files_paths_under,
+)
 
 # The iterator and extractor code are in large part taken
 # from the Red-Pajama repo
@@ -18,7 +25,6 @@ from data_juicer.utils.file_utils import (expand_outdir_and_mkdir,
 
 
 class ArxivDownloader(DocumentDownloader):
-
     def __init__(self, download_dir, verbose=False):
         super().__init__()
         self._download_dir = download_dir
@@ -26,14 +32,12 @@ class ArxivDownloader(DocumentDownloader):
 
     def download(self, tarfile):
         output_file = os.path.join(self._download_dir, tarfile)
-        s3path = os.path.join('s3://arxiv/src', tarfile)
+        s3path = os.path.join("s3://arxiv/src", tarfile)
         if os.path.exists(output_file):
-            print(f'tar file: {output_file} exists. Not downloading')
+            print(f"tar file: {output_file} exists. Not downloading")
         else:
-            print(f'Downloading {s3path} and writing to {output_file}')
-            cmd = [
-                's5cmd', '--request-payer=requester', 'cp', s3path, output_file
-            ]
+            print(f"Downloading {s3path} and writing to {output_file}")
+            cmd = ["s5cmd", "--request-payer=requester", "cp", s3path, output_file]
             if self._verbose:
                 stdout, stderr = None, None
             else:
@@ -44,13 +48,12 @@ class ArxivDownloader(DocumentDownloader):
                 stderr=stderr,
             )
             if p.returncode != 0:
-                print(f'Failed to download {s3path} to {output_file}')
+                print(f"Failed to download {s3path} to {output_file}")
 
         return output_file
 
 
 class ArxivIterator(DocumentIterator):
-
     def __init__(self, log_frequency=1000):
         super().__init__()
         self._log_freq = log_frequency
@@ -66,7 +69,7 @@ class ArxivIterator(DocumentIterator):
                 tf.extractall(members=tf.getmembers(), path=tmpdir)
                 for i, item in enumerate(get_all_files_paths_under(tmpdir)):
                     if self._cnt > 0 and self._cnt % self._log_freq == 0:
-                        print(f'Extracted {self._cnt} papers from {file_path}')
+                        print(f"Extracted {self._cnt} papers from {file_path}")
                     self._cnt += 1
 
                     tex_files = self._tex_proj_loader(item)
@@ -76,18 +79,13 @@ class ArxivIterator(DocumentIterator):
                     try:
                         clean_arxiv_id = self._format_arxiv_id(arxiv_id)
                     except Exception as e:
-                        print(
-                            f'[WARNING] failed to format arxiv id {arxiv_id}; exception={e}'  # noqa: E501
-                        )
+                        print(f"[WARNING] failed to format arxiv id {arxiv_id}; exception={e}")  # noqa: E501
                         clean_arxiv_id = arxiv_id
 
                     if tex_files is None:
                         continue
 
-                    yield {
-                        'id': clean_arxiv_id,
-                        'source_id': f'{bname}'
-                    }, tex_files
+                    yield {"id": clean_arxiv_id, "source_id": f"{bname}"}, tex_files
 
     def _tex_proj_loader(self, file_or_dir_path):
         r"""function to load the tex files from a tar file or a gzip file. The
@@ -105,12 +103,11 @@ class ArxivIterator(DocumentIterator):
             # if it is a directory, open it as a tarfile
             with tarfile.open(file_or_dir_path) as sub_tf:
                 for member in sub_tf.getmembers():
-                    if member.name.endswith('.tex'):
-
+                    if member.name.endswith(".tex"):
                         file_content = sub_tf.extractfile(member).read()
 
                         try:
-                            file_content = file_content.decode('utf-8')
+                            file_content = file_content.decode("utf-8")
                         except UnicodeDecodeError:
                             return None
 
@@ -119,7 +116,7 @@ class ArxivIterator(DocumentIterator):
         except tarfile.ReadError:
             # otherwise we try opening it as a gzip file
             try:
-                with gzip.open(file_or_dir_path, 'rb') as gz:
+                with gzip.open(file_or_dir_path, "rb") as gz:
                     file_content = gz.read()
             except Exception:
                 # all fails, we skip this file
@@ -127,7 +124,7 @@ class ArxivIterator(DocumentIterator):
                 return None
 
             try:
-                file_content = file_content.decode('utf-8')
+                file_content = file_content.decode("utf-8")
             except UnicodeDecodeError:
                 # self._logger.info(f"UnicodeDecodeError: {file_or_dir_path}")
                 return None
@@ -135,7 +132,7 @@ class ArxivIterator(DocumentIterator):
             files_and_content.append(file_content)
 
         except Exception as e:
-            print(f'[ERROR] {e}: {file_or_dir_path}')
+            print(f"[ERROR] {e}: {file_or_dir_path}")
             return None
 
         return files_and_content
@@ -159,19 +156,18 @@ class ArxivIterator(DocumentIterator):
 
         @return: formatted arxiv id
         """  # noqa: E501
-        match = re.search(r'^([a-zA-Z-]*)([\d\.]+)$', arxiv_id)
+        match = re.search(r"^([a-zA-Z-]*)([\d\.]+)$", arxiv_id)
 
         if match is None:
-            raise ValueError(f'Invalid arxiv id: {arxiv_id}')
+            raise ValueError(f"Invalid arxiv id: {arxiv_id}")
 
-        if match.group(1) == '':
+        if match.group(1) == "":
             return match.group(2)
 
-        return f'{match.group(1)}/{match.group(2)}'
+        return f"{match.group(1)}/{match.group(2)}"
 
 
 class ArxivExtractor(DocumentExtractor):
-
     def __init__(self):
         super().__init__()
 
@@ -186,20 +182,21 @@ class ArxivExtractor(DocumentExtractor):
 
         non_arg_macros = {}
         for file_content in content:
-            non_arg_macros.update(
-                self._build_non_arg_macros_dict(file_content))
+            non_arg_macros.update(self._build_non_arg_macros_dict(file_content))
 
         # TODO: macros that take arguments are not supported yet
         arg_macros = {}
 
         # join multiple latex files with a newline character
         try:
-            cleaned_latex_file_str = '\n'.join(
+            cleaned_latex_file_str = "\n".join(
                 self._clean_tex_file(
                     file_content=file_content,
                     arg_macros=arg_macros,
                     non_arg_macros=non_arg_macros,
-                ) for file_content in content)
+                )
+                for file_content in content
+            )
         except Exception:
             return {}, None
 
@@ -226,33 +223,33 @@ class ArxivExtractor(DocumentExtractor):
         # find the first occurrence of a \section-like header and replace
         # everything before it with an empty string. This matches the
         # following pattern: \<section-type>[optional-args]{name}
-        pattern = r'^(.*?)('
-        pattern += r'\\\bchapter\b\*?(?:\[(.*?)\])?\{(.*?)\}|'
-        pattern += r'\\\bpart\b\*?(?:\[(.*?)\])?\{(.*?)\}|'
-        pattern += r'\\\bsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|'
-        pattern += r'\\\bsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|'
-        pattern += r'\\\bsubsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|'
-        pattern += r'\\\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}'
-        pattern += r'\\\bsubparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}'
-        pattern += r')'
+        pattern = r"^(.*?)("
+        pattern += r"\\\bchapter\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+        pattern += r"\\\bpart\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+        pattern += r"\\\bsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+        pattern += r"\\\bsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+        pattern += r"\\\bsubsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+        pattern += r"\\\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"
+        pattern += r"\\\bsubparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"
+        pattern += r")"
 
         # if no section like header is found, then we return an empty string
         if not re.search(pattern, file_content, flags=re.DOTALL):
-            return ''
+            return ""
 
         # replace everything with the second group of the match
         # (i.e. everything after and including the section header)
         file_content = re.sub(
             pattern=pattern,
-            repl=r'\2',
+            repl=r"\2",
             string=file_content,
             flags=re.DOTALL,  # make sure that the dot matches also newlines
         )
 
         # remove all line comments
         file_content = re.sub(
-            pattern=r'(?m)^%.*\n?',
-            repl=r'',
+            pattern=r"(?m)^%.*\n?",
+            repl=r"",
             string=file_content,
             flags=re.MULTILINE,
         )
@@ -260,25 +257,25 @@ class ArxivExtractor(DocumentExtractor):
         # remove all in comments within a line
         file_content = re.sub(
             # pattern matches a "%" that is not preceded by a backslash
-            pattern=r'[^\\]%.+$',
-            repl=r'',
+            pattern=r"[^\\]%.+$",
+            repl=r"",
             string=file_content,
             flags=re.MULTILINE,
         )
 
         # find the first occurrence of either \appendix or \bibliography and
         # replace everything after it with an empty string
-        pattern = r'('
-        pattern += r'\\appendix|'
-        pattern += r'\\begin\{references\}|'
-        pattern += r'\\begin\{REFERENCES\}|'
-        pattern += r'\\begin\{thebibliography\}|'
-        pattern += r'\\bibliography\{.*\}'
-        pattern += r').*$'
+        pattern = r"("
+        pattern += r"\\appendix|"
+        pattern += r"\\begin\{references\}|"
+        pattern += r"\\begin\{REFERENCES\}|"
+        pattern += r"\\begin\{thebibliography\}|"
+        pattern += r"\\bibliography\{.*\}"
+        pattern += r").*$"
 
         file_content = re.sub(
             pattern=pattern,
-            repl=r'',
+            repl=r"",
             string=file_content,
             flags=re.DOTALL,  # make sure that the dot matches also newlines
         )
@@ -288,10 +285,10 @@ class ArxivExtractor(DocumentExtractor):
             file_content = re.sub(
                 # make pattern grouped to make sure that the macro is not part
                 # of a longer alphanumeric word
-                pattern=r'(' + macro_name + r')' + r'([^a-zA-Z0-9])',
+                pattern=r"(" + macro_name + r")" + r"([^a-zA-Z0-9])",
                 # replace the macro with its value and add back the character
                 # that was matched after the macro
-                repl=macro_value + r'\2',
+                repl=macro_value + r"\2",
                 string=file_content,
             )
 
@@ -318,7 +315,7 @@ class ArxivExtractor(DocumentExtractor):
             # \newcommand*{\macro_name}{macro_value}
             # where macro_name is only allowed to contain letters and numbers;
             # macro_value can contain any character.
-            pattern=r'\\\bnewcommand\b\*?\{(\\[a-zA-Z0-9]+?)\}\{(.*?)\}$',
+            pattern=r"\\\bnewcommand\b\*?\{(\\[a-zA-Z0-9]+?)\}\{(.*?)\}$",
             flags=re.MULTILINE,
         )
 
@@ -328,7 +325,7 @@ class ArxivExtractor(DocumentExtractor):
             # \def\macro_name{macro_value}
             # where macro_name is only allowed to contain letters and numbers;
             # macro_value can contain any character.
-            pattern=r'\\def\s*(\\[a-zA-Z0-9]+?)\s*\{(.*?)\}$',
+            pattern=r"\\def\s*(\\[a-zA-Z0-9]+?)\s*\{(.*?)\}$",
             flags=re.MULTILINE,
         )
 
@@ -338,10 +335,8 @@ class ArxivExtractor(DocumentExtractor):
             for match in reg.finditer(file_content):
                 # convert the macro name and value to a raw string that can be
                 # used in re.sub
-                macro_name = match.group(1).encode('unicode-escape').decode(
-                    'utf-8')
-                macro_val = match.group(2).encode('unicode-escape').decode(
-                    'utf-8')
+                macro_name = match.group(1).encode("unicode-escape").decode("utf-8")
+                macro_val = match.group(2).encode("unicode-escape").decode("utf-8")
 
                 macros[macro_name] = macro_val
 
@@ -350,7 +345,7 @@ class ArxivExtractor(DocumentExtractor):
 
 def download_arxiv(
     output_path: str,
-    output_type: str = 'jsonl',
+    output_type: str = "jsonl",
     raw_download_dir=None,
     keep_raw_download=False,
     force_download=False,
@@ -373,22 +368,20 @@ def download_arxiv(
     arxiv_urls = get_arxiv_urls()
     if url_limit:
         arxiv_urls = arxiv_urls[:url_limit]
-    output_paths = list(
-        map(lambda url: os.path.join(output_path, f'{url}.{output_type}'),
-            arxiv_urls))
+    output_paths = list(map(lambda url: os.path.join(output_path, f"{url}.{output_type}"), arxiv_urls))
 
     if not raw_download_dir:
-        raw_download_dir = os.path.join(output_path, 'downloads')
+        raw_download_dir = os.path.join(output_path, "downloads")
     expand_outdir_and_mkdir(raw_download_dir)
     downloader = ArxivDownloader(raw_download_dir)
     iterator = ArxivIterator()
     extractor = ArxivExtractor()
 
     output_format = {
-        'text': str,
-        'id': str,
-        'source_id': str,
-        'filename': str,
+        "text": str,
+        "id": str,
+        "source_id": str,
+        "filename": str,
     }
     dataset = download_and_extract(
         arxiv_urls,

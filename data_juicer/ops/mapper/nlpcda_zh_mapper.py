@@ -8,28 +8,40 @@ from data_juicer.utils.logger_utils import HiddenPrints
 
 from ..base_op import OPERATORS, Mapper
 
-nlpcda = LazyLoader('nlpcda', 'nlpcda')
+nlpcda = LazyLoader("nlpcda")
 
-OP_NAME = 'nlpcda_zh_mapper'
+OP_NAME = "nlpcda_zh_mapper"
 
 
 @OPERATORS.register_module(OP_NAME)
 class NlpcdaZhMapper(Mapper):
-    """Mapper to simply augment samples in Chinese based on nlpcda library."""
+    """Augments Chinese text samples using the nlpcda library.
+
+    This operator applies various augmentation methods to Chinese text, such as replacing
+    similar words, homophones, deleting random characters, swapping characters, and
+    replacing equivalent numbers. The number of augmented samples generated can be
+    controlled by the `aug_num` parameter. If `sequential` is set to True, the augmentation
+    methods are applied in sequence; otherwise, they are applied independently. The original
+    sample can be kept or removed based on the `keep_original_sample` flag. It is
+    recommended to use 1-3 augmentation methods at a time to avoid significant changes in
+    the semantics of the samples. Some augmentation methods may not work for special texts,
+    resulting in no augmented samples being generated."""
 
     _batched_op = True
 
-    def __init__(self,
-                 sequential: bool = False,
-                 aug_num: PositiveInt = 1,
-                 keep_original_sample: bool = True,
-                 replace_similar_word: bool = False,
-                 replace_homophone_char: bool = False,
-                 delete_random_char: bool = False,
-                 swap_random_char: bool = False,
-                 replace_equivalent_num: bool = False,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        sequential: bool = False,
+        aug_num: PositiveInt = 1,
+        keep_original_sample: bool = True,
+        replace_similar_word: bool = False,
+        replace_homophone_char: bool = False,
+        delete_random_char: bool = False,
+        swap_random_char: bool = False,
+        replace_equivalent_num: bool = False,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method. All augmentation methods use default parameters
         in default. We recommend you to only use 1-3 augmentation methods at a
@@ -73,16 +85,19 @@ class NlpcdaZhMapper(Mapper):
 
         self.aug_num = aug_num
         if aug_num >= 10:
-            logger.warning(f'Relatively large augmentation number [{aug_num}]'
-                           f' might generate large number of new samples and '
-                           f'requires more memory and disk space.')
+            logger.warning(
+                f"Relatively large augmentation number [{aug_num}]"
+                f" might generate large number of new samples and "
+                f"requires more memory and disk space."
+            )
         self.sequential = sequential
         self.keep_original_sample = keep_original_sample
 
         # hide the redundant outputs from nlpcda library
         with HiddenPrints():
             import warnings
-            warnings.filterwarnings('ignore')
+
+            warnings.filterwarnings("ignore")
 
             self.aug_pipeline = []
             # sample level
@@ -93,41 +108,25 @@ class NlpcdaZhMapper(Mapper):
                 # original sample, so we need generate one more augmented
                 # sample to get the expected number of augmented samples. Same
                 # below
-                create_num = (self.aug_num + 1) \
-                    if not self.sequential or len(self.aug_pipeline) == 0 \
-                    else 2
-                self.aug_pipeline.append(
-                    nlpcda.Similarword(create_num=create_num))
+                create_num = (self.aug_num + 1) if not self.sequential or len(self.aug_pipeline) == 0 else 2
+                self.aug_pipeline.append(nlpcda.Similarword(create_num=create_num))
 
             # char level
             if replace_homophone_char:
-                create_num = (self.aug_num + 1) \
-                    if not self.sequential or len(self.aug_pipeline) == 0 \
-                    else 2
-                self.aug_pipeline.append(
-                    nlpcda.Homophone(create_num=create_num))
+                create_num = (self.aug_num + 1) if not self.sequential or len(self.aug_pipeline) == 0 else 2
+                self.aug_pipeline.append(nlpcda.Homophone(create_num=create_num))
             if delete_random_char:
-                create_num = (self.aug_num + 1) \
-                    if not self.sequential or len(self.aug_pipeline) == 0 \
-                    else 2
-                self.aug_pipeline.append(
-                    nlpcda.RandomDeleteChar(create_num=create_num))
+                create_num = (self.aug_num + 1) if not self.sequential or len(self.aug_pipeline) == 0 else 2
+                self.aug_pipeline.append(nlpcda.RandomDeleteChar(create_num=create_num))
             if swap_random_char:
-                create_num = (self.aug_num + 1) \
-                    if not self.sequential or len(self.aug_pipeline) == 0 \
-                    else 2
+                create_num = (self.aug_num + 1) if not self.sequential or len(self.aug_pipeline) == 0 else 2
                 # only use char_gram=1 for relatively minor changes
-                self.aug_pipeline.append(
-                    nlpcda.CharPositionExchange(create_num=create_num,
-                                                char_gram=1))
+                self.aug_pipeline.append(nlpcda.CharPositionExchange(create_num=create_num, char_gram=1))
 
             # only for numbers now
             if replace_equivalent_num:
-                create_num = (self.aug_num + 1) \
-                    if not self.sequential or len(self.aug_pipeline) == 0 \
-                    else 2
-                self.aug_pipeline.append(
-                    nlpcda.EquivalentChar(create_num=create_num))
+                create_num = (self.aug_num + 1) if not self.sequential or len(self.aug_pipeline) == 0 else 2
+                self.aug_pipeline.append(nlpcda.EquivalentChar(create_num=create_num))
 
     def process_batched(self, samples):
         # no augmentation methods are opened
@@ -166,6 +165,5 @@ class NlpcdaZhMapper(Mapper):
         # add other replicate fields
         for key in res_samples:
             if key != self.text_key:
-                res_samples[key] = res_samples[key] * \
-                                   len(res_samples[self.text_key])
+                res_samples[key] = res_samples[key] * len(res_samples[self.text_key])
         return res_samples

@@ -4,18 +4,24 @@ import os
 
 from ..base_op import OPERATORS, Mapper
 
-OP_NAME = 'python_file_mapper'
+OP_NAME = "python_file_mapper"
 
 
 @OPERATORS.register_module(OP_NAME)
 class PythonFileMapper(Mapper):
-    """Mapper for executing Python function defined in a file."""
+    """Executes a Python function defined in a file on input data.
 
-    def __init__(self,
-                 file_path: str = '',
-                 function_name: str = 'process_single',
-                 batched: bool = False,
-                 **kwargs):
+    This operator loads a specified Python function from a given file and applies it to the
+    input data. The function must take exactly one argument and return a dictionary. The
+    operator can process data either sample by sample or in batches, depending on the
+    `batched` parameter. If the file path is not provided, the operator acts as an identity
+    function, returning the input sample unchanged. The function is loaded dynamically, and
+    its name and file path are configurable. Important notes:
+    - The file must be a valid Python file (`.py`).
+    - The function must be callable and accept exactly one argument.
+    - The function's return value must be a dictionary."""
+
+    def __init__(self, file_path: str = "", function_name: str = "process_single", batched: bool = False, **kwargs):
         """
         Initialization method.
 
@@ -39,38 +45,30 @@ class PythonFileMapper(Mapper):
 
     def _load_function(self):
         if not os.path.isfile(self.file_path):
-            raise FileNotFoundError(
-                f"The file '{self.file_path}' does not exist.")
+            raise FileNotFoundError(f"The file '{self.file_path}' does not exist.")
 
-        if not self.file_path.endswith('.py'):
-            raise ValueError(
-                f"The file '{self.file_path}' is not a Python file.")
+        if not self.file_path.endswith(".py"):
+            raise ValueError(f"The file '{self.file_path}' is not a Python file.")
 
         # Load the module from the file
         module_name = os.path.splitext(os.path.basename(self.file_path))[0]
-        spec = importlib.util.spec_from_file_location(module_name,
-                                                      self.file_path)
+        spec = importlib.util.spec_from_file_location(module_name, self.file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
         # Fetch the specified function from the module
         if not hasattr(module, self.function_name):
-            raise ValueError(
-                f"Function '{self.function_name}' not found in '{self.file_path}'."  # noqa: E501
-            )
+            raise ValueError(f"Function '{self.function_name}' not found in '{self.file_path}'.")  # noqa: E501
 
         func = getattr(module, self.function_name, None)
 
         if not callable(func):
-            raise ValueError(
-                f"The attribute '{self.function_name}' is not callable.")
+            raise ValueError(f"The attribute '{self.function_name}' is not callable.")
 
         # Check that the function has exactly one argument
         argspec = inspect.getfullargspec(func)
         if len(argspec.args) != 1:
-            raise ValueError(
-                f"The function '{self.function_name}' must take exactly one argument"  # noqa: E501
-            )
+            raise ValueError(f"The function '{self.function_name}' must take exactly one argument")  # noqa: E501
 
         return func
 
@@ -79,9 +77,7 @@ class PythonFileMapper(Mapper):
         result = self.func(sample)
 
         if not isinstance(result, dict):
-            raise ValueError(
-                f'Function must return a dictionary, got {type(result).__name__} instead.'  # noqa: E501
-            )
+            raise ValueError(f"Function must return a dictionary, got {type(result).__name__} instead.")  # noqa: E501
 
         return result
 
@@ -90,8 +86,6 @@ class PythonFileMapper(Mapper):
         result = self.func(samples)
 
         if not isinstance(result, dict):
-            raise ValueError(
-                f'Function must return a dictionary, got {type(result).__name__} instead.'  # noqa: E501
-            )
+            raise ValueError(f"Function must return a dictionary, got {type(result).__name__} instead.")  # noqa: E501
 
         return result

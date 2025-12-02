@@ -9,6 +9,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class RemoveBibliographyMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
         self.op = RemoveBibliographyMapper()
 
     def _run_remove_bibliography(self, samples):

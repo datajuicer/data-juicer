@@ -1,7 +1,7 @@
 import os
 import unittest
 from unittest.mock import patch
-from argparse import Namespace
+from jsonargparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
 from data_juicer.config import init_configs
@@ -21,17 +21,23 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
 
     def setUp(self):
         """Setup basic configuration for tests"""
+        super().setUp()
         self.base_cfg = Namespace()
         self.base_cfg.dataset_path = None
         self.executor_type = 'default'
+
+        self._original_cwd = os.getcwd()
 
         # Get the directory where this test file is located
         test_file_dir = os.path.dirname(os.path.abspath(__file__))
         os.chdir(test_file_dir)
 
+    def tearDown(self):
+        super().tearDown()
+        os.chdir(self._original_cwd)
 
     def test_rewrite_cli_datapath_local_single_file(self):
-        dataset_path =  os.path.join(WORK_DIR, "test_data/sample.txt")
+        dataset_path = os.path.join(WORK_DIR, "test_data/sample.txt")
         ans = rewrite_cli_datapath(dataset_path)
         self.assertEqual(
             {'configs': [
@@ -357,6 +363,45 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
         
         self.assertIn('non-empty list', str(context.exception))
 
+    def test_builder_empty_dataset(self):
+        """Test handling of empty dataset configuration"""
+        cfg = Namespace()
+        cfg.dataset = {'non-configs': 'non-configs-value'}
+
+        with self.assertRaises(ConfigValidationError) as context:
+            DatasetBuilder(cfg, self.executor_type)
+
+        self.assertIn('should have a "configs" key', str(context.exception))
+
+    def test_builder_invalid_dataset_config(self):
+        """Test validation of multiple remote datasets"""
+        self.base_cfg.dataset = {
+            'configs': [
+                'path1', 'path2'
+            ]
+        }
+
+        with self.assertRaises(ConfigValidationError) as context:
+            DatasetBuilder(self.base_cfg, self.executor_type)
+
+        self.assertIn('should be dictionaries', str(context.exception))
+
+    def test_builder_no_matching_strategy(self):
+        """Test validation of multiple remote datasets"""
+        self.base_cfg.dataset = {
+            'configs': [
+                {
+                    'type': 'non-existing type',
+                    'source': 'non-existing source',
+                }
+            ]
+        }
+
+        with self.assertRaises(ValueError) as context:
+            DatasetBuilder(self.base_cfg, self.executor_type)
+
+        self.assertIn('No data load strategy found', str(context.exception))
+
     def test_builder_invalid_dataset_config_type(self):
         """Test handling of invalid dataset configuration type"""
         self.base_cfg.dataset = "invalid_string_config"
@@ -573,6 +618,78 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
                 path1,
                 "dataset_path should take priority over dataset config"
             )
+
+    def test_generated_dataset_config(self):
+        cfg = Namespace()
+        cfg.generated_dataset_config = {
+            'type': 'EmptyFormatter',
+            'length': 10,
+            'feature_keys': ['text']
+        }
+
+        builder = DatasetBuilder(cfg)
+        ds = builder.load_dataset()
+        self.assertEqual(len(ds), 10)
+        self.assertTrue(ds.contain_column('text'))
+
+    def test_validators(self):
+        cfg = Namespace()
+        cfg.dataset = {
+            'configs': [
+                {
+                    'type': 'local',
+                    'path': 'test_data/sample.jsonl',
+                    'weight': 1.0
+                }
+            ],
+            'max_sample_num': 3
+        }
+        cfg.validators = [
+            {
+                'type': 'code',
+            },
+            {
+                'type': 'required_fields',
+                'required_fields': ['text']
+            }
+        ]
+
+        builder = DatasetBuilder(cfg)
+        self.assertEqual(len(builder.validators), 2)
+
+        ds = builder.load_dataset()
+        self.assertEqual(len(ds), 3)
+
+    def test_invalid_validators(self):
+        cfg = Namespace()
+        cfg.generated_dataset_config = {
+            'type': 'EmptyFormatter',
+            'length': 10,
+            'feature_keys': ['text']
+        }
+        # no type
+        cfg.validators = [
+            {
+                'useless_key': 'useless_value'
+            }
+        ]
+
+        with self.assertRaises(ValueError) as context:
+            DatasetBuilder(cfg)
+
+        self.assertIn('must have a "type" key', str(context.exception))
+
+        # invalid type
+        cfg.validators = [
+            {
+                'type': 'xxx'
+            }
+        ]
+
+        with self.assertRaises(ValueError) as context:
+            DatasetBuilder(cfg)
+
+        self.assertIn('No data validator found', str(context.exception))
 
 
 if __name__ == '__main__':

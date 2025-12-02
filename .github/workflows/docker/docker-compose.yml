@@ -21,7 +21,7 @@ services:
     ports:
       - "6379:6379"
       - "8265:8265"
-    shm_size: "128G"
+    shm_size: "256G"
     deploy:
       resources:
         reservations:
@@ -49,7 +49,7 @@ services:
       - ray-head
     networks:
       - ray-network
-    shm_size: "128G"
+    shm_size: "256G"
     deploy:
       resources:
         reservations:

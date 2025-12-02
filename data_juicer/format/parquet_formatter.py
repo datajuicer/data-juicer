@@ -8,7 +8,8 @@ class ParquetFormatter(LocalFormatter):
 
     Default suffixes is `['.parquet']`
     """
-    SUFFIXES = ['.parquet']
+
+    SUFFIXES = [".parquet"]
 
     def __init__(self, dataset_path, suffixes=None, **kwargs):
         """
@@ -21,6 +22,6 @@ class ParquetFormatter(LocalFormatter):
         super().__init__(
             dataset_path=dataset_path,
             suffixes=suffixes if suffixes else self.SUFFIXES,
-            type='parquet',
+            type="parquet",
             **kwargs,
         )

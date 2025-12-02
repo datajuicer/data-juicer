@@ -9,28 +9,30 @@ from pyspark import SparkConf
 from pyspark.sql import SparkSession
 
 
-def init_spark(master_url: Optional[str] = None,
-               spark_executor_memory=None,
-               spark_driver_memory=None,
-               spark_executor_memoryOverhead=None):
+def init_spark(
+    master_url: Optional[str] = None,
+    spark_executor_memory=None,
+    spark_driver_memory=None,
+    spark_executor_memoryOverhead=None,
+):
     if not spark_executor_memory:
-        spark_executor_memory = '64g'
+        spark_executor_memory = "64g"
     if not spark_driver_memory:
-        spark_driver_memory = '64g'
+        spark_driver_memory = "64g"
     if not spark_executor_memoryOverhead:
-        spark_executor_memoryOverhead = '20000'
+        spark_executor_memoryOverhead = "20000"
     if not master_url:
-        master_url = 'local[*]'
+        master_url = "local[*]"
     conf = SparkConf()
-    conf.set('spark.app.name', 'MinHashLSH')
-    conf.set('spark.debug.maxToStringFields', '100')
-    conf.set('spark.master', master_url)
-    conf.set('spark.executor.memory', spark_executor_memory)
-    conf.set('spark.driver.memory', spark_driver_memory)
-    conf.set('spark.sql.execution.arrow.pyspark.enabled', 'true')
-    conf.set('spark.executor.memoryOverhead', spark_executor_memoryOverhead)
+    conf.set("spark.app.name", "MinHashLSH")
+    conf.set("spark.debug.maxToStringFields", "100")
+    conf.set("spark.master", master_url)
+    conf.set("spark.executor.memory", spark_executor_memory)
+    conf.set("spark.driver.memory", spark_driver_memory)
+    conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+    conf.set("spark.executor.memoryOverhead", spark_executor_memoryOverhead)
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
-    logger.info('Spark initialization done.')
+    logger.info("Spark initialization done.")
     return spark
 
 
@@ -91,10 +93,8 @@ def find_components(edges):
 
     a = edges
     while True:
-        b = a.flatMap(large_star_map).groupByKey().flatMap(
-            large_star_reduce).distinct().cache()
-        a = b.map(small_star_map).groupByKey().flatMap(
-            small_star_reduce).distinct().cache()
+        b = a.flatMap(large_star_map).groupByKey().flatMap(large_star_reduce).distinct().cache()
+        a = b.map(small_star_map).groupByKey().flatMap(small_star_reduce).distinct().cache()
         changes = a.subtract(b).union(b.subtract(a)).collect()
         if len(changes) == 0:
             break

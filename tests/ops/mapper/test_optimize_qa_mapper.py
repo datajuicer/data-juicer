@@ -4,15 +4,19 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.optimize_qa_mapper import OptimizeQAMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
 
-@unittest.skip('unknown vllm connection error')
+# @unittest.skip('unknown vllm connection error')
+@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
 class OptimizeQAMapperTest(DataJuicerTestCaseBase):
 
-    def _run_op(self, enable_vllm=False, sampling_params=None, num_proc=1):
+    def _run_op(self, model="Qwen/Qwen2.5-7B-Instruct", enable_vllm=False, is_hf_model=True, sampling_params=None, num_proc=1):
 
-        op = OptimizeQAMapper(enable_vllm=enable_vllm,
-                              sampling_params=sampling_params)
+        op = OptimizeQAMapper(
+            api_or_hf_model=model,
+            enable_vllm=enable_vllm,
+            is_hf_model=is_hf_model,
+            sampling_params=sampling_params)
 
         samples = [{
             'query':
@@ -35,13 +39,17 @@ class OptimizeQAMapperTest(DataJuicerTestCaseBase):
         sampling_params = {'max_new_tokens': 200}
         self._run_op(sampling_params=sampling_params)
 
-    def test_multi_process(self):
+    def test_api(self):
         sampling_params = {'max_new_tokens': 200}
-        self._run_op(sampling_params=sampling_params, num_proc=2)
+        self._run_op(model="qwen2.5-72b-instruct", is_hf_model=False, sampling_params=sampling_params)
 
-    def test_vllm(self):
-        sampling_params = {'max_tokens': 200}
-        self._run_op(enable_vllm=True, sampling_params=sampling_params)
+    # def test_multi_process(self):
+    #     sampling_params = {'max_new_tokens': 200}
+    #     self._run_op(sampling_params=sampling_params, num_proc=2)
+
+    # def test_vllm(self):
+    #     sampling_params = {'max_tokens': 200}
+    #     self._run_op(enable_vllm=True, sampling_params=sampling_params)
 
 
 if __name__ == '__main__':

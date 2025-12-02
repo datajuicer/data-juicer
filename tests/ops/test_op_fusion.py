@@ -1980,6 +1980,7 @@ class OpFusionTest(DataJuicerTestCaseBase):
 class GeneralFusedOPTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
+        super().setUp()
         self.dataset = NestedDataset.from_list([
             {'text': 'This is a test.'},
             {'text': 'This is a test. This is a test. This is a test.'},

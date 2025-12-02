@@ -1,28 +1,26 @@
-import json
-import re
-from typing import Dict, List, Optional
-
-import numpy as np
-from loguru import logger
-from pydantic import PositiveInt
-
-from data_juicer.ops.base_op import OPERATORS, Filter
+from data_juicer.ops.base_op import OPERATORS
+from data_juicer.ops.filter import LLMAnalysisFilter
 from data_juicer.utils.constant import Fields, StatsKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.model_utils import (get_model, prepare_model,
-                                           update_sampling_params)
 
-torch = LazyLoader('torch', 'torch')
-vllm = LazyLoader('vllm', 'vllm')
+torch = LazyLoader("torch")
+vllm = LazyLoader("vllm")
 
-OP_NAME = 'llm_quality_score_filter'
+OP_NAME = "llm_quality_score_filter"
 
 
 @OPERATORS.register_module(OP_NAME)
-class LLMQualityScoreFilter(Filter):
-    """
-    Filter to keep sample with high quality score estimated by LLM.
-    """
+class LLMQualityScoreFilter(LLMAnalysisFilter):
+    """Filter to keep samples with a high quality score estimated by a language model.
+
+    This operator uses a language model to evaluate the quality of each sample across
+    multiple dimensions, including accuracy, grammar, informativeness, and coherence. The
+    LLM provides a numerical score for each dimension on a 1-5 scale, where 1 is the lowest
+    and 5 is the highest. The overall quality score is used to decide whether to keep or
+    filter out the sample based on the specified minimum and maximum score thresholds. The
+    evaluation results are cached in the 'llm_quality_score' and 'llm_quality_record'
+    fields. Important flags and tags from the LLM's analysis may also be stored in the
+    sample's stats."""
 
     # avoid leading whitespace
     DEFAULT_SYSTEM_PROMPT = """
@@ -75,186 +73,25 @@ json
   "recommendation": "review"
 }
 """  # noqa: E501
-    DEFAULT_INPUT_TEMPLATE = "# Data\n'''\n{data}\n'''\n\n# Response\njson\n"
-    DEFAULT_FIELD_TEMPLATE = '**{field_name}**\n{field_data}'
-
-    _accelerator = 'cuda'
-
-    def __init__(self,
-                 api_or_hf_model: str = 'gpt-4o',
-                 min_score: float = 0.5,
-                 is_hf_model: bool = False,
-                 *,
-                 api_endpoint: Optional[str] = None,
-                 response_path: Optional[str] = None,
-                 input_keys: List[str] = ['text'],
-                 field_names: List[str] = ['Text'],
-                 system_prompt: Optional[str] = None,
-                 input_template: Optional[str] = None,
-                 field_template: Optional[str] = None,
-                 try_num: PositiveInt = 3,
-                 enable_vllm: bool = False,
-                 model_params: Dict = {},
-                 sampling_params: Dict = {},
-                 **kwargs):
-        """
-        Initialization method.
-
-        :param api_or_hf_model: API or huggingface model name.
-        :param min_score: The lowest quality score threshold to keep the
-            sample.
-        :param api_endpoint: URL endpoint for the API.
-        :param response_path: Path to extract content from the API response.
-            Defaults to 'choices.0.message.content'.
-        :param input_keys: Sub set of keys in the sample. Support data with
-            multi fields such as 'query', 'analysis' and 'answer' in RFT data.
-        :param field_names: Corresponding field names for input keys.
-        :param system_prompt: System prompt for the task.
-        :param input_template: Template for building the model input.
-        :param field_template: Template for each field in the prompt.
-        :param try_num: The number of retry attempts when there is an API
-            call error or output parsing error.
-        :param enable_vllm: If true, use VLLM for loading hugging face or
-            local llm. Otherwise, use API for reference.
-        :param model_params: Parameters for initializing the API model.
-        :param sampling_params: Extra parameters passed to the API call.
-            e.g {'temperature': 0.9, 'top_p': 0.95}
-        :param kwargs: Extra keyword arguments.
-        """
-        super().__init__(**kwargs)
-
-        self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
-        assert len(input_keys) == len(
-            field_names
-        ), 'The input_keys and field_names must correspond one-to-one!'
-        self.input_keys = input_keys
-        self.field_names = field_names
-        self.input_template = input_template or self.DEFAULT_INPUT_TEMPLATE
-        self.field_template = field_template or self.DEFAULT_FIELD_TEMPLATE
-
-        self.min_score = min_score
-        self.try_num = try_num
-
-        self.enable_vllm = enable_vllm
-        self.is_hf_model = is_hf_model
-
-        sampling_params = update_sampling_params(sampling_params,
-                                                 api_or_hf_model,
-                                                 self.enable_vllm)
-
-        if enable_vllm:
-            assert torch.cuda.device_count() >= 1, 'must be executed in CUDA'
-            # cannot initialize vllm replicas on different GPUs
-            self.num_proc = 1
-            if model_params.get('tensor_parallel_size') is None:
-                tensor_parallel_size = torch.cuda.device_count()
-                logger.info(f'Set tensor_parallel_size to \
-                    {tensor_parallel_size} for vllm.')
-                model_params['tensor_parallel_size'] = tensor_parallel_size
-            self.model_key = prepare_model(
-                model_type='vllm',
-                pretrained_model_name_or_path=api_or_hf_model,
-                **model_params)
-            self.sampling_params = vllm.SamplingParams(**sampling_params)
-        elif is_hf_model:
-            self.model_key = prepare_model(
-                model_type='huggingface',
-                pretrained_model_name_or_path=api_or_hf_model,
-                return_pipe=True,
-                trust_remote_code=True,
-                **model_params)
-            self.sampling_params = sampling_params
-        else:
-            self.sampling_params = sampling_params
-
-            self.model_key = prepare_model(model_type='api',
-                                           model=api_or_hf_model,
-                                           endpoint=api_endpoint,
-                                           response_path=response_path,
-                                           **model_params)
-
-    def build_input(self, sample):
-        if not set(self.input_keys) <= set(sample.keys()):
-            logger.warning(
-                f'Not all input keys {self.input_keys} are in the sample!')
-        field_strs = [
-            self.field_template.format(field_name=n, field_data=sample[k])
-            for (k, n) in zip(self.input_keys, self.field_names) if k in sample
-        ]
-        data_str = '\n\n'.join(field_strs)
-        input_prompt = self.input_template.format(data=data_str)
-
-        return input_prompt
-
-    def parse_output(self, raw_output):
-
-        def extract_outer_braces(s):
-            pattern = r'(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})'
-            match = re.search(pattern, s)
-
-            if match:
-                return match.group(1)
-            else:
-                return None
-
-        json_str = extract_outer_braces(raw_output)
-        data = json.loads(json_str)
-        if 'flags' in data:
-            data['flags'] = np.array(data['flags'], dtype=np.str_)
-
-        dimension_scores = data['dimension_scores']
-        required_keys = ['accuracy', 'grammar', 'informativeness', 'coherence']
-
-        total_score = 0
-        for key in required_keys:
-            total_score += dimension_scores[key]
-        # div 5 for normalization
-        avg_score = total_score / len(required_keys) / 5
-
-        return avg_score, data
+    DEFAULT_DIM_REQUIRED_KEYS = ["accuracy", "grammar", "informativeness", "coherence"]
 
     def compute_stats_single(self, sample, rank=None, context=False):
         # check if it's computed already
         if StatsKeys.llm_quality_score in sample[Fields.stats]:
             return sample
 
-        if self.enable_vllm or self.is_hf_model:
-            model, _ = get_model(self.model_key, rank, self.use_cuda())
-        else:
-            model = get_model(self.model_key, rank, self.use_cuda())
-
-        messages = [{
-            'role': 'system',
-            'content': self.system_prompt
-        }, {
-            'role': 'user',
-            'content': self.build_input(sample)
-        }]
-        score, record = 0, None
-        for _ in range(self.try_num):
-            try:
-                if self.enable_vllm:
-                    response = model.chat(messages, self.sampling_params)
-                    output = response[0].outputs[0].text
-                elif self.is_hf_model:
-                    response = model(messages,
-                                     return_full_text=False,
-                                     **self.sampling_params)
-                    output = response[0]['generated_text']
-                else:
-                    output = model(messages, **self.sampling_params)
-                score, record = self.parse_output(output)
-                if record is not None:
-                    break
-            except Exception as e:
-                logger.warning(f'Exception: {e}')
+        score, record, tags = self.generate_llm_analysis(sample, rank)
 
         sample[Fields.stats][StatsKeys.llm_quality_score] = score
         sample[Fields.stats][StatsKeys.llm_quality_record] = record
+
+        if tags and isinstance(tags, dict):
+            for key, value in tags.items():
+                sample[Fields.stats][key] = value
 
         return sample
 
     def process_single(self, sample, rank=None):
         itm_score = sample[Fields.stats][StatsKeys.llm_quality_score]
 
-        return itm_score >= self.min_score
+        return self.get_keep_boolean(itm_score, self.min_score, self.max_score)

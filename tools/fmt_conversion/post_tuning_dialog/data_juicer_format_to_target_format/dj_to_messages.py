@@ -71,13 +71,13 @@ from loguru import logger
 def main(
     src_ds_path: str,
     tgt_ds_path: str,
-    messages_key: str = 'messages',
-    role_key: str = 'role',
-    content_key: str = 'content',
-    human_role: str = 'user',
-    assistant_role: str = 'assistant',
-    system_role: str = 'system',
-    instruction_role: str = 'instruction',
+    messages_key: str = "messages",
+    role_key: str = "role",
+    content_key: str = "content",
+    human_role: str = "user",
+    assistant_role: str = "assistant",
+    system_role: str = "system",
+    instruction_role: str = "instruction",
 ):
     """
     Convert a Data-Juicer query-response dataset to the ModelScope-Swift
@@ -106,5 +106,5 @@ def main(
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

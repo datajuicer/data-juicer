@@ -1,0 +1,204 @@
+[project]
+name = "py-data-juicer"
+dynamic = ["version"]
+description = "Data Processing for and with Foundation Models."
+authors = [
+    {name = "SysML Team of Alibaba Tongyi Lab"}
+]
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+urls = {repository = "https://github.com/datajuicer/data-juicer"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+
+# Core dependencies
+dependencies = [
+    "datasets>=2.19.0", # core data loading
+    "fsspec==2023.5.0", # file system operations
+    "pandas", # data manipulation
+    "numpy>=1.26.4,<2.0.0", # numerical operations
+    "loguru", # logging
+    "tqdm", # progress bars
+    "jsonargparse[signatures]", # configuration
+    "jsonlines", # JSONL handling
+    "zstandard", # compression
+    "lz4", # compression
+    "multiprocess==0.70.16", # parallel processing
+    "dill==0.3.8", # serialization
+    "psutil", # system monitoring
+    "pydantic>=2.0", # data validation
+    "uv",
+    "wordcloud",
+    "spacy==3.8.7",
+    "httpx",
+    "av==13.1.0", # video/audio handling
+    "emoji==2.2.0", # emoji handling
+    "tabulate",
+    "librosa>=0.10",
+    "resampy",
+    "samplerate==0.1.0",
+    "bs4",
+    "matplotlib",
+    "plotly", # interactive plots
+    "seaborn",
+    "requests",
+    "wget",
+    "pdfplumber",
+    "python-docx",
+    "streamlit",
+    "Pillow",
+    "fastapi>=0.110",
+    "mwparserfromhell",
+    "regex", # regular expressions
+    "tomli",
+    "tomli-w",
+    "gitpython",
+    "mcp[cli]>=1.7.0",
+    "pylance",
+]
+
+[project.optional-dependencies]
+# Generic ML & DL
+generic = [
+    "torch==2.6.0",  # PyTorch
+    "transformers>=4.47.0,<4.55.0",  # Hugging Face Transformers
+    "transformers_stream_generator",  # Stream generation for Transformers
+    "einops",  # Tensor operations
+    "accelerate",  # Model acceleration
+    "vllm==0.8.5.post1",  # LLM serving
+    "onnxruntime",  # ONNX runtime
+    "cudf-cu12==25.4.0", # dataframe on GPU
+]
+
+# Computer Vision
+vision = [
+    "opencv-python",  # OpenCV
+    "imagededup",  # Image deduplication
+    "diffusers>=0.33.0",  # Diffusion models
+    "simple-aesthetics-predictor",  # Image aesthetics
+    "scenedetect[opencv]",  # Scene detection
+    "ultralytics",  # YOLO models
+    "rembg",  # Background removal
+    "decord", # video/audio handling
+]
+
+# Natural Language Processing
+nlp = [
+    "nltk==3.9.1",  # NLP toolkit
+    "easyocr==1.7.1",  # OCR
+    "fasttext-wheel",  # FastText
+    "kenlm",  # Language modeling
+    "sentencepiece",  # Tokenization
+    "ftfy",  # Text fixing
+    "simhash-pybind",  # Text similarity
+    "selectolax",  # HTML parsing
+    "nlpaug",  # Text augmentation
+    "nlpcda",  # Chinese text augmentation
+    "tiktoken",  # Token counting
+    "opencc==1.1.9",  # Chinese conversion
+    "spacy-pkuseg",  # Chinese segmentation
+    "rouge",  # Text evaluation
+]
+
+# Audio Processing
+audio = [
+    "torchaudio",  # Audio processing with PyTorch
+    "soundfile",  # audio handling
+    "ffmpeg-python",
+    "audiomentations",
+]
+
+# Distributed Computing
+distributed = [
+    "ray[default]==2.47.1",  # distributed computing
+    "pyspark==3.5.5",  # distributed data processing
+    "s3fs",  # S3 filesystem support for cloud storage
+]
+
+# Development & Tools
+dev = [
+    "coverage",
+    "pre-commit",  # pre-commit hooks
+    "sphinx",
+    "sphinx-autobuild",
+    "sphinx_copybutton",
+    "furo",
+    "myst_parser",
+    "linkify-it-py",
+    "recommonmark",
+    "wandb<=0.19.0",
+    "fire",
+    "click",
+    "toml",  # for yapf configuration
+    "pytest",  # testing framework
+    "pytest-cov",  # coverage reporting
+    "build",  # package building
+    "black>=25.1.0",
+    "flake8-black",
+    "docstring-parser>=0.16",
+]
+
+# AI Services & APIs
+ai_services = [
+    "dashscope",  # Alibaba Cloud AI
+    "openai",  # OpenAI API
+    "label-studio==1.17.0",  # Data labeling
+]
+
+
+# All dependencies (default + all optional)
+all = [
+    "py-data-juicer[generic]",
+    "py-data-juicer[vision]",
+    "py-data-juicer[nlp]",
+    "py-data-juicer[audio]",
+    "py-data-juicer[distributed]",
+    "py-data-juicer[dev]",
+    "py-data-juicer[ai_services]",
+]
+
+[project.scripts]
+dj-process = "data_juicer.tools.process_data:main"
+dj-analyze = "data_juicer.tools.analyze_data:main"
+dj-install = "data_juicer.tools.dj_install:main"
+dj-mcp = "data_juicer.tools.mcp_server:main"
+
+[build-system]
+requires = ["hatchling", "uv>=0.1.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "data_juicer/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["data_juicer", "tools"]
+include = ["uv.lock", "pyproject.toml"]
+
+[tool.hatch.build]
+include = ["uv.lock", "pyproject.toml"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"uv.lock" = "uv.lock"
+"pyproject.toml" = "pyproject.toml"
+
+[tool.flake8]
+per-file-ignores = [
+    "*/__init__.py: F401"
+]
+max-line-length = 120
+extend-ignore = [
+    "E203",  # whitespace before ':' (black handles this)
+    "E501",  # line too long (black handles this)
+    "BLK100",  # black would make changes (black handles this)
+]
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"

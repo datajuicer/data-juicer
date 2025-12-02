@@ -8,6 +8,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class CleanCopyrightMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
+
         self.op = CleanCopyrightMapper()
 
     def _run_clean_copyright(self, samples):

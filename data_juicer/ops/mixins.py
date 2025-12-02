@@ -40,10 +40,7 @@ class EventDrivenMixin:
             for handler in self.event_handlers[event_type]:
                 handler(data)
 
-    def start_polling(self,
-                      event_type: str,
-                      poll_func: Callable,
-                      interval: int = 60):
+    def start_polling(self, event_type: str, poll_func: Callable, interval: int = 60):
         """Start polling for a specific event type.
 
         Args:
@@ -51,8 +48,7 @@ class EventDrivenMixin:
             poll_func: Function to call for polling
             interval: Polling interval in seconds
         """
-        if event_type in self.polling_threads and self.polling_threads[
-                event_type].is_alive():
+        if event_type in self.polling_threads and self.polling_threads[event_type].is_alive():
             return
 
         self.stop_polling_flags[event_type] = False
@@ -65,7 +61,8 @@ class EventDrivenMixin:
                         self.trigger_event(event_type, result)
                 except Exception as e:
                     import logging
-                    logging.error(f'Error in polling for {event_type}: {e}')
+
+                    logging.error(f"Error in polling for {event_type}: {e}")
                 time.sleep(interval)
 
         thread = threading.Thread(target=polling_worker, daemon=True)
@@ -89,11 +86,13 @@ class EventDrivenMixin:
         for event_type in event_types:
             self.stop_polling(event_type)
 
-    def wait_for_completion(self,
-                            condition_func: Callable[[], bool],
-                            timeout: int = 3600,
-                            poll_interval: int = 10,
-                            error_message: str = 'Operation timed out'):
+    def wait_for_completion(
+        self,
+        condition_func: Callable[[], bool],
+        timeout: int = 3600,
+        poll_interval: int = 10,
+        error_message: str = "Operation timed out",
+    ):
         """Wait for a condition to be met.
 
         Args:
@@ -267,27 +266,22 @@ class NotificationMixin:
         super().__init__(*args, **kwargs)
 
         # Get notification configuration directly from kwargs
-        self.notification_config = kwargs.get('notification_config', {})
+        self.notification_config = kwargs.get("notification_config", {})
 
         # Initialize notification handlers if configured
         self.notification_handlers = {
-            'email': self._send_email_notification,
-            'slack': self._send_slack_notification,
-            'dingtalk': self._send_dingtalk_notification,
+            "email": self._send_email_notification,
+            "slack": self._send_slack_notification,
+            "dingtalk": self._send_dingtalk_notification,
         }
 
         # Check if notifications are enabled for this operator
-        if self.notification_config.get('enabled', False):
-            logger.info(
-                f'Notification is enabled for {self.__class__.__name__}')
+        if self.notification_config.get("enabled", False):
+            logger.info(f"Notification is enabled for {self.__class__.__name__}")
         else:
-            logger.debug(
-                f'Notification is disabled for {self.__class__.__name__}')
+            logger.debug(f"Notification is disabled for {self.__class__.__name__}")
 
-    def send_notification(self,
-                          message: str,
-                          notification_type: str = None,
-                          **kwargs):
+    def send_notification(self, message: str, notification_type: str = None, **kwargs):
         """Send a notification message.
 
         Args:
@@ -303,26 +297,22 @@ class NotificationMixin:
             bool: True if the notification was sent successfully, else False
         """
         # Check if notifications are enabled
-        if not hasattr(self, 'notification_config'
-                       ) or not self.notification_config.get('enabled', False):
+        if not hasattr(self, "notification_config") or not self.notification_config.get("enabled", False):
             # Notifications are disabled, log and return
-            logger.debug(f'Not sending notification: disabled for '
-                         f'{self.__class__.__name__}')
+            logger.debug(f"Not sending notification: disabled for " f"{self.__class__.__name__}")
             return True
 
         # Check if notification handlers are initialized
-        if not hasattr(self, 'notification_handlers'):
-            logger.error('Notification handlers not initialized')
+        if not hasattr(self, "notification_handlers"):
+            logger.error("Notification handlers not initialized")
             return False
 
         # Apply any temporary overrides for this specific notification
-        temp_config = self.notification_config.copy() if hasattr(
-            self, 'notification_config') else {}
+        temp_config = self.notification_config.copy() if hasattr(self, "notification_config") else {}
 
         # Process the specific notification overrides from kwargs
         for key, value in kwargs.items():
-            if key in temp_config and isinstance(
-                    temp_config[key], dict) and isinstance(value, dict):
+            if key in temp_config and isinstance(temp_config[key], dict) and isinstance(value, dict):
                 # For dict values (like email settings), merge them
                 temp_config[key].update(value)
             else:
@@ -335,22 +325,16 @@ class NotificationMixin:
 
         try:
             if notification_type is None:
-                logger.info('No notification type specified, ignoring... ')
+                logger.info("No notification type specified, ignoring... ")
             elif notification_type in self.notification_handlers:
                 # Check if this specific channel is enabled
-                channel_config = self.notification_config.get(
-                    notification_type, {})
-                if isinstance(channel_config, dict) and not channel_config.get(
-                        'enabled', True):
-                    logger.debug(
-                        f'Not sending {notification_type} notification: '
-                        f'channel disabled')
+                channel_config = self.notification_config.get(notification_type, {})
+                if isinstance(channel_config, dict) and not channel_config.get("enabled", True):
+                    logger.debug(f"Not sending {notification_type} notification: " f"channel disabled")
                     return True
-                return self.notification_handlers[notification_type](message,
-                                                                     **kwargs)
+                return self.notification_handlers[notification_type](message, **kwargs)
             else:
-                logger.error(
-                    f'Unsupported notification type: {notification_type}')
+                logger.error(f"Unsupported notification type: {notification_type}")
                 return False
         finally:
             # Restore the original configuration
@@ -373,7 +357,7 @@ class NotificationMixin:
             import ssl
             from email.mime.text import MIMEText
 
-            config = self.notification_config.get('email', {})
+            config = self.notification_config.get("email", {})
 
             # Get email configuration settings with priority order:
             # 1. kwargs (passed directly to the method)
@@ -381,49 +365,35 @@ class NotificationMixin:
             # 3. default values (Alibaba-specific defaults)
 
             # SMTP server configuration
-            smtp_server = kwargs.get('smtp_server', config.get('smtp_server'))
-            smtp_port = kwargs.get('smtp_port',
-                                   config.get('smtp_port',
-                                              465))  # Default to 465 (SSL)
-            use_ssl = kwargs.get('use_ssl', config.get('use_ssl',
-                                                       True))  # Default to SSL
+            smtp_server = kwargs.get("smtp_server", config.get("smtp_server"))
+            smtp_port = kwargs.get("smtp_port", config.get("smtp_port", 465))  # Default to 465 (SSL)
+            use_ssl = kwargs.get("use_ssl", config.get("use_ssl", True))  # Default to SSL
 
             # Some more defaults
-            include_port_in_address = kwargs.get(
-                'include_port_in_address',
-                config.get('include_port_in_address', True))
-            recipient_separator = kwargs.get('recipient_separator',
-                                             config.get(
-                                                 'recipient_separator',
-                                                 ';'))  # Default to semicolon
-            message_encoding = kwargs.get(
-                'message_encoding', config.get('message_encoding', 'utf-8'))
+            include_port_in_address = kwargs.get("include_port_in_address", config.get("include_port_in_address", True))
+            recipient_separator = kwargs.get(
+                "recipient_separator", config.get("recipient_separator", ";")
+            )  # Default to semicolon
+            message_encoding = kwargs.get("message_encoding", config.get("message_encoding", "utf-8"))
 
             # Authentication method
-            use_cert_auth = kwargs.get('use_cert_auth',
-                                       config.get('use_cert_auth', False))
+            use_cert_auth = kwargs.get("use_cert_auth", config.get("use_cert_auth", False))
 
             # Sender information
-            sender_email = kwargs.get('sender_email',
-                                      config.get('sender_email'))
-            sender_name = kwargs.get('sender_name',
-                                     config.get('sender_name', ''))
+            sender_email = kwargs.get("sender_email", config.get("sender_email"))
+            sender_name = kwargs.get("sender_name", config.get("sender_name", ""))
 
             # Format sender with name if provided
             formatted_sender = sender_email
-            if (sender_name and sender_name != ''
-                    and '<' not in formatted_sender):
-                formatted_sender = f'{sender_name}<{sender_email}>'
+            if sender_name and sender_name != "" and "<" not in formatted_sender:
+                formatted_sender = f"{sender_name}<{sender_email}>"
 
             # Authentication credentials
-            username = kwargs.get('username',
-                                  config.get('username', sender_email))
+            username = kwargs.get("username", config.get("username", sender_email))
 
             # Recipients and subject
-            recipients = kwargs.get('recipients', config.get('recipients', []))
-            subject = kwargs.get(
-                'subject',
-                config.get('subject', 'Notification from Data Juicer'))
+            recipients = kwargs.get("recipients", config.get("recipients", []))
+            subject = kwargs.get("subject", config.get("subject", "Notification from Data Juicer"))
 
             # Try to get password from environment var first (most secure)
             # Check for service-specific env vars first, then fall back to
@@ -431,7 +401,7 @@ class NotificationMixin:
             password = None
             env_password_keys = [
                 f"DATA_JUICER_{smtp_server.upper().replace('.', '_')}_PASSWORD",  # noqa: E501
-                'DATA_JUICER_EMAIL_PASSWORD'
+                "DATA_JUICER_EMAIL_PASSWORD",
             ]
 
             for env_key in env_password_keys:
@@ -441,87 +411,75 @@ class NotificationMixin:
 
             # Fall back to config if no environment variable is set
             if not password:
-                logger.warning('Email password environment variables not set. '
-                               f'Tried: {", ".join(env_password_keys)}. '
-                               'Falling back to configuration. Consider using '
-                               'environmentvariables for better security.')
-                password = kwargs.get('password', config.get('password'))
+                logger.warning(
+                    "Email password environment variables not set. "
+                    f'Tried: {", ".join(env_password_keys)}. '
+                    "Falling back to configuration. Consider using "
+                    "environmentvariables for better security."
+                )
+                password = kwargs.get("password", config.get("password"))
 
             # Certificate authentication settings
-            client_cert_file = os.environ.get('DATA_JUICER_EMAIL_CERT')
-            client_key_file = os.environ.get('DATA_JUICER_EMAIL_KEY')
+            client_cert_file = os.environ.get("DATA_JUICER_EMAIL_CERT")
+            client_key_file = os.environ.get("DATA_JUICER_EMAIL_KEY")
 
             # Fall back to config if environment variables not set
             if not client_cert_file:
-                client_cert_file = kwargs.get('client_cert_file',
-                                              config.get('client_cert_file'))
+                client_cert_file = kwargs.get("client_cert_file", config.get("client_cert_file"))
             if not client_key_file:
-                client_key_file = kwargs.get('client_key_file',
-                                             config.get('client_key_file'))
+                client_key_file = kwargs.get("client_key_file", config.get("client_key_file"))
 
             # Validate required parameters
             if not smtp_server or not recipients:
-                logger.error(
-                    'Missing required email configuration (server/recipients)')
+                logger.error("Missing required email configuration (server/recipients)")
                 return False
 
             if not use_cert_auth and not (username and password):
-                logger.error(
-                    'Missing credentials for password-based authentication')
+                logger.error("Missing credentials for password-based authentication")
                 return False
 
             if use_cert_auth and (not client_cert_file or not client_key_file):
-                logger.error(
-                    'Missing client certificate or key for authentication')
+                logger.error("Missing client certificate or key for authentication")
                 return False
 
             # Create SSL context for certificate authentication if needed
             context = None
             if use_cert_auth and client_cert_file and client_key_file:
-                logger.info(
-                    'Using TLS client certificate authentication for email')
+                logger.info("Using TLS client certificate authentication for email")
                 context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-                context.load_cert_chain(certfile=client_cert_file,
-                                        keyfile=client_key_file)
+                context.load_cert_chain(certfile=client_cert_file, keyfile=client_key_file)
 
             # Create email message
-            msg = MIMEText(message, 'plain', message_encoding)
-            msg['From'] = formatted_sender
-            msg['To'] = recipient_separator.join(recipients)
-            msg['Subject'] = subject
+            msg = MIMEText(message, "plain", message_encoding)
+            msg["From"] = formatted_sender
+            msg["To"] = recipient_separator.join(recipients)
+            msg["Subject"] = subject
 
             # Determine connection type and send message
             # Port 465 is typically for SMTP over SSL
             if use_ssl or smtp_port == 465:
-                logger.info(
-                    f'Using direct SSL connection to {smtp_server}:{smtp_port}'
-                )
+                logger.info(f"Using direct SSL connection to {smtp_server}:{smtp_port}")
 
                 # Handle different connection string formats
                 server_address = smtp_server
                 if include_port_in_address:
-                    server_address = f'{smtp_server}:{smtp_port}'
+                    server_address = f"{smtp_server}:{smtp_port}"
 
                 # Use the SSL context if certificate authentication is enabled
                 if context:
                     with smtplib.SMTP_SSL(
-                            server_address,
-                            smtp_port if not include_port_in_address else None,
-                            context=context) as server:
+                        server_address, smtp_port if not include_port_in_address else None, context=context
+                    ) as server:
                         # No login needed with client certificates
                         server.send_message(msg)
                 else:
                     # Standard SSL connection with password
-                    with smtplib.SMTP_SSL(
-                            server_address, smtp_port if
-                            not include_port_in_address else None) as server:
+                    with smtplib.SMTP_SSL(server_address, smtp_port if not include_port_in_address else None) as server:
                         server.login(username, password)
-                        server.sendmail(formatted_sender, recipients,
-                                        msg.as_string())
+                        server.sendmail(formatted_sender, recipients, msg.as_string())
             else:
                 # Standard connection with STARTTLS upgrade
-                logger.info(
-                    f'Using STARTTLS connection to {smtp_server}:{smtp_port}')
+                logger.info(f"Using STARTTLS connection to {smtp_server}:{smtp_port}")
 
                 if use_cert_auth and client_cert_file and client_key_file:
                     # Connect with certificate authentication
@@ -538,7 +496,7 @@ class NotificationMixin:
 
             return True
         except Exception as e:
-            logger.error(f'Failed to send email notification: {e}')
+            logger.error(f"Failed to send email notification: {e}")
             return False
 
     def _send_slack_notification(self, message: str, **kwargs):
@@ -557,36 +515,34 @@ class NotificationMixin:
 
             import requests
 
-            config = self.notification_config.get('slack', {})
+            config = self.notification_config.get("slack", {})
 
             # Override config with kwargs if provided
-            webhook_url = kwargs.get('webhook_url', config.get('webhook_url'))
-            channel = kwargs.get('channel', config.get('channel'))
-            username = kwargs.get('username',
-                                  config.get('username', 'Data Juicer'))
+            webhook_url = kwargs.get("webhook_url", config.get("webhook_url"))
+            channel = kwargs.get("channel", config.get("channel"))
+            username = kwargs.get("username", config.get("username", "Data Juicer"))
 
             if not webhook_url:
-                logger.error('Missing required Slack webhook URL')
+                logger.error("Missing required Slack webhook URL")
                 return False
 
             # Prepare payload
             payload = {
-                'text': message,
-                'username': username,
+                "text": message,
+                "username": username,
             }
 
             if channel:
-                payload['channel'] = channel
+                payload["channel"] = channel
 
             # Send notification
             response = requests.post(
-                webhook_url,
-                data=json.dumps(payload),
-                headers={'Content-Type': 'application/json'})
+                webhook_url, data=json.dumps(payload), headers={"Content-Type": "application/json"}
+            )
 
             return response.status_code == 200
         except Exception as e:
-            logger.error(f'Failed to send Slack notification: {e}')
+            logger.error(f"Failed to send Slack notification: {e}")
             return False
 
     def _send_dingtalk_notification(self, message: str, **kwargs):
@@ -610,42 +566,36 @@ class NotificationMixin:
 
             import requests
 
-            config = self.notification_config.get('dingtalk', {})
+            config = self.notification_config.get("dingtalk", {})
 
             # Override config with kwargs if provided
-            access_token = kwargs.get('access_token',
-                                      config.get('access_token'))
-            secret = kwargs.get('secret', config.get('secret'))
+            access_token = kwargs.get("access_token", config.get("access_token"))
+            secret = kwargs.get("secret", config.get("secret"))
 
             if not access_token:
                 import logging
-                logging.error('Missing required DingTalk access token')
+
+                logging.error("Missing required DingTalk access token")
                 return False
 
             # Prepare URL with signature if secret is provided
-            url = f'https://oapi.dingtalk.com/robot/send?access_token={access_token}'  # noqa: E501
+            url = f"https://oapi.dingtalk.com/robot/send?access_token={access_token}"  # noqa: E501
 
             if secret:
                 timestamp = str(round(time.time() * 1000))
-                string_to_sign = f'{timestamp}\n{secret}'
-                hmac_code = hmac.new(secret.encode(),
-                                     string_to_sign.encode(),
-                                     digestmod=hashlib.sha256).digest()
-                sign = urllib.parse.quote_plus(
-                    base64.b64encode(hmac_code).decode())
-                url = f'{url}&timestamp={timestamp}&sign={sign}'
+                string_to_sign = f"{timestamp}\n{secret}"
+                hmac_code = hmac.new(secret.encode(), string_to_sign.encode(), digestmod=hashlib.sha256).digest()
+                sign = urllib.parse.quote_plus(base64.b64encode(hmac_code).decode())
+                url = f"{url}&timestamp={timestamp}&sign={sign}"
 
             # Prepare payload
-            payload = {'msgtype': 'text', 'text': {'content': message}}
+            payload = {"msgtype": "text", "text": {"content": message}}
 
             # Send notification
-            response = requests.post(
-                url,
-                data=json.dumps(payload),
-                headers={'Content-Type': 'application/json'})
+            response = requests.post(url, data=json.dumps(payload), headers={"Content-Type": "application/json"})
 
             result = response.json()
-            return result.get('errcode') == 0
+            return result.get("errcode") == 0
         except Exception as e:
-            logger.error(f'Failed to send DingTalk notification: {e}')
+            logger.error(f"Failed to send DingTalk notification: {e}")
             return False

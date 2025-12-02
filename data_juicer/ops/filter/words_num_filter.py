@@ -4,28 +4,35 @@ from data_juicer.utils.constant import Fields, InterVars, StatsKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, Filter
-from ..common import (SPECIAL_CHARACTERS, get_words_from_document,
-                      words_refinement)
+from ..common import SPECIAL_CHARACTERS, get_words_from_document, words_refinement
 from ..op_fusion import INTER_WORDS
 
-OP_NAME = 'words_num_filter'
+OP_NAME = "words_num_filter"
 
 
 @OPERATORS.register_module(OP_NAME)
 @INTER_WORDS.register_module(OP_NAME)
 class WordsNumFilter(Filter):
-    """Filter to keep samples with total words number within a specific
-    range."""
+    """Filter to keep samples with a total word count within a specified range.
+
+    This operator filters samples based on the number of words they contain. It retains
+    samples if their word count is within the given minimum and maximum limits. If
+    tokenization is enabled, it uses a Hugging Face tokenizer to count words. The key metric
+    `num_words` is computed and stored in the sample's stats under the `num_words` field. If
+    the word count is already cached, it reuses the cached value to avoid redundant
+    computation."""
 
     _batched_op = True
 
-    def __init__(self,
-                 lang: str = 'en',
-                 tokenization: bool = False,
-                 min_num: int = 10,
-                 max_num: int = sys.maxsize,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        lang: str = "en",
+        tokenization: bool = False,
+        min_num: int = 10,
+        max_num: int = sys.maxsize,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -47,13 +54,12 @@ class WordsNumFilter(Filter):
         self.lang = lang
 
         if tokenization:
-            self.model_key = prepare_model(model_type='sentencepiece',
-                                           lang=lang)
+            self.model_key = prepare_model(model_type="sentencepiece", lang=lang)
 
     def compute_stats_batched(self, samples, context=False):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
-        words_key = f'{InterVars.words}-{self.model_key}'
+        words_key = f"{InterVars.words}-{self.model_key}"
 
         for idx, stat in enumerate(samples_stats):
             # check if it's computed already
@@ -64,9 +70,8 @@ class WordsNumFilter(Filter):
             else:
                 tokenizer = get_model(self.model_key)
                 words = get_words_from_document(
-                    samples_list[idx],
-                    token_func=tokenizer.encode_as_pieces
-                    if tokenizer else None)
+                    samples_list[idx], token_func=tokenizer.encode_as_pieces if tokenizer else None
+                )
                 if context:
                     samples[Fields.context][idx][words_key] = words
             words = words_refinement(words, strip_chars=SPECIAL_CHARACTERS)
@@ -75,14 +80,8 @@ class WordsNumFilter(Filter):
         return samples
 
     def process_batched(self, samples):
-        if isinstance(samples[Fields.stats], list):
-            return map(
-                lambda stat: self.min_num <= stat[StatsKeys.num_words] <= self.
-                max_num, samples[Fields.stats])
-        else:
-            # single sample for ray filter
-            if self.min_num <= samples[Fields.stats][
-                    StatsKeys.num_words] <= self.max_num:
-                return True
-            else:
-                return False
+        assert isinstance(samples[Fields.stats], list)
+        return map(
+            lambda stat: self.get_keep_boolean(stat[StatsKeys.num_words], self.min_num, self.max_num),
+            samples[Fields.stats],
+        )

@@ -27,7 +27,7 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
 
     def test_one_batched_sample(self):
 
-        source = [
+        ds_list = [
             {
                 'text':[
                     "Today is Sunday and it's a happy day!",
@@ -38,7 +38,7 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
             }
         ]
 
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -53,12 +53,12 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
         ]
 
         op = NaiveReverseGrouper()
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
 
     def test_two_batch_sample(self):
 
-        source = [
+        ds_list = [
             {
                 'text':[
                     "Today is Sunday and it's a happy day!",
@@ -73,7 +73,7 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
             }
         ]
 
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -88,10 +88,10 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
         ]
 
         op = NaiveReverseGrouper()
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
     
     def test_rm_unbatched_keys1(self):
-        source = [
+        ds_list = [
             {
                 'text':[
                     "Today is Sunday and it's a happy day!",
@@ -102,7 +102,7 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
             }
         ]
 
-        target = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -114,10 +114,10 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
         ]
 
         op = NaiveReverseGrouper()
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
     def test_rm_unbatched_keys2(self):
-        source = [
+        ds_list = [
             {
                 'text':[
                     '欢迎来到阿里巴巴！'
@@ -180,7 +180,7 @@ class NaiveReverseGrouperTest(DataJuicerTestCaseBase):
 
         export_path = '__dj__naive_reverse_grouper_test_file.jsonl'
         op = NaiveReverseGrouper(export_path)
-        self._run_helper(op, source, target,
+        self._run_helper(op, ds_list, target,
             meta_target=target_meta,
             meta_path=export_path)
 

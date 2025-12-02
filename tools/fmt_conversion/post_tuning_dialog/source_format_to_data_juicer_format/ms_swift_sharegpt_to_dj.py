@@ -50,48 +50,46 @@ from tqdm import tqdm
 
 def ms_swift_sharegpt_to_dj(
     sample,
-    conversation_key: str = 'conversation',
-    human_key: str = 'human',
-    assistant_key: str = 'assistant',
-    system_key: str = 'system',
-    instruction_key: str = 'instruction',
+    conversation_key: str = "conversation",
+    human_key: str = "human",
+    assistant_key: str = "assistant",
+    system_key: str = "system",
+    instruction_key: str = "instruction",
     multimodal_keys: Union[str, List[str]] = None,
 ):
     modified_keys = {conversation_key, system_key, instruction_key}
     if multimodal_keys:
         modified_keys = modified_keys.union(set(multimodal_keys))
-    new_sample = {
-        key: sample[key]
-        for key in sample if key not in modified_keys
-    }
+    new_sample = {key: sample[key] for key in sample if key not in modified_keys}
 
     # find system prompt and instruction
     if system_key in sample:
-        new_sample['system'] = sample[system_key]
+        new_sample["system"] = sample[system_key]
     if instruction_key in sample:
-        new_sample['instruction'] = sample[instruction_key]
+        new_sample["instruction"] = sample[instruction_key]
 
     # conversations to query, response, history
     conversation = sample[conversation_key]
     # reconstruct conversations
     conv_num = len(conversation)
     if conv_num == 0:
-        query = ''
-        response = ''
+        query = ""
+        response = ""
         history = []
     else:
         # the last 1 sentence is query and response is empty
         query = conversation[-1][human_key]
         response = conversation[-1][assistant_key]
-        history = [[conv[human_key], conv[assistant_key]]
-                   for conv in conversation[:-1]]
+        history = [[conv[human_key], conv[assistant_key]] for conv in conversation[:-1]]
 
     # get the result sample
-    new_sample.update({
-        'query': query,
-        'response': response,
-        'history': history,
-    })
+    new_sample.update(
+        {
+            "query": query,
+            "response": response,
+            "history": history,
+        }
+    )
 
     # update multimodal data
     if multimodal_keys:
@@ -108,11 +106,11 @@ def ms_swift_sharegpt_to_dj(
 def main(
     src_ds_path: str,
     tgt_ds_path: str,
-    conversation_key: str = 'conversation',
-    human_key: str = 'human',
-    assistant_key: str = 'assistant',
-    system_key: str = 'system',
-    instruction_key: str = 'instruction',
+    conversation_key: str = "conversation",
+    human_key: str = "human",
+    assistant_key: str = "assistant",
+    system_key: str = "system",
+    instruction_key: str = "instruction",
     multimodal_keys: Union[str, List[str]] = None,
 ):
     """
@@ -132,25 +130,22 @@ def main(
     # check arguments
     # check paths
     if not os.path.exists(src_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{src_ds_path}] can not be found.')
-    if not tgt_ds_path.endswith('.jsonl'):
+        raise FileNotFoundError(f"Input dataset [{src_ds_path}] can not be found.")
+    if not tgt_ds_path.endswith(".jsonl"):
         raise ValueError('Only support "jsonl" target dataset file now.')
-    if os.path.dirname(tgt_ds_path) \
-            and not os.path.exists(os.path.dirname(tgt_ds_path)):
-        logger.info(f'Create directory [{os.path.dirname(tgt_ds_path)}] '
-                    f'for the target dataset.')
+    if os.path.dirname(tgt_ds_path) and not os.path.exists(os.path.dirname(tgt_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(tgt_ds_path)}] " f"for the target dataset.")
         os.makedirs(os.path.dirname(tgt_ds_path))
 
     if isinstance(multimodal_keys, str):
         multimodal_keys = [multimodal_keys]
 
     # load dataset
-    logger.info('Loading original dataset.')
-    src_ds = json.load(open(src_ds_path, 'r', encoding='utf-8'))
-    logger.info(f'Load [{len(src_ds)}] samples.')
+    logger.info("Loading original dataset.")
+    src_ds = json.load(open(src_ds_path, "r", encoding="utf-8"))
+    logger.info(f"Load [{len(src_ds)}] samples.")
 
-    with jl.open(tgt_ds_path, 'w') as writer:
+    with jl.open(tgt_ds_path, "w") as writer:
         for sample in tqdm(src_ds):
             converted_sample = ms_swift_sharegpt_to_dj(
                 sample,
@@ -159,10 +154,11 @@ def main(
                 assistant_key=assistant_key,
                 system_key=system_key,
                 instruction_key=instruction_key,
-                multimodal_keys=multimodal_keys)
+                multimodal_keys=multimodal_keys,
+            )
             writer.write(converted_sample)
-    logger.info(f'Store the target dataset into [{tgt_ds_path}].')
+    logger.info(f"Store the target dataset into [{tgt_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

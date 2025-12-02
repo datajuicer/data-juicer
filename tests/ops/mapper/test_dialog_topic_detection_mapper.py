@@ -4,9 +4,10 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.dialog_topic_detection_mapper import DialogTopicDetectionMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
 from data_juicer.utils.constant import Fields, MetaKeys
 
+@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
 class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
     # before running this test, set below environment variables:
     # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1

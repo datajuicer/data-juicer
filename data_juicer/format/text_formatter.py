@@ -21,9 +21,9 @@ def extract_txt_from_docx(fn, tgt_path):
     """
     doc = Document(fn)
     text = [para.text for para in doc.paragraphs if para.text.strip()]
-    base_fn = os.path.basename(fn).lower().replace('.docx', '.txt')
-    with open(os.path.join(tgt_path, base_fn), 'w') as f:
-        f.write('\n'.join(text))
+    base_fn = os.path.basename(fn).lower().replace(".docx", ".txt")
+    with open(os.path.join(tgt_path, base_fn), "w") as f:
+        f.write("\n".join(text))
 
 
 def extract_txt_from_pdf(fn, tgt_path):
@@ -44,12 +44,12 @@ def extract_txt_from_pdf(fn, tgt_path):
             page_text = page.extract_text()
             page_num = str(page.page_number)
             if page_text.rstrip().endswith(page_num):
-                page_text = page_text.rstrip()[:-len(page_num)]
+                page_text = page_text.rstrip()[: -len(page_num)]
             if page_text.strip():
                 text.append(page_text)
-        base_fn = os.path.basename(fn).lower().replace('.pdf', '.txt')
-        with open(os.path.join(tgt_path, base_fn), 'w') as f:
-            f.write('\n'.join(text))
+        base_fn = os.path.basename(fn).lower().replace(".pdf", ".txt")
+        with open(os.path.join(tgt_path, base_fn), "w") as f:
+            f.write("\n".join(text))
 
 
 @FORMATTERS.register_module()
@@ -61,22 +61,78 @@ class TextFormatter(LocalFormatter):
     """
 
     SUFFIXES = [
-        '.docx', '.pdf', '.txt', '.md', '.tex', '.asm', '.bat', '.cmd', '.c',
-        '.h', '.cs', '.cpp', '.hpp', '.c++', '.h++', '.cc', '.hh', '.C', '.H',
-        '.cmake', '.css', '.dockerfile', '.f90', '.f', '.f03', '.f08', '.f77',
-        '.f95', '.for', '.fpp', '.go', '.hs', '.html', '.java', '.js', '.jl',
-        '.lua', '.markdown', '.php', '.php3', '.php4', '.php5', '.phps',
-        '.phpt', '.pl', '.pm', '.pod', '.perl', '.ps1', '.psd1', '.psm1',
-        '.py', '.rb', '.rs', '.sql', '.scala', '.sh', '.bash', '.command',
-        '.zsh', '.ts', '.tsx', '.vb', 'Dockerfile', 'Makefile', '.xml', '.rst',
-        '.m', '.smali'
+        ".docx",
+        ".pdf",
+        ".txt",
+        ".md",
+        ".tex",
+        ".asm",
+        ".bat",
+        ".cmd",
+        ".c",
+        ".h",
+        ".cs",
+        ".cpp",
+        ".hpp",
+        ".c++",
+        ".h++",
+        ".cc",
+        ".hh",
+        ".C",
+        ".H",
+        ".cmake",
+        ".css",
+        ".dockerfile",
+        ".f90",
+        ".f",
+        ".f03",
+        ".f08",
+        ".f77",
+        ".f95",
+        ".for",
+        ".fpp",
+        ".go",
+        ".hs",
+        ".html",
+        ".java",
+        ".js",
+        ".jl",
+        ".lua",
+        ".markdown",
+        ".php",
+        ".php3",
+        ".php4",
+        ".php5",
+        ".phps",
+        ".phpt",
+        ".pl",
+        ".pm",
+        ".pod",
+        ".perl",
+        ".ps1",
+        ".psd1",
+        ".psm1",
+        ".py",
+        ".rb",
+        ".rs",
+        ".sql",
+        ".scala",
+        ".sh",
+        ".bash",
+        ".command",
+        ".zsh",
+        ".ts",
+        ".tsx",
+        ".vb",
+        "Dockerfile",
+        "Makefile",
+        ".xml",
+        ".rst",
+        ".m",
+        ".smali",
     ]
 
-    def __init__(self,
-                 dataset_path,
-                 suffixes=None,
-                 add_suffix=False,
-                 **kwargs):
+    def __init__(self, dataset_path, suffixes=None, add_suffix=False, **kwargs):
         """
         Initialization method.
 
@@ -89,7 +145,7 @@ class TextFormatter(LocalFormatter):
         super().__init__(
             dataset_path=dataset_path,
             suffixes=suffixes if suffixes else self.SUFFIXES,
-            type='text',
+            type="text",
             add_suffix=add_suffix,
             **kwargs,
         )
@@ -106,54 +162,46 @@ class TextFormatter(LocalFormatter):
         """
         # extract text to cache directory
         extracted_dataset_path = os.path.join(
-            DATA_JUICER_CACHE_HOME,
-            os.path.basename(os.path.abspath(self.dataset_path)))
+            DATA_JUICER_CACHE_HOME, os.path.basename(os.path.abspath(self.dataset_path))
+        )
 
         for file_type in self.data_files:
-
             # extract text from docx or pdf files, and save as txt type
-            if file_type == '.docx' or file_type == '.pdf':
-                extracted_filetype_path = os.path.join(extracted_dataset_path,
-                                                       file_type.strip('.'))
+            if file_type == ".docx" or file_type == ".pdf":
+                extracted_filetype_path = os.path.join(extracted_dataset_path, file_type.strip("."))
                 if not os.path.exists(extracted_filetype_path):
                     os.makedirs(extracted_filetype_path)
-                logger.info('Extracting text from {} files...'.format(
-                    file_type.strip('.')))
+                logger.info("Extracting text from {} files...".format(file_type.strip(".")))
 
-                extract_func = extract_txt_from_docx \
-                    if file_type == '.docx' else extract_txt_from_pdf
+                extract_func = extract_txt_from_docx if file_type == ".docx" else extract_txt_from_pdf
                 pool = Pool(num_proc)
                 for data_file in self.data_files[file_type]:
-                    pool.apply_async(func=extract_func,
-                                     args=(
-                                         data_file,
-                                         extracted_filetype_path,
-                                     ))
+                    pool.apply_async(
+                        func=extract_func,
+                        args=(
+                            data_file,
+                            extracted_filetype_path,
+                        ),
+                    )
                 pool.close()
                 pool.join()
-                logger.info(f'Extracted text files are stored in directory '
-                            f'{extracted_filetype_path}')
+                logger.info(f"Extracted text files are stored in directory " f"{extracted_filetype_path}")
 
                 # look for extracted txt files
-                self.data_files[file_type] = find_files_with_suffix(
-                    extracted_filetype_path, '.txt')['.txt']
+                self.data_files[file_type] = find_files_with_suffix(extracted_filetype_path, ".txt")[".txt"]
 
         # load text dataset, one text file as one sample
-        datasets = load_dataset('text',
-                                data_files={
-                                    key.strip('.'): self.data_files[key]
-                                    for key in self.data_files
-                                },
-                                sample_by='document',
-                                num_proc=num_proc,
-                                **self.kwargs)
+        datasets = load_dataset(
+            "text",
+            data_files={key.strip("."): self.data_files[key] for key in self.data_files},
+            sample_by="document",
+            num_proc=num_proc,
+            **self.kwargs,
+        )
         # whether to add file suffix to dataset meta info
         if self.add_suffix:
-            logger.info('Add suffix info into dataset...')
+            logger.info("Add suffix info into dataset...")
             datasets = add_suffixes(datasets, num_proc)
         else:
             datasets = concatenate_datasets([ds for _, ds in datasets.items()])
-        return unify_format(datasets,
-                            text_keys=self.text_keys,
-                            num_proc=num_proc,
-                            global_cfg=global_cfg)
+        return unify_format(datasets, text_keys=self.text_keys, num_proc=num_proc, global_cfg=global_cfg)

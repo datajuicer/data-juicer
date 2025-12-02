@@ -10,6 +10,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class NlpaugEnMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
+
         self.samples = Dataset.from_dict({
             'text': [
                 'I am a deep learning engineer. I love LLM.',

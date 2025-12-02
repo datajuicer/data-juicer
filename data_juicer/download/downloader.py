@@ -12,8 +12,10 @@ import requests
 from bs4 import BeautifulSoup
 from datasets import Dataset
 
-from data_juicer.utils.file_utils import (read_single_partition,
-                                          single_partition_write_with_filename)
+from data_juicer.utils.file_utils import (
+    read_single_partition,
+    single_partition_write_with_filename,
+)
 
 
 class DocumentDownloader(ABC):
@@ -52,22 +54,22 @@ class DocumentExtractor(ABC):
         pass
 
 
-def _download_and_extract_single_partition(paths: Tuple[str, str],
-                                           downloader: DocumentDownloader,
-                                           iterator: DocumentIterator,
-                                           extractor: DocumentExtractor,
-                                           output_type: str,
-                                           keep_raw_download: bool,
-                                           force_download: bool,
-                                           input_meta: Union[str, dict] = None,
-                                           meta: Union[str, dict] = None,
-                                           item_limit=None) -> pd.DataFrame:
+def _download_and_extract_single_partition(
+    paths: Tuple[str, str],
+    downloader: DocumentDownloader,
+    iterator: DocumentIterator,
+    extractor: DocumentExtractor,
+    output_type: str,
+    keep_raw_download: bool,
+    force_download: bool,
+    input_meta: Union[str, dict] = None,
+    meta: Union[str, dict] = None,
+    item_limit=None,
+) -> pd.DataFrame:
     url, output_path = paths
 
     if os.path.exists(output_path) and not force_download:
-        partition = read_single_partition([output_path],
-                                          filetype=output_type,
-                                          add_filename=True)
+        partition = read_single_partition([output_path], filetype=output_type, add_filename=True)
         return partition
 
     downloaded_file = downloader.download(url)
@@ -85,7 +87,7 @@ def _download_and_extract_single_partition(paths: Tuple[str, str],
             text_meta, text = extracted
             if text is not None:
                 line = {
-                    'text': text,
+                    "text": text,
                     **text_meta,
                     **record_meta,
                 }
@@ -94,27 +96,27 @@ def _download_and_extract_single_partition(paths: Tuple[str, str],
     partition = pd.DataFrame(records)
     filename = os.path.basename(output_path)
     output_dir = os.path.dirname(output_path)
-    partition['filename'] = filename
-    single_partition_write_with_filename(partition,
-                                         output_dir,
-                                         output_type=output_type)
+    partition["filename"] = filename
+    single_partition_write_with_filename(partition, output_dir, output_type=output_type)
     if not keep_raw_download:
         os.remove(downloaded_file)
 
     return partition
 
 
-def download_and_extract(urls: List[str],
-                         output_paths: List[str],
-                         downloader: DocumentDownloader,
-                         iterator: DocumentIterator,
-                         extractor: DocumentExtractor,
-                         output_format: dict,
-                         output_type: str = 'jsonl',
-                         keep_raw_download=False,
-                         force_download=False,
-                         input_meta: Union[str, dict] = None,
-                         item_limit=None) -> Dataset:
+def download_and_extract(
+    urls: List[str],
+    output_paths: List[str],
+    downloader: DocumentDownloader,
+    iterator: DocumentIterator,
+    extractor: DocumentExtractor,
+    output_format: dict,
+    output_type: str = "jsonl",
+    keep_raw_download=False,
+    force_download=False,
+    input_meta: Union[str, dict] = None,
+    item_limit=None,
+) -> Dataset:
     """
     Downloads and extracts a dataset
 
@@ -138,32 +140,33 @@ def download_and_extract(urls: List[str],
       A HuggingFace DataSet of the downloaded data
     """  # noqa: E501
     if len(urls) == 0:
-        raise ValueError('No urls were provided to download')
+        raise ValueError("No urls were provided to download")
 
     if len(urls) != len(output_paths):
         raise ValueError(
-            f'Different number of urls and output_paths. '
-            f'{len(urls)} urls vs {len(output_paths)} output_paths')
+            f"Different number of urls and output_paths. " f"{len(urls)} urls vs {len(output_paths)} output_paths"
+        )
 
     output_format = dict(sorted(output_format.items()))
-    part = partial(_download_and_extract_single_partition,
-                   downloader=downloader,
-                   iterator=iterator,
-                   extractor=extractor,
-                   output_type=output_type,
-                   keep_raw_download=keep_raw_download,
-                   force_download=force_download,
-                   input_meta=input_meta,
-                   meta=output_format,
-                   item_limit=item_limit)
-    combined_df = pd.concat(map(part, zip(urls,
-                                          output_paths)))  # list of DataFrames
+    part = partial(
+        _download_and_extract_single_partition,
+        downloader=downloader,
+        iterator=iterator,
+        extractor=extractor,
+        output_type=output_type,
+        keep_raw_download=keep_raw_download,
+        force_download=force_download,
+        input_meta=input_meta,
+        meta=output_format,
+        item_limit=item_limit,
+    )
+    combined_df = pd.concat(map(part, zip(urls, output_paths)))  # list of DataFrames
     return Dataset.from_pandas(combined_df)
 
 
 def get_wikipedia_urls(
-    language='en',
-    wikidumps_index_prefix='https://dumps.wikimedia.org',
+    language="en",
+    wikidumps_index_prefix="https://dumps.wikimedia.org",
     dump_date: Optional[str] = None,
 ) -> List[str]:
     """
@@ -175,33 +178,33 @@ def get_wikipedia_urls(
         dump_date: A string formatted as "YYYYMMDD" for the wikipedia dump to use.
           If None, latest dump is used.
     """  # noqa: E501
-    wiki_index_url = urljoin(wikidumps_index_prefix, f'{language}wiki')
+    wiki_index_url = urljoin(wikidumps_index_prefix, f"{language}wiki")
     if not dump_date:
         # First get the index
         raw_wiki_index = requests.get(wiki_index_url)
-        wiki_index = raw_wiki_index.content.decode('utf-8')
-        wiki_index_parsed = BeautifulSoup(wiki_index, 'lxml')
+        wiki_index = raw_wiki_index.content.decode("utf-8")
+        wiki_index_parsed = BeautifulSoup(wiki_index, "lxml")
 
         # Get all dumps available in the index
-        dumps = wiki_index_parsed.find_all('a')
+        dumps = wiki_index_parsed.find_all("a")
         dump_date = dumps[-2].text
     else:
         # A trailing / is needed for the url
-        dump_date = dump_date + '/'
+        dump_date = dump_date + "/"
 
     # Get the json dump data
-    wiki_latest_dump = urljoin(wiki_index_url + '/', dump_date)
-    wiki_latest_dump_status = urljoin(wiki_latest_dump, 'dumpstatus.json')
+    wiki_latest_dump = urljoin(wiki_index_url + "/", dump_date)
+    wiki_latest_dump_status = urljoin(wiki_latest_dump, "dumpstatus.json")
     raw_dump_data = requests.get(wiki_latest_dump_status)
     try:
         dump_data = json.loads(raw_dump_data.content)
     except json.decoder.JSONDecodeError:
-        raise ValueError(f'No wikipedia dump found for {dump_date[:-1]}')
+        raise ValueError(f"No wikipedia dump found for {dump_date[:-1]}")
 
     # Get all multistream files within the dump data
     wikipedia_urls = []
-    for ifile in dump_data['jobs']['articlesmultistreamdump']['files']:
-        if 'xml' in ifile:
+    for ifile in dump_data["jobs"]["articlesmultistreamdump"]["files"]:
+        if "xml" in ifile:
             url = urljoin(wiki_latest_dump, ifile)
             wikipedia_urls.append(url)
 
@@ -209,15 +212,11 @@ def get_wikipedia_urls(
 
 
 def get_arxiv_urls():
-    command =\
-        "s5cmd --request-payer=requester ls s3://arxiv/src/ | grep '.tar'"
-    result = subprocess.run(command,
-                            capture_output=True,
-                            text=True,
-                            shell=True)
+    command = "s5cmd --request-payer=requester ls s3://arxiv/src/ | grep '.tar'"
+    result = subprocess.run(command, capture_output=True, text=True, shell=True)
 
     if result.returncode != 0:
-        raise RuntimeError(f'Unable to get arxiv urls: {result.stderr}')
+        raise RuntimeError(f"Unable to get arxiv urls: {result.stderr}")
 
     urls = result.stdout.split()[3::4]
     urls.sort()
@@ -239,25 +238,23 @@ def validate_snapshot_format(snapshot: Optional[str]) -> None:
         return
 
     # Check basic format with regex
-    pattern = r'^\d{4}-\d{2}$'
+    pattern = r"^\d{4}-\d{2}$"
     if not re.match(pattern, snapshot):
-        raise ValueError(f'Invalid snapshot format: {snapshot}. '
-                         "Expected format: 'YYYY-WW' (e.g., '2020-50')")
+        raise ValueError(f"Invalid snapshot format: {snapshot}. " "Expected format: 'YYYY-WW' (e.g., '2020-50')")
 
     # Parse year and week
     try:
-        year, week = map(int, snapshot.split('-'))
+        year, week = map(int, snapshot.split("-"))
 
         # Validate year
         if not (2000 <= year <= 2100):  # Reasonable year range
-            raise ValueError(f'Year must be between 2000 and 2100, got {year}')
+            raise ValueError(f"Year must be between 2000 and 2100, got {year}")
 
         # Validate week number (1-53)
         if not (1 <= week <= 53):
-            raise ValueError(f'Week must be between 1 and 53, got {week}')
+            raise ValueError(f"Week must be between 1 and 53, got {week}")
 
     except ValueError as e:
-        if str(e).startswith('Week') or str(e).startswith('Year'):
+        if str(e).startswith("Week") or str(e).startswith("Year"):
             raise
-        raise ValueError(f'Invalid snapshot format: {snapshot}. '
-                         "Expected format: 'YYYY-WW' (e.g., '2020-50')")
+        raise ValueError(f"Invalid snapshot format: {snapshot}. " "Expected format: 'YYYY-WW' (e.g., '2020-50')")

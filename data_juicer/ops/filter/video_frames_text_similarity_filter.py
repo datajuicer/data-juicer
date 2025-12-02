@@ -3,41 +3,56 @@ from PIL import ImageOps
 from pydantic import PositiveInt
 
 from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.mm_utils import (SpecialTokens, close_video,
-                                        extract_key_frames,
-                                        extract_video_frames_uniformly,
-                                        load_data_with_context, load_video,
-                                        remove_special_tokens)
+from data_juicer.utils.mm_utils import (
+    SpecialTokens,
+    close_video,
+    extract_key_frames,
+    extract_video_frames_uniformly,
+    load_data_with_context,
+    load_video,
+    remove_special_tokens,
+)
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, Filter
 from ..op_fusion import INTER_SAMPLED_FRAMES, LOADED_VIDEOS
 
-OP_NAME = 'video_frames_text_similarity_filter'
+OP_NAME = "video_frames_text_similarity_filter"
 
 
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 @INTER_SAMPLED_FRAMES.register_module(OP_NAME)
 class VideoFramesTextSimilarityFilter(Filter):
-    """Filter to keep samples those similarities between sampled video frame
-    images and text within a specific range."""
+    """Filter to keep samples based on the similarity between video frame images and text
+    within a specific range.
 
-    _accelerator = 'cuda'
+    This operator uses a Hugging Face CLIP model to compute the similarity between video
+    frames and associated text. It keeps samples where the computed similarity scores fall
+    within a specified range. The operator supports different frame sampling methods,
+    including 'all_keyframes' and 'uniform', and allows for horizontal and vertical flipping
+    of the frames. The similarity score is reduced using one of three modes: 'avg', 'max',
+    or 'min'. The operator also supports two strategies for keeping samples: 'any' (keep if
+    any video meets the condition) or 'all' (keep only if all videos meet the condition).
+    The key metric is stored in the 'video_frames_text_similarity' field."""
 
-    def __init__(self,
-                 hf_clip='openai/clip-vit-base-patch32',
-                 trust_remote_code=False,
-                 min_score: float = 0.1,
-                 max_score: float = 1.0,
-                 frame_sampling_method: str = 'all_keyframes',
-                 frame_num: PositiveInt = 3,
-                 horizontal_flip: bool = False,
-                 vertical_flip: bool = False,
-                 any_or_all: str = 'any',
-                 reduce_mode: str = 'avg',
-                 *args,
-                 **kwargs):
+    _accelerator = "cuda"
+
+    def __init__(
+        self,
+        hf_clip="openai/clip-vit-base-patch32",
+        trust_remote_code=False,
+        min_score: float = 0.1,
+        max_score: float = 1.0,
+        frame_sampling_method: str = "all_keyframes",
+        frame_num: PositiveInt = 3,
+        horizontal_flip: bool = False,
+        vertical_flip: bool = False,
+        any_or_all: str = "any",
+        reduce_mode: str = "avg",
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -45,6 +60,7 @@ class VideoFramesTextSimilarityFilter(Filter):
             the similarity between frame image and text. It's kind of
             language-related. For example, for Chinese datasets, ChineseCLIP
             might be a better choice.
+        :param trust_remote_code: whether to trust the remote code of HF models.
         :param min_score: the min similarity to keep samples.
         :param max_score: the max similarity to keep samples.
         :param frame_sampling_method: sampling method of extracting frame
@@ -74,34 +90,35 @@ class VideoFramesTextSimilarityFilter(Filter):
         :param args: extra args
         :param kwargs: extra args
         """
-        kwargs.setdefault('mem_required', '1500MB')
+        kwargs["mem_required"] = "1500MB" if kwargs.get("mem_required", 0) == 0 else kwargs["mem_required"]
         super().__init__(*args, **kwargs)
         self.min_score = min_score
         self.max_score = max_score
-        if frame_sampling_method not in ['all_keyframes', 'uniform']:
+        if frame_sampling_method not in ["all_keyframes", "uniform"]:
             raise ValueError(
-                f'Frame sampling method '
-                f'[{frame_sampling_method}] is not supported. '
-                f'Can only be one of ["all_keyframes", "uniform"].')
-        if reduce_mode not in ['avg', 'max', 'min']:
-            raise ValueError(f'Reduce mode [{reduce_mode}] is not supported. '
-                             f'Can only be one of ["avg", "max", "min"].')
-        if any_or_all not in ['any', 'all']:
-            raise ValueError(f'Keep strategy [{any_or_all}] is not supported. '
-                             f'Can only be one of ["any", "all"].')
-        self.any = (any_or_all == 'any')
-        self.model_key = prepare_model(model_type='huggingface',
-                                       pretrained_model_name_or_path=hf_clip,
-                                       trust_remote_code=trust_remote_code)
+                f"Frame sampling method "
+                f"[{frame_sampling_method}] is not supported. "
+                f'Can only be one of ["all_keyframes", "uniform"].'
+            )
+        if reduce_mode not in ["avg", "max", "min"]:
+            raise ValueError(
+                f"Reduce mode [{reduce_mode}] is not supported. " f'Can only be one of ["avg", "max", "min"].'
+            )
+        if any_or_all not in ["any", "all"]:
+            raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
+        self.any = any_or_all == "any"
+        self.model_key = prepare_model(
+            model_type="huggingface", pretrained_model_name_or_path=hf_clip, trust_remote_code=trust_remote_code
+        )
         self.reduce_mode = reduce_mode
         self.horizontal_flip = horizontal_flip
         self.vertical_flip = vertical_flip
         self.frame_sampling_method = frame_sampling_method
         self.frame_num = frame_num
 
-        self.sampled_frames_key_suffix = f'-{frame_sampling_method}' + \
-            ('' if frame_sampling_method == 'all_keyframes'
-             else f'-{frame_num}')
+        self.sampled_frames_key_suffix = f"-{frame_sampling_method}" + (
+            "" if frame_sampling_method == "all_keyframes" else f"-{frame_num}"
+        )
 
     def compute_stats_single(self, sample, rank=None, context=False):
         # check if it's computed already
@@ -110,15 +127,12 @@ class VideoFramesTextSimilarityFilter(Filter):
 
         # there is no videos in this sample
         if self.video_key not in sample or not sample[self.video_key]:
-            sample[Fields.stats][
-                StatsKeys.video_frames_text_similarity] = np.array(
-                    [], dtype=np.float64)
+            sample[Fields.stats][StatsKeys.video_frames_text_similarity] = np.array([], dtype=np.float64)
             return sample
 
         # load videos
         loaded_video_keys = sample[self.video_key]
-        sample, videos = load_data_with_context(sample, context,
-                                                loaded_video_keys, load_video)
+        sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
 
         text = sample[self.text_key]
         offset = 0
@@ -134,22 +148,19 @@ class VideoFramesTextSimilarityFilter(Filter):
             else:
                 text_chunk = remove_special_tokens(chunk)
                 video_frame_images_chunk = []
-                for video_key in loaded_video_keys[offset:offset + count]:
+                for video_key in loaded_video_keys[offset : offset + count]:
                     video = videos[video_key]
-                    sampled_frames_key = video_key + \
-                        self.sampled_frames_key_suffix
+                    sampled_frames_key = video_key + self.sampled_frames_key_suffix
 
                     # extract frame images
-                    if context and sampled_frames_key in sample[
-                            Fields.context]:
+                    if context and sampled_frames_key in sample[Fields.context]:
                         # context hit
                         frames = sample[Fields.context][sampled_frames_key]
                     else:
-                        if self.frame_sampling_method == 'all_keyframes':
+                        if self.frame_sampling_method == "all_keyframes":
                             frames = extract_key_frames(video)
-                        elif self.frame_sampling_method == 'uniform':
-                            frames = extract_video_frames_uniformly(
-                                video, self.frame_num)
+                        elif self.frame_sampling_method == "uniform":
+                            frames = extract_video_frames_uniformly(video, self.frame_num)
                         else:
                             frames = []
 
@@ -166,20 +177,21 @@ class VideoFramesTextSimilarityFilter(Filter):
                         video_frame_images_chunk.append(image)
 
                 if len(video_frame_images_chunk) > 0:
-                    inputs = processor(text=text_chunk,
-                                       images=video_frame_images_chunk,
-                                       return_tensors='pt',
-                                       truncation=True,
-                                       max_length=model.config.text_config.
-                                       max_position_embeddings,
-                                       padding=True).to(model.device)
+                    inputs = processor(
+                        text=text_chunk,
+                        images=video_frame_images_chunk,
+                        return_tensors="pt",
+                        truncation=True,
+                        max_length=model.config.text_config.max_position_embeddings,
+                        padding=True,
+                    ).to(model.device)
 
                     outputs = model(**inputs)
                     chunk_logits = outputs.logits_per_text / 100.0
 
-                    if self.reduce_mode == 'avg':
+                    if self.reduce_mode == "avg":
                         chunk_similarity = chunk_logits.mean()
-                    elif self.reduce_mode == 'max':
+                    elif self.reduce_mode == "max":
                         chunk_similarity = chunk_logits.max()
                     else:
                         chunk_similarity = chunk_logits.min()
@@ -188,8 +200,7 @@ class VideoFramesTextSimilarityFilter(Filter):
 
                 similarity.append(float(chunk_similarity))
             offset += count
-        sample[Fields.stats][
-            StatsKeys.video_frames_text_similarity] = similarity
+        sample[Fields.stats][StatsKeys.video_frames_text_similarity] = similarity
 
         if not context:
             for vid_key in videos:
@@ -198,15 +209,13 @@ class VideoFramesTextSimilarityFilter(Filter):
         return sample
 
     def process_single(self, sample, rank=None):
-        similarity = sample[Fields.stats][
-            StatsKeys.video_frames_text_similarity]
+        similarity = sample[Fields.stats][StatsKeys.video_frames_text_similarity]
         if len(similarity) <= 0:
             return True
 
-        keep_bools = np.array([
-            self.min_score <= sim_value <= self.max_score
-            for sim_value in similarity
-        ])
+        keep_bools = np.array(
+            [self.get_keep_boolean(sim_value, self.min_score, self.max_score) for sim_value in similarity]
+        )
 
         # different strategies
         if self.any:

@@ -1,3 +1,4 @@
+# DJ-SORA
 中文 | [English Page](DJ_SORA.md) 
 
 ---
@@ -11,7 +12,7 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
 ![Overview](https://img.alicdn.com/imgextra/i4/O1CN01XphcBN2ACXcS6S1JH_!!6000000008167-2-tps-2289-1620.png)
 
 
-# 动机 
+## 动机 
 - SORA仅简略提及使用了DALLE-3来生成高质量caption，且模型输入数据有变化的时长、分辨率和宽高比。
 - 高质量大规模细粒度数据有助于稠密化数据点，帮助模型学好“文本 -> spacetime token”的条件映射，解决text-2-video模型的一系列现有挑战：
    - 画面流畅性和一致性，部分生成的视频有丢帧及静止状态
@@ -19,8 +20,8 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
    - 视频内容较短，大多只有~10s，且场景画面不会有大的改变
    - 生成内容存在变形扭曲和物理规则违背情况，特别是在实体做出动作时
 
-# 路线图
-## 概览
+## 路线图
+### 概览
 * [支持视频数据的高性能加载和处理](#支持视频数据的高性能加载和处理)
 * [基础算子（视频时空维度）](#基础算子视频时空维度)
 * [进阶算子（细粒度模态间匹配及生成）](#进阶算子细粒度模态间匹配及生成)
@@ -28,7 +29,7 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
 * [DJ-SORA数据菜谱及数据集](#DJ-SORA数据菜谱及数据集)
 * [DJ-SORA数据验证及模型训练](#DJ-SORA数据验证及模型训练)
 
-## 支持视频数据的高性能加载和处理
+### 支持视频数据的高性能加载和处理
 - [✅] 并行化数据加载存储：
   - [✅] lazy load with pyAV and ffmpeg
   - [✅] 多模态数据路径签名  
@@ -41,7 +42,7 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
 - [WIP] 视频相关算子的低精度加速支持, git tags: dj_op, dj_efficiency
 - [WIP] 现有视频相关算子的SOTA模型增强, git tags: dj_op, dj_sota_models
 
-## 基础算子（视频时空维度）
+### 基础算子（视频时空维度）
 - 面向数据质量
   - [✅] video_resolution_filter （在分辨率维度进行过滤）
   - [✅] video_aspect_ratio_filter （在宽高比维度进行过滤）
@@ -55,7 +56,7 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
   - [✅] video_split_by_duration_mapper（在时间维度进行切割）
   - [✅] video_split_by_scene_mapper (基于场景连续性进行切割)
 
-## 进阶算子（细粒度模态间匹配及生成）
+### 进阶算子（细粒度模态间匹配及生成）
 - 面向数据质量
   - [✅] video_frames_text_similarity_filter（在时空一致性维度过滤，计算关键/指定帧 和文本的匹配分）
 - 面向数据多样性及数量
@@ -70,7 +71,7 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
     - text_audio_interleaved（按时序交叉放置同一视频的的ASR文本和frames）
     - text_image_audio_interleaved（交替拼接上述两种）
 
-## 进阶算子（视频内容）
+### 进阶算子（视频内容）
 - [✅] video_deduplicator （比较MD5哈希值在文件样本级别去重）
 - [✅] video_aesthetic_filter（拆帧后，进行美学度打分过滤）
 - [✅]兼容ffmpeg已有的video commands
@@ -89,7 +90,7 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
 
 
 
-## DJ-SORA数据菜谱及数据集
+### DJ-SORA数据菜谱及数据集
 - 支持代表性数据的统一加载和转换（other-data <-> dj-data），方便DJ算子处理及扩展数据集
   - [✅] **Video-ChatGPT**: 100K video-instruction data:`{<question, answer, youtube_id>}`
   - [✅] **Youku-mPLUG-CN**: 36TB video-caption data：`{<caption, video_id>}`
@@ -104,7 +105,7 @@ DJ-SORA将基于Data-Juicer(包含上百个专用的视频、图像、音频、�
     -  [WIP] 多场景、高动态 
   - ...
 
-## DJ-SORA数据验证及模型训练
+### DJ-SORA数据验证及模型训练
   - [✅]  探索及完善多模态数据和模型的协同开发，形成benchmark和insights: [paper](https://arxiv.org/abs/2407.11784)
   - [] [WIP] 类SORA模型训练pipeline集成
     - [✅] [EasyAnimate](https://github.com/aigc-apps/EasyAnimate)

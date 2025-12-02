@@ -8,6 +8,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class CsvFormatterTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
+
         self._path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                   'data', 'structured')
         self._file = os.path.join(self._path, 'demo-dataset.csv')

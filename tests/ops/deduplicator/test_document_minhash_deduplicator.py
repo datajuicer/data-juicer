@@ -2,8 +2,11 @@ import unittest
 
 from data_juicer.core.data import NestedDataset as Dataset
 
-from data_juicer.ops.deduplicator.document_minhash_deduplicator import \
-    DocumentMinhashDeduplicator
+from data_juicer.ops.deduplicator.document_minhash_deduplicator import (
+    DocumentMinhashDeduplicator,
+    DocumentMinhashDeduplicatorWithUid,
+)
+from data_juicer.utils.constant import HashKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -822,6 +825,12 @@ class DocumentMinhashDeduplicatorTest(DataJuicerTestCaseBase):
         op = DocumentMinhashDeduplicator(ignore_pattern=r'\p{P}')
         self._run_minhash_dedup(dataset, tgt_list, op)
 
+        for i, ds in enumerate(ds_list):
+            ds[HashKeys.uid] = i
+        dataset = Dataset.from_list(ds_list)
+        op = DocumentMinhashDeduplicatorWithUid(ignore_pattern=r'\p{P}')
+        self._run_minhash_dedup(dataset, tgt_list, op)
+
     def test_chinese_deduplication(self):
         ds_list = [
             {
@@ -956,6 +965,13 @@ class DocumentMinhashDeduplicatorTest(DataJuicerTestCaseBase):
         dataset = Dataset.from_list(ds_list)
         op = DocumentMinhashDeduplicator(tokenization='character',
                                          ignore_pattern=r'\p{P}')
+        self._run_minhash_dedup(dataset, tgt_list, op)
+
+        for i, ds in enumerate(ds_list):
+            ds[HashKeys.uid] = i
+        dataset = Dataset.from_list(ds_list)
+        op = DocumentMinhashDeduplicatorWithUid(tokenization='character',
+                                                ignore_pattern=r'\p{P}')
         self._run_minhash_dedup(dataset, tgt_list, op)
 
 

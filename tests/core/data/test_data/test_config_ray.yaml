@@ -1,0 +1,13 @@
+
+# global parameters
+project_name: 'ray-demo-new-config'
+dataset:
+  configs:
+    - type: local
+      path: ./test_data/sample.jsonl  # path to your dataset directory or file
+
+export_path: './outputs/demo/demo-processed'
+
+executor_type: 'ray'
+ray_address: 'auto'       
+

@@ -40,10 +40,15 @@ from loguru import logger
 from tqdm import tqdm
 
 from data_juicer.utils.file_utils import add_suffix_to_filename
-from data_juicer.utils.mm_utils import (SpecialTokens, cut_video_by_seconds,
-                                        timecode_string_to_seconds)
-from tools.fmt_conversion.multimodal.utils import (check_args_load_to_dj_data,
-                                                   convert_text_to_dj)
+from data_juicer.utils.mm_utils import (
+    SpecialTokens,
+    cut_video_by_seconds,
+    timecode_string_to_seconds,
+)
+from tools.fmt_conversion.multimodal.utils import (
+    check_args_load_to_dj_data,
+    convert_text_to_dj,
+)
 
 
 def main(
@@ -52,8 +57,8 @@ def main(
     eoc_special_token: str = SpecialTokens.eoc,
     video_special_token: str = SpecialTokens.video,
     add_eoc_at_last: bool = True,
-    sent_separator: str = ' ',
-    video_special_token_insert_pos: str = 'before',
+    sent_separator: str = " ",
+    video_special_token_insert_pos: str = "before",
     cut_videos: bool = True,
     cut_video_store_path: str = None,
     keep_other_fields: bool = True,
@@ -89,27 +94,29 @@ def main(
         datasets. Default: False.
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    video_key = 'videos'  # default key of field to store the video list
-    ori_text_key = 'Caption'  # default original key of field to store texts
-    ori_video_key = 'YoutubeID'  # default original field to store videos
+    text_key = "text"  # default key of field to store the sample text
+    video_key = "videos"  # default key of field to store the video list
+    ori_text_key = "Caption"  # default original key of field to store texts
+    ori_video_key = "YoutubeID"  # default original field to store videos
     # ----- Constant settings. Better not to change them. -----
 
     input_ds_dir = os.path.dirname(internvid_ds_path)
 
     # check arguments
-    check_args_load_to_dj_data(add_eoc_at_last, keep_other_fields,
-                               target_ds_path, internvid_ds_path,
-                               video_special_token_insert_pos, '.jsonl')
+    check_args_load_to_dj_data(
+        add_eoc_at_last, keep_other_fields, target_ds_path, internvid_ds_path, video_special_token_insert_pos, ".jsonl"
+    )
     if cut_videos:
-        logger.warning('You set the cut_videos arg to True. This tool will '
-                       'take a video cut from the input video according to '
-                       'the start/end timestamps.')
+        logger.warning(
+            "You set the cut_videos arg to True. This tool will "
+            "take a video cut from the input video according to "
+            "the start/end timestamps."
+        )
 
     # start conversion
-    logger.info('Start converting the original InternVid dataset...')
+    logger.info("Start converting the original InternVid dataset...")
     with jl.open(internvid_ds_path) as reader:
-        with jl.open(target_ds_path, mode='w') as writer:
+        with jl.open(target_ds_path, mode="w") as writer:
             for s in tqdm(reader):
                 video = s.pop(ori_video_key)
                 text = s.pop(ori_text_key)
@@ -117,9 +124,15 @@ def main(
                 # convert text to data-juicer format
                 # add video special token
                 new_sample, text = convert_text_to_dj(
-                    text, s, add_eoc_at_last, eoc_special_token,
-                    keep_other_fields, sent_separator, video_special_token,
-                    video_special_token_insert_pos)
+                    text,
+                    s,
+                    add_eoc_at_last,
+                    eoc_special_token,
+                    keep_other_fields,
+                    sent_separator,
+                    video_special_token,
+                    video_special_token_insert_pos,
+                )
 
                 # cut videos if needed
                 if cut_videos:
@@ -127,22 +140,18 @@ def main(
                     cut_video_path = None
                     if cut_video_store_path is None:
                         # set it to the directory stores the original videos
-                        cut_video_path = os.path.dirname(
-                            os.path.abspath(video))
+                        cut_video_path = os.path.dirname(os.path.abspath(video))
                     else:
                         cut_video_path = cut_video_store_path
                     # cut the video and store in a new path
                     video_basename = os.path.basename(video)
                     new_video = os.path.join(
                         cut_video_path,
-                        add_suffix_to_filename(
-                            video_basename,
-                            f'_{s["Start_timestamp"]}_{s["End_timestamp"]}'))
-                    start_pts = timecode_string_to_seconds(
-                        s['Start_timestamp'])
-                    end_pts = timecode_string_to_seconds(s['End_timestamp'])
-                    if cut_video_by_seconds(video, new_video, start_pts,
-                                            end_pts):
+                        add_suffix_to_filename(video_basename, f'_{s["Start_timestamp"]}_{s["End_timestamp"]}'),
+                    )
+                    start_pts = timecode_string_to_seconds(s["Start_timestamp"])
+                    end_pts = timecode_string_to_seconds(s["End_timestamp"])
+                    if cut_video_by_seconds(video, new_video, start_pts, end_pts):
                         video = new_video
                     else:
                         continue
@@ -151,12 +160,12 @@ def main(
                 new_sample[text_key] = text
                 if cut_videos:
                     # add a meta field to record whether this video is cut
-                    new_sample['is_cut'] = True
+                    new_sample["is_cut"] = True
                 else:
-                    new_sample['is_cut'] = False
+                    new_sample["is_cut"] = False
                 writer.write(new_sample)
-    logger.info(f'Store the target dataset into [{target_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

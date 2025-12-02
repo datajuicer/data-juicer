@@ -76,11 +76,11 @@ def main(
     str_id: bool = True,
     split_chunk: bool = False,
     image_broadcast: bool = False,
-    image_broadcast_pos: str = 'random',
+    image_broadcast_pos: str = "random",
     eoc_special_token: str = SpecialTokens.eoc,
-    image_special_token: str = '<image>',
+    image_special_token: str = "<image>",
     add_eoc_at_last: bool = True,
-    sent_separator: str = '\n',
+    sent_separator: str = "\n",
     only_keep_caption: bool = False,
 ):
     """
@@ -119,84 +119,92 @@ def main(
         this argument to True. Default: False.
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    image_key = 'images'  # default key of field to store the image list
-    from_format = '[[%s]]: '  # default handle method for the conversation role
+    text_key = "text"  # default key of field to store the sample text
+    image_key = "images"  # default key of field to store the image list
+    from_format = "[[%s]]: "  # default handle method for the conversation role
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
     # check paths
     if not os.path.exists(llava_ds_path):
-        raise FileNotFoundError(f'Input LLaVA dataset [{llava_ds_path}] can '
-                                f'not be found.')
-    if not target_ds_path.endswith('.jsonl'):
+        raise FileNotFoundError(f"Input LLaVA dataset [{llava_ds_path}] can " f"not be found.")
+    if not target_ds_path.endswith(".jsonl"):
         raise ValueError('Only support "jsonl" target dataset file now.')
-    if os.path.dirname(target_ds_path) \
-            and not os.path.exists(os.path.dirname(target_ds_path)):
-        logger.info(f'Create directory [{os.path.dirname(target_ds_path)}] '
-                    f'for the target dataset.')
+    if os.path.dirname(target_ds_path) and not os.path.exists(os.path.dirname(target_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_ds_path)}] " f"for the target dataset.")
         os.makedirs(os.path.dirname(target_ds_path))
     # check whether to split chunk and broadcast image token to each chunk
     if image_broadcast:
         if not split_chunk:
-            raise ValueError('Arg split_chunk should be True when opening '
-                             'image_broadcast.')
-        if image_broadcast_pos not in ['random', 'before', 'after', 'follow']:
-            raise ValueError(f'Arg image_broadcast_pos should be one of ['
-                             f'"random", "before", "after", "follow"], but '
-                             f'given [{image_broadcast_pos}].')
+            raise ValueError("Arg split_chunk should be True when opening " "image_broadcast.")
+        if image_broadcast_pos not in ["random", "before", "after", "follow"]:
+            raise ValueError(
+                f"Arg image_broadcast_pos should be one of ["
+                f'"random", "before", "after", "follow"], but '
+                f"given [{image_broadcast_pos}]."
+            )
     # check if the default image special token is changed
-    if image_special_token != '<image>':
-        logger.warning('The image_special_token used in the original LLaVA '
-                       'dataset is "<image>". It\'s better to align the this '
-                       'token. There might be some compatibility problem if '
-                       'you change it.')
+    if image_special_token != "<image>":
+        logger.warning(
+            "The image_special_token used in the original LLaVA "
+            'dataset is "<image>". It\'s better to align the this '
+            "token. There might be some compatibility problem if "
+            "you change it."
+        )
     # check whether to add the eoc special token at last
     if not add_eoc_at_last:
-        logger.warning('You choose not to add special eoc token at the last, '
-                       'which might cause some compatibility problems for '
-                       'other type of datasets (e.g. OpenFlamingo).')
+        logger.warning(
+            "You choose not to add special eoc token at the last, "
+            "which might cause some compatibility problems for "
+            "other type of datasets (e.g. OpenFlamingo)."
+        )
 
     # load LLaVA dataset
-    logger.info('Loading original LLaVA dataset.')
-    llava_ds = json.load(open(llava_ds_path, 'r', encoding='utf-8'))
-    logger.info(f'Load [{len(llava_ds)}] samples.')
+    logger.info("Loading original LLaVA dataset.")
+    llava_ds = json.load(open(llava_ds_path, "r", encoding="utf-8"))
+    logger.info(f"Load [{len(llava_ds)}] samples.")
 
-    with jl.open(target_ds_path, 'w') as writer:
+    with jl.open(target_ds_path, "w") as writer:
         for sample in tqdm(llava_ds):
             # id
-            id = sample['id']
+            id = sample["id"]
             if str_id:
                 id = str(id)
 
             # images and text
-            image = sample.get('image', '')
-            if image == '':
-                logger.warning(f'No images in the sample with id [{id}], '
-                               f'which means this sample is not a multimodal '
-                               f'sample. You\'d better remove this sample '
-                               f'before converting.')
+            image = sample.get("image", "")
+            if image == "":
+                logger.warning(
+                    f"No images in the sample with id [{id}], "
+                    f"which means this sample is not a multimodal "
+                    f"sample. You'd better remove this sample "
+                    f"before converting."
+                )
 
-            conversations = sample['conversations']
+            conversations = sample["conversations"]
 
             # assume the input dataset always contains multimodal conversations
             # and the conversations are always consists of (human, robot) pairs
             if len(conversations) % 2 != 0:
-                raise ValueError(f'The conversations in the sample with id '
-                                 f'[{id}] contains unbalance (human, robot) '
-                                 f'conversation round (number of conversation '
-                                 f'is [{len(conversations)}]). Please check '
-                                 f'and fix the dataset and retry.')
+                raise ValueError(
+                    f"The conversations in the sample with id "
+                    f"[{id}] contains unbalance (human, robot) "
+                    f"conversation round (number of conversation "
+                    f"is [{len(conversations)}]). Please check "
+                    f"and fix the dataset and retry."
+                )
 
             if len(conversations) > 2 and only_keep_caption:
-                logger.warning(f'There are multi-turn-dialog sample with id '
-                               f'[{id}] in this dataset. So this dataset '
-                               f'might be a fine-tuning dataset.')
+                logger.warning(
+                    f"There are multi-turn-dialog sample with id "
+                    f"[{id}] in this dataset. So this dataset "
+                    f"might be a fine-tuning dataset."
+                )
 
             # image list
             images = []
             # record the image token position in the first conversation round
-            image_token_pos_in_first_round = ''
+            image_token_pos_in_first_round = ""
             # save the formatted conversations
             formatted_conversations = []
             # the number of conversation rounds
@@ -207,85 +215,79 @@ def main(
                 robot_round = conversations[2 * i + 1]
 
                 # get the role and sentence values
-                role_human = from_format % human_round['from']
-                sent_human = human_round['value']
-                role_robot = from_format % robot_round['from']
-                sent_robot = robot_round['value']
+                role_human = from_format % human_round["from"]
+                sent_human = human_round["value"]
+                role_robot = from_format % robot_round["from"]
+                sent_robot = robot_round["value"]
 
-                if image == '':
+                if image == "":
                     # not a multimodal sample, keep everything still
                     pass
                 elif i == 0:
                     # record the image token position in the first round
                     if sent_human.startswith(image_special_token):
-                        image_token_pos_in_first_round = 'before'
+                        image_token_pos_in_first_round = "before"
                     elif sent_human.endswith(image_special_token):
-                        image_token_pos_in_first_round = 'after'
+                        image_token_pos_in_first_round = "after"
                     else:
                         raise ValueError(
-                            f'The position of image_special_token in the '
-                            f'first round conversation of sample with id '
-                            f'[{id}] is neither before nor after the text. '
-                            f'The position might be wrong or there is no '
-                            f'image_special_token in this sample. Please '
-                            f'check and fix the dataset and retry.')
+                            f"The position of image_special_token in the "
+                            f"first round conversation of sample with id "
+                            f"[{id}] is neither before nor after the text. "
+                            f"The position might be wrong or there is no "
+                            f"image_special_token in this sample. Please "
+                            f"check and fix the dataset and retry."
+                        )
                     images.append(image)
                 else:
                     # whether broadcast image special token to following
                     # conversation rounds
                     if image_broadcast:
                         # broadcast image to each conversation round
-                        if image_broadcast_pos == 'before':
-                            sent_human = image_special_token + sent_separator \
-                                         + sent_human
-                        elif image_broadcast_pos == 'after':
+                        if image_broadcast_pos == "before":
+                            sent_human = image_special_token + sent_separator + sent_human
+                        elif image_broadcast_pos == "after":
                             sent_human += sent_separator + image_special_token
-                        elif image_broadcast_pos == 'random':
+                        elif image_broadcast_pos == "random":
                             if random.random() < 0.5:
                                 # before
-                                sent_human = image_special_token \
-                                             + sent_separator + sent_human
+                                sent_human = image_special_token + sent_separator + sent_human
                             else:
                                 # after
-                                sent_human += sent_separator \
-                                              + image_special_token
+                                sent_human += sent_separator + image_special_token
                         else:
                             # follow the first round conversation
-                            if image_token_pos_in_first_round == 'before':
-                                sent_human = image_special_token \
-                                             + sent_separator + sent_human
+                            if image_token_pos_in_first_round == "before":
+                                sent_human = image_special_token + sent_separator + sent_human
                             else:
-                                sent_human += sent_separator \
-                                              + image_special_token
+                                sent_human += sent_separator + image_special_token
                         images.append(image)
 
                 # combine these texts together
                 if only_keep_caption:
-                    new_sent = image_special_token + sent_separator \
-                               + sent_robot
+                    new_sent = image_special_token + sent_separator + sent_robot
                 else:
-                    new_sent = role_human + sent_human + sent_separator \
-                        + role_robot + sent_robot
+                    new_sent = role_human + sent_human + sent_separator + role_robot + sent_robot
                 formatted_conversations.append(new_sent)
 
             join_sep = sent_separator
             if split_chunk:
                 # split (human, robot) pairs into several chunks
-                join_sep = f' {eoc_special_token}' + join_sep
+                join_sep = f" {eoc_special_token}" + join_sep
             text = join_sep.join(formatted_conversations)
             if add_eoc_at_last:
                 # add an extra eoc token after the whole sample text
-                text += f' {eoc_special_token}'
+                text += f" {eoc_special_token}"
 
             # get the new sample with Data-Juicer format
             new_sample = {
-                'id': id,
+                "id": id,
                 text_key: text,
                 image_key: images,
             }
             writer.write(new_sample)
-    logger.info(f'Store the target dataset into [{target_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

@@ -73,11 +73,11 @@ from loguru import logger
 def main(
     src_ds_path: str,
     tgt_ds_path: str,
-    messages_key: str = 'messages',
-    role_key: str = 'role',
-    content_key: str = 'content',
-    system_role: str = 'system',
-    instruction_role: str = 'instruction',
+    messages_key: str = "messages",
+    role_key: str = "role",
+    content_key: str = "content",
+    system_role: str = "system",
+    instruction_role: str = "instruction",
     multimodal_keys: Union[str, List[str]] = None,
 ):
     """
@@ -104,5 +104,5 @@ def main(
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

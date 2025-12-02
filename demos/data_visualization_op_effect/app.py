@@ -477,13 +477,13 @@ class Visualize:
                                axis=0)
 
         ds = pd.DataFrame(dataset)
-        Visualize.display_dataset(ds, all_conds, show_num, 'Retained sampels',
+        Visualize.display_dataset(ds, all_conds, show_num, 'Retained samples',
                                   'docs')
         st.download_button('Download Retained data as JSONL',
                            data=convert_to_jsonl(ds.loc[all_conds]),
                            file_name='retained.jsonl')
         Visualize.display_dataset(ds, np.invert(all_conds), show_num,
-                                  'Discarded sampels', 'docs')
+                                  'Discarded samples', 'docs')
         st.download_button('Download Discarded data as JSONL',
                            data=convert_to_jsonl(ds.loc[np.invert(all_conds)]),
                            file_name='discarded.jsonl')

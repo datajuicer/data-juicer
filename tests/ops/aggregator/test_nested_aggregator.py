@@ -4,15 +4,16 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.aggregator import NestedAggregator
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
 
 from data_juicer.utils.constant import Fields, MetaKeys
 
+@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
 class NestedAggregatorTest(DataJuicerTestCaseBase):
 
     def _run_helper(self, op, samples, output_key=MetaKeys.event_description):
 
-        # before runing this test, set below environment variables:
+        # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
 

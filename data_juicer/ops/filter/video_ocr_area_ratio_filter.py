@@ -3,19 +3,22 @@ from typing import List, Union
 import numpy as np
 from pydantic import PositiveInt
 
-from data_juicer import cuda_device_count
 from data_juicer.utils.constant import Fields, StatsKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import (close_video,
-                                        extract_video_frames_uniformly,
-                                        load_data_with_context, load_video)
+from data_juicer.utils.mm_utils import (
+    close_video,
+    extract_video_frames_uniformly,
+    load_data_with_context,
+    load_video,
+)
+from data_juicer.utils.resource_utils import cuda_device_count
 
 from ..base_op import OPERATORS, UNFORKABLE, Filter
 from ..op_fusion import INTER_SAMPLED_FRAMES, LOADED_VIDEOS
 
-easyocr = LazyLoader('easyocr', 'easyocr')
+easyocr = LazyLoader("easyocr")
 
-OP_NAME = 'video_ocr_area_ratio_filter'
+OP_NAME = "video_ocr_area_ratio_filter"
 
 
 def triangle_area(p1, p2, p3):
@@ -25,8 +28,7 @@ def triangle_area(p1, p2, p3):
     x1, y1 = p1
     x2, y2 = p2
     x3, y3 = p3
-    tri_area = 0.5 * np.abs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 -
-                            x1 * y3)
+    tri_area = 0.5 * np.abs(x1 * y2 + x2 * y3 + x3 * y1 - x2 * y1 - x3 * y2 - x1 * y3)
     return tri_area
 
 
@@ -35,20 +37,29 @@ def triangle_area(p1, p2, p3):
 @LOADED_VIDEOS.register_module(OP_NAME)
 @INTER_SAMPLED_FRAMES.register_module(OP_NAME)
 class VideoOcrAreaRatioFilter(Filter):
-    """Keep data samples whose detected text area ratios for specified frames
-    in the video are within a specified range.
-    """
+    """Keep data samples whose detected text area ratios for specified frames in the video are
+    within a specified range.
 
-    _accelerator = 'cuda'
+    This operator filters data based on the ratio of the detected text area to the total
+    frame area. It uses EasyOCR to detect text in the specified languages and calculates the
+    area ratio for each sampled frame. The operator then determines whether to keep a sample
+    based on the `any` or `all` strategy, which checks if any or all of the videos meet the
+    specified area ratio range. The key metric, `video_ocr_area_ratio`, is computed as the
+    mean of the text area ratios across the sampled frames. The number of sampled frames and
+    the specific frames to be sampled can be configured."""
 
-    def __init__(self,
-                 min_area_ratio: float = 0,
-                 max_area_ratio: float = 1.0,
-                 frame_sample_num: PositiveInt = 3,
-                 languages_to_detect: Union[str, List[str]] = ['ch_sim', 'en'],
-                 any_or_all: str = 'any',
-                 *args,
-                 **kwargs):
+    _accelerator = "cuda"
+
+    def __init__(
+        self,
+        min_area_ratio: float = 0,
+        max_area_ratio: float = 1.0,
+        frame_sample_num: PositiveInt = 3,
+        languages_to_detect: Union[str, List[str]] = ["ch_sim", "en"],
+        any_or_all: str = "any",
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -75,10 +86,9 @@ class VideoOcrAreaRatioFilter(Filter):
         self.min_area_ratio = min_area_ratio
         self.max_area_ratio = max_area_ratio
         self.frame_sample_num = frame_sample_num
-        if any_or_all not in ['any', 'all']:
-            raise ValueError(f'Keep strategy [{any_or_all}] is not supported. '
-                             f'Can only be one of ["any", "all"].')
-        self.any = (any_or_all == 'any')
+        if any_or_all not in ["any", "all"]:
+            raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
+        self.any = any_or_all == "any"
         # initialize easyocr reader
         if isinstance(languages_to_detect, str):
             languages_to_detect = [languages_to_detect]
@@ -90,12 +100,12 @@ class VideoOcrAreaRatioFilter(Filter):
         )
 
         # only uniformly sampling method is supported in this OP
-        self.sampled_frames_key_suffix = f'-uniform-{frame_sample_num}'
+        self.sampled_frames_key_suffix = f"-uniform-{frame_sample_num}"
 
     def get_reader(self, rank):
         if self.use_cuda():
             rank = 0 if rank is None else rank
-            device = f'cuda:{rank % cuda_device_count()}'
+            device = f"cuda:{rank % cuda_device_count()}"
             self.reader.detector = self.reader.detector.to(device)
             self.reader.device = device
         return self.reader
@@ -107,14 +117,12 @@ class VideoOcrAreaRatioFilter(Filter):
 
         # there is no video in this sample
         if self.video_key not in sample or not sample[self.video_key]:
-            sample[Fields.stats][StatsKeys.video_ocr_area_ratio] = np.array(
-                [], dtype=np.float64)
+            sample[Fields.stats][StatsKeys.video_ocr_area_ratio] = np.array([], dtype=np.float64)
             return sample
 
         # load videos
         loaded_video_keys = sample[self.video_key]
-        sample, videos = load_data_with_context(sample, context,
-                                                loaded_video_keys, load_video)
+        sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
 
         reader = self.get_reader(rank)
         # compute ocr area ratios
@@ -124,8 +132,7 @@ class VideoOcrAreaRatioFilter(Filter):
             if context and sampled_frames_key in sample[Fields.context]:
                 sampled_frames = sample[Fields.context][sampled_frames_key]
             else:
-                sampled_frames = extract_video_frames_uniformly(
-                    container, self.frame_sample_num)
+                sampled_frames = extract_video_frames_uniformly(container, self.frame_sample_num)
                 # store the sampled frames in the context
                 if context:
                     sample[Fields.context][sampled_frames_key] = sampled_frames
@@ -175,19 +182,19 @@ class VideoOcrAreaRatioFilter(Filter):
 
         # get video durations
         sample[Fields.stats][StatsKeys.video_ocr_area_ratio] = [
-            video_ocr_area_ratios[video_key]
-            for video_key in sample[self.video_key]
+            video_ocr_area_ratios[video_key] for video_key in sample[self.video_key]
         ]
 
         return sample
 
     def process_single(self, sample):
-        video_ocr_area_ratios = sample[Fields.stats][
-            StatsKeys.video_ocr_area_ratio]
-        keep_bools = np.array([
-            self.min_area_ratio <= ocr_area_ratio <= self.max_area_ratio
-            for ocr_area_ratio in video_ocr_area_ratios
-        ])
+        video_ocr_area_ratios = sample[Fields.stats][StatsKeys.video_ocr_area_ratio]
+        keep_bools = np.array(
+            [
+                self.get_keep_boolean(ocr_area_ratio, self.min_area_ratio, self.max_area_ratio)
+                for ocr_area_ratio in video_ocr_area_ratios
+            ]
+        )
         if len(keep_bools) <= 0:
             return True
 

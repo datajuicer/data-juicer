@@ -1,0 +1,21 @@
+# Process config example for Arxiv dataset
+
+# global parameters
+project_name: 'test_demo'
+dataset_path: './demos/data/demo-dataset.jsonl'  # path to your dataset directory or file
+np: 4  # number of subprocess to process your dataset
+
+export_path: './outputs/demo/demo-processed.parquet'
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  - whitespace_normalization_mapper:
+  - language_id_score_filter:
+      lang: 'zh'
+  - document_deduplicator: # deduplicate text samples using md5 hashing exact matching method
+      lowercase: false   # whether to convert text to lower case
+      ignore_non_character: false
+  - remove_table_text_mapper:
+  - language_id_score_filter:
+      lang: 'en'

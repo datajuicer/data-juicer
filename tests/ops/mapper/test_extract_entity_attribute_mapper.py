@@ -4,9 +4,10 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_entity_attribute_mapper import ExtractEntityAttributeMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
 from data_juicer.utils.constant import Fields, MetaKeys
 
+@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
 class ExtractEntityAttributeMapperTest(DataJuicerTestCaseBase):
 
 
@@ -58,7 +59,7 @@ class ExtractEntityAttributeMapperTest(DataJuicerTestCaseBase):
                 self.assertNotEqual(len(sup), 0)
 
     def test(self):
-        # before runing this test, set below environment variables:
+        # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
         self._run_op('qwen2.5-72b-instruct')

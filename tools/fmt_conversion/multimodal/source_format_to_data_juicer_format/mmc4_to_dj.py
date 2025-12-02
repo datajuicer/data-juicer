@@ -95,9 +95,9 @@ def main(
     image_dir: str = None,
     eoc_special_token: str = SpecialTokens.eoc,
     image_special_token: str = SpecialTokens.image,
-    image_special_token_insert_pos: str = 'before',
+    image_special_token_insert_pos: str = "before",
     add_eoc_at_last: bool = True,
-    sent_separator: str = ' ',
+    sent_separator: str = " ",
     keep_other_fields: bool = True,
 ):
     """
@@ -129,59 +129,65 @@ def main(
     """
     # ----- Constant settings. Better not to change them. -----
     # default key of field to store the sample text
-    text_key = 'text'
+    text_key = "text"
     # default key of field to store the image list
-    image_key = 'images'
+    image_key = "images"
     # required fields in the original dataset
-    REQUIRED_FIELDS = {'image_info', 'text_list'}
+    REQUIRED_FIELDS = {"image_info", "text_list"}
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
     # check paths
     if not os.path.exists(mmc4_ds_path):
-        raise FileNotFoundError(f'Input MMC4 dataset [{mmc4_ds_path}] can '
-                                f'not be found.')
-    if not target_ds_path.endswith('.jsonl'):
+        raise FileNotFoundError(f"Input MMC4 dataset [{mmc4_ds_path}] can " f"not be found.")
+    if not target_ds_path.endswith(".jsonl"):
         raise ValueError('Only support "jsonl" target dataset file now.')
-    if os.path.dirname(target_ds_path) \
-            and not os.path.exists(os.path.dirname(target_ds_path)):
-        logger.info(f'Create directory [{os.path.dirname(target_ds_path)}] '
-                    f'for the target dataset.')
+    if os.path.dirname(target_ds_path) and not os.path.exists(os.path.dirname(target_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_ds_path)}] " f"for the target dataset.")
         os.makedirs(os.path.dirname(target_ds_path))
     # check image dir
     if not image_dir:
-        image_dir = ''
+        image_dir = ""
     # check insert position
-    if image_special_token_insert_pos not in ['random', 'before', 'after']:
-        raise ValueError(f'Arg image_special_token_insert_pos should be one '
-                         f'of ["before", "after", "random"], but given '
-                         f'[{image_special_token_insert_pos}]')
+    if image_special_token_insert_pos not in ["random", "before", "after"]:
+        raise ValueError(
+            f"Arg image_special_token_insert_pos should be one "
+            f'of ["before", "after", "random"], but given '
+            f"[{image_special_token_insert_pos}]"
+        )
     # check whether to add the eoc special token at last
     if not add_eoc_at_last:
-        logger.warning('You choose not to add special eoc token at the last, '
-                       'which might cause some compatibility problems for '
-                       'other type of datasets (e.g. OpenFlamingo).')
+        logger.warning(
+            "You choose not to add special eoc token at the last, "
+            "which might cause some compatibility problems for "
+            "other type of datasets (e.g. OpenFlamingo)."
+        )
     if not keep_other_fields:
-        logger.warning('You choose not to keep other fields in the original '
-                       'dataset. Thus some information might be lost in the '
-                       'processed anc converted-back dataset!')
+        logger.warning(
+            "You choose not to keep other fields in the original "
+            "dataset. Thus some information might be lost in the "
+            "processed anc converted-back dataset!"
+        )
 
     # load MMC4 dataset
-    logger.info('Start converting the original MMC4 dataset...')
+    logger.info("Start converting the original MMC4 dataset...")
     # record the failed samples: (line_number, fail_reason_info)
     failed_samples = []
-    with jl.open(mmc4_ds_path, 'r') as reader:
-        with jl.open(target_ds_path, 'w') as writer:
+    with jl.open(mmc4_ds_path, "r") as reader:
+        with jl.open(target_ds_path, "w") as writer:
             for line_num, sample in enumerate(tqdm(reader)):
                 # check required fields
                 fields_ok = True
                 for key in REQUIRED_FIELDS:
                     if key not in sample:
-                        failed_samples.append((
-                            line_num,
-                            f'There is no key [{key}] in the sample whose line'
-                            f' number is [{line_num}], which is required for '
-                            f'MMC4-like dataset conversion.'))
+                        failed_samples.append(
+                            (
+                                line_num,
+                                f"There is no key [{key}] in the sample whose line"
+                                f" number is [{line_num}], which is required for "
+                                f"MMC4-like dataset conversion.",
+                            )
+                        )
                         fields_ok = False
                         break
                 if not fields_ok:
@@ -194,17 +200,14 @@ def main(
                     new_sample = deepcopy(sample)
 
                 # convert text_list and image_info to text and images
-                image_infos = sample['image_info']
-                sentences = sample['text_list']
+                image_infos = sample["image_info"]
+                sentences = sample["text_list"]
 
                 # sort image infos by their matched_text_index
-                image_infos.sort(key=lambda s: s['matched_text_index'])
+                image_infos.sort(key=lambda s: s["matched_text_index"])
 
                 # get the image path list directly
-                images = [
-                    os.path.join(image_dir, s['image_name'])
-                    for s in image_infos
-                ]
+                images = [os.path.join(image_dir, s["image_name"]) for s in image_infos]
 
                 # construct the text string in Data-Juicer format
                 img_idx = 0
@@ -212,50 +215,49 @@ def main(
                 for sent_idx, sent in enumerate(sentences):
                     # find the matched sentence of the current image
                     image_num_this_sent = 0
-                    while img_idx < len(image_infos) and image_infos[img_idx][
-                            'matched_text_index'] == sent_idx:
+                    while img_idx < len(image_infos) and image_infos[img_idx]["matched_text_index"] == sent_idx:
                         image_num_this_sent += 1
                         img_idx += 1
 
                     if image_num_this_sent > 0:
                         # insert several image_special_tokens to specific
                         # position.
-                        image_special_tokens = sent_separator.join(
-                            [image_special_token] * image_num_this_sent)
-                        if image_special_token_insert_pos == 'before':
+                        image_special_tokens = sent_separator.join([image_special_token] * image_num_this_sent)
+                        if image_special_token_insert_pos == "before":
                             sent = image_special_tokens + sent_separator + sent
-                        elif image_special_token_insert_pos == 'after':
+                        elif image_special_token_insert_pos == "after":
                             sent += sent_separator + image_special_tokens
                         else:
                             if random.random() < 0.5:
                                 # before
-                                sent = image_special_tokens + sent_separator \
-                                       + sent
+                                sent = image_special_tokens + sent_separator + sent
                             else:
                                 # after
                                 sent += sent_separator + image_special_tokens
                     new_sents.append(sent)
 
-                join_sep = f' {eoc_special_token}{sent_separator}'
+                join_sep = f" {eoc_special_token}{sent_separator}"
                 text = join_sep.join(new_sents)
                 if add_eoc_at_last:
-                    text += f' {eoc_special_token}'
+                    text += f" {eoc_special_token}"
 
                 # construct the new sample
                 new_sample[image_key] = images
                 new_sample[text_key] = text
 
                 writer.write(new_sample)
-    logger.info(f'Store the target dataset into [{target_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_ds_path}].")
     if len(failed_samples) > 0:
-        failed_samples_path = target_ds_path + '_failed.txt'
-        logger.warning(f'[{len(failed_samples)} samples fail to be converted, '
-                       f'whose line number and failed reasons are store in '
-                       f'[{failed_samples_path}]')
-        with open(failed_samples_path, 'w') as fout:
+        failed_samples_path = target_ds_path + "_failed.txt"
+        logger.warning(
+            f"[{len(failed_samples)} samples fail to be converted, "
+            f"whose line number and failed reasons are store in "
+            f"[{failed_samples_path}]"
+        )
+        with open(failed_samples_path, "w") as fout:
             for line_num, reason in failed_samples:
-                fout.write(f'{line_num}\t{reason}\n')
+                fout.write(f"{line_num}\t{reason}\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

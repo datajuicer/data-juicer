@@ -77,18 +77,18 @@ from data_juicer.utils.mm_utils import SpecialTokens
 
 def creat_meta_filed(num_captions_per_audio, source_meta):
     meta_dict = {
-        'num_captions_per_audio': num_captions_per_audio,
-        'title': '',
-        'description': '',
-        'author': '',
-        'href': '',
-        'caption': '',
-        'id': '',
-        'duration': '',
-        'audio': '',
-        'download_link': '',
-        'category': '',
-        'tags': ''
+        "num_captions_per_audio": num_captions_per_audio,
+        "title": "",
+        "description": "",
+        "author": "",
+        "href": "",
+        "caption": "",
+        "id": "",
+        "duration": "",
+        "audio": "",
+        "download_link": "",
+        "category": "",
+        "tags": "",
     }
     for key in source_meta:
         meta_dict[key] = source_meta[key]
@@ -110,12 +110,12 @@ def main(
     wavcaps_audio_path: str,
     target_ds_path: str,
     str_id: bool = True,
-    target_field: str = 'caption',
+    target_field: str = "caption",
     eoc_special_token: str = SpecialTokens.eoc,
     audio_special_token: str = SpecialTokens.audio,
     add_eoc_at_last: bool = True,
     add_target_field_token: bool = False,
-    sent_separator: str = '\n',
+    sent_separator: str = "\n",
 ):
     """
     Convert a WavCaps-like dataset to the Data-Juicer format.
@@ -138,71 +138,66 @@ def main(
     :param sent_separator: separator to split different sentences. Default: \n.
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    audio_key = 'audios'  # default key of field to store the audio list
-    from_format = '[[%s]]: '  # default handle method for the text label
+    text_key = "text"  # default key of field to store the sample text
+    audio_key = "audios"  # default key of field to store the audio list
+    from_format = "[[%s]]: "  # default handle method for the text label
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
     # check paths
     if not os.path.exists(wavcaps_json_path):
-        raise FileNotFoundError(
-            f'Input WavCaps json path [{wavcaps_json_path}] can '
-            f'not be found.')
+        raise FileNotFoundError(f"Input WavCaps json path [{wavcaps_json_path}] can " f"not be found.")
     if not os.path.exists(wavcaps_audio_path):
-        raise FileNotFoundError(
-            f'Input WavCaps audio path [{wavcaps_audio_path}] can '
-            f'not be found.')
-    if not target_ds_path.endswith('.jsonl'):
+        raise FileNotFoundError(f"Input WavCaps audio path [{wavcaps_audio_path}] can " f"not be found.")
+    if not target_ds_path.endswith(".jsonl"):
         raise ValueError('Only support "jsonl" target dataset file now.')
 
-    if target_field not in ['caption', 'description', 'title']:
-        raise ValueError(
-            "target_field must be in '['caption', 'description', 'title']'")
+    if target_field not in ["caption", "description", "title"]:
+        raise ValueError("target_field must be in '['caption', 'description', 'title']'")
 
-    if os.path.dirname(target_ds_path) \
-            and not os.path.exists(os.path.dirname(target_ds_path)):
-        logger.info(f'Create directory [{os.path.dirname(target_ds_path)}] '
-                    f'for the target dataset.')
+    if os.path.dirname(target_ds_path) and not os.path.exists(os.path.dirname(target_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_ds_path)}] " f"for the target dataset.")
         os.makedirs(os.path.dirname(target_ds_path))
 
     # check whether to add the eoc special token at last
     if not add_eoc_at_last:
-        logger.warning('You choose not to add special eoc token at the last, '
-                       'which might cause some compatibility problems for '
-                       'other type of datasets (e.g. OpenFlamingo).')
+        logger.warning(
+            "You choose not to add special eoc token at the last, "
+            "which might cause some compatibility problems for "
+            "other type of datasets (e.g. OpenFlamingo)."
+        )
 
     # load WavCaps dataset
-    logger.info('Loading original WavCaps dataset.')
-    wavcaps_ds = json.load(open(wavcaps_json_path, 'r', encoding='utf-8'))
-    num_captions_per_audio = wavcaps_ds['num_captions_per_audio']
-    wavcaps_ds = wavcaps_ds['data']
-    logger.info(f'Load [{len(wavcaps_ds)}] samples.')
+    logger.info("Loading original WavCaps dataset.")
+    wavcaps_ds = json.load(open(wavcaps_json_path, "r", encoding="utf-8"))
+    num_captions_per_audio = wavcaps_ds["num_captions_per_audio"]
+    wavcaps_ds = wavcaps_ds["data"]
+    logger.info(f"Load [{len(wavcaps_ds)}] samples.")
     all_audio_files = get_all_files(wavcaps_audio_path)
 
-    with jl.open(target_ds_path, 'w') as writer:
+    with jl.open(target_ds_path, "w") as writer:
         for sample in tqdm(wavcaps_ds):
             # id
-            id = sample['id']
+            id = sample["id"]
             if str_id:
                 id = str(id)
 
-            audio_name = id.strip().split('.')[0] + '.flac'
+            audio_name = id.strip().split(".")[0] + ".flac"
             target_meta = creat_meta_filed(num_captions_per_audio, sample)
 
             # audio and text
             if audio_name not in all_audio_files:
-                logger.warning(f'No audios in the sample with id [{id}], '
-                               f'which means this sample is not a multimodal '
-                               f'sample. You\'d better remove this sample '
-                               f'before converting.')
+                logger.warning(
+                    f"No audios in the sample with id [{id}], "
+                    f"which means this sample is not a multimodal "
+                    f"sample. You'd better remove this sample "
+                    f"before converting."
+                )
                 continue
             audio = [all_audio_files[audio_name]]
             text = audio_special_token + sent_separator
             if target_field not in sample.keys():
-                logger.warning(
-                    f'{target_field} does not exist in this sample with '
-                    f'id [{id}].')
+                logger.warning(f"{target_field} does not exist in this sample with " f"id [{id}].")
                 continue
 
             if add_target_field_token:
@@ -212,15 +207,10 @@ def main(
                 text += eoc_special_token
 
             # get the new sample with Data-Juicer format
-            new_sample = {
-                'id': id,
-                text_key: text,
-                audio_key: audio,
-                Fields.meta: target_meta
-            }
+            new_sample = {"id": id, text_key: text, audio_key: audio, Fields.meta: target_meta}
             writer.write(new_sample)
-    logger.info(f'Store the target dataset into [{target_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

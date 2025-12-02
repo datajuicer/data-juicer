@@ -47,23 +47,20 @@ from tqdm import tqdm
 
 def alpaca_to_dj(
     sample,
-    input_key: str = 'input',
-    output_key: str = 'output',
+    input_key: str = "input",
+    output_key: str = "output",
     multimodal_keys: Union[str, List[str]] = None,
 ):
     modified_keys = {input_key, output_key}
     if multimodal_keys:
         modified_keys = modified_keys.union(set(multimodal_keys))
-    new_sample = {
-        key: sample[key]
-        for key in sample if key not in modified_keys
-    }
+    new_sample = {key: sample[key] for key in sample if key not in modified_keys}
 
     # key mapping for input and output
     if input_key in sample:
-        new_sample['query'] = sample[input_key]
+        new_sample["query"] = sample[input_key]
     if output_key in sample:
-        new_sample['response'] = sample[output_key]
+        new_sample["response"] = sample[output_key]
 
     # update multimodal data
     if multimodal_keys:
@@ -80,8 +77,8 @@ def alpaca_to_dj(
 def main(
     src_ds_path: str,
     tgt_ds_path: str,
-    input_key: str = 'input',
-    output_key: str = 'output',
+    input_key: str = "input",
+    output_key: str = "output",
     multimodal_keys: Union[str, List[str]] = None,
 ):
     """
@@ -98,33 +95,29 @@ def main(
     # check arguments
     # check paths
     if not os.path.exists(src_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{src_ds_path}] can not be found.')
-    if not tgt_ds_path.endswith('.jsonl'):
+        raise FileNotFoundError(f"Input dataset [{src_ds_path}] can not be found.")
+    if not tgt_ds_path.endswith(".jsonl"):
         raise ValueError('Only support "jsonl" target dataset file now.')
-    if os.path.dirname(tgt_ds_path) \
-            and not os.path.exists(os.path.dirname(tgt_ds_path)):
-        logger.info(f'Create directory [{os.path.dirname(tgt_ds_path)}] '
-                    f'for the target dataset.')
+    if os.path.dirname(tgt_ds_path) and not os.path.exists(os.path.dirname(tgt_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(tgt_ds_path)}] " f"for the target dataset.")
         os.makedirs(os.path.dirname(tgt_ds_path))
 
     if isinstance(multimodal_keys, str):
         multimodal_keys = [multimodal_keys]
 
     # load Alpaca dataset
-    logger.info('Loading original dataset.')
-    src_ds = json.load(open(src_ds_path, 'r', encoding='utf-8'))
-    logger.info(f'Load [{len(src_ds)}] samples.')
+    logger.info("Loading original dataset.")
+    src_ds = json.load(open(src_ds_path, "r", encoding="utf-8"))
+    logger.info(f"Load [{len(src_ds)}] samples.")
 
-    with jl.open(tgt_ds_path, 'w') as writer:
+    with jl.open(tgt_ds_path, "w") as writer:
         for sample in tqdm(src_ds):
-            converted_sample = alpaca_to_dj(sample,
-                                            input_key=input_key,
-                                            output_key=output_key,
-                                            multimodal_keys=multimodal_keys)
+            converted_sample = alpaca_to_dj(
+                sample, input_key=input_key, output_key=output_key, multimodal_keys=multimodal_keys
+            )
             writer.write(converted_sample)
-    logger.info(f'Store the target dataset into [{tgt_ds_path}].')
+    logger.info(f"Store the target dataset into [{tgt_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

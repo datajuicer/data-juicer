@@ -28,7 +28,7 @@ python tools/postprocess/count_token.py --help
 
 Use [data_mixture.py](data_mixture.py) to mix multiple datasets.
 
-This script will randomly select samples from every dataset and mix theses samples and export to a new_dataset.
+This script will randomly select samples from every dataset and mix these samples and export to a new_dataset.
 
 
 ```shell

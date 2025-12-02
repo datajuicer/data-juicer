@@ -17,7 +17,7 @@ main_entity ="孙悟空"
 query_attributes = ["语言风格", "角色性格", "角色武艺和能力"]
 system_prompt_key = 'system_prompt'
 example_num_limit = 5
-max_relavant_roles_num = 5
+max_relevant_roles_num = 5
 
 role_info_template = "# {entity}\n## 身份背景\n{identity}\n## 人物经历\n{experience}"
 relation_identity_text_template = """
@@ -106,8 +106,8 @@ def get_system_prompt(sample):
     nicknames = get_nicknames(sample)
 
     relation_detail = ""
-    relavant_roles = sample[Fields.batch_meta]['important_relavant_roles']
-    for role_name in relavant_roles[:max_relavant_roles_num]:
+    relevant_roles = sample[Fields.batch_meta]['important_relevant_roles']
+    for role_name in relevant_roles[:max_relevant_roles_num]:
         if role_name == main_entity:
             continue
 

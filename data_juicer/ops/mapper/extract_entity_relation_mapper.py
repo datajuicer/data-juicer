@@ -17,16 +17,26 @@ from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..common import split_text_by_punctuation
 
-OP_NAME = 'extract_entity_relation_mapper'
+OP_NAME = "extract_entity_relation_mapper"
 
 
 # TODO: LLM-based inference.
 @TAGGING_OPS.register_module(OP_NAME)
 @OPERATORS.register_module(OP_NAME)
 class ExtractEntityRelationMapper(Mapper):
-    """
-    Extract entities and relations in the text for knowledge graph.
-    """
+    """Extracts entities and relations from text to build a knowledge graph.
+
+    - Identifies entities based on specified types and extracts their names, types, and
+      descriptions.
+    - Identifies relationships between the entities, including source and target entities,
+      relationship descriptions, keywords, and strength scores.
+    - Uses a Hugging Face tokenizer and a predefined prompt template to guide the extraction
+      process.
+    - Outputs entities and relations in a structured format, using delimiters for
+      separation.
+    - Caches the results in the sample's metadata under the keys 'entity' and 'relation'.
+    - Supports multiple retries and gleaning to ensure comprehensive extraction.
+    - The default entity types include 'organization', 'person', 'geo', and 'event'."""
 
     DEFAULT_PROMPT_TEMPLATE = """-Goal-
 Given a text document that is potentially relevant to this activity and a list of entity types, identify all entities of those types from the text and all relationships among the identified entities.
@@ -73,7 +83,7 @@ Output:
 ("entity"{tuple_delimiter}"Taylor"{tuple_delimiter}"person"{tuple_delimiter}"Taylor is portrayed with authoritarian certainty and shows a moment of reverence towards a device, indicating a change in perspective."){record_delimiter}
 ("entity"{tuple_delimiter}"Jordan"{tuple_delimiter}"person"{tuple_delimiter}"Jordan shares a commitment to discovery and has a significant interaction with Taylor regarding a device."){record_delimiter}
 ("entity"{tuple_delimiter}"Cruz"{tuple_delimiter}"person"{tuple_delimiter}"Cruz is associated with a vision of control and order, influencing the dynamics among other characters."){record_delimiter}
-("entity"{tuple_delimiter}"The Device"{tuple_delimiter}"technology"{tuple_delimiter}"The Device is central to the story, with potential game-changing implications, and is revered by Taylor."){record_delimiter}
+("entity"{tuple_delimiter}"The Device"{tuple_delimiter}"technology"{tuple_delimiter}"The Device is central to the story, with potential game-changing implications, and is reversed by Taylor."){record_delimiter}
 ("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Taylor"{tuple_delimiter}"Alex is affected by Taylor's authoritarian certainty and observes changes in Taylor's attitude towards the device."{tuple_delimiter}"power dynamics, perspective shift"{tuple_delimiter}7){record_delimiter}
 ("relationship"{tuple_delimiter}"Alex"{tuple_delimiter}"Jordan"{tuple_delimiter}"Alex and Jordan share a commitment to discovery, which contrasts with Cruz's vision."{tuple_delimiter}"shared goals, rebellion"{tuple_delimiter}6){record_delimiter}
 ("relationship"{tuple_delimiter}"Taylor"{tuple_delimiter}"Jordan"{tuple_delimiter}"Taylor and Jordan interact directly regarding the device, leading to a moment of mutual respect and an uneasy truce."{tuple_delimiter}"conflict resolution, mutual respect"{tuple_delimiter}8){record_delimiter}
@@ -137,38 +147,42 @@ Text:
 ######################
 Output:
 """
-    DEFAULT_CONTINUE_PROMPT = 'MANY entities were missed in the last extraction.  Add them below using the same format:\n'
-    DEFAULT_IF_LOOP_PROMPT = 'It appears some entities may have still been missed.  Answer YES | NO if there are still entities that need to be added.\n'
+    DEFAULT_CONTINUE_PROMPT = (
+        "MANY entities were missed in the last extraction.  Add them below using the same format:\n"
+    )
+    DEFAULT_IF_LOOP_PROMPT = "It appears some entities may have still been missed.  Answer YES | NO if there are still entities that need to be added.\n"
 
-    DEFAULT_ENTITY_TYPES = ['organization', 'person', 'geo', 'event']
-    DEFAULT_TUPLE_DELIMITER = '<|>'
-    DEFAULT_RECORD_DELIMITER = '##'
-    DEFAULT_COMPLETION_DELIMITER = '<|COMPLETE|>'
+    DEFAULT_ENTITY_TYPES = ["organization", "person", "geo", "event"]
+    DEFAULT_TUPLE_DELIMITER = "<|>"
+    DEFAULT_RECORD_DELIMITER = "##"
+    DEFAULT_COMPLETION_DELIMITER = "<|COMPLETE|>"
     DEFAULT_ENTITY_PATTERN = r'\("entity"(.*?)\)'
     DEFAULT_RELATION_PATTERN = r'\("relationship"(.*?)\)'
 
-    def __init__(self,
-                 api_model: str = 'gpt-4o',
-                 entity_types: List[str] = None,
-                 *,
-                 entity_key: str = MetaKeys.entity,
-                 relation_key: str = MetaKeys.relation,
-                 api_endpoint: Optional[str] = None,
-                 response_path: Optional[str] = None,
-                 prompt_template: Optional[str] = None,
-                 tuple_delimiter: Optional[str] = None,
-                 record_delimiter: Optional[str] = None,
-                 completion_delimiter: Optional[str] = None,
-                 max_gleaning: NonNegativeInt = 1,
-                 continue_prompt: Optional[str] = None,
-                 if_loop_prompt: Optional[str] = None,
-                 entity_pattern: Optional[str] = None,
-                 relation_pattern: Optional[str] = None,
-                 try_num: PositiveInt = 3,
-                 drop_text: bool = False,
-                 model_params: Dict = {},
-                 sampling_params: Dict = {},
-                 **kwargs):
+    def __init__(
+        self,
+        api_model: str = "gpt-4o",
+        entity_types: List[str] = None,
+        *,
+        entity_key: str = MetaKeys.entity,
+        relation_key: str = MetaKeys.relation,
+        api_endpoint: Optional[str] = None,
+        response_path: Optional[str] = None,
+        prompt_template: Optional[str] = None,
+        tuple_delimiter: Optional[str] = None,
+        record_delimiter: Optional[str] = None,
+        completion_delimiter: Optional[str] = None,
+        max_gleaning: NonNegativeInt = 1,
+        continue_prompt: Optional[str] = None,
+        if_loop_prompt: Optional[str] = None,
+        entity_pattern: Optional[str] = None,
+        relation_pattern: Optional[str] = None,
+        try_num: PositiveInt = 3,
+        drop_text: bool = False,
+        model_params: Dict = {},
+        sampling_params: Dict = {},
+        **kwargs,
+    ):
         """
         Initialization method.
         :param api_model: API model name.
@@ -211,21 +225,17 @@ Output:
         self.prompt_template = prompt_template or self.DEFAULT_PROMPT_TEMPLATE
         self.tuple_delimiter = tuple_delimiter or self.DEFAULT_TUPLE_DELIMITER
         self.record_delimiter = record_delimiter or self.DEFAULT_RECORD_DELIMITER
-        self.completion_delimiter = completion_delimiter or \
-            self.DEFAULT_COMPLETION_DELIMITER
+        self.completion_delimiter = completion_delimiter or self.DEFAULT_COMPLETION_DELIMITER
         self.max_gleaning = max_gleaning
         self.continue_prompt = continue_prompt or self.DEFAULT_CONTINUE_PROMPT
         self.if_loop_prompt = if_loop_prompt or self.DEFAULT_IF_LOOP_PROMPT
         self.entity_pattern = entity_pattern or self.DEFAULT_ENTITY_PATTERN
-        self.relation_pattern = relation_pattern or \
-            self.DEFAULT_RELATION_PATTERN
+        self.relation_pattern = relation_pattern or self.DEFAULT_RELATION_PATTERN
 
         self.sampling_params = sampling_params
-        self.model_key = prepare_model(model_type='api',
-                                       model=api_model,
-                                       endpoint=api_endpoint,
-                                       response_path=response_path,
-                                       **model_params)
+        self.model_key = prepare_model(
+            model_type="api", model=api_model, endpoint=api_endpoint, response_path=response_path, **model_params
+        )
 
         self.try_num = try_num
         self.drop_text = drop_text
@@ -236,8 +246,7 @@ Output:
         def remove_outer_quotes(text):
             if not text:
                 return text
-            if (text[0] == '"' and text[-1] == '"') or (text[0] == "'"
-                                                        and text[-1] == "'"):
+            if (text[0] == '"' and text[-1] == '"') or (text[0] == "'" and text[-1] == "'"):
                 return text[1:-1]
             else:
                 return text
@@ -248,8 +257,7 @@ Output:
             items = [item.strip() for item in items if item.strip()]
             return tuple(items)
 
-        entity_pattern = re.compile(self.entity_pattern,
-                                    re.VERBOSE | re.DOTALL)
+        entity_pattern = re.compile(self.entity_pattern, re.VERBOSE | re.DOTALL)
         matches = entity_pattern.findall(raw_output)
         for record in matches:
             items = split_by_tuple_delimiter(record)
@@ -257,14 +265,12 @@ Output:
                 continue
             entities.append(items)
         entities = list(set(entities))
-        entities = [{
-            MetaKeys.entity_name: e[0],
-            MetaKeys.entity_type: e[1],
-            MetaKeys.entity_description: e[2]
-        } for e in entities]
+        entities = [
+            {MetaKeys.entity_name: e[0], MetaKeys.entity_type: e[1], MetaKeys.entity_description: e[2]}
+            for e in entities
+        ]
 
-        relation_pattern = re.compile(self.relation_pattern,
-                                      re.VERBOSE | re.DOTALL)
+        relation_pattern = re.compile(self.relation_pattern, re.VERBOSE | re.DOTALL)
         matches = relation_pattern.findall(raw_output)
         for record in matches:
             items = split_by_tuple_delimiter(record)
@@ -272,75 +278,69 @@ Output:
                 continue
             relations.append(items)
         relations = list(set(relations))
-        relations = [{
-            MetaKeys.source_entity:
-            r[0],
-            MetaKeys.target_entity:
-            r[1],
-            MetaKeys.relation_description:
-            r[2],
-            MetaKeys.relation_keywords:
-            split_text_by_punctuation(r[3]),
-            MetaKeys.relation_strength:
-            float(r[4])
-        } for r in relations]
+        relations = [
+            {
+                MetaKeys.source_entity: r[0],
+                MetaKeys.target_entity: r[1],
+                MetaKeys.relation_description: r[2],
+                MetaKeys.relation_keywords: split_text_by_punctuation(r[3]),
+                MetaKeys.relation_strength: float(r[4]),
+            }
+            for r in relations
+        ]
 
         return entities, relations
 
     def add_message(self, messages, role, content):
-        return messages + [{'role': role, 'content': content}]
+        return messages + [{"role": role, "content": content}]
 
     def light_rag_extraction(self, messages, rank=None):
         client = get_model(self.model_key, rank=rank)
 
         final_result = client(messages, **self.sampling_params)
-        history = self.add_message(messages, 'assistant', final_result)
+        history = self.add_message(messages, "assistant", final_result)
 
         for glean_index in range(self.max_gleaning):
-            messages = self.add_message(history, 'user', self.continue_prompt)
+            messages = self.add_message(history, "user", self.continue_prompt)
             glean_result = client(messages, **self.sampling_params)
-            history = self.add_message(messages, 'assistant', glean_result)
+            history = self.add_message(messages, "assistant", glean_result)
             final_result += glean_result
 
             if glean_index == self.max_gleaning - 1:
                 break
 
-            messages = self.add_message(history, 'user', self.if_loop_prompt)
+            messages = self.add_message(history, "user", self.if_loop_prompt)
             if_loop_result = client(messages, **self.sampling_params)
-            if_loop_result = if_loop_result.strip().strip('"').strip(
-                "'").lower()
-            if if_loop_result != 'yes':
+            if_loop_result = if_loop_result.strip().strip('"').strip("'").lower()
+            if if_loop_result != "yes":
                 break
 
         return final_result
 
     def process_single(self, sample, rank=None):
-
         # check if it's generated already
-        if self.entity_key in sample[
-                Fields.meta] and self.relation_key in sample[Fields.meta]:
+        if self.entity_key in sample[Fields.meta] and self.relation_key in sample[Fields.meta]:
             return sample
 
         input_prompt = self.prompt_template.format(
             tuple_delimiter=self.tuple_delimiter,
             record_delimiter=self.record_delimiter,
             completion_delimiter=self.completion_delimiter,
-            entity_types=', '.join(self.entity_types),
-            input_text=sample[self.text_key])
-        messages = [{'role': 'user', 'content': input_prompt}]
+            entity_types=", ".join(self.entity_types),
+            input_text=sample[self.text_key],
+        )
+        messages = [{"role": "user", "content": input_prompt}]
 
-        entities = [{
-            MetaKeys.entity_name: '',
-            MetaKeys.entity_type: '',
-            MetaKeys.entity_description: ''
-        }]
-        relations = [{
-            MetaKeys.source_entity: '',
-            MetaKeys.target_entity: '',
-            MetaKeys.relation_description: '',
-            MetaKeys.relation_keywords: np.array([], dtype=str),
-            MetaKeys.relation_strength: .0
-        }]
+        entities = [{MetaKeys.entity_name: "", MetaKeys.entity_type: "", MetaKeys.entity_description: ""}]
+        relations = [
+            {
+                MetaKeys.source_entity: "",
+                MetaKeys.target_entity: "",
+                MetaKeys.relation_description: "",
+                MetaKeys.relation_keywords: np.array([], dtype=str),
+                MetaKeys.relation_strength: 0.0,
+            }
+        ]
         for _ in range(self.try_num):
             try:
                 result = self.light_rag_extraction(messages, rank=rank)
@@ -351,7 +351,7 @@ Output:
                         relations = cur_relations
                     break
             except Exception as e:
-                logger.warning(f'Exception: {e}')
+                logger.warning(f"Exception: {e}")
 
         sample[Fields.meta][self.entity_key] = entities
         sample[Fields.meta][self.relation_key] = relations

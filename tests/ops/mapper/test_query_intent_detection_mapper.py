@@ -5,8 +5,7 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.query_intent_detection_mapper import QueryIntentDetectionMapper
-from data_juicer.utils.unittest_utils import (SKIPPED_TESTS,
-                                              DataJuicerTestCaseBase)
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.utils.constant import Fields, MetaKeys
 
 class TestQueryIntentDetectionMapper(DataJuicerTestCaseBase):

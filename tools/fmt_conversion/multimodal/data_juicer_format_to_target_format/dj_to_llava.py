@@ -74,8 +74,8 @@ def main(
     target_llava_ds_path: str,
     keep_only_first_image: bool = True,
     eoc_special_token: str = SpecialTokens.eoc,
-    image_special_token: str = '<image>',
-    sent_separator: str = '\n',
+    image_special_token: str = "<image>",
+    sent_separator: str = "\n",
     restore_questions: bool = False,
     original_llava_ds_path: str = None,
 ):
@@ -105,116 +105,117 @@ def main(
     """
     # ----- Constant settings. Better not to change them. -----
     # default key of field to store the sample text
-    text_key = 'text'
+    text_key = "text"
     # default key of field to store the image list
-    image_key = 'images'
+    image_key = "images"
     # default pattern for the conversation role
-    from_pattern = re.compile(r'\[\[([a-zA-Z]*?)\]\]: ')
+    from_pattern = re.compile(r"\[\[([a-zA-Z]*?)\]\]: ")
     # ----- Constant settings. Better not to change them. -----
     # check arguments
     # check paths
     if not os.path.exists(dj_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{dj_ds_path}] can not be found.')
-    if not target_llava_ds_path.endswith('.json'):
-        raise ValueError(
-            'Only support "json" target dataset file for LLaVA now.')
-    if os.path.dirname(target_llava_ds_path) \
-            and not os.path.exists(os.path.dirname(target_llava_ds_path)):
-        logger.info(
-            f'Create directory [{os.path.dirname(target_llava_ds_path)}] for '
-            f'the target dataset.')
+        raise FileNotFoundError(f"Input dataset [{dj_ds_path}] can not be found.")
+    if not target_llava_ds_path.endswith(".json"):
+        raise ValueError('Only support "json" target dataset file for LLaVA now.')
+    if os.path.dirname(target_llava_ds_path) and not os.path.exists(os.path.dirname(target_llava_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_llava_ds_path)}] for " f"the target dataset.")
         os.makedirs(os.path.dirname(target_llava_ds_path))
 
     # check if the default image special token is changed
-    if image_special_token != '<image>':
-        logger.warning('The image_special_token used in the original LLaVA '
-                       'dataset is "<image>". It\'s better to align the this '
-                       'token. There might be some compatibility problem if '
-                       'you change it.')
+    if image_special_token != "<image>":
+        logger.warning(
+            "The image_special_token used in the original LLaVA "
+            'dataset is "<image>". It\'s better to align the this '
+            "token. There might be some compatibility problem if "
+            "you change it."
+        )
 
     # if restore_questions is True, check if
     # the original_llava_ds_path is provided as well.
     if restore_questions:
         if not original_llava_ds_path:
-            raise ValueError('When restore_questions is set to True, '
-                             'the original_llava_ds_path must be provided '
-                             'for recovering the relative paths. Please '
-                             'check and retry.')
+            raise ValueError(
+                "When restore_questions is set to True, "
+                "the original_llava_ds_path must be provided "
+                "for recovering the relative paths. Please "
+                "check and retry."
+            )
         original_llava_ds_path = os.path.abspath(original_llava_ds_path)
         # prepare id2idx dict
-        ori_ds = json.load(open(original_llava_ds_path, 'r', encoding='utf-8'))
-        id2idx = {str(s['id']): idx for idx, s in enumerate(ori_ds)}
+        ori_ds = json.load(open(original_llava_ds_path, "r", encoding="utf-8"))
+        id2idx = {str(s["id"]): idx for idx, s in enumerate(ori_ds)}
 
-    logger.info('Start to convert.')
+    logger.info("Start to convert.")
     samples = []
-    with jl.open(dj_ds_path, 'r') as reader:
+    with jl.open(dj_ds_path, "r") as reader:
         for sample in tqdm(reader):
-            sid = sample['id']
+            sid = sample["id"]
             images = list(set(sample.get(image_key, [])))
             text = sample[text_key]
 
             if len(images) > 1:
-                raise ValueError(f'There are more than 1 distinct images in '
-                                 f'the sample with id [{sid}], which is not '
-                                 f'compatible with LLaVA dataset format. '
-                                 f'Please check and fix it and retry.')
+                raise ValueError(
+                    f"There are more than 1 distinct images in "
+                    f"the sample with id [{sid}], which is not "
+                    f"compatible with LLaVA dataset format. "
+                    f"Please check and fix it and retry."
+                )
 
             def clean_sentence(sentence, round):
                 sentence = sentence.strip()
 
                 # remove sentence separator
                 if sentence.endswith(sent_separator):
-                    sentence = sentence[:-len(sent_separator)].strip()
+                    sentence = sentence[: -len(sent_separator)].strip()
                 # remove possible eoc_special_tokens
                 if sentence.endswith(eoc_special_token):
-                    sentence = sentence[:-len(eoc_special_token)].strip()
+                    sentence = sentence[: -len(eoc_special_token)].strip()
                 # remove possible image_special_tokens when only keeping it in
                 # the first conversation round
                 if round > 0 and keep_only_first_image:
                     if sentence.startswith(image_special_token):
-                        sentence = sentence[len(image_special_token):].strip()
+                        sentence = sentence[len(image_special_token) :].strip()
                         if sentence.startswith(sent_separator):
-                            sentence = sentence[len(sent_separator):].strip()
+                            sentence = sentence[len(sent_separator) :].strip()
                     if sentence.endswith(image_special_token):
-                        sentence = sentence[:-len(image_special_token)].strip()
+                        sentence = sentence[: -len(image_special_token)].strip()
                         if sentence.endswith(sent_separator):
-                            sentence = sentence[:-len(sent_separator)].strip()
+                            sentence = sentence[: -len(sent_separator)].strip()
                 return sentence
 
             conversations = []
             if restore_questions:
                 if sid in id2idx:
-                    sid = ori_ds[id2idx[sid]]['id']
+                    sid = ori_ds[id2idx[sid]]["id"]
                 elif str(sid) in id2idx:
-                    sid = ori_ds[id2idx[str(sid)]]['id']
+                    sid = ori_ds[id2idx[str(sid)]]["id"]
                 else:
                     raise ValueError(
-                        f'The id [{sid}] in the sample cannot be '
-                        f'aligned with any samples in the original '
-                        f'dataset. Please check and fix it and '
-                        f'retry.')
+                        f"The id [{sid}] in the sample cannot be "
+                        f"aligned with any samples in the original "
+                        f"dataset. Please check and fix it and "
+                        f"retry."
+                    )
                 # need to restore questions for samples with only captions
-                ori_convs = ori_ds[id2idx[str(sid)]]['conversations']
+                ori_convs = ori_ds[id2idx[str(sid)]]["conversations"]
                 conversations.append(ori_convs[0])  # add question
-                conversations.append({
-                    'from': ori_convs[1]['from'],
-                    'value': clean_sentence(text, 1)
-                })
+                conversations.append({"from": ori_convs[1]["from"], "value": clean_sentence(text, 1)})
             else:
                 # convert dj text format to LLaVA conversation format
                 # split the text into a list of:
                 # [role1, sent1, role2, sent2, role1, sent3, role2, sent4, ...]
                 parts = from_pattern.split(text)
-                if parts[0] == '':
+                if parts[0] == "":
                     parts = parts[1:]
                 if len(parts) % 4 != 0:
-                    raise ValueError(f'The conversations in the sample text '
-                                     f'with id [{sid}] contains unbalance '
-                                     f'(human, robot) conversation round '
-                                     f'(number of conversation is '
-                                     f'[{len(parts)}]). Please check and fix '
-                                     f'the dataset and retry.')
+                    raise ValueError(
+                        f"The conversations in the sample text "
+                        f"with id [{sid}] contains unbalance "
+                        f"(human, robot) conversation round "
+                        f"(number of conversation is "
+                        f"[{len(parts)}]). Please check and fix "
+                        f"the dataset and retry."
+                    )
 
                 # the number of sentences
                 num_sent = len(parts) // 2
@@ -222,20 +223,19 @@ def main(
                     # get role and its sentence
                     role = parts[2 * i]
                     sent = clean_sentence(parts[2 * i + 1], i)
-                    conversation = {'from': role, 'value': sent}
+                    conversation = {"from": role, "value": sent}
                     conversations.append(conversation)
 
             # make up the new sample
-            new_sample = {'id': sid, 'conversations': conversations}
+            new_sample = {"id": sid, "conversations": conversations}
             if len(images) == 1:
                 image_path = images[0]
-                new_sample['image'] = image_path
+                new_sample["image"] = image_path
             samples.append(new_sample)
 
-    logger.info(f'Start to write the converted dataset to '
-                f'[{target_llava_ds_path}]...')
-    json.dump(samples, open(target_llava_ds_path, 'w', encoding='utf-8'))
+    logger.info(f"Start to write the converted dataset to " f"[{target_llava_ds_path}]...")
+    json.dump(samples, open(target_llava_ds_path, "w", encoding="utf-8"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

@@ -8,18 +8,20 @@ from ..base_op import OPERATORS, Filter
 from ..common import SPECIAL_CHARACTERS
 
 
-@OPERATORS.register_module('special_characters_filter')
+@OPERATORS.register_module("special_characters_filter")
 class SpecialCharactersFilter(Filter):
-    """Filter to keep samples with special-char ratio within a specific
-    range."""
+    """Filter to keep samples with special-character ratio within a specific range.
+
+    This operator filters out samples based on the ratio of special characters in the text.
+    It keeps samples where the special-character ratio is within the specified minimum and
+    maximum thresholds. The special-character ratio is computed as the number of special
+    characters divided by the total number of characters in the text. If the
+    'special_char_ratio' is already cached in the stats, it will be reused. Otherwise, it
+    will be computed and stored in the 'special_char_ratio' field."""
 
     _batched_op = True
 
-    def __init__(self,
-                 min_ratio: float = 0.0,
-                 max_ratio: float = 0.25,
-                 *args,
-                 **kwargs):
+    def __init__(self, min_ratio: float = 0.0, max_ratio: float = 0.25, *args, **kwargs):
         """
         Initialization method.
 
@@ -47,22 +49,14 @@ class SpecialCharactersFilter(Filter):
             cur_text = samples_list[idx]
             # get ratio of special characters
             samples_stats[idx][StatsKeys.special_char_ratio] = (
-                len([c for c in cur_text if c in SPECIAL_CHARACTERS]) /
-                len(cur_text)) if len(cur_text) != 0 else 0.0
+                (len([c for c in cur_text if c in SPECIAL_CHARACTERS]) / len(cur_text)) if len(cur_text) != 0 else 0.0
+            )
 
         return samples
 
     def process_batched(self, samples):
-        if isinstance(samples[Fields.stats], list):
-            return map(
-                lambda stat: self.min_ratio <= stat[
-                    StatsKeys.special_char_ratio] <= self.max_ratio,
-                samples[Fields.stats])
-        else:
-            # single sample for ray filter
-            if self.min_ratio <= \
-                    samples[Fields.stats][StatsKeys.special_char_ratio] \
-                    <= self.max_ratio:
-                return True
-            else:
-                return False
+        assert isinstance(samples[Fields.stats], list)
+        return map(
+            lambda stat: self.get_keep_boolean(stat[StatsKeys.special_char_ratio], self.min_ratio, self.max_ratio),
+            samples[Fields.stats],
+        )

@@ -8,6 +8,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class CleanHtmlMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
+
         self.op = CleanHtmlMapper()
 
     def _run_helper(self, samples):

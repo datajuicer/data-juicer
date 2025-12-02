@@ -1,6 +1,6 @@
 # The config file for performance benchmark to measure the processing speed for
 # the current Data-Juicer system. OPs are selected according to their tags and
-# types (https://github.com/modelscope/data-juicer/blob/main/docs/Operators.md)
+# types (https://github.com/datajuicer/data-juicer/blob/main/docs/Operators.md)
 
 project_name: 'performance-benchmark-video'
 dataset_path: 'perf_bench_data/video/msr_vtt_train.jsonl'
@@ -11,7 +11,7 @@ use_cache: false
 process:
   - video_nsfw_filter:
       hf_nsfw_model: 'Falconsai/nsfw_image_detection'
-      score_threshold: 1.0
+      max_score: 1.0
       mem_required: '1GB'
   - video_tagging_from_frames_mapper:
       mem_required: '9GB'

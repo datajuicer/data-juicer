@@ -10,7 +10,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class TokenNumFilterTest(DataJuicerTestCaseBase):
 
     def test_token_num(self):
-        src = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -33,7 +33,7 @@ class TokenNumFilterTest(DataJuicerTestCaseBase):
                 'This paper proposed a novel method on LLM pretraining.'
             },
         ]
-        tgt = [
+        tgt_list = [
             10,
             8,
             9,
@@ -41,15 +41,15 @@ class TokenNumFilterTest(DataJuicerTestCaseBase):
             14,
             12,
         ]
-        ds = Dataset.from_list(src)
+        ds = Dataset.from_list(ds_list)
         op = TokenNumFilter()
         ds = ds.add_column(Fields.stats, [{}] * len(ds))
         ds = ds.map(op.compute_stats)
         stats = ds[Fields.stats]
-        self.assertEqual([item[StatsKeys.num_token] for item in stats], tgt)
+        self.assertEqual([item[StatsKeys.num_token] for item in stats], tgt_list)
 
     def test_token_num_filter(self):
-        src = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -72,7 +72,7 @@ class TokenNumFilterTest(DataJuicerTestCaseBase):
                 'This paper proposed a novel method on LLM pretraining.'
             },
         ]
-        tgt = [
+        tgt_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -84,13 +84,13 @@ class TokenNumFilterTest(DataJuicerTestCaseBase):
                 'This paper proposed a novel method on LLM pretraining.'
             },
         ]
-        ds = Dataset.from_list(src)
-        tgt = Dataset.from_list(tgt)
+        ds = Dataset.from_list(ds_list)
+        tgt_list = Dataset.from_list(tgt_list)
         op = TokenNumFilter(min_num=10, max_num=20)
         ds = ds.add_column(Fields.stats, [{}] * len(ds))
         ds = ds.map(op.compute_stats)
         ds = ds.filter(op.process)
-        self.assertEqual(ds['text'], tgt['text'])
+        self.assertEqual(ds['text'], tgt_list['text'])
 
 
 if __name__ == '__main__':

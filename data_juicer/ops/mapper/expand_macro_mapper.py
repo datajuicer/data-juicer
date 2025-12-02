@@ -7,10 +7,15 @@ import regex as re
 from ..base_op import OPERATORS, Mapper
 
 
-@OPERATORS.register_module('expand_macro_mapper')
+@OPERATORS.register_module("expand_macro_mapper")
 class ExpandMacroMapper(Mapper):
-    """Mapper to expand macro definitions in the document body of Latex
-    samples."""
+    """Expands macro definitions in the document body of LaTeX samples.
+
+    This operator processes LaTeX documents to expand user-defined macros in the text. It
+    supports \\newcommand and \\def macros without arguments. Macros are identified and
+    expanded in the text, ensuring they are not part of longer alphanumeric words. The
+    operator currently does not support macros with arguments. The processed text is updated
+    in the samples."""
 
     _batched_op = True
 
@@ -31,8 +36,9 @@ class ExpandMacroMapper(Mapper):
             # \newcommand*{\macro_name}{macro_value}
             # where macro_name is only allowed to contain letters and numbers;
             # macro_value can contain any character.
-            pattern=r'\\\bnewcommand\b\*?\{(\\[a-zA-Z0-9]+?)\}\{(.*?)\}$',
-            flags=re.MULTILINE)
+            pattern=r"\\\bnewcommand\b\*?\{(\\[a-zA-Z0-9]+?)\}\{(.*?)\}$",
+            flags=re.MULTILINE,
+        )
 
         # regex for extracting \def macros without arguments
         non_arg_def_reg = re.compile(
@@ -40,8 +46,9 @@ class ExpandMacroMapper(Mapper):
             # \def\macro_name{macro_value}
             # where macro_name is only allowed to contain letters and numbers;
             # macro_value can contain any character.
-            pattern=r'\\def\s*(\\[a-zA-Z0-9]+?)\s*\{(.*?)\}$',
-            flags=re.MULTILINE)
+            pattern=r"\\def\s*(\\[a-zA-Z0-9]+?)\s*\{(.*?)\}$",
+            flags=re.MULTILINE,
+        )
 
         # Extract all user-defined LaTeX macros from the preamble
         macros = {}
@@ -49,10 +56,8 @@ class ExpandMacroMapper(Mapper):
             for match in reg.finditer(file_content):
                 # convert the macro name and value to a raw string that can be
                 # used in re.sub
-                macro_name = match.group(1).encode('unicode-escape').decode(
-                    'utf-8')
-                macro_val = match.group(2).encode('unicode-escape').decode(
-                    'utf-8')
+                macro_name = match.group(1).encode("unicode-escape").decode("utf-8")
+                macro_val = match.group(2).encode("unicode-escape").decode("utf-8")
 
                 macros[macro_name] = macro_val
         return macros
@@ -69,11 +74,12 @@ class ExpandMacroMapper(Mapper):
                 text = re.sub(
                     # make pattern grouped to make sure that the macro
                     # is not part of a longer alphanumeric word
-                    pattern=r'(' + macro_name + r')' + r'([^a-zA-Z0-9])',
+                    pattern=r"(" + macro_name + r")" + r"([^a-zA-Z0-9])",
                     # replace the macro with its value and add back the
                     # character that was matched after the macro
-                    repl=macro_value + r'\2',
-                    string=text)
+                    repl=macro_value + r"\2",
+                    string=text,
+                )
 
             # inline-expand all macros that use args
             # TODO: inline-expand macros with args

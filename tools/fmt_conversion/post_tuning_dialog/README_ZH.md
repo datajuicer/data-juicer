@@ -96,3 +96,15 @@
   ]
 }
 ```
+
+## 用法
+
+对于所有工具，您可以运行以下命令来查看它们的用法：
+
+```shell
+# e.g. messages_to_dj.py
+python tools/fmt_conversion/post_tuning_dialog/source_format_to_data_juicer_format/messages_to_dj.py --help
+```
+
+对于从源格式转换到Data-Juicer格式，您可以使用`source_format_to_data_juicer_format`文件夹中的工具。
+对于从Data-Juicer格式转换回目标格式，您可以使用`data_juicer_format_to_target_format`文件夹中的工具。

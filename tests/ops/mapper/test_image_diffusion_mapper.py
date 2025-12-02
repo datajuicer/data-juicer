@@ -2,7 +2,7 @@ import os
 import shutil
 import unittest
 
-from data_juicer import _cuda_device_count
+from data_juicer.utils.resource_utils import cuda_device_count
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.image_diffusion_mapper import ImageDiffusionMapper
 from data_juicer.utils.mm_utils import SpecialTokens
@@ -174,7 +174,7 @@ class ImageDiffusionMapperTest(DataJuicerTestCaseBase):
 
         # set num_proc <= the number of CUDA if it is available
         num_proc = 2
-        if _cuda_device_count() == 1:
+        if cuda_device_count() == 1:
             num_proc = 1
 
         self._run_mapper(dataset,

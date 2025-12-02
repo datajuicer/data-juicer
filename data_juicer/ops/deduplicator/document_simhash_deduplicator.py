@@ -16,24 +16,40 @@ from data_juicer.utils.lazy_loader import LazyLoader
 from ..base_op import OPERATORS, Deduplicator
 from ..common.helper_func import split_on_whitespace
 
-simhash = LazyLoader('simhash', 'simhash')
+simhash = LazyLoader("simhash", "simhash-pybind")
 
-OP_NAME = 'document_simhash_deduplicator'
+OP_NAME = "document_simhash_deduplicator"
 
 
 @OPERATORS.register_module(OP_NAME)
 class DocumentSimhashDeduplicator(Deduplicator):
-    """Deduplicator to deduplicate samples at document-level using SimHash."""
+    """Deduplicates samples at the document level using SimHash.
 
-    def __init__(self,
-                 tokenization: str = 'space',
-                 window_size: PositiveInt = 6,
-                 lowercase: bool = True,
-                 ignore_pattern: Optional[str] = None,
-                 num_blocks: PositiveInt = 6,
-                 hamming_distance: PositiveInt = 4,
-                 *args,
-                 **kwargs):
+    This operator computes SimHash values for each sample and removes duplicates based on a
+    specified Hamming distance threshold. It supports different tokenization methods:
+    'space', 'punctuation', and 'character'. The SimHash is computed over shingles of a
+    given window size, and the deduplication process clusters similar documents and retains
+    only one from each cluster. The default mode converts text to lowercase and can ignore
+    specific patterns. The key metric, Hamming distance, is used to determine similarity
+    between SimHash values. Important notes:
+    - The `ignore_pattern` parameter can be used to exclude certain substrings during
+      SimHash computation.
+    - For punctuation-based tokenization, the `ignore_pattern` should not include
+      punctuations to avoid conflicts.
+    - The `hamming_distance` must be less than the number of blocks (`num_blocks`).
+    - Only the first sample in each cluster is retained by default."""
+
+    def __init__(
+        self,
+        tokenization: str = "space",
+        window_size: PositiveInt = 6,
+        lowercase: bool = True,
+        ignore_pattern: Optional[str] = None,
+        num_blocks: PositiveInt = 6,
+        hamming_distance: PositiveInt = 4,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method :param tokenization: tokenization method for
         sample texts.
@@ -42,6 +58,7 @@ class DocumentSimhashDeduplicator(Deduplicator):
         English-like languages, we recommend to use 'space'. And for
         Chinese-like languages, we recommend to use 'character'
 
+        :param tokenization: tokenization method for sample texts
         :param window_size: window size of shingling
         :param lowercase: whether to convert text to lower case first
         :param ignore_pattern: whether to ignore sub-strings with
@@ -64,11 +81,13 @@ class DocumentSimhashDeduplicator(Deduplicator):
             self.ignore_pattern = regex.compile(self.ignore_pattern)
 
         # check parameters
-        if self.ignore_pattern and self.tokenization == 'punctuation':
-            logger.warning('Be careful that tokenization with punctuations '
-                           'won\'t work if the ignore pattern includes '
-                           'punctuations.')
-        self.punctuation_pattern = regex.compile(r'\p{P}')
+        if self.ignore_pattern and self.tokenization == "punctuation":
+            logger.warning(
+                "Be careful that tokenization with punctuations "
+                "won't work if the ignore pattern includes "
+                "punctuations."
+            )
+        self.punctuation_pattern = regex.compile(r"\p{P}")
 
         # about deduplication
         self.num_blocks = num_blocks
@@ -90,34 +109,29 @@ class DocumentSimhashDeduplicator(Deduplicator):
         if self.lowercase:
             text = text.lower()
         if self.ignore_pattern:
-            text = self.ignore_pattern.sub('', text)
+            text = self.ignore_pattern.sub("", text)
 
         # get tokens for different tokenization method
         tokens = []
-        if self.tokenization == 'character':
-            tokens = [
-                str.encode(text[i:i + self.window_size])
-                for i in range(len(text) - self.window_size)
-            ]
-        elif self.tokenization == 'punctuation':
+        if self.tokenization == "character":
+            tokens = [str.encode(text[i : i + self.window_size]) for i in range(len(text) - self.window_size + 1)]
+        elif self.tokenization == "punctuation":
             tokens = self.punctuation_pattern.split(text)
             tokens = [
-                str.encode(' '.join(tokens[i:i + self.window_size]))
-                for i in range(len(tokens) - self.window_size)
+                str.encode(" ".join(tokens[i : i + self.window_size]))
+                for i in range(len(tokens) - self.window_size + 1)
             ]
-        elif self.tokenization == 'space':
+        elif self.tokenization == "space":
             tokens = split_on_whitespace(text)
             tokens = [
-                str.encode(' '.join(tokens[i:i + self.window_size]))
-                for i in range(len(tokens) - self.window_size)
+                str.encode(" ".join(tokens[i : i + self.window_size]))
+                for i in range(len(tokens) - self.window_size + 1)
             ]
         else:
-            raise NotImplementedError(
-                f'Unimplemented tokenization method [{self.tokenization}]')
+            raise NotImplementedError(f"Unimplemented tokenization method [{self.tokenization}]")
 
         # compute simhash
-        sample[HashKeys.simhash] = str(
-            np.uint64(simhash.compute(map(simhash.unsigned_hash, tokens))))
+        sample[HashKeys.simhash] = str(np.uint64(simhash.compute(map(simhash.unsigned_hash, tokens))))
         return sample
 
     def process(self, dataset, show_num=0):
@@ -134,13 +148,13 @@ class DocumentSimhashDeduplicator(Deduplicator):
             return dataset, {}
 
         # find matches
-        logger.info(f'Start querying {len(dataset)} samples.')
+        logger.info(f"Start querying {len(dataset)} samples.")
         matches = simhash.find_all(
             np.uint64(dataset[HashKeys.simhash]),
             self.num_blocks,
             self.hamming_distance,
         )
-        logger.info(f'Querying done, found {len(matches)} matches.')
+        logger.info(f"Querying done, found {len(matches)} matches.")
 
         # compute hash diff distribution
         graph = defaultdict(dict)
@@ -187,13 +201,12 @@ class DocumentSimhashDeduplicator(Deduplicator):
                     hash2cluster[neighbor] = cluster_id
 
             cluster_id += 1
-        logger.info(f'Found {cluster_id} clusters and {len(graph)} hashes.')
+        logger.info(f"Found {cluster_id} clusters and {len(graph)} hashes.")
 
         # filter duplicated samples
         # NOTICE: For now, we only keep the first sample in a cluster. Maybe
         # there are some better strategies later.
-        def _filter_simhash_dup_helper(sample, visited_clusters,
-                                       visited_hashes):
+        def _filter_simhash_dup_helper(sample, visited_clusters, visited_hashes):
             sample_hash_val = sample[HashKeys.simhash]
             if sample_hash_val not in hash2cluster:
                 # single-sample cluster, we need to check hash value still.
@@ -204,8 +217,7 @@ class DocumentSimhashDeduplicator(Deduplicator):
                     return True
             else:
                 cluster_num = hash2cluster[sample_hash_val]
-                if show_num > 0 and cluster_num in dup_pairs \
-                        and len(dup_pairs[cluster_num]) < 2:
+                if show_num > 0 and cluster_num in dup_pairs and len(dup_pairs[cluster_num]) < 2:
                     dup_pairs[cluster_num].append(sample)
                 # regular cluster, check cluster number.
                 if cluster_num in visited_clusters:
@@ -218,9 +230,9 @@ class DocumentSimhashDeduplicator(Deduplicator):
         hash_record = set()
         dataset = dataset.filter(
             _filter_simhash_dup_helper,
-            fn_kwargs=dict(visited_clusters=cluster_record,
-                           visited_hashes=hash_record),
-            load_from_cache_file=False if show_num > 0 else True)
-        logger.info(f'Keep {len(dataset)} samples after SimHash dedup.')
+            fn_kwargs=dict(visited_clusters=cluster_record, visited_hashes=hash_record),
+            load_from_cache_file=False if show_num > 0 else True,
+        )
+        logger.info(f"Keep {len(dataset)} samples after SimHash dedup.")
 
         return dataset, dup_pairs

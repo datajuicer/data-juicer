@@ -58,8 +58,10 @@ from loguru import logger
 from tqdm import tqdm
 
 from data_juicer.utils.mm_utils import SpecialTokens
-from tools.fmt_conversion.multimodal.utils import (check_args_load_to_dj_data,
-                                                   convert_text_to_dj)
+from tools.fmt_conversion.multimodal.utils import (
+    check_args_load_to_dj_data,
+    convert_text_to_dj,
+)
 
 
 @logger.catch(reraise=True)
@@ -69,9 +71,9 @@ def main(
     eoc_special_token: str = SpecialTokens.eoc,
     video_special_token: str = SpecialTokens.video,
     add_eoc_at_last: bool = True,
-    sent_separator: str = ' ',
-    video_special_token_insert_pos: str = 'before',
-    subset_type: str = 'classification',
+    sent_separator: str = " ",
+    video_special_token_insert_pos: str = "before",
+    subset_type: str = "classification",
     keep_other_fields: bool = True,
 ):
     """
@@ -102,45 +104,47 @@ def main(
         datasets. Default: False.
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    video_key = 'videos'  # default key of field to store the video list
+    text_key = "text"  # default key of field to store the sample text
+    video_key = "videos"  # default key of field to store the video list
     fields_infos = {
-        'pretrain': {
-            'video_key': 'video_id:FILE',
-            'text_key': 'title',
+        "pretrain": {
+            "video_key": "video_id:FILE",
+            "text_key": "title",
         },
-        'classification': {
-            'video_key': 'video_id:FILE',
-            'text_key': 'title',
+        "classification": {
+            "video_key": "video_id:FILE",
+            "text_key": "title",
         },
-        'retrieval': {
-            'video_key': 'clip_name:FILE',
-            'text_key': 'caption',
+        "retrieval": {
+            "video_key": "clip_name:FILE",
+            "text_key": "caption",
         },
-        'captioning': {
-            'video_key': 'video_id:FILE',
-            'text_key': 'golden_caption',
-        }
+        "captioning": {
+            "video_key": "video_id:FILE",
+            "text_key": "golden_caption",
+        },
     }
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
-    check_args_load_to_dj_data(add_eoc_at_last, keep_other_fields,
-                               target_ds_path, youku_ds_path,
-                               video_special_token_insert_pos, '.jsonl')
+    check_args_load_to_dj_data(
+        add_eoc_at_last, keep_other_fields, target_ds_path, youku_ds_path, video_special_token_insert_pos, ".jsonl"
+    )
     # check subset type
     if subset_type not in fields_infos:
-        logger.error(f'Arg subset_type should be one of ["pretrain", '
-                     f'"classification", "retrieval", "captioning"], but '
-                     f'given [{subset_type}].')
-    ori_video_key = fields_infos[subset_type]['video_key']
-    ori_text_key = fields_infos[subset_type]['text_key']
+        logger.error(
+            f'Arg subset_type should be one of ["pretrain", '
+            f'"classification", "retrieval", "captioning"], but '
+            f"given [{subset_type}]."
+        )
+    ori_video_key = fields_infos[subset_type]["video_key"]
+    ori_text_key = fields_infos[subset_type]["text_key"]
 
     # load Youku-mPLUG dataset
-    logger.info('Start converting the original Youku-mPLUG dataset...')
+    logger.info("Start converting the original Youku-mPLUG dataset...")
     with open(youku_ds_path) as csvfile:
         reader = csv.DictReader(csvfile)
-        with jl.open(target_ds_path, mode='w') as writer:
+        with jl.open(target_ds_path, mode="w") as writer:
             for row in tqdm(reader):
                 video = row[ori_video_key]
                 text = row[ori_text_key]
@@ -148,15 +152,21 @@ def main(
                 # convert text to data-juicer format
                 # add video special token
                 new_sample, text = convert_text_to_dj(
-                    text, row, add_eoc_at_last, eoc_special_token,
-                    keep_other_fields, sent_separator, video_special_token,
-                    video_special_token_insert_pos)
+                    text,
+                    row,
+                    add_eoc_at_last,
+                    eoc_special_token,
+                    keep_other_fields,
+                    sent_separator,
+                    video_special_token,
+                    video_special_token_insert_pos,
+                )
                 # all sentences correspond to the same video
                 new_sample[video_key] = [video]
                 new_sample[text_key] = text
                 writer.write(new_sample)
-    logger.info(f'Store the target dataset into [{target_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

@@ -46,7 +46,7 @@ def main(
     target_video_chatgpt_ds_path: str,
     eoc_special_token: str = SpecialTokens.eoc,
     video_special_token: str = SpecialTokens.video,
-    sent_separator: str = ' ',
+    sent_separator: str = " ",
 ):
     """
     Convert a Data-Juicer-format dataset to a Video-ChatGPT-like dataset.
@@ -65,30 +65,29 @@ def main(
     :param sent_separator: separator to split different sentences. Default: " "
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    video_key = 'videos'  # default key of field to store video files path
-    video_id_key = 'youtube_id'  # default key of field to store youtube id
-    tgt_q_key = 'q'  # default original key of field to store texts
-    tgt_a_key = 'a'
-    tgt_video_key = 'video_id'  # default original field to store videos
+    text_key = "text"  # default key of field to store the sample text
+    video_key = "videos"  # default key of field to store video files path
+    video_id_key = "youtube_id"  # default key of field to store youtube id
+    tgt_q_key = "q"  # default original key of field to store texts
+    tgt_a_key = "a"
+    tgt_video_key = "video_id"  # default original field to store videos
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
     if not os.path.exists(dj_ds_path):
-        raise FileNotFoundError(f'Input Video_ChatGPT dataset in dj format, '
-                                f'[{dj_ds_path}], can not be found.')
-    if not target_video_chatgpt_ds_path.endswith('.json'):
-        raise ValueError(
-            'Only support "json" target dataset file for Video_ChatGPT now.')
-    if (os.path.dirname(target_video_chatgpt_ds_path) and
-            not os.path.exists(os.path.dirname(target_video_chatgpt_ds_path))):
-        logger.info(f'Create directory '
-                    f'[{os.path.dirname(target_video_chatgpt_ds_path)}] '
-                    f'for the target dataset.')
+        raise FileNotFoundError(f"Input Video_ChatGPT dataset in dj format, " f"[{dj_ds_path}], can not be found.")
+    if not target_video_chatgpt_ds_path.endswith(".json"):
+        raise ValueError('Only support "json" target dataset file for Video_ChatGPT now.')
+    if os.path.dirname(target_video_chatgpt_ds_path) and not os.path.exists(
+        os.path.dirname(target_video_chatgpt_ds_path)
+    ):
+        logger.info(
+            f"Create directory " f"[{os.path.dirname(target_video_chatgpt_ds_path)}] " f"for the target dataset."
+        )
         os.makedirs(os.path.dirname(target_video_chatgpt_ds_path))
 
     # save Video-ChatGPT dataset from Data-Juicer format
-    logger.info('Start converting the DJ dataset to Video-ChatGPT format...')
+    logger.info("Start converting the DJ dataset to Video-ChatGPT format...")
     all_samples = []
     with jl.open(dj_ds_path) as reader:
         for line_num, s in enumerate(tqdm(reader)):
@@ -96,18 +95,16 @@ def main(
             new_sample = {}
 
             video_id = s.pop(video_id_key)
-            new_sample[tgt_video_key] = 'v_' + video_id
+            new_sample[tgt_video_key] = "v_" + video_id
             # add video
             new_sample[video_key] = video_path
 
             # add question and answer
             text = s.pop(text_key).strip()
-            text = remove_dj_special_tokens(text, eoc_special_token,
-                                            sent_separator,
-                                            video_special_token)
+            text = remove_dj_special_tokens(text, eoc_special_token, sent_separator, video_special_token)
             # get the question and answer
-            parts = text.split(f'[[{tgt_q_key}]]:')[1]
-            q, a = parts.split(f'[[{tgt_a_key}]]:')
+            parts = text.split(f"[[{tgt_q_key}]]:")[1]
+            q, a = parts.split(f"[[{tgt_a_key}]]:")
             new_sample[tgt_q_key] = q.strip()
             new_sample[tgt_a_key] = a.strip()
 
@@ -117,10 +114,10 @@ def main(
                     new_sample[key] = s[key]
 
             all_samples.append(new_sample)
-    with open(target_video_chatgpt_ds_path, 'w') as file:
+    with open(target_video_chatgpt_ds_path, "w") as file:
         json.dump(all_samples, file)
-    logger.info(f'Store the dataset into [{target_video_chatgpt_ds_path}].')
+    logger.info(f"Store the dataset into [{target_video_chatgpt_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

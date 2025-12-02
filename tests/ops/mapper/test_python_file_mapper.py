@@ -19,7 +19,7 @@ class TestPythonFileMapper(DataJuicerTestCaseBase):
             self.assertEqual(result, {'result': 15})
 
     def test_function_batched(self):
-        """Test for a funtion that processes a batch."""
+        """Test for a function that processes a batch."""
         with tempfile.NamedTemporaryFile(delete=True, suffix='.py', mode='w+') as temp_file:
             temp_file.write(
                 "def process_data(samples):\n"

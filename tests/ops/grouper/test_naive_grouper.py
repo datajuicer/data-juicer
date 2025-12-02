@@ -16,7 +16,7 @@ class NaiveGrouperTest(DataJuicerTestCaseBase):
 
     def test_naive_group(self):
 
-        source = [
+        ds_list = [
             {
                 'text': "Today is Sunday and it's a happy day!"
             },
@@ -29,7 +29,7 @@ class NaiveGrouperTest(DataJuicerTestCaseBase):
                 'text': '欢迎来到阿里巴巴！'
             },
         ]
-        target = [
+        tgt_list = [
             {
                 'text':[
                     "Today is Sunday and it's a happy day!",
@@ -41,7 +41,7 @@ class NaiveGrouperTest(DataJuicerTestCaseBase):
         ]
 
         op = NaiveGrouper()
-        self._run_helper(op, source, target)
+        self._run_helper(op, ds_list, tgt_list)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# paremeters
+# parameters
 datajuicer_path= # path to data-juicer
 config_path= # path to config file
 

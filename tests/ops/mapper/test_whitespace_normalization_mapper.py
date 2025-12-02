@@ -9,6 +9,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class WhitespaceNormalizationMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
         self.op = WhitespaceNormalizationMapper()
 
     def _run_whitespace_normalization(self, samples):

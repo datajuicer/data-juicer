@@ -9,7 +9,7 @@ from data_juicer.ops.filter.image_text_matching_filter import \
     ImageTextMatchingFilter
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.mm_utils import SpecialTokens
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, SKIPPED_TESTS
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class ImageTextMatchingFilterTest(DataJuicerTestCaseBase):
 

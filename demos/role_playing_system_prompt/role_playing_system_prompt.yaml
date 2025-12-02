@@ -14,7 +14,7 @@ process:
 #       overlap_len: 400
 #       tokenizer: 'qwen2.5-72b-instruct'
 #       trust_remote_code: True
-  # extract language_style, role_charactor and role_skill
+  # extract language_style, role_character and role_skill
   - extract_entity_attribute_mapper:                  
       api_model: 'qwen2.5-72b-instruct'                                   
       query_entities: ['孙悟空']
@@ -43,13 +43,13 @@ process:
       input_key: 'event_description'
       output_key: 'role_experience'
       word_limit: 150
-  # most relavant roles summary from events
-  - most_relavant_entities_aggregator: 
+  # most relevant roles summary from events
+  - most_relevant_entities_aggregator: 
       api_model: 'qwen2.5-72b-instruct' 
       entity: '孙悟空'
       query_entity_type: '人物'
       input_key: 'event_description'
-      output_key: 'important_relavant_roles'
+      output_key: 'important_relevant_roles'
   # generate the system prompt
   - python_file_mapper:
       file_path: 'demos/role_playing_system_prompt/system_prompt_generator.py'

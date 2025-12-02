@@ -3,9 +3,12 @@ import time
 from functools import partial
 from multiprocessing import get_context
 
-from data_juicer.utils.resource_utils import (get_cpu_count,
-                                              get_cpu_utilization,
-                                              query_cuda_info, query_mem_info)
+from data_juicer.utils.resource_utils import (
+    cpu_count,
+    get_cpu_utilization,
+    query_cuda_info,
+    query_mem_info,
+)
 
 
 def resource_monitor(mdict, interval):
@@ -16,14 +19,14 @@ def resource_monitor(mdict, interval):
         this_states.append(Monitor.monitor_current_resources())
         time.sleep(interval)
         try:
-            stop_sign = mdict['stop']
+            stop_sign = mdict["stop"]
         except (BrokenPipeError, FileNotFoundError):
             # mdict crushes due to the main process is terminated already,
             # which is not the fault here
             return
         if stop_sign:
             break
-    mdict['resource'] = this_states
+    mdict["resource"] = this_states
 
 
 class Monitor:
@@ -74,25 +77,15 @@ class Monitor:
     """
 
     DYNAMIC_FIELDS = {
-        'CPU util.',
-        'Used mem.',
-        'Free mem.',
-        'Available mem.',
-        'Mem. util.',
-        'GPU free mem.',
-        'GPU used mem.',
-        'GPU util.',
+        "CPU util.",
+        "Used mem.",
+        "Free mem.",
+        "Available mem.",
+        "Mem. util.",
+        "GPU free mem.",
+        "GPU used mem.",
+        "GPU util.",
     }
-
-    def __init__(self):
-        pass
-
-    def monitor_all_resources(self):
-        """
-        Detect the resource utilization of all distributed nodes.
-        """
-        # TODO
-        raise NotImplementedError
 
     @staticmethod
     def monitor_current_resources():
@@ -103,46 +96,45 @@ class Monitor:
         """
         resource_dict = dict()
         # current time
-        resource_dict['timestamp'] = time.time()
+        resource_dict["timestamp"] = time.time()
 
         # CPU
-        resource_dict['CPU count'] = get_cpu_count()
-        resource_dict['CPU util.'] = get_cpu_utilization() / 100.0
-        resource_dict['Total mem.'] = query_mem_info('total')
-        resource_dict['Used mem.'] = query_mem_info('used')
-        resource_dict['Free mem.'] = query_mem_info('free')
-        resource_dict['Available mem.'] = query_mem_info('available')
-        resource_dict['Mem. util.'] = resource_dict[
-            'Used mem.'] / resource_dict['Total mem.']
+        resource_dict["CPU count"] = cpu_count()
+        resource_dict["CPU util."] = get_cpu_utilization() / 100.0
+        resource_dict["Total mem."] = query_mem_info("total")
+        resource_dict["Used mem."] = query_mem_info("used")
+        resource_dict["Free mem."] = query_mem_info("free")
+        resource_dict["Available mem."] = query_mem_info("available")
+        resource_dict["Mem. util."] = resource_dict["Used mem."] / resource_dict["Total mem."]
 
         # GPU
-        resource_dict['GPU total mem.'] = query_cuda_info('memory.total')
-        resource_dict['GPU free mem.'] = query_cuda_info('memory.free')
-        resource_dict['GPU used mem.'] = query_cuda_info('memory.used')
-        resource_dict['GPU util.'] = query_cuda_info('utilization.gpu')
-        if resource_dict['GPU util.']:
-            resource_dict['GPU util.'] = [
-                x / 100.0 for x in resource_dict['GPU util.']
-            ]
+        resource_dict["GPU total mem."] = query_cuda_info("memory.total")
+        resource_dict["GPU free mem."] = query_cuda_info("memory.free")
+        resource_dict["GPU used mem."] = query_cuda_info("memory.used")
+        resource_dict["GPU util."] = query_cuda_info("utilization.gpu")
+        if resource_dict["GPU util."]:
+            resource_dict["GPU util."] = [x / 100.0 for x in resource_dict["GPU util."]]
 
         return resource_dict
 
     @staticmethod
     def draw_resource_util_graph(resource_util_list, store_dir):
         import matplotlib.pyplot as plt
+
+        # avoid error when running on not-main process/thread
+        plt.switch_backend("agg")
         for idx, resource_util_dict in enumerate(resource_util_list):
-            resource_list = resource_util_dict['resource']
-            interval = resource_util_dict['sampling interval']
+            resource_list = resource_util_dict["resource"]
+            interval = resource_util_dict["sampling interval"]
             for focus_metric in Monitor.DYNAMIC_FIELDS:
                 fn = f'func_{idx}_{focus_metric.replace(" ", "_")}.jpg'
-                ylbl = '%' if focus_metric.endswith('util.') else 'MB'
+                ylbl = "%" if focus_metric.endswith("util.") else "MB"
                 metric_list = [item[focus_metric] for item in resource_list]
-                plt.plot([i * interval for i in range(len(metric_list))],
-                         metric_list)
+                plt.plot([i * interval for i in range(len(metric_list))], metric_list)
                 plt.title(focus_metric)
-                plt.xlabel('Time (s)')
+                plt.xlabel("Time (s)")
                 plt.ylabel(ylbl)
-                plt.savefig(os.path.join(store_dir, fn), bbox_inches='tight')
+                plt.savefig(os.path.join(store_dir, fn), bbox_inches="tight")
                 plt.clf()
 
     @staticmethod
@@ -164,7 +156,7 @@ class Monitor:
         """
         analysis_res = {}
         record_list = {}
-        for record in resource_util_dict['resource']:
+        for record in resource_util_dict["resource"]:
             for key in Monitor.DYNAMIC_FIELDS:
                 if key in record:
                     if record[key] is None:
@@ -177,11 +169,11 @@ class Monitor:
         # analyze the max, min, and avg
         for key in record_list:
             analysis_res[key] = {
-                'max': max(record_list[key]),
-                'min': min(record_list[key]),
-                'avg': sum(record_list[key]) / len(record_list[key]),
+                "max": max(record_list[key]),
+                "min": min(record_list[key]),
+                "avg": sum(record_list[key]) / len(record_list[key]),
             }
-        resource_util_dict['resource_analysis'] = analysis_res
+        resource_util_dict["resource_analysis"] = analysis_res
 
         return resource_util_dict
 
@@ -211,18 +203,20 @@ class Monitor:
         resource_util_dict = {}
 
         # start monitor
-        start_method = 'fork'
-        if os.name == 'nt':  # for Windows
-            start_method = 'spawn'
+        start_method = "fork"
+        if os.name == "nt":  # for Windows
+            start_method = "spawn"
         ctx = get_context(start_method)
         with ctx.Manager() as manager:
             mdict = manager.dict()
-            mdict['stop'] = False
-            monitor_proc = ctx.Process(target=resource_monitor,
-                                       args=(
-                                           mdict,
-                                           sample_interval,
-                                       ))
+            mdict["stop"] = False
+            monitor_proc = ctx.Process(
+                target=resource_monitor,
+                args=(
+                    mdict,
+                    sample_interval,
+                ),
+            )
             monitor_proc.start()
             # start timer
             start = time.time()
@@ -234,15 +228,15 @@ class Monitor:
             end = time.time()
 
             # stop monitor
-            mdict['stop'] = True
+            mdict["stop"] = True
             monitor_proc.join()
 
-            resource_util_dict['resource'] = mdict['resource']
+            resource_util_dict["resource"] = mdict["resource"]
 
             # record interval
-            resource_util_dict['sampling interval'] = sample_interval
+            resource_util_dict["sampling interval"] = sample_interval
 
             # calculate speed
-            resource_util_dict['time'] = end - start
+            resource_util_dict["time"] = end - start
 
         return ret, resource_util_dict

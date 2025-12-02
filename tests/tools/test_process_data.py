@@ -6,30 +6,52 @@ import tempfile
 import unittest
 import uuid
 import yaml
-
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 
 
 def run_in_subprocess(cmd):
+    """Run command in subprocess and capture all output."""
     try:
-        with subprocess.Popen(
-                cmd, shell=True, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT) as return_info:
+        # Create a temporary file for logging
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.log') as log_file:
+            # Redirect both stdout and stderr to the log file
+            process = subprocess.Popen(
+                cmd, 
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                bufsize=1,  # Line buffered
+                encoding='utf-8',
+                errors='ignore',
+            )
+
+            # Real-time output handling
             while True:
-                next_line = return_info.stdout.readline()
-                return_line = next_line.decode('utf-8', 'ignore').strip()
-                if return_line == '' and return_info.poll() != None:
+                line = process.stdout.readline()
+                if not line and process.poll() is not None:
                     break
-                if return_line != '':
-                    print(return_line)
+                if line:
+                    print(line.rstrip())  # Print to console
+                    log_file.write(line)  # Write to log file
+                    log_file.flush()      # Ensure it's written immediately
 
-            err_lines = ''
+            # Get return code
+            return_code = process.wait()
+            
+            # If process failed, read the entire log
+            if return_code != 0:
+                log_file.seek(0)
+                log_content = log_file.read()
+                raise RuntimeError(
+                    f"Process failed with return code {return_code}.\n"
+                    f"Command: {cmd}\n"
+                    f"Log output:\n{log_content}"
+                )
 
-            return_code = return_info.wait()
-            if return_code:
-                raise RuntimeError(err_lines)
     except Exception as e:
-        raise e
+        print(f"Error running subprocess: {str(e)}")
+        raise
 
 
 class ProcessDataTest(DataJuicerTestCaseBase):
@@ -62,8 +84,10 @@ class ProcessDataTest(DataJuicerTestCaseBase):
         with open(yaml_file, 'w') as file:
             yaml.dump(yaml_config, file)
 
+        script_path = osp.join(osp.dirname(osp.dirname(osp.dirname(osp.realpath(__file__)))), 
+                               "tools", "process_data.py")
         status_code = subprocess.call(
-            f'python tools/process_data.py --config {yaml_file}', shell=True)
+            f'python {script_path} --config {yaml_file}', shell=True)
 
         return status_code
 
@@ -95,6 +119,8 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
 
         cur_dir = osp.dirname(osp.abspath(__file__))
         self.tmp_dir = osp.join(cur_dir, f'tmp_{uuid.uuid4().hex}')
+        self.script_path = osp.join(osp.dirname(osp.dirname(osp.dirname(osp.realpath(__file__)))), 
+                               "tools", "process_data.py")
         os.makedirs(self.tmp_dir, exist_ok=True)
 
     def tearDown(self):
@@ -113,20 +139,21 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
         text_keys = 'text'
 
         data_path = osp.join(osp.dirname(osp.dirname(osp.dirname(osp.realpath(__file__)))),
-            'demos', 'data', 'demo-dataset-images.jsonl')
+                             'demos', 'data', 'demo-dataset-images.jsonl')
         yaml_config = {
             'dataset_path': data_path,
             'executor_type': 'ray',
             'ray_address': 'auto',
             'text_keys': text_keys,
             'image_key': 'images',
+            'keep_stats_in_res_ds': True,
             'export_path': tmp_out_path,
             'process': [
                 {
                     'image_nsfw_filter': {
                         'hf_nsfw_model': 'Falconsai/nsfw_image_detection',
                         'trust_remote_code': True,
-                        'score_threshold': 0.5,
+                        'max_score': 0.5,
                         'any_or_all': 'any',
                         'mem_required': '8GB'
                     },
@@ -141,7 +168,8 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
         with open(tmp_yaml_file, 'w') as file:
             yaml.dump(yaml_config, file)
 
-        run_in_subprocess(f'python tools/process_data.py --config {tmp_yaml_file}')
+        print(f"Is the config file present? {os.path.exists(tmp_yaml_file)}")
+        run_in_subprocess(f'python {self.script_path} --config {tmp_yaml_file}')
 
         self.assertTrue(osp.exists(tmp_out_path))
 
@@ -184,7 +212,7 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
         with open(tmp_yaml_file, 'w') as file:
             yaml.dump(yaml_config, file)
 
-        run_in_subprocess(f'python tools/process_data.py --config {tmp_yaml_file}')
+        run_in_subprocess(f'python {self.script_path} --config {tmp_yaml_file}')
 
         self.assertTrue(osp.exists(tmp_out_path))
 
@@ -227,7 +255,7 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
         with open(tmp_yaml_file, 'w') as file:
             yaml.dump(yaml_config, file)
 
-        run_in_subprocess(f'python tools/process_data.py --config {tmp_yaml_file}')
+        run_in_subprocess(f'python {self.script_path} --config {tmp_yaml_file}')
 
         self.assertTrue(osp.exists(tmp_out_path))
 
@@ -282,7 +310,7 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
         with open(tmp_yaml_file, 'w') as file:
             yaml.dump(yaml_config, file)
 
-        run_in_subprocess(f'python tools/process_data.py --config {tmp_yaml_file}')
+        run_in_subprocess(f'python {self.script_path} --config {tmp_yaml_file}')
 
         self.assertTrue(osp.exists(tmp_out_path))
 
@@ -312,7 +340,7 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
         }, {
             text_key: 'a v s e e f g a qkc'
         }, {
-            text_key: '，。、„”“«»１」「《》´∶：？！（）；–—．～’…━〈〉【】％►'
+            text_key: '，。、„" "«»１」「《》´∶：？！（）；–—．～…━〈〉【】％►'
         }, {
             text_key: 'Do you need a cup of coffee?'
         }, {
@@ -344,7 +372,7 @@ class ProcessDataRayTest(DataJuicerTestCaseBase):
         with open(tmp_yaml_file, 'w') as file:
             yaml.dump(yaml_config, file)
 
-        run_in_subprocess(f'python tools/process_data.py --config {tmp_yaml_file}')
+        run_in_subprocess(f'python {self.script_path} --config {tmp_yaml_file}')
 
         self.assertTrue(osp.exists(tmp_out_path))
 

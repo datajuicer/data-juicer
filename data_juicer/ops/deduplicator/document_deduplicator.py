@@ -14,19 +14,20 @@ from data_juicer.utils.constant import HashKeys
 from ..base_op import OPERATORS, Deduplicator
 
 
-@OPERATORS.register_module('document_deduplicator')
+@OPERATORS.register_module("document_deduplicator")
 class DocumentDeduplicator(Deduplicator):
-    """
-    Deduplicator to deduplicate samples at document-level using exact matching.
+    """Deduplicates samples at the document level using exact matching.
 
-    Using md5 hash to deduplicate samples.
-    """
+    This operator computes an MD5 hash for each sample's text. It can optionally convert the
+    text to lowercase and ignore non-alphabet characters, including whitespaces, digits, and
+    punctuation. The deduplication is based on the computed hash values, where samples with
+    identical hashes are considered duplicates. The `compute_hash` method adds a 'hash' key
+    to each sample, storing its MD5 hash. During processing, the first occurrence of each
+    unique hash is kept, and subsequent duplicates are filtered out. If the `show_num`
+    parameter is set, the operator also returns a specified number of duplicate pairs for
+    inspection."""
 
-    def __init__(self,
-                 lowercase: bool = False,
-                 ignore_non_character: bool = False,
-                 *args,
-                 **kwargs):
+    def __init__(self, lowercase: bool = False, ignore_non_character: bool = False, *args, **kwargs):
         """
         Initialization method.
 
@@ -38,9 +39,9 @@ class DocumentDeduplicator(Deduplicator):
         """
         super().__init__(*args, **kwargs)
         self.lowercase = lowercase
-        self.remove_non_character_regex = re.compile(
-            f'\s+|\d+|[{re.escape(string.punctuation)}]'  # noqa: W605
-        ) if ignore_non_character else None
+        self.remove_non_character_regex = (
+            re.compile(f"\s+|\d+|[{re.escape(string.punctuation)}]") if ignore_non_character else None  # noqa: W605
+        )
 
     def compute_hash(self, sample):
         """
@@ -57,10 +58,10 @@ class DocumentDeduplicator(Deduplicator):
         if self.lowercase:
             text = text.lower()
         if self.remove_non_character_regex:
-            text = self.remove_non_character_regex.sub('', text)
+            text = self.remove_non_character_regex.sub("", text)
 
         def _get_hash(txt):
-            return hashlib.md5(txt.strip().encode('utf-8')).hexdigest()
+            return hashlib.md5(txt.strip().encode("utf-8")).hexdigest()
 
         sample[HashKeys.hash] = _get_hash(text)
         return sample
@@ -84,17 +85,12 @@ class DocumentDeduplicator(Deduplicator):
             hash2ids: Dict[int, Set[int]] = defaultdict(set)
             for sid, hash_val in enumerate(dataset[HashKeys.hash]):
                 hash2ids[hash_val].add(sid)
-            dup_samples = sorted(list(hash2ids.items()),
-                                 key=lambda x: len(x[1]),
-                                 reverse=True)
-            dup_hashes = set([
-                item[0] for item in dup_samples if len(item[1]) > 1
-            ][:show_num])
+            dup_samples = sorted(list(hash2ids.items()), key=lambda x: len(x[1]), reverse=True)
+            dup_hashes = set([item[0] for item in dup_samples if len(item[1]) > 1][:show_num])
 
         def _filter_dup_helper(sample, hashes):
             hash = sample[HashKeys.hash]
-            if show_num > 0 and hash in dup_hashes \
-                    and len(dup_pairs[hash]) < 2:
+            if show_num > 0 and hash in dup_hashes and len(dup_pairs[hash]) < 2:
                 # tracer is open and not enough duplicate sample pairs
                 dup_pairs[hash].append(sample)
             if hash in hashes:
@@ -106,7 +102,6 @@ class DocumentDeduplicator(Deduplicator):
         hashes = set()
         dup_pairs = {hash_v: [] for hash_v in dup_hashes} if dup_hashes else {}
         dataset = dataset.filter(
-            _filter_dup_helper,
-            fn_kwargs=dict(hashes=hashes),
-            load_from_cache_file=False if show_num > 0 else True)  # num_proc=1
+            _filter_dup_helper, fn_kwargs=dict(hashes=hashes), load_from_cache_file=False if show_num > 0 else True
+        )  # num_proc=1
         return dataset, dup_pairs

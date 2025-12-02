@@ -8,7 +8,8 @@ class SentenceAugmentationMapperTest(DataJuicerTestCaseBase):
 
     hf_model = 'Qwen/Qwen2-7B-Instruct'
 
-    text_key = 'text'
+    text_key = "caption1"
+    text_key_second = "caption2"
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -25,6 +26,8 @@ class SentenceAugmentationMapperTest(DataJuicerTestCaseBase):
             temperature=0.9,
             top_p=0.95,
             num_beams=1,
+            text_key=self.text_key,
+            text_key_second=self.text_key_second
         )
 
         samples = [
@@ -34,7 +37,7 @@ class SentenceAugmentationMapperTest(DataJuicerTestCaseBase):
         for sample in samples:
             result = op.process(deepcopy(sample))
             print(f'Output results: {result}')
-            self.assertNotEqual(sample[self.text_key], result[self.text_key])
+            self.assertNotEqual(sample, result)
 
     def test_sentence_augmentation_mapper(self):
         self._run_sentence_augmentation_mapper()

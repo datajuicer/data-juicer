@@ -3,8 +3,7 @@ import os
 import unittest
 
 from data_juicer.core.data import NestedDataset as Dataset
-from data_juicer.ops.mapper.image_tagging_mapper import \
-    ImageTaggingMapper
+from data_juicer.ops.mapper.image_tagging_mapper import ImageTaggingMapper
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
@@ -14,6 +13,7 @@ class ImageTaggingMapperTest(DataJuicerTestCaseBase):
     img1_path = os.path.join(data_path, 'img1.png')
     img2_path = os.path.join(data_path, 'img2.jpg')
     img3_path = os.path.join(data_path, 'img3.jpg')
+
 
     def _run_image_tagging_mapper(self,
                                   op,

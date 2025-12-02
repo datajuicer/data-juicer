@@ -1,6 +1,6 @@
 # The config file for performance benchmark to measure the processing speed for
 # the current Data-Juicer system. OPs are selected according to their tags and
-# types (https://github.com/modelscope/data-juicer/blob/main/docs/Operators.md)
+# types (https://github.com/datajuicer/data-juicer/blob/main/docs/Operators.md)
 
 project_name: 'performance-benchmark-audio'
 dataset_path: 'perf_bench_data/audio/audio-10k.jsonl'

@@ -94,3 +94,15 @@ In Data-Juicer, we pre-set fields to align with the last two formats (Alpaca and
   ]
 }
 ```
+
+## Usage
+
+For all tools, you can run the following command to find out the usage of them:
+
+```shell
+# e.g. messages_to_dj.py
+python tools/fmt_conversion/post_tuning_dialog/source_format_to_data_juicer_format/messages_to_dj.py --help
+```
+
+For the conversion from the source format to Data-Juicer format, you can use the tools in the `source_format_to_data_juicer_format` folder.
+For the conversion from Data-Juicer format to the target format, you can use the tools in the `data_juicer_format_to_target_format` folder.

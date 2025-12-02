@@ -11,6 +11,7 @@ def load_ops(process_list):
     """
     ops = []
     new_process_list = []
+
     for process in process_list:
         op_name, args = list(process.items())[0]
         ops.append(OPERATORS.modules[op_name](**args))

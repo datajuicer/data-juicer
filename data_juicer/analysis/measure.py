@@ -2,17 +2,16 @@ import numpy as np
 
 from data_juicer.utils.lazy_loader import LazyLoader
 
-torch = LazyLoader('torch', 'torch')
-td = LazyLoader('td', 'torch.distributions')
-F = LazyLoader('F', 'torch.nn.functional')
-
-stats = LazyLoader('stats', 'scipy.stats')
+torch = LazyLoader("torch")
+td = LazyLoader("torch.distributions")
+F = LazyLoader("torch.nn.functional")
+stats = LazyLoader("scipy.stats")
 
 
 class Measure(object):
-    """Base class for Measure distribution.
-    """
-    name = 'base'
+    """Base class for Measure distribution."""
+
+    name = "base"
 
     def measure(self, *args, **kwargs):
         pass
@@ -66,29 +65,29 @@ class KLDivMeasure(Measure):
     """
     Measure Kullback-Leibler divergence.
     """
-    name = 'kl_divergence'
+
+    name = "kl_divergence"
 
     def measure(self, p, q):
         p = self._convert_to_categorical(p)
         q = self._convert_to_categorical(q)
-        assert p.probs.shape == q.probs.shape, \
-            'The two inputs have different shape:' \
-            f'{p.probs.shape} != {q.probs.shape} in {self.name}'
-        return F.kl_div(q.logits, p.probs, log_target=False, reduction='sum')
+        assert p.probs.shape == q.probs.shape, (
+            "The two inputs have different shape:" f"{p.probs.shape} != {q.probs.shape} in {self.name}"
+        )
+        return F.kl_div(q.logits, p.probs, log_target=False, reduction="sum")
 
 
 class JSDivMeasure(Measure):
     """
     Measure Jensen-Shannon divergence.
     """
-    name = 'js_divergence'
+
+    name = "js_divergence"
 
     def measure(self, p, q):
         p = self._convert_to_tensor(p)
         q = self._convert_to_tensor(q)
-        assert p.shape == q.shape,  \
-            'The two inputs have different shape:' \
-            f'{p.shape} != {q.shape} in {self.name}'
+        assert p.shape == q.shape, "The two inputs have different shape:" f"{p.shape} != {q.shape} in {self.name}"
 
         m = 0.5 * (p + q)
         kl_p = KLDivMeasure()(p, m)
@@ -101,22 +100,24 @@ class CrossEntropyMeasure(Measure):
     """
     Measure Cross-Entropy.
     """
-    name = 'cross_entropy'
+
+    name = "cross_entropy"
 
     def measure(self, p, q):
         p = self._convert_to_categorical(p)
         q = self._convert_to_categorical(q)
-        assert p.probs.shape == q.probs.shape, \
-            'The two inputs have different shape: '\
-            f'{p.probs.shape} != {q.probs.shape} in {self.name}'
-        return F.cross_entropy(q.logits, p.probs, reduction='sum')
+        assert p.probs.shape == q.probs.shape, (
+            "The two inputs have different shape: " f"{p.probs.shape} != {q.probs.shape} in {self.name}"
+        )
+        return F.cross_entropy(q.logits, p.probs, reduction="sum")
 
 
 class EntropyMeasure(Measure):
     """
     Measure Entropy.
     """
-    name = 'entropy'
+
+    name = "entropy"
 
     def measure(self, p):
         p = self._convert_to_categorical(p)
@@ -136,7 +137,8 @@ class RelatedTTestMeasure(Measure):
     For discrete features or distributions, the input could be the tags or the
     categories list.
     """
-    name = 't-test'
+
+    name = "t-test"
 
     @staticmethod
     def stats_to_hist(p, q):
@@ -163,7 +165,6 @@ class RelatedTTestMeasure(Measure):
 
     @staticmethod
     def category_to_hist(p, q):
-
         def flatten_list(lst):
             res = []
             for s in lst:

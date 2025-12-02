@@ -6,14 +6,17 @@ from ..base_op import OPERATORS, Grouper, convert_list_dict_to_dict_list
 from .naive_grouper import NaiveGrouper
 
 
-@OPERATORS.register_module('key_value_grouper')
+@OPERATORS.register_module("key_value_grouper")
 class KeyValueGrouper(Grouper):
-    """Group samples to batched samples according values in given keys. """
+    """Groups samples into batches based on values in specified keys.
 
-    def __init__(self,
-                 group_by_keys: Optional[List[str]] = None,
-                 *args,
-                 **kwargs):
+    This operator groups samples by the values of the given keys, which can be nested. If no
+    keys are provided, it defaults to using the text key. It uses a naive grouping strategy
+    to batch samples with identical key values. The resulting dataset is a list of batched
+    samples, where each batch contains samples that share the same key values. This is
+    useful for organizing data by specific attributes or features."""
+
+    def __init__(self, group_by_keys: Optional[List[str]] = None, *args, **kwargs):
         """
         Initialization method.
 
@@ -29,7 +32,6 @@ class KeyValueGrouper(Grouper):
         self.naive_grouper = NaiveGrouper()
 
     def process(self, dataset):
-
         if len(dataset) == 0:
             return dataset
 
@@ -44,8 +46,6 @@ class KeyValueGrouper(Grouper):
             else:
                 sample_map[sample_key] = [sample]
 
-        batched_samples = [
-            convert_list_dict_to_dict_list(sample_map[k]) for k in sample_map
-        ]
+        batched_samples = [convert_list_dict_to_dict_list(sample_map[k]) for k in sample_map]
 
         return batched_samples

@@ -43,7 +43,7 @@ def main(
     target_internvid_ds_path: str,
     eoc_special_token: str = SpecialTokens.eoc,
     video_special_token: str = SpecialTokens.video,
-    sent_separator: str = ' ',
+    sent_separator: str = " ",
 ):
     """
     Convert a Data-Juicer-format dataset to a InternVid-like dataset.
@@ -62,31 +62,26 @@ def main(
     :param sent_separator: separator to split different sentences. Default: " "
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    video_key = 'videos'  # default key of field to store the video list
-    tgt_text_key = 'Caption'  # default target key of field to store texts
-    tgt_video_key = 'YoutubeID'  # default target field to store videos
+    text_key = "text"  # default key of field to store the sample text
+    video_key = "videos"  # default key of field to store the video list
+    tgt_text_key = "Caption"  # default target key of field to store texts
+    tgt_video_key = "YoutubeID"  # default target field to store videos
     # ----- Constant settings. Better not to change them. -----
 
     # check arguments
     # check paths
     if not os.path.exists(dj_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{dj_ds_path}] can not be found.')
-    if not target_internvid_ds_path.endswith('.jsonl'):
-        raise ValueError(
-            'Only support "jsonl" target dataset file for InternVid now.')
-    if os.path.dirname(target_internvid_ds_path) \
-            and not os.path.exists(os.path.dirname(target_internvid_ds_path)):
-        logger.info(
-            f'Create directory [{os.path.dirname(target_internvid_ds_path)}] '
-            f'for the target dataset.')
+        raise FileNotFoundError(f"Input dataset [{dj_ds_path}] can not be found.")
+    if not target_internvid_ds_path.endswith(".jsonl"):
+        raise ValueError('Only support "jsonl" target dataset file for InternVid now.')
+    if os.path.dirname(target_internvid_ds_path) and not os.path.exists(os.path.dirname(target_internvid_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_internvid_ds_path)}] " f"for the target dataset.")
         os.makedirs(os.path.dirname(target_internvid_ds_path))
 
     # save InternVid dataset from Data-Juicer format
-    logger.info('Start converting the original dataset to InternVid format...')
+    logger.info("Start converting the original dataset to InternVid format...")
     with jl.open(dj_ds_path) as reader:
-        with jl.open(target_internvid_ds_path, mode='w') as writer:
+        with jl.open(target_internvid_ds_path, mode="w") as writer:
             for line_num, s in enumerate(tqdm(reader)):
                 video = s.pop(video_key)[0]
                 text = s.pop(text_key)
@@ -100,16 +95,13 @@ def main(
                 new_sample[tgt_video_key] = video
 
                 # add caption
-                text = remove_dj_special_tokens(text.strip(),
-                                                eoc_special_token,
-                                                sent_separator,
-                                                video_special_token)
+                text = remove_dj_special_tokens(text.strip(), eoc_special_token, sent_separator, video_special_token)
 
                 new_sample[tgt_text_key] = text
 
                 writer.write(new_sample)
-    logger.info(f'Store the target dataset into [{target_internvid_ds_path}].')
+    logger.info(f"Store the target dataset into [{target_internvid_ds_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

@@ -8,6 +8,7 @@ from data_juicer.ops.filter.image_aesthetics_filter import \
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
+
 class ImageAestheticsFilterTest(DataJuicerTestCaseBase):
 
     maxDiff = None

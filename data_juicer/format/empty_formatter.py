@@ -7,7 +7,7 @@ from data_juicer.utils.lazy_loader import LazyLoader
 
 from .formatter import FORMATTERS, BaseFormatter
 
-ray = LazyLoader('ray', 'ray')
+ray = LazyLoader("ray")
 
 
 @FORMATTERS.register_module()
@@ -15,6 +15,7 @@ class EmptyFormatter(BaseFormatter):
     """
     The class is used to create empty data.
     """
+
     SUFFIXES = []
 
     def __init__(self, length, feature_keys: List[str] = [], *args, **kwargs):
@@ -38,13 +39,13 @@ class EmptyFormatter(BaseFormatter):
         features = Features()
 
         for key in self.feature_keys:
-            features.update({key: Value('string')})
-            data_dict.update(
-                {key: [self.null_value for _ in range(self.length)]})
+            features.update({key: Value("string")})
+            data_dict.update({key: [self.null_value for _ in range(self.length)]})
 
         empty_dataset = Dataset.from_dict(data_dict, features=features)
 
         from data_juicer.core.data import NestedDataset
+
         empty_dataset = NestedDataset(empty_dataset)
 
         return empty_dataset
@@ -55,6 +56,7 @@ class RayEmptyFormatter(BaseFormatter):
     """
     The class is used to create empty data for ray.
     """
+
     SUFFIXES = []
 
     def __init__(self, length, feature_keys: List[str] = [], *args, **kwargs):
@@ -75,10 +77,7 @@ class RayEmptyFormatter(BaseFormatter):
 
     def load_dataset(self, *args, **kwargs):
         if len(self.feature_keys):
-            df = pd.DataFrame({
-                col: [self.null_value for _ in range(self.length)]
-                for col in self.feature_keys
-            })
+            df = pd.DataFrame({col: [self.null_value for _ in range(self.length)] for col in self.feature_keys})
         else:
             df = pd.DataFrame([self.null_value for _ in range(self.length)])
 

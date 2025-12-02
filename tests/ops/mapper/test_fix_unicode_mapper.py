@@ -8,6 +8,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 class FixUnicodeMapperTest(DataJuicerTestCaseBase):
 
     def setUp(self):
+        super().setUp()
+
         self.op = FixUnicodeMapper()
 
     def _run_fix_unicode(self, samples):

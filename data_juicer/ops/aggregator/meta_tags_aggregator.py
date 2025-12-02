@@ -9,92 +9,103 @@ from data_juicer.utils.common_utils import is_string_list
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
-OP_NAME = 'meta_tags_aggregator'
+OP_NAME = "meta_tags_aggregator"
 
 
 # TODO: LLM-based inference.
 @OPERATORS.register_module(OP_NAME)
 class MetaTagsAggregator(Aggregator):
-    """
-    Merge similar meta tags to one tag.
-    """
+    """Merge similar meta tags into a single, unified tag.
 
-    DEFAULT_SYSTEM_PROMPT = ('给定一些标签以及这些标签出现的频次，合并意思相近的标签。\n'
-                             '要求：\n'
-                             '- 任务分为两种情况，一种是给定合并后的标签，需要将合并前的标签映射到'
-                             '这些标签。如果给定的合并后的标签中有类似“其他”这种标签，将无法归类的'
-                             '标签合并到“其他”。以下是这种情况的一个样例：\n'
-                             '合并后的标签应限定在[科技, 健康, 其他]中。\n'
-                             '| 合并前标签 | 频次 |\n'
-                             '| ------ | ------ |\n'
-                             '| 医疗 | 20 |\n'
-                             '| 信息技术 | 16 |\n'
-                             '| 学习 | 19 |\n'
-                             '| 气候变化 | 22 |\n'
-                             '| 人工智能 | 11 |\n'
-                             '| 养生 | 17 |\n'
-                             '| 科学创新 | 10 |\n'
-                             '\n'
-                             '## 分析：“信息技术”、“人工智能”、“科学创新”都属于“科技”类别，“医疗'
-                             '”和“养生”跟“健康”有关联，“学习”、“气候变化”和“科技”还有“健康”关'
-                             '联不强，应该被归为“其他”。\n'
-                             '## 标签合并：\n'
-                             '** 医疗归类为健康 **\n'
-                             '** 信息技术归类为科技 **\n'
-                             '** 学习归类为其他 **\n'
-                             '** 气候变化归类为其他 **\n'
-                             '** 人工智能归类为科技 **\n'
-                             '** 养生归类为健康 **\n'
-                             '** 科学创新归类为科技 **\n'
-                             '- 另外一种情况没有事先给定合并后的标签，需要生成合理的标签类别：'
-                             '| 合并前标签 | 频次 |\n'
-                             '| ------ | ------ |\n'
-                             '| 医疗 | 20 |\n'
-                             '| 信息技术 | 16 |\n'
-                             '| 学习 | 2 |\n'
-                             '| 气候变化 | 1 |\n'
-                             '| 人工智能 | 11 |\n'
-                             '| 养生 | 17 |\n'
-                             '| 科学创新 | 10 |\n'
-                             '\n'
-                             '## 分析：“信息技术”、“人工智能”、“科学创新”这三个标签比较相近，归为'
-                             '同一类，都属于“科技”类别，“医疗”和“养生”都跟“健康”有关系，可以归'
-                             '类为“健康”，“学习”和“气候变化”跟其他标签关联度不强，且频次较低，'
-                             '统一归类为“其他”。\n'
-                             '## 标签合并：\n'
-                             '** 医疗归类为健康 **\n'
-                             '** 信息技术归类为科技 **\n'
-                             '** 学习归类为其他 **\n'
-                             '** 气候变化归类为其他 **\n'
-                             '** 人工智能归类为科技 **\n'
-                             '** 养生归类为健康 **\n'
-                             '** 科学创新归类为科技 **\n')
+    This operator aggregates and consolidates similar meta tags from the input data. It can
+    handle two scenarios:
+    - When a set of target tags is provided, it maps the original tags to these predefined
+      categories. If a "miscellaneous" or "other" category is included, any tags that do not
+      fit into the specified categories are grouped under this label.
+    - When no target tags are provided, it generates reasonable categories based on the
+      similarity and frequency of the input tags.
 
-    DEFAULT_INPUT_TEMPLATE = ('{target_tag_str}'
-                              '| 合并前标签 | 频次 |\n'
-                              '| ------ | ------ |\n'
-                              '{tag_strs}')
-    DEFAULT_TARGET_TAG_TEMPLATE = '合并后的标签应限定在[{target_tags}]中。\n'
-    DEFAULT_TAG_TEMPLATE = '| {tag} | {cnt} |'
+    The operator uses a language model (default: gpt-4o) to analyze and merge the tags. The
+    system prompt, input template, and output pattern can be customized. The aggregated tags
+    are then updated in the input sample's metadata."""
 
-    DEFAULT_OUTPUT_PATTERN = r'\*\*\s*(\w+)归类为(\w+)\s*\*\*'
+    DEFAULT_SYSTEM_PROMPT = (
+        "给定一些标签以及这些标签出现的频次，合并意思相近的标签。\n"
+        "要求：\n"
+        "- 任务分为两种情况，一种是给定合并后的标签，需要将合并前的标签映射到"
+        "这些标签。如果给定的合并后的标签中有类似“其他”这种标签，将无法归类的"
+        "标签合并到“其他”。以下是这种情况的一个样例：\n"
+        "合并后的标签应限定在[科技, 健康, 其他]中。\n"
+        "| 合并前标签 | 频次 |\n"
+        "| ------ | ------ |\n"
+        "| 医疗 | 20 |\n"
+        "| 信息技术 | 16 |\n"
+        "| 学习 | 19 |\n"
+        "| 气候变化 | 22 |\n"
+        "| 人工智能 | 11 |\n"
+        "| 养生 | 17 |\n"
+        "| 科学创新 | 10 |\n"
+        "\n"
+        "## 分析：“信息技术”、“人工智能”、“科学创新”都属于“科技”类别，“医疗"
+        "”和“养生”跟“健康”有关联，“学习”、“气候变化”和“科技”还有“健康”关"
+        "联不强，应该被归为“其他”。\n"
+        "## 标签合并：\n"
+        "** 医疗归类为健康 **\n"
+        "** 信息技术归类为科技 **\n"
+        "** 学习归类为其他 **\n"
+        "** 气候变化归类为其他 **\n"
+        "** 人工智能归类为科技 **\n"
+        "** 养生归类为健康 **\n"
+        "** 科学创新归类为科技 **\n"
+        "- 另外一种情况没有事先给定合并后的标签，需要生成合理的标签类别："
+        "| 合并前标签 | 频次 |\n"
+        "| ------ | ------ |\n"
+        "| 医疗 | 20 |\n"
+        "| 信息技术 | 16 |\n"
+        "| 学习 | 2 |\n"
+        "| 气候变化 | 1 |\n"
+        "| 人工智能 | 11 |\n"
+        "| 养生 | 17 |\n"
+        "| 科学创新 | 10 |\n"
+        "\n"
+        "## 分析：“信息技术”、“人工智能”、“科学创新”这三个标签比较相近，归为"
+        "同一类，都属于“科技”类别，“医疗”和“养生”都跟“健康”有关系，可以归"
+        "类为“健康”，“学习”和“气候变化”跟其他标签关联度不强，且频次较低，"
+        "统一归类为“其他”。\n"
+        "## 标签合并：\n"
+        "** 医疗归类为健康 **\n"
+        "** 信息技术归类为科技 **\n"
+        "** 学习归类为其他 **\n"
+        "** 气候变化归类为其他 **\n"
+        "** 人工智能归类为科技 **\n"
+        "** 养生归类为健康 **\n"
+        "** 科学创新归类为科技 **\n"
+    )
 
-    def __init__(self,
-                 api_model: str = 'gpt-4o',
-                 meta_tag_key: str = MetaKeys.dialog_sentiment_labels,
-                 target_tags: Optional[List[str]] = None,
-                 *,
-                 api_endpoint: Optional[str] = None,
-                 response_path: Optional[str] = None,
-                 system_prompt: Optional[str] = None,
-                 input_template: Optional[str] = None,
-                 target_tag_template: Optional[str] = None,
-                 tag_template: Optional[str] = None,
-                 output_pattern: Optional[str] = None,
-                 try_num: PositiveInt = 3,
-                 model_params: Dict = {},
-                 sampling_params: Dict = {},
-                 **kwargs):
+    DEFAULT_INPUT_TEMPLATE = "{target_tag_str}" "| 合并前标签 | 频次 |\n" "| ------ | ------ |\n" "{tag_strs}"
+    DEFAULT_TARGET_TAG_TEMPLATE = "合并后的标签应限定在[{target_tags}]中。\n"
+    DEFAULT_TAG_TEMPLATE = "| {tag} | {cnt} |"
+
+    DEFAULT_OUTPUT_PATTERN = r"\*\*\s*(\w+)归类为(\w+)\s*\*\*"
+
+    def __init__(
+        self,
+        api_model: str = "gpt-4o",
+        meta_tag_key: str = MetaKeys.dialog_sentiment_labels,
+        target_tags: Optional[List[str]] = None,
+        *,
+        api_endpoint: Optional[str] = None,
+        response_path: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        input_template: Optional[str] = None,
+        target_tag_template: Optional[str] = None,
+        tag_template: Optional[str] = None,
+        output_pattern: Optional[str] = None,
+        try_num: PositiveInt = 3,
+        model_params: Dict = {},
+        sampling_params: Dict = {},
+        **kwargs,
+    ):
         """
         Initialization method.
         :param api_model: API model name.
@@ -122,23 +133,23 @@ class MetaTagsAggregator(Aggregator):
 
         self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
         self.input_template = input_template or self.DEFAULT_INPUT_TEMPLATE
-        target_tag_template = target_tag_template or \
-            self.DEFAULT_TARGET_TAG_TEMPLATE
+        target_tag_template = target_tag_template or self.DEFAULT_TARGET_TAG_TEMPLATE
         self.tag_template = tag_template or self.DEFAULT_TAG_TEMPLATE
         self.output_pattern = output_pattern or self.DEFAULT_OUTPUT_PATTERN
 
-        self.target_tag_str = ''
+        self.target_tag_str = ""
         if target_tags:
-            self.target_tag_str = target_tag_template.format(
-                target_tags=', '.join(target_tags))
+            self.target_tag_str = target_tag_template.format(target_tags=", ".join(target_tags))
 
         self.sampling_params = sampling_params
-        self.model_key = prepare_model(model_type='api',
-                                       model=api_model,
-                                       endpoint=api_endpoint,
-                                       response_path=response_path,
-                                       return_processor=True,
-                                       **model_params)
+        self.model_key = prepare_model(
+            model_type="api",
+            model=api_model,
+            endpoint=api_endpoint,
+            response_path=response_path,
+            return_processor=True,
+            **model_params,
+        )
 
         self.try_num = try_num
 
@@ -149,23 +160,12 @@ class MetaTagsAggregator(Aggregator):
         return tag_map
 
     def meta_map(self, meta_cnts, rank=None):
-
         model, _ = get_model(self.model_key, rank, self.use_cuda())
 
-        tag_strs = [
-            self.tag_template.format(tag=k, cnt=meta_cnts[k])
-            for k in meta_cnts
-        ]
-        input_prompt = self.input_template.format(
-            target_tag_str=self.target_tag_str, tag_strs='\n'.join(tag_strs))
+        tag_strs = [self.tag_template.format(tag=k, cnt=meta_cnts[k]) for k in meta_cnts]
+        input_prompt = self.input_template.format(target_tag_str=self.target_tag_str, tag_strs="\n".join(tag_strs))
 
-        messages = [{
-            'role': 'system',
-            'content': self.system_prompt
-        }, {
-            'role': 'user',
-            'content': input_prompt
-        }]
+        messages = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": input_prompt}]
         tag_map = {}
         for i in range(self.try_num):
             try:
@@ -174,20 +174,19 @@ class MetaTagsAggregator(Aggregator):
                 if len(tag_map) > 0:
                     break
             except Exception as e:
-                logger.warning(f'Exception: {e}')
+                logger.warning(f"Exception: {e}")
 
         return tag_map
 
     def process_single(self, sample=None, rank=None):
-
         if Fields.meta not in sample:
-            logger.warning('Not any meta in the sample!')
+            logger.warning("Not any meta in the sample!")
             return sample
 
         metas = sample[Fields.meta]
         # if not batched sample
         if not isinstance(metas, list):
-            logger.warning('Not a batched sample!')
+            logger.warning("Not a batched sample!")
             return sample
 
         meta_cnts = {}
@@ -206,7 +205,7 @@ class MetaTagsAggregator(Aggregator):
                 for t in tag:
                     update_dict(t)
             else:
-                logger.warning('Meta tag must be string or list of string!')
+                logger.warning("Meta tag must be string or list of string!")
                 return sample
 
         tag_map = self.meta_map(meta_cnts, rank=rank)
@@ -215,8 +214,6 @@ class MetaTagsAggregator(Aggregator):
             if isinstance(tag, str) and tag in tag_map:
                 metas[i][self.meta_tag_key] = tag_map[tag]
             elif is_string_list(tag):
-                metas[i][self.meta_tag_key] = [
-                    tag_map[t] if t in tag_map else t for t in tag
-                ]
+                metas[i][self.meta_tag_key] = [tag_map[t] if t in tag_map else t for t in tag]
 
         return sample

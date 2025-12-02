@@ -5,11 +5,12 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.dialog_sentiment_detection_mapper import DialogSentimentDetectionMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
 from data_juicer.utils.constant import Fields, MetaKeys
 
+@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
 class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
-    # before runing this test, set below environment variables:
+    # before running this test, set below environment variables:
     # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
     # export OPENAI_API_KEY=your_key
 

@@ -1,11 +1,26 @@
 import unittest
 
+from data_juicer.core import NestedDataset
+from data_juicer.ops.base_op import OP
 from data_juicer.ops.load import load_ops
-from data_juicer.ops.op_fusion import fuse_operators
+from data_juicer.ops.op_fusion import fuse_operators, GeneralFusedOP
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
 class OpFusionTest(DataJuicerTestCaseBase):
+
+    def _run_equal_config(self, original_process_list):
+        dataset = NestedDataset.from_list([
+            {'text': 'This is a test.'},
+            {'text': 'This is a test. This is a test. This is a test.'},
+            {'text': 'aaaaaaaaaaaaaaabbbbbbbbbbbbcccccccccccccc'},
+            {'text': 'punc test。'}
+        ])
+        unfused_op = load_ops(original_process_list)
+        fused_ops = fuse_operators(unfused_op)
+        res1 = dataset.process(fused_ops)
+        res2 = dataset.process(unfused_op)
+        self.assertDatasetEqual(res1, res2)
 
     def _run_op_fusion(self, original_process_list, target_process_list, probe_res=None):
         ops = load_ops(original_process_list)
@@ -232,6 +247,7 @@ class OpFusionTest(DataJuicerTestCaseBase):
             }
         ]
         self._run_op_fusion(original_process, target_process)
+        self._run_equal_config(original_process)
 
     def test_only_mapper(self):
         original_process = [{
@@ -1959,6 +1975,127 @@ class OpFusionTest(DataJuicerTestCaseBase):
             }
         ]
         self._run_op_fusion(original_process, target_process, probe_res_list)
+
+
+class GeneralFusedOPTest(DataJuicerTestCaseBase):
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.dataset = NestedDataset.from_list([
+            {'text': 'This is a test.'},
+            {'text': 'This is a test. This is a test. This is a test.'},
+            {'text': 'aaaaaaaaaaaaaaabbbbbbbbbbbbcccccccccccccc'},
+            {'text': 'punc test。'}
+        ])
+
+    def _run_equal_config(self, fused_process, unfused_process):
+        fused_op = load_ops(fused_process)
+        self.assertEqual(len(fused_op), 1)
+        fused_op = fused_op[0]
+        unfused_op = load_ops(unfused_process)
+        self.assertIsInstance(fused_op, GeneralFusedOP)
+        self.assertEqual(len(fused_op.fused_ops), len(unfused_process))
+        res1 = self.dataset.process(fused_op)
+        res2 = self.dataset.process(unfused_op)
+        # invoke process_batched directly
+        for op in fused_op.fused_ops:
+            self.dataset = OP.run(op, self.dataset)
+        res3 = fused_op.process_batched(self.dataset.to_dict())
+        self.assertDatasetEqual(res1, res2)
+        self.assertEqual(res1.to_dict(), res3)
+
+    def test_regular_config(self):
+
+        original_process = [{
+            'language_id_score_filter': {
+                'lang': 'en',
+                'min_score': 0.8,
+                'text_key': 'text'
+            }
+        }, {
+            'whitespace_normalization_mapper': {
+                'text_key': 'text'
+            }
+        }, {
+            'punctuation_normalization_mapper': {
+                'text_key': 'text'
+            }
+        }, {
+            'fix_unicode_mapper': {
+                'text_key': 'text'
+            }
+        }, {
+            'character_repetition_filter': {
+                'max_ratio': 0.106,
+                'min_ratio': 0.0,
+                'rep_len': 10,
+                'text_key': 'text'
+            }
+        }]
+        fused_process = [{
+            'general_fused_op': {
+                'batch_size': 2,
+                'fused_op_list': original_process,
+            }
+        }]
+        self._run_equal_config(fused_process, original_process)
+
+    def test_border_cases(self):
+
+        original_process = [{
+            'language_id_score_filter': {
+                'lang': 'en',
+                'min_score': 0.8,
+                'text_key': 'text'
+            }
+        }, {
+            'whitespace_normalization_mapper': {
+                'text_key': 'text'
+            }
+        }, {
+            'punctuation_normalization_mapper': {
+                'text_key': 'text'
+            }
+        }, {
+            'fix_unicode_mapper': {
+                'text_key': 'text'
+            }
+        }, {
+            'character_repetition_filter': {
+                'max_ratio': 0.106,
+                'min_ratio': 0.0,
+                'rep_len': 10,
+                'text_key': 'text'
+            }
+        }]
+        empty_fused_process = [{
+            'general_fused_op': {
+                'batch_size': 2,
+                'fused_op_list': None,
+            }
+        }]
+        fused_process = [{
+            'general_fused_op': {
+                'batch_size': 2,
+                'fused_op_list': original_process,
+            }
+        }]
+        # empty fused process
+        fused_op = load_ops(empty_fused_process)[0]
+        self.assertEqual(len(fused_op.fused_ops), 0)
+        res = fused_op.run(self.dataset)
+        self.assertDatasetEqual(res, self.dataset)
+        # unsupported fused op
+        with self.assertRaises(NotImplementedError):
+            fused_op = load_ops([{
+                'general_fused_op': {
+                    'batch_size': 2,
+                    'fused_op_list': [{
+                        'document_deduplicator': {}
+                    }],
+                }
+            }])[0]
+            fused_op.process_batched(self.dataset.to_dict())
 
 
 if __name__ == '__main__':

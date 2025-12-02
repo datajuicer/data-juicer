@@ -79,12 +79,12 @@ from data_juicer.utils.mm_utils import SpecialTokens
 def main(
     dj_ds_path: str,
     target_wavcaps_ds_path: str,
-    target_field: str = 'caption',
+    target_field: str = "caption",
     eoc_special_token: str = SpecialTokens.eoc,
     audio_special_token: str = SpecialTokens.audio,
     remove_eoc_at_last: bool = True,
     remove_target_field_token: bool = False,
-    sent_separator: str = '\n',
+    sent_separator: str = "\n",
 ):
     """
     Convert a Data-Juicer-format dataset to a WavCaps-like dataset.
@@ -106,61 +106,47 @@ def main(
     :param sent_separator: separator to split different sentences. Default: \n.
     """
     # ----- Constant settings. Better not to change them. -----
-    from_format = '[[%s]]: '  # default handle method for the text label
+    from_format = "[[%s]]: "  # default handle method for the text label
     # ----- Constant settings. Better not to change them. -----
 
     if not os.path.exists(dj_ds_path):
-        raise FileNotFoundError(
-            f'Input dataset [{dj_ds_path}] can not be found.')
-    if not target_wavcaps_ds_path.endswith('.json'):
-        raise ValueError(
-            'Only support "json" target dataset file for WavCaps now.')
-    if os.path.dirname(target_wavcaps_ds_path) \
-            and not os.path.exists(os.path.dirname(target_wavcaps_ds_path)):
-        logger.info(
-            f'Create directory [{os.path.dirname(target_wavcaps_ds_path)}] '
-            f'for the target dataset.')
+        raise FileNotFoundError(f"Input dataset [{dj_ds_path}] can not be found.")
+    if not target_wavcaps_ds_path.endswith(".json"):
+        raise ValueError('Only support "json" target dataset file for WavCaps now.')
+    if os.path.dirname(target_wavcaps_ds_path) and not os.path.exists(os.path.dirname(target_wavcaps_ds_path)):
+        logger.info(f"Create directory [{os.path.dirname(target_wavcaps_ds_path)}] " f"for the target dataset.")
         os.makedirs(os.path.dirname(target_wavcaps_ds_path))
 
-    if target_field not in ['caption', 'description', 'title']:
-        raise ValueError(
-            "target_field must be in '['caption', 'description', 'title']'")
+    if target_field not in ["caption", "description", "title"]:
+        raise ValueError("target_field must be in '['caption', 'description', 'title']'")
 
-    logger.info('Start to convert.')
-    samples = {'num_captions_per_audio': 1, 'data': []}
-    with jl.open(dj_ds_path, 'r') as reader:
+    logger.info("Start to convert.")
+    samples = {"num_captions_per_audio": 1, "data": []}
+    with jl.open(dj_ds_path, "r") as reader:
         for sample in tqdm(reader):
-            id = sample['id']
+            id = sample["id"]
             if Fields.meta not in sample:
-                logger.warning(
-                    f'{Fields.meta} does not exist in this sample with '
-                    f'id [{id}].')
+                logger.warning(f"{Fields.meta} does not exist in this sample with " f"id [{id}].")
                 continue
 
             if target_field not in sample[Fields.meta].keys():
-                logger.warning(
-                    f'{target_field} does not exist in this sample with '
-                    f'id [{id}].')
+                logger.warning(f"{target_field} does not exist in this sample with " f"id [{id}].")
                 continue
-            samples['num_captions_per_audio'] = sample[
-                Fields.meta]['num_captions_per_audio']
-            del sample[Fields.meta]['num_captions_per_audio']
+            samples["num_captions_per_audio"] = sample[Fields.meta]["num_captions_per_audio"]
+            del sample[Fields.meta]["num_captions_per_audio"]
 
-            sample[Fields.meta][target_field] = sample['text'].replace(
-                audio_special_token + sent_separator, '')
+            sample[Fields.meta][target_field] = sample["text"].replace(audio_special_token + sent_separator, "")
             if remove_eoc_at_last:
-                sample[Fields.meta][target_field] = sample[
-                    Fields.meta][target_field].replace(eoc_special_token, '')
+                sample[Fields.meta][target_field] = sample[Fields.meta][target_field].replace(eoc_special_token, "")
             if remove_target_field_token:
-                sample[Fields.meta][target_field] = sample[
-                    Fields.meta][target_field].replace(
-                        from_format % target_field, '')
-            samples['data'].append(sample[Fields.meta])
+                sample[Fields.meta][target_field] = sample[Fields.meta][target_field].replace(
+                    from_format % target_field, ""
+                )
+            samples["data"].append(sample[Fields.meta])
 
-    logger.info(f'Start to write the converted dataset to '
-                f'[{target_wavcaps_ds_path}]...')
-    json.dump(samples, open(target_wavcaps_ds_path, 'w', encoding='utf-8'))
+    logger.info(f"Start to write the converted dataset to " f"[{target_wavcaps_ds_path}]...")
+    json.dump(samples, open(target_wavcaps_ds_path, "w", encoding="utf-8"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

@@ -1,20 +1,17 @@
 from abc import ABC, abstractmethod
 
-import ray
-
 from data_juicer.utils.constant import HashKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import Filter
 
-redis = LazyLoader('redis', 'redis')
+ray = LazyLoader("ray")
+redis = LazyLoader("redis")
 
 MERSENNE_PRIME = (1 << 61) - 1
 
 
-@ray.remote(scheduling_strategy='SPREAD')
 class DedupSet:
-
     def __init__(self):
         self.hash_record = set()
 
@@ -24,6 +21,11 @@ class DedupSet:
             return True
         else:
             return False
+
+
+def get_remote_dedup_set():
+    """Get the remote version of DedupSet with Ray decorator applied at runtime."""
+    return ray.remote(scheduling_strategy="SPREAD")(DedupSet)
 
 
 class Backend(ABC):
@@ -45,18 +47,15 @@ class ActorBackend(Backend):
     Ray actor backend for deduplicator.
     """
 
-    def __init__(self, dedup_set_num: int):
+    def __init__(self, dedup_set_num: int, RemoteDedupSet=None):
         self.dedup_set_num = dedup_set_num
-        self.dedup_sets = [
-            DedupSet.remote() for _ in range(self.dedup_set_num)
-        ]
+        if RemoteDedupSet is None:
+            RemoteDedupSet = get_remote_dedup_set()
+        self.dedup_sets = [RemoteDedupSet.remote() for _ in range(self.dedup_set_num)]
 
     def is_unique(self, md5_value: str):
-        dedup_set_id = int.from_bytes(
-            md5_value.encode(),
-            byteorder='little') % MERSENNE_PRIME % self.dedup_set_num
-        return ray.get(
-            self.dedup_sets[dedup_set_id].is_unique.remote(md5_value))
+        dedup_set_id = int.from_bytes(md5_value.encode(), byteorder="little") % MERSENNE_PRIME % self.dedup_set_num
+        return ray.get(self.dedup_sets[dedup_set_id].is_unique.remote(md5_value))
 
 
 class RedisBackend(Backend):
@@ -81,13 +80,9 @@ class RayBasicDeduplicator(Filter):
     """
 
     # TODO: Set a more reasonable value
-    EMPTY_HASH_VALUE = 'EMPTY'
+    EMPTY_HASH_VALUE = "EMPTY"
 
-    def __init__(self,
-                 backend: str = 'ray_actor',
-                 redis_address: str = 'redis://localhost:6379',
-                 *args,
-                 **kwargs):
+    def __init__(self, backend: str = "ray_actor", redis_address: str = "redis://localhost:6379", *args, **kwargs):
         """
         Initialization.
         :param backend: the backend for dedup, either 'ray_actor' or 'redis'
@@ -98,15 +93,15 @@ class RayBasicDeduplicator(Filter):
         super().__init__(*args, **kwargs)
         self.redis_address = redis_address
         self.backend = backend
-        if backend == 'ray_actor':
-            dedup_set_num = int(ray.cluster_resources().get('CPU') / 2)
+        if backend == "ray_actor":
+            dedup_set_num = int(ray.cluster_resources().get("CPU") / 2)
             self.backend = ActorBackend(dedup_set_num)
-        elif backend == 'redis':
+        elif backend == "redis":
             # TODO: add a barrier to ensure that flushdb is performed before
             # the operator is called
             self.backend = RedisBackend(redis_address)
         else:
-            raise ValueError(f'Unknown backend: {backend}')
+            raise ValueError(f"Unknown backend: {backend}")
 
     def calculate_hash(self, sample, context=False):
         """Calculate hash value for the sample."""

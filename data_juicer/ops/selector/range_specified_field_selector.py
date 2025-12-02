@@ -9,22 +9,28 @@ from data_juicer.utils.common_utils import stats_to_number
 from ..base_op import OPERATORS, Selector
 
 
-@OPERATORS.register_module('range_specified_field_selector')
+@OPERATORS.register_module("range_specified_field_selector")
 class RangeSpecifiedFieldSelector(Selector):
-    """Selector to select a range of samples based on the sorted
-    specified field value from smallest to largest. """
+    """Selects a range of samples based on the sorted values of a specified field.
+
+    This operator selects samples whose values for a specified field fall within a given
+    range. The range can be defined using percentiles or ranks, and the operator will use
+    the more inclusive bounds if both are provided. The field values are first sorted in
+    ascending order, and then the samples are selected based on the lower and upper bounds.
+    If no bounds are provided, the original dataset is returned. The operator ensures that
+    the specified field exists in the dataset and handles multi-level fields by separating
+    keys with dots."""
 
     def __init__(
-            self,
-            field_key: str = '',
-            lower_percentile: Optional[Annotated[float,
-                                                 Field(ge=0, le=1)]] = None,
-            upper_percentile: Optional[Annotated[float,
-                                                 Field(ge=0, le=1)]] = None,
-            lower_rank: Optional[PositiveInt] = None,
-            upper_rank: Optional[PositiveInt] = None,
-            *args,
-            **kwargs):
+        self,
+        field_key: str = "",
+        lower_percentile: Optional[Annotated[float, Field(ge=0, le=1)]] = None,
+        upper_percentile: Optional[Annotated[float, Field(ge=0, le=1)]] = None,
+        lower_rank: Optional[PositiveInt] = None,
+        upper_rank: Optional[PositiveInt] = None,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -82,9 +88,8 @@ class RangeSpecifiedFieldSelector(Selector):
             upper_bound = min(upper_bound, self.upper_rank)
         upper_bound = max(lower_bound, upper_bound)
 
-        field_keys = self.field_key.split('.')
-        assert field_keys[0] in dataset.features.keys(
-        ), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
+        field_keys = self.field_key.split(".")
+        assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
         def get_field_value_list(cur_dataset, field_keys):
             if len(field_keys) == 1:
@@ -94,21 +99,19 @@ class RangeSpecifiedFieldSelector(Selector):
                 for item in cur_dataset[field_keys[0]]:
                     field_value = item
                     for key in field_keys[1:]:
-                        assert key in field_value.keys(
-                        ), "'{}' not in {}".format(key, field_value.keys())
+                        assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
                         field_value = field_value[key]
                     field_value_list.append(field_value)
             field_value_list = [stats_to_number(s) for s in field_value_list]
             return field_value_list
 
         field_value_list = get_field_value_list(dataset, field_keys)
-        select_index = heapq.nsmallest(int(upper_bound), range(len(dataset)),
-                                       field_value_list.__getitem__)
+        select_index = heapq.nsmallest(int(upper_bound), range(len(dataset)), field_value_list.__getitem__)
         sub_dataset = dataset.select(select_index)
 
         field_value_list = get_field_value_list(sub_dataset, field_keys)
-        select_index = heapq.nlargest(int(upper_bound - lower_bound),
-                                      range(len(sub_dataset)),
-                                      field_value_list.__getitem__)
+        select_index = heapq.nlargest(
+            int(upper_bound - lower_bound), range(len(sub_dataset)), field_value_list.__getitem__
+        )
 
         return sub_dataset.select(select_index)

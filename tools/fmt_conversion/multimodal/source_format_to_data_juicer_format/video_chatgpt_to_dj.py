@@ -37,8 +37,10 @@ from loguru import logger
 from tqdm import tqdm
 
 from data_juicer.utils.mm_utils import SpecialTokens
-from tools.fmt_conversion.multimodal.utils import (check_args_load_to_dj_data,
-                                                   convert_text_to_dj)
+from tools.fmt_conversion.multimodal.utils import (
+    check_args_load_to_dj_data,
+    convert_text_to_dj,
+)
 
 
 @logger.catch(reraise=True)
@@ -48,8 +50,8 @@ def main(
     eoc_special_token: str = SpecialTokens.eoc,
     video_special_token: str = SpecialTokens.video,
     add_eoc_at_last: bool = True,
-    sent_separator: str = ' ',
-    video_special_token_insert_pos: str = 'before',
+    sent_separator: str = " ",
+    video_special_token_insert_pos: str = "before",
     keep_other_fields: bool = True,
 ):
     """
@@ -77,12 +79,12 @@ def main(
         datasets. Default: False.
     """
     # ----- Constant settings. Better not to change them. -----
-    text_key = 'text'  # default key of field to store the sample text
-    video_key = 'videos'  # default key of field to store the video list
-    video_id_key = 'youtube_id'  # default original field to store video id
-    ori_text_key_q = 'q'  # default original key of field to store texts
-    ori_text_key_a = 'a'  # default original key of field to store texts
-    ori_video_key = 'video_id'  # default original field to store video ids
+    text_key = "text"  # default key of field to store the sample text
+    video_key = "videos"  # default key of field to store the video list
+    video_id_key = "youtube_id"  # default original field to store video id
+    ori_text_key_q = "q"  # default original key of field to store texts
+    ori_text_key_a = "a"  # default original key of field to store texts
+    ori_video_key = "video_id"  # default original field to store video ids
 
     def format_dj_text(text_q, text_a):
         """
@@ -92,23 +94,27 @@ def main(
         :param text_a: Text for the answer
         :return: Formatted string
         """
-        return f'[[{ori_text_key_q}]]:{text_q} \n[[{ori_text_key_a}]]:{text_a}'
+        return f"[[{ori_text_key_q}]]:{text_q} \n[[{ori_text_key_a}]]:{text_a}"
 
     # ----- Constant settings. Better not to change them. -----
 
     input_ds_dir = os.path.dirname(video_chatgpt_ds_path)
 
     # check arguments
-    check_args_load_to_dj_data(add_eoc_at_last, keep_other_fields,
-                               target_ds_dj_path, video_chatgpt_ds_path,
-                               video_special_token_insert_pos, '.jsonl')
+    check_args_load_to_dj_data(
+        add_eoc_at_last,
+        keep_other_fields,
+        target_ds_dj_path,
+        video_chatgpt_ds_path,
+        video_special_token_insert_pos,
+        ".jsonl",
+    )
 
     # start conversion
-    logger.info(f'Start converting the original Video_Chatgpt dataset '
-                f'from {video_chatgpt_ds_path}...')
-    with open(video_chatgpt_ds_path, 'r') as json_file:
+    logger.info(f"Start converting the original Video_Chatgpt dataset " f"from {video_chatgpt_ds_path}...")
+    with open(video_chatgpt_ds_path, "r") as json_file:
         ori_data = json.load(json_file)
-    with jl.open(target_ds_dj_path, mode='w') as writer:
+    with jl.open(target_ds_dj_path, mode="w") as writer:
         for s in tqdm(ori_data):
             # v_k_ZXmr8pmrs --> k_ZXmr8pmrs
             video_id = s.pop(ori_video_key)[2:]
@@ -118,17 +124,23 @@ def main(
             text = format_dj_text(text_q, text_a)
 
             new_sample, text = convert_text_to_dj(
-                text, s, add_eoc_at_last, eoc_special_token, keep_other_fields,
-                sent_separator, video_special_token,
-                video_special_token_insert_pos)
+                text,
+                s,
+                add_eoc_at_last,
+                eoc_special_token,
+                keep_other_fields,
+                sent_separator,
+                video_special_token,
+                video_special_token_insert_pos,
+            )
 
             new_sample[video_key] = [os.path.join(input_ds_dir, video_id)]
             new_sample[text_key] = text
             new_sample[video_id_key] = video_id
 
             writer.write(new_sample)
-    logger.info(f'Store the target dataset into [{target_ds_dj_path}].')
+    logger.info(f"Store the target dataset into [{target_ds_dj_path}].")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

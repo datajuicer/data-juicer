@@ -1,7 +1,9 @@
 # Format Conversion Tools
 
 Here Data-Juicer provides tens of format conversion tools for diverse datasets, including multimodal datasets, post tuning datasets, and so on.
-These tools help to convert the dataset in the original format to a unified, intermediate format used in Data-Juicer, which we call it "DJ format".
+These tools can convert raw datasets into a unified intermediate format required by Data-Juicer (referred to as "DJ Format"). The default implementation of DJ operators is designed based on this format - for example, directly reading data payloads from the 'text' field for processing operations. For special format requirements, users can either adjust operator parameter configurations for adaptation or implement custom operators to enable extended support.
+
+
 An overview of DJ format is shown below:
 
 ```python

@@ -38,32 +38,32 @@ def tex_proj_loader(file_or_dir_path: pathlib.Path):
         # if it is a directory, open it as a tarfile
         with tarfile.open(file_or_dir_path) as sub_tf:
             for member in sub_tf.getmembers():
-                if member.name.endswith('.tex'):
+                if member.name.endswith(".tex"):
                     file_content = sub_tf.extractfile(member).read()
                     try:
-                        file_content = file_content.decode('utf-8')
+                        file_content = file_content.decode("utf-8")
                     except UnicodeDecodeError:
-                        logger.error(f'UnicodeDecodeError: {file_or_dir_path}')
+                        logger.error(f"UnicodeDecodeError: {file_or_dir_path}")
                         return None
                     files_and_content.append(file_content)
     except tarfile.ReadError:
         # otherwise we try opening it as a gzip file
         try:
-            with gzip.open(file_or_dir_path, 'rb') as gz:
+            with gzip.open(file_or_dir_path, "rb") as gz:
                 file_content = gz.read()
         except Exception as e:
             # all fails, we skip this file
-            logger.error(f'{e}: {file_or_dir_path}')
+            logger.error(f"{e}: {file_or_dir_path}")
             return None
 
         try:
-            file_content = file_content.decode('utf-8')
+            file_content = file_content.decode("utf-8")
         except UnicodeDecodeError:
-            logger.error(f'UnicodeDecodeError: {file_or_dir_path}')
+            logger.error(f"UnicodeDecodeError: {file_or_dir_path}")
             return None
         files_and_content.append(file_content)
     except Exception as e:
-        logger.error(f'{e}: {file_or_dir_path}')
+        logger.error(f"{e}: {file_or_dir_path}")
         return None
 
     return files_and_content
@@ -81,18 +81,18 @@ def convert_tar_to_jsonl(tar_fp, jsonl_fp, tmp_dir):
     failed = 0
     success = 0
     with tempfile.TemporaryDirectory(dir=tmp_dir, prefix=tar_fp.name) as td:
-        with jl.open(jsonl_fp, mode='w') as writer:
+        with jl.open(jsonl_fp, mode="w") as writer:
             with tarfile.open(tar_fp) as tf:
                 tf.extractall(members=tf.getmembers(), path=td)
-                for proj_dir_or_file in pathlib.Path(td).rglob('*.gz'):
+                for proj_dir_or_file in pathlib.Path(td).rglob("*.gz"):
                     data = tex_proj_loader(proj_dir_or_file)
                     if data is None:
                         failed += 1
                         continue
                     success += 1
-                    writer.write_all([{'text': txt} for txt in data])
+                    writer.write_all([{"text": txt} for txt in data])
 
-    logger.info(f'{jsonl_fp} done. Fail: {failed}, success: {success}')
+    logger.info(f"{jsonl_fp} done. Fail: {failed}, success: {success}")
 
 
 def tar_fp_iter(src_dir):
@@ -101,11 +101,11 @@ def tar_fp_iter(src_dir):
     :param src_dir: path to source dataset directory
     :return: iterator over tar files
     """
-    for tar_fp in pathlib.Path(src_dir).glob('*.tar'):
+    for tar_fp in pathlib.Path(src_dir).glob("*.tar"):
         yield tar_fp
 
 
-def main(arxiv_src_dir, target_dir, work_dir='./tmp/', num_proc=1):
+def main(arxiv_src_dir, target_dir, work_dir="./tmp/", num_proc=1):
     """
     :param arxiv_src_dir: if you download raw arXiv data as Redpajama did,
            you will get a directory src which includes thousands of tar
@@ -118,8 +118,7 @@ def main(arxiv_src_dir, target_dir, work_dir='./tmp/', num_proc=1):
     """
     # check if the source directory exists.
     if not os.path.exists(arxiv_src_dir):
-        raise ValueError('The raw arXiv source data directory does not exist,'
-                         ' Please check and retry.')
+        raise ValueError("The raw arXiv source data directory does not exist," " Please check and retry.")
     if not os.path.exists(target_dir):
         os.makedirs(target_dir, exist_ok=True)
 
@@ -129,18 +128,19 @@ def main(arxiv_src_dir, target_dir, work_dir='./tmp/', num_proc=1):
     # convert in multiprocess
     pool = Pool(num_proc)
     for tar_fp in tar_fp_iter(arxiv_src_dir):
-        logger.info(f'Start to process {tar_fp}')
-        jsonl_fp = os.path.join(target_dir,
-                                tar_fp.name.replace('.tar', '.jsonl'))
-        pool.apply_async(convert_tar_to_jsonl,
-                         args=(
-                             tar_fp,
-                             jsonl_fp,
-                             work_dir,
-                         ))
+        logger.info(f"Start to process {tar_fp}")
+        jsonl_fp = os.path.join(target_dir, tar_fp.name.replace(".tar", ".jsonl"))
+        pool.apply_async(
+            convert_tar_to_jsonl,
+            args=(
+                tar_fp,
+                jsonl_fp,
+                work_dir,
+            ),
+        )
     pool.close()
     pool.join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

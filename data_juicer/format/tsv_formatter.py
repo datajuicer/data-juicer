@@ -8,7 +8,8 @@ class TsvFormatter(LocalFormatter):
 
     Default suffixes is `['.tsv']`
     """
-    SUFFIXES = ['.tsv']
+
+    SUFFIXES = [".tsv"]
 
     def __init__(self, dataset_path, suffixes=None, **kwargs):
         """
@@ -21,7 +22,7 @@ class TsvFormatter(LocalFormatter):
         super().__init__(
             dataset_path=dataset_path,
             suffixes=suffixes if suffixes else self.SUFFIXES,
-            type='csv',
-            delimiter='\t',
+            type="csv",
+            delimiter="\t",
             **kwargs,
         )

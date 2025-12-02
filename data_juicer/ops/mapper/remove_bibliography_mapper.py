@@ -7,10 +7,14 @@ import regex as re
 from ..base_op import OPERATORS, Mapper
 
 
-@OPERATORS.register_module('remove_bibliography_mapper')
+@OPERATORS.register_module("remove_bibliography_mapper")
 class RemoveBibliographyMapper(Mapper):
-    """Mapper to remove bibliography at the end of documents in Latex
-    samples."""
+    """Removes bibliography sections at the end of LaTeX documents.
+
+    This operator identifies and removes bibliography sections in LaTeX documents. It uses a
+    regular expression to match common bibliography commands such as \\appendix,
+    \\begin{references}, \\begin{thebibliography}, and \\bibliography. The matched sections are
+    removed from the text. The operator processes samples in batch mode for efficiency."""
 
     _batched_op = True
 
@@ -22,19 +26,16 @@ class RemoveBibliographyMapper(Mapper):
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
-        self.pattern = r'(\\appendix|'
-        self.pattern += r'\\begin\{references\}|'
-        self.pattern += r'\\begin\{REFERENCES\}|'
-        self.pattern += r'\\begin\{thebibliography\}|'
-        self.pattern += r'\\bibliography\{.*\}'
-        self.pattern += r').*$'
+        self.pattern = r"(\\appendix|"
+        self.pattern += r"\\begin\{references\}|"
+        self.pattern += r"\\begin\{REFERENCES\}|"
+        self.pattern += r"\\begin\{thebibliography\}|"
+        self.pattern += r"\\bibliography\{.*\}"
+        self.pattern += r").*$"
 
     def process_batched(self, samples):
         samples[self.text_key] = [
-            re.sub(pattern=self.pattern,
-                   repl=r'',
-                   string=text,
-                   flags=re.DOTALL) for text in samples[self.text_key]
+            re.sub(pattern=self.pattern, repl=r"", string=text, flags=re.DOTALL) for text in samples[self.text_key]
         ]
 
         return samples

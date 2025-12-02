@@ -337,7 +337,7 @@ class DocumentMinhashDeduplicator(Deduplicator):
         return dataset, dup_pairs
 
 
-@OPERATORS.register_module(f'{OP_NAME}_with_uid')
+@OPERATORS.register_module(f"{OP_NAME}_with_uid")
 class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
     """
     A Deduplicator that performs document-level deduplication using MinHashLSH.
@@ -373,30 +373,30 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
         uid2idx = {uid: idx for idx, uid in enumerate(uids)}
 
         # make clusters -- construct the minhash lookup tables of seg to ids
-        logger.info(f'Start clustering for {len(dataset)} samples...')
+        logger.info(f"Start clustering for {len(dataset)} samples...")
         batch_size = 10000
-        for i in tqdm(range(0, len(minhashes), batch_size),
-                      dynamic_ncols=True,
-                      desc='Iterating MinHashes of samples...'):
-            batch = minhashes[i:i + batch_size]
-            batch_uid = uids[i:i + batch_size]
+        for i in tqdm(
+            range(0, len(minhashes), batch_size), dynamic_ncols=True, desc="Iterating MinHashes of samples..."
+        ):
+            batch = minhashes[i : i + batch_size]
+            batch_uid = uids[i : i + batch_size]
             for uid, hs in zip(batch_uid, batch):
                 for h, hashtable in zip(hs, self.hash_tables):
                     hashtable[h].add(uid)
 
         # using UnionFind set to union samples within the same clusters
         union_find = UnionFind()
-        for table in tqdm(self.hash_tables,
-                          dynamic_ncols=True,
-                          desc='Clustering'):
+        for table in tqdm(self.hash_tables, dynamic_ncols=True, desc="Clustering"):
             for cluster in table.values():
                 if len(cluster) <= 1:
                     continue
                 uid = min(cluster)
                 for x in cluster:
                     union_find.union(x, uid)
-        logger.info(f'There are {len(set(union_find.parent.values()))} '
-                    f'clusters that includes multiple near-duplicate samples.')
+        logger.info(
+            f"There are {len(set(union_find.parent.values()))} "
+            f"clusters that includes multiple near-duplicate samples."
+        )
 
         # record the duplicate sample pairs
         dup_pairs = {}
@@ -422,6 +422,6 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
             return union_find.find(uid) == uid
 
         dataset = dataset.filter(_filter_minhash_dup_helper)
-        logger.info(f'Keep {len(dataset)} samples after MinHash dedup.')
+        logger.info(f"Keep {len(dataset)} samples after MinHash dedup.")
 
         return dataset, dup_pairs

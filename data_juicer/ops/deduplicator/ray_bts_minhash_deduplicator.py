@@ -708,7 +708,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
         return result
 
 
-@OPERATORS.register_module(f'{OP_NAME}_with_uid')
+@OPERATORS.register_module(f"{OP_NAME}_with_uid")
 class RayBTSMinhashDeduplicatorWithUid(RayBTSMinhashDeduplicator):
     """
     A MinhashLSH deduplicator based on RAY.
@@ -741,19 +741,19 @@ class RayBTSMinhashDeduplicatorWithUid(RayBTSMinhashDeduplicator):
 
         dataset.map_batches(
             minhash_with_uid,
-            batch_format='pyarrow',
+            batch_format="pyarrow",
             zero_copy_batch=True,
         ).materialize()
         end_time = time.time()
-        logger.info(f'MinHash time = {end_time - start_time}')
+        logger.info(f"MinHash time = {end_time - start_time}")
 
         start_time = time.time()
         self.merge()
         end_time = time.time()
-        logger.info(f'merge time = {end_time - start_time}')
+        logger.info(f"merge time = {end_time - start_time}")
         result = dataset.map_batches(
             self.filter_with_union_find,
-            batch_format='pyarrow',
+            batch_format="pyarrow",
             zero_copy_batch=True,
         )
         return result

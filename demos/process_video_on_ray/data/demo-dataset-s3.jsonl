@@ -1,0 +1,3 @@
+{"videos": ["s3://your-bucket/videos/video1.mp4"], "text": "<__dj__video> A sample video"}
+{"videos": ["s3://your-bucket/videos/video2.mp4"], "text": "<__dj__video> Another sample video"}
+{"videos": ["s3://your-bucket/videos/video3.mp4"], "text": "<__dj__video> Third sample video"}

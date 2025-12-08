@@ -8,7 +8,7 @@
 - 基础
   - [DJ概览](../../README_ZH.md)
   - [快速上手](QuickStart_ZH.md)
-  - [配置](../RecipeGallery_ZH.md)
+  - [配置](../hub/RecipeGallery_ZH.md)
   - [数据格式转换](../../tools/fmt_conversion/README_ZH.md)
 - 信息速查
   - [算子库](../Operators.md)
@@ -19,12 +19,12 @@
   - [后处理工具](../../tools/postprocess/README_ZH.md)
   - [沙盒](../Sandbox_ZH.md)
   - [API服务化](../DJ_service_ZH.md)
-  - [给数据打分](../../tools/quality_classifier/README_ZH.md)
+  - [给数据打分](../../data_juicer/tools/quality_classifier/README_ZH.md)
   - [自动评估](../../tools/evaluator/README_ZH.md)
   - [第三方集成](../../thirdparty/LLM_ecosystems/README_ZH.md)
 
 ## 用例与数据菜谱
-* [数据菜谱Gallery](../RecipeGallery_ZH.md)
+* [数据菜谱Gallery](../hub/RecipeGallery_ZH.md)
   - Data-Juicer 最小示例配方
   - 复现开源文本数据集
   - 改进开源文本预训练数据集

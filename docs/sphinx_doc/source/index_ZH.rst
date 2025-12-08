@@ -27,7 +27,6 @@ Data Processing for and with Foundation Models
    :hidden:
 
    docs/Operators
-   docs/RecipeGallery_ZH
    docs/DatasetCfg_ZH
    docs/*
 
@@ -39,6 +38,15 @@ Data Processing for and with Foundation Models
 
    demos/*
    demos/**/*
+
+.. toctree::
+   :maxdepth: 2
+   :caption: hub
+   :glob:
+   :hidden:
+
+   docs/hub/RecipeGallery_ZH
+   docs/hub/*
 
 .. toctree::
    :maxdepth: 2

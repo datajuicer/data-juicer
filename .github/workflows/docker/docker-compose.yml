@@ -1,7 +1,7 @@
 version: '3'
 services:
   ray-head:
-    image: data-juicer-unittest:0.2.2
+    image: data-juicer-unittest:latest
     pull_policy: never
     command: ray start --head --dashboard-host 0.0.0.0 --include-dashboard true --block
     environment:
@@ -31,7 +31,7 @@ services:
             capabilities: [gpu]
 
   ray-worker:
-    image: data-juicer-unittest:0.2.2
+    image: data-juicer-unittest:latest
     pull_policy: never
     command: ray start --address=ray-head:6379 --block
     environment:

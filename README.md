@@ -96,8 +96,8 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
 - **User-Friendly & Extensible**: 
   Designed for simplicity and flexibility, with easy-start [guides](docs/tutorial/QuickStart.md), and [DJ-Cookbook](docs/tutorial/DJ-Cookbook.md) containing fruitful demo usages. Feel free to [implement your own OPs](docs/DeveloperGuide.md#build-your-own-ops) for customizable data processing.
 
-  Data-Juicer now uses AI to automatically rewrite and optimize operator docstrings, generating detailed operator documentation to help users quickly understand the functionality and usage of each operator.  
-  For details about the implementation of this documentation enhancement workflow, please visit the [demos/op_doc_enhance_workflow folder under the `dj_agents` branch](https://github.com/datajuicer/data-juicer/tree/dj_agents/demos/op_doc_enhance_workflow).
+    Data-Juicer now uses AI to automatically rewrite and optimize operator docstrings, generating detailed operator documentation to help users quickly understand the functionality and usage of each operator.  
+    For details about the implementation of this documentation enhancement workflow, please visit the [op_doc_enhance_workflow](https://github.com/datajuicer/data-juicer/tree/main/docs/op_doc_enhance_workflow).
 
 - **Efficient & Robust**: Providing performance-optimized [parallel data processing](docs/Distributed.md) (Aliyun-PAI\Ray\CUDA\OP Fusion),
   faster with less resource usage, verified in large-scale production environments.
@@ -115,7 +115,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [Quick Start](docs/tutorial/QuickStart.md)
 - Useful documents
   - [Operator Schemas](docs/Operators.md)
-  - [Data Recipe Gallery](docs/RecipeGallery.md)
+  - [Data Recipe Gallery](docs/hub/RecipeGallery.md)
   - [Dataset Configuration Guide](docs/DatasetCfg.md)
   - [Awesome Data-Model Co-Development of MLLMs](docs/awesome_llm_data.md)
   - ["Bad" Data Exhibition](docs/BadDataExhibition.md)
@@ -124,7 +124,7 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [How-to Guide for Developers](docs/DeveloperGuide.md)
   - [Distributed Data Processing in Data-Juicer](docs/Distributed.md)
   - [Sandbox](docs/Sandbox.md)
-  - [Data-Juicer Agent](docs/DJ_agent.md)
+  - [Data-Juicer Agents](docs/DJ_agents.md)
 - Demos
   - [demos](demos/README.md)
 - Tools
@@ -135,12 +135,12 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   - [Format Conversion Tools](tools/fmt_conversion/README.md)
     - [Multimodal Tools](tools/fmt_conversion/multimodal/README.md)
     - [Post Tuning Tools](tools/fmt_conversion/post_tuning_dialog/README.md)
-  - [Hyper-parameter Optimization for Data Recipe](tools/hpo/README.md)
+  - [Hyper-parameter Optimization for Data Recipe](data_juicer/tools/hpo/README.md)
   - [Label Studio Service Utility](tools/humanops/README.md)
   - [Metrics for video generation](tools/mm_eval/inception_metrics/README.md)
   - [Postprocess Tools](tools/postprocess/README.md)
   - [Preprocess Tools](tools/preprocess/README.md)
-  - [Data Scoring](tools/quality_classifier/README.md)
+  - [Data Scoring](data_juicer/tools/quality_classifier/README.md)
 - Third-party
   - [LLM Ecosystems](thirdparty/LLM_ecosystems/README.md)
   - [Third-party Model Library](thirdparty/models/README.md)

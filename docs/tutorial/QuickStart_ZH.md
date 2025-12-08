@@ -24,15 +24,15 @@ path: 'path/to/your/dataset' # 数据集目录或文件的路径
 
 ```shell
 # 适用于从源码安装
-python tools/process_data.py --config configs/demo/process.yaml
+python tools/process_data.py --config demos/process_simple/process.yaml
 
 # 使用命令行工具
-dj-process --config configs/demo/process.yaml
+dj-process --config demos/process_simple/process.yaml
 ```
 
 * **注意**：使用未保存在本地的第三方模型或资源的算子第一次运行可能会很慢，因为这些算子需要将相应的资源下载到缓存目录中。默认的下载缓存目录为`~/.cache/data_juicer`。您可通过设置 shell 环境变量 `DATA_JUICER_CACHE_HOME` 更改缓存目录位置，您也可以通过同样的方式更改 `DATA_JUICER_MODELS_CACHE` 或 `DATA_JUICER_ASSETS_CACHE` 来分别修改模型缓存或资源缓存目录:
 
-* **注意**：对于使用了第三方模型的算子，在填写config文件时需要去声明其对应的`mem_required`（可以参考`config_all.yaml`文件中的设置）。Data-Juicer在运行过程中会根据内存情况和算子模型所需的memory大小来控制对应的进程数，以达成更好的数据处理的性能效率。而在使用CUDA环境运行时，如果不正确的声明算子的`mem_required`情况，则有可能导致CUDA Out of Memory。
+* **注意**：对于使用了第三方模型的算子，在填写config文件时需要去声明其对应的`mem_required`（可以参考`data_juicer/config/config_all.yaml`文件中的设置）。Data-Juicer在运行过程中会根据内存情况和算子模型所需的memory大小来控制对应的进程数，以达成更好的数据处理的性能效率。而在使用CUDA环境运行时，如果不正确的声明算子的`mem_required`情况，则有可能导致CUDA Out of Memory。
 
 ```shell
 # 缓存主目录
@@ -85,10 +85,10 @@ python tools/process_data.py --config ./demos/process_video_on_ray/configs/demo.
 
 ```shell
 # 适用于从源码安装
-python tools/analyze_data.py --config configs/demo/analyzer.yaml
+python tools/analyze_data.py --config demos/analyze_simple/analyzer.yaml
 
 # 使用命令行工具
-dj-analyze --config configs/demo/analyzer.yaml
+dj-analyze --config demos/analyze_simple/analyzer.yaml
 
 # 你也可以使用"自动"模式来避免写一个新的数据菜谱。它会使用全部可产出统计信息的 Filter 来分析
 # 你的数据集的一小部分（如1000条样本，可通过 `auto_num` 参数指定）
@@ -101,7 +101,7 @@ dj-analyze --auto --dataset_path xx.jsonl [--auto_num 1000]
 * 有时会产生 "Glyph missing" 的警告，并且在分析结果图表中会出现一些非法字符。用户可以使用环境变量 `ANALYZER_FONT` 来指定合适的字体。例如：
 ```shell
 export ANALYZER_FONT="Heiti TC"  # 使用黑体来支持中文字符，这也是 Analyzer 的默认字体
-python tools/analyze_data.py --config configs/demo/analyzer.yaml
+python tools/analyze_data.py --config demos/analyze_simple/analyzer.yaml
 ```
 
 ## 数据可视化
@@ -122,12 +122,12 @@ streamlit run app.py
   * 全局参数：输入/输出 数据集路径，worker 进程数量等。
   * 算子列表：列出用于处理数据集的算子及其参数。
 * 您可以通过如下方式构建自己的配置文件:
-  * ➖：修改我们的样例配置文件 [`config_all.yaml`](../../configs/config_all.yaml)。该文件包含了**所有**算子以及算子对应的默认参数。您只需要**移除**不需要的算子并重新设置部分算子的参数即可。
-  * ➕：从头开始构建自己的配置文件。您可以参考我们提供的样例配置文件 [`config_all.yaml`](../../configs/config_all.yaml)，[算子文档](../Operators.md)，以及 [开发者指南](../DeveloperGuide_ZH.md#2-构建自己的算子).
+  * ➖：修改我们的样例配置文件 [`config_all.yaml`](../../data_juicer/config/config_all.yaml)。该文件包含了**所有**算子以及算子对应的默认参数。您只需要**移除**不需要的算子并重新设置部分算子的参数即可。
+  * ➕：从头开始构建自己的配置文件。您可以参考我们提供的样例配置文件 [`config_all.yaml`](../../data_juicer/config/config_all.yaml)，[算子文档](../Operators.md)，以及 [开发者指南](../DeveloperGuide_ZH.md#2-构建自己的算子).
   * 除了使用 yaml 文件外，您还可以在命令行上指定一个或多个参数，这些参数将覆盖 yaml 文件中的值。
 
 ```shell
-python xxx.py --config configs/demo/process.yaml --language_id_score_filter.lang=en
+python xxx.py --config demos/process_simple/process.yaml --language_id_score_filter.lang=en
 ```
 
 * 基础的配置项格式及定义如下图所示
@@ -140,10 +140,7 @@ python xxx.py --config configs/demo/process.yaml --language_id_score_filter.lang
 - 用户在沙盒中可以基于一些小规模数据集、模型对数据菜谱进行快速实验、迭代、优化，再迁移到更大尺度上，大规模生产高质量数据以服务大模型。
 - 用户在沙盒中，除了Data-Juicer基础的数据优化与数据菜谱微调功能外，还可以便捷地使用数据洞察与分析、沙盒模型训练与评测、基于数据和模型反馈优化数据菜谱等可配置组件，共同组成完整的一站式数据-模型研发流水线。
 
-沙盒默认通过如下命令运行，更多介绍和细节请参阅[沙盒文档](../Sandbox_ZH.md).
-```shell
-python tools/sandbox_starter.py --config configs/demo/sandbox/sandbox.yaml
-```
+更多介绍和细节请参阅[沙盒文档](../Sandbox_ZH.md).
 
 
 

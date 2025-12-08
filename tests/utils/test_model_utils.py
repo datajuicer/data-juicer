@@ -168,7 +168,7 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         # Test device handling
         mock_vllm.LLM.reset_mock()
         model, _ = prepare_vllm_model('test_model', device='cuda:0')
-        mock_vllm.LLM.assert_called_once_with(model='test_model', generation_config='auto', device='cuda')
+        mock_vllm.LLM.assert_called_once_with(model='test_model', generation_config='auto')
 
         # Test model parameters
         mock_vllm.LLM.reset_mock()

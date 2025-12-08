@@ -34,12 +34,16 @@ nltk = LazyLoader("nltk")
 aes_pred = LazyLoader("aesthetics_predictor", "simple-aesthetics-predictor")
 vllm = LazyLoader("vllm")
 diffusers = LazyLoader("diffusers")
-ram = LazyLoader("ram", "git+https://github.com/xinyu1205/recognize-anything.git")
+ram = LazyLoader("ram", "git+https://github.com/HYLcool/recognize-anything.git")
 cv2 = LazyLoader("cv2", "opencv-python")
 openai = LazyLoader("openai")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
+qwen_vl_utils = LazyLoader("qwen_vl_utils", "qwen-vl-utils")
+transformers_stream_generator = LazyLoader(
+    "transformers_stream_generator", "git+https://github.com/HYLcool/transformers-stream-generator.git"
+)
 
 MODEL_ZOO = {}
 
@@ -65,6 +69,13 @@ BACKUP_MODEL_LINKS = {
     "*_core_web_md-3.*.0": "https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/" "data_juicer/models/",
     # YOLO
     "yolo11n.pt": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt",
+    # WiLoR
+    "wilor_model_path": "https://huggingface.co/spaces/rolpotamias/WiLoR/resolve/main/pretrained_models/wilor_final.ckpt",
+    "wilor_model_config": "https://raw.githubusercontent.com/rolpotamias/WiLoR/refs/heads/main/pretrained_models/model_config.yaml",
+    "wilor_detector_model_path": "https://huggingface.co/spaces/rolpotamias/WiLoR/resolve/main/pretrained_models/detector.pt",
+    # DWPose
+    "dwpose_onnx_det_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx",
+    "dwpose_onnx_pose_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx",
 }
 
 
@@ -398,6 +409,27 @@ def prepare_diffusion_model(pretrained_model_name_or_path, diffusion_type, **mod
     return model
 
 
+def prepare_dwpose_model(onnx_det_model, onnx_pose_model, **model_params):
+    from data_juicer.ops.common.dwpose_func import DWposeDetector
+
+    device = model_params.pop("device", "cpu")
+
+    def _get_model_path(model_path, default_filename, download_key):
+        if not os.path.exists(model_path):
+            if not os.path.exists(DJMC):
+                os.makedirs(DJMC)
+            model_path = os.path.join(DJMC, default_filename)
+            if not os.path.exists(model_path):
+                wget.download(BACKUP_MODEL_LINKS[download_key], DJMC)
+        return model_path
+
+    onnx_det_model = _get_model_path(onnx_det_model, "yolox_l.onnx", "dwpose_onnx_det_model")
+    onnx_pose_model = _get_model_path(onnx_pose_model, "dw-ll_ucoco_384.onnx", "dwpose_onnx_pose_model")
+
+    dwpose_model = DWposeDetector(onnx_det_model, onnx_pose_model, device)
+    return dwpose_model
+
+
 def prepare_fastsam_model(model_path, **model_params):
     device = model_params.pop("device", "cpu")
     model = ultralytics.FastSAM(check_model(model_path)).to(device)
@@ -471,6 +503,7 @@ def prepare_huggingface_model(
         model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
 
         if return_pipe:
+            pipe_params = {}
             if isinstance(processor, transformers.PreTrainedTokenizerBase):
                 pipe_params = {"tokenizer": processor}
             elif isinstance(processor, transformers.SequenceFeatureExtractor):
@@ -870,11 +903,92 @@ def prepare_video_blip_model(pretrained_model_name_or_path, *, return_model=True
             self.post_init()
 
     pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
-    processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path, **model_params)
+    processor = transformers.AutoProcessor.from_pretrained(
+        pretrained_model_name_or_path, num_query_tokens=32, **model_params
+    )
     if return_model:
         model_class = VideoBlipForConditionalGeneration
         model = model_class.from_pretrained(pretrained_model_name_or_path, **model_params)
+        model.config.image_token_index = 50265
     return (model, processor) if return_model else processor
+
+
+def prepare_video_depth_anything(model_path, **model_params):
+    import subprocess
+
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    video_depth_anything_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "Video-Depth-Anything")
+    if not os.path.exists(video_depth_anything_repo_path):
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "https://github.com/DepthAnything/Video-Depth-Anything.git",
+                video_depth_anything_repo_path,
+            ],
+            check=True,
+        )
+    import sys
+
+    sys.path.append(video_depth_anything_repo_path)
+
+    from video_depth_anything.video_depth import VideoDepthAnything
+
+    device = model_params.pop("device", "cpu")
+
+    model_configs = {
+        "vits": {"encoder": "vits", "features": 64, "out_channels": [48, 96, 192, 384]},
+        "vitb": {"encoder": "vitb", "features": 128, "out_channels": [96, 192, 384, 768]},
+        "vitl": {"encoder": "vitl", "features": 256, "out_channels": [256, 512, 1024, 1024]},
+    }
+
+    model_links = {
+        "video_depth_anything_vits": "https://huggingface.co/depth-anything/Video-Depth-Anything-Small/resolve/main/video_depth_anything_vits.pth",
+        "video_depth_anything_vitb": "https://huggingface.co/depth-anything/Video-Depth-Anything-Base/resolve/main/video_depth_anything_vitb.pth",
+        "video_depth_anything_vitl": "https://huggingface.co/depth-anything/Video-Depth-Anything-Large/resolve/main/video_depth_anything_vitl.pth",
+        "metric_video_depth_anything_vits": "https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Small/resolve/main/metric_video_depth_anything_vits.pth",
+        "metric_video_depth_anything_vitb": "https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Base/resolve/main/metric_video_depth_anything_vitb.pth",
+        "metric_video_depth_anything_vitl": "https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Large/resolve/main/metric_video_depth_anything_vitl.pth",
+    }
+
+    if "vits" in model_path:
+        encoder_type = "vits"
+    elif "vitb" in model_path:
+        encoder_type = "vitb"
+    else:
+        encoder_type = "vitl"
+
+    if "metric" in model_path:
+        metric = True
+    else:
+        metric = False
+
+    if "metric_video_depth_anything_vitl" in model_path:
+        model_type = "metric_video_depth_anything_vitl"
+    elif "metric_video_depth_anything_vitb" in model_path:
+        model_type = "metric_video_depth_anything_vitb"
+    elif "metric_video_depth_anything_vits" in model_path:
+        model_type = "metric_video_depth_anything_vits"
+    elif "video_depth_anything_vitb" in model_path:
+        model_type = "video_depth_anything_vitb"
+    elif "video_depth_anything_vitl" in model_path:
+        model_type = "video_depth_anything_vitl"
+    else:
+        model_type = "video_depth_anything_vits"
+
+    if not os.path.exists(model_path):
+        if not os.path.exists(DJMC):
+            os.makedirs(DJMC)
+
+        model_path = os.path.join(DJMC, model_type + ".pth")
+        wget.download(model_links[model_type], model_path)
+
+    model = VideoDepthAnything(**model_configs[encoder_type], metric=metric)
+    model.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
+    model = model.to(device).eval()
+
+    return model
 
 
 def prepare_yolo_model(model_path, **model_params):
@@ -904,18 +1018,19 @@ def prepare_vggt_model(model_path, **model_params):
     return model
 
 
-def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
+def prepare_vllm_model(pretrained_model_name_or_path, return_processor=False, **model_params):
     """
     Prepare and load a HuggingFace model with the corresponding processor.
 
     :param pretrained_model_name_or_path: model name or path
+    :param return_processor: whether to return the processor instead of the tokenizer
     :param model_params: LLM initialization parameters.
     :return: a tuple of (model, tokenizer)
     """
     os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 
-    if model_params.get("device", "").startswith("cuda:"):
-        model_params["device"] = "cuda"
+    if "device" in model_params:
+        model_params.pop("device")
 
     if is_ray_mode():
         tensor_parallel_size = model_params.get("tensor_parallel_size", 1)
@@ -926,7 +1041,84 @@ def prepare_vllm_model(pretrained_model_name_or_path, **model_params):
     model = vllm.LLM(model=check_model_home(pretrained_model_name_or_path), generation_config="auto", **model_params)
     tokenizer = model.get_tokenizer()
 
-    return (model, tokenizer)
+    if return_processor:
+        processor = transformers.AutoProcessor.from_pretrained(pretrained_model_name_or_path)
+        return model, processor
+    else:
+        return model, tokenizer
+
+
+def prepare_wilor_model(wilor_model_path, wilor_model_config, detector_model_path, mano_right_path, **model_params):
+    device = model_params.pop("device", "cpu")
+    wilor_DJMC_model_path = os.path.join(DJMC, "WiLoR")
+
+    if not os.path.exists(mano_right_path):
+        raise ValueError(
+            "Users need to download 'MANO_RIGHT.pkl' from https://mano.is.tue.mpg.de/ and comply with the MANO license."
+        )
+
+    import subprocess
+
+    from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+    wilor_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "WiLoR")
+    if not os.path.exists(wilor_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/rolpotamias/WiLoR.git", wilor_repo_path], check=True)
+
+    import sys
+
+    sys.path.append(wilor_repo_path)
+    from wilor.configs import get_config
+    from wilor.models.wilor import WiLoR
+    from wilor.utils.renderer import Renderer
+
+    def _get_model_path(model_path, default_filename, download_key):
+        if not os.path.exists(model_path):
+            if not os.path.exists(DJMC):
+                os.makedirs(DJMC)
+            if not os.path.exists(wilor_DJMC_model_path):
+                os.makedirs(wilor_DJMC_model_path)
+            model_path = os.path.join(wilor_DJMC_model_path, default_filename)
+            if not os.path.exists(model_path):
+                wget.download(BACKUP_MODEL_LINKS[download_key], wilor_DJMC_model_path)
+        return model_path
+
+    wilor_model_path = _get_model_path(wilor_model_path, "wilor_final.ckpt", "wilor_model_path")
+    wilor_model_config = _get_model_path(wilor_model_config, "model_config.yaml", "wilor_model_config")
+    detector_model_path = _get_model_path(detector_model_path, "detector.pt", "wilor_detector_model_path")
+
+    model_cfg = get_config(wilor_model_config, update_cachedir=True)
+    # Override some config values, to crop bbox correctly
+    if ("vit" in model_cfg.MODEL.BACKBONE.TYPE) and ("BBOX_SHAPE" not in model_cfg.MODEL):
+
+        model_cfg.defrost()
+        assert (
+            model_cfg.MODEL.IMAGE_SIZE == 256
+        ), f"MODEL.IMAGE_SIZE ({model_cfg.MODEL.IMAGE_SIZE}) should be 256 for ViT backbone"
+        model_cfg.MODEL.BBOX_SHAPE = [192, 256]
+        model_cfg.freeze()
+
+    # Update config to be compatible with demo
+    if "PRETRAINED_WEIGHTS" in model_cfg.MODEL.BACKBONE:
+        model_cfg.defrost()
+        model_cfg.MODEL.BACKBONE.pop("PRETRAINED_WEIGHTS")
+        model_cfg.freeze()
+
+        # Update config to be compatible with demo
+    if "DATA_DIR" in model_cfg.MANO:
+        model_cfg.defrost()
+        model_cfg.MANO.DATA_DIR = os.path.join(wilor_repo_path, "mano_data/")
+        model_cfg.MANO.MODEL_PATH = mano_right_path
+        model_cfg.MANO.MEAN_PARAMS = os.path.join(wilor_repo_path, "mano_data/mano_mean_params.npz")
+        model_cfg.freeze()
+
+    model = WiLoR.load_from_checkpoint(wilor_model_path, strict=False, cfg=model_cfg)
+    detector = ultralytics.YOLO(detector_model_path)
+    renderer = Renderer(model_cfg, faces=model.mano.faces)
+    model = model.to(device)
+    detector = detector.to(device)
+
+    return model, detector, model_cfg, renderer
 
 
 def prepare_embedding_model(model_path, **model_params):
@@ -1045,9 +1237,29 @@ def update_sampling_params(sampling_params, pretrained_model_name_or_path, enabl
     return sampling_params
 
 
+def prepare_qwen_vl_inputs_for_vllm(messages, processor):
+    text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    # qwen_vl_utils 0.0.14+ required
+    image_inputs, video_inputs, video_kwargs = qwen_vl_utils.process_vision_info(
+        messages,
+        image_patch_size=processor.image_processor.patch_size,
+        return_video_kwargs=True,
+        return_video_metadata=True,
+    )
+
+    mm_data = {}
+    if image_inputs is not None:
+        mm_data["image"] = image_inputs
+    if video_inputs is not None:
+        mm_data["video"] = video_inputs
+
+    return {"prompt": text, "multi_modal_data": mm_data, "mm_processor_kwargs": video_kwargs}
+
+
 MODEL_FUNCTION_MAPPING = {
     "api": prepare_api_model,
     "diffusion": prepare_diffusion_model,
+    "dwpose": prepare_dwpose_model,
     "fasttext": prepare_fasttext_model,
     "fastsam": prepare_fastsam_model,
     "huggingface": prepare_huggingface_model,
@@ -1062,7 +1274,9 @@ MODEL_FUNCTION_MAPPING = {
     "spacy": prepare_spacy_model,
     "vggt": prepare_vggt_model,
     "video_blip": prepare_video_blip_model,
+    "video_depth_anything": prepare_video_depth_anything,
     "vllm": prepare_vllm_model,
+    "wilor": prepare_wilor_model,
     "yolo": prepare_yolo_model,
     "embedding": prepare_embedding_model,
 }

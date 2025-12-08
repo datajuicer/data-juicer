@@ -13,6 +13,7 @@ from data_juicer.core.data.config_validator import ConfigValidator
 from data_juicer.download.downloader import validate_snapshot_format
 from data_juicer.format.formatter import unify_format
 from data_juicer.format.load import load_formatter
+from data_juicer.utils.s3_utils import create_pyarrow_s3_filesystem, validate_s3_path
 
 # based on executor type and data source type, use different
 # data load strategy to product corresponding datasets
@@ -422,3 +423,222 @@ class DefaultCommonCrawlDataLoadStrategy(DefaultDataLoadStrategy):
 
     def load_data(self, **kwargs):
         raise NotImplementedError("CommonCrawl data load strategy is not implemented")
+
+
+@DataLoadStrategyRegistry.register("default", "remote", "s3")
+class DefaultS3DataLoadStrategy(DefaultDataLoadStrategy):
+    """
+    data load strategy for S3 datasets for LocalExecutor
+    Uses fsspec/s3fs to access S3 files
+    """
+
+    CONFIG_VALIDATION_RULES = {
+        "required_fields": ["path"],
+        "optional_fields": [
+            "aws_access_key_id",
+            "aws_secret_access_key",
+            "aws_session_token",
+            "aws_region",
+            "endpoint_url",
+        ],
+        "field_types": {"path": str},
+        "custom_validators": {
+            "path": lambda x: x.startswith("s3://"),
+        },
+    }
+
+    def load_data(self, **kwargs):
+        import os
+
+        import datasets
+
+        from data_juicer.format.formatter import unify_format
+        from data_juicer.utils.s3_utils import get_aws_credentials
+
+        path = self.ds_config["path"]
+        validate_s3_path(path)
+
+        load_data_np = kwargs.get("num_proc", 1)
+
+        # Get config values with defaults
+        text_keys = getattr(self.cfg, "text_keys", ["text"])
+
+        logger.info(f"Loading dataset from S3: {path}")
+
+        # Determine file format from extension (reuse logic from RayLocalJsonDataLoadStrategy)
+        file_extension = os.path.splitext(path)[1].lower()
+        file_extension_map = {
+            ".json": "json",
+            ".jsonl": "json",
+            ".txt": "text",
+            ".csv": "csv",
+            ".tsv": "csv",
+            ".parquet": "parquet",
+        }
+        data_format = file_extension_map.get(file_extension, "json")  # Default to json
+        logger.info(f"Detected format: {data_format} for S3 path: {path}")
+
+        # Create S3FileSystem with credentials from config
+        # Get credentials with priority order (env vars first, then config)
+        aws_access_key_id, aws_secret_access_key, aws_session_token, _ = get_aws_credentials(self.ds_config)
+        # Region is auto-detected from S3 path for HuggingFace datasets, don't need it from credentials
+
+        # Build storage_options for S3FileSystem
+        # Note: region should NOT be in storage_options for HuggingFace datasets
+        # as it causes issues with AioSession. Region is auto-detected from S3 path.
+        storage_options = {}
+        if aws_access_key_id:
+            storage_options["key"] = aws_access_key_id
+        if aws_secret_access_key:
+            storage_options["secret"] = aws_secret_access_key
+        if aws_session_token:
+            storage_options["token"] = aws_session_token
+        # Region is auto-detected from S3 path, don't pass it in storage_options
+        # If explicit region is needed, it should be set via AWS_REGION env var
+        if "endpoint_url" in self.ds_config:
+            storage_options["endpoint_url"] = self.ds_config["endpoint_url"]
+
+        # HuggingFace datasets uses storage_options (not fs parameter) for filesystem configuration
+        # storage_options are passed to fsspec/s3fs internally
+        # For public buckets without credentials, use anonymous access
+        # HuggingFace datasets uses storage_options for filesystem configuration.
+        # If storage_options is empty, s3fs will use its default credential chain (e.g., IAM role, ~/.aws/credentials).
+        if storage_options.get("key") or storage_options.get("secret"):
+            logger.info("Using explicit AWS credentials for S3 access")
+        else:
+            logger.info("Using default AWS credential chain for S3 access")
+
+        # Allow explicit anonymous access via config
+        if self.ds_config.get("anon"):
+            storage_options["anon"] = True
+            logger.info("Anonymous access for public S3 bucket enabled via config.")
+
+        try:
+            # Pass storage_options to load_dataset (not fs parameter)
+            # storage_options are used by fsspec/s3fs internally
+            ds = datasets.load_dataset(
+                data_format,
+                data_files=path,  # Direct S3 path
+                storage_options=storage_options,  # Pass storage_options for S3 filesystem configuration
+                **kwargs,
+            )
+            # Handle DatasetDict (multiple splits) vs Dataset (single)
+            if isinstance(ds, datasets.DatasetDict):
+                from data_juicer.core.data import NestedDataset
+
+                ds = NestedDataset(datasets.concatenate_datasets([d for d in ds.values()]))
+            else:
+                from data_juicer.core.data import NestedDataset
+
+                ds = NestedDataset(ds)
+
+            # Unify format
+            ds = unify_format(ds, text_keys=text_keys, num_proc=load_data_np, global_cfg=self.cfg)
+            return ds
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to load dataset from S3 path {path}. "
+                f"Ensure s3fs is installed and your AWS credentials are configured. "
+                f"Error: {str(e)}"
+            )
+
+
+@DataLoadStrategyRegistry.register("ray", "remote", "s3")
+class RayS3DataLoadStrategy(RayDataLoadStrategy):
+    """
+    data load strategy for S3 datasets for RayExecutor
+    Uses PyArrow's filesystem to read from S3
+    """
+
+    CONFIG_VALIDATION_RULES = {
+        "required_fields": ["path"],
+        "optional_fields": [
+            "aws_access_key_id",
+            "aws_secret_access_key",
+            "aws_session_token",
+            "aws_region",
+            "endpoint_url",
+        ],
+        "field_types": {"path": str},
+        "custom_validators": {
+            "path": lambda x: x.startswith("s3://"),
+        },
+    }
+
+    def load_data(self, **kwargs):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        path = self.ds_config["path"]
+        validate_s3_path(path)
+
+        # Create S3 filesystem using utility function
+        s3_fs = create_pyarrow_s3_filesystem(self.ds_config)
+
+        logger.info(f"Loading dataset from S3: {path}")
+
+        # Determine file format from extension or config
+        file_extension_map = {
+            ".json": "json",
+            ".jsonl": "json",
+            ".txt": "text",
+            ".csv": "csv",
+            ".tsv": "csv",
+            ".parquet": "parquet",
+            ".npy": "numpy",
+            ".tfrecords": "tfrecords",
+            ".lance": "lance",
+        }
+
+        auto_detect = False
+        data_source = self.ds_config.get("source", None)
+        if data_source is None:
+            auto_detect = True
+        else:
+            suffix = os.path.splitext(data_source)[1]
+            if suffix in file_extension_map:
+                data_format = file_extension_map[suffix]
+            elif "." + data_source in file_extension_map:
+                data_format = file_extension_map["." + data_source]
+            else:
+                auto_detect = True
+
+        if auto_detect:
+            # Extract extension from path
+            file_extension = os.path.splitext(path)[1]
+            data_format = file_extension_map.get(file_extension, "parquet")  # Default to parquet for S3
+            logger.info(f"Auto-detected data format: {data_format}")
+        else:
+            logger.info(f"Using specified data format: {data_format}")
+
+        try:
+            import ray.data
+
+            # Use ray.data functions directly with PyArrow filesystem support
+            # Ray's read functions support filesystem parameter via PyArrow
+            if data_format in {"json", "jsonl"}:
+                # For JSON, we need to use read_json_stream with filesystem
+                from data_juicer.core.data.ray_dataset import read_json_stream
+
+                dataset = read_json_stream(path, filesystem=s3_fs)
+            elif data_format == "parquet":
+                dataset = ray.data.read_parquet(path, filesystem=s3_fs)
+            elif data_format == "csv":
+                dataset = ray.data.read_csv(path, filesystem=s3_fs)
+            elif data_format == "text":
+                dataset = ray.data.read_text(path, filesystem=s3_fs)
+            elif data_format == "numpy":
+                dataset = ray.data.read_numpy(path, filesystem=s3_fs)
+            elif data_format == "tfrecords":
+                dataset = ray.data.read_tfrecords(path, filesystem=s3_fs)
+            elif data_format == "lance":
+                dataset = ray.data.read_lance(path, filesystem=s3_fs)
+            else:
+                raise ValueError(f"Unsupported data format for S3: {data_format}")
+
+            return RayDataset(dataset, dataset_path=path, cfg=self.cfg)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to load {data_format} data from S3 path {path}. "
+                f"Ensure your AWS credentials are configured. "
+                f"Error: {str(e)}"
+            )

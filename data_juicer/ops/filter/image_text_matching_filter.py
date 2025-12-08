@@ -114,26 +114,26 @@ class ImageTextMatchingFilter(Filter):
                 continue
             else:
                 text_chunk = remove_special_tokens(chunk)
-                image_chunk = []
+                itm_scores = []
                 for image_key in loaded_image_keys[offset : offset + count]:
                     image = images[image_key]
                     if self.horizontal_flip:
                         image = ImageOps.mirror(image)
                     if self.vertical_flip:
                         image = ImageOps.flip(image)
-                    image_chunk.append(image)
 
-                inputs = processor(
-                    text=text_chunk,
-                    images=image_chunk,
-                    return_tensors="pt",
-                    truncation=True,
-                    max_length=model.config.text_config.max_position_embeddings,
-                    padding=True,
-                ).to(model.device)
+                    inputs = processor(
+                        text=text_chunk,
+                        images=image,
+                        return_tensors="pt",
+                        truncation=True,
+                        max_length=model.config.text_config.max_position_embeddings,
+                        padding=True,
+                    ).to(model.device)
 
-                outputs = model(**inputs)
-                itm_scores = outputs.itm_score.detach().cpu().softmax(dim=-1)[:, 1]
+                    outputs = model(**inputs)
+                    itm_scores.append(outputs.itm_score.detach().cpu().softmax(dim=-1)[:, 1])
+                itm_scores = np.array(itm_scores)
 
                 if self.reduce_mode == "avg":
                     chunk_itm_score = itm_scores.mean()

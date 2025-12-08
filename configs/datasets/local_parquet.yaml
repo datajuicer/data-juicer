@@ -1,6 +1,0 @@
-# global parameters
-project_name: 'dataset-local-parquet'
-dataset:
-  configs:
-    - type: 'local'
-      path: 'path/to/parquet/file'

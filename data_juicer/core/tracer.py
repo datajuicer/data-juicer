@@ -5,6 +5,7 @@ from datasets import Dataset
 from loguru import logger
 
 from data_juicer.ops import OPERATORS
+from data_juicer.utils.constant import Fields
 
 
 class Tracer:
@@ -154,8 +155,14 @@ class Tracer:
         # number of found filtered samples. It's the offset between two
         # datasets as well.
         num = 0
+        previous_ds_no_stats = (
+            previous_ds.remove_columns(Fields.stats) if Fields.stats in previous_ds.column_names else previous_ds
+        )
+        processed_ds_no_stats = (
+            processed_ds.remove_columns(Fields.stats) if Fields.stats in processed_ds.column_names else processed_ds
+        )
         while i < len(previous_ds):
-            if i - num >= len(processed_ds) or previous_ds[i] != processed_ds[i - num]:
+            if i - num >= len(processed_ds) or previous_ds_no_stats[i] != processed_ds_no_stats[i - num]:
                 # 1. If all samples in processed dataset are checked but there
                 # still some samples left in the previous dataset, all of these
                 # left samples are filtered.

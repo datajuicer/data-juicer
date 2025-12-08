@@ -91,8 +91,8 @@ https://github.com/user-attachments/assets/a45f0eee-0f0e-4ffe-9a42-d9a55370089d
 - **易用、可扩展**：
 简洁灵活，提供快速[入门指南](docs/tutorial/QuickStart_ZH.md)和包含丰富使用示例的[DJ-Cookbook](docs/tutorial/DJ-Cookbook_ZH.md)。您可以灵活实现自己的OP，[自定义](docs/DeveloperGuide_ZH.md)数据处理工作流。
 
-Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详细的算子文档，帮助更快理解每个算子的功能及用法。  
-如需了解该文档增强流程的具体实现，欢迎访问 [`dj_agents` 分支下的 demos/op_doc_enhance_workflow 文件夹](https://github.com/datajuicer/data-juicer/tree/dj_agents/demos/op_doc_enhance_workflow)。
+  Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详细的算子文档，帮助更快理解每个算子的功能及用法。  
+  如需了解该文档增强流程的具体实现，欢迎访问 [op_doc_enhance_workflow](https://github.com/datajuicer/data-juicer/tree/main/docs/op_doc_enhance_workflow)。
 
 - **高效、稳定**：提供性能优化的[并行数据处理能力](docs/Distributed_ZH.md)（Aliyun-PAI\Ray\CUDA\OP Fusion），
 更快、更少资源消耗，基于大规模生产环境打磨。
@@ -108,7 +108,7 @@ Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详
   - [快速上手](docs/tutorial/QuickStart_ZH.md)
 - 其他帮助文档
   - [算子提要](docs/Operators.md)
-  - [数据菜谱Gallery](docs/RecipeGallery_ZH.md)
+  - [数据菜谱Gallery](docs/hub/RecipeGallery_ZH.md)
   - [数据集配置指南](docs/DatasetCfg_ZH.md)
   - [Awesome Data-Model Co-Development of MLLMs](docs/awesome_llm_data.md)
   - [“坏”数据展览](docs/BadDataExhibition_ZH.md)
@@ -117,7 +117,7 @@ Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详
   - [开发者指南](docs/DeveloperGuide_ZH.md)
   - [Data-Juicer分布式数据处理](docs/Distributed_ZH.md)
   - [沙盒实验室](docs/Sandbox_ZH.md)
-  - [Data-Juicer Agent](docs/DJ_agent_ZH.md)
+  - [Data-Juicer Agents](docs/DJ_agents_ZH.md)
 - Demos
   - [演示](demos/README_ZH.md)
     - [自动化评测：HELM 评测及可视化](demos/auto_evaluation_helm/README_ZH.md)
@@ -130,12 +130,12 @@ Data-Juicer 现采用 AI 自动重写和优化算子的 docstring，并生成详
   - [格式转换工具](tools/fmt_conversion/README_ZH.md)
     - [多模态工具](tools/fmt_conversion/multimodal/README_ZH.md)
     - [后微调工具](tools/fmt_conversion/post_tuning_dialog/README_ZH.md)
-  - [数据菜谱的自动化超参优化](tools/hpo/README_ZH.md)
+  - [数据菜谱的自动化超参优化](data_juicer/tools/hpo/README_ZH.md)
   - [Label Studio Service Utility](tools/humanops/README.md)
   - [视频生成评测工具](tools/mm_eval/inception_metrics/README_ZH.md)
   - [后处理工具](tools/postprocess/README_ZH.md)
   - [预处理工具](tools/preprocess/README_ZH.md)
-  - [给数据打分](tools/quality_classifier/README_ZH.md)
+  - [给数据打分](data_juicer/tools/quality_classifier/README_ZH.md)
 - 第三方
   - [大语言模型生态](thirdparty/LLM_ecosystems/README_ZH.md)
   - [第三方模型库](thirdparty/models/README_ZH.md)

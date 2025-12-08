@@ -706,3 +706,54 @@ class RayBTSMinhashDeduplicator(Deduplicator):
         end_time = time.time()
         logger.info(f"filter time = {end_time - start_time}")
         return result
+
+
+@OPERATORS.register_module(f"{OP_NAME}_with_uid")
+class RayBTSMinhashDeduplicatorWithUid(RayBTSMinhashDeduplicator):
+    """
+    A MinhashLSH deduplicator based on RAY.
+
+    Unlike `RayBTSMinhashDeduplicator`, this class requires the input dataset to contain an additional column
+    named '__dj__uid' of type int, where each value is unique across samples. This column serves two main purposes:
+
+    1. **Reduced I/O Overhead**: Compared to RayBTSMinhashDeduplicator, this class does not persist intermediate
+    results, thereby reducing disk read and write operations.
+
+    2. **Support for Incremental Deduplication**: The '__dj__uid' column enables the deduplicator to perform
+    incremental deduplication. This is particularly useful in scenarios where you already have a deduplicated dataset
+    (e.g., dataset A) and want to add a new dataset (e.g., dataset B) while ensuring that duplicates are resolved
+    in favor of the original data.
+
+        For example, consider a scenario where you have an already deduplicated dataset A and a new dataset B that
+        you wish to add. If you want to perform joint deduplication on both A and B while prioritizing the retention
+        of data from A, you can ensure that all '__dj__uid' values in B are greater than those in A. Then, by applying
+        this deduplicator to the combined dataset, duplicates will be resolved in favor of the entries from A.
+    """
+
+    def run(self, dataset, **kwargs):
+        # Ignore additional parameters like exporter, tracer, etc.
+        start_time = time.time()
+
+        def minhash_with_uid(table: pa.Table) -> pa.Table:
+            uid_list = table[HashKeys.uid].to_pylist()
+            self.calc_minhash(table[self.text_key], uid_list)
+            return table
+
+        dataset.map_batches(
+            minhash_with_uid,
+            batch_format="pyarrow",
+            zero_copy_batch=True,
+        ).materialize()
+        end_time = time.time()
+        logger.info(f"MinHash time = {end_time - start_time}")
+
+        start_time = time.time()
+        self.merge()
+        end_time = time.time()
+        logger.info(f"merge time = {end_time - start_time}")
+        result = dataset.map_batches(
+            self.filter_with_union_find,
+            batch_format="pyarrow",
+            zero_copy_batch=True,
+        )
+        return result

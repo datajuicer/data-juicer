@@ -14,7 +14,14 @@ OP_NAME = "detect_main_character_mapper"
 @OPERATORS.register_module(OP_NAME)
 @LOADED_IMAGES.register_module(OP_NAME)
 class DetectMainCharacterMapper(Mapper):
-    """Extract all main character names based on the given image and its caption."""
+    """Extract all main character names based on the given image and its caption.
+
+    This operator uses a multimodal language model to generate a description of the main
+    characters in the given image. It then parses the generated JSON to extract the list of
+    main characters. The operator filters out samples where the number of main characters is
+    less than the specified threshold. The default arguments for the multimodal language
+    model include using a Hugging Face model with specific generation parameters. The key
+    metric, `main_character_list`, is stored in the sample's metadata."""
 
     _accelerator = "cuda"
 

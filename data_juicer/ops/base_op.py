@@ -182,6 +182,7 @@ class OP:
         self.image_key = kwargs.get("image_key", "images")
         self.audio_key = kwargs.get("audio_key", "audios")
         self.video_key = kwargs.get("video_key", "videos")
+        self.lidar_key = kwargs.get("lidar_key", "lidar")
 
         # extra mm bytes keys
         self.image_bytes_key = kwargs.get("image_bytes_key", "image_bytes")

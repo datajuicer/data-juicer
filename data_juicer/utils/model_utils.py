@@ -5,7 +5,7 @@ import os
 from contextlib import redirect_stderr
 from functools import partial
 from pickle import UnpicklingError
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import httpx
 import multiprocess as mp
@@ -40,6 +40,8 @@ openai = LazyLoader("openai")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
+mmdeploy = LazyLoader("mmdeploy")
+mmdet3d = LazyLoader("mmdet3d")
 qwen_vl_utils = LazyLoader("qwen_vl_utils", "qwen-vl-utils")
 transformers_stream_generator = LazyLoader(
     "transformers_stream_generator", "git+https://github.com/HYLcool/transformers-stream-generator.git"
@@ -76,6 +78,8 @@ BACKUP_MODEL_LINKS = {
     # DWPose
     "dwpose_onnx_det_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx",
     "dwpose_onnx_pose_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx",
+    # Cylinder3d
+    "cylinder3d": "https://download.openmmlab.com/mmdetection3d/v1.1.0_models/cylinder3d/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth",
 }
 
 
@@ -1237,6 +1241,136 @@ def update_sampling_params(sampling_params, pretrained_model_name_or_path, enabl
     return sampling_params
 
 
+class MMLabModel(object):
+    """
+    A wrapper for mmdeploy model.
+    It is used to load a mmdeploy model and run inference on given images.
+    """
+
+    def __init__(self, model_cfg_path, deploy_cfg_path, backend_files, device):
+        self.model_cfg_path = model_cfg_path
+        self.deploy_cfg_path = deploy_cfg_path
+        self.backend_files = backend_files
+        self.device = device
+
+        from mmdeploy.apis.utils import build_task_processor
+        from mmdeploy.utils import get_input_shape, load_config
+
+        deploy_cfg, model_cfg = load_config(self.deploy_cfg_path, self.model_cfg_path)
+        self.task_processor = build_task_processor(model_cfg, deploy_cfg, self.device)
+
+        self.model = self.task_processor.build_backend_model(
+            self.backend_files, data_preprocessor_updater=self.task_processor.update_data_preprocessor
+        )
+
+        self.input_shape = get_input_shape(deploy_cfg)
+
+    def __call__(self, image):
+        model_inputs, _ = self.task_processor.create_input(image, self.input_shape)
+
+        with torch.no_grad():
+            result = self.model.test_step(model_inputs)
+
+        return result
+
+
+class MMLabInferencer(object):
+    """
+    A wrapper for mmdet3d Inferencer.
+    It is used to load a mmdet3d Inferencer and run inference on given LiDAR data.
+    """
+
+    def __init__(self, model_cfg_path, model_path, device):
+        self.model_cfg_path = model_cfg_path
+        self.model_path = model_path
+        self.device = device
+
+        from mmdet3d.apis import LidarSeg3DInferencer
+
+        self.model = LidarSeg3DInferencer(model=self.model_cfg_path, weights=self.model_path, device=self.device)
+
+    def __call__(self, lidar_bin_files):
+        result = self.model(lidar_bin_files, show=False)["predictions"]
+
+        return result
+
+
+def prepare_mmlab_model(
+    model_cfg: str = "",
+    deploy_cfg: str = "",
+    backend_files: List[str] = [],
+    device: str = "cpu",
+    task: str = "LiDARDetection",
+    model_name: str = "",
+    model_path: str = "",
+):
+    """Prepare and load a model using mmdeploy.
+    :param model_cfg: Path to the model config.
+    :param deploy_cfg: Path to the deployment config.
+    :param backend_files: Path to the backend model files.
+    :param device: Device to use.
+    :param task: Current task. Only support ["LiDARDetection", "LiDARSegmentation"] for now.
+    :param model_name: Name of the model used.
+    :param model_path: Path of the model weight.
+    """
+
+    if task == "LiDARDetection":
+        model = MMLabModel(
+            check_model(model_cfg),
+            check_model(deploy_cfg),
+            [check_model(backend_file) for backend_file in backend_files],
+            device,
+        )
+    elif task == "LiDARSegmentation":
+
+        import subprocess
+
+        from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+        mmdetection3d_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "mmdetection3d")
+        if not os.path.exists(mmdetection3d_repo_path):
+            subprocess.run(
+                ["git", "clone", "https://github.com/open-mmlab/mmdetection3d.git", mmdetection3d_repo_path], check=True
+            )
+
+        original_model_cfg = model_cfg
+        model_cfg = os.path.splitext(os.path.basename(model_cfg))[0]
+        model_cfg = os.path.join(mmdetection3d_repo_path, "configs", model_name, model_cfg + ".py")
+
+        if not os.path.exists(model_cfg):
+            raise ValueError(f"{model_cfg} does not exist.")
+
+        if not os.path.exists(model_path):
+            if "cylinder3d_8xb2-laser-polar-mix-3x_semantickitti" in original_model_cfg:
+                logger.info(
+                    f'The model corresponding to "{original_model_cfg}" does not exist. Model weight is not found at {model_path}. Starting automatic download...'
+                )
+                if not os.path.exists(DJMC):
+                    os.makedirs(DJMC)
+                model_path = os.path.join(
+                    DJMC, "cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth"
+                )
+                if not os.path.exists(model_path):
+                    wget.download(BACKUP_MODEL_LINKS["cylinder3d"], DJMC)
+            else:
+                raise ValueError(
+                    f'The model corresponding to "{original_model_cfg}" does not exist. Model weight is not found at {model_path}.'
+                )
+
+        model = MMLabInferencer(
+            model_cfg,
+            model_path,
+            device,
+        )
+
+    else:
+        raise NotImplementedError(
+            f'Only support task name ["LiDARDetection", "LiDARSegmentation"] for now, but got {task}'
+        )
+
+    return model
+
+
 def prepare_qwen_vl_inputs_for_vllm(messages, processor):
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     # qwen_vl_utils 0.0.14+ required
@@ -1279,6 +1413,7 @@ MODEL_FUNCTION_MAPPING = {
     "wilor": prepare_wilor_model,
     "yolo": prepare_yolo_model,
     "embedding": prepare_embedding_model,
+    "mmlab": prepare_mmlab_model,
 }
 
 _MODELS_WITHOUT_FILE_LOCK = {"fasttext", "fastsam", "kenlm", "nltk", "recognizeAnything", "sentencepiece", "spacy"}

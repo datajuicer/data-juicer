@@ -80,6 +80,8 @@ class MetaKeys(object):
     class_label_tag = DEFAULT_PREFIX + "class_label__"
     # # 2D whole-body pose estimation
     pose_estimation_tags = "pose_estimation_tags"
+    # # lidar segmentation tags
+    lidar_segmentation_tags = "lidar_segmentation_tags"
 
     # === info extraction related tags ===
     # # for event extraction

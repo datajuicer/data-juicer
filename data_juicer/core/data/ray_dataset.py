@@ -150,12 +150,20 @@ class RayDataset(DJDataset):
 
         calculate_ray_np(operators)
 
+        # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
+        # Ray's columns() internally does limit(1) which forces execution and breaks streaming
+        cached_columns = set(self.data.columns())
+
         for op in operators:
-            self._run_single_op(op)
+            cached_columns = self._run_single_op(op, cached_columns)
         return self
 
-    def _run_single_op(self, op):
-        if op._name in TAGGING_OPS.modules and Fields.meta not in self.data.columns():
+    def _run_single_op(self, op, cached_columns=None):
+        # Use cached columns to avoid calling self.data.columns() which breaks pipeline
+        if cached_columns is None:
+            cached_columns = set(self.data.columns())
+
+        if op._name in TAGGING_OPS.modules and Fields.meta not in cached_columns:
 
             def process_batch_arrow(table: pyarrow.Table):
                 new_column_data = [{} for _ in range(len(table))]
@@ -165,6 +173,7 @@ class RayDataset(DJDataset):
             self.data = self.data.map_batches(
                 process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
             )
+            cached_columns.add(Fields.meta)
 
         try:
             batch_size = getattr(op, "batch_size", 1) if op.is_batched_op() else 1
@@ -197,8 +206,8 @@ class RayDataset(DJDataset):
                         runtime_env=op.runtime_env,
                     )
             elif isinstance(op, Filter):
-                columns = self.data.columns()
-                if Fields.stats not in columns:
+                # Use cached_columns instead of self.data.columns() to avoid breaking pipeline
+                if Fields.stats not in cached_columns:
 
                     def process_batch_arrow(table: pyarrow.Table):
                         new_column_data = [{} for _ in range(len(table))]
@@ -208,6 +217,7 @@ class RayDataset(DJDataset):
                     self.data = self.data.map_batches(
                         process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
                     )
+                    cached_columns.add(Fields.stats)
                 if op.use_ray_actor():
                     op_kwargs = op._op_cfg[op._name]
                     compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
@@ -264,6 +274,8 @@ class RayDataset(DJDataset):
 
             traceback.print_exc()
             exit(1)
+
+        return cached_columns
 
     def count(self) -> int:
         return self.data.count()

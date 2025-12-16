@@ -236,7 +236,7 @@ class ChatAPIModel:
                 self.endpoint, body=body, cast_to=httpx.Response, stream=stream, stream_cls=stream_cls
             )
             result = response.json()
-            return nested_access(result, self.response_path)
+            return nested_access(result, self.response_path) or ""
         except Exception as e:
             logger.exception(e)
             return ""
@@ -332,7 +332,7 @@ class ResponsesAPIModel:
         try:
             response = self._client.post(self.endpoint, body=body, cast_to=httpx.Response)
             result = response.json()
-            return nested_access(result, self.response_path)
+            return nested_access(result, self.response_path) or ""
         except Exception as e:
             logger.exception(f"Responses API error: {e}")
             return ""

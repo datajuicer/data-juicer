@@ -481,22 +481,41 @@ class RayBTSMinhashDeduplicator(Deduplicator):
             dtype=np.uint64,
         ).T
 
-        if union_find_parallel_num == "auto":
-            union_find_parallel_num = int(ray.cluster_resources().get("CPU") / 2)
-        else:
-            union_find_parallel_num = int(union_find_parallel_num)
+        # Store config for lazy initialization - don't create actors yet
+        self._union_find_parallel_num_config = union_find_parallel_num
+        self._merge_batch_size_config = merge_batch_size
 
         self.max_pending_edge_buffer_task = max_pending_edge_buffer_task
         self.num_edge_buffer_task_returns = num_edge_buffer_task_returns
         self.max_pending_filter_tasks = max_pending_filter_tasks
         self.num_filter_task_returns = num_filter_task_returns
-        self.merge_batch_size = min(merge_batch_size, union_find_parallel_num)
-
-        logger.info(f"union_find_parallel_num = {union_find_parallel_num}")
-        self.union_find_parallel_num = union_find_parallel_num
         self.union_threshold = union_threshold
 
-        # Get remote classes only when needed
+        # Lazy initialization - actors created in _ensure_actors()
+        self._actors_initialized = False
+        self.union_find_parallel_num = None
+        self.merge_batch_size = None
+        self.remote_edge_buffers = None
+        self.union_find_list = None
+        self.empty_hash_value = None
+        self.empty_hash_table_id = None
+
+    def _ensure_actors(self):
+        """Create actors lazily on first use, when cluster has autoscaled."""
+        if self._actors_initialized:
+            return
+
+        # Calculate union_find_parallel_num NOW when cluster has scaled
+        if self._union_find_parallel_num_config == "auto":
+            self.union_find_parallel_num = max(1, int(ray.cluster_resources().get("CPU", 1) / 2))
+        else:
+            self.union_find_parallel_num = int(self._union_find_parallel_num_config)
+
+        self.merge_batch_size = min(self._merge_batch_size_config, self.union_find_parallel_num)
+
+        logger.info(f"union_find_parallel_num = {self.union_find_parallel_num}")
+
+        # Create actors NOW when cluster has resources
         remote_classes = get_remote_classes()
         self.remote_edge_buffers = [remote_classes["EdgeBuffer"].remote() for _ in range(self.union_find_parallel_num)]
         self.union_find_list = [
@@ -514,6 +533,8 @@ class RayBTSMinhashDeduplicator(Deduplicator):
         empty_hash_value = np.full((self.num_rows_per_band,), MAX_HASH, dtype=np.uint32)
         self.empty_hash_value = b"\x00\x00\x00\x00" + empty_hash_value.tobytes()
         self.empty_hash_table_id = int(MAX_HASH % self.union_find_parallel_num)
+
+        self._actors_initialized = True
 
     def band_minhash(self, minhash_list, uid_list):
         """
@@ -613,6 +634,9 @@ class RayBTSMinhashDeduplicator(Deduplicator):
 
     def run(self, dataset, **kwargs):
         # Ignore additional parameters like exporter, tracer, etc.
+        # Initialize actors lazily - now cluster has had time to autoscale
+        self._ensure_actors()
+
         start_time = time.time()
         # Get remote IdGenerator only when needed
         remote_classes = get_remote_classes()
@@ -732,6 +756,9 @@ class RayBTSMinhashDeduplicatorWithUid(RayBTSMinhashDeduplicator):
 
     def run(self, dataset, **kwargs):
         # Ignore additional parameters like exporter, tracer, etc.
+        # Initialize actors lazily - now cluster has had time to autoscale
+        self._ensure_actors()
+
         start_time = time.time()
 
         def minhash_with_uid(table: pa.Table) -> pa.Table:

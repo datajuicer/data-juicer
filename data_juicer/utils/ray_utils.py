@@ -104,7 +104,7 @@ def get_ray_nodes_info(cfg=None):
         node_id = node["NodeID"]
         from ray.util import scheduling_strategies
 
-        strategy = scheduling_strategies.NodeAffinitySchedulingStrategy(node_id=node_id, soft=False)
+        strategy = scheduling_strategies.NodeAffinitySchedulingStrategy(node_id=node_id, soft=True)
         future = collect_node_info.options(scheduling_strategy=strategy).remote()
         futures.append(future)
 

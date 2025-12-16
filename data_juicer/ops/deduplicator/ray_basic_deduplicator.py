@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Union
 
 from data_juicer.utils.constant import HashKeys
 from data_juicer.utils.lazy_loader import LazyLoader
@@ -45,17 +46,38 @@ class Backend(ABC):
 class ActorBackend(Backend):
     """
     Ray actor backend for deduplicator.
+    Uses lazy initialization to defer actor creation until first use,
+    allowing the cluster to autoscale before actors consume resources.
     """
 
-    def __init__(self, dedup_set_num: int, RemoteDedupSet=None):
-        self.dedup_set_num = dedup_set_num
-        if RemoteDedupSet is None:
-            RemoteDedupSet = get_remote_dedup_set()
-        self.dedup_sets = [RemoteDedupSet.remote() for _ in range(self.dedup_set_num)]
+    def __init__(self, dedup_set_num: Union[int, str], RemoteDedupSet=None):
+        # Store config but don't create actors yet
+        # dedup_set_num can be int or "auto"
+        self._dedup_set_num_config = dedup_set_num
+        self._RemoteDedupSet = RemoteDedupSet
+        self._dedup_sets = None  # Lazy - created on first use
+        self._actual_dedup_set_num = None
+
+    @property
+    def dedup_set_num(self):
+        """Get actual dedup_set_num, calculating from cluster resources if 'auto'."""
+        if self._actual_dedup_set_num is None:
+            if self._dedup_set_num_config == "auto":
+                self._actual_dedup_set_num = max(1, int(ray.cluster_resources().get("CPU", 1) / 2))
+            else:
+                self._actual_dedup_set_num = int(self._dedup_set_num_config)
+        return self._actual_dedup_set_num
+
+    def _ensure_actors(self):
+        """Create actors on first use when cluster has scaled."""
+        if self._dedup_sets is None:
+            RemoteDedupSet = self._RemoteDedupSet or get_remote_dedup_set()
+            self._dedup_sets = [RemoteDedupSet.remote() for _ in range(self.dedup_set_num)]
 
     def is_unique(self, md5_value: str):
+        self._ensure_actors()
         dedup_set_id = int.from_bytes(md5_value.encode(), byteorder="little") % MERSENNE_PRIME % self.dedup_set_num
-        return ray.get(self.dedup_sets[dedup_set_id].is_unique.remote(md5_value))
+        return ray.get(self._dedup_sets[dedup_set_id].is_unique.remote(md5_value))
 
 
 class RedisBackend(Backend):
@@ -82,11 +104,19 @@ class RayBasicDeduplicator(Filter):
     # TODO: Set a more reasonable value
     EMPTY_HASH_VALUE = "EMPTY"
 
-    def __init__(self, backend: str = "ray_actor", redis_address: str = "redis://localhost:6379", *args, **kwargs):
+    def __init__(
+        self,
+        backend: str = "ray_actor",
+        redis_address: str = "redis://localhost:6379",
+        dedup_set_num: Union[int, str] = "auto",
+        *args,
+        **kwargs,
+    ):
         """
         Initialization.
         :param backend: the backend for dedup, either 'ray_actor' or 'redis'
         :param redis_address: the address of redis server
+        :param dedup_set_num: number of dedup set actors, or 'auto' to use CPU/2
         :param args: extra args
         :param kwargs: extra args
         """
@@ -94,7 +124,7 @@ class RayBasicDeduplicator(Filter):
         self.redis_address = redis_address
         self.backend = backend
         if backend == "ray_actor":
-            dedup_set_num = int(ray.cluster_resources().get("CPU") / 2)
+            # Pass dedup_set_num directly - ActorBackend handles "auto" lazily
             self.backend = ActorBackend(dedup_set_num)
         elif backend == "redis":
             # TODO: add a barrier to ensure that flushdb is performed before

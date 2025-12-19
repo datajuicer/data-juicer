@@ -1,6 +1,7 @@
 import hashlib
 import string
 from typing import Union
+
 import regex as re
 
 from ..base_op import OPERATORS

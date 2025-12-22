@@ -151,12 +151,12 @@ class RayDataset(DJDataset):
 
         calculate_ray_np(operators)
 
-        self._ensure_schemas(operators)
+        self._prepare_schemas(operators)
         for op in operators:
             self._run_single_op(op)
         return self
 
-    def _ensure_schemas(self, operators):
+    def _prepare_schemas(self, operators):
         current_columns = self.data.columns()
         if Fields.stats not in current_columns:
             if any(isinstance(op, Filter) for op in operators):

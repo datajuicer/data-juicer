@@ -242,6 +242,21 @@ def calculate_ray_np(operators):
     total_gpu = ray_gpu_count()
     available_mem = sum(ray_available_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
     available_gpu_mem = sum(ray_available_gpu_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
+
+    # Validate cluster resources to prevent divide-by-zero
+    if total_cpu == 0:
+        raise RuntimeError(
+            "Ray cluster has no CPU resources available (ray_cpu_count() returned 0). "
+            "This typically indicates the Ray cluster is not properly initialized. "
+            "Please ensure the Ray cluster has active worker nodes."
+        )
+
+    if available_mem == 0:
+        raise RuntimeError(
+            "Ray cluster has no memory resources available. "
+            "Please verify the Ray cluster status with ray.cluster_resources()."
+        )
+
     resource_configs = {}
 
     for op_idx, op in enumerate(operators):
@@ -268,6 +283,18 @@ def calculate_ray_np(operators):
         cpu_required_frac, gpu_required_frac = 0, 0
         # GPU operator calculations
         if op.use_cuda():
+            if total_gpu == 0:
+                raise RuntimeError(
+                    f"Op[{op._name}] requires GPU but no GPUs are available in Ray cluster "
+                    "(ray_gpu_count() returned 0). "
+                    "Please ensure GPU nodes are configured in the Ray cluster."
+                )
+            if available_gpu_mem == 0:
+                raise RuntimeError(
+                    f"Op[{op._name}] requires GPU but no GPU memory is available. "
+                    "Please verify GPU nodes are properly configured."
+                )
+
             gpu_req = op.num_gpus
             gpu_mem_req = op.memory
             if not gpu_req and not gpu_mem_req:

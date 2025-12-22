@@ -121,7 +121,8 @@ class RayDataset(DJDataset):
             k: Optional number of rows to return. If None, returns all rows
 
         Returns:
-            List of values from the specified column
+            List
+            of values from the specified column
 
         Raises:
             KeyError: If column doesn't exist
@@ -150,22 +151,32 @@ class RayDataset(DJDataset):
 
         calculate_ray_np(operators)
 
+        self._ensure_schemas(operators)
         for op in operators:
             self._run_single_op(op)
         return self
 
+    def _ensure_schemas(self, operators):
+        current_columns = self.data.columns()
+        if Fields.stats not in current_columns:
+            if any(isinstance(op, Filter) for op in operators):
+
+                def add_stats_col(table: pyarrow.Table):
+                    new_column_data = [{} for _ in range(len(table))]
+                    return table.append_column(Fields.stats, [new_column_data])
+
+                self.data = self.data.map_batches(add_stats_col, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE)
+
+        if Fields.meta not in current_columns:
+            if any(op._name in TAGGING_OPS.modules for op in operators):
+
+                def add_meta_col(table: pyarrow.Table):
+                    new_column_data = [{} for _ in range(len(table))]
+                    return table.append_column(Fields.meta, [new_column_data])
+
+                self.data = self.data.map_batches(add_meta_col, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE)
+
     def _run_single_op(self, op):
-        if op._name in TAGGING_OPS.modules and Fields.meta not in self.data.columns():
-
-            def process_batch_arrow(table: pyarrow.Table):
-                new_column_data = [{} for _ in range(len(table))]
-                new_table = table.append_column(Fields.meta, [new_column_data])
-                return new_table
-
-            self.data = self.data.map_batches(
-                process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
-            )
-
         try:
             batch_size = getattr(op, "batch_size", 1) if op.is_batched_op() else 1
             if isinstance(op, Mapper):
@@ -197,17 +208,6 @@ class RayDataset(DJDataset):
                         runtime_env=op.runtime_env,
                     )
             elif isinstance(op, Filter):
-                columns = self.data.columns()
-                if Fields.stats not in columns:
-
-                    def process_batch_arrow(table: pyarrow.Table):
-                        new_column_data = [{} for _ in range(len(table))]
-                        new_talbe = table.append_column(Fields.stats, [new_column_data])
-                        return new_talbe
-
-                    self.data = self.data.map_batches(
-                        process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
-                    )
                 if op.use_ray_actor():
                     op_kwargs = op._op_cfg[op._name]
                     compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)

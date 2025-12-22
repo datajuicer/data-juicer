@@ -101,7 +101,8 @@ from .video_tagging_from_audio_mapper import VideoTaggingFromAudioMapper
 from .video_tagging_from_frames_mapper import VideoTaggingFromFramesMapper
 from .video_whole_body_pose_estimation_mapper import VideoWholeBodyPoseEstimationMapper
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
-
+from .depth_anything_v2_mapper import DepthAnythingV2Mapper
+from .sam_auto_mask_mapper import SAMAutoMaskMapper
 __all__ = [
     "AudioAddGaussianNoiseMapper",
     "AudioFFmpegWrappedMapper",
@@ -200,4 +201,6 @@ __all__ = [
     "VideoTaggingFromFramesMapper",
     "VideoWholeBodyPoseEstimationMapper",
     "WhitespaceNormalizationMapper",
+    "DepthAnythingV2Mapper",  
+    "SAMAutoMaskMapper",
 ]

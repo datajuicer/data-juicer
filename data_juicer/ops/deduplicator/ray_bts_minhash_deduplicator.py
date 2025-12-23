@@ -550,13 +550,19 @@ class RayBTSMinhashDeduplicator(Deduplicator):
         ]
 
         # Wait for all actors to be ready before proceeding
-        ray.get([uf.__ray_ready__.remote() for uf in self.union_find_list])
+        ray.get([uf.__ray_ready__.remote() for uf in self.union_find_list] + [eb.__ray_ready__.remote() for eb in self.remote_edge_buffers])
 
         empty_hash_value = np.full((self.num_rows_per_band,), MAX_HASH, dtype=np.uint32)
         self.empty_hash_value = b"\x00\x00\x00\x00" + empty_hash_value.tobytes()
         self.empty_hash_table_id = int(MAX_HASH % self.union_find_parallel_num)
 
         self._actors_initialized = True
+
+    def _get_map_batches_kwargs(self):
+        kwargs = {"batch_format": "pyarrow", "zero_copy_batch": True}
+        if self.task_memory is not None:
+            kwargs["memory"] = self.task_memory
+        return kwargs
 
     def band_minhash(self, minhash_list, uid_list):
         """
@@ -723,17 +729,11 @@ class RayBTSMinhashDeduplicator(Deduplicator):
                 concurrency=ray.data.ActorPoolStrategy(size=concurrency),
                 batch_size=batch_size,
             )
-            band_kwargs = {"batch_format": "pyarrow", "zero_copy_batch": True}
-            if self.task_memory is not None:
-                band_kwargs["memory"] = self.task_memory
-            dataset.map_batches(band_with_uid, **band_kwargs).write_parquet(tmp_dir)
+            dataset.map_batches(band_with_uid, **self._get_map_batches_kwargs()).write_parquet(tmp_dir)
             del dataset
         else:
             logger.info("Using CPU for MinHash computation")
-            map_batches_kwargs = {"batch_format": "pyarrow", "zero_copy_batch": True}
-            if self.task_memory is not None:
-                map_batches_kwargs["memory"] = self.task_memory
-            dataset.map_batches(minhash_with_uid, **map_batches_kwargs).write_parquet(tmp_dir)
+            dataset.map_batches(minhash_with_uid, **self._get_map_batches_kwargs()).write_parquet(tmp_dir)
         end_time = time.time()
         logger.info(f"MinHash time = {end_time - start_time}")
         new_dataset = ray.data.read_parquet(tmp_dir)
@@ -742,10 +742,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
         end_time = time.time()
         logger.info(f"merge time = {end_time - start_time}")
         start_time = time.time()
-        filter_kwargs = {"batch_format": "pyarrow", "zero_copy_batch": True}
-        if self.task_memory is not None:
-            filter_kwargs["memory"] = self.task_memory
-        result = new_dataset.map_batches(self.filter_with_union_find, **filter_kwargs)
+        result = new_dataset.map_batches(self.filter_with_union_find, **self._get_map_batches_kwargs())
         end_time = time.time()
         logger.info(f"filter time = {end_time - start_time}")
         return result
@@ -785,10 +782,7 @@ class RayBTSMinhashDeduplicatorWithUid(RayBTSMinhashDeduplicator):
             self.calc_minhash(table[self.text_key], uid_list)
             return table
 
-        map_batches_kwargs = {"batch_format": "pyarrow", "zero_copy_batch": True}
-        if self.task_memory is not None:
-            map_batches_kwargs["memory"] = self.task_memory
-        dataset.map_batches(minhash_with_uid, **map_batches_kwargs).materialize()
+        dataset.map_batches(minhash_with_uid, **self._get_map_batches_kwargs()).materialize()
         end_time = time.time()
         logger.info(f"MinHash time = {end_time - start_time}")
 
@@ -796,8 +790,5 @@ class RayBTSMinhashDeduplicatorWithUid(RayBTSMinhashDeduplicator):
         self.merge()
         end_time = time.time()
         logger.info(f"merge time = {end_time - start_time}")
-        filter_kwargs = {"batch_format": "pyarrow", "zero_copy_batch": True}
-        if self.task_memory is not None:
-            filter_kwargs["memory"] = self.task_memory
-        result = dataset.map_batches(self.filter_with_union_find, **filter_kwargs)
+        result = dataset.map_batches(self.filter_with_union_find, **self._get_map_batches_kwargs())
         return result

@@ -550,7 +550,10 @@ class RayBTSMinhashDeduplicator(Deduplicator):
         ]
 
         # Wait for all actors to be ready before proceeding
-        ray.get([uf.__ray_ready__.remote() for uf in self.union_find_list] + [eb.__ray_ready__.remote() for eb in self.remote_edge_buffers])
+        ray.get(
+            [uf.__ray_ready__.remote() for uf in self.union_find_list]
+            + [eb.__ray_ready__.remote() for eb in self.remote_edge_buffers]
+        )
 
         empty_hash_value = np.full((self.num_rows_per_band,), MAX_HASH, dtype=np.uint32)
         self.empty_hash_value = b"\x00\x00\x00\x00" + empty_hash_value.tobytes()

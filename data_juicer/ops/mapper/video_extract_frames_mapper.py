@@ -3,7 +3,6 @@ import os
 import os.path as osp
 from functools import partial
 
-import numpy as np
 from loguru import logger
 from PIL import Image
 from pydantic import PositiveInt
@@ -13,6 +12,7 @@ from data_juicer.utils.file_utils import dict_to_hash
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import (
     SpecialTokens,
+    extract_key_frames_by_seconds,
     extract_video_frames_uniformly,
     extract_video_frames_uniformly_by_seconds,
     load_data_with_context,
@@ -73,7 +73,7 @@ class VideoExtractFramesMapper(Mapper):
         frame_key: str = None,
         frame_field: str = MetaKeys.video_frames,
         legacy_split_by_text_token: bool = True,
-        video_backend: str = "ffmpeg",
+        video_backend: str = "av",
         *args,
         **kwargs,
     ):
@@ -169,6 +169,8 @@ class VideoExtractFramesMapper(Mapper):
 
         if self.frame_sampling_method == "uniform":
             assert self.video_backend == "av", "Only 'av' backend is supported for 'uniform' frame sampling method."
+        if self.duration > 0:
+            assert self.video_backend == "av", "Only 'av' backend is supported when duration > 0."
 
     def _get_default_frame_dir(self, original_filepath):
         original_dir = os.path.dirname(original_filepath)
@@ -185,17 +187,14 @@ class VideoExtractFramesMapper(Mapper):
         # extract frame videos
         if self.frame_sampling_method == "all_keyframes":
             if self.duration:
-                video_duration = video.metadata.duration
-                timestamps = np.arange(0, video_duration, self.duration).tolist()
-                frames = []
-                for i in range(1, len(timestamps)):
-                    cur_frames = video.extract_keyframes(timestamps[i - 1], timestamps[i]).frames
-                    frames.extend(cur_frames)
+                # only support av backend when duration > 0
+                frames = extract_key_frames_by_seconds(video.container, self.duration)
+                frames = [frame.to_image() for frame in frames]
             else:
                 frames = video.extract_keyframes().frames
-            frames = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in frames]
+                frames = [Image.fromarray(img) for img in frames]
         elif self.frame_sampling_method == "uniform":
-            # only support av backend
+            # only support av backend if using uniform sampling
             if self.duration:
                 frames = extract_video_frames_uniformly_by_seconds(
                     video.container, self.frame_num, duration=self.duration

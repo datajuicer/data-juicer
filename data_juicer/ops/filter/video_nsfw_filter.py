@@ -8,7 +8,6 @@ from pydantic import PositiveInt
 from data_juicer.utils.constant import Fields, StatsKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import (
-    extract_key_frames,
     extract_video_frames_uniformly,
     load_data_with_context,
     load_image,
@@ -52,7 +51,7 @@ class VideoNSFWFilter(Filter):
         frame_num: PositiveInt = 3,
         reduce_mode: str = "avg",
         any_or_all: str = "any",
-        video_backend: str = "ffmpeg",
+        video_backend: str = "av",
         *args,
         **kwargs,
     ):
@@ -186,20 +185,19 @@ class VideoNSFWFilter(Filter):
                     frames = sample[Fields.context][sampled_frames_key]
                 else:
                     if self.frame_sampling_method == "all_keyframes":
-                        frames = extract_key_frames(video)
                         frames = video.extract_keyframes().frames
-                        frames = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in frames]
+                        frame_images = [Image.fromarray(img) for img in frames]
                     elif self.frame_sampling_method == "uniform":
                         # only support av backend
                         frames = extract_video_frames_uniformly(video.container, self.frame_num)
+                        frame_images = [frame.to_image() for frame in frames]
                     else:
                         frames = []
 
                     # store the sampled frames in the context
                     if context:
-                        sample[Fields.context][sampled_frames_key] = frames
+                        sample[Fields.context][sampled_frames_key] = frame_images
 
-                frame_images = [frame.to_image() for frame in frames]
                 cur_score = self._calculate_score(frame_images, model, processor)
                 nsfw_scores.append(cur_score)
 

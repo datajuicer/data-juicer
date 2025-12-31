@@ -870,17 +870,17 @@ class DecordReader(VideoReader):
             return False
 
 
-def create_video_reader(video_source: str, backend: str = "auto") -> VideoReader:
+def create_video_reader(video_source: str, backend: str = "auto", **kwargs) -> VideoReader:
     backends = {"ffmpeg": FFmpegReader, "decord": DecordReader, "av": AVReader}
 
     if backend != "auto":
         cls = backends[backend]
         if cls.is_available():
-            return cls(video_source)
+            return cls(video_source, **kwargs)
         raise RuntimeError(f"Backend {backend} not available")
 
     # select available backend automatically
     for name, cls in backends.items():
         if cls.is_available():
-            return cls(video_source)
+            return cls(video_source, **kwargs)
     raise RuntimeError("No available video backend found")

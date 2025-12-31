@@ -42,7 +42,7 @@ class VideoSplitByKeyFrameMapper(Mapper):
         self,
         keep_original_sample: bool = True,
         save_dir: str = None,
-        video_backend: str = "ffmpeg",
+        video_backend: str = "av",
         ffmpeg_extra_args: str = "",
         output_format: str = "path",
         save_field: str = None,

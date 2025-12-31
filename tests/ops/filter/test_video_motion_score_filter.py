@@ -17,14 +17,20 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
     vid2_path = os.path.join(data_path, 'video2.mp4')  # 3.52111
     vid3_path = os.path.join(data_path, 'video3.mp4')  # 1.1731424
 
-    def _run_helper(self, op, source_list, target_list, np=1):
+    img1_path = os.path.join(data_path, 'img6.jpg')
+
+    def _run_helper(self, op, source_list, target_list, np=1, select_field=None):
         dataset = Dataset.from_list(source_list)
         if Fields.stats not in dataset.features:
             dataset = dataset.add_column(name=Fields.stats,
                                          column=[{}] * dataset.num_rows)
         dataset = dataset.map(op.compute_stats, num_proc=np)
         dataset = dataset.filter(op.process, num_proc=np)
-        dataset = dataset.select_columns(column_names=[op.video_key])
+
+        if select_field is not None:
+            dataset = dataset.select_columns(column_names=select_field)
+        else:
+            dataset = dataset.select_columns(column_names=[op.video_key])
         res_list = dataset.to_list()
         self.assertEqual(res_list, target_list)
 
@@ -176,6 +182,22 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
         tgt_list = [{'videos': [self.vid1_path]}]
         op = VideoMotionScoreFilter(min_score=1.5, max_score=3.0)
         self._run_helper(op, ds_list, tgt_list, np=2)
+
+    def test_frame_field(self):
+        ds_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path]],
+        }]
+        tgt_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }]
+        op = VideoMotionScoreFilter(min_score=0, max_score=3.0, frame_field='frames')
+        self._run_helper(op, ds_list, tgt_list, np=2, select_field=['frames'])
 
 
 if __name__ == '__main__':

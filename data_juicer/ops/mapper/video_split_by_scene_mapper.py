@@ -115,7 +115,6 @@ class VideoSplitBySceneMapper(Mapper):
         self.save_dir = save_dir
         self.save_field = save_field
         self.ffmpeg_extra_args = ffmpeg_extra_args
-        self.output_format = output_format
         self.output_format = output_format.lower()
         assert self.output_format in [
             "path",

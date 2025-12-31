@@ -206,10 +206,14 @@ def load_image(path_or_bytes):
     return img
 
 
+def load_file_byte(path):
+    with open(path, "rb") as file:
+        data = file.read()
+    return data
+
+
 def load_image_byte(path):
-    with open(path, "rb") as image_file:
-        image_data = image_file.read()
-    return image_data
+    return load_file_byte(path)
 
 
 def image_path_to_base64(image_path):

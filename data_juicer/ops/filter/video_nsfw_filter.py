@@ -1,24 +1,26 @@
+from functools import partial
 from typing import Optional
 
 import numpy as np
+from PIL import Image
 from pydantic import PositiveInt
 
 from data_juicer.utils.constant import Fields, StatsKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import (
-    close_video,
     extract_key_frames,
     extract_video_frames_uniformly,
     load_data_with_context,
     load_image,
-    load_video,
 )
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_utils import create_video_reader
 
 from ..base_op import OPERATORS, Filter
 from ..op_fusion import INTER_SAMPLED_FRAMES, LOADED_VIDEOS
 
 torch = LazyLoader("torch")
+cv2 = LazyLoader("cv2", "opencv-python")
 
 OP_NAME = "video_nsfw_filter"
 
@@ -50,6 +52,7 @@ class VideoNSFWFilter(Filter):
         frame_num: PositiveInt = 3,
         reduce_mode: str = "avg",
         any_or_all: str = "any",
+        video_backend: str = "ffmpeg",
         *args,
         **kwargs,
     ):
@@ -87,6 +90,7 @@ class VideoNSFWFilter(Filter):
             all videos. 'any': keep this sample if any videos meet the
             condition. 'all': keep this sample only if all videos meet the
             condition.
+        :param video_backend: video backend, can be `ffmpeg`, `av`.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -114,6 +118,10 @@ class VideoNSFWFilter(Filter):
         self.frame_field = frame_field
         self.frame_sampling_method = frame_sampling_method
         self.frame_num = frame_num
+        self.video_backend = video_backend
+        assert self.video_backend in ["ffmpeg", "av"]
+        if self.frame_sampling_method == "uniform":
+            assert self.video_backend == "av", "Only 'av' backend is supported for 'uniform' frame sampling method."
 
         self.sampled_frames_key_suffix = f"-{frame_sampling_method}" + (
             "" if frame_sampling_method == "all_keyframes" else f"-{frame_num}"
@@ -153,7 +161,8 @@ class VideoNSFWFilter(Filter):
 
             # load videos
             loaded_video_keys = sample[self.video_key]
-            sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
+            video_reader = partial(create_video_reader, backend=self.video_backend)
+            sample, videos = load_data_with_context(sample, context, loaded_video_keys, video_reader)
 
         nsfw_scores = []
         model, processor = get_model(self.model_key, rank, self.use_cuda())
@@ -178,8 +187,11 @@ class VideoNSFWFilter(Filter):
                 else:
                     if self.frame_sampling_method == "all_keyframes":
                         frames = extract_key_frames(video)
+                        frames = video.extract_keyframes().frames
+                        frames = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in frames]
                     elif self.frame_sampling_method == "uniform":
-                        frames = extract_video_frames_uniformly(video, self.frame_num)
+                        # only support av backend
+                        frames = extract_video_frames_uniformly(video.container, self.frame_num)
                     else:
                         frames = []
 
@@ -193,7 +205,7 @@ class VideoNSFWFilter(Filter):
 
             if not context:
                 for vid_key in videos:
-                    close_video(videos[vid_key])
+                    videos[vid_key].close()
 
         sample[Fields.stats][StatsKeys.video_nsfw_score] = nsfw_scores
 

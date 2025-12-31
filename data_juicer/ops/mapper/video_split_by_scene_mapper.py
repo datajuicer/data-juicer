@@ -61,6 +61,7 @@ class VideoSplitBySceneMapper(Mapper):
         save_dir: str = None,
         save_field: str = None,
         ffmpeg_extra_args: str = "",
+        output_format: str = "path",
         *args,
         **kwargs,
     ):
@@ -78,6 +79,22 @@ class VideoSplitBySceneMapper(Mapper):
         :param save_field: The new field name to save generated video files path.
             If not specified, will overwrite the original video field.
         :param ffmpeg_extra_args: Extra ffmpeg args for splitting video.
+        :param output_format: The output format of the videos.
+            Supported formats are: ["path", "bytes"].
+            If format is "path", the output is a list of lists, where each inner
+            list contains the path of the split videos.
+            e.g.[
+                    [video1_split1_path, video1_split2_path, ...],
+                    [video2_split1_path, video2_split2_path, ...],
+                    ...
+                ] (In the order of the videos).
+            If format is "bytes", the output is a list of lists, where each inner
+            list contains the bytes of the split videos.
+            e.g. [
+                    [video1_split1_byte, video1_split2_byte, ...],
+                    [video2_split1_byte, video2_split2_byte, ...],
+                    ...
+                ] (In the order of the videos).
         :param args: extra args
         :param kwargs: extra args
         """
@@ -98,6 +115,12 @@ class VideoSplitBySceneMapper(Mapper):
         self.save_dir = save_dir
         self.save_field = save_field
         self.ffmpeg_extra_args = ffmpeg_extra_args
+        self.output_format = output_format
+        self.output_format = output_format.lower()
+        assert self.output_format in [
+            "path",
+            "bytes",
+        ], f"output_format '{output_format}' is not supported. Can only be one of ['path', 'bytes']."
 
         # prepare detector args
         available_kwargs = self.available_detectors[self.detector]
@@ -144,6 +167,11 @@ class VideoSplitBySceneMapper(Mapper):
                 )
             else:
                 output_video_keys[video_key] = [video_key]
+
+            if self.output_format == "bytes":
+                from data_juicer.utils.mm_utils import load_file_byte
+
+                output_video_keys[video_key] = [load_file_byte(f) for f in output_video_keys[video_key]]
 
         # replace split video tokens
         if self.text_key in sample:

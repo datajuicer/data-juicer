@@ -1,25 +1,28 @@
 import io
 import os
 import os.path as osp
+from functools import partial
 
+import numpy as np
 from loguru import logger
+from PIL import Image
 from pydantic import PositiveInt
 
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.file_utils import dict_to_hash
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import (
     SpecialTokens,
-    close_video,
-    extract_key_frames,
-    extract_key_frames_by_seconds,
     extract_video_frames_uniformly,
     extract_video_frames_uniformly_by_seconds,
     load_data_with_context,
-    load_video,
 )
+from data_juicer.utils.video_utils import create_video_reader
 
 from ..base_op import OPERATORS, TAGGING_OPS, Mapper
 from ..op_fusion import LOADED_VIDEOS
+
+cv2 = LazyLoader("cv2", "opencv-python")
 
 OP_NAME = "video_extract_frames_mapper"
 
@@ -70,6 +73,7 @@ class VideoExtractFramesMapper(Mapper):
         frame_key: str = None,
         frame_field: str = MetaKeys.video_frames,
         legacy_split_by_text_token: bool = True,
+        video_backend: str = "ffmpeg",
         *args,
         **kwargs,
     ):
@@ -116,6 +120,7 @@ class VideoExtractFramesMapper(Mapper):
         :param frame_field: The name of field to save generated frames info.
         :param legacy_split_by_text_token: Whether to split by special tokens (e.g. <__dj__video>)
             in the text field and read videos in order, or use the 'videos' or 'frames' field directly.
+        :param video_backend: video backend, can be `ffmpeg`, `av`.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -159,6 +164,11 @@ class VideoExtractFramesMapper(Mapper):
                 "Please set `legacy_split_by_text_token` to False, "
                 "and use the video field directly."
             )
+        self.video_backend = video_backend
+        assert self.video_backend in ["ffmpeg", "av"]
+
+        if self.frame_sampling_method == "uniform":
+            assert self.video_backend == "av", "Only 'av' backend is supported for 'uniform' frame sampling method."
 
     def _get_default_frame_dir(self, original_filepath):
         original_dir = os.path.dirname(original_filepath)
@@ -175,20 +185,29 @@ class VideoExtractFramesMapper(Mapper):
         # extract frame videos
         if self.frame_sampling_method == "all_keyframes":
             if self.duration:
-                frames = extract_key_frames_by_seconds(video, self.duration)
+                video_duration = video.metadata.duration
+                timestamps = np.arange(0, video_duration, self.duration).tolist()
+                frames = []
+                for i in range(1, len(timestamps)):
+                    cur_frames = video.extract_keyframes(timestamps[i - 1], timestamps[i]).frames
+                    frames.extend(cur_frames)
             else:
-                frames = extract_key_frames(video)
+                frames = video.extract_keyframes().frames
+            frames = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in frames]
         elif self.frame_sampling_method == "uniform":
+            # only support av backend
             if self.duration:
-                frames = extract_video_frames_uniformly_by_seconds(video, self.frame_num, duration=self.duration)
+                frames = extract_video_frames_uniformly_by_seconds(
+                    video.container, self.frame_num, duration=self.duration
+                )
             else:
-                frames = extract_video_frames_uniformly(video, self.frame_num)
+                frames = extract_video_frames_uniformly(video.container, self.frame_num)
+            frames = [frame.to_image() for frame in frames]
         else:
             raise ValueError(
                 f"Not support sampling method \
                 `{self.frame_sampling_method}`."
             )
-        frames = [frame.to_image() for frame in frames]
         return frames
 
     def _process_video(self, video, video_key):
@@ -225,7 +244,8 @@ class VideoExtractFramesMapper(Mapper):
 
         # load videos
         loaded_video_keys = sample[self.video_key]
-        sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
+        video_reader = partial(create_video_reader, backend=self.video_backend)
+        sample, videos = load_data_with_context(sample, context, loaded_video_keys, video_reader)
         videos_frames_list = [[] for _ in range(len(loaded_video_keys))]
 
         if self.legacy_split_by_text_token:
@@ -253,7 +273,7 @@ class VideoExtractFramesMapper(Mapper):
 
         if not context:
             for vid_key in videos:
-                close_video(videos[vid_key])
+                videos[vid_key].close()
 
         sample[self.frame_field] = videos_frames_list
 

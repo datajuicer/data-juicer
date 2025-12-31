@@ -209,6 +209,9 @@ class OP(metaclass=OPMetaClass):
         # It would be set to be True in config init.
         self.skip_op_error = kwargs.get("skip_op_error", False)
 
+        # whether to enable batch processing
+        self.batch_mode = kwargs.get("batch_mode", False)
+
         # whether the model can be accelerated using cuda
         _accelerator = kwargs.get("accelerator", None)
         if _accelerator is not None:
@@ -280,7 +283,7 @@ class OP(metaclass=OPMetaClass):
             return not self.num_proc or self.num_proc == -1
 
     def is_batched_op(self):
-        return self._batched_op
+        return self._batched_op or self.batch_mode
 
     def use_ray_actor(self):
         if self.ray_execution_mode:

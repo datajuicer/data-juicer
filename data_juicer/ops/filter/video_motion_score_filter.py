@@ -171,11 +171,15 @@ class VideoMotionScoreFilter(Filter):
             ]
         return sample
 
-    def _compute_motion_scores_from_frames(self, frames_paths):
+    def _compute_motion_scores_from_frames(self, frames):
         video_motion_scores = []
         prev_frame = None
-        for frame_path in frames_paths:
-            frame = cv2.imread(frame_path)
+        for frame in frames:
+            if isinstance(frame, bytes):
+                image_array = np.frombuffer(frame, dtype=np.uint8)
+                frame = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+            else:
+                frame = cv2.imread(frame)
             if self.size or self.max_size:
                 height, width = frame.shape[:2]
                 new_size = calculate_resized_dimensions((height, width), self.size, self.max_size, self.divisible)
@@ -190,7 +194,7 @@ class VideoMotionScoreFilter(Filter):
             frame_motion_score = np.mean(mag)
             if self.relative:
                 frame_motion_score /= np.hypot(*frame.shape[:2])
-            video_motion_scores.append(frame_motion_score)
+            video_motion_scores.append(float(frame_motion_score))
 
         return np.mean(video_motion_scores or [-1])
 
@@ -229,7 +233,7 @@ class VideoMotionScoreFilter(Filter):
                 frame_motion_score = np.mean(mag)
                 if self.relative:
                     frame_motion_score /= np.hypot(*frame.shape[:2])
-                video_motion_scores.append(frame_motion_score)
+                video_motion_scores.append(float(frame_motion_score))
 
                 # quickly skip frames
                 frame_count += sampling_step

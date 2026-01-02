@@ -16,7 +16,7 @@ class Tracer:
     The comparison results will be stored in the work directory.
     """
 
-    def __init__(self, work_dir, op_list_to_trace=None, show_num=10):
+    def __init__(self, work_dir, op_list_to_trace=None, show_num=10, trace_id_key=None):
         """
         Initialization method.
 
@@ -25,6 +25,9 @@ class Tracer:
         :param op_list_to_trace: the OP list to be traced.
         :param show_num: the maximum number of samples to show in the
             comparison result files.
+        :param trace_id_key: the key name of field to include as sample
+            identifier in trace output. If set, the specified field's
+            value will be included in each trace entry.
         """
         self.work_dir = os.path.join(work_dir, "trace")
         if not os.path.exists(self.work_dir):
@@ -36,6 +39,7 @@ class Tracer:
         else:
             self.op_list_to_trace = set(op_list_to_trace)
         self.show_num = show_num
+        self.trace_id_key = trace_id_key
 
     def trace_mapper(self, op_name: str, previous_ds: Dataset, processed_ds: Dataset, text_key: str):
         """
@@ -63,12 +67,14 @@ class Tracer:
             previous_sample = previous_ds[i][text_key]
             processed_sample = processed_ds[i][text_key]
             if previous_sample != processed_sample:
-                dif_dict.append(
-                    {
-                        "original_text": previous_sample,
-                        "processed_text": processed_sample,
-                    }
-                )
+                entry = {
+                    "original_text": previous_sample,
+                    "processed_text": processed_sample,
+                }
+                # Add ID field if configured
+                if self.trace_id_key:
+                    entry[self.trace_id_key] = previous_ds[i].get(self.trace_id_key)
+                dif_dict.append(entry)
                 num += 1
                 if num >= self.show_num:
                     break

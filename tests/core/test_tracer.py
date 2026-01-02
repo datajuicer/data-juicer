@@ -290,6 +290,93 @@ class TracerTest(DataJuicerTestCaseBase):
         trace_file_path = os.path.join(self.work_dir, 'trace', 'mapper-clean_email_mapper.jsonl')
         self.assertFalse(os.path.exists(trace_file_path))
 
+    def test_trace_mapper_with_trace_id_key(self):
+        """Test that trace_id_key includes the ID field in trace output."""
+        prev_ds = Dataset.from_list([
+            {'text': 'text 1', 'sample_id': 'id-001'},
+            {'text': 'text 2', 'sample_id': 'id-002'},
+            {'text': 'text 3', 'sample_id': 'id-003'},
+        ])
+        done_ds = Dataset.from_list([
+            {'text': 'text 1', 'sample_id': 'id-001'},
+            {'text': 'processed text 2', 'sample_id': 'id-002'},
+            {'text': 'text 3', 'sample_id': 'id-003'},
+        ])
+        dif_list = [
+            {
+                'original_text': 'text 2',
+                'processed_text': 'processed text 2',
+                'sample_id': 'id-002',
+            }
+        ]
+        tracer = Tracer(self.work_dir, trace_id_key='sample_id')
+        tracer.trace_mapper('clean_email_mapper', prev_ds, done_ds, 'text')
+        trace_file_path = os.path.join(self.work_dir, 'trace', 'mapper-clean_email_mapper.jsonl')
+        self.assertTrue(os.path.exists(trace_file_path))
+        trace_records = []
+        with jl.open(trace_file_path, 'r') as reader:
+            for s in reader:
+                trace_records.append(s)
+        self.assertEqual(dif_list, trace_records)
+
+    def test_trace_mapper_with_trace_id_key_missing_field(self):
+        """Test that trace_id_key handles missing field gracefully."""
+        prev_ds = Dataset.from_list([
+            {'text': 'text 1'},
+            {'text': 'text 2'},
+            {'text': 'text 3'},
+        ])
+        done_ds = Dataset.from_list([
+            {'text': 'text 1'},
+            {'text': 'processed text 2'},
+            {'text': 'text 3'},
+        ])
+        dif_list = [
+            {
+                'original_text': 'text 2',
+                'processed_text': 'processed text 2',
+                'sample_id': None,
+            }
+        ]
+        tracer = Tracer(self.work_dir, trace_id_key='sample_id')
+        tracer.trace_mapper('clean_email_mapper', prev_ds, done_ds, 'text')
+        trace_file_path = os.path.join(self.work_dir, 'trace', 'mapper-clean_email_mapper.jsonl')
+        self.assertTrue(os.path.exists(trace_file_path))
+        trace_records = []
+        with jl.open(trace_file_path, 'r') as reader:
+            for s in reader:
+                trace_records.append(s)
+        self.assertEqual(dif_list, trace_records)
+
+    def test_trace_mapper_without_trace_id_key(self):
+        """Test that without trace_id_key, output is unchanged (default behavior)."""
+        prev_ds = Dataset.from_list([
+            {'text': 'text 1', 'sample_id': 'id-001'},
+            {'text': 'text 2', 'sample_id': 'id-002'},
+            {'text': 'text 3', 'sample_id': 'id-003'},
+        ])
+        done_ds = Dataset.from_list([
+            {'text': 'text 1', 'sample_id': 'id-001'},
+            {'text': 'processed text 2', 'sample_id': 'id-002'},
+            {'text': 'text 3', 'sample_id': 'id-003'},
+        ])
+        # Without trace_id_key, only original_text and processed_text are included
+        dif_list = [
+            {
+                'original_text': 'text 2',
+                'processed_text': 'processed text 2',
+            }
+        ]
+        tracer = Tracer(self.work_dir)  # No trace_id_key
+        tracer.trace_mapper('clean_email_mapper', prev_ds, done_ds, 'text')
+        trace_file_path = os.path.join(self.work_dir, 'trace', 'mapper-clean_email_mapper.jsonl')
+        self.assertTrue(os.path.exists(trace_file_path))
+        trace_records = []
+        with jl.open(trace_file_path, 'r') as reader:
+            for s in reader:
+                trace_records.append(s)
+        self.assertEqual(dif_list, trace_records)
+
 
 if __name__ == '__main__':
     unittest.main()

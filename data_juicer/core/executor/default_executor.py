@@ -115,7 +115,7 @@ class DefaultExecutor(ExecutorBase):
                 self.work_dir,
                 self.cfg.op_list_to_trace,
                 show_num=self.cfg.trace_num,
-                trace_id_key=self.cfg.trace_id_key,
+                trace_keys=self.cfg.trace_keys,
             )
 
     def run(

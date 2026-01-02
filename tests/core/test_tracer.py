@@ -30,7 +30,7 @@ class TracerTest(DataJuicerTestCaseBase):
         ])
         dif_list = [
             {
-                'original text': 'text 2',
+                'original_text': 'text 2',
                 'processed_text': 'processed text 2',
             }
         ]
@@ -57,7 +57,7 @@ class TracerTest(DataJuicerTestCaseBase):
         ])
         dif_list = [
             {
-                'original text': 'text 2',
+                'original_text': 'text 2',
                 'processed_text': 'processed text 2',
             }
         ]

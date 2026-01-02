@@ -65,7 +65,7 @@ class Tracer:
             if previous_sample != processed_sample:
                 dif_dict.append(
                     {
-                        "original text": previous_sample,
+                        "original_text": previous_sample,
                         "processed_text": processed_sample,
                     }
                 )

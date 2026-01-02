@@ -67,13 +67,13 @@ class Tracer:
             previous_sample = previous_ds[i][text_key]
             processed_sample = processed_ds[i][text_key]
             if previous_sample != processed_sample:
-                entry = {
-                    "original_text": previous_sample,
-                    "processed_text": processed_sample,
-                }
-                # Add specified fields if configured
+                entry = {}
+                # Add specified fields first (appears at start of output)
                 for key in self.trace_keys:
                     entry[key] = previous_ds[i].get(key)
+                # Add trace data (these take precedence over trace_keys)
+                entry["original_text"] = previous_sample
+                entry["processed_text"] = processed_sample
                 dif_dict.append(entry)
                 num += 1
                 if num >= self.show_num:

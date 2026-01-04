@@ -231,7 +231,6 @@ class RayDataset(DJDataset):
                     # Restore original process method
                     if tracer and should_trace_op(tracer, op._name) and original_process:
                         op.process = original_process
-            elif isinstance(op, Filter):
                 # Use cached_columns instead of self.data.columns() to avoid breaking pipeline
                 if Fields.stats not in cached_columns:
 

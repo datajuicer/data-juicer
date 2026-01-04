@@ -1,0 +1,3 @@
+{"videos": ["./demos/video_calibration/data/test_video.mp4"], "text": "A dummy video for calibration test 1."}
+{"videos": ["./demos/video_calibration/data/test_video.mp4"], "text": "A dummy video for calibration test 2."}
+{"videos": ["./demos/video_calibration/data/test_video.mp4"], "text": "A dummy video for calibration test 3."}

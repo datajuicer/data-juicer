@@ -82,6 +82,7 @@ from .sentence_split_mapper import SentenceSplitMapper
 from .text_chunk_mapper import TextChunkMapper
 from .text_tagging_by_prompt_mapper import TextTaggingByPromptMapper
 from .vggt_mapper import VggtMapper
+from .video_calibration_mapper import VideoCalibrationMapper
 from .video_captioning_from_audio_mapper import VideoCaptioningFromAudioMapper
 from .video_captioning_from_frames_mapper import VideoCaptioningFromFramesMapper
 from .video_captioning_from_summarizer_mapper import VideoCaptioningFromSummarizerMapper
@@ -183,6 +184,7 @@ __all__ = [
     "TextChunkMapper",
     "TextTaggingByPromptMapper",
     "VggtMapper",
+    "VideoCalibrationMapper",
     "VideoCaptioningFromAudioMapper",
     "VideoCaptioningFromFramesMapper",
     "VideoCaptioningFromSummarizerMapper",

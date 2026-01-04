@@ -17,13 +17,13 @@ pip install uv
 
 ## 基础安装
 
-Data-Juicer 现已上架 PyPI。最小安装包含核心数据处理能力：
+Data-Juicer 已上架 PyPI：
 
 ```bash
 uv pip install py-data-juicer
 ```
 
-这将提供：
+最小安装包含核心数据处理能力，这将提供：
 - 数据加载和操作
 - 文件系统操作
 - 并行处理
@@ -89,18 +89,20 @@ uv pip install "py-data-juicer[generic,nlp,vision,distributed]"
 uv pip install "py-data-juicer[all]"
 ```
 
-**5. 开发模式**
+## 从源码安装
 
-对于贡献者和开发者：
-
+如果想要使用最新的特性与更新，也可以从源码安装 Data-Juicer：
 ```bash
 # 克隆仓库
 git clone https://github.com/datajuicer/data-juicer.git
 cd data-juicer
+uv pip install -e .
 
-# 安装开发依赖
-uv pip install -e ".[dev]"
+# 同样也可以安装指定的额外领域的依赖
+uv pip install -e ".[vision]"
 ```
+
+**注意：**从源码安装时，建议使用 `-e` 模式打开开发模式。
 
 ## 特定算子安装
 除了基于场景的安装外，我们还提供基于算子和基于菜谱的安装方式。

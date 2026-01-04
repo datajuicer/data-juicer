@@ -119,6 +119,7 @@ distributed = [
     "ray[default]>=2.51.0",  # distributed computing
     "pyspark==3.5.5",  # distributed data processing
     "s3fs",  # S3 filesystem support for cloud storage
+    "bitarray", # efficient arrays of booleans
 ]
 
 # Development & Tools
@@ -170,7 +171,13 @@ dj-install = "data_juicer.tools.dj_install:main"
 dj-mcp = "data_juicer.tools.mcp_server:main"
 
 [build-system]
-requires = ["hatchling", "uv>=0.1.0"]
+requires = [
+    "hatchling",
+    "uv>=0.1.0",
+    "Cython>=0.29",
+    "pybind11>=2.6",
+    "setuptools>=64",
+]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
@@ -179,6 +186,9 @@ path = "data_juicer/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["data_juicer", "tools"]
 include = ["uv.lock", "pyproject.toml"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
 
 [tool.hatch.build]
 include = ["uv.lock", "pyproject.toml"]

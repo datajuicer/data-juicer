@@ -17,13 +17,13 @@ pip install uv
 
 ## Basic DJ Installation
 
-Data-Juicer is now available on PyPI. The minimal installation includes core data processing capabilities:
+Data-Juicer is now available on PyPI:
 
 ```bash
 uv pip install py-data-juicer
 ```
 
-This provides:
+The minimal installation includes core data processing capabilities, which provides:
 - Data loading and manipulation
 - File system operations
 - Parallel processing
@@ -92,18 +92,20 @@ uv pip install "py-data-juicer[all]"
 ```
 
 
-**5. For Development Mode**
+## Installation From Source
 
-For contributors and developers:
-
+If you want to use the latest features and updates, Data-Juicer can be installed from source as well:
 ```bash
 # Clone repository
 git clone https://github.com/datajuicer/data-juicer.git
 cd data-juicer
+uv pip install -e .
 
-# Install dev dependencies
-uv pip install -e ".[dev]"
+# You can install specific domain as well
+uv pip install -e ".[vision]"
 ```
+
+**Note**: It's suggested to used `-e` to enable editable mode when installing from source.
 
 
 ## Installation for Specific OPs

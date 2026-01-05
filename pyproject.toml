@@ -32,7 +32,7 @@ dependencies = [
     "psutil", # system monitoring
     "pydantic>=2.0", # data validation
     "uv",
-    "wordcloud",
+    "wordcloud==1.9.4",
     "spacy==3.8.7",
     "httpx",
     "av==13.1.0", # video/audio handling

@@ -5,7 +5,7 @@ from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.ops.pipeline.llm_inference_with_ray_vllm_pipeline import LLMRayVLLMEnginePipeline
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.utils.constant import RAY_JOB_ENV_VAR
-from data_juicer.utils.unittest_utils import TEST_TAG
+from data_juicer.utils.unittest_utils import TEST_TAG, FROM_FORK
 
 
 class LLMRayVLLMEnginePipelineTest(DataJuicerTestCaseBase):
@@ -39,6 +39,7 @@ class LLMRayVLLMEnginePipelineTest(DataJuicerTestCaseBase):
         for item in res:
             self.assertTrue(len(item['response']) > 0)
 
+    @unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
     @TEST_TAG('ray')
     def test_api_model(self):
         import ray

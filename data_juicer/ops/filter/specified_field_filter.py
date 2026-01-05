@@ -1,5 +1,3 @@
-from typing import List
-
 from data_juicer.utils.constant import Fields
 
 from ..base_op import OPERATORS, Filter
@@ -22,7 +20,7 @@ class SpecifiedFieldFilter(Filter):
     - Supports multi-level field keys, e.g., 'level1.level2'.
     - Converts non-list/tuple field values to a list for comparison."""
 
-    def __init__(self, field_key: str = "", target_value: List = [], *args, **kwargs):
+    def __init__(self, field_key: str = "", target_value: list = [], *args, **kwargs):
         """
         Initialization method.
 

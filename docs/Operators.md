@@ -273,6 +273,7 @@ All the specific operators are listed below, each featured with several capabili
 | video_resize_aspect_ratio_mapper | 🎬Video 💻CPU 🟢Stable | Resizes videos to fit within a specified aspect ratio range. 调整视频大小以适应指定的宽高比范围。 | [info](operators/mapper/video_resize_aspect_ratio_mapper.md) | - |
 | video_resize_resolution_mapper | 🎬Video 💻CPU 🟢Stable | Resizes video resolution based on specified width and height constraints. 根据指定的宽度和高度限制调整视频分辨率。 | [info](operators/mapper/video_resize_resolution_mapper.md) | - |
 | video_split_by_duration_mapper | 🔮Multimodal 💻CPU 🟢Stable | Splits videos into segments based on a specified duration. 根据指定的持续时间将视频拆分为多个片段。 | [info](operators/mapper/video_split_by_duration_mapper.md) | - |
+| video_split_by_frame_mapper | 🔮Multimodal 💻CPU 🟡Beta | Splits videos into segments based on a specified frame count or duration. 根据指定的帧数或持续时间将视频拆分为段。 | - | - |
 | video_split_by_key_frame_mapper | 🔮Multimodal 💻CPU 🟢Stable | Splits a video into segments based on key frames. 根据关键帧将视频分割为多个片段。 | [info](operators/mapper/video_split_by_key_frame_mapper.md) | - |
 | video_split_by_scene_mapper | 🔮Multimodal 💻CPU 🟢Stable | Splits videos into scene clips based on detected scene changes. 根据检测到的场景变化将视频拆分为场景剪辑。 | [info](operators/mapper/video_split_by_scene_mapper.md) | - |
 | video_tagging_from_audio_mapper | 🎬Video 🚀GPU 🧩HF 🟢Stable | Generates video tags from audio streams using the Audio Spectrogram Transformer. 使用音频频谱图转换器从音频流生成视频标签。 | [info](operators/mapper/video_tagging_from_audio_mapper.md) | - |

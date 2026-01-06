@@ -120,6 +120,7 @@ distributed = [
     "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "pyspark==3.5.5",  # distributed data processing
     "s3fs",  # S3 filesystem support for cloud storage
+    "pyiceberg[pyarrow]",
     "bitarray", # efficient arrays of booleans
 ]
 

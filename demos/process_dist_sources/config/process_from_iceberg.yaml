@@ -1,0 +1,83 @@
+# Process config example for dataset
+
+# global parameters
+project_name: 'demo'
+executor_type: ray
+ray_address: local
+
+np: 1  # number of subprocess to process your dataset
+
+export_path: './outputs/demo/'
+
+dataset:
+    configs:
+      - type: remote
+        source: iceberg
+        table_identifier: default.test
+        catalog_kwargs:
+            type: sql
+            name: local
+            uri: sqlite:///your.db
+            warehouse: s3://yourbucket/your_warehouse_path
+            s3.endpoint: http://yourhost:yourport
+            s3.access-key-id: your_access_key
+            s3.secret-access-key: your_secret_key
+            s3.region: us-east-1
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  # Filter ops
+  - alphanumeric_filter:                                    # filter text with alphabet/numeric ratio out of specific range.
+      tokenization: false                                     # Whether to count the ratio of alphanumeric to the total number of tokens.
+      min_ratio: 0.0                                          # the min ratio of filter range
+      max_ratio: 0.9                                          # the max ratio of filter range
+  - average_line_length_filter:                             # filter text with the average length of lines out of specific range.
+      min_len: 10                                             # the min length of filter range
+      max_len: 10000                                          # the max length of filter range
+  - character_repetition_filter:                            # filter text with the character repetition ratio out of specific range
+      rep_len: 10                                             # repetition length for char-level n-gram
+      min_ratio: 0.0                                          # the min ratio of filter range
+      max_ratio: 0.5                                          # the max ratio of filter range
+  - flagged_words_filter:                                   # filter text with the flagged-word ratio larger than a specific max value
+      lang: en                                                # consider flagged words in what language
+      tokenization: false                                     # whether to use model to tokenize documents
+      max_ratio: 0.0045                                       # the max ratio to filter text
+      flagged_words_dir: ./assets                             # directory to store flagged words dictionaries
+      use_words_aug: false                                    # whether to augment words, especially for Chinese and Vietnamese
+      words_aug_group_sizes: [2]                              # the group size of words to augment
+      words_aug_join_char: ""                                 # the join char between words to augment
+  - language_id_score_filter:                               # filter text in specific language with language scores larger than a specific max value
+      lang: en                                                # keep text in what language
+      min_score: 0.8                                          # the min language scores to filter text
+  - maximum_line_length_filter:                             # filter text with the maximum length of lines out of specific range
+      min_len: 10                                             # the min length of filter range
+      max_len: 10000                                          # the max length of filter range
+  - perplexity_filter:                                      # filter text with perplexity score out of specific range
+      lang: en                                                # compute perplexity in what language
+      max_ppl: 1500                                           # the max perplexity score to filter text
+  - special_characters_filter:                              # filter text with special-char ratio out of specific range
+      min_ratio: 0.0                                          # the min ratio of filter range
+      max_ratio: 0.25                                         # the max ratio of filter range
+  - stopwords_filter:                                       # filter text with stopword ratio smaller than a specific min value
+      lang: en                                                # consider stopwords in what language
+      tokenization: false                                     # whether to use model to tokenize documents
+      min_ratio: 0.3                                          # the min ratio to filter text
+      stopwords_dir: ./assets                                 # directory to store stopwords dictionaries
+      use_words_aug: false                                    # whether to augment words, especially for Chinese and Vietnamese
+      words_aug_group_sizes: [2]                              # the group size of words to augment
+      words_aug_join_char: ""                                 # the join char between words to augment
+  - text_length_filter:                                     # filter text with length out of specific range
+      min_len: 10                                             # the min length of filter range
+      max_len: 10000                                          # the max length of filter range
+  - words_num_filter:                                       # filter text with number of words out of specific range
+      lang: en                                                # sample in which language
+      tokenization: false                                     # whether to use model to tokenize documents
+      min_num: 10                                             # the min number of filter range
+      max_num: 10000                                          # the max number of filter range
+  - word_repetition_filter:                                 # filter text with the word repetition ratio out of specific range
+      lang: en                                                # sample in which language
+      tokenization: false                                     # whether to use model to tokenize documents
+      rep_len: 10                                             # repetition length for word-level n-gram
+      min_ratio: 0.0                                          # the min ratio of filter range
+      max_ratio: 0.5                                          # the max ratio of filter range

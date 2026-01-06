@@ -5917,6 +5917,7 @@ all = [
     { name = "torchcodec" },
     { name = "transformers" },
     { name = "ultralytics" },
+    { name = "uvloop" },
     { name = "vllm" },
     { name = "wandb" },
 ]
@@ -5954,6 +5955,7 @@ distributed = [
     { name = "pyspark" },
     { name = "ray", extra = ["default"] },
     { name = "s3fs" },
+    { name = "uvloop" },
 ]
 generic = [
     { name = "accelerate" },
@@ -5962,6 +5964,7 @@ generic = [
     { name = "onnxruntime" },
     { name = "torch" },
     { name = "transformers" },
+    { name = "uvloop" },
     { name = "vllm" },
 ]
 nlp = [
@@ -6151,6 +6154,9 @@ requires-dist = [
     { name = "ultralytics", marker = "extra == 'all'" },
     { name = "ultralytics", marker = "extra == 'vision'" },
     { name = "uv" },
+    { name = "uvloop", marker = "extra == 'all'", specifier = "==0.21.0" },
+    { name = "uvloop", marker = "extra == 'distributed'", specifier = "==0.21.0" },
+    { name = "uvloop", marker = "extra == 'generic'", specifier = "==0.21.0" },
     { name = "vllm", marker = "extra == 'all'", specifier = "==0.11.0" },
     { name = "vllm", marker = "extra == 'generic'", specifier = "==0.11.0" },
     { name = "wandb", marker = "extra == 'all'", specifier = "<=0.19.0" },

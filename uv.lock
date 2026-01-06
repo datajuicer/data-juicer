@@ -6115,6 +6115,7 @@ all = [
     { name = "sphinx-autobuild" },
     { name = "sphinx-copybutton" },
     { name = "tiktoken" },
+    { name = "timm" },
     { name = "toml" },
     { name = "torch" },
     { name = "torchaudio" },
@@ -6197,6 +6198,7 @@ vision = [
     { name = "rembg" },
     { name = "scenedetect", extra = ["opencv"] },
     { name = "simple-aesthetics-predictor" },
+    { name = "timm" },
     { name = "ultralytics" },
 ]
 
@@ -6345,6 +6347,8 @@ requires-dist = [
     { name = "tabulate" },
     { name = "tiktoken", marker = "extra == 'all'" },
     { name = "tiktoken", marker = "extra == 'nlp'" },
+    { name = "timm", marker = "extra == 'all'", specifier = "==1.0.22" },
+    { name = "timm", marker = "extra == 'vision'", specifier = "==1.0.22" },
     { name = "toml", marker = "extra == 'all'" },
     { name = "toml", marker = "extra == 'dev'" },
     { name = "tomli" },
@@ -9310,7 +9314,7 @@ wheels = [
 
 [[package]]
 name = "timm"
-version = "1.0.23"
+version = "1.0.22"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -9319,9 +9323,9 @@ dependencies = [
     { name = "torch" },
     { name = "torchvision" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4a/b6/8217076412df4d080d04514590a7583bbc65230451f4577bba36f7eda43f/timm-1.0.23.tar.gz", hash = "sha256:32e8e678212746d493a57438071c34f10b433f0c8167285bfd9d7607238d9d35", size = 2412042, upload-time = "2026-01-05T21:36:59.652Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/9d/e4670765d1c033f97096c760b3b907eeb659cf80f3678640e5f060b04c6c/timm-1.0.22.tar.gz", hash = "sha256:14fd74bcc17db3856b1a47d26fb305576c98579ab9d02b36714a5e6b25cde422", size = 2382998, upload-time = "2025-11-05T04:06:09.377Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/ec/808172cb2e3ce1f9f352b0a040f6495c2c658ee6670637e012ebe1bff6e9/timm-1.0.23-py3-none-any.whl", hash = "sha256:8b351810c714ede9a3c2f0fd9845c5d312548cc4397967ffd49334e9cbc8e165", size = 2560437, upload-time = "2026-01-05T21:36:58.151Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/14/fc04d491527b774ec7479897f5861959209de1480e4c4cd32ed098ff8bea/timm-1.0.22-py3-none-any.whl", hash = "sha256:888981753e65cbaacfc07494370138b1700a27b1f0af587f4f9b47bc024161d0", size = 2530238, upload-time = "2025-11-05T04:06:06.823Z" },
 ]
 
 [[package]]

@@ -32,7 +32,7 @@ dependencies = [
     "psutil", # system monitoring
     "pydantic>=2.0", # data validation
     "uv",
-    "wordcloud",
+    "wordcloud==1.9.4",
     "spacy==3.8.7",
     "httpx",
     "av==13.1.0", # video/audio handling
@@ -69,6 +69,7 @@ generic = [
     "einops",  # Tensor operations
     "accelerate",  # Model acceleration
     "vllm==0.11.0",  # LLM serving
+    "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "onnxruntime",  # ONNX runtime
     "cudf-cu12==25.4.0", # dataframe on GPU
 ]
@@ -117,6 +118,7 @@ audio = [
 # Distributed Computing
 distributed = [
     "ray[default]>=2.51.0",  # distributed computing
+    "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "pyspark==3.5.5",  # distributed data processing
     "s3fs",  # S3 filesystem support for cloud storage
     "bitarray", # efficient arrays of booleans

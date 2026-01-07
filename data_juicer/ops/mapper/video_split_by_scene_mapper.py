@@ -1,4 +1,5 @@
 import math
+import os
 import re
 from itertools import chain
 
@@ -60,7 +61,7 @@ class VideoSplitBySceneMapper(Mapper):
         show_progress: bool = False,
         save_dir: str = None,
         save_field: str = None,
-        ffmpeg_extra_args: str = "",
+        ffmpeg_extra_args: str = "-movflags frag_keyframe+empty_moov",
         output_format: str = "path",
         *args,
         **kwargs,
@@ -113,6 +114,8 @@ class VideoSplitBySceneMapper(Mapper):
         self.min_scene_len = min_scene_len
         self.show_progress = show_progress
         self.save_dir = save_dir
+        if self.save_dir:
+            os.makedirs(self.save_dir, exist_ok=True)
         self.save_field = save_field
         self.ffmpeg_extra_args = ffmpeg_extra_args
         self.output_format = output_format.lower()

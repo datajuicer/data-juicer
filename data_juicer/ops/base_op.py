@@ -210,7 +210,7 @@ class OP(metaclass=OPMetaClass):
         self.skip_op_error = kwargs.get("skip_op_error", False)
 
         # whether to enable batch processing
-        self.batch_mode = kwargs.get("batch_mode", False)
+        self.batch_mode = kwargs.get("batch_mode", None)
 
         # whether the model can be accelerated using cuda
         _accelerator = kwargs.get("accelerator", None)
@@ -283,7 +283,13 @@ class OP(metaclass=OPMetaClass):
             return not self.num_proc or self.num_proc == -1
 
     def is_batched_op(self):
-        return self._batched_op or self.batch_mode
+        if self.batch_mode is not None:
+            if not self.batch_mode and self._batched_op:
+                raise ValueError(
+                    f"Op [{self._name}] is implemented as a batched op, " f"but batch_mode is set to False."
+                )
+            return self._batched_op or self.batch_mode
+        return self._batched_op
 
     def use_ray_actor(self):
         if self.ray_execution_mode:

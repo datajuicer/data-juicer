@@ -27,8 +27,8 @@ class VideoSplitBySceneMapperTest(DataJuicerTestCaseBase):
 
     def tearDown(self):
         super().tearDown()
-        # if os.path.exists(self.tmp_dir):
-        #     shutil.rmtree(self.tmp_dir)
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
 
     def get_res_list(self, dataset: Dataset):
         res_list = []
@@ -215,7 +215,6 @@ class VideoSplitBySceneMapperTest(DataJuicerTestCaseBase):
             }
         ]
         op = VideoSplitBySceneMapper(
-            detector='AdaptiveDetector',
             output_format="bytes",
             save_dir=self.tmp_dir,
             save_field=save_field)

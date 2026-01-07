@@ -91,7 +91,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'mem_required': None,
                         'ray_execution_mode': None,
                         'runtime_env': None,
-
+                        'batch_mode': None,
                     }
                 }, 'nested dict load fail, for nonparametric op')
             self.assertDictEqual(
@@ -128,6 +128,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'mem_required': None,
                         'ray_execution_mode': None,
                         'runtime_env': None,
+                        'batch_mode': None,
                     }
                 }, 'nested dict load fail, un-expected internal value')
 
@@ -213,6 +214,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'mem_required': None,
                         'ray_execution_mode': None,
                         'runtime_env': None,
+                        'batch_mode': None,
                     }
                 })
             self.assertDictEqual(
@@ -249,6 +251,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'mem_required': None,
                         'ray_execution_mode': None,
                         'runtime_env': None,
+                        'batch_mode': None,
                     }
                 })
             self.assertDictEqual(
@@ -285,6 +288,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'mem_required': None,
                         'ray_execution_mode': None,
                         'runtime_env': None,
+                        'batch_mode': None,
                     }
                 })
             self.assertDictEqual(
@@ -321,6 +325,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'mem_required': None,
                         'ray_execution_mode': None,
                         'runtime_env': None,
+                        'batch_mode': None,
                     }
                 })
             self.assertDictEqual(
@@ -357,6 +362,7 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'mem_required': None,
                         'ray_execution_mode': None,
                         'runtime_env': None,
+                        'batch_mode': None,
                     }
                 })
 

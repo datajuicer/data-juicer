@@ -1,7 +1,7 @@
 # The data-juicer image includes all open-source contents of data-juicer,
 # and it will be installed in editable mode.
 
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
 
 # change to aliyun source
 RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list \

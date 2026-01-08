@@ -316,6 +316,8 @@ def get_op_list_from_code_for_formatter():
             test_path = os.path.join(FORMATTER_TEST_PREFIX, f"test_{formatter}")
             if os.path.isdir(code_path):
                 continue
+            if "_cpp" in code_path:
+                continue
             docstrings = get_class_and_docstring(code_path)
             _, doc = docstrings[0]
             op_record_list.append(
@@ -350,6 +352,8 @@ def get_op_list_from_code():
             code_path = os.path.join(type_dir, op)
             test_path = os.path.join(OP_TEST_PREFIX, type, f"test_{op}")
             if os.path.isdir(code_path):
+                continue
+            if not code_path.endswith(".py") or "_cpp" in code_path:
                 continue
             docstrings = get_class_and_docstring(code_path)
             _, doc = docstrings[0]

@@ -14,6 +14,7 @@ from .image_nsfw_filter import ImageNSFWFilter
 from .image_pair_similarity_filter import ImagePairSimilarityFilter
 from .image_shape_filter import ImageShapeFilter
 from .image_size_filter import ImageSizeFilter
+from .image_subplot_filter import ImageSubplotFilter
 from .image_text_matching_filter import ImageTextMatchingFilter
 from .image_text_similarity_filter import ImageTextSimilarityFilter
 from .image_watermark_filter import ImageWatermarkFilter
@@ -71,6 +72,7 @@ __all__ = [
     "ImagePairSimilarityFilter",
     "ImageShapeFilter",
     "ImageSizeFilter",
+    "ImageSubplotFilter",
     "ImageTextMatchingFilter",
     "ImageTextSimilarityFilter",
     "ImageWatermarkFilter",

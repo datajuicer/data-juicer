@@ -32,7 +32,7 @@ dependencies = [
     "psutil", # system monitoring
     "pydantic>=2.0", # data validation
     "uv",
-    "wordcloud",
+    "wordcloud==1.9.4",
     "spacy==3.8.7",
     "httpx",
     "av==13.1.0", # video/audio handling
@@ -69,6 +69,7 @@ generic = [
     "einops",  # Tensor operations
     "accelerate",  # Model acceleration
     "vllm==0.11.0",  # LLM serving
+    "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "onnxruntime",  # ONNX runtime
     "cudf-cu12==25.4.0", # dataframe on GPU
 ]
@@ -116,8 +117,10 @@ audio = [
 # Distributed Computing
 distributed = [
     "ray[default]>=2.51.0",  # distributed computing
+    "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "pyspark==3.5.5",  # distributed data processing
     "s3fs",  # S3 filesystem support for cloud storage
+    "bitarray", # efficient arrays of booleans
 ]
 
 # Development & Tools
@@ -169,7 +172,13 @@ dj-install = "data_juicer.tools.dj_install:main"
 dj-mcp = "data_juicer.tools.mcp_server:main"
 
 [build-system]
-requires = ["hatchling", "uv>=0.1.0"]
+requires = [
+    "hatchling",
+    "uv>=0.1.0",
+    "Cython>=0.29",
+    "pybind11>=2.6",
+    "setuptools>=64",
+]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
@@ -178,6 +187,9 @@ path = "data_juicer/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["data_juicer", "tools"]
 include = ["uv.lock", "pyproject.toml"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
 
 [tool.hatch.build]
 include = ["uv.lock", "pyproject.toml"]

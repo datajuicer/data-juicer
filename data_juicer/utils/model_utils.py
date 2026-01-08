@@ -236,7 +236,7 @@ class ChatAPIModel:
                 self.endpoint, body=body, cast_to=httpx.Response, stream=stream, stream_cls=stream_cls
             )
             result = response.json()
-            return nested_access(result, self.response_path)
+            return nested_access(result, self.response_path) or ""
         except Exception as e:
             logger.exception(e)
             return ""
@@ -289,6 +289,55 @@ class EmbeddingAPIModel:
             return []
 
 
+class ResponsesAPIModel:
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        Initializes an instance specialized for OpenAI Responses API.
+
+        :param model: The model identifier for Responses API calls.
+            If it's None, use the first available model from the server.
+        :param endpoint: API endpoint URL. Defaults to '/responses'.
+        :param response_path: Path to extract content from response.
+            Defaults to 'output.0.content.0.text'.
+        :param kwargs: Configuration for the OpenAI client.
+        """
+        self.model = model
+        self.endpoint = endpoint or "/responses"
+        self.response_path = response_path or "output.0.content.0.text"
+
+        client_args = filter_arguments(openai.OpenAI, kwargs)
+        self._client = openai.OpenAI(**client_args)
+        if self.model is None:
+            logger.warning("No model specified. Using the first available model from the server.")
+            models_list = self._client.models.list().data
+            if len(models_list) == 0:
+                raise ValueError("No models available on the server.")
+            self.model = models_list[0].id
+
+    def __call__(self, input, **kwargs):
+        """
+        Sends input to the Responses API and returns the parsed response content.
+
+        :param input: The input text or content to send to the API.
+        :param kwargs: Additional parameters for the API call.
+        :return: The parsed response content from the API call, or an empty
+            string if an error occurs.
+        """
+        body = {
+            "model": self.model,
+            "input": input,
+        }
+        body.update(kwargs)
+
+        try:
+            response = self._client.post(self.endpoint, body=body, cast_to=httpx.Response)
+            result = response.json()
+            return nested_access(result, self.response_path) or ""
+        except Exception as e:
+            logger.exception(f"Responses API error: {e}")
+            return ""
+
+
 def prepare_api_model(
     model, *, endpoint=None, response_path=None, return_processor=False, processor_config=None, **model_params
 ):
@@ -303,10 +352,12 @@ def prepare_api_model(
         `base_url` parameter). Supported endpoints include:
         - '/chat/completions' for chat models
         - '/embeddings' for embedding models
+        - '/responses' for OpenAI Responses API
         Defaults to `/chat/completions` for OpenAI compatibility.
     :param response_path: The dot-separated  path to extract desired content
         from the API response. Defaults to 'choices.0.message.content'
-        for chat models and 'data.0.embedding' for embedding models.
+        for chat models, 'data.0.embedding' for embedding models, and
+        'output.0.content.0.text' for responses models.
     :param return_processor: A boolean flag indicating whether to return a
         processor along with the model. The processor can be used for tasks
         like tokenization or encoding. Defaults to False.
@@ -322,6 +373,7 @@ def prepare_api_model(
     ENDPOINT_CLASS_MAP = {
         "chat": ChatAPIModel,
         "embeddings": EmbeddingAPIModel,
+        "responses": ResponsesAPIModel,
     }
 
     API_Class = next((cls for keyword, cls in ENDPOINT_CLASS_MAP.items() if keyword in endpoint.lower()), None)

@@ -1,0 +1,110 @@
+# S3 Video Processing Configuration Example
+# Complete workflow: Download from S3 -> Process -> Upload back to S3
+
+# Global parameters
+project_name: 's3-video-processing-demo'
+executor_type: 'ray'
+ray_address: 'auto'
+
+# Working directory
+work_dir: './outputs/s3_demo'
+
+# Dataset configuration
+dataset:
+  configs:
+    - type: remote
+      source: s3
+      path: s3://your-bucket/dj/dataset/process_video_on_ray/demo-dataset-s3.pdf
+      # aws_access_key_id: YOUR_KEY      # Recommended: set via environment variables (e.g., AWS_ACCESS_KEY_ID)
+      # aws_secret_access_key: YOUR_SECRET
+      aws_region: us-east-1
+      endpoint_url: null  # Optional, for S3-compatible object storage
+
+# Export configuration - metadata export to S3
+export_path: 's3://your-bucket/dj/dataset/demo-processed'
+export_type: 'jsonl'
+
+# S3 credentials (for metadata export)
+export_aws_credentials:
+  aws_access_key_id: 'YOUR_AWS_ACCESS_KEY_ID'
+  aws_secret_access_key: 'YOUR_AWS_SECRET_ACCESS_KEY'
+  aws_region: 'us-east-1'
+  endpoint_url: 'http://your-s3-endpoint:port'
+
+# Processing pipeline
+process:
+  # ============================================
+  # Step 1: Download videos from S3 to local
+  # ============================================
+  - s3_download_file_mapper:
+      download_field: 'videos'              # Field containing S3 URLs
+      save_dir: '/tmp/dj_downloaded_videos' # Local download directory
+      resume_download: true                 # Skip already downloaded files
+      timeout: 300                          # HTTP/HTTPS download timeout (seconds)
+      max_concurrent: 5                     # Maximum concurrent downloads
+      # S3 credentials
+      aws_access_key_id: 'YOUR_AWS_ACCESS_KEY_ID'
+      aws_secret_access_key: 'YOUR_AWS_SECRET_ACCESS_KEY'
+      aws_region: 'us-east-1'
+      endpoint_url: 'http://your-s3-endpoint:port'
+
+  # ============================================
+  # Step 2: Video filtering - duration
+  # ============================================
+  - video_duration_filter:
+      min_duration: 20                      # Minimum duration (seconds)
+      max_duration: 100                     # Maximum duration (seconds)
+
+  # ============================================
+  # Step 3: Video filtering - resolution
+  # ============================================
+  - video_resolution_filter:
+      min_width: 200                        # Minimum width (pixels)
+      max_width: 4096                       # Maximum width (pixels)
+      min_height: 200                       # Minimum height (pixels)
+      max_height: 4096                      # Maximum height (pixels)
+      any_or_all: any                       # 'any' means satisfying any condition is sufficient
+
+  # ============================================
+  # Step 4: Split videos by duration
+  # ============================================
+  - video_split_by_duration_mapper:
+      split_duration: 10                    # Duration of each segment (seconds)
+      min_last_split_duration: 0            # Minimum duration of the last segment
+      keep_original_sample: false           # Do not keep original sample
+      # Save location for processed videos
+      save_dir: '/tmp/dj_processed_videos'
+
+  # ============================================
+  # Step 5: Adjust video aspect ratio
+  # ============================================
+  - video_resize_aspect_ratio_mapper:
+      min_ratio: 1.0                        # Minimum aspect ratio
+      max_ratio: 1.1                        # Maximum aspect ratio
+      strategy: increase                    # Adjustment strategy: increase size
+
+  # ============================================
+  # Step 6: Upload processed videos to S3
+  # ============================================
+  - s3_upload_file_mapper:
+      upload_field: 'videos'                # Field containing local file paths
+      s3_bucket: 'your-bucket'              # S3 bucket name
+      s3_prefix: 'dj/processed_videos/'     # S3 object prefix (folder)
+      remove_local: true                    # Delete local files after upload (save space)
+      skip_existing: true                   # Skip files already existing in S3
+      max_concurrent: 10                    # Maximum concurrent uploads
+      # S3 credentials
+      aws_access_key_id: 'YOUR_AWS_ACCESS_KEY_ID'
+      aws_secret_access_key: 'YOUR_AWS_SECRET_ACCESS_KEY'
+      aws_region: 'us-east-1'
+      endpoint_url: 'http://your-s3-endpoint:port'
+
+# ============================================
+# Optional: Other configurations
+# ============================================
+# Keep statistics information
+keep_stats_in_res_ds: true
+keep_hashes_in_res_ds: false
+
+# Operator fusion (optimize performance)
+op_fusion: false

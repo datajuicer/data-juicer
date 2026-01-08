@@ -37,6 +37,7 @@ class VideoCameraCalibrationStaticMogeMapper(Mapper):
         duration: float = 0,
         tag_field_name: str = MetaKeys.static_camera_calibration_moge_tags,
         frame_dir: str = DATA_JUICER_ASSETS_CACHE,
+        if_output_info: bool = True,
         output_info_dir: str = DATA_JUICER_ASSETS_CACHE,
         if_output_points_info: bool = True,
         if_output_depth_info: bool = True,
@@ -61,6 +62,8 @@ class VideoCameraCalibrationStaticMogeMapper(Mapper):
         :param tag_field_name: The field name to store the tags. It's
             "static_camera_calibration_moge_tags" in default.
         :param frame_dir: Output directory to save extracted frames.
+        :param if_output_info: Whether to save the camera parameters results
+            to an JSON file.
         :param output_info_dir: Output directory for saving camera parameters.
         :param if_output_points_info: Determines whether to output point map
             in OpenCV camera coordinate system (x right, y down, z forward).
@@ -94,6 +97,7 @@ class VideoCameraCalibrationStaticMogeMapper(Mapper):
         self.if_output_points_info = if_output_points_info
         self.if_output_depth_info = if_output_depth_info
         self.if_output_mask_info = if_output_mask_info
+        self.if_output_info = if_output_info
 
     def process_single(self, sample=None, rank=None):
 
@@ -174,13 +178,14 @@ class VideoCameraCalibrationStaticMogeMapper(Mapper):
             "mask_list": final_mask_list,
         }
 
-        os.makedirs(self.output_info_dir, exist_ok=True)
-        with open(
-            os.path.join(
-                self.output_info_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0] + ".json"
-            ),
-            "w",
-        ) as f:
-            json.dump(sample[Fields.meta][self.tag_field_name], f)
+        if self.if_output_info:
+            os.makedirs(self.output_info_dir, exist_ok=True)
+            with open(
+                os.path.join(
+                    self.output_info_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0] + ".json"
+                ),
+                "w",
+            ) as f:
+                json.dump(sample[Fields.meta][self.tag_field_name], f)
 
         return sample

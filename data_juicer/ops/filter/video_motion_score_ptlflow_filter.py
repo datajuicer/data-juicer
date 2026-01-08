@@ -23,7 +23,7 @@ OP_NAME = "video_motion_score_ptlflow_filter"
 @UNFORKABLE.register_module(OP_NAME)
 @OPERATORS.register_module(OP_NAME)
 class VideoMotionScorePtlflowFilter(VideoMotionScoreFilter):
-    """Filter to keep samples with video motion scores within a specified range.
+    """Filter to keep samples with video motion scores from ptlflow within a specified range.
 
     This operator utilizes the ptlflow library (https://github.com/hmorimitsu/ptlflow) to
     predict optical flow between video frames. It keeps samples where the

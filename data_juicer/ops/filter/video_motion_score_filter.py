@@ -28,7 +28,7 @@ def VideoCapture(*args, **kwargs):
 @UNFORKABLE.register_module(OP_NAME)
 @OPERATORS.register_module(OP_NAME)
 class VideoMotionScoreFilter(Filter):
-    """Filter to keep samples with video motion scores within a specific range.
+    """Filter to keep samples with video motion scores from OpenCV within a specific range.
 
     The operator uses Farneback's algorithm from OpenCV to compute dense optical flow. It
     calculates the average motion score for each video and retains samples based on the

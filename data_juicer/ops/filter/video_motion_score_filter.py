@@ -163,29 +163,42 @@ class VideoMotionScoreFilter(Filter):
             all_videos_frames = sample[self.frame_field]
             num_videos = len(all_videos_frames)
             unique_motion_scores = {}
+            video_optical_flows = {}
             for video_idx in range(num_videos):
-                unique_motion_scores[video_idx] = self._compute_motion_scores_from_frames(all_videos_frames[video_idx])
+                unique_motion_scores[video_idx], video_optical_flows[video_idx] = (
+                    self._compute_motion_scores_from_frames(all_videos_frames[video_idx])
+                )
 
             sample[Fields.stats][StatsKeys.video_motion_score] = [
                 unique_motion_scores.get(idx, -1) for idx in range(num_videos)
             ]
+            if self.if_output_optical_flow:
+                sample[Fields.meta][self.optical_flow_key] = [
+                    video_optical_flows.get(idx, -1) for idx in range(num_videos)
+                ]
         else:
             # Read videos and compute motion scores
             loaded_video_keys = sample[self.video_key]
             unique_motion_scores = {}
+            video_optical_flows = {}
             for video_key in loaded_video_keys:
                 # skip duplicate videos
                 if video_key in unique_motion_scores:
                     continue
-                unique_motion_scores[video_key] = self._compute_motion_scores_from_video(video_key)
+                unique_motion_scores[video_key], video_optical_flows[video_key] = (
+                    self._compute_motion_scores_from_video(video_key)
+                )
 
             sample[Fields.stats][StatsKeys.video_motion_score] = [
                 unique_motion_scores.get(key, -1) for key in sample[self.video_key]
             ]
+            if self.if_output_optical_flow:
+                sample[Fields.meta][self.optical_flow_key] = [video_optical_flows[key] for key in loaded_video_keys]
         return sample
 
     def _compute_motion_scores_from_frames(self, frames):
         video_motion_scores = []
+        optical_flows = []
         prev_frame = None
         for frame in frames:
             if isinstance(frame, bytes):
@@ -203,16 +216,20 @@ class VideoMotionScoreFilter(Filter):
             flow, prev_frame = self.compute_flow(prev_frame, frame)
             if flow is None:
                 continue
+            optical_flows.append(flow)
             mag, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
             frame_motion_score = np.mean(mag)
             if self.relative:
                 frame_motion_score /= np.hypot(*frame.shape[:2])
             video_motion_scores.append(float(frame_motion_score))
 
-        return np.mean(video_motion_scores or [-1])
+        res_optical_flow = np.stack(optical_flows).tolist() if optical_flows else []
+
+        return np.mean(video_motion_scores or [-1]), res_optical_flow
 
     def _compute_motion_scores_from_video(self, video_key):
         video_motion_scores = []
+        optical_flows = []
         with VideoCapture(video_key) as cap:
             if cap.isOpened():
                 fps = cap.get(cv2.CAP_PROP_FPS)
@@ -242,6 +259,7 @@ class VideoMotionScoreFilter(Filter):
                 flow, prev_frame = self.compute_flow(prev_frame, frame)
                 if flow is None:
                     continue
+                optical_flows.append(flow)
                 mag, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
                 frame_motion_score = np.mean(mag)
                 if self.relative:
@@ -252,7 +270,9 @@ class VideoMotionScoreFilter(Filter):
                 frame_count += sampling_step
                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
 
-        return np.mean(video_motion_scores or [-1])
+        res_optical_flow = np.stack(optical_flows).tolist() if optical_flows else []
+
+        return np.mean(video_motion_scores or [-1]), res_optical_flow
 
     def process_single(self, sample):
         video_motion_scores = sample[Fields.stats][StatsKeys.video_motion_score]

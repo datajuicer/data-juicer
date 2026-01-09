@@ -208,6 +208,7 @@ class OP(metaclass=OPMetaClass):
         # for unittest, do not skip the error.
         # It would be set to be True in config init.
         self.skip_op_error = kwargs.get("skip_op_error", False)
+        self.auto_op_parallelism = kwargs.get("auto_op_parallelism", True)
 
         # whether to enable batch processing
         self.batch_mode = kwargs.get("batch_mode", None)
@@ -225,7 +226,11 @@ class OP(metaclass=OPMetaClass):
             self.batch_size = kwargs.get("batch_size", DEFAULT_BATCH_SIZE)
 
         # parameters to determine the number of procs for this op
-        self.num_proc = kwargs.get("num_proc", -1)  # -1 means automatic calculation of concurrency
+        if not self.auto_op_parallelism:
+            self.num_proc = kwargs.get("num_proc", None)
+        else:
+            self.num_proc = kwargs.get("num_proc", -1)  # -1 means automatic calculation of concurrency
+
         self.cpu_required = kwargs.get("cpu_required", None)
         self.gpu_required = kwargs.get("gpu_required", None)
         self.mem_required = kwargs.get("mem_required", None)
@@ -277,7 +282,7 @@ class OP(metaclass=OPMetaClass):
                 setattr(self, name, method)
 
     def use_auto_proc(self):
-        if is_ray_mode() and not self.use_cuda():  # ray task
+        if is_ray_mode() and not self.use_ray_actor():  # ray task
             return self.num_proc == -1
         else:
             return not self.num_proc or self.num_proc == -1
@@ -307,9 +312,13 @@ class OP(metaclass=OPMetaClass):
         # Local import to avoid logger being serialized in multiprocessing
         from loguru import logger
 
-        op_proc = calculate_np(self._name, self.memory, self.num_cpus or 1, self.use_cuda(), self.num_gpus)
-        if not self.use_auto_proc():
-            op_proc = min(op_proc, self.num_proc)
+        if self.auto_op_parallelism:
+            op_proc = calculate_np(self._name, self.memory, self.num_cpus or 1, self.use_cuda(), self.num_gpus)
+            if not self.use_auto_proc():
+                op_proc = min(op_proc, self.num_proc)
+        else:
+            op_proc = self.num_proc
+
         logger.debug(f"Op [{self._name}] running with number of procs:{op_proc}")
         return op_proc
 

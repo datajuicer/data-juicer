@@ -88,8 +88,20 @@ def filter_batch(batch, filter_func):
 
 
 class RayDataset(DJDataset):
-    def __init__(self, dataset: ray.data.Dataset, dataset_path: str = None, cfg: Optional[Namespace] = None) -> None:
+    def __init__(
+        self,
+        dataset: ray.data.Dataset,
+        dataset_path: str = None,
+        cfg: Optional[Namespace] = None,
+        auto_op_parallelism=True,
+    ) -> None:
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
+        self._auto_proc = True
+        # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
+        if auto_op_parallelism is not None:
+            self._auto_proc = auto_op_parallelism
+        if cfg and cfg.get("auto_op_parallelism", None) is not None:
+            self._auto_proc = cfg.get("auto_op_parallelism")
 
     def schema(self) -> Schema:
         """Get dataset schema.
@@ -148,7 +160,8 @@ class RayDataset(DJDataset):
 
         from data_juicer.utils.process_utils import calculate_ray_np
 
-        calculate_ray_np(operators)
+        if self._auto_proc:
+            calculate_ray_np(operators)
 
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming

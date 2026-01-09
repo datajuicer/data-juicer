@@ -85,7 +85,7 @@ WORKDIR /data-juicer
 
 # install basic dependencies for Data-Juicer
 RUN uv pip install --upgrade setuptools==69.5.1 setuptools_scm -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
-    && uv pip install git+https://github.com/HYLcool/recognize-anything.git -i https://pypi.tuna.tsinghua.edu.cn/simple --system
+    && uv pip install git+https://github.com/datajuicer/recognize-anything.git -i https://pypi.tuna.tsinghua.edu.cn/simple --system
 
 # copy source code and install
 COPY . .

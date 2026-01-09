@@ -50,6 +50,7 @@ class VideoMotionScorePtlflowFilter(VideoMotionScoreFilter):
         self,
         min_score: float = 1.0,
         max_score: float = sys.float_info.max,
+        frame_field: Optional[str] = None,
         model_name: str = "dpflow",
         ckpt_path: Optional[str] = "things",
         get_model_args: Optional[dict] = None,
@@ -67,6 +68,7 @@ class VideoMotionScorePtlflowFilter(VideoMotionScoreFilter):
         super().__init__(
             min_score,
             max_score,
+            frame_field,
             sampling_fps,
             size,
             max_size,

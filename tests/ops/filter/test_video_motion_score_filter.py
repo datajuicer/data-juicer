@@ -226,8 +226,8 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
         }, {
             'frames': [[self.img1_path, self.img1_path]],
         }]
-        op = VideoMotionScoreFilter(min_score=0, max_score=3.0, frame_field='frames')
-        self._run_helper(op, ds_list, tgt_list, np=2, select_field=['frames'])
+        op = VideoMotionScoreFilter(min_score=0, max_score=3.0, frame_field='frames', num_proc=2)
+        self._run_helper(op, ds_list, tgt_list, select_field=['frames'])
 
 
 if __name__ == '__main__':

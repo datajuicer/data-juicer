@@ -50,6 +50,7 @@ class VideoMotionScoreRaftFilter(VideoMotionScoreFilter):
         self,
         min_score: float = 1.0,
         max_score: float = sys.float_info.max,
+        frame_field: Optional[str] = None,
         sampling_fps: PositiveFloat = 2,
         size: Union[PositiveInt, Tuple[PositiveInt], Tuple[PositiveInt, PositiveInt], None] = None,
         max_size: Optional[PositiveInt] = None,
@@ -64,6 +65,7 @@ class VideoMotionScoreRaftFilter(VideoMotionScoreFilter):
         super().__init__(
             min_score,
             max_score,
+            frame_field,
             sampling_fps,
             size,
             max_size,

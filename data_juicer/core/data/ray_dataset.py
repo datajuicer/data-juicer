@@ -96,12 +96,12 @@ class RayDataset(DJDataset):
         auto_op_parallelism=True,
     ) -> None:
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
-        self._auto_proc = True
+
         # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
-        if auto_op_parallelism is not None:
-            self._auto_proc = auto_op_parallelism
-        if cfg and cfg.get("auto_op_parallelism", None) is not None:
+        if cfg and cfg.get("auto_op_parallelism") is not None:
             self._auto_proc = cfg.get("auto_op_parallelism")
+        else:
+            self._auto_proc = auto_op_parallelism
 
     def schema(self) -> Schema:
         """Get dataset schema.

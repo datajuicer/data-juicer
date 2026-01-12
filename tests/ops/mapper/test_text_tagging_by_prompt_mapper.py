@@ -14,7 +14,7 @@ def check_string_in_list(string_list, output):
     assert False, f"没有字符串在输出中"
 
 
-class TextTaggingByPromptTest(DataJuicerTestCaseBase):
+class TextTaggingByPromptMapperTest(DataJuicerTestCaseBase):
     text_key = 'text'
 
     def _run_tagging(self, samples, enable_vllm=False, sampling_params={}, **kwargs):

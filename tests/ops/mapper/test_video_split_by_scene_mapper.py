@@ -1,5 +1,7 @@
 import os
 import unittest
+import tempfile
+import shutil
 
 from data_juicer.core.data import NestedDataset as Dataset
 
@@ -21,6 +23,12 @@ class VideoSplitBySceneMapperTest(DataJuicerTestCaseBase):
     vid3_base, vid3_ext = os.path.splitext(os.path.basename(vid3_path))
 
     op_name = 'video_split_by_scene_mapper'
+    tmp_dir = tempfile.TemporaryDirectory().name
+
+    def tearDown(self):
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
 
     def get_res_list(self, dataset: Dataset):
         res_list = []
@@ -164,6 +172,70 @@ class VideoSplitBySceneMapperTest(DataJuicerTestCaseBase):
         ]
         op = VideoSplitBySceneMapper()
         self._run_helper(op, ds_list, tgt_list)
+    
+    def test_output_format(self, save_field=None):
+        ds_list = [
+            {
+                'id': 0,
+                'text':
+                f'{SpecialTokens.video} this is video1 {SpecialTokens.eoc}',
+                'videos': [self.vid1_path]  # 3 scenes
+            },
+            {
+                'id': 1,
+                'text':
+                f'{SpecialTokens.video} this is video2 {SpecialTokens.eoc}',
+                'videos': [self.vid2_path]  # 1 scene
+            },
+            {
+                'id': 2,
+                'text':
+                f'{SpecialTokens.video} this is video3 {SpecialTokens.eoc}',
+                'videos': [self.vid3_path]  # 2 scenes
+            }
+        ]
+        tgt_list = [
+            {
+                'id': 0,
+                'text':
+                f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} this is video1 {SpecialTokens.eoc}',  # noqa: E501
+                'scene_num': 3
+            },
+            {
+                'id': 1,
+                'text':
+                f'{SpecialTokens.video} this is video2 {SpecialTokens.eoc}',
+                'scene_num': 1
+            },
+            {
+                'id': 2,
+                'text':
+                f'{SpecialTokens.video}{SpecialTokens.video} this is video3 {SpecialTokens.eoc}',  # noqa: E501
+                'scene_num': 2
+            }
+        ]
+        op = VideoSplitBySceneMapper(
+            output_format="bytes",
+            save_dir=self.tmp_dir,
+            save_field=save_field)
+
+        dataset = Dataset.from_list(ds_list)
+        dataset = dataset.map(op.process)
+
+        res_list = dataset.to_list()
+        res_list = sorted(res_list, key=lambda x: x["id"])
+
+        save_field = save_field or "videos"
+        for i in range(len(ds_list)):
+            res = res_list[i] 
+            tgt = tgt_list[i]
+            self.assertEqual(res['id'], tgt['id'])
+            self.assertEqual(res['text'], tgt['text'])
+            self.assertEqual(len(res[save_field]), tgt['scene_num'])
+            self.assertTrue(all(isinstance(v, bytes) for v in res[save_field]))
+
+    def test_save_field(self):
+        self.test_output_format(save_field="clips")
 
 
 if __name__ == '__main__':

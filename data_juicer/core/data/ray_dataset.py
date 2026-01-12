@@ -88,8 +88,20 @@ def filter_batch(batch, filter_func):
 
 
 class RayDataset(DJDataset):
-    def __init__(self, dataset: ray.data.Dataset, dataset_path: str = None, cfg: Optional[Namespace] = None) -> None:
+    def __init__(
+        self,
+        dataset: ray.data.Dataset,
+        dataset_path: str = None,
+        cfg: Optional[Namespace] = None,
+        auto_op_parallelism=True,
+    ) -> None:
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
+
+        # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
+        if cfg and cfg.get("auto_op_parallelism") is not None:
+            self._auto_proc = cfg.get("auto_op_parallelism")
+        else:
+            self._auto_proc = auto_op_parallelism
 
     def schema(self) -> Schema:
         """Get dataset schema.
@@ -148,7 +160,8 @@ class RayDataset(DJDataset):
 
         from data_juicer.utils.process_utils import calculate_ray_np
 
-        calculate_ray_np(operators)
+        if self._auto_proc:
+            calculate_ray_np(operators)
 
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming
@@ -179,14 +192,13 @@ class RayDataset(DJDataset):
             batch_size = getattr(op, "batch_size", 1) if op.is_batched_op() else 1
             if isinstance(op, Mapper):
                 if op.use_ray_actor():
-                    op_kwargs = op._op_cfg[op._name]
                     compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
                         fn_args=None,
                         fn_kwargs=None,
-                        fn_constructor_args=None,
-                        fn_constructor_kwargs=op_kwargs,
+                        fn_constructor_args=op._init_args,
+                        fn_constructor_kwargs=op._init_kwargs,
                         batch_size=batch_size,
                         num_cpus=op.num_cpus,
                         num_gpus=op.num_gpus,
@@ -219,14 +231,13 @@ class RayDataset(DJDataset):
                     )
                     cached_columns.add(Fields.stats)
                 if op.use_ray_actor():
-                    op_kwargs = op._op_cfg[op._name]
                     compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
                         fn_args=None,
                         fn_kwargs=None,
-                        fn_constructor_args=None,
-                        fn_constructor_kwargs=op_kwargs,
+                        fn_constructor_args=op._init_args,
+                        fn_constructor_kwargs=op._init_kwargs,
                         batch_size=batch_size,
                         num_cpus=op.num_cpus,
                         num_gpus=op.num_gpus,

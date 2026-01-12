@@ -47,8 +47,10 @@ class VideoDurationFilterTest(DataJuicerTestCaseBase):
             'videos': [self.vid3_path]
         }]
         dataset = Dataset.from_list(ds_list)
-        op = VideoDurationFilter()
-        self._run_video_duration_filter(dataset, tgt_list, op)
+
+        for video_backend in ['av', 'ffmpeg']:
+            op = VideoDurationFilter(video_backend=video_backend)
+            self._run_video_duration_filter(dataset, tgt_list, op)
 
     def test_filter_long_videos(self):
 
@@ -61,8 +63,10 @@ class VideoDurationFilterTest(DataJuicerTestCaseBase):
         }]
         tgt_list = [{'videos': [self.vid1_path]}]
         dataset = Dataset.from_list(ds_list)
-        op = VideoDurationFilter(max_duration=15)
-        self._run_video_duration_filter(dataset, tgt_list, op)
+
+        for video_backend in ['av', 'ffmpeg']:
+            op = VideoDurationFilter(max_duration=15, video_backend=video_backend)
+            self._run_video_duration_filter(dataset, tgt_list, op)
 
     def test_filter_short_videos(self):
 
@@ -75,8 +79,10 @@ class VideoDurationFilterTest(DataJuicerTestCaseBase):
         }]
         tgt_list = [{'videos': [self.vid3_path]}]
         dataset = Dataset.from_list(ds_list)
-        op = VideoDurationFilter(min_duration=30)
-        self._run_video_duration_filter(dataset, tgt_list, op)
+
+        for video_backend in ['av', 'ffmpeg']:
+            op = VideoDurationFilter(min_duration=30, video_backend=video_backend)
+            self._run_video_duration_filter(dataset, tgt_list, op)
 
     def test_filter_videos_within_range(self):
 
@@ -89,8 +95,10 @@ class VideoDurationFilterTest(DataJuicerTestCaseBase):
         }]
         tgt_list = [{'videos': [self.vid2_path]}]
         dataset = Dataset.from_list(ds_list)
-        op = VideoDurationFilter(min_duration=16, max_duration=42)
-        self._run_video_duration_filter(dataset, tgt_list, op)
+
+        for video_backend in ['av', 'ffmpeg']:
+            op = VideoDurationFilter(min_duration=16, max_duration=42, video_backend=video_backend)
+            self._run_video_duration_filter(dataset, tgt_list, op)
 
     def test_any(self):
 
@@ -107,10 +115,13 @@ class VideoDurationFilterTest(DataJuicerTestCaseBase):
             'videos': [self.vid2_path, self.vid3_path]
         }]
         dataset = Dataset.from_list(ds_list)
-        op = VideoDurationFilter(min_duration=15,
-                                 max_duration=30,
-                                 any_or_all='any')
-        self._run_video_duration_filter(dataset, tgt_list, op)
+
+        for video_backend in ['av', 'ffmpeg']:
+            op = VideoDurationFilter(min_duration=15,
+                                    max_duration=30,
+                                    any_or_all='any',
+                                    video_backend=video_backend)
+            self._run_video_duration_filter(dataset, tgt_list, op)
 
     def test_all(self):
 
@@ -123,10 +134,13 @@ class VideoDurationFilterTest(DataJuicerTestCaseBase):
         }]
         tgt_list = []
         dataset = Dataset.from_list(ds_list)
-        op = VideoDurationFilter(min_duration=15,
-                                 max_duration=30,
-                                 any_or_all='all')
-        self._run_video_duration_filter(dataset, tgt_list, op)
+
+        for video_backend in ['av', 'ffmpeg']:
+            op = VideoDurationFilter(min_duration=15,
+                                    max_duration=30,
+                                    any_or_all='all',
+                                    video_backend=video_backend)
+            self._run_video_duration_filter(dataset, tgt_list, op)
 
     def test_filter_in_parallel(self):
 
@@ -139,8 +153,10 @@ class VideoDurationFilterTest(DataJuicerTestCaseBase):
         }]
         tgt_list = [{'videos': [self.vid2_path]}]
         dataset = Dataset.from_list(ds_list)
-        op = VideoDurationFilter(min_duration=15, max_duration=30)
-        self._run_video_duration_filter(dataset, tgt_list, op, np=2)
+
+        for video_backend in ['av', 'ffmpeg']:
+            op = VideoDurationFilter(min_duration=15, max_duration=30, video_backend=video_backend)
+            self._run_video_duration_filter(dataset, tgt_list, op, np=2)
 
 
 if __name__ == '__main__':

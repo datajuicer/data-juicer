@@ -31,12 +31,12 @@ jobs:
     - name: Install data-juicer
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
+        docker compose exec ray-head bash -c 'UV_HTTP_TIMEOUT=3600 uv pip install --system -e .\[all\]'
 
     - name: Print Pip Dependency Tree
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system pipdeptree'
+        docker compose exec ray-head bash -c 'uv pip install --system pipdeptree'
         docker compose exec ray-head bash -c 'pipdeptree'
 
     - name: Clean dataset cache
@@ -90,8 +90,8 @@ jobs:
     - name: Install data-juicer
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
-        docker compose exec ray-worker bash -c '/root/.local/bin/uv pip install --system -e .\[all\]'
+        docker compose exec ray-head bash -c 'UV_HTTP_TIMEOUT=3600 uv pip install --system -e .\[all\]'
+        docker compose exec ray-worker bash -c 'UV_HTTP_TIMEOUT=3600 uv pip install --system -e .\[all\]'
 
     - name: Clean dataset cache
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
@@ -140,7 +140,7 @@ jobs:
     - name: Install coverage
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec ray-head bash -c '/root/.local/bin/uv pip install --system coverage'
+        docker compose exec ray-head bash -c 'uv pip install --system coverage'
 
     - name: Download Coverage Report Standalone
       uses: actions/download-artifact@v4

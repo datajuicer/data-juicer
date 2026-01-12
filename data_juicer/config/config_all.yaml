@@ -34,6 +34,7 @@ keep_stats_in_res_ds: false                                 # whether to keep th
 keep_hashes_in_res_ds: false                                # whether to keep the computed hashes in the result dataset. The intermediate fields to store the hashes computed by Deduplicators will be removed if it's False. It's False in default.
 export_extra_args: {}                                       # Other optional arguments for exporting in dict. For example, the key mapping info for exporting the WebDataset format.
 
+auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.
 np: 4                                                       # number of subprocess to process your dataset
 text_keys: 'text'                                           # the key name of field where the sample texts to be processed, e.g., `text`, `instruction`, `output`, ...
                                                             # Note: currently, we support specify only ONE key for each op, for cases requiring multiple keys, users can specify the op multiple times. We will only use the first key of `text_keys` when you set multiple keys.
@@ -48,6 +49,7 @@ temp_dir: null                                              # the path to the te
 open_tracer: false                                          # whether to open the tracer to trace the changes during process. It might take more time when opening tracer
 op_list_to_trace: []                                        # only ops in this list will be traced by tracer. If it's empty, all ops will be traced. Only available when tracer is opened.
 trace_num: 10                                               # number of samples to show the differences between datasets before and after each op. Only available when tracer is opened.
+trace_keys: []                                              # list of field names to include in trace output (e.g. ['sample_id', 'source_file']). If set, the specified fields' values will be included in each trace entry. Only available when tracer is opened.
 op_fusion: false                                            # whether to fuse operators that share the same intermediate variables automatically. Op fusion might reduce the memory requirements slightly but speed up the whole process.
 fusion_strategy: 'probe'                                    # OP fusion strategy. Support ['greedy', 'probe'] now. 'greedy' means keep the basic OP order and put the fused OP to the last of each fused OP group. 'probe' means Data-Juicer will probe the running speed for each OP at the beginning and reorder the OPs and fused OPs according to their probed speed (fast to slow). It's 'probe' in default.
 cache_compress: null                                        # the compression method of the cache file, which can be specified in ['gzip', 'zstd', 'lz4']. If this parameter is None, the cache file will not be compressed. We recommend you turn on this argument when your input dataset is larger than tens of GB and your disk space is not enough.

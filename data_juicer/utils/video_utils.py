@@ -1,9 +1,12 @@
 import abc
+import io
 import json
 import math
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -156,7 +159,9 @@ class VideoReader(abc.ABC):
 class AVReader(VideoReader):
     """Video reader using the AV library."""
 
-    def __init__(self, video_source: str, video_stream_index: int = 0, frame_format: str = "rgb24"):
+    def __init__(
+        self, video_source: Union[str, Path, bytes, IO[bytes]], video_stream_index: int = 0, frame_format: str = "rgb24"
+    ):
         """
         Initialize AVReader.
 
@@ -168,7 +173,11 @@ class AVReader(VideoReader):
 
         self.frame_format = frame_format
         self.video_stream_index = video_stream_index
-        self.container = av.open(self.video_source)
+
+        if isinstance(self.video_source, bytes):
+            self.container = av.open(io.BytesIO(self.video_source))
+        else:
+            self.container = av.open(self.video_source)
 
         video_streams = self.container.streams.video
         if not video_streams:
@@ -335,7 +344,9 @@ class FFmpegReader(VideoReader):
     Video reader using FFmpeg.
     """
 
-    def __init__(self, video_source: str, video_stream_index: int = 0, frame_format: str = "rgb24"):
+    def __init__(
+        self, video_source: Union[str, Path, bytes, IO[bytes]], video_stream_index: int = 0, frame_format: str = "rgb24"
+    ):
         """
         Initialize FFmpegReader.
 
@@ -344,9 +355,61 @@ class FFmpegReader(VideoReader):
         :param frame_format: Frame format, default set to "rgb24".
         """
         super().__init__(video_source)
-        self.video_source = video_source
+
         self.video_stream_index = video_stream_index
         self.frame_format = frame_format
+        self._temp_file = None
+        self._should_cleanup = False
+
+        self.video_path = self.video_source
+        # Convert Path to string if needed
+        if isinstance(self.video_source, Path):
+            self.video_path = str(self.video_source)
+
+        # Handle bytes and file-like objects by creating temporary files
+        if isinstance(self.video_source, bytes) or (
+            hasattr(self.video_source, "read") and hasattr(self.video_source, "seek")
+        ):
+            self.video_path = self._create_temp_file()
+
+    def _create_temp_file(self):
+        """Create a temporary file for bytes or file-like input and set cleanup flag."""
+        try:
+            # Create a named temporary file that will be automatically deleted when closed
+            self._temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+            self._should_cleanup = True
+
+            if isinstance(self.video_source, bytes):
+                # Write bytes to temporary file
+                self._temp_file.write(self.video_source)
+            else:
+                # File-like object - read and write its content
+                self.video_source.seek(0)  # Ensure we're at the beginning
+                shutil.copyfileobj(self.video_source, self._temp_file)
+
+            self._temp_file.flush()
+            self._temp_file.close()
+        except Exception as e:
+            # Clean up on error
+            self._cleanup_temp_file()
+            raise RuntimeError(f"Failed to create temporary file for video source: {e}")
+
+        return self._temp_file.name
+
+    def _cleanup_temp_file(self):
+        """Clean up temporary file if it was created."""
+        if self._should_cleanup and self._temp_file and os.path.exists(self._temp_file.name):
+            temp_path = Path(self._temp_file.name)
+            self._temp_file.close()
+            try:
+                if temp_path.exists():
+                    temp_path.unlink()
+            except OSError as e:
+                from loguru import logger
+
+                logger.warning(f"Failed to remove temporary file {temp_path}: {e}")
+            self._temp_file = None
+            self._should_cleanup = False
 
     def get_metadata(self) -> VideoMetadata:
         cmd = [
@@ -361,7 +424,7 @@ class FFmpegReader(VideoReader):
             "format=duration",
             "-of",
             "json",
-            self.video_source,
+            self.video_path,
         ]
 
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -436,7 +499,7 @@ class FFmpegReader(VideoReader):
 
         cmd += [
             "-i",
-            self.video_source,
+            self.video_path,
             "-f",
             "rawvideo",
             "-pix_fmt",
@@ -473,7 +536,7 @@ class FFmpegReader(VideoReader):
         cmd.extend(
             [
                 "-i",
-                self.video_source,
+                self.video_path,
                 "-vf",
                 "showinfo,select=eq(pict_type\,I)",  # noqa: W605
                 "-vsync",
@@ -570,7 +633,7 @@ class FFmpegReader(VideoReader):
             "-ss",
             str(start_time),  # Start time
             "-i",
-            self.video_source,  # Input file
+            self.video_path,  # Input file
         ]
 
         # Add end time if specified
@@ -618,7 +681,8 @@ class FFmpegReader(VideoReader):
         )
 
     def close(self):
-        pass
+        """Clean up resources, including temporary files."""
+        self._cleanup_temp_file()
 
     @classmethod
     def is_available(cls):
@@ -644,15 +708,23 @@ class FFmpegReader(VideoReader):
 class DecordReader(VideoReader):
     """Video reader using Decord"""
 
-    def __init__(self, video_source: str):
+    def __init__(
+        self,
+        video_source: Union[str, Path, bytes, IO[bytes]],
+    ):
         """
         Initialize the video reader.
 
-        :param video_source: the path to video.
+        :param video_source: Path, URL, bytes, or file-like object.
         """
         super().__init__(video_source)
 
-        self.reader = decord.VideoReader(video_source)
+        if isinstance(video_source, Path):
+            self.reader = decord.VideoReader(str(video_source))
+        elif isinstance(video_source, bytes):
+            self.reader = decord.VideoReader(io.BytesIO(video_source))
+        else:
+            self.reader = decord.VideoReader(video_source)
 
     def get_metadata(self) -> VideoMetadata:
         fps = self.reader.get_avg_fps()
@@ -798,17 +870,17 @@ class DecordReader(VideoReader):
             return False
 
 
-def create_video_reader(video_source: str, backend: str = "auto") -> VideoReader:
+def create_video_reader(video_source: str, backend: str = "auto", **kwargs) -> VideoReader:
     backends = {"ffmpeg": FFmpegReader, "decord": DecordReader, "av": AVReader}
 
     if backend != "auto":
         cls = backends[backend]
         if cls.is_available():
-            return cls(video_source)
+            return cls(video_source, **kwargs)
         raise RuntimeError(f"Backend {backend} not available")
 
     # select available backend automatically
     for name, cls in backends.items():
         if cls.is_available():
-            return cls(video_source)
+            return cls(video_source, **kwargs)
     raise RuntimeError("No available video backend found")

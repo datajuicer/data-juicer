@@ -85,6 +85,8 @@ vision = [
     "rembg",  # Background removal
     "decord", # video/audio handling
     "qwen-vl-utils==0.0.14",  # for Qwen-VL
+    "ptlflow==0.4.1",  # optical flow models collection
+    "timm==1.0.22",  # avoid importing issue in the latest v1.0.23
 ]
 
 # Natural Language Processing

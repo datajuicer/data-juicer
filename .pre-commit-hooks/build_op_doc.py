@@ -340,12 +340,14 @@ def get_op_list_from_code():
     # get docs for formatters first
     op_record_list = get_op_list_from_code_for_formatter()
     # get docs for other ops
+    op_num_dict = {}
     for type in os.listdir(OP_CODE_PREFIX):
         if type in OP_EXCLUDE:
             continue
         type_dir = os.path.join(OP_CODE_PREFIX, type)
         if os.path.isfile(type_dir):
             continue
+        op_num_dict[type] = 0
         for op in os.listdir(type_dir):
             if op in OP_EXCLUDE:
                 continue
@@ -369,8 +371,9 @@ def get_op_list_from_code():
                     ref=ref_link(op.replace(".py", "")),
                 )
             )
+            op_num_dict[type] += 1
     op_record_list.sort(key=lambda record: (record.type, record.name))
-    return op_record_list
+    return op_record_list, op_num_dict
 
 
 def generate_new_doc(op_record_list, old_op_record_list):
@@ -516,6 +519,22 @@ def get_op_desc_in_en_zh_batched(descs):
     return zhs
 
 
+def parse_op_num_from_doc(doc_content):
+    pattern = r"\| +(.*?) +\| +(.*?) +\| +(.*?) +\|"
+    link_pattern = r"\[(.*?)\]\(.*\)"
+    overview_section = doc_content.split("## Overview  概览")[1].split("##")[0]
+    res = re.findall(pattern, overview_section)
+    num_dict = {}
+    for type, num, desc in res:
+        if type == "Type 类型":
+            continue
+        type = re.findall(link_pattern, type)[0]
+        if type == "formatter":
+            continue
+        num_dict[type] = int(num)
+    return num_dict
+
+
 def parse_op_record_from_current_doc():
     """
     Parse the old-version OP records from the existing OP doc.
@@ -527,6 +546,7 @@ def parse_op_record_from_current_doc():
         op_record_list = []
         with open(DOC_PATH, "r", encoding="utf-8") as fin:
             content = fin.read()
+            op_num_dict = parse_op_num_from_doc(content)
             res = re.findall(tab_pattern, content)
             for name, tags, desc, info, ref in res:
                 # skip table header
@@ -553,9 +573,9 @@ def parse_op_record_from_current_doc():
                     )
                 )
         op_record_list.sort(key=lambda record: (record.type, record.name))
-        return op_record_list
+        return op_record_list, op_num_dict
     else:
-        return []
+        return [], {}
 
 
 def check_and_update_op_record(old_op_record_list, new_op_record_list):
@@ -620,11 +640,11 @@ def check_and_update_op_record(old_op_record_list, new_op_record_list):
 
 
 def main():
-    old_op_record_list = parse_op_record_from_current_doc()
-    new_op_record_list = get_op_list_from_code()
+    old_op_record_list, old_op_num_dict = parse_op_record_from_current_doc()
+    new_op_record_list, new_op_num_dict = get_op_list_from_code()
     updated_op_record_list = check_and_update_op_record(old_op_record_list, new_op_record_list)
     # if the doc is changed, exit with non-zero value
-    if old_op_record_list == updated_op_record_list:
+    if new_op_num_dict == old_op_num_dict and old_op_record_list == updated_op_record_list:
         exit(0)
     else:
         generate_new_doc(updated_op_record_list, old_op_record_list)

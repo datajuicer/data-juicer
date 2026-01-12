@@ -454,6 +454,7 @@ def prepare_deepcalib_model(model_path, **model_params):
 
     gpus = tf.config.list_physical_devices("GPU")
     tf.config.set_visible_devices(gpus[int(device.split(":")[-1])], "GPU")
+    tf.config.experimental.set_memory_growth(gpus[int(device.split(":")[-1])], True)
     with tf.device(device):
         input_shape = (299, 299, 3)
         main_input = Input(shape=input_shape, dtype="float32", name="main_input")

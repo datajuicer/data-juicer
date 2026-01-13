@@ -65,34 +65,34 @@ class LLMPerplexityFilter(Filter):
         self.model_params = model_params
         self.model_key = prepare_model(model_type="huggingface", pretrained_model_name_or_path=hf_model, **model_params)
 
-    @torch.no_grad()
     def _loss(self, example, pre_example=None, rank=None):
-        model, tokenizer = get_model(self.model_key, rank, self.use_cuda())
-        model.eval()
-        tokenizer.pad_token = tokenizer.pad_token or tokenizer.eos_token
-        tokenizer.padding_side = "left"
-        tokenizer.truncation_side = "left"
+        with torch.no_grad():
+            model, tokenizer = get_model(self.model_key, rank, self.use_cuda())
+            model.eval()
+            tokenizer.pad_token = tokenizer.pad_token or tokenizer.eos_token
+            tokenizer.padding_side = "left"
+            tokenizer.truncation_side = "left"
 
-        pre_msgs = pre_example["messages"] if pre_example is not None else []
-        msgs = pre_msgs + example["messages"]
-        # TODO: chat template
-        full_text = " ".join([msg["content"] for msg in msgs]).strip()
-        response_text = msgs[-1]["content"].strip()
-        max_length = self.model_params.get("max_length", None)
-        full_tokenized = tokenizer(full_text, max_length=max_length, truncation=True, return_tensors="pt")
-        input_ids = full_tokenized["input_ids"]
-        response_ids = tokenizer(response_text, max_length=max_length, truncation=True, return_tensors="pt")[
-            "input_ids"
-        ][0]
-        response_len = len(response_ids) - int(tokenizer.bos_token_id is not None)
-        labels = input_ids.clone()
-        labels[0, :-response_len] = -100
+            pre_msgs = pre_example["messages"] if pre_example is not None else []
+            msgs = pre_msgs + example["messages"]
+            # TODO: chat template
+            full_text = " ".join([msg["content"] for msg in msgs]).strip()
+            response_text = msgs[-1]["content"].strip()
+            max_length = self.model_params.get("max_length", None)
+            full_tokenized = tokenizer(full_text, max_length=max_length, truncation=True, return_tensors="pt")
+            input_ids = full_tokenized["input_ids"]
+            response_ids = tokenizer(response_text, max_length=max_length, truncation=True, return_tensors="pt")[
+                "input_ids"
+            ][0]
+            response_len = len(response_ids) - int(tokenizer.bos_token_id is not None)
+            labels = input_ids.clone()
+            labels[0, :-response_len] = -100
 
-        input_ids = input_ids.to(model.device)
-        labels = labels.to(model.device)
-        loss = model(input_ids=input_ids, labels=labels).loss.item()
+            input_ids = input_ids.to(model.device)
+            labels = labels.to(model.device)
+            loss = model(input_ids=input_ids, labels=labels).loss.item()
 
-        return loss
+            return loss
 
     def sample_with_messages(self, sample, system_prompt=None):
         if "messages" in sample:

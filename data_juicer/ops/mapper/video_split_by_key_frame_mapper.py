@@ -199,7 +199,7 @@ class VideoSplitByKeyFrameMapper(Mapper):
             # TODO: handle the text field update
             for video_idx, video in videos.items():
                 if is_video_path:
-                    video_path = video_idx
+                    video_path = loaded_videos[video_idx]
                     new_video_keys = self.get_split_key_frame(video, video_path)
                     split_sample[Fields.source_file].extend([video_path] * len(new_video_keys))
                 else:

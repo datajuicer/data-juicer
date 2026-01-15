@@ -65,7 +65,7 @@ class RequiredFieldsValidatorTest(DataJuicerTestCaseBase):
 
     def test_type_validation(self):
         """Test field type validation"""
-        # Should pass        
+        # Should pass
         config = {
             'required_fields': ['text', 'score'],
             'field_types': {
@@ -83,6 +83,63 @@ class RequiredFieldsValidatorTest(DataJuicerTestCaseBase):
         with self.assertRaises(DataValidationError) as exc:
             validator.validate(self.dataset)
         self.assertIn("incorrect type", str(exc.exception).lower())
+
+    def test_type_validation_with_string_type_names(self):
+        """Test field type validation with string type names (from YAML config)"""
+        # Should pass with string type names
+        config = {
+            'required_fields': ['text', 'score'],
+            'field_types': {
+                'text': 'str',
+                'score': 'float'
+            },
+            'allow_missing': .25
+        }
+        validator = RequiredFieldsValidator(config)
+        validator.validate(self.dataset)
+
+        # Should also work with alternative type names
+        config_alt = {
+            'required_fields': ['text', 'score'],
+            'field_types': {
+                'text': 'string',
+                'score': 'float'
+            },
+            'allow_missing': .25
+        }
+        validator_alt = RequiredFieldsValidator(config_alt)
+        validator_alt.validate(self.dataset)
+
+        # Should fail with wrong type (string specified)
+        config['field_types']['score'] = 'str'
+        validator = RequiredFieldsValidator(config)
+        with self.assertRaises(DataValidationError) as exc:
+            validator.validate(self.dataset)
+        self.assertIn("incorrect type", str(exc.exception).lower())
+
+    def test_type_validation_with_unknown_type_name(self):
+        """Test that unknown type names raise an error"""
+        config = {
+            'required_fields': ['text'],
+            'field_types': {
+                'text': 'unknown_type'
+            }
+        }
+        with self.assertRaises(DataValidationError) as exc:
+            RequiredFieldsValidator(config)
+        self.assertIn("unknown type name", str(exc.exception).lower())
+
+    def test_type_validation_with_invalid_type_spec(self):
+        """Test that invalid type specifications raise an error"""
+        config = {
+            'required_fields': ['text'],
+            'field_types': {
+                'text': 123  # Neither a type nor a string
+            }
+        }
+        with self.assertRaises(DataValidationError) as exc:
+            RequiredFieldsValidator(config)
+        self.assertIn("invalid type specification", str(exc.exception).lower())
 
     @TEST_TAG('ray')
     def test_ray_dataset_support(self):

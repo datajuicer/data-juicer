@@ -12,7 +12,7 @@ from data_juicer.core.data import NestedDataset
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.exporter import Exporter
-from data_juicer.core.tracer import Tracer
+from data_juicer.core.tracer.tracer import Tracer
 from data_juicer.ops import load_ops
 from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.ops.selector import (
@@ -111,11 +111,14 @@ class DefaultExecutor(ExecutorBase):
         self.open_tracer = self.cfg.open_tracer
         if self.open_tracer:
             logger.info("Preparing tracer...")
+            from multiprocessing import Manager
+
             self.tracer = Tracer(
                 self.work_dir,
                 self.cfg.op_list_to_trace,
                 show_num=self.cfg.trace_num,
                 trace_keys=self.cfg.trace_keys,
+                lock=Manager().Lock(),
             )
 
     def run(

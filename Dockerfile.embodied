@@ -46,7 +46,7 @@ RUN wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac
 
 # install the versions of dependencies in data-juicer
 WORKDIR /data-juicer
-RUN uv pip install -v -e --no-cache-dir .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system
+RUN uv pip install --no-cache-dir -v -e .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system
 
 # 最终入口配置
 CMD ["/bin/bash"]

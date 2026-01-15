@@ -54,7 +54,7 @@ RUN uv pip install --upgrade --no-cache-dir setuptools==69.5.1 setuptools_scm -i
 
 # copy source code and install
 COPY . .
-RUN uv pip install -v -e --no-cache-dir .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
+RUN uv pip install --no-cache-dir -v -e .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
     && python -c "import nltk; nltk.download('punkt_tab'); nltk.download('punkt'); nltk.download('averaged_perceptron_tagger');  nltk.download('averaged_perceptron_tagger_eng')"
 
 # 最终入口配置

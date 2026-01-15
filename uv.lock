@@ -6010,6 +6010,7 @@ name = "py-data-juicer"
 source = { editable = "." }
 dependencies = [
     { name = "av" },
+    { name = "boto" },
     { name = "bs4" },
     { name = "datasets" },
     { name = "dill" },
@@ -6213,6 +6214,7 @@ requires-dist = [
     { name = "bitarray", marker = "extra == 'distributed'" },
     { name = "black", marker = "extra == 'all'", specifier = ">=25.1.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
+    { name = "boto" },
     { name = "bs4" },
     { name = "build", marker = "extra == 'all'" },
     { name = "build", marker = "extra == 'dev'" },

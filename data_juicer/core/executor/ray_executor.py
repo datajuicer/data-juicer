@@ -104,6 +104,7 @@ class RayExecutor(ExecutorBase):
         )
 
         # setup tracer
+        self.tracer = None
         self.open_tracer = self.cfg.open_tracer
         if self.open_tracer:
             logger.info("Preparing tracer...")

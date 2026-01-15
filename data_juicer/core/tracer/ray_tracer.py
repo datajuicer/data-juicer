@@ -66,7 +66,6 @@ class RayTracer:
         :param op_name: the operator name
         :return: True if enough samples have been collected
         """
-        # Ray mode: no lock needed as each worker has its own instance
         return self._collected_counts[op_name] >= self.show_num
 
     def collect_mapper_sample(self, op_name: str, original_sample: dict, processed_sample: dict, text_key: str):

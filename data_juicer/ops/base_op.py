@@ -622,6 +622,7 @@ class Mapper(OP):
         # Wrap process method with tracer for sample-level collection
         from data_juicer.core.tracer import should_trace_op
 
+        original_process = None
         if tracer and should_trace_op(tracer, self._name):
             # Store original process method
             original_process = self.process
@@ -630,17 +631,18 @@ class Mapper(OP):
                 original_process, self._name, self.text_key, tracer, self.is_batched_op()
             )
 
-        new_dataset = dataset.map(
-            self.process,
-            num_proc=self.runtime_np(),
-            with_rank=self.use_cuda(),
-            batch_size=self.batch_size,
-            desc=self._name + "_process",
-        )
-
-        # Restore original process method
-        if tracer and should_trace_op(tracer, self._name):
-            self.process = original_process
+        try:
+            new_dataset = dataset.map(
+                self.process,
+                num_proc=self.runtime_np(),
+                with_rank=self.use_cuda(),
+                batch_size=self.batch_size,
+                desc=self._name + "_process",
+            )
+        finally:
+            # Restore original process method
+            if tracer and should_trace_op(tracer, self._name) and original_process:
+                self.process = original_process
 
         free_models()
         return new_dataset
@@ -776,19 +778,21 @@ class Filter(OP):
             # Wrap process method with tracer for sample-level collection
             from data_juicer.core.tracer import should_trace_op
 
+            original_process = None
             if tracer and should_trace_op(tracer, self._name):
                 # Store original process method
                 original_process = self.process
                 # Wrap with tracer
                 self.process = wrap_filter_with_tracer(original_process, self._name, tracer, self.is_batched_op())
 
-            new_dataset = new_dataset.filter(
-                self.process, num_proc=self.runtime_np(), batch_size=self.batch_size, desc=self._name + "_process"
-            )
-
-            # Restore original process method
-            if tracer and should_trace_op(tracer, self._name):
-                self.process = original_process
+            try:
+                new_dataset = new_dataset.filter(
+                    self.process, num_proc=self.runtime_np(), batch_size=self.batch_size, desc=self._name + "_process"
+                )
+            finally:
+                # Restore original process method
+                if tracer and should_trace_op(tracer, self._name) and original_process:
+                    self.process = original_process
 
         free_models()
         return new_dataset

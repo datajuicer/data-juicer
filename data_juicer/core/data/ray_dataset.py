@@ -193,42 +193,44 @@ class RayDataset(DJDataset):
             batch_size = getattr(op, "batch_size", 1) if op.is_batched_op() else 1
             if isinstance(op, Mapper):
                 # Wrap process method with tracer for sample-level collection
+                original_process = None
                 if tracer and should_trace_op(tracer, op._name):
                     from data_juicer.ops.base_op import wrap_mapper_with_tracer
 
                     original_process = op.process
                     op.process = wrap_mapper_with_tracer(original_process, op._name, op.text_key, tracer, True)
 
-                if op.use_ray_actor():
-                    compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
-                    self.data = self.data.map_batches(
-                        op.__class__,
-                        fn_args=None,
-                        fn_kwargs=None,
-                        fn_constructor_args=op._init_args,
-                        fn_constructor_kwargs=op._init_kwargs,
-                        batch_size=batch_size,
-                        num_cpus=op.num_cpus,
-                        num_gpus=op.num_gpus,
-                        compute=compute,
-                        batch_format="pyarrow",
-                        runtime_env=op.runtime_env,
-                    )
-                else:
-                    compute = get_compute_strategy(op.process, concurrency=op.num_proc)
-                    self.data = self.data.map_batches(
-                        op.process,
-                        batch_size=batch_size,
-                        batch_format="pyarrow",
-                        num_cpus=op.num_cpus,
-                        num_gpus=op.num_gpus,
-                        compute=compute,
-                        runtime_env=op.runtime_env,
-                    )
-
-                # Restore original process method
-                if tracer and should_trace_op(tracer, op._name):
-                    op.process = original_process
+                try:
+                    if op.use_ray_actor():
+                        compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                        self.data = self.data.map_batches(
+                            op.__class__,
+                            fn_args=None,
+                            fn_kwargs=None,
+                            fn_constructor_args=op._init_args,
+                            fn_constructor_kwargs=op._init_kwargs,
+                            batch_size=batch_size,
+                            num_cpus=op.num_cpus,
+                            num_gpus=op.num_gpus,
+                            compute=compute,
+                            batch_format="pyarrow",
+                            runtime_env=op.runtime_env,
+                        )
+                    else:
+                        compute = get_compute_strategy(op.process, concurrency=op.num_proc)
+                        self.data = self.data.map_batches(
+                            op.process,
+                            batch_size=batch_size,
+                            batch_format="pyarrow",
+                            num_cpus=op.num_cpus,
+                            num_gpus=op.num_gpus,
+                            compute=compute,
+                            runtime_env=op.runtime_env,
+                        )
+                finally:
+                    # Restore original process method
+                    if tracer and should_trace_op(tracer, op._name) and original_process:
+                        op.process = original_process
             elif isinstance(op, Filter):
                 # Use cached_columns instead of self.data.columns() to avoid breaking pipeline
                 if Fields.stats not in cached_columns:
@@ -271,32 +273,34 @@ class RayDataset(DJDataset):
                 if op.stats_export_path is not None:
                     self.data.write_json(op.stats_export_path, force_ascii=False)
                 # Wrap process method with tracer for sample-level collection
+                original_process = None
                 if tracer and should_trace_op(tracer, op._name):
                     from data_juicer.ops.base_op import wrap_filter_with_tracer
 
                     original_process = op.process
                     op.process = wrap_filter_with_tracer(original_process, op._name, tracer, op.is_batched_op())
 
-                if op.is_batched_op():
-                    # The core computation have been done in compute_stats,
-                    # and the filter process only performs simple filtering.
-                    # cpu and parallelism are not set here
-                    self.data = self.data.map_batches(
-                        partial(filter_batch, filter_func=op.process),
-                        batch_format="pyarrow",
-                        zero_copy_batch=True,
-                        batch_size=DEFAULT_BATCH_SIZE,
-                        runtime_env=op.runtime_env,
-                    )
-                else:
-                    self.data = self.data.filter(
-                        op.process,
-                        runtime_env=op.runtime_env,
-                    )
-
-                # Restore original process method
-                if tracer and should_trace_op(tracer, op._name):
-                    op.process = original_process
+                try:
+                    if op.is_batched_op():
+                        # The core computation have been done in compute_stats,
+                        # and the filter process only performs simple filtering.
+                        # cpu and parallelism are not set here
+                        self.data = self.data.map_batches(
+                            partial(filter_batch, filter_func=op.process),
+                            batch_format="pyarrow",
+                            zero_copy_batch=True,
+                            batch_size=DEFAULT_BATCH_SIZE,
+                            runtime_env=op.runtime_env,
+                        )
+                    else:
+                        self.data = self.data.filter(
+                            op.process,
+                            runtime_env=op.runtime_env,
+                        )
+                finally:
+                    # Restore original process method
+                    if tracer and should_trace_op(tracer, op._name) and original_process:
+                        op.process = original_process
             elif isinstance(op, (Deduplicator, Pipeline)):
                 self.data = op.run(self.data)
             else:

@@ -129,14 +129,7 @@ class RayTracer:
         if self._collected_counts[op_name] >= self.show_num:
             return False
 
-        entry = {}
-        # Add specified fields first
-        for key in self.trace_keys:
-            entry[key] = sample.get(key)
-        # Add the filtered sample
-        entry.update(sample)
-
-        self._sample_traces[op_name].append(entry)
+        self._sample_traces[op_name].append(sample)
         self._collected_counts[op_name] += 1
 
         return True

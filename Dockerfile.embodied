@@ -12,7 +12,8 @@ RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list \
 
 # install Git LFS
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh   | /bin/bash \
-    && apt-get install -y git-lfs && git lfs install
+    && apt-get install -y git-lfs && git lfs install && \
+    rm -rf /var/lib/apt/lists/*
 
 # set up Vulkan for NVIDIA
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=all VK_DRIVER_FILES=/etc/vulkan/icd.d/nvidia_icd.json
@@ -23,8 +24,8 @@ RUN wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac
 RUN wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac/nb10/50_mesa.json   -O /usr/share/glvnd/egl_vendor.d/50_mesa.json
 
 # install Isaac Sim
-ENV UV_HTTP_TIMEOUT=300
-RUN uv pip install isaacsim[all,extscache]==5.1.0 --extra-index-url https://pypi.nvidia.com --system
+ENV UV_HTTP_TIMEOUT=600
+RUN uv pip install --no-cache-dir isaacsim[all,extscache]==5.1.0 --extra-index-url https://pypi.nvidia.com --system
 
 # install Isaac Lab 2.3
 ENV ACCEPT_EULA=Y
@@ -42,6 +43,10 @@ ENV ISAACLAB_ROOT_PATH=/third-party/isaaclab ISAACLAB_VERSION=2.3.0
 
 # modify assets.py for customized assets
 RUN wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac/assets.py -O /third-party/isaaclab/source/isaaclab/isaaclab/utils/assets.py
+
+# install the versions of dependencies in data-juicer
+WORKDIR /data-juicer
+RUN uv pip install -v -e --no-cache-dir .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system
 
 # 最终入口配置
 CMD ["/bin/bash"]

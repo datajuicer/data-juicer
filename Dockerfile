@@ -30,10 +30,11 @@ RUN add-apt-repository -y ppa:deadsnakes/ppa && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     # install pip
     curl https://bootstrap.pypa.io/get-pip.py   | python3.11 && \
-    pip install --upgrade pip
+    pip install --upgrade pip && \
+    rm -rf /var/lib/apt/lists/*
 
 # install uv
-RUN pip install uv -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install --no-cache-dir uv -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # install java
 WORKDIR /opt
@@ -47,12 +48,13 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 WORKDIR /data-juicer
 
 # install basic dependencies for Data-Juicer
-RUN uv pip install --upgrade setuptools==69.5.1 setuptools_scm -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
-    && uv pip install git+https://github.com/datajuicer/recognize-anything.git -i https://pypi.tuna.tsinghua.edu.cn/simple --system
+ENV UV_HTTP_TIMEOUT=600
+RUN uv pip install --upgrade --no-cache-dir setuptools==69.5.1 setuptools_scm -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
+    && uv pip install --no-cache-dir git+https://github.com/datajuicer/recognize-anything.git -i https://pypi.tuna.tsinghua.edu.cn/simple --system
 
 # copy source code and install
 COPY . .
-RUN uv pip install -v -e .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
+RUN uv pip install -v -e --no-cache-dir .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
     && python -c "import nltk; nltk.download('punkt_tab'); nltk.download('punkt'); nltk.download('averaged_perceptron_tagger');  nltk.download('averaged_perceptron_tagger_eng')"
 
 # 最终入口配置

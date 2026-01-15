@@ -255,18 +255,18 @@ class RequiredFieldsValidator(DataValidator):
 
     # Mapping from type name strings to actual Python types
     TYPE_NAME_MAPPING: Dict[str, type] = {
-        'str': str,
-        'string': str,
-        'int': int,
-        'integer': int,
-        'float': float,
-        'bool': bool,
-        'boolean': bool,
-        'list': list,
-        'dict': dict,
-        'tuple': tuple,
-        'set': set,
-        'bytes': bytes,
+        "str": str,
+        "string": str,
+        "int": int,
+        "integer": int,
+        "float": float,
+        "bool": bool,
+        "boolean": bool,
+        "list": list,
+        "dict": dict,
+        "tuple": tuple,
+        "set": set,
+        "bytes": bytes,
     }
 
     def __init__(self, config: Dict):
@@ -283,13 +283,12 @@ class RequiredFieldsValidator(DataValidator):
         super().__init__(config)
 
         self.required_fields = config["required_fields"]
-        self.field_types = self._normalize_field_types(
-            config.get("field_types", {}))
+        self.field_types = self._normalize_field_types(config.get("field_types", {}))
         # Default no missing allowed
         self.allow_missing = config.get("allow_missing", 0.0)
         self.sample_size = config.get("sample_size", 100)
 
-    def _normalize_field_types(self, field_types: Dict) -> Dict[str, type]:
+    def _normalize_field_types(self, field_types: Dict[str, object]) -> Dict[str, type]:
         """
         Convert field type specifications to actual Python type objects.
 
@@ -310,10 +309,9 @@ class RequiredFieldsValidator(DataValidator):
             elif isinstance(type_spec, str):
                 type_name = type_spec.lower()
                 if type_name not in self.TYPE_NAME_MAPPING:
+                    supported_types = ", ".join(sorted(self.TYPE_NAME_MAPPING.keys()))
                     raise DataValidationError(
-                        f"Unknown type name '{type_spec}' for field "
-                        f"'{field}'. Supported types: "
-                        f"{list(self.TYPE_NAME_MAPPING.keys())}"
+                        f"Unknown type name '{type_spec}' for field " f"'{field}'. Supported types: {supported_types}"
                     )
                 normalized[field] = self.TYPE_NAME_MAPPING[type_name]
             else:

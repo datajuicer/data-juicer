@@ -12,7 +12,7 @@ from data_juicer.core.data import NestedDataset
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.exporter import Exporter
-from data_juicer.core.tracer.tracer import Tracer
+from data_juicer.core.tracer import Tracer
 from data_juicer.ops import load_ops
 from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.ops.selector import (

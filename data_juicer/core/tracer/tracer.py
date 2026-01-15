@@ -9,7 +9,6 @@ from loguru import logger
 from data_juicer.ops import OPERATORS
 from data_juicer.utils.common_utils import deprecated
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.ray_utils import is_ray_mode
 
 
 class Tracer:
@@ -53,7 +52,7 @@ class Tracer:
         self._sample_traces = defaultdict(list)
         # Thread lock for thread-safe sample collection (only used in non-Ray mode)
         # In Ray mode, each worker will have its own tracer instance
-        self._lock = None if is_ray_mode() else lock or Lock()
+        self._lock = lock or Lock()
         # Counter for each op to track how many samples have been collected
         self._collected_counts = defaultdict(int)
 

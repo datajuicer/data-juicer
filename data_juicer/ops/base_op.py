@@ -83,6 +83,152 @@ def catch_map_batches_exception(method, skip_op_error=False, op_name=None):
     return wrapper
 
 
+def sample_to_dict(sample):
+    """
+    Convert sample to dict.
+    """
+    from datasets.formatting.formatting import LazyDict
+
+    if isinstance(sample, dict) or isinstance(sample, LazyDict):
+        return sample
+    elif isinstance(sample, pa.Table):
+        return sample.to_pydict()
+    else:
+        raise ValueError(f"Unknown sample type: {type(sample)}")
+
+
+def wrap_mapper_with_tracer(process_method, op_name, text_key, tracer, is_batched_op):
+    """
+    Wrap a mapper's process method to collect sample-level changes.
+
+    :param process_method: the original process method (single or batched)
+    :param op_name: the operator name
+    :param text_key: the text key to compare
+    :param tracer: the tracer instance
+    :param is_batched_op: whether this is a batched operator
+    :return: wrapped process method
+    """
+    from data_juicer.core.tracer import should_trace_op
+
+    if tracer is None or not should_trace_op(tracer, op_name):
+        return process_method
+
+    @wraps(process_method)
+    def wrapped_process(sample, *args, **kwargs):
+        from data_juicer.core.tracer import (
+            check_tracer_collect_complete,
+            collect_for_mapper,
+        )
+
+        # Check if collection is already complete (early exit for performance)
+        if check_tracer_collect_complete(tracer, op_name):
+            return process_method(sample, *args, **kwargs)
+
+        sample_dict = sample_to_dict(sample)
+
+        if is_batched_op:
+            # Batched processing: sample is dict of lists
+            import copy
+
+            keys = list(sample_dict.keys())
+            num_samples = len(sample_dict[keys[0]])
+
+            # Make a deep copy of original samples for comparison
+            original_samples = []
+            for i in range(num_samples):
+                orig_sample = {key: sample_dict[key][i] for key in keys}
+                original_samples.append(copy.deepcopy(orig_sample))
+
+            # Process the batch
+            processed_batch = process_method(sample, *args, **kwargs)
+
+            processed_batch_dict = sample_to_dict(processed_batch)
+
+            # Collect changes for each sample
+            for i in range(num_samples):
+                if check_tracer_collect_complete(tracer, op_name):
+                    break
+
+                orig_sample = original_samples[i]
+                proc_sample = {key: processed_batch_dict[key][i] for key in processed_batch_dict.keys()}
+                collect_for_mapper(tracer, op_name, orig_sample, proc_sample, text_key)
+
+            return processed_batch
+        else:
+            # Single sample processing
+            import copy
+
+            original_sample_dict = copy.deepcopy(sample_dict)
+            processed_sample = process_method(sample, *args, **kwargs)
+            processed_sample_dict = sample_to_dict(processed_sample)
+
+            # Collect sample-level change
+            if not check_tracer_collect_complete(tracer, op_name):
+                collect_for_mapper(tracer, op_name, original_sample_dict, processed_sample_dict, text_key)
+
+            return processed_sample
+
+    return wrapped_process
+
+
+def wrap_filter_with_tracer(process_method, op_name, tracer, is_batched_op):
+    """
+    Wrap a filter's process method to collect sample-level changes.
+
+    :param process_method: the original process method (single or batched)
+    :param op_name: the operator name
+    :param tracer: the tracer instance
+    :param is_batched_op: whether this is a batched operator
+    :return: wrapped process method
+    """
+    from data_juicer.core.tracer import should_trace_op
+
+    if tracer is None or not should_trace_op(tracer, op_name):
+        return process_method
+
+    @wraps(process_method)
+    def wrapped_process(sample, *args, **kwargs):
+        from data_juicer.core.tracer import (
+            check_tracer_collect_complete,
+            collect_for_filter,
+        )
+
+        # Check if collection is already complete (early exit for performance)
+        if check_tracer_collect_complete(tracer, op_name):
+            return process_method(sample, *args, **kwargs)
+
+        if is_batched_op:
+            # Batched processing: process returns iterable of booleans
+            results = process_method(sample, *args, **kwargs)
+            results_list = list(results) if not isinstance(results, (list, tuple)) else results
+
+            # Collect filtered samples
+            keys = list(sample.keys())
+            num_samples = len(sample[keys[0]])
+            for i in range(num_samples):
+                if check_tracer_collect_complete(tracer, op_name):
+                    break
+
+                should_keep = results_list[i] if i < len(results_list) else True
+                if not should_keep:
+                    sample_dict = {key: sample[key][i] for key in keys}
+                    collect_for_filter(tracer, op_name, sample_dict, should_keep)
+
+            # return the results_list because the map object results
+            # has been calculated and empty when getting results_list
+            return results_list
+        else:
+            # Single sample processing
+            should_keep = process_method(sample, *args, **kwargs)
+
+            # Collect filtered sample
+            if not check_tracer_collect_complete(tracer, op_name) and not should_keep:
+                collect_for_filter(tracer, op_name, sample, should_keep)
+            return should_keep
+
+    return wrapped_process
+
+
 def catch_map_single_exception(method, return_sample=True, skip_op_error=False, op_name=None):
     """
     For single-map sample-level fault tolerance.
@@ -472,15 +618,32 @@ class Mapper(OP):
 
     def run(self, dataset, *, exporter=None, tracer=None):
         dataset = super(Mapper, self).run(dataset)
-        new_dataset = dataset.map(
-            self.process,
-            num_proc=self.runtime_np(),
-            with_rank=self.use_cuda(),
-            batch_size=self.batch_size,
-            desc=self._name + "_process",
-        )
-        if tracer:
-            tracer.trace_mapper(self._name, dataset, new_dataset, self.text_key)
+
+        # Wrap process method with tracer for sample-level collection
+        from data_juicer.core.tracer import should_trace_op
+
+        original_process = None
+        if tracer and should_trace_op(tracer, self._name):
+            # Store original process method
+            original_process = self.process
+            # Wrap with tracer
+            self.process = wrap_mapper_with_tracer(
+                original_process, self._name, self.text_key, tracer, self.is_batched_op()
+            )
+
+        try:
+            new_dataset = dataset.map(
+                self.process,
+                num_proc=self.runtime_np(),
+                with_rank=self.use_cuda(),
+                batch_size=self.batch_size,
+                desc=self._name + "_process",
+            )
+        finally:
+            # Restore original process method
+            if tracer and should_trace_op(tracer, self._name) and original_process:
+                self.process = original_process
+
         free_models()
         return new_dataset
 
@@ -612,11 +775,25 @@ class Filter(OP):
         if exporter and self.stats_export_path is not None:
             exporter.export_compute_stats(new_dataset, self.stats_export_path)
         if reduce:
-            new_dataset = new_dataset.filter(
-                self.process, num_proc=self.runtime_np(), batch_size=self.batch_size, desc=self._name + "_process"
-            )
-            if tracer:
-                tracer.trace_filter(self._name, dataset, new_dataset)
+            # Wrap process method with tracer for sample-level collection
+            from data_juicer.core.tracer import should_trace_op
+
+            original_process = None
+            if tracer and should_trace_op(tracer, self._name):
+                # Store original process method
+                original_process = self.process
+                # Wrap with tracer
+                self.process = wrap_filter_with_tracer(original_process, self._name, tracer, self.is_batched_op())
+
+            try:
+                new_dataset = new_dataset.filter(
+                    self.process, num_proc=self.runtime_np(), batch_size=self.batch_size, desc=self._name + "_process"
+                )
+            finally:
+                # Restore original process method
+                if tracer and should_trace_op(tracer, self._name) and original_process:
+                    self.process = original_process
+
         free_models()
         return new_dataset
 
@@ -722,7 +899,9 @@ class Selector(OP):
         dataset = super(Selector, self).run(dataset)
         new_dataset = self.process(dataset)
         if tracer:
-            tracer.trace_filter(self._name, dataset, new_dataset)
+            from loguru import logger
+
+            logger.warning("Selector OPs are not supported for tracing for now.")
         free_models()
         return new_dataset
 
@@ -765,7 +944,9 @@ class Grouper(OP):
 
         new_dataset = NestedDataset.from_list(batched_samples)
         if tracer:
-            tracer.trace_filter(self._name, dataset, new_dataset)
+            from loguru import logger
+
+            logger.warning("Grouper OPs are not supported for tracing for now.")
         free_models()
         return new_dataset
 
@@ -826,7 +1007,9 @@ class Aggregator(OP):
             desc=self._name + "_process",
         )
         if tracer:
-            tracer.trace_mapper(self._name, dataset, new_dataset, self.text_key)
+            from loguru import logger
+
+            logger.warning("Aggregator OPs are not supported for tracing for now.")
         free_models()
         return new_dataset
 

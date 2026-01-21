@@ -60,6 +60,7 @@ dependencies = [
     "mcp[cli]>=1.7.0",
     "pylance",
     "boto3",
+    "dep-logic",
 ]
 
 [project.optional-dependencies]

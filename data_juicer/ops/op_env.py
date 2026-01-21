@@ -238,6 +238,28 @@ class OPEnvManager:
         self.hash2ops = defaultdict(list)
         self.hash2specs = {}
 
+    def print_the_current_states(self):
+        """
+        Get the current states of OPEnvManager, including:
+        - number of recorded OPs
+        - number of used env specs
+        - what OPs share the same env spec
+
+        :return: A dictionary containing the current states of OPEnvManager
+        """
+        num_unique_specs = len(self.hash2ops)
+
+        logger.info("The current states of OPEnvManager:")
+        logger.info(f"\t- Total number of unique environment specs: {num_unique_specs}")
+        logger.info("\t- OP-spec relations: (OP name -> Packages)")
+        mappings = {}
+        for hash_val in self.hash2ops:
+            op_key = ", ".join(self.hash2ops[hash_val])
+            pkgs = self.hash2specs[hash_val].pip_pkgs
+            mappings[op_key] = pkgs
+            logger.info(f"\t\t- [{op_key}]: {pkgs}")
+        return mappings
+
     def record_op_env_spec(self, op_name: str, op_env_spec: OPEnvSpec):
         """
         Record the OP environment specification for an operator.

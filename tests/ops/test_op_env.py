@@ -254,6 +254,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         retrieved_spec = manager.get_op_env_spec(op_name)
         
         self.assertEqual(retrieved_spec, spec)
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_record_nonexistent_op(self):
         manager = self.OPEnvManager()
@@ -288,11 +290,13 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         manager = self.OPEnvManager()
         spec = self.OPEnvSpec(pip_pkgs=["numpy>=1.20.0"])
         
-        hash1 = manager.merge_op_env_specs(spec)
-        hash2 = manager.merge_op_env_specs(spec)
+        manager.record_op_env_spec("op1", spec)
+        manager.record_op_env_spec("op2", spec)
         
-        self.assertEqual(hash1, hash2)
+        self.assertEqual(manager.op2hash["op1"], manager.op2hash["op2"])
         self.assertEqual(len(manager.hash2specs), 1)
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_merge_op_env_specs_combine_allowed(self):
         manager = self.OPEnvManager(min_common_dep_num_to_combine=1)
@@ -307,6 +311,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         combined_spec = next(iter(manager.hash2specs.values()))
         # Check that both ops reference the same combined spec
         self.assertEqual(len(manager.hash2ops[manager.op2hash["op1"]]), 2)  # Both ops use the same hash
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_merge_op_env_specs_combine_not_allowed(self):
         manager = self.OPEnvManager(min_common_dep_num_to_combine=-1)  # No combination
@@ -320,6 +326,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         self.assertEqual(len(manager.hash2specs), 2)
         self.assertEqual(len(manager.hash2ops), 2)
         self.assertNotEqual(manager.op2hash["op1"], manager.op2hash["op2"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 2)
 
     def test_merge_op_env_specs_combine_general(self):
         manager = self.OPEnvManager(min_common_dep_num_to_combine=1)
@@ -335,6 +343,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         # Check that both ops reference the same combined spec
         self.assertEqual(len(manager.hash2ops[manager.op2hash["op1"]]), 2)  # Both ops use the same hash
         self.assertEqual(sorted(combined_spec.pip_pkgs), sorted(["numpy<2.0,>=1.20.0", "pandas>=1.3.0", "fire"]))
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_merge_op_env_specs_combine_with_env_vars(self):
         manager = self.OPEnvManager(min_common_dep_num_to_combine=1)
@@ -351,6 +361,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         self.assertEqual(len(manager.hash2ops[manager.op2hash["op1"]]), 2)  # Both ops use the same hash
 
         self.assertEqual(combined_spec.env_vars, {"A": "1"})
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_merge_op_env_specs_combine_with_extra_env_params(self):
         manager = self.OPEnvManager(min_common_dep_num_to_combine=1)
@@ -369,6 +381,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         self.assertEqual(len(manager.hash2ops[manager.op2hash["op1"]]), 3)  # Both ops use the same hash
 
         self.assertEqual(combined_spec.extra_env_params, {"A": "1", "B": "2"})
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_conflict_resolution_split_strategy(self):
         manager = self.OPEnvManager(
@@ -383,6 +397,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         
         # With SPLIT strategy, specs should remain separate due to conflict
         self.assertNotEqual(manager.op2hash["op1"], manager.op2hash["op2"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 2)
 
     def test_conflict_resolution_latest_strategy(self):
         manager = self.OPEnvManager(
@@ -402,6 +418,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         # We expect at least one combined spec to exist
         self.assertGreaterEqual(len(manager.hash2specs), 1)
         self.assertEqual(combined_spec.pip_pkgs, ["numpy==1.25.0"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_conflict_resolution_latest_strategy_not_include_max(self):
         manager = self.OPEnvManager(
@@ -422,6 +440,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         # We expect at least one combined spec to exist
         self.assertGreaterEqual(len(manager.hash2specs), 1)
         self.assertEqual(combined_spec.pip_pkgs, ["numpy<1.25.0"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_conflict_resolution_latest_strategy_without_max(self):
         manager = self.OPEnvManager(
@@ -442,6 +462,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         # We expect at least one combined spec to exist
         self.assertGreaterEqual(len(manager.hash2specs), 1)
         self.assertEqual(combined_spec.pip_pkgs, ["numpy"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_conflict_resolution_latest_strategy_allow_union(self):
         manager = self.OPEnvManager(
@@ -461,6 +483,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         # We expect at least one combined spec to exist
         self.assertGreaterEqual(len(manager.hash2specs), 1)
         self.assertEqual(combined_spec.pip_pkgs, ["numpy<2.0"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
     def test_conflict_resolution_with_arbitrary_equal(self):
         spec1 = self.OPEnvSpec(pip_pkgs=["numpy===2.0"])
@@ -480,6 +504,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         # We expect at least one combined spec to exist
         self.assertGreaterEqual(len(manager.hash2ops), 1)
         self.assertEqual(combined_spec.pip_pkgs, ["numpy===2.0"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
         # the second one is arbitrary
         manager = self.OPEnvManager(
@@ -494,6 +520,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         # We expect at least one combined spec to exist
         self.assertGreaterEqual(len(manager.hash2ops), 1)
         self.assertEqual(combined_spec.pip_pkgs, ["numpy===1.23.0"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 1)
 
         # both are arbitrary, should be split
         manager = self.OPEnvManager(
@@ -510,6 +538,8 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
         self.assertGreaterEqual(len(manager.hash2ops), 2)
         self.assertEqual(op1_spec.pip_pkgs, ["numpy===2.0"])
         self.assertEqual(op3_spec.pip_pkgs, ["numpy===1.23.0"])
+        states = manager.print_the_current_states()
+        self.assertEqual(len(states), 2)
 
     def test_op_to_hash_mapping(self):
         manager = self.OPEnvManager()

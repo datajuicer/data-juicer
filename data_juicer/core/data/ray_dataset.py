@@ -17,7 +17,6 @@ from data_juicer.ops import Deduplicator, Filter, Mapper, Pipeline
 from data_juicer.ops.base_op import DEFAULT_BATCH_SIZE, TAGGING_OPS
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import is_remote_path
-from data_juicer.utils.resource_utils import cuda_device_count
 from data_juicer.utils.webdataset_utils import _custom_default_decoder
 
 
@@ -74,13 +73,6 @@ def preprocess_dataset(dataset: ray.data.Dataset, dataset_path, cfg) -> ray.data
     if dataset_path:
         dataset = set_dataset_to_absolute_path(dataset, dataset_path, cfg)
     return dataset
-
-
-def get_num_gpus(op, op_proc):
-    if not op.use_cuda():
-        return 0
-    proc_per_gpu = op_proc / cuda_device_count()
-    return 1.0 / proc_per_gpu
 
 
 def filter_batch(batch, filter_func):
@@ -169,7 +161,18 @@ class RayDataset(DJDataset):
         cached_columns = set(self.data.columns())
 
         for op in operators:
-            cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+            try:
+                cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+            except Exception as e:
+                logger.error(f"Error processing operator {op}: {e}.")
+                if op.runtime_env is not None:
+                    logger.error("Try to fallback to the base runtime environment.")
+                    original_runtime_env = op.runtime_env
+                    op.runtime_env = None
+                    cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+                    op.runtime_env = original_runtime_env
+                else:
+                    raise e
         return self
 
     def _run_single_op(self, op, cached_columns=None, tracer=None):

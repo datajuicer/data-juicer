@@ -133,7 +133,7 @@ class OPEnvSpec:
         """
         Initialize an OPEnvSpec instance.
 
-        :param pip_pkgs: Pip packages to install, default is None. Could be a list or a str path to the requirements file
+        :param pip_pkgs: Pip packages to install, default is None. Could be a list or a str path to the requirement file
         :param env_vars: Dictionary of environment variables, default is None
         :param working_dir: Path to the working directory, default is None
         :param backend: Package management backend, default is "uv". Should be one of ["pip", "uv"].
@@ -221,6 +221,17 @@ class OPEnvManager:
         min_common_dep_num_to_combine: Optional[int] = -1,
         conflict_resolve_strategy: ConflictResolveStrategy = ConflictResolveStrategy.SPLIT,
     ):
+        """
+        Initialize OPEnvManager instance.
+
+        :param min_common_dep_num_to_combine: The minimum number of common dependencies required to
+                                              determine whether to merge two operation environment specifications.
+                                              If set to -1, it means no combination of operation environments.
+        :param conflict_resolve_strategy: Strategy for resolving dependency conflicts, default is SPLIT strategy.
+                                          SPLIT: Keep the two specs split when there is a conflict.
+                                          OVERWRITE: Overwrite the existing dependency with one from the later OP.
+                                          LATEST: Use the latest version of all specified dependency versions.
+        """
         self.min_common_dep_num_to_combine = min_common_dep_num_to_combine
         if self.min_common_dep_num_to_combine == -1:
             logger.warning("min_common_dep_num_to_combine is set to -1, which means no combination on OP Environments.")

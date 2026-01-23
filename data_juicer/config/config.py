@@ -500,6 +500,7 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "--conflict_resolve_strategy",
                 type=str,
                 default="split",
+                choices=["split", "overwrite", "latest"],
                 help="Strategy for resolving dependency conflicts, default is 'split' strategy. 'split': Keep the two "
                 "specs split when there is a conflict. 'overwrite': Overwrite the existing dependency with one "
                 "from the later OP. 'latest': Use the latest version of all specified dependency versions. "

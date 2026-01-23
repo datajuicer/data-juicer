@@ -168,9 +168,11 @@ class RayDataset(DJDataset):
                 if op.runtime_env is not None:
                     logger.error("Try to fallback to the base runtime environment.")
                     original_runtime_env = op.runtime_env
-                    op.runtime_env = None
-                    cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
-                    op.runtime_env = original_runtime_env
+                    try:
+                        op.runtime_env = None
+                        cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+                    finally:
+                        op.runtime_env = original_runtime_env
                 else:
                     raise e
         return self

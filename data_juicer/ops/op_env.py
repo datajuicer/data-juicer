@@ -109,7 +109,7 @@ class Requirement:
             if self.version:
                 result += f"{self.version}"
 
-        # 添加环境标记，如果有
+        # Add environment markers, if any
         if self.markers:
             result += f" ; {self.markers}"
 
@@ -246,7 +246,7 @@ class OPEnvManager:
     def __init__(
         self,
         min_common_dep_num_to_combine: Optional[int] = -1,
-        conflict_resolve_strategy: ConflictResolveStrategy = ConflictResolveStrategy.SPLIT,
+        conflict_resolve_strategy: Union[ConflictResolveStrategy, str] = ConflictResolveStrategy.SPLIT,
     ):
         """
         Initialize OPEnvManager instance.
@@ -269,7 +269,10 @@ class OPEnvManager:
                 f"Try to combine OP Environments with at least "
                 f"{self.min_common_dep_num_to_combine} common dependencies "
             )
-        self.conflict_resolve_strategy = conflict_resolve_strategy
+        if isinstance(conflict_resolve_strategy, str):
+            self.conflict_resolve_strategy = ConflictResolveStrategy(conflict_resolve_strategy)
+        else:
+            self.conflict_resolve_strategy = conflict_resolve_strategy
 
         # OP name -> OPEnvSpec with two isolated lists
         self.op2hash = {}
@@ -559,7 +562,7 @@ def analyze_lazy_loaded_requirements(code_content: str) -> List[str]:
             callee = ast.unparse(node.func)
             if callee == "LazyLoader":
                 # calling LazyLoader(module_name, package_name, package_url, ...)
-                args = [eval(ast.unparse(arg)) for arg in node.args]
+                args = [ast.literal_eval(ast.unparse(arg)) for arg in node.args]
                 kwargs = {kw.arg: ast.unparse(kw.value) for kw in node.keywords}
                 target_args = ["module_name", "package_name", "package_url"]
                 existing_args = args[: min(len(target_args), len(args))]
@@ -567,7 +570,7 @@ def analyze_lazy_loaded_requirements(code_content: str) -> List[str]:
                 # find missing kwargs
                 for i in range(len(existing_args), len(target_args)):
                     if target_args[i] in kwargs:
-                        parsed_args[target_args[i]] = eval(kwargs[target_args[i]])
+                        parsed_args[target_args[i]] = ast.literal_eval(kwargs[target_args[i]])
                 req = Requirement()
                 if "package_name" in parsed_args:
                     req.name = parsed_args["package_name"]
@@ -584,7 +587,7 @@ def analyze_lazy_loaded_requirements(code_content: str) -> List[str]:
                 else:
                     parsed_args = kwargs.get("package_specs", None)
                 if parsed_args:
-                    req_list = eval(parsed_args)
+                    req_list = ast.literal_eval(parsed_args)
                     reqs.extend(req_list)
             # ignore other situations
     return reqs

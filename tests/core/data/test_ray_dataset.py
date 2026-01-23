@@ -3,6 +3,7 @@ import os
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 class RayDatasetFuncsTest(DataJuicerTestCaseBase):
+    current_tag = "ray"
 
     def setUp(self):
         """Set up test data"""

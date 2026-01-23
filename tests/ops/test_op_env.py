@@ -193,7 +193,7 @@ class OpRequirementsToOpEnvSpecTest(DataJuicerTestCaseBase):
 
     def test_empty_requirements(self):
         spec = self.op_requirements_to_op_env_spec("test_op")
-        self.assertIsNone(spec.pip_pkgs)
+        self.assertEqual(len(spec.pip_pkgs), 0)
 
     def test_list_requirements(self):
         spec = self.op_requirements_to_op_env_spec("test_op", ["numpy>=1.20.0"])
@@ -211,6 +211,18 @@ class OpRequirementsToOpEnvSpecTest(DataJuicerTestCaseBase):
     def test_invalid_requirements_type(self):
         with self.assertRaises(ValueError):
             self.op_requirements_to_op_env_spec("test_op", 123)
+
+    def test_recommended_requirements(self):
+        spec = self.op_requirements_to_op_env_spec("test_op", ["numpy>=1.20.0"], ["pandas"])
+        self.assertEqual(spec.pip_pkgs, ["numpy>=1.20.0", "pandas"])
+
+    def test_recommended_requirements_wo_requirements(self):
+        spec = self.op_requirements_to_op_env_spec("test_op", None, ["pandas"])
+        self.assertEqual(spec.pip_pkgs, ["pandas"])
+
+    def test_recommended_requirements_overlapped(self):
+        spec = self.op_requirements_to_op_env_spec("test_op", ["numpy>=1.20.0"], ["numpy", "pandas"])
+        self.assertEqual(spec.pip_pkgs, ["numpy>=1.20.0", "pandas"])
 
 
 class OPEnvManagerTest(DataJuicerTestCaseBase):
@@ -635,6 +647,114 @@ class OPEnvManagerTest(DataJuicerTestCaseBase):
 
         result = manager._resolve_with_strategy(req1, req2)
         self.assertEqual(result, req2, "Should return the any requirement when their versions are the same")
+
+
+class AnalyzeLazyLoadedRequirementsTest(DataJuicerTestCaseBase):
+    
+    def setUp(self):
+        super().setUp()
+        from data_juicer.ops.op_env import analyze_lazy_loaded_requirements, analyze_lazy_loaded_requirements_for_code_file
+        self.analyze_lazy_loaded_requirements = analyze_lazy_loaded_requirements
+        self.analyze_lazy_loaded_requirements_for_code_file = analyze_lazy_loaded_requirements_for_code_file
+
+        self.work_dir = 'tmp/test_analyze_lazy_loaded_requirements/'
+        os.makedirs(self.work_dir, exist_ok=True)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        if os.path.exists(self.work_dir):
+            os.system(f'rm -rf {self.work_dir}')
+
+    def test_analyze_lazy_loaded_requirements_with_LazyLoader_calls(self):
+        code_content = '''
+from data_juicer.utils.lazy_loader import LazyLoader
+
+# Define some lazy-loaded packages
+transformers = LazyLoader('transformers', package_name='transformers')
+torch = LazyLoader('torch', package_name='torch', 
+                   package_url='https://github.com/pytorch/pytorch.git')
+
+# Another usage
+numpy = LazyLoader('numpy', 'numpy')
+'''
+        expected_reqs = [
+            'transformers',
+            'torch @ https://github.com/pytorch/pytorch.git',
+            'numpy'
+        ]
+        result = self.analyze_lazy_loaded_requirements(code_content)
+        self.assertEqual(sorted(result), sorted(expected_reqs))
+
+    def test_analyze_lazy_loaded_requirements_with_check_packages_calls(self):
+        code_content = '''
+from data_juicer.utils.lazy_loader import LazyLoader
+
+# Using check_packages
+LazyLoader.check_packages(['numpy>=1.20.0', 'pandas>=1.3.0'])
+LazyLoader.check_packages(package_specs=['torch>=1.8.0'])
+
+# Mixed usage
+LazyLoader.check_packages(['scipy'])
+'''
+        expected_reqs = ['numpy>=1.20.0', 'pandas>=1.3.0', 'torch>=1.8.0', 'scipy']
+        result = self.analyze_lazy_loaded_requirements(code_content)
+        self.assertEqual(sorted(result), sorted(expected_reqs))
+
+    def test_analyze_lazy_loaded_requirements_mixed_usage(self):
+        code_content = '''
+from data_juicer.utils.lazy_loader import LazyLoader
+
+# Mixed usage of LazyLoader and check_packages
+transformers = LazyLoader('transformers', package_name='transformers')
+LazyLoader.check_packages(['numpy>=1.20.0'])
+torch = LazyLoader('torch',
+                   package_url='https://github.com/pytorch/pytorch.git')
+LazyLoader.check_packages(package_specs=['pandas>=1.3.0'])
+'''
+        expected_reqs = [
+            'transformers',
+            'numpy>=1.20.0',
+            'torch @ https://github.com/pytorch/pytorch.git',
+            'pandas>=1.3.0'
+        ]
+        result = self.analyze_lazy_loaded_requirements(code_content)
+        self.assertEqual(sorted(result), sorted(expected_reqs))
+
+    def test_analyze_lazy_loaded_requirements_for_code_file(self):
+        # Create a temporary Python file
+        code_file = os.path.join(self.work_dir, 'temp_test_code.py')
+        with open(code_file, 'w') as f:
+            f.write('''
+from data_juicer.utils.lazy_loader import LazyLoader
+
+# Test code for file analysis
+transformers = LazyLoader('transformers', package_name='transformers')
+LazyLoader.check_packages(['numpy>=1.20.0'])
+''')
+        
+        expected_reqs = ['transformers', 'numpy>=1.20.0']
+        result = self.analyze_lazy_loaded_requirements_for_code_file(code_file)
+        self.assertEqual(sorted(result), sorted(expected_reqs))
+
+    def test_analyze_lazy_loaded_requirements_empty_code(self):
+        code_content = '''
+# Just some comments
+a = 1
+b = 2
+'''
+        result = self.analyze_lazy_loaded_requirements(code_content)
+        self.assertEqual(result, [])
+
+    def test_analyze_lazy_loaded_requirements_no_LazyLoader_calls(self):
+        code_content = '''
+import numpy as np
+import pandas as pd
+
+def func():
+    return "no LazyLoader calls here"
+'''
+        result = self.analyze_lazy_loaded_requirements(code_content)
+        self.assertEqual(result, [])
 
 
 if __name__ == '__main__':

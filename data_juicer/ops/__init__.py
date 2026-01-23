@@ -30,7 +30,13 @@ with timing_context('Importing operator modules'):
         Selector,
     )
     from .load import load_ops
-    from .op_env import OPEnvManager, OPEnvSpec, op_requirements_to_op_env_spec
+    from .op_env import (
+        OPEnvManager,
+        OPEnvSpec,
+        analyze_lazy_loaded_requirements,
+        analyze_lazy_loaded_requirements_for_code_file,
+        op_requirements_to_op_env_spec,
+    )
 
 __all__ = [
     'load_ops',
@@ -48,4 +54,6 @@ __all__ = [
     'OPEnvSpec',
     'op_requirements_to_op_env_spec',
     'OPEnvManager',
+    'analyze_lazy_loaded_requirements',
+    'analyze_lazy_loaded_requirements_for_code_file',
 ]

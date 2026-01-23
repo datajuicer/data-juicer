@@ -161,6 +161,8 @@ class OPEnvSpec:
                 self.parsed_requirements = {
                     req.name if req.name else req.url: req for req in parse_requirements_list(self.pip_pkgs)
                 }
+        else:
+            self.pip_pkgs = []
 
     def to_dict(self):
         """
@@ -187,11 +189,36 @@ class OPEnvSpec:
         return sorted(self.parsed_requirements.keys())
 
 
-def op_requirements_to_op_env_spec(op_name: str, requirements: Optional[Union[List[str], str]] = None) -> OPEnvSpec:
+def op_requirements_to_op_env_spec(
+    op_name: str,
+    requirements: Optional[Union[List[str], str]] = None,
+    auto_recommended_requirements: Optional[List[str]] = None,
+) -> OPEnvSpec:
     if requirements is None:
-        return OPEnvSpec()
+        if auto_recommended_requirements:
+            logger.info(
+                f"No requirements are specified for op {op_name}. Use auto recommended requirements instead: {auto_recommended_requirements}"
+            )
+            return OPEnvSpec(pip_pkgs=auto_recommended_requirements)
+        else:
+            return OPEnvSpec()
     elif isinstance(requirements, str) or isinstance(requirements, list):
-        return OPEnvSpec(pip_pkgs=requirements)
+        if auto_recommended_requirements is None:
+            auto_recommended_requirements = []
+        specified_spec = OPEnvSpec(pip_pkgs=requirements)
+        recommended_reqs = {
+            req.name if req.name else req.url: req for req in parse_requirements_list(auto_recommended_requirements)
+        }
+        new_recommended_reqs = [
+            str(recommended_reqs[req_key])
+            for req_key in recommended_reqs
+            if req_key not in specified_spec.parsed_requirements
+        ]
+        if len(new_recommended_reqs) > 0:
+            logger.info(
+                f"Adding {len(new_recommended_reqs)} recommended requirements to op {op_name}: {new_recommended_reqs}"
+            )
+        return OPEnvSpec(pip_pkgs=specified_spec.pip_pkgs + new_recommended_reqs)
     else:
         raise ValueError(
             f"Invalid type of specified requirements: {type(requirements)} for op {op_name}. "
@@ -514,3 +541,50 @@ class OPEnvManager:
                 is_local=first_req.is_local or second_req.is_local,
                 path=first_req.path or second_req.path,
             )
+
+
+def analyze_lazy_loaded_requirements_for_code_file(code_file: str) -> List[str]:
+    with open(code_file, "r") as fin:
+        code_content = fin.read()
+    return analyze_lazy_loaded_requirements(code_content)
+
+
+def analyze_lazy_loaded_requirements(code_content: str) -> List[str]:
+    import ast
+
+    reqs = []
+    tree = ast.parse(code_content)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            callee = ast.unparse(node.func)
+            if callee == "LazyLoader":
+                # calling LazyLoader(module_name, package_name, package_url, ...)
+                args = [eval(ast.unparse(arg)) for arg in node.args]
+                kwargs = {kw.arg: ast.unparse(kw.value) for kw in node.keywords}
+                target_args = ["module_name", "package_name", "package_url"]
+                existing_args = args[: min(len(target_args), len(args))]
+                parsed_args = dict(zip(target_args[: len(existing_args)], existing_args))
+                # find missing kwargs
+                for i in range(len(existing_args), len(target_args)):
+                    if target_args[i] in kwargs:
+                        parsed_args[target_args[i]] = eval(kwargs[target_args[i]])
+                req = Requirement()
+                if "package_name" in parsed_args:
+                    req.name = parsed_args["package_name"]
+                else:
+                    req.name = parsed_args["module_name"]
+                if "package_url" in parsed_args:
+                    req.url = parsed_args["package_url"]
+                reqs.append(str(req))
+            elif callee == "LazyLoader.check_packages":
+                args = [ast.unparse(arg) for arg in node.args]
+                kwargs = {kw.arg: ast.unparse(kw.value) for kw in node.keywords}
+                if len(args) > 0:
+                    parsed_args = args[0]
+                else:
+                    parsed_args = kwargs.get("package_specs", None)
+                if parsed_args:
+                    req_list = eval(parsed_args)
+                    reqs.extend(req_list)
+            # ignore other situations
+    return reqs

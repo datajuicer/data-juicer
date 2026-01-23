@@ -13,7 +13,11 @@ from data_juicer.utils.ray_utils import is_ray_mode
 from data_juicer.utils.registry import Registry
 from data_juicer.utils.resource_utils import is_cuda_available
 
-from .op_env import OPEnvSpec, op_requirements_to_op_env_spec
+from .op_env import (
+    OPEnvSpec,
+    analyze_lazy_loaded_requirements_for_code_file,
+    op_requirements_to_op_env_spec,
+)
 
 OPERATORS = Registry("Operators")
 UNFORKABLE = Registry("Unforkable")
@@ -441,7 +445,10 @@ class OP(metaclass=OPMetaClass):
                 setattr(self, name, method)
 
     def get_env_spec(self) -> OPEnvSpec:
-        return op_requirements_to_op_env_spec(self._name, self._requirements)
+        import inspect
+
+        auto_analyzed_requirements = analyze_lazy_loaded_requirements_for_code_file(inspect.getfile(self.__class__))
+        return op_requirements_to_op_env_spec(self._name, self._requirements, auto_analyzed_requirements)
 
     def use_auto_proc(self):
         if is_ray_mode() and not self.use_ray_actor():  # ray task

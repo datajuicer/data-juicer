@@ -34,7 +34,7 @@ Data-Juicer正在积极更新和维护中，我们将定期强化和新增更多
 
   - 关注 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [Deploy-ready codes](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[ More demos](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md).
 <div align="center">
-<img src="https://gw.alicdn.com/imgextra/i2/O1CN01cyxzWu1Q22NSr7elB_!!6000000001917-1-tps-1136-640.gif" width=80%>
+<img src="https://github.com/user-attachments/assets/d10a95a8-fb7a-494f-b858-f21e5996790b" width=80%>
 </div>
 
 - 🎉 [2025-09-19] 我们的 [Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for and with Foundation Models](https://arxiv.org/abs/2501.14755) 已被接收为 **NeurIPS'25 Spotlight**（处于所有投稿中的前 3.1%）！

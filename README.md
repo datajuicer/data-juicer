@@ -37,7 +37,7 @@ Data-Juicer is being actively updated and maintained. We will periodically enhan
 - 🚀[2026-01-15] [Data-Juicer Q&A Copilot](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/README.md) is available on the official [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK) ! Feel free to ask anything related to Data-Juicer ecosystem! 
   -  Check 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [Deploy-ready codes](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[ More demos](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md).
 <div align="center">
-<img src="https://gw.alicdn.com/imgextra/i3/O1CN01tRTUJj1shzuApBhW2_!!6000000005799-1-tps-1136-640.gif" width=80%>
+<img src="https://github.com/user-attachments/assets/a0099ce2-4ed3-4fab-8cfa-b0bbd3beeac9" width=80%>
 </div>
 
 - 🎉 [2025-09-19] Our work of [Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for and with Foundation Models](https://arxiv.org/abs/2501.14755) has been accepted as a **NeurIPS'25 Spotlight** (top 3.1% of all submissions)!

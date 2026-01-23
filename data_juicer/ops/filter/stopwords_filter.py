@@ -75,8 +75,11 @@ class StopWordsFilter(Filter):
         self.model_key = None
 
         self.STOPWORDS = load_words_asset(words_dir=stopwords_dir, words_type="stopwords")
+        # Convert lists to sets for O(1) membership lookup performance
+        for key in self.STOPWORDS:
+            self.STOPWORDS[key] = set(self.STOPWORDS[key])
         if "all" not in self.STOPWORDS:
-            self.STOPWORDS["all"] = [val for vals in self.STOPWORDS.values() for val in vals]
+            self.STOPWORDS["all"] = set(val for vals in self.STOPWORDS.values() for val in vals)
         if tokenization:
             self.model_key = prepare_model(model_type="sentencepiece", lang=lang)
 

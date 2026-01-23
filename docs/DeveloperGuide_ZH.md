@@ -563,23 +563,28 @@ else:
 ...
 ```
 
-5. 随着算子数量的增加，Data-Juicer的依赖也不断增多。为了防止Data-Juicer的依赖越来越重，我们为算子额外增加的依赖提供了一套延迟加载加上使用时安装依赖的策略。`LazyLoader`会检查加载的module对应的package有没有都安装，没有的话会动态自动安装。如下样例：
+5. 随着算子数量的增加，Data-Juicer的依赖也不断增多。为了防止Data-Juicer的依赖越来越重，我们为算子额外增加的依赖提供了一套延迟加载加上使用时安装依赖的策略。
+    - OP的 `_requirements` 属性可用于指定算子所需的额外依赖。它可以是一个包列表或指向 requirements.txt 文件的字符串路径。在 Ray 模式下，此属性有助于 Data-Juicer 在 Ray 集群的计算节点上自动安装这些额外依赖。我们建议开发者为新算子显式设置此属性。
+    - `LazyLoader`会检查加载的module对应的package有没有都安装，没有的话会动态自动安装。
 
 ```python
 # ... (import some library)
 from data_juicer.utils.lazy_loader import LazyLoader
 
-# lazy import
+# 懒导入
 torch = LazyLoader('torch')
 transformers = LazyLoader('transformers')
 nltk = LazyLoader('nltk')
 
 class PerplexityFilter(Filter):
+    # 显式为 OP 设置额外的依赖
+    _requirements = ['kenlm', 'sentencepiece', 'fasttext-wheel']
+
     def __init__(self,
                 # ... (OP parameters)
                 *args,
                 **kwargs):
-        # auto install before init
+        # 在初始化前自动安装所需依赖库
         super().__init__(*args, **kwargs)
         LazyLoader.check_packages(['fasttext-wheel'])
         # ... (some codes)

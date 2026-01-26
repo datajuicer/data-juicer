@@ -154,6 +154,7 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
             # Verify that paths in images field are now absolute
             for item in result_data:
                 for img_path in item.get('images', []):
+                    print(f"====== PATH =======: {img_path}")
                     self.assertTrue(os.path.isabs(img_path) or img_path.startswith('s3://'))
                 for vid_path in item.get('videos', []):
                     self.assertTrue(os.path.isabs(vid_path) or vid_path.startswith('s3://'))

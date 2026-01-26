@@ -3,7 +3,6 @@ import os
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 class RayDatasetFuncsTest(DataJuicerTestCaseBase):
-    current_tag = "ray"
 
     def setUp(self):
         """Set up test data"""
@@ -198,6 +197,7 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
             
             for item in result_data:
                 for img_path in item.get('images', []):
+                    print(f"====== PATH =======: {img_path}")
                     self.assertTrue(os.path.isabs(img_path) or img_path.startswith('s3://'))
     
     @TEST_TAG('ray')

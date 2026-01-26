@@ -35,9 +35,6 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
                 'audios': ['audio3.wav']
             }
         ]
-        
-        # Create Ray dataset
-        self.ray_dataset = ray.data.from_items(self.test_data)
 
         self.tmp_dir = 'tmp/test_ray_executor/'
         os.makedirs(self.tmp_dir, exist_ok=True)
@@ -131,7 +128,10 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
             
             dataset_path = os.path.join(tmpdir, "dataset.json")
 
-            ray_ds = self.ray_dataset.to_pandas().to_dict(orient="list")
+            import ray
+            ray_dataset = ray.data.from_items(self.test_data)
+
+            ray_ds = ray_dataset.to_pandas().to_dict(orient="list")
             for key, value_list in ray_ds.items():
                 if key not in cfg.values():
                     continue
@@ -142,7 +142,7 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
                         self._touch_a_file(full_path)
             
             result_dataset = self.set_dataset_to_absolute_path(
-                self.ray_dataset,
+                ray_dataset,
                 dataset_path, 
                 cfg
             )
@@ -176,7 +176,10 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
             
             dataset_path = os.path.join(tmpdir, "dataset.json")
 
-            ray_ds = self.ray_dataset.to_pandas().to_dict(orient="list")
+            import ray
+            ray_dataset = ray.data.from_items(self.test_data)
+
+            ray_ds = ray_dataset.to_pandas().to_dict(orient="list")
             for key, value_list in ray_ds.items():
                 if key not in cfg.values():
                     continue
@@ -187,7 +190,7 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
                         self._touch_a_file(full_path)
             
             result_dataset = self.preprocess_dataset(
-                self.ray_dataset,
+                ray_dataset,
                 dataset_path,
                 cfg
             )

@@ -89,6 +89,8 @@ class MetaKeys(object):
     static_camera_calibration_moge_tags = "static_camera_calibration_moge_tags"
     # # Video Undistortion Info
     video_undistortion_tags = "video_undistortion_tags"
+    # # Camera Pose Info
+    video_camera_pose_tags = "video_camera_pose_tags"
 
     # === info extraction related tags ===
     # # for event extraction

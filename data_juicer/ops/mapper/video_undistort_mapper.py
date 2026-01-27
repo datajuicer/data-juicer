@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import numpy as np
 
@@ -46,7 +47,11 @@ class VideoUndistortMapper(Mapper):
 
         super().__init__(*args, **kwargs)
 
-        LazyLoader.check_packages(["opencv-contrib-python"])
+        opencv_contrib_python_exist_code = subprocess.run(["pip", "show", "opencv-contrib-python"])
+        # This is written to fix version issues with Numpy
+        if opencv_contrib_python_exist_code.returncode == 1:  # not exist
+            LazyLoader.check_packages(["opencv-contrib-python"])
+            subprocess.run(["pip", "install", "numpy==1.26.4"], check=True)
 
         self.output_video_dir = output_video_dir
         self.tag_field_name = tag_field_name

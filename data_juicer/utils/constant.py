@@ -68,6 +68,8 @@ class MetaKeys(object):
     video_object_segment_tags = "video_object_segment_tags"
     # # depth info in video
     video_depth_tags = "video_depth_tags"
+    # # video optical flow
+    video_optical_flow = "video_optical_flow"
     # # info extracted by VGGT
     vggt_tags = "vggt_tags"
     # # image tags
@@ -276,6 +278,10 @@ class StatsKeysConstant(object):
     image_nsfw_score = "image_nsfw_score"
     image_watermark_prob = "image_watermark_prob"
     image_pair_similarity = "image_pair_similarity"
+    image_subplot_confidence = "image_subplot_confidence"
+    horizontal_peak_count = "horizontal_peak_count"
+    vertical_peak_count = "vertical_peak_count"
+    subplot_detected = "subplot_detected"
 
     #  === audios ===
     audio_duration = "audio_duration"

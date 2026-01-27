@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from loguru import logger
 from pydantic import PositiveInt
@@ -9,6 +11,7 @@ from data_juicer.utils.mm_utils import (
     extract_key_frames,
     extract_video_frames_uniformly,
     load_data_with_context,
+    load_image,
     load_video,
 )
 
@@ -44,6 +47,7 @@ class VideoAestheticsFilter(Filter):
         trust_remote_code: bool = False,
         min_score: float = 0.4,
         max_score: float = 1.0,
+        frame_field: Optional[str] = None,
         frame_sampling_method: str = "uniform",
         frame_num: PositiveInt = 3,
         any_or_all: str = "any",
@@ -61,6 +65,8 @@ class VideoAestheticsFilter(Filter):
         :param trust_remote_code: whether to trust the remote code of HF models.
         :param min_score: Min score for the predicted aesthetics in a video.
         :param max_score: Max score for the predicted aesthetics in a video.
+        :param frame_field: the field name of video frames to calculate the aesthetic score.
+            If frame_field is None, extract frames from the video field.
         :param frame_sampling_method: sampling method of extracting frame
             images from the videos.
             Should be one of ["all_keyframes", "uniform"].
@@ -70,8 +76,8 @@ class VideoAestheticsFilter(Filter):
             keyframes can be large while their difference is usually small
             in terms of their aesthetics.
         :param frame_num: the number of frames to be extracted uniformly from
-            the video. Only works when frame_sampling_method is "uniform". If
-            it's 1, only the middle frame will be extracted. If it's 2, only
+            the video. Only works when frame_sampling_method is "uniform" or "frame_field" is given.
+            If it's 1, only the middle frame will be extracted. If it's 2, only
             the first and the last frames will be extracted. If it's larger
             than 2, in addition to the first and the last frames, other frames
             will be extracted uniformly within the video duration.
@@ -93,6 +99,7 @@ class VideoAestheticsFilter(Filter):
             hf_scorer_model = "shunk031/aesthetics-predictor-v2-sac-logos-ava1-l14-linearMSE"
         self.min_score = min_score
         self.max_score = max_score
+        self.frame_field = frame_field
 
         if frame_sampling_method not in ["all_keyframes", "uniform"]:
             raise ValueError(
@@ -124,71 +131,90 @@ class VideoAestheticsFilter(Filter):
             "" if frame_sampling_method == "all_keyframes" else f"-{frame_num}"
         )
 
+    def _calculate_score(self, frame_images, model, processor):
+        if len(frame_images) > 0:
+            # compute aesthetics_scores
+            inputs = processor(images=frame_images, return_tensors="pt").to(model.device)
+            with torch.no_grad():
+                outputs = model(**inputs)
+            if self.need_normalized_by_ten:
+                aesthetics_score = outputs.logits / 10.0
+            else:
+                aesthetics_score = outputs.logits
+
+            if self.reduce_mode == "avg":
+                aesthetics_score = float(aesthetics_score.mean())
+            elif self.reduce_mode == "max":
+                aesthetics_score = float(aesthetics_score.max())
+            else:
+                aesthetics_score = float(aesthetics_score.min())
+        else:
+            aesthetics_score = 0.0
+
+        return float(aesthetics_score)
+
     def compute_stats_single(self, sample, rank=None, context=False):
         # check if it's computed already
         if StatsKeys.video_frames_aesthetics_score in sample[Fields.stats]:
             return sample
 
-        # there is no video in this sample
-        if self.video_key not in sample or not sample[self.video_key]:
-            sample[Fields.stats][StatsKeys.video_frames_aesthetics_score] = np.array([], dtype=np.float64)
-            return sample
+        # priority to get frames from frame_field
+        if self.frame_field and self.frame_field in sample:
+            videos_frames_path_list = sample[self.frame_field]
+        else:
+            # there is no video in this sample
+            if self.video_key not in sample or not sample[self.video_key]:
+                sample[Fields.stats][StatsKeys.video_frames_aesthetics_score] = np.array([], dtype=np.float64)
+                return sample
 
-        # load videos
-        loaded_video_keys = sample[self.video_key]
-        sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
-
+        model, processor = get_model(self.model_key, rank=rank, use_cuda=self.use_cuda())
         aesthetics_scores = []
-        for key, video in videos.items():
-            sampled_frames_key = key + self.sampled_frames_key_suffix
-            if video is None:
-                continue
-            elif context and sampled_frames_key in sample[Fields.context]:
-                # sampled frames can be found in the context
-                frames = sample[Fields.context][sampled_frames_key]
-            else:
-                # extract frame images
-                if self.frame_sampling_method == "all_keyframes":
-                    frames = extract_key_frames(video)
-                elif self.frame_sampling_method == "uniform":
-                    frames = extract_video_frames_uniformly(video, self.frame_num)
+
+        if self.frame_field and self.frame_field in sample:
+            for frames_path in videos_frames_path_list:
+                if self.frame_num < len(frames_path):
+                    indices = np.linspace(0, len(frames_path) - 1, self.frame_num, dtype=int)
+                    frames_path = [frames_path[i] for i in indices]
+
+                frame_images = [load_image(frame_path) for frame_path in frames_path]
+                aesthetics_score = self._calculate_score(frame_images, model, processor)
+                aesthetics_scores.append(aesthetics_score)
+        else:
+            # extract frames from videos
+            # load videos
+            loaded_video_keys = sample[self.video_key]
+            sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
+
+            for key, video in videos.items():
+                sampled_frames_key = key + self.sampled_frames_key_suffix
+                if video is None:
+                    continue
+                elif context and sampled_frames_key in sample[Fields.context]:
+                    # sampled frames can be found in the context
+                    frames = sample[Fields.context][sampled_frames_key]
                 else:
-                    frames = []
+                    # extract frame images
+                    if self.frame_sampling_method == "all_keyframes":
+                        frames = extract_key_frames(video)
+                    elif self.frame_sampling_method == "uniform":
+                        frames = extract_video_frames_uniformly(video, self.frame_num)
+                    else:
+                        frames = []
 
-                # store the sampled frames in the context
-                if context:
-                    sample[Fields.context][sampled_frames_key] = frames
-            frame_images = [frame.to_image() for frame in frames]
+                    # store the sampled frames in the context
+                    if context:
+                        sample[Fields.context][sampled_frames_key] = frames
+                frame_images = [frame.to_image() for frame in frames]
+                aesthetics_score = self._calculate_score(frame_images, model, processor)
+                aesthetics_scores.append(aesthetics_score)
 
-            if len(frame_images) > 0:
-                # compute aesthetics_scores
-                model, processor = get_model(self.model_key, rank=rank, use_cuda=self.use_cuda())
-                inputs = processor(images=frame_images, return_tensors="pt").to(model.device)
-                with torch.no_grad():
-                    outputs = model(**inputs)
-                if self.need_normalized_by_ten:
-                    aesthetics_score = outputs.logits / 10.0
-                else:
-                    aesthetics_score = outputs.logits
-
-                if self.reduce_mode == "avg":
-                    aesthetics_score = float(aesthetics_score.mean())
-                elif self.reduce_mode == "max":
-                    aesthetics_score = float(aesthetics_score.max())
-                else:
-                    aesthetics_score = float(aesthetics_score.min())
-            else:
-                aesthetics_score = 0.0
-
-            aesthetics_scores.append(aesthetics_score)
+            if not context:
+                for vid_key in videos:
+                    close_video(videos[vid_key])
 
         logger.debug(f"aesthetics_score: {aesthetics_scores}")
 
         sample[Fields.stats][StatsKeys.video_frames_aesthetics_score] = aesthetics_scores
-
-        if not context:
-            for vid_key in videos:
-                close_video(videos[vid_key])
 
         return sample
 

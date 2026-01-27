@@ -14,6 +14,7 @@ from .image_nsfw_filter import ImageNSFWFilter
 from .image_pair_similarity_filter import ImagePairSimilarityFilter
 from .image_shape_filter import ImageShapeFilter
 from .image_size_filter import ImageSizeFilter
+from .image_subplot_filter import ImageSubplotFilter
 from .image_text_matching_filter import ImageTextMatchingFilter
 from .image_text_similarity_filter import ImageTextSimilarityFilter
 from .image_watermark_filter import ImageWatermarkFilter
@@ -46,6 +47,7 @@ from .video_aspect_ratio_filter import VideoAspectRatioFilter
 from .video_duration_filter import VideoDurationFilter
 from .video_frames_text_similarity_filter import VideoFramesTextSimilarityFilter
 from .video_motion_score_filter import VideoMotionScoreFilter
+from .video_motion_score_ptlflow_filter import VideoMotionScorePtlflowFilter
 from .video_motion_score_raft_filter import VideoMotionScoreRaftFilter
 from .video_nsfw_filter import VideoNSFWFilter
 from .video_ocr_area_ratio_filter import VideoOcrAreaRatioFilter
@@ -71,6 +73,7 @@ __all__ = [
     "ImagePairSimilarityFilter",
     "ImageShapeFilter",
     "ImageSizeFilter",
+    "ImageSubplotFilter",
     "ImageTextMatchingFilter",
     "ImageTextSimilarityFilter",
     "ImageWatermarkFilter",
@@ -101,6 +104,7 @@ __all__ = [
     "VideoDurationFilter",
     "VideoFramesTextSimilarityFilter",
     "VideoMotionScoreFilter",
+    "VideoMotionScorePtlflowFilter",
     "VideoMotionScoreRaftFilter",
     "VideoNSFWFilter",
     "VideoOcrAreaRatioFilter",

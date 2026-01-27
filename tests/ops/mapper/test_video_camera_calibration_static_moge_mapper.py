@@ -53,6 +53,7 @@ class VideoCameraCalibrationStaticMogeMapperTest(DataJuicerTestCaseBase):
             frame_num=1,
             duration=1,
             frame_dir=DATA_JUICER_ASSETS_CACHE,
+            if_output_info=True,
             output_info_dir=DATA_JUICER_ASSETS_CACHE,
             if_output_points_info=True,
             if_output_depth_info=True,

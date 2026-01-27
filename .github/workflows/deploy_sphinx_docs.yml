@@ -23,23 +23,48 @@ jobs:
       REPO_OWNER: ${{ github.repository_owner }}
       MIN_TAG: v1.4.0
     steps:
+      - name: Mount /mnt into workspace (writable)
+        run: |
+          set -euxo pipefail
+          sudo mkdir -p /mnt/repo
+          sudo chown -R "$USER:$USER" /mnt/repo
+          mkdir -p "$GITHUB_WORKSPACE/repo"
+          sudo mount --bind /mnt/repo "$GITHUB_WORKSPACE/repo"
+          sudo chown -R "$USER:$USER" "$GITHUB_WORKSPACE/repo"
+          ls -ld /mnt/repo "$GITHUB_WORKSPACE/repo"
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: repo
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@master
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Free disk space
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get autoclean -y >/dev/null 2>&1
+          sudo rm -rf /usr/local/lib/android >/dev/null 2>&1
+          sudo apt clean
+          df -h
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - name: Install dependencies with uv
+        working-directory: repo
         run: |
           uv pip install --system --upgrade pip
           uv pip install --system -e .[all]
+      - name: Check disk
+        run: |
+          set -euxo pipefail
+          df -h
       - name: Fetch Data-Juicer Sphinx Template
+        working-directory: repo
         run: |
           set -e
           echo "Cloning sphinx template..."
@@ -57,17 +82,22 @@ jobs:
           echo "Restoring custom files..."
           cp -rf /tmp/custom_files/source/* docs/sphinx_doc/source
           echo "Done!"
+          df -h
       - name: Get git tags
+        working-directory: repo
         run: |
           git fetch --all --tags
           git branch -a
           git tag
       - id: build
         name: Build Documentation
+        working-directory: repo
         run: |
           cd docs/sphinx_doc
           python build_versions.py --tags
+          df -h
       - name: Redirect index.html
+        working-directory: repo
         run: |
           REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}"
           cd docs/sphinx_doc
@@ -75,13 +105,14 @@ jobs:
           sed -i "s/\[REPOSITORY_OWNER\]/${REPOSITORY_OWNER}/g" build/index.html
           sed -i "s/\[PROJECT\]/${PROJECT}/g" build/index.html
           cp build/index.html build/404.html
+          df -h
       - name: Upload Documentation
         uses: actions/upload-artifact@v4
         with:
           name: SphinxDoc
-          path: "docs/sphinx_doc/build"
+          path: "repo/docs/sphinx_doc/build"
       - uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: "docs/sphinx_doc/build"
+          publish_dir: "repo/docs/sphinx_doc/build"

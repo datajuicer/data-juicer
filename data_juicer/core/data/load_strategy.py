@@ -558,6 +558,7 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
             "aws_session_token",
             "aws_region",
             "endpoint_url",
+            "format",
         ],
         "field_types": {"path": str},
         "custom_validators": {
@@ -590,23 +591,38 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
         }
 
         auto_detect = False
-        data_source = self.ds_config.get("source", None)
-        if data_source is None:
+        data_format = self.ds_config.get("format", None)
+        if data_format is None:
             auto_detect = True
         else:
-            suffix = os.path.splitext(data_source)[1]
-            if suffix in file_extension_map:
-                data_format = file_extension_map[suffix]
-            elif "." + data_source in file_extension_map:
-                data_format = file_extension_map["." + data_source]
+            # First check if it's already a valid format name
+            valid_formats = set(file_extension_map.values())
+            if data_format in valid_formats:
+                pass  # It's a valid format name, use it as is
             else:
-                auto_detect = True
+                # Try to interpret as an extension or filename
+                suffix = os.path.splitext(data_format)[1]
+                if suffix in file_extension_map:
+                    data_format = file_extension_map[suffix]
+                elif "." + data_format in file_extension_map:
+                    data_format = file_extension_map["." + data_format]
+                else:
+                    auto_detect = True
 
         if auto_detect:
             # Extract extension from path
             file_extension = os.path.splitext(path)[1]
-            data_format = file_extension_map.get(file_extension, "parquet")  # Default to parquet for S3
-            logger.info(f"Auto-detected data format: {data_format}")
+            if file_extension in file_extension_map:
+                data_format = file_extension_map[file_extension]
+                logger.info(f"Auto-detected data format: {data_format} from extension: {file_extension}")
+            else:
+                data_format = "parquet"
+                logger.warning(
+                    f"Could not determine data format from path '{path}' "
+                    f"(extension: '{file_extension or '(none)'}'), "
+                    f"defaulting to 'parquet'. "
+                    f"Consider explicitly specifying 'format' field in dataset config."
+                )
         else:
             logger.info(f"Using specified data format: {data_format}")
 

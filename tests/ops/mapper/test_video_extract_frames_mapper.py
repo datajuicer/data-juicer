@@ -75,7 +75,8 @@ class VideoExtractFramesMapperTest(DataJuicerTestCaseBase):
             duration=0,
             frame_dir=frame_dir,
             batch_size=2,
-            num_proc=1)
+            num_proc=1,
+            video_backend='av')
 
         dataset = Dataset.from_list(ds_list)
         dataset = op.run(dataset)
@@ -118,7 +119,8 @@ class VideoExtractFramesMapperTest(DataJuicerTestCaseBase):
             duration=10,
             frame_dir=frame_dir,
             batch_size=2,
-            num_proc=1)
+            num_proc=1,
+            video_backend='av')
 
         dataset = Dataset.from_list(ds_list)
         dataset = op.run(dataset)
@@ -160,7 +162,8 @@ class VideoExtractFramesMapperTest(DataJuicerTestCaseBase):
             frame_dir=frame_dir,
             duration=5,
             batch_size=2,
-            num_proc=2)
+            num_proc=2,
+            video_backend='av')
 
         dataset = Dataset.from_list(ds_list)
         dataset = op.run(dataset)
@@ -200,7 +203,8 @@ class VideoExtractFramesMapperTest(DataJuicerTestCaseBase):
             output_format='bytes',
             duration=5,
             batch_size=2,
-            num_proc=2)
+            num_proc=2,
+            video_backend='av')
 
         dataset = Dataset.from_list(ds_list)
         dataset = op.run(dataset)
@@ -237,7 +241,8 @@ class VideoExtractFramesMapperTest(DataJuicerTestCaseBase):
             frame_num=frame_num,
             duration=5,
             batch_size=2,
-            num_proc=1
+            num_proc=1,
+            video_backend='av'
             )
 
         vid1_frame_dir =  op._get_default_frame_dir(self.vid1_path)
@@ -264,6 +269,41 @@ class VideoExtractFramesMapperTest(DataJuicerTestCaseBase):
                         tgt_frames_dir[sample_i][video_idx],
                         f'frame_{f_i}.jpg') for f_i in range(tgt_frames_num[sample_i][video_idx])
                     ])
+
+    def test_legacy_split_by_text_token_false(self):
+        ds_list = [{
+            'text': '',
+            'videos': [self.vid1_path]
+        }, {
+            'text': '',
+            'videos': [self.vid2_path, self.vid3_path]
+        }, {
+            'text': '',
+            'videos': [self.vid3_path]
+        }]
+
+        frame_key = 'frames'
+        op = VideoExtractFramesMapper(
+            frame_sampling_method='all_keyframes',
+            frame_key=frame_key,
+            output_format='bytes',
+            batch_size=2,
+            num_proc=2,
+            video_backend='ffmpeg',
+            legacy_split_by_text_token=False)
+
+        dataset = Dataset.from_list(ds_list)
+        dataset = op.run(dataset)
+        res_list = dataset.to_list()
+        tgt_frames_num = [[3], [3, 6], [6]]
+        for sample_i in range(len(res_list)):
+            num_videos = len(ds_list[sample_i]['videos'])
+            for video_idx in range(num_videos):
+                self.assertEqual(
+                    len(res_list[sample_i][frame_key][video_idx]),
+                    tgt_frames_num[sample_i][video_idx]
+                    )
+                self.assertTrue(isinstance(res_list[sample_i][frame_key][video_idx][0], bytes))
 
 
 if __name__ == '__main__':

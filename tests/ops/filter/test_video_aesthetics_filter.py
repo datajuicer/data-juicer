@@ -6,7 +6,7 @@ from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.filter.video_aesthetics_filter import \
     VideoAestheticsFilter
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.mm_utils import SpecialTokens
+from data_juicer.utils.mm_utils import SpecialTokens, load_file_byte
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class VideoAestheticsFilterTest(DataJuicerTestCaseBase):
@@ -34,6 +34,10 @@ class VideoAestheticsFilterTest(DataJuicerTestCaseBase):
     hf_aesthetics_scorer = \
         'shunk031/aesthetics-predictor-v2-sac-logos-ava1-l14-linearMSE'
 
+    img1_path = os.path.join(data_path, 'img6.jpg')
+    img2_path = os.path.join(data_path, 'img7.jpg')
+    img3_path = os.path.join(data_path, 'img8.jpg')
+
     @classmethod
     def tearDownClass(cls) -> None:
         super().tearDownClass(cls.hf_aesthetics_scorer)
@@ -42,13 +46,20 @@ class VideoAestheticsFilterTest(DataJuicerTestCaseBase):
                                      dataset: Dataset,
                                      target_list,
                                      op,
-                                     np=1):
+                                     np=1,
+                                     select_key=None,
+                                     return_results=False):
         if Fields.stats not in dataset.features:
             dataset = dataset.add_column(name=Fields.stats,
                                          column=[{}] * dataset.num_rows)
         dataset = dataset.map(op.compute_stats, num_proc=np)
         dataset = dataset.filter(op.process, num_proc=np)
-        dataset = dataset.select_columns(column_names=[op.video_key])
+
+        if return_results:
+            return dataset.to_list()
+
+        select_key = [op.video_key] if select_key is None else select_key
+        dataset = dataset.select_columns(column_names=select_key)
         res_list = dataset.to_list()
         self.assertEqual(res_list, target_list)
 
@@ -237,6 +248,72 @@ class VideoAestheticsFilterTest(DataJuicerTestCaseBase):
             max_score=0.45,
         )
         self._run_video_aesthetics_filter(dataset, tgt_list, op, np=2)
+
+    def test_filter_with_frame_field(self):
+        ds_list = [{
+            'frames': [[self.img1_path, self.img2_path, self.img3_path]],
+            'text': self.vid_low_text,
+        }, {
+            'frames': [[self.img1_path, self.img2_path]],
+            'text': self.vid_mid_text,
+        }, {
+            'frames': [[self.img3_path]],
+            'text': self.vid_high_text,
+        }]
+        tgt_list = [{
+            'frames': [[self.img1_path, self.img2_path, self.img3_path]]
+        }, {
+            'frames': [[self.img3_path]]
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = VideoAestheticsFilter(self.hf_aesthetics_scorer,
+                                   frame_field='frames',
+                                   min_score=0.564)
+        self._run_video_aesthetics_filter(dataset, tgt_list, op, select_key=['frames'])
+
+    def test_filter_with_frame_field_and_sampling(self):
+        ds_list = [{
+            'frames': [[self.img1_path, self.img2_path, self.img3_path]],
+            'text': self.vid_low_text,
+        }, {
+            'frames': [[self.img1_path, self.img2_path]],
+            'text': self.vid_mid_text,
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = VideoAestheticsFilter(self.hf_aesthetics_scorer,
+                                   frame_field='frames',
+                                   frame_num=1,
+                                   min_score=0.0)
+        results = self._run_video_aesthetics_filter(dataset, None, op, return_results=True)
+
+        self.assertEqual(len(results), len(ds_list))
+        # frame_num=1 means take the first frame's score as the video's score
+        for res in results:
+            self.assertEqual(
+                res[Fields.stats]['video_frames_aesthetics_score'],
+                results[0][Fields.stats]['video_frames_aesthetics_score'])
+            
+    def test_filter_with_frame_bytes(self):
+        ds_list = [{
+            'frames': [[load_file_byte(self.img1_path), load_file_byte(self.img2_path), load_file_byte(self.img3_path)]],
+            'text': self.vid_low_text,
+        }, {
+            'frames': [[load_file_byte(self.img1_path), load_file_byte(self.img2_path)]],
+            'text': self.vid_mid_text,
+        }, {
+            'frames': [[load_file_byte(self.img3_path)]],
+            'text': self.vid_high_text,
+        }]
+        tgt_list = [{
+            'frames': [[load_file_byte(self.img1_path), load_file_byte(self.img2_path), load_file_byte(self.img3_path)]]
+        }, {
+            'frames': [[load_file_byte(self.img3_path)]]
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = VideoAestheticsFilter(self.hf_aesthetics_scorer,
+                                   frame_field='frames',
+                                   min_score=0.564)
+        self._run_video_aesthetics_filter(dataset, tgt_list, op, select_key=['frames'])
 
 
 if __name__ == '__main__':

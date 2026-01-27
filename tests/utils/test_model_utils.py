@@ -119,11 +119,23 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         self.assertEqual(processor, mock_processor)
         mock_tiktoken.encoding_for_model.assert_called_with('text_embedding_model')
 
+        # Test responses endpoint with default response path
+        mock_openai.OpenAI.reset_mock()
+        responses_model = prepare_api_model('test_model', endpoint='/responses')
+        self.assertEqual(responses_model.endpoint, '/responses')
+        self.assertEqual(responses_model.response_path, 'output.0.content.0.text')
+
+        # Test responses endpoint with different casing
+        mock_openai.OpenAI.reset_mock()
+        responses_model = prepare_api_model('test_model', endpoint='/api/RESPONSES/v1')
+        self.assertEqual(responses_model.endpoint, '/api/RESPONSES/v1')
+        self.assertEqual(responses_model.response_path, 'output.0.content.0.text')
+
         # Test unsupported endpoint
         with self.assertRaises(ValueError) as context:
             prepare_api_model('test_model', endpoint='/unsupported/endpoint')
         self.assertIn('Unsupported endpoint', str(context.exception))
-        
+
     @patch('data_juicer.utils.model_utils.transformers')
     def test_prepare_huggingface_model(self, mock_transformers):
         # Test model with processor

@@ -6,6 +6,7 @@ from .document_minhash_deduplicator import (
 from .document_simhash_deduplicator import DocumentSimhashDeduplicator
 from .image_deduplicator import ImageDeduplicator
 from .ray_basic_deduplicator import RayBasicDeduplicator
+from .ray_bts_minhash_cpp_deduplicator import RayBTSMinhashCppDeduplicator
 from .ray_bts_minhash_deduplicator import (
     RayBTSMinhashDeduplicator,
     RayBTSMinhashDeduplicatorWithUid,
@@ -27,5 +28,6 @@ __all__ = [
     "RayVideoDeduplicator",
     "RayBTSMinhashDeduplicator",
     "RayBTSMinhashDeduplicatorWithUid",
+    "RayBTSMinhashCppDeduplicator",
     "VideoDeduplicator",
 ]

@@ -1,4 +1,5 @@
 import copy
+from abc import ABCMeta
 from functools import wraps
 
 import numpy as np
@@ -133,7 +134,15 @@ def catch_map_single_exception(method, return_sample=True, skip_op_error=False, 
     return wrapper
 
 
-class OP:
+class OPMetaClass(ABCMeta):
+    def __call__(cls, *args, **kwargs):
+        instance = super().__call__(*args, **kwargs)
+        instance._init_args = args
+        instance._init_kwargs = kwargs
+        return instance
+
+
+class OP(metaclass=OPMetaClass):
     _accelerator = "cpu"
     _batched_op = False
 
@@ -199,6 +208,10 @@ class OP:
         # for unittest, do not skip the error.
         # It would be set to be True in config init.
         self.skip_op_error = kwargs.get("skip_op_error", False)
+        self.auto_op_parallelism = kwargs.get("auto_op_parallelism", True)
+
+        # whether to enable batch processing
+        self.batch_mode = kwargs.get("batch_mode", None)
 
         # whether the model can be accelerated using cuda
         _accelerator = kwargs.get("accelerator", None)
@@ -213,7 +226,11 @@ class OP:
             self.batch_size = kwargs.get("batch_size", DEFAULT_BATCH_SIZE)
 
         # parameters to determine the number of procs for this op
-        self.num_proc = kwargs.get("num_proc", -1)  # -1 means automatic calculation of concurrency
+        if not self.auto_op_parallelism:
+            self.num_proc = kwargs.get("num_proc", None)
+        else:
+            self.num_proc = kwargs.get("num_proc", -1)  # -1 means automatic calculation of concurrency
+
         self.cpu_required = kwargs.get("cpu_required", None)
         self.gpu_required = kwargs.get("gpu_required", None)
         self.mem_required = kwargs.get("mem_required", None)
@@ -265,12 +282,18 @@ class OP:
                 setattr(self, name, method)
 
     def use_auto_proc(self):
-        if is_ray_mode() and not self.use_cuda():  # ray task
+        if is_ray_mode() and not self.use_ray_actor():  # ray task
             return self.num_proc == -1
         else:
             return not self.num_proc or self.num_proc == -1
 
     def is_batched_op(self):
+        if self.batch_mode is not None:
+            if not self.batch_mode and self._batched_op:
+                raise ValueError(
+                    f"Op [{self._name}] is implemented as a batched op, " f"but batch_mode is set to False."
+                )
+            return self._batched_op or self.batch_mode
         return self._batched_op
 
     def use_ray_actor(self):
@@ -289,9 +312,13 @@ class OP:
         # Local import to avoid logger being serialized in multiprocessing
         from loguru import logger
 
-        op_proc = calculate_np(self._name, self.memory, self.num_cpus or 1, self.use_cuda(), self.num_gpus)
-        if not self.use_auto_proc():
-            op_proc = min(op_proc, self.num_proc)
+        if self.auto_op_parallelism:
+            op_proc = calculate_np(self._name, self.memory, self.num_cpus or 1, self.use_cuda(), self.num_gpus)
+            if not self.use_auto_proc():
+                op_proc = min(op_proc, self.num_proc)
+        else:
+            op_proc = self.num_proc
+
         logger.debug(f"Op [{self._name}] running with number of procs:{op_proc}")
         return op_proc
 

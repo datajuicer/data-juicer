@@ -1,6 +1,8 @@
 import copy
 import re
 
+from loguru import logger
+
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import add_suffix_to_filename, transfer_filename
 from data_juicer.utils.mm_utils import SpecialTokens
@@ -40,8 +42,11 @@ class VideoSplitByKeyFrameMapper(Mapper):
         self,
         keep_original_sample: bool = True,
         save_dir: str = None,
-        video_backend: str = "ffmpeg",
+        video_backend: str = "av",
         ffmpeg_extra_args: str = "",
+        output_format: str = "path",
+        save_field: str = None,
+        legacy_split_by_text_token: bool = True,
         *args,
         **kwargs,
     ):
@@ -57,6 +62,26 @@ class VideoSplitByKeyFrameMapper(Mapper):
             This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
         :param video_backend: video backend, can be `ffmpeg`, `av`.
         :param ffmpeg_extra_args: Extra ffmpeg args for splitting video, only valid when `video_backend` is `ffmpeg`.
+        :param output_format: The output format of the videos.
+            Supported formats are: ["path", "bytes"].
+            If format is "path", the output is a list of lists, where each inner
+            list contains the path of the split videos.
+            e.g.[
+                    [video1_split1_path, video1_split2_path, ...],
+                    [video2_split1_path, video2_split2_path, ...],
+                    ...
+                ] (In the order of the videos).
+            If format is "bytes", the output is a list of lists, where each inner
+            list contains the bytes of the split videos.
+            e.g. [
+                    [video1_split1_byte, video1_split2_byte, ...],
+                    [video2_split1_byte, video2_split2_byte, ...],
+                    ...
+                ] (In the order of the videos).
+        :param save_field: The new field name to save generated video files path.
+            If not specified, will overwrite the original video field.
+        :param legacy_split_by_text_token: Whether to split by special tokens (e.g. <__dj__video>)
+            in the text field and read videos in order, or use the 'videos' field directly.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -69,6 +94,22 @@ class VideoSplitByKeyFrameMapper(Mapper):
         self.video_backend = video_backend
         assert self.video_backend in ["ffmpeg", "av"]
         self.ffmpeg_extra_args = ffmpeg_extra_args
+        self.output_format = output_format.lower()
+        self.save_field = save_field
+        assert self.output_format in [
+            "path",
+            "bytes",
+        ], f"output_format '{output_format}' is not supported. Can only be one of ['path', 'bytes']."
+        self.legacy_split_by_text_token = legacy_split_by_text_token
+        if legacy_split_by_text_token:
+            logger.warning(
+                "`legacy_split_by_text_token` is set to true, "
+                "spliting the text field by special tokens "
+                "(e.g. <__dj__video>) to read videos in order. "
+                "This behavior will be deprecated in future versions. "
+                "Please set `legacy_split_by_text_token` to False, "
+                'and use the "videos" field directly.'
+            )
 
     def get_split_key_frame(self, video_key, container):
         timestamps = container.extract_keyframes().pts_time
@@ -115,30 +156,51 @@ class VideoSplitByKeyFrameMapper(Mapper):
                 videos[loaded_video_key] = video
 
         split_video_keys = []
-        offset = 0
-        # split each video chunk by chunk
-        for chunk in sample[self.text_key].split(SpecialTokens.eoc):
-            # skip empty chunks or contents after the last eoc token
-            if not chunk.strip():
-                continue
-            else:
-                video_count = chunk.count(SpecialTokens.video)
-                place_holders = []
-                for video_key in loaded_video_keys[offset : offset + video_count]:
-                    video = videos[video_key]
-                    new_video_keys = self.get_split_key_frame(video_key, video)
-                    video.close()
-                    split_video_keys.extend(new_video_keys)
-                    place_holders.append(SpecialTokens.video * len(new_video_keys))
-                    split_sample[Fields.source_file].extend([video_key] * len(new_video_keys))
 
-                # insert the generated text according to given mode
-                replacer_function = create_replacer(place_holders)
-                new_split_text_per_chunk = re.sub(SpecialTokens.video, replacer_function, chunk)
-                split_sample[self.text_key] += f"{new_split_text_per_chunk}{SpecialTokens.eoc}"  # noqa: E501
-                offset += video_count
+        if self.legacy_split_by_text_token:
+            offset = 0
+            # split each video chunk by chunk
+            for chunk in sample[self.text_key].split(SpecialTokens.eoc):
+                # skip empty chunks or contents after the last eoc token
+                if not chunk.strip():
+                    continue
+                else:
+                    video_count = chunk.count(SpecialTokens.video)
+                    place_holders = []
+                    for video_key in loaded_video_keys[offset : offset + video_count]:
+                        video = videos[video_key]
+                        new_video_keys = self.get_split_key_frame(video_key, video)
+                        video.close()
+                        split_video_keys.extend(new_video_keys)
+                        place_holders.append(SpecialTokens.video * len(new_video_keys))
+                        split_sample[Fields.source_file].extend([video_key] * len(new_video_keys))
 
-        split_sample[self.video_key] = split_video_keys
+                    # insert the generated text according to given mode
+                    replacer_function = create_replacer(place_holders)
+                    new_split_text_per_chunk = re.sub(SpecialTokens.video, replacer_function, chunk)
+                    split_sample[self.text_key] += f"{new_split_text_per_chunk}{SpecialTokens.eoc}"  # noqa: E501
+                    offset += video_count
+        else:
+            # TODO: handle the text field update
+            for video_key in loaded_video_keys:
+                video = videos[video_key]
+                new_video_keys = self.get_split_key_frame(video_key, video)
+                video.close()
+                split_video_keys.extend(new_video_keys)
+                split_sample[Fields.source_file].extend([video_key] * len(new_video_keys))
+
+        if self.output_format == "bytes":
+            from data_juicer.utils.mm_utils import load_file_byte
+
+            split_videos = [load_file_byte(f) for f in split_video_keys]
+        else:
+            split_videos = split_video_keys
+
+        if self.save_field:
+            split_sample[self.save_field] = split_videos
+        else:
+            split_sample[self.video_key] = split_videos
+
         return [split_sample]
 
     def process_batched(self, samples):

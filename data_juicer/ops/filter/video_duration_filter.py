@@ -1,9 +1,11 @@
 import sys
+from functools import partial
 
 import numpy as np
 
 from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.mm_utils import close_video, load_data_with_context, load_video
+from data_juicer.utils.mm_utils import load_data_with_context
+from data_juicer.utils.video_utils import create_video_reader
 
 from ..base_op import OPERATORS, Filter
 from ..op_fusion import LOADED_VIDEOS
@@ -25,7 +27,13 @@ class VideoDurationFilter(Filter):
     sample's stats. If no videos are present, an empty array is stored."""
 
     def __init__(
-        self, min_duration: float = 0, max_duration: float = sys.maxsize, any_or_all: str = "any", *args, **kwargs
+        self,
+        min_duration: float = 0,
+        max_duration: float = sys.maxsize,
+        any_or_all: str = "any",
+        video_backend: str = "ffmpeg",
+        *args,
+        **kwargs,
     ):
         """
         Initialization method.
@@ -38,6 +46,7 @@ class VideoDurationFilter(Filter):
             all videos. 'any': keep this sample if any videos meet the
             condition. 'all': keep this sample only if all videos meet the
             condition.
+        :param video_backend: video backend, can be `ffmpeg`, `av`.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -47,6 +56,8 @@ class VideoDurationFilter(Filter):
         if any_or_all not in ["any", "all"]:
             raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
         self.any = any_or_all == "any"
+        self.video_backend = video_backend
+        assert self.video_backend in ["ffmpeg", "av"]
 
     def compute_stats_single(self, sample, context=False):
         # check if it's computed already
@@ -60,14 +71,15 @@ class VideoDurationFilter(Filter):
 
         # load videos
         loaded_video_keys = sample[self.video_key]
-        sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
+
+        video_reader = partial(create_video_reader, backend=self.video_backend)
+        sample, videos = load_data_with_context(sample, context, loaded_video_keys, video_reader)
 
         video_durations = {}
         for video_key, video in videos.items():
-            stream = video.streams.video[0]
-            video_durations[video_key] = round(stream.duration * stream.time_base)
+            video_durations[video_key] = video.metadata.duration
             if not context:
-                close_video(video)
+                video.close()
 
         # get video durations
         sample[Fields.stats][StatsKeys.video_duration] = [

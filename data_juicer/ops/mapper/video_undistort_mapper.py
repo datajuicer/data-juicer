@@ -12,7 +12,6 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_undistort_mapper"
 
-cv2 = LazyLoader("cv2", "opencv-python")
 ffmpeg = LazyLoader("ffmpeg", "ffmpeg-python")
 
 
@@ -52,6 +51,10 @@ class VideoUndistortMapper(Mapper):
         if opencv_contrib_python_exist_code.returncode == 1:  # not exist
             LazyLoader.check_packages(["opencv-contrib-python"])
             subprocess.run(["pip", "install", "numpy==1.26.4"], check=True)
+
+        import cv2
+
+        self.cv2 = cv2
 
         self.output_video_dir = output_video_dir
         self.tag_field_name = tag_field_name
@@ -112,13 +115,13 @@ class VideoUndistortMapper(Mapper):
         if self.video_key not in sample or not sample[self.video_key]:
             return []
 
-        cap = cv2.VideoCapture(sample[self.video_key][0])
+        cap = self.cv2.VideoCapture(sample[self.video_key][0])
         video_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
 
         # Get video properties
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        fps = cap.get(cv2.CAP_PROP_FPS)
+        height = int(cap.get(self.cv2.CAP_PROP_FRAME_HEIGHT))
+        width = int(cap.get(self.cv2.CAP_PROP_FRAME_WIDTH))
+        fps = cap.get(self.cv2.CAP_PROP_FPS)
 
         K = sample["intrinsics"]  # 3x3 camera intrinsics.
         D = sample[
@@ -148,8 +151,8 @@ class VideoUndistortMapper(Mapper):
         else:
             new_K = np.array(new_K, dtype=np.float32)
 
-        map1, map2 = cv2.omnidir.initUndistortRectifyMap(
-            K, D, xi, R, new_K, (width, height), cv2.CV_16SC2, cv2.omnidir.RECTIFY_PERSPECTIVE
+        map1, map2 = self.cv2.omnidir.initUndistortRectifyMap(
+            K, D, xi, R, new_K, (width, height), self.cv2.CV_16SC2, self.cv2.omnidir.RECTIFY_PERSPECTIVE
         )
 
         # Initialize the first batch ffmpeg writer
@@ -170,12 +173,12 @@ class VideoUndistortMapper(Mapper):
                 break
 
             # Undistort the frame
-            undistorted_frame = cv2.remap(
-                frame, map1, map2, interpolation=cv2.INTER_CUBIC, borderMode=cv2.BORDER_CONSTANT
+            undistorted_frame = self.cv2.remap(
+                frame, map1, map2, interpolation=self.cv2.INTER_CUBIC, borderMode=self.cv2.BORDER_CONSTANT
             )
 
             # Convert BGR to RGB before writing to ffmpeg (FFmpeg expects RGB)
-            undistorted_frame = cv2.cvtColor(undistorted_frame, cv2.COLOR_BGR2RGB)
+            undistorted_frame = self.cv2.cvtColor(undistorted_frame, self.cv2.COLOR_BGR2RGB)
 
             # Write to ffmpeg stdin
             writer.stdin.write(undistorted_frame.tobytes())

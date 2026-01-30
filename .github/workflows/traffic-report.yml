@@ -26,7 +26,7 @@ jobs:
 
     - name: Fetch traffic data and send email
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.LL_PAT_FOR_ACTIONS }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
         SMTP_PORT: ${{ secrets.SMTP_PORT }}

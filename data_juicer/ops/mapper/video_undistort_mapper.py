@@ -54,7 +54,17 @@ class VideoUndistortMapper(Mapper):
 
         import cv2
 
-        self.cv2 = cv2
+        self.VideoCapture = cv2.VideoCapture
+        self.CAP_PROP_FRAME_HEIGHT = cv2.CAP_PROP_FRAME_HEIGHT
+        self.CAP_PROP_FRAME_WIDTH = cv2.CAP_PROP_FRAME_WIDTH
+        self.CAP_PROP_FPS = cv2.CAP_PROP_FPS
+        self.omnidir = cv2.omnidir
+        self.CV_16SC2 = cv2.CV_16SC2
+        self.remap = cv2.remap
+        self.INTER_CUBIC = cv2.INTER_CUBIC
+        self.BORDER_CONSTANT = cv2.BORDER_CONSTANT
+        self.cvtColor = cv2.cvtColor
+        self.COLOR_BGR2RGB = cv2.COLOR_BGR2RGB
 
         self.output_video_dir = output_video_dir
         self.tag_field_name = tag_field_name
@@ -115,13 +125,13 @@ class VideoUndistortMapper(Mapper):
         if self.video_key not in sample or not sample[self.video_key]:
             return []
 
-        cap = self.cv2.VideoCapture(sample[self.video_key][0])
+        cap = self.VideoCapture(sample[self.video_key][0])
         video_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
 
         # Get video properties
-        height = int(cap.get(self.cv2.CAP_PROP_FRAME_HEIGHT))
-        width = int(cap.get(self.cv2.CAP_PROP_FRAME_WIDTH))
-        fps = cap.get(self.cv2.CAP_PROP_FPS)
+        height = int(cap.get(self.CAP_PROP_FRAME_HEIGHT))
+        width = int(cap.get(self.CAP_PROP_FRAME_WIDTH))
+        fps = cap.get(self.CAP_PROP_FPS)
 
         K = sample["intrinsics"]  # 3x3 camera intrinsics.
         D = sample[
@@ -151,8 +161,8 @@ class VideoUndistortMapper(Mapper):
         else:
             new_K = np.array(new_K, dtype=np.float32)
 
-        map1, map2 = self.cv2.omnidir.initUndistortRectifyMap(
-            K, D, xi, R, new_K, (width, height), self.cv2.CV_16SC2, self.cv2.omnidir.RECTIFY_PERSPECTIVE
+        map1, map2 = self.omnidir.initUndistortRectifyMap(
+            K, D, xi, R, new_K, (width, height), self.CV_16SC2, self.omnidir.RECTIFY_PERSPECTIVE
         )
 
         # Initialize the first batch ffmpeg writer
@@ -173,12 +183,12 @@ class VideoUndistortMapper(Mapper):
                 break
 
             # Undistort the frame
-            undistorted_frame = self.cv2.remap(
-                frame, map1, map2, interpolation=self.cv2.INTER_CUBIC, borderMode=self.cv2.BORDER_CONSTANT
+            undistorted_frame = self.remap(
+                frame, map1, map2, interpolation=self.INTER_CUBIC, borderMode=self.BORDER_CONSTANT
             )
 
             # Convert BGR to RGB before writing to ffmpeg (FFmpeg expects RGB)
-            undistorted_frame = self.cv2.cvtColor(undistorted_frame, self.cv2.COLOR_BGR2RGB)
+            undistorted_frame = self.cvtColor(undistorted_frame, self.COLOR_BGR2RGB)
 
             # Write to ffmpeg stdin
             writer.stdin.write(undistorted_frame.tobytes())

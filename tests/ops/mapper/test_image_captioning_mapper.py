@@ -234,6 +234,36 @@ class ImageCaptioningMapperTest(DataJuicerTestCaseBase):
                                    keep_original_sample=False)
         self._run_mapper(dataset, op, num_proc=2, caption_num=len(dataset))
 
+    def test_gpu_batch_size_parameter(self):
+        """Test that gpu_batch_size parameter is properly set."""
+        op = ImageCaptioningMapper(
+            hf_img2seq=self.hf_img2seq,
+            caption_num=1,
+            gpu_batch_size=4
+        )
+        self.assertEqual(op.gpu_batch_size, 4)
+
+        op_default = ImageCaptioningMapper(
+            hf_img2seq=self.hf_img2seq,
+            caption_num=1
+        )
+        self.assertEqual(op_default.gpu_batch_size, 8)
+
+    def test_gpu_batch_size_with_large_dataset(self):
+        """Test processing with gpu_batch_size smaller than dataset size."""
+        ds_list = [{
+            'text': f'{SpecialTokens.image}a photo of a cat',
+            'images': [self.cat_path]
+        }] * 20
+        caption_num = 1
+        dataset = Dataset.from_list(ds_list)
+        # Use small gpu_batch_size to test sub-batching
+        op = ImageCaptioningMapper(hf_img2seq=self.hf_img2seq,
+                                   caption_num=caption_num,
+                                   keep_candidate_mode='random_any',
+                                   gpu_batch_size=4)
+        self._run_mapper(dataset, op, caption_num=len(dataset) * 2)
+
 
 if __name__ == '__main__':
     unittest.main()

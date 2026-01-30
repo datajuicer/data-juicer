@@ -77,6 +77,7 @@ generic = [
 # Computer Vision
 vision = [
     "opencv-python",  # OpenCV
+    "opencv-contrib-python",
     "imagededup",  # Image deduplication
     "diffusers>=0.33.0",  # Diffusion models
     "simple-aesthetics-predictor",  # Image aesthetics

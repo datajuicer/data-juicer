@@ -14,19 +14,19 @@ body:
            我已经拉取了主分支上最新的代码，重新运行之后，问题仍不能解决。
           required: true
         - label: >
-           I have read the [README](https://github.com/alibaba/data-juicer/blob/main/README.md) carefully and no error occurred during the installation process. (Otherwise, we recommend that you can ask a question using the Question template)
-           我已经仔细阅读了 [README](https://github.com/alibaba/data-juicer/blob/main/README_ZH.md) 上的操作指引，并且在安装过程中没有错误发生。（否则，我们建议您使用Question模板向我们进行提问）
+           I have read the [README](https://github.com/datajuicer/data-juicer/blob/main/README.md) carefully and no error occurred during the installation process. (Otherwise, we recommend that you can ask a question using the Question template)
+           我已经仔细阅读了 [README](https://github.com/datajuicer/data-juicer/blob/main/README_ZH.md) 上的操作指引，并且在安装过程中没有错误发生。（否则，我们建议您使用Question模板向我们进行提问）
           required: true
 
   - type: checkboxes
     attributes:
       label: Search before reporting 先搜索，再报告
       description: >
-        Please search the [issues](https://github.com/alibaba/data-juicer/issues) to see if a similar bug already exists. 请先在 [issue 列表](https://github.com/alibaba/data-juicer/issues)中搜索是否已经有类似的bug已经存在。
+        Please search the [issues](https://github.com/datajuicer/data-juicer/issues) to see if a similar bug already exists. 请先在 [issue 列表](https://github.com/datajuicer/data-juicer/issues)中搜索是否已经有类似的bug已经存在。
       options:
         - label: >
-            I have searched the Data-Juicer [issues](https://github.com/alibaba/data-juicer/issues) and found no similar bugs.
-            我已经在 [issue列表](https://github.com/alibaba/data-juicer/issues) 中搜索但是没有发现类似的bug报告。
+            I have searched the Data-Juicer [issues](https://github.com/datajuicer/data-juicer/issues) and found no similar bugs.
+            我已经在 [issue列表](https://github.com/datajuicer/data-juicer/issues) 中搜索但是没有发现类似的bug报告。
           required: true
 
   - type: markdown

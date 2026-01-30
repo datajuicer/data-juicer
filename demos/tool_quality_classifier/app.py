@@ -103,7 +103,7 @@ class Visualize:
 
         install_jdk()
 
-        readme_link = 'https://github.com/alibaba/data-juicer'
+        readme_link = 'https://github.com/datajuicer/data-juicer'
         st.markdown(
             '<div align = "center"> <font size = "70"> Data-Juicer \
             </font> </div>',

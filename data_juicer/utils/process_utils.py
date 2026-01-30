@@ -307,11 +307,6 @@ def calculate_ray_np(operators):
                     )
                 # if no cpu is specified, ray will apply for 1 cpu by default
                 cpu_required_frac = 1 / total_cpu
-            if op.num_proc:
-                if not isinstance(op.num_proc, int):
-                    raise ValueError(
-                        f"Op[{op._name}] is running in ray task mode, ``num_proc`` is expected to be set as an integer but got: {op.num_proc}."
-                    )
             # set concurrency to none, using the default autoscaler of ray to ensure performance
             if op.num_proc == -1:
                 op.num_proc = None
@@ -326,7 +321,7 @@ def calculate_ray_np(operators):
             "gpu_required_frac": gpu_required_frac,
             "num_proc": tuple(op.num_proc) if isinstance(op.num_proc, list) else op.num_proc,
             "auto_proc": op.use_auto_proc(),
-            "is_actor": op.use_cuda(),
+            "is_actor": op.use_ray_actor(),
         }
 
     fixed_min_cpu = fixed_max_cpu = fixed_min_gpu = fixed_max_gpu = 0
@@ -406,7 +401,7 @@ def calculate_ray_np(operators):
         for k, v in auto_resource_frac_map.items():
             if v[1] > 0:  # (cpu, gpu)
                 op_resources_gpu[k] = v[1]
-            elif v[0] > 0:
+            if v[0] > 0:
                 op_resources_cpu[k] = v[0]
 
         best_combination_cpu, best_combination_gpu = {}, {}
@@ -455,7 +450,7 @@ def calculate_ray_np(operators):
                 else:
                     max_proc = int(max(1, max_frac_cpu / cfg["cpu_required_frac"]))
 
-                cfg["num_proc"] = min_proc if min_proc == max_proc else (min_proc, max_proc)
+                cfg["num_proc"] = min_proc if min_proc >= max_proc else (min_proc, max_proc)
 
     for op_idx, op in enumerate(operators):
         cfg = resource_configs[op._name + f"_{op_idx}"]

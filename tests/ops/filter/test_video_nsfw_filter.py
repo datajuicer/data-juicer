@@ -83,6 +83,7 @@ class VideoNSFWFilterTest(DataJuicerTestCaseBase):
         op = VideoNSFWFilter(hf_nsfw_model=self.hf_nsfw_model,
                             max_score=0.1,
                             frame_sampling_method='uniform',
+                            video_backend='av',
                             frame_num=3)
         self._run_filter(dataset, tgt_list, op)
 

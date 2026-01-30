@@ -36,7 +36,8 @@ class CustomBuildHook(BuildHookInterface):
                     opts.append("/std:c++11")
 
                 for ext in self.extensions:
-                    ext.extra_compile_args = opts
+                    if ext.language == "c++":
+                        ext.extra_compile_args = opts
 
                 build_ext.build_extensions(self)
 

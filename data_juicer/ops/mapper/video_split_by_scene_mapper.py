@@ -1,4 +1,5 @@
 import math
+import os
 import re
 from itertools import chain
 
@@ -59,7 +60,9 @@ class VideoSplitBySceneMapper(Mapper):
         min_scene_len: NonNegativeInt = 15,
         show_progress: bool = False,
         save_dir: str = None,
-        ffmpeg_extra_args: str = "",
+        save_field: str = None,
+        ffmpeg_extra_args: str = "-movflags frag_keyframe+empty_moov",
+        output_format: str = "path",
         *args,
         **kwargs,
     ):
@@ -74,7 +77,25 @@ class VideoSplitBySceneMapper(Mapper):
         :param save_dir: The directory where generated video files will be stored.
             If not specified, outputs will be saved in the same directory as their corresponding input files.
             This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
+        :param save_field: The new field name to save generated video files path.
+            If not specified, will overwrite the original video field.
         :param ffmpeg_extra_args: Extra ffmpeg args for splitting video.
+        :param output_format: The output format of the videos.
+            Supported formats are: ["path", "bytes"].
+            If format is "path", the output is a list of lists, where each inner
+            list contains the path of the split videos.
+            e.g.[
+                    [video1_split1_path, video1_split2_path, ...],
+                    [video2_split1_path, video2_split2_path, ...],
+                    ...
+                ] (In the order of the videos).
+            If format is "bytes", the output is a list of lists, where each inner
+            list contains the bytes of the split videos.
+            e.g. [
+                    [video1_split1_byte, video1_split2_byte, ...],
+                    [video2_split1_byte, video2_split2_byte, ...],
+                    ...
+                ] (In the order of the videos).
         :param args: extra args
         :param kwargs: extra args
         """
@@ -93,7 +114,15 @@ class VideoSplitBySceneMapper(Mapper):
         self.min_scene_len = min_scene_len
         self.show_progress = show_progress
         self.save_dir = save_dir
+        if self.save_dir:
+            os.makedirs(self.save_dir, exist_ok=True)
+        self.save_field = save_field
         self.ffmpeg_extra_args = ffmpeg_extra_args
+        self.output_format = output_format.lower()
+        assert self.output_format in [
+            "path",
+            "bytes",
+        ], f"output_format '{output_format}' is not supported. Can only be one of ['path', 'bytes']."
 
         # prepare detector args
         available_kwargs = self.available_detectors[self.detector]
@@ -141,6 +170,11 @@ class VideoSplitBySceneMapper(Mapper):
             else:
                 output_video_keys[video_key] = [video_key]
 
+            if self.output_format == "bytes":
+                from data_juicer.utils.mm_utils import load_file_byte
+
+                output_video_keys[video_key] = [load_file_byte(f) for f in output_video_keys[video_key]]
+
         # replace split video tokens
         if self.text_key in sample:
             scene_counts_iter = iter([scene_counts[key] for key in loaded_video_keys])
@@ -156,5 +190,8 @@ class VideoSplitBySceneMapper(Mapper):
         for value in loaded_video_keys:
             sample[Fields.source_file].extend([value] * len(output_video_keys[value]))
 
-        sample[self.video_key] = list(chain.from_iterable([output_video_keys[key] for key in loaded_video_keys]))
+        if self.save_field:
+            sample[self.save_field] = list(chain.from_iterable([output_video_keys[key] for key in loaded_video_keys]))
+        else:
+            sample[self.video_key] = list(chain.from_iterable([output_video_keys[key] for key in loaded_video_keys]))
         return sample

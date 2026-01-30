@@ -45,7 +45,7 @@ def fetch_traffic_data(repo: str, token: str) -> Dict[str, Any]:
     Returns:
         Dictionary containing traffic data
     """
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
 
     base_url = f"https://api.github.com/repos/{repo}/traffic"
 

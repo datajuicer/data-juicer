@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-import subprocess
 import sys
 from typing import Optional
 
@@ -25,6 +24,10 @@ OP_NAME = "video_calibration_mapper"
 class VideoCalibrationMapper(Mapper):
     """
     Extract camera intrinsics from videos using DroidCalib.
+
+    **Notice**: This operator will download the DroidCalib component from
+    GitHub at runtime. This component follows the AGPL-3.0 license, please
+    be aware for commercial use.
     """
 
     _accelerator = "cuda"
@@ -81,16 +84,6 @@ class VideoCalibrationMapper(Mapper):
         self._deps_ready = False
 
         self.droid_calib_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "DroidCalib")
-
-        # Auto-download logic
-        if not os.path.exists(self.droid_calib_path):
-            if self.verbose:
-                print(f"Downloading DroidCalib to {self.droid_calib_path}...")
-            subprocess.run(
-                ["git", "clone", "https://github.com/boschresearch/DroidCalib.git", self.droid_calib_path],
-                check=True,
-            )
-
         self.droid_slam_path = os.path.join(self.droid_calib_path, "droid_slam")
 
         # Dynamic path append (best-effort; also repeated at runtime in workers)
@@ -137,21 +130,6 @@ class VideoCalibrationMapper(Mapper):
         if self._deps_ready:
             return True
 
-        if not os.path.exists(self.droid_calib_path):
-            # In normal flow this should have been cloned in __init__.
-            # If multiprocessing spawned before __init__ ran, try again.
-            try:
-                if self.verbose:
-                    print(f"Downloading DroidCalib to {self.droid_calib_path}...")
-                subprocess.run(
-                    ["git", "clone", "https://github.com/boschresearch/DroidCalib.git", self.droid_calib_path],
-                    check=True,
-                )
-            except Exception as e:
-                if self.verbose:
-                    print(f"Warning: Failed to download DroidCalib: {e}")
-                return False
-
         # Ensure droid_slam is on sys.path in this process
         self.droid_slam_path = os.path.join(self.droid_calib_path, "droid_slam")
         if os.path.exists(self.droid_slam_path) and self.droid_slam_path not in sys.path:
@@ -159,39 +137,17 @@ class VideoCalibrationMapper(Mapper):
 
         # Try import first
         try:
-            # import droid  # noqa: F401
-
-            self._deps_ready = True
-            return True
-        except Exception as e:
-            if self.verbose:
-                print(f"Warning: DroidCalib not importable yet: {e}. Trying to install extensions...")
-
-        # Try to build/install extensions (idempotent in most cases)
-        try:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-v", "."],
-                cwd=self.droid_calib_path,
-                check=True,
-            )
-        except subprocess.CalledProcessError as e:
-            if self.verbose:
-                print(
-                    "Warning: Failed to install DroidCalib extensions automatically. "
-                    "This usually means missing CUDA toolkit / build toolchain. "
-                    f"Error: {e}"
-                )
-            return False
-
-        # Try import again
-        try:
             import droid  # noqa: F401
 
             self._deps_ready = True
             return True
         except Exception as e:
             if self.verbose:
-                print(f"Warning: DroidCalib still not importable after install: {e}")
+                print(
+                    f"Warning: DroidCalib not importable: {e}. "
+                    "Please run the installation script `demos/video_calibration/install_droidcalib.sh` "
+                    "to install the required dependencies."
+                )
             return False
 
     def _image_stream(self, video_path):

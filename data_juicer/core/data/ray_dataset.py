@@ -13,7 +13,7 @@ from ray.data._internal.util import get_compute_strategy
 from data_juicer.core.data import DJDataset
 from data_juicer.core.data.schema import Schema
 from data_juicer.core.tracer import should_trace_op
-from data_juicer.ops import Deduplicator, Filter, Mapper, Pipeline
+from data_juicer.ops import Deduplicator, Mapper, Pipeline
 from data_juicer.ops.base_op import DEFAULT_BATCH_SIZE, TAGGING_OPS
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import is_remote_path

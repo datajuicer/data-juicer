@@ -47,8 +47,7 @@ class RemoveLongWordsMapper(Mapper):
             return True
         # Only strip when word is too long; if too short, stripping won't help
         if word_len > self.max_len:
-            stripped_len = len(strip(word, SPECIAL_CHARACTERS))
-            return self.min_len <= stripped_len <= self.max_len
+            return self.min_len <= len(strip(word, SPECIAL_CHARACTERS)) <= self.max_len
         return False
 
     def process_batched(self, samples):

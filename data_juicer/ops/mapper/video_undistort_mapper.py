@@ -133,15 +133,23 @@ class VideoUndistortMapper(Mapper):
         width = int(cap.get(self.CAP_PROP_FRAME_WIDTH))
         fps = cap.get(self.CAP_PROP_FPS)
 
+        if "intrinsics" not in sample or sample["intrinsics"] is None:
+            raise ValueError("The sample must include an 'intrinsics' field to store the 3x3 camera intrinsics matrix.")
+
+        if "xi" not in sample or sample["xi"] is None:
+            raise ValueError("The sample must include an 'xi' field to store the parameter xi in CMei's model.")
+
         K = sample["intrinsics"]  # 3x3 camera intrinsics.
-        D = sample[
-            "distortion_coefficients"
-        ]  # Distortion coefficients (k1,k2,p1,p2). If D is None then zero distortion is used.
+        D = sample.get(
+            "distortion_coefficients", None
+        )  # Distortion coefficients (k1,k2,p1,p2). If D is None then zero distortion is used.
         xi = sample["xi"]  # The parameter xi for CMei's model.
-        R = sample[
-            "rotation_matrix"
-        ]  # Rotation transform between the original and object space. If it is None, there is no rotation.
-        new_K = sample["intrinsics_new"]  # New camera intrinsics. if new_K is empty then identity intrinsics are used.
+        R = sample.get(
+            "rotation_matrix", None
+        )  # Rotation transform between the original and object space. If it is None, there is no rotation.
+        new_K = sample.get(
+            "intrinsics_new", None
+        )  # New camera intrinsics. if new_K is empty then identity intrinsics are used.
 
         K = np.array(K, dtype=np.float32)
         xi = np.array(xi, dtype=np.float32)

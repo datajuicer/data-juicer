@@ -82,6 +82,7 @@ from .sentence_split_mapper import SentenceSplitMapper
 from .text_chunk_mapper import TextChunkMapper
 from .text_tagging_by_prompt_mapper import TextTaggingByPromptMapper
 from .vggt_mapper import VggtMapper
+from .video_calibration_mapper import VideoCalibrationMapper
 from .video_captioning_from_audio_mapper import VideoCaptioningFromAudioMapper
 from .video_captioning_from_frames_mapper import VideoCaptioningFromFramesMapper
 from .video_captioning_from_summarizer_mapper import VideoCaptioningFromSummarizerMapper
@@ -97,6 +98,7 @@ from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
 from .video_resize_aspect_ratio_mapper import VideoResizeAspectRatioMapper
 from .video_resize_resolution_mapper import VideoResizeResolutionMapper
 from .video_split_by_duration_mapper import VideoSplitByDurationMapper
+from .video_split_by_frame_mapper import VideoSplitByFrameMapper
 from .video_split_by_key_frame_mapper import VideoSplitByKeyFrameMapper
 from .video_split_by_scene_mapper import VideoSplitBySceneMapper
 from .video_tagging_from_audio_mapper import VideoTaggingFromAudioMapper
@@ -183,6 +185,7 @@ __all__ = [
     "TextChunkMapper",
     "TextTaggingByPromptMapper",
     "VggtMapper",
+    "VideoCalibrationMapper",
     "VideoCaptioningFromAudioMapper",
     "VideoCaptioningFromFramesMapper",
     "VideoCaptioningFromSummarizerMapper",
@@ -198,6 +201,7 @@ __all__ = [
     "VideoResizeAspectRatioMapper",
     "VideoResizeResolutionMapper",
     "VideoSplitByDurationMapper",
+    "VideoSplitByFrameMapper",
     "VideoSplitByKeyFrameMapper",
     "VideoSplitBySceneMapper",
     "VideoTaggingFromAudioMapper",

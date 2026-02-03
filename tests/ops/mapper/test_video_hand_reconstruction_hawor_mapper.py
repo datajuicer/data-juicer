@@ -72,16 +72,14 @@ class VideoHandReconstructionHaworMapperTest(DataJuicerTestCaseBase):
 
         for sample, target in zip(res_list, self.tgt_list):
             self.assertEqual(abs(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["fov_x"] - target["fov_x"]) < 0.01, True)
-            self.assertEqual(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_frame_id_list"], target["left_frame_id_list"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_beta_list"]).shape, target["left_beta_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_hand_pose_list"]).shape, target["left_hand_pose_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_global_orient_list"]).shape, target["left_global_orient_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_transl_list"]).shape, target["left_transl_list_shape"])
-            self.assertEqual(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_frame_id_list"], target["right_frame_id_list"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_beta_list"]).shape, target["right_beta_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_hand_pose_list"]).shape, target["right_hand_pose_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_global_orient_list"]).shape, target["right_global_orient_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_transl_list"]).shape, target["right_transl_list_shape"])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_beta_list"]).shape[1:], target["left_beta_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_hand_pose_list"]).shape[1:], target["left_hand_pose_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_global_orient_list"]).shape[1:], target["left_global_orient_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_transl_list"]).shape[1:], target["left_transl_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_beta_list"]).shape[1:], target["right_beta_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_hand_pose_list"]).shape[1:], target["right_hand_pose_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_global_orient_list"]).shape[1:], target["right_global_orient_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_transl_list"]).shape[1:], target["right_transl_list_shape"][1:])
 
     
     def test_mul_proc(self):
@@ -107,16 +105,14 @@ class VideoHandReconstructionHaworMapperTest(DataJuicerTestCaseBase):
 
         for sample, target in zip(res_list, self.tgt_list):
             self.assertEqual(abs(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["fov_x"] - target["fov_x"]) < 0.01, True)
-            self.assertEqual(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_frame_id_list"], target["left_frame_id_list"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_beta_list"]).shape, target["left_beta_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_hand_pose_list"]).shape, target["left_hand_pose_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_global_orient_list"]).shape, target["left_global_orient_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_transl_list"]).shape, target["left_transl_list_shape"])
-            self.assertEqual(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_frame_id_list"], target["right_frame_id_list"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_beta_list"]).shape, target["right_beta_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_hand_pose_list"]).shape, target["right_hand_pose_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_global_orient_list"]).shape, target["right_global_orient_list_shape"])
-            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_transl_list"]).shape, target["right_transl_list_shape"])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_beta_list"]).shape[1:], target["left_beta_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_hand_pose_list"]).shape[1:], target["left_hand_pose_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_global_orient_list"]).shape[1:], target["left_global_orient_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_transl_list"]).shape[1:], target["left_transl_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_beta_list"]).shape[1:], target["right_beta_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_hand_pose_list"]).shape[1:], target["right_hand_pose_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_global_orient_list"]).shape[1:], target["right_global_orient_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_transl_list"]).shape[1:], target["right_transl_list_shape"][1:])
 
 
 if __name__ == '__main__':

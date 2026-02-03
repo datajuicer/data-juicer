@@ -47,6 +47,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
         thresh: float = 0.2,
         tag_field_name: str = MetaKeys.hand_reconstruction_hawor_tags,
         frame_dir: str = DATA_JUICER_ASSETS_CACHE,
+        if_output_moge_info: bool = False,
         moge_output_info_dir: str = DATA_JUICER_ASSETS_CACHE,
         *args,
         **kwargs,
@@ -78,6 +79,8 @@ class VideoHandReconstructionHaworMapper(Mapper):
         :param tag_field_name: The field name to store the tags. It's
             "hand_reconstruction_hawor_tags" in default.
         :param frame_dir: Output directory to save extracted frames.
+        :param if_output_moge_info: Whether to save the results from MoGe-2
+             to an JSON file.
         :param moge_output_info_dir: Output directory for saving camera
             parameters.
         :param args: extra args
@@ -100,6 +103,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
             "if_output_points_info": False,
             "if_output_depth_info": False,
             "if_output_mask_info": False,
+            "if_output_info": if_output_moge_info,
             "output_info_dir": moge_output_info_dir,
         }
         self.fused_ops = load_ops(

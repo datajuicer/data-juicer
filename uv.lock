@@ -6010,6 +6010,8 @@ name = "py-data-juicer"
 source = { editable = "." }
 dependencies = [
     { name = "av" },
+    { name = "boto3", version = "1.38.45", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '4' or platform_machine != 'aarch64' or sys_platform != 'darwin'" },
+    { name = "boto3", version = "1.40.61", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '4' and platform_machine == 'aarch64' and sys_platform == 'darwin'" },
     { name = "bs4" },
     { name = "datasets" },
     { name = "dill" },
@@ -6213,6 +6215,7 @@ requires-dist = [
     { name = "bitarray", marker = "extra == 'distributed'" },
     { name = "black", marker = "extra == 'all'", specifier = ">=25.1.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
+    { name = "boto3" },
     { name = "bs4" },
     { name = "build", marker = "extra == 'all'" },
     { name = "build", marker = "extra == 'dev'" },

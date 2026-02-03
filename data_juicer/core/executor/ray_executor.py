@@ -10,6 +10,7 @@ from pydantic import PositiveInt
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.ray_exporter import RayExporter
+from data_juicer.core.tracer.ray_tracer import RayTracer
 from data_juicer.ops import load_ops
 from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.utils.lazy_loader import LazyLoader
@@ -39,7 +40,7 @@ class RayExecutor(ExecutorBase):
 
         1. Support Filter, Mapper and Exact Deduplicator operators for now.
         2. Only support loading `.json` files.
-        3. Advanced functions such as checkpoint, tracer are not supported.
+        3. Advanced functions, such as checkpoint, are not supported.
 
     """
 
@@ -102,6 +103,18 @@ class RayExecutor(ExecutorBase):
             **export_extra_args,
         )
 
+        # setup tracer
+        self.tracer = None
+        self.open_tracer = self.cfg.open_tracer
+        if self.open_tracer:
+            logger.info("Preparing tracer...")
+            self.tracer = RayTracer.remote(
+                self.work_dir,
+                self.cfg.op_list_to_trace,
+                show_num=self.cfg.trace_num,
+                trace_keys=self.cfg.trace_keys,
+            )
+
     def run(self, load_data_np: Optional[PositiveInt] = None, skip_export: bool = False, skip_return: bool = False):
         """
         Running the dataset process pipeline
@@ -128,7 +141,7 @@ class RayExecutor(ExecutorBase):
             # 3. data process
             logger.info("Processing data...")
             tstart = time.time()
-            dataset.process(ops)
+            dataset.process(ops, tracer=self.tracer)
 
             # 4. data export
             if not skip_export:
@@ -136,6 +149,11 @@ class RayExecutor(ExecutorBase):
                 self.exporter.export(dataset.data, columns=columns)
             tend = time.time()
             logger.info(f"All Ops are done in {tend - tstart:.3f}s.")
+
+            # 5. finalize the tracer results
+            # Finalize sample-level traces after all operators have finished
+            if self.tracer:
+                ray.get(self.tracer.finalize_traces.remote())
 
         if not skip_return:
             return dataset

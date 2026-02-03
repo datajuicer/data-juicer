@@ -22,6 +22,7 @@ jobs:
       PROJECT: ${{ github.event.repository.name }}
       REPO_OWNER: ${{ github.repository_owner }}
       MIN_TAG: v1.4.0
+      JUICER_API_URL: ${{ vars.JUICER_API_URL }}
     steps:
       - name: Mount /mnt into workspace (writable)
         run: |

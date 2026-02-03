@@ -111,11 +111,14 @@ class DefaultExecutor(ExecutorBase):
         self.open_tracer = self.cfg.open_tracer
         if self.open_tracer:
             logger.info("Preparing tracer...")
+            from multiprocessing import Manager
+
             self.tracer = Tracer(
                 self.work_dir,
                 self.cfg.op_list_to_trace,
                 show_num=self.cfg.trace_num,
                 trace_keys=self.cfg.trace_keys,
+                lock=Manager().Lock(),
             )
 
     def run(

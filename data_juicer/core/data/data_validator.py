@@ -242,9 +242,32 @@ class RequiredFieldsValidator(DataValidator):
                 "allow_missing": 0.0
             }
 
+        Or from YAML:
+        .. code-block:: yaml
+
+            field_types:
+              field1: 'str'
+              field2: 'int'
+
     Raises:
         DataValidationError: If validation fails
     """
+
+    # Mapping from type name strings to actual Python types
+    TYPE_NAME_MAPPING: Dict[str, type] = {
+        "str": str,
+        "string": str,
+        "int": int,
+        "integer": int,
+        "float": float,
+        "bool": bool,
+        "boolean": bool,
+        "list": list,
+        "dict": dict,
+        "tuple": tuple,
+        "set": set,
+        "bytes": bytes,
+    }
 
     def __init__(self, config: Dict):
         """
@@ -254,15 +277,49 @@ class RequiredFieldsValidator(DataValidator):
             config: Dict containing:
                 - required_fields: List of field names that must exist
                 - field_types: Optional map of field names to expected types
+                  (can be type objects or type name strings)
                 - allow_missing: Optional float for max ratio missing allowed
         """
         super().__init__(config)
 
         self.required_fields = config["required_fields"]
-        self.field_types = config.get("field_types", {})
+        self.field_types = self._normalize_field_types(config.get("field_types", {}))
         # Default no missing allowed
         self.allow_missing = config.get("allow_missing", 0.0)
         self.sample_size = config.get("sample_size", 100)
+
+    def _normalize_field_types(self, field_types: Dict[str, object]) -> Dict[str, type]:
+        """
+        Convert field type specifications to actual Python type objects.
+
+        Args:
+            field_types: Dictionary mapping field names to types (as type
+                objects or strings)
+
+        Returns:
+            Dictionary mapping field names to Python type objects
+
+        Raises:
+            DataValidationError: If an unknown type name string is provided
+        """
+        normalized = {}
+        for field, type_spec in field_types.items():
+            if isinstance(type_spec, type):
+                normalized[field] = type_spec
+            elif isinstance(type_spec, str):
+                type_name = type_spec.lower()
+                if type_name not in self.TYPE_NAME_MAPPING:
+                    supported_types = ", ".join(sorted(self.TYPE_NAME_MAPPING.keys()))
+                    raise DataValidationError(
+                        f"Unknown type name '{type_spec}' for field " f"'{field}'. Supported types: {supported_types}"
+                    )
+                normalized[field] = self.TYPE_NAME_MAPPING[type_name]
+            else:
+                raise DataValidationError(
+                    f"Invalid type specification for field '{field}': "
+                    f"expected type object or string, got {type(type_spec)}"
+                )
+        return normalized
 
     def validate(self, dataset: DJDataset) -> None:
         """

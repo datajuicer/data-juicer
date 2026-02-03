@@ -29,18 +29,14 @@ Data-Juicer 是一个一站式系统，面向大模型的文本及多模态数�
 
 Data-Juicer正在积极更新和维护中，我们将定期强化和新增更多的功能和数据菜谱。热烈欢迎您[加入我们](#贡献与致谢)，一起推进大模型的数据-模型协同开发和研究应用！
 
-[Demo Video] DataJuicer-Agent:数据处理，即刻启程！
-
-https://github.com/user-attachments/assets/6eb726b7-6054-4b0c-905e-506b2b9c7927
-
-[Demo Video] DataJuicer-Sandbox: 降本增效，优化数据-模型协同开发！
-
-https://github.com/user-attachments/assets/a45f0eee-0f0e-4ffe-9a42-d9a55370089d
-
-
-----
-
 ## 新消息
+- 🚀[2026-01-15] [Data-Juicer Q&A Copilot](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/README_ZH.md) 已上线 [文档页](https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH.html) | [钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK) ! 欢迎询问任何与Data-Juicer生态系统有关的问题!
+
+  - 关注 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [Deploy-ready codes](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[ More demos](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md).
+<div align="center">
+<img src="https://github.com/user-attachments/assets/a0099ce2-4ed3-4fab-8cfa-b0bbd3beeac9" width=80%>
+</div>
+
 - 🎉 [2025-09-19] 我们的 [Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for and with Foundation Models](https://arxiv.org/abs/2501.14755) 已被接收为 **NeurIPS'25 Spotlight**（处于所有投稿中的前 3.1%）！
 - 🎉 [2025-09-19] 我们关于数据配比/选择/合成的两个工作：[Diversity as a Reward: Fine-Tuning LLMs on a Mixture of Domain-Undetermined Data](https://arxiv.org/abs/2502.04380) 和 [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499)，已被 **NeurIPS'25** 接收！
 - 🛠️ [2025-06-04] 如何在“经验时代”处理反馈数据？我们提出了 [Trinity-RFT: A General-Purpose and Unified Framework for Reinforcement Fine-Tuning of LLMs](https://arxiv.org/abs/2505.17826)，该框架利用 Data-Juicer 为 RFT 场景量身定制数据处理管道。
@@ -77,7 +73,15 @@ https://github.com/user-attachments/assets/a45f0eee-0f0e-4ffe-9a42-d9a55370089d
   请访问大赛官网，FT-Data Ranker（[1B赛道](https://tianchi.aliyun.com/competition/entrance/532157) 、[7B赛道](https://tianchi.aliyun.com/competition/entrance/532158) ) ，了解更多信息。
 </details>
 
+## Demos
 
+DataJuicer-Agent:数据处理，即刻启程！
+
+https://github.com/user-attachments/assets/6eb726b7-6054-4b0c-905e-506b2b9c7927
+
+DataJuicer-Sandbox: 降本增效，优化数据-模型协同开发！
+
+https://github.com/user-attachments/assets/a45f0eee-0f0e-4ffe-9a42-d9a55370089d
 
 ## 为什么选择 Data-Juicer？
 
@@ -118,11 +122,16 @@ Data-Juicer 的发展离不开社区的参与和反馈，非常欢迎各方面�
 - **用户/提供无价反馈：** [AgentScope](https://github.com/agentscope-ai/agentscope)、阿里巴巴集团、蚂蚁集团、比亚迪、字节跳动、[DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio)、袋鼠云、[EasyAnimate](https://github.com/aigc-apps/EasyAnimate)、[Eval-Scope](https://github.com/modelscope/evalscope)、京东、[LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)、南京大学、OPPO、北京大学、[RM-Gallery](https://github.com/modelscope/RM-Gallery)、中国人民大学、清华大学、[Trinity-RFT](https://github.com/modelscope/Trinity-RFT)、中国科学院、中国科学院大学、小红书、小米、喜马拉雅、浙江大学等
 - **其它项目：** Data-Juicer 也感谢许多先驱开源项目，例如 [Apache Arrow](https://github.com/apache/arrow)、[BLOOM](https://huggingface.co/bigscience/bloom)、[Hugging Face Datasets](https://github.com/huggingface/datasets)、[RedPajama-Data](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1)、[Ray](https://github.com/ray-project/ray)、[vLLM](https://github.com/vllm-project/vllm) 等
 
-我们期待您的反馈与合作。如您有合作意向或关于新子项目的提案，欢迎通过 GitHub Issues、Pull Requests、[Slack](https://join.slack.com/t/data-juicer/shared_invite/zt-23zxltg9d-Z4d3EJuhZbCLGwtnLWWUDg?spm=a2c22.12281976.0.0.7a8253f30mgpjw) 频道、[钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,YFIXM2leDEk7gJP5aMC95AfYT+Oo/EP/ihnaIEhMyJM=&_dt_no_comment=1&origin=11)群或[邮件](mailto:datajuicer@outlook.com)与我们联系。
+我们期待您的反馈与合作。如您有合作意向或关于新子项目的提案，欢迎通过 GitHub Issues、Pull Requests、[Slack](https://join.slack.com/t/data-juicer/shared_invite/zt-23zxltg9d-Z4d3EJuhZbCLGwtnLWWUDg?spm=a2c22.12281976.0.0.7a8253f30mgpjw)、[钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?)、 [Discord](https://discord.gg/ngQbB9hEVK)或[邮件](mailto:datajuicer@outlook.com)与我们联系。
 
+欢迎加入我们的社群：
+
+|[钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?)                                                                                          | [Discord](https://discord.gg/ngQbB9hEVK)                                                                  |
+|----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| <img src="https://gw.alicdn.com/imgextra/i3/O1CN01bBPoaX1EwZsiYudtd_!!6000000000416-2-tps-656-660.png" width="100" height="100"> | <img src="https://gw.alicdn.com/imgextra/i1/O1CN011Oj8CB1f8Bw5JpgJA_!!6000000003961-0-tps-762-769.jpg" width="100" height="100"> |
 
 ## 参考文献
-如果您发现Data-Juicer对您的研发有帮助，请引用以下工作，[1.0paper](https://arxiv.org/abs/2309.02033), [2.0paper](https://arxiv.org/abs/2501.14755)。
+如果您发现Data-Juicer对您的研发有帮助，请引用以下工作，[1.0paper](https://arxiv.org/abs/2309.02033)，[2.0paper](https://arxiv.org/abs/2501.14755)。
 
 ```
 @inproceedings{djv1,

@@ -1695,6 +1695,14 @@ def get_model(model_key=None, rank=None, use_cuda=False):
     global MODEL_ZOO
     if model_key not in MODEL_ZOO:
         logger.debug(f"{model_key} not found in MODEL_ZOO ({mp.current_process().name})")
+
+        # Configure thread limits in worker processes to prevent thread over-subscription
+        # when running with multiple processes (num_proc > 1)
+        if mp.current_process().name != "MainProcess":
+            from data_juicer.utils.process_utils import setup_worker_threads
+
+            setup_worker_threads(num_threads=1)
+
         if use_cuda and cuda_device_count() > 0:
             rank = rank if rank is not None else 0
             rank = rank % cuda_device_count()

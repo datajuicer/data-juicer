@@ -1,0 +1,51 @@
+# The data-juicer-embodied image includes all open-source contents of data-juicer,
+# and it will be installed in editable mode.
+
+FROM datajuicer/data-juicer:latest
+
+# avoid hanging on interactive installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# add aliyun apt source mirrors for faster download in China
+RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list \
+    && sed -i 's/security.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
+
+# install Git LFS
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh   | /bin/bash \
+    && apt-get update && apt-get install -y git-lfs && git lfs install && \
+    rm -rf /var/lib/apt/lists/*
+
+# set up Vulkan for NVIDIA
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=all VK_DRIVER_FILES=/etc/vulkan/icd.d/nvidia_icd.json
+RUN mkdir -p /etc/vulkan/icd.d /etc/vulkan/implicit_layer.d /usr/share/glvnd/egl_vendor.d && \
+    wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac/nb10/nvidia_icd.json   -O /etc/vulkan/icd.d/nvidia_icd.json && \
+    wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac/nb10/nvidia_layers.json   -O /etc/vulkan/implicit_layer.d/nvidia_layers.json && \
+    wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac/nb10/10_nvidia.json   -O /usr/share/glvnd/egl_vendor.d/10_nvidia.json && \
+    wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac/nb10/50_mesa.json   -O /usr/share/glvnd/egl_vendor.d/50_mesa.json
+
+# install Isaac Sim
+ENV UV_HTTP_TIMEOUT=600
+RUN uv pip install --no-cache-dir isaacsim[all,extscache]==5.1.0 --extra-index-url https://pypi.nvidia.com --system
+
+# install Isaac Lab 2.3
+ENV ACCEPT_EULA=Y
+ENV OMNI_KIT_ACCEPT_EULA=Y
+RUN mkdir -p /third-party && \
+    uv pip install usd-core --system && \
+    cd /tmp && git clone https://github.com/isaac-sim/IsaacLab.git isaaclab && mv /tmp/isaaclab /third-party/isaaclab && \
+    cd /third-party/isaaclab && \
+    git checkout v2.3.0 && \
+    ./isaaclab.sh --install
+
+# set env vars for Isaac Lab
+ENV ISAACLAB_ROOT_PATH=/third-party/isaaclab ISAACLAB_VERSION=2.3.0
+
+# modify assets.py for customized assets
+RUN wget https://pai-vision-data-sh.oss-cn-shanghai.aliyuncs.com/aigc-data/isaac/assets.py -O /third-party/isaaclab/source/isaaclab/isaaclab/utils/assets.py
+
+# install the versions of dependencies in data-juicer
+WORKDIR /data-juicer
+RUN uv pip install --no-cache-dir -v -e .[all] -i https://pypi.tuna.tsinghua.edu.cn/simple --system
+
+# 最终入口配置
+CMD ["/bin/bash"]

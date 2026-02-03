@@ -19,7 +19,7 @@ class AdapterTest(DataJuicerTestCaseBase):
         super().setUpClass()
 
         # test dataset
-        download_link = f'http://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/unittest_data/{cls.test_file}'
+        download_link = f'https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/unittest_data/{cls.test_file}'
         os.system(f'wget {download_link}')
 
     @classmethod

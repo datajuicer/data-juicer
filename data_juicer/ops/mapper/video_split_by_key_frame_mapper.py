@@ -1,5 +1,7 @@
 import copy
+import os
 import re
+import uuid
 
 from loguru import logger
 
@@ -91,6 +93,7 @@ class VideoSplitByKeyFrameMapper(Mapper):
         self.keep_original_sample = keep_original_sample
         self.extra_args = kwargs
         self.save_dir = save_dir
+        assert self.save_dir is not None, "`save_dir` must be specified to save the split video files."
         self.video_backend = video_backend
         assert self.video_backend in ["ffmpeg", "av"]
         self.ffmpeg_extra_args = ffmpeg_extra_args
@@ -111,16 +114,21 @@ class VideoSplitByKeyFrameMapper(Mapper):
                 'and use the "videos" field directly.'
             )
 
-    def get_split_key_frame(self, video_key, container):
+    def get_split_key_frame(self, container, video_key: str = None):
         timestamps = container.extract_keyframes().pts_time
 
         if self.video_backend == "ffmpeg" and self.ffmpeg_extra_args:
             kwargs = {"ffmpeg_extra_args": self.ffmpeg_extra_args}
         else:
             kwargs = {}
+
         count = 0
         split_video_keys = []
-        unique_video_key = transfer_filename(video_key, OP_NAME, self.save_dir, **self._init_parameters)
+
+        if video_key:
+            unique_video_key = transfer_filename(video_key, OP_NAME, self.save_dir, **self._init_parameters)
+        else:
+            unique_video_key = os.path.join(self.save_dir, f"{uuid.uuid4().hex}.mp4")
         for i in range(1, len(timestamps)):
             split_video_key = add_suffix_to_filename(unique_video_key, f"_{count}")
             if container.extract_clip(timestamps[i - 1], timestamps[i], split_video_key, **kwargs):
@@ -138,8 +146,10 @@ class VideoSplitByKeyFrameMapper(Mapper):
             sample[Fields.source_file] = []
             return []
 
+        is_video_path = isinstance(sample[self.video_key][0], str)
         if Fields.source_file not in sample or not sample[Fields.source_file]:
-            sample[Fields.source_file] = sample[self.video_key]
+            if is_video_path:
+                sample[Fields.source_file] = sample[self.video_key]
 
         # the split results
         split_sample = copy.deepcopy(sample)
@@ -147,13 +157,13 @@ class VideoSplitByKeyFrameMapper(Mapper):
         split_sample[Fields.source_file] = []
 
         # load all video(s)
-        loaded_video_keys = sample[self.video_key]
+        loaded_videos = sample[self.video_key]
         videos = {}
-        for loaded_video_key in loaded_video_keys:
-            if loaded_video_key not in videos:
+        for video_idx, loaded_video in enumerate(loaded_videos):
+            if video_idx not in videos:
                 # avoid loading the same videos
-                video = create_video_reader(loaded_video_key, backend=self.video_backend)
-                videos[loaded_video_key] = video
+                video = create_video_reader(loaded_video, backend=self.video_backend)
+                videos[video_idx] = video
 
         split_video_keys = []
 
@@ -167,13 +177,18 @@ class VideoSplitByKeyFrameMapper(Mapper):
                 else:
                     video_count = chunk.count(SpecialTokens.video)
                     place_holders = []
-                    for video_key in loaded_video_keys[offset : offset + video_count]:
-                        video = videos[video_key]
-                        new_video_keys = self.get_split_key_frame(video_key, video)
+                    for idx in range(offset, offset + video_count):
+                        video = videos[idx]
+                        if is_video_path:
+                            video_path = loaded_videos[idx]
+                            new_video_keys = self.get_split_key_frame(video, video_path)
+                            split_sample[Fields.source_file].extend([video_path] * len(new_video_keys))
+                        else:
+                            new_video_keys = self.get_split_key_frame(video, None)
+                            split_sample[Fields.source_file].extend(new_video_keys)
                         video.close()
                         split_video_keys.extend(new_video_keys)
                         place_holders.append(SpecialTokens.video * len(new_video_keys))
-                        split_sample[Fields.source_file].extend([video_key] * len(new_video_keys))
 
                     # insert the generated text according to given mode
                     replacer_function = create_replacer(place_holders)
@@ -182,12 +197,16 @@ class VideoSplitByKeyFrameMapper(Mapper):
                     offset += video_count
         else:
             # TODO: handle the text field update
-            for video_key in loaded_video_keys:
-                video = videos[video_key]
-                new_video_keys = self.get_split_key_frame(video_key, video)
+            for video_idx, video in videos.items():
+                if is_video_path:
+                    video_path = loaded_videos[video_idx]
+                    new_video_keys = self.get_split_key_frame(video, video_path)
+                    split_sample[Fields.source_file].extend([video_path] * len(new_video_keys))
+                else:
+                    new_video_keys = self.get_split_key_frame(video, None)
+                    split_sample[Fields.source_file].extend(new_video_keys)
                 video.close()
                 split_video_keys.extend(new_video_keys)
-                split_sample[Fields.source_file].extend([video_key] * len(new_video_keys))
 
         if self.output_format == "bytes":
             from data_juicer.utils.mm_utils import load_file_byte

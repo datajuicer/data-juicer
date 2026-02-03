@@ -90,7 +90,7 @@ class VideoCaptioningFromSummarizerMapper(Mapper):
             [
                 "torch",
                 "transformers",
-                "transformers_stream_generator",
+                "transformers-stream-generator @ git+https://github.com/datajuicer/transformers-stream-generator.git",
                 "einops",
                 "accelerate",
                 "tiktoken",  # by audio caption

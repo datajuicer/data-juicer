@@ -18,6 +18,41 @@ from data_juicer.utils.resource_utils import (
 # This leaves some memory for Ray's overhead and other system processes.
 _OPS_MEMORY_LIMIT_FRACTION = 1.0
 
+# Track whether worker threads have been configured
+_WORKER_THREADS_CONFIGURED = False
+
+
+def setup_worker_threads(num_threads=1):
+    """
+    Configure thread limits for worker processes to prevent thread over-subscription.
+
+    When running with multiple worker processes (e.g., num_proc > 1), each worker
+    using multiple threads leads to severe performance degradation due to thread
+    contention. This function limits threads per worker to prevent this issue.
+
+    :param num_threads: Number of threads per worker process (default: 1)
+    """
+    global _WORKER_THREADS_CONFIGURED
+
+    # Only configure once per process
+    if _WORKER_THREADS_CONFIGURED:
+        return
+
+    # Set PyTorch thread limits directly (works even after torch is imported)
+    try:
+        import torch
+
+        torch.set_num_threads(num_threads)
+        torch.set_num_interop_threads(num_threads)
+        logger.debug(f"Set torch threads to {num_threads}")
+    except ImportError:
+        pass
+    except RuntimeError as e:
+        # torch.set_num_interop_threads can only be called once
+        logger.debug(f"Could not set torch interop threads: {e}")
+
+    _WORKER_THREADS_CONFIGURED = True
+
 
 def setup_mp(method=None):
     if mp.current_process().name != "MainProcess":
@@ -242,6 +277,21 @@ def calculate_ray_np(operators):
     total_gpu = ray_gpu_count()
     available_mem = sum(ray_available_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
     available_gpu_mem = sum(ray_available_gpu_memories()) * _OPS_MEMORY_LIMIT_FRACTION / 1024  # Convert MB to GB
+
+    # Validate cluster resources to prevent divide-by-zero
+    if total_cpu == 0:
+        raise RuntimeError(
+            "Ray cluster has no CPU resources available (ray_cpu_count() returned 0). "
+            "This typically indicates the Ray cluster is not properly initialized. "
+            "Please ensure the Ray cluster has active worker nodes."
+        )
+
+    if available_mem == 0:
+        raise RuntimeError(
+            "Ray cluster has no memory resources available. "
+            "Please verify the Ray cluster status with ray.cluster_resources()."
+        )
+
     resource_configs = {}
 
     for op_idx, op in enumerate(operators):
@@ -268,6 +318,18 @@ def calculate_ray_np(operators):
         cpu_required_frac, gpu_required_frac = 0, 0
         # GPU operator calculations
         if op.use_cuda():
+            if total_gpu == 0:
+                raise RuntimeError(
+                    f"Op[{op._name}] requires GPU but no GPUs are available in Ray cluster "
+                    "(ray_gpu_count() returned 0). "
+                    "Please ensure GPU nodes are configured in the Ray cluster."
+                )
+            if available_gpu_mem == 0:
+                raise RuntimeError(
+                    f"Op[{op._name}] requires GPU but no GPU memory is available. "
+                    "Please verify GPU nodes are properly configured."
+                )
+
             gpu_req = op.num_gpus
             gpu_mem_req = op.memory
             if not gpu_req and not gpu_mem_req:

@@ -33,16 +33,13 @@ We provide a [playground](http://8.138.149.181/) with a managed JupyterLab. [Try
 
 Data-Juicer is being actively updated and maintained. We will periodically enhance and add more features, data recipes and datasets.  We welcome you to [join us](#contribution-and-acknowledgements), in promoting data-model co-development along with research and applications of foundation models!
 
-[Demo Video] DataJuicer-Agent: Quick start your data processing journey!
-
-https://github.com/user-attachments/assets/6eb726b7-6054-4b0c-905e-506b2b9c7927
-
-[Demo Video] DataJuicer-Sandbox: Better data-model co-dev at a lower cost!
-
-https://github.com/user-attachments/assets/a45f0eee-0f0e-4ffe-9a42-d9a55370089d
-
-
 ## News
+- 🚀[2026-01-15] [Data-Juicer Q&A Copilot](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/README.md) is available on the official [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK) ! Feel free to ask anything related to Data-Juicer ecosystem! 
+  -  Check 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [Deploy-ready codes](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[ More demos](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md).
+<div align="center">
+<img src="https://github.com/user-attachments/assets/d10a95a8-fb7a-494f-b858-f21e5996790b" width=80%>
+</div>
+
 - 🎉 [2025-09-19] Our work of [Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for and with Foundation Models](https://arxiv.org/abs/2501.14755) has been accepted as a **NeurIPS'25 Spotlight** (top 3.1% of all submissions)!
 - 🎉 [2025-09-19] Our two works regarding data mixture/selection/synthesis: [Diversity as a Reward: Fine-Tuning LLMs on a Mixture of Domain-Undetermined Data](https://arxiv.org/abs/2502.04380) and [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499) have been accepted by **NeurIPS'25**!
 - 🛠️ [2025-06-04] How to process feedback data in the "era of experience"? We propose [Trinity-RFT: A General-Purpose and Unified Framework for Reinforcement Fine-Tuning of LLMs](https://arxiv.org/abs/2505.17826), which leverages Data-Juicer for its data pipelines tailored for RFT scenarios.
@@ -80,6 +77,15 @@ Besides, our paper is also updated to [v3](https://arxiv.org/abs/2309.02033).
   visit the competition's official websites, FT-Data Ranker ([1B Track](https://tianchi.aliyun.com/competition/entrance/532157), [7B Track](https://tianchi.aliyun.com/competition/entrance/532158)), for more information.
 </details>
 
+## Demos
+
+DataJuicer-Agent: Quick start your data processing journey!
+
+https://github.com/user-attachments/assets/6eb726b7-6054-4b0c-905e-506b2b9c7927
+
+DataJuicer-Sandbox: Better data-model co-dev at a lower cost!
+
+https://github.com/user-attachments/assets/a45f0eee-0f0e-4ffe-9a42-d9a55370089d
 
 ## Why Data-Juicer?
 
@@ -121,7 +127,13 @@ Our sincere gratitude goes to all our [code contributors](https://github.com/dat
 - **Used by & Valuable Feedback from:** [AgentScope](https://github.com/agentscope-ai/agentscope), Alibaba Group, Ant Group, BYD Auto, Bytedance, CAS, [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio), DTSTACK, [EasyAnimate](https://github.com/aigc-apps/EasyAnimate), [Eval-Scope](https://github.com/modelscope/evalscope), JD.com, [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory), Nanjing University, OPPO, Peking University, [RM-Gallery](https://github.com/modelscope/RM-Gallery), RUC, Tsinghua University, [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), UCAS, Xiaohongshu, Xiaomi, Ximalaya, Zhejiang University, ...
 - **Inspired by:** Data-Juicer also thanks pioneering open-source projects such as [Apache Arrow](https://github.com/apache/arrow), [BLOOM](https://huggingface.co/bigscience/bloom), [RedPajama-Data](https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1), [Ray](https://github.com/ray-project/ray), [Hugging Face Datasets](https://github.com/huggingface/datasets), ...
 
-We look forward to your feedback and collaboration, including partnership inquiries or proposals for new sub-projects related to Data-Juicer. Feel free to contact via issues, PRs, [Slack](https://join.slack.com/t/data-juicer/shared_invite/zt-23zxltg9d-Z4d3EJuhZbCLGwtnLWWUDg?spm=a2c22.12281976.0.0.7a8253f30mgpjw) channel, [DingDing](https://qr.dingtalk.com/action/joingroup?code=v1,k1,YFIXM2leDEk7gJP5aMC95AfYT+Oo/EP/ihnaIEhMyJM=&_dt_no_comment=1&origin=11) group, and [e-mails](mailto:datajuicer@outlook.com).
+We look forward to your feedback and collaboration, including partnership inquiries or proposals for new sub-projects related to Data-Juicer. Feel free to contact via issues, PRs, [Slack](https://join.slack.com/t/data-juicer/shared_invite/zt-23zxltg9d-Z4d3EJuhZbCLGwtnLWWUDg?spm=a2c22.12281976.0.0.7a8253f30mgpjw), [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?), [Discord](https://discord.gg/ngQbB9hEVK), and [e-mails](mailto:datajuicer@outlook.com).
+
+Welcome to join our community on
+
+| [Discord](https://discord.gg/ngQbB9hEVK)                                                                                         | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?)                                                                 |
+|----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| <img src="https://gw.alicdn.com/imgextra/i1/O1CN011Oj8CB1f8Bw5JpgJA_!!6000000003961-0-tps-762-769.jpg" width="100" height="100"> | <img src="https://gw.alicdn.com/imgextra/i3/O1CN01bBPoaX1EwZsiYudtd_!!6000000000416-2-tps-656-660.png" width="100" height="100"> |
 
 
 

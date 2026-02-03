@@ -47,6 +47,7 @@ class VideoCameraCalibrationStaticDeepcalibMapperTest(DataJuicerTestCaseBase):
             frame_num=1,
             duration=1,
             frame_dir=DATA_JUICER_ASSETS_CACHE,
+            if_output_info=True,
             output_info_dir=DATA_JUICER_ASSETS_CACHE,
         )
         dataset = Dataset.from_list(ds_list)

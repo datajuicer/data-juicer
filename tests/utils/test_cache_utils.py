@@ -8,6 +8,18 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class DatasetCacheControlTest(DataJuicerTestCaseBase):
 
+    def setUp(self):
+        # in default, the cache is enabled
+        datasets.enable_caching()
+
+        super().setUp()
+
+    def tearDown(self) -> None:
+        # reset the cache
+        datasets.enable_caching()
+
+        super().tearDown()
+
     def test_basic_func(self):
         self.assertTrue(datasets.is_caching_enabled())
         with DatasetCacheControl(on=False):

@@ -1,6 +1,5 @@
 import os
 import unittest
-from unittest.mock import patch
 
 from data_juicer.format.text_formatter import TextFormatter
 from data_juicer.format.load import load_formatter

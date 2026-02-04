@@ -624,9 +624,17 @@ class FFmpegReader(VideoReader):
                     key_frames.append(frame)
             else:
                 # Only collect timestamps
+                while process.poll() is None:
+                    try:
+                        n, pts_time = metadata_queue.get(timeout=0.1)
+                        metadata.append((n, pts_time))
+                    except Empty:
+                        # Process is still running, continue waiting for metadata
+                        pass
+                # Drain any remaining metadata from the queue after the process has finished
                 while True:
                     try:
-                        n, pts_time = metadata_queue.get(timeout=1)
+                        n, pts_time = metadata_queue.get_nowait()
                         metadata.append((n, pts_time))
                     except Empty:
                         break

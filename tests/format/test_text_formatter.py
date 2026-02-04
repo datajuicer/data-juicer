@@ -14,7 +14,6 @@ class TextFormatterTest(DataJuicerTestCaseBase):
 
         self._path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "text")
         self._file = os.path.join(self._path, "sample1.txt")
-        print(self._file)
 
     def test_text_file(self):
         formatter = TextFormatter(self._file)

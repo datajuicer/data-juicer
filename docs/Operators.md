@@ -165,7 +165,7 @@ All the specific operators are listed below, each featured with several capabili
 | local_formatter | 🟢Stable | The class is used to load a dataset from local files or local directory. 类用于从本地文件或本地目录加载数据集。 | - | - |
 | parquet_formatter | 🟢Stable | The class is used to load and format parquet-type files. 该类用于加载和格式化镶木地板类型的文件。 | [info](operators/formatter/parquet_formatter.md) | - |
 | remote_formatter | 🟢Stable | The class is used to load a dataset from repository of huggingface hub. 该类用于从huggingface hub的存储库加载数据集。 | - | - |
-| text_formatter | 🔴Alpha | The class is used to load and format text-type files. 类用于加载和格式化文本类型文件。 | [info](operators/formatter/text_formatter.md) | - |
+| text_formatter | 🟡Beta | The class is used to load and format text-type files. 类用于加载和格式化文本类型文件。 | [info](operators/formatter/text_formatter.md) | - |
 | tsv_formatter | 🟢Stable | The class is used to load and format tsv-type files. 该类用于加载和格式化tsv类型的文件。 | [info](operators/formatter/tsv_formatter.md) | - |
 
 ## grouper <a name="grouper"/>

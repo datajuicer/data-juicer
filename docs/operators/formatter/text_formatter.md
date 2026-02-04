@@ -25,5 +25,5 @@ Tags 标签: cpu, text
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/format/text_formatter.py)
-- [unit test 单元测试]()
+- [unit test 单元测试](../../../tests/format/test_text_formatter.py)
 - [Return operator list 返回算子列表](../../Operators.md)

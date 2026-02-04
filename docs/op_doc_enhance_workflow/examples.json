@@ -5119,5 +5119,43 @@
             "tgt": null,
             "samples": null
         }
+    },
+    "text_formatter": {
+        "test_text_file": {
+            "op_code": null,
+            "ds": null,
+            "tgt": null,
+            "samples": null
+        },
+        "test_text_path": {
+            "op_code": null,
+            "ds": null,
+            "tgt": null,
+            "samples": null
+        },
+        "test_text_path_with_suffixes": {
+            "op_code": null,
+            "ds": null,
+            "tgt": null,
+            "samples": null
+        },
+        "test_text_path_with_add_suffix": {
+            "op_code": null,
+            "ds": null,
+            "tgt": null,
+            "samples": null
+        },
+        "test_load_formatter_with_file": {
+            "op_code": null,
+            "ds": null,
+            "tgt": null,
+            "samples": null
+        },
+        "test_load_formatter_with_specified_suffix": {
+            "op_code": null,
+            "ds": null,
+            "tgt": null,
+            "samples": null
+        }
     }
 }

@@ -1,4 +1,4 @@
-#  Your Data Operating System for and with Foundation Models
+#  Data-Juicer: The Data Operating System for the Foundation Model Era
 <p align="center">
   <a href="https://pypi.org/project/py-data-juicer"><img src="https://img.shields.io/pypi/v/py-data-juicer?logo=pypi&color=026cad" alt="PyPI"></a>
   <a href="https://pepy.tech/projects/py-data-juicer"><img src="https://static.pepy.tech/personalized-badge/py-data-juicer?period=total&units=INTERNATIONAL_SYSTEM&left_color=grey&right_color=green&left_text=downloads" alt="Downloads"></a>
@@ -19,20 +19,21 @@
   <b>Multimodal | Cloud-Native | AI-Ready | Large-Scale </b>
 </p>
 
-Data-Juicer (DJ) bridges the gap between raw data chaos and AI-ready datasets. It treats data processing as *composable infrastructure*—providing the building blocks to clean, synthesize, and analyze data across the entire AI lifecycle, not just model training.
+Data-Juicer (DJ) transforms raw data chaos into AI-ready intelligence. It treats data processing as *composable infrastructure*—providing modular building blocks to clean, synthesize, and analyze data across the entire AI lifecycle, unlocking latent value in every byte.
 
-Whether you're deduplicating web-scale pre-training corpora, structuring agent interaction logs, or preparing domain-specific RAG indices, DJ scales from your laptop to a thousand-node cluster without rewriting glue code.
+> *⭐ If Data-Juicer accelerates your work, please consider starring the repo* — it helps more developers and researchers discover the project and keeps you notified of new releases.
 
-> Alibaba Cloud **PAI** has deeply integrated Data-Juicer into its data processing products.  See: **[Quickly submit a DataJuicer job](https://www.alibabacloud.com/help/en/pai/user-guide/quickly-submit-a-datajuicer-task)**.
+Whether you're deduplicating web-scale pre-training corpora, curating agent interaction traces, or preparing domain-specific RAG indices, DJ scales seamlessly from your laptop to thousand-node clusters—no glue code required.
+
+> **Alibaba Cloud PAI** has deeply integrated Data-Juicer into its data processing products.  See **[Quickly submit a DataJuicer job](https://www.alibabacloud.com/help/en/pai/user-guide/quickly-submit-a-datajuicer-task)**.
 
 ---
 
 ## 🚀 Quick Start
 
-**Try it online**: [JupyterLab Tutorials](http://8.138.149.181/), or just [Ask DJ Copilot](https://datajuicer.github.io/data-juicer/en/main/docs_index.html)
+**Zero-install exploration**: [JupyterLab Playground with Tutorials](http://8.138.149.181/) • [Ask DJ Copilot](https://datajuicer.github.io/data-juicer/en/main/docs_index.html)
 
-
-**Install**:
+**Install & run**:
 ```bash
 uv pip install py-data-juicer
 dj-process --config configs/basic.yaml
@@ -57,16 +58,17 @@ ds.process([
 
 ## ✨ Why Data-Juicer?
 
-### 1. Modular and Extensible
-- **200+ operators** across text, image, audio, video, and multimodal data
-- **Recipe-first**: Reproducible YAML pipelines you can share and version like code
-- **Composable**: Use a single operator, chain them, or run full workflows
-- **Hot reload**: Modify operators without restarting pipelines
+### 1. Modular & Extensible Architecture
+- **200+ operators** spanning text, image, audio, video, and multimodal data
+- **Recipe-first**: Reproducible YAML pipelines you can version, share, and fork like code
+- **Composable**: Drop in a single operator, chain complex workflows, or orchestrate full pipelines
+- **Hot-reload**: Iterate on operators without pipeline restarts
 
-### 2. Value Beyond Raw Data
-- **Models**: pretraining, finetuning, RL, evaluation set
-- **Agents**: clean tool logs/traces, structured context, de-identification, quality gates
-- **RAG & BI**: extraction, normalization, chunking, deduplication, profiling, analytics
+### 2. Full-Spectrum Data Intelligence
+- **Foundation Models**: Pre-training, fine-tuning, RL, and evaluation-grade curation
+- **Agent Systems**: Clean tool traces, structure context, de-identification, and quality gating
+- **RAG & Analytics**: Extraction, normalization, semantic chunking, deduplication, and data profiling
+
 
 ### 3. Production-Ready Performance
 - **Scale**: Process 70B samples in 2h on 50 Ray nodes (6400 cores)
@@ -81,7 +83,7 @@ ds.process([
 <details open>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot, Video Bytes I/O & Ray Tracing </b></summary>
 
-- 🤖 *Q&A Copilot* —  Now live on official [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK). Feel free to ask anything related to Data-Juicer ecosystem!  
+- 🤖 *Q&A Copilot* —  Now live on our [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK). Feel free to ask anything related to Data-Juicer ecosystem!  
     - Check 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [Deploy-ready codes](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[ More demos](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md) for more details.
 - 🎬 *Video Bytes I/O* — Direct bytes processing for video pipelines  
 - 🫆 *Ray Mode Tracer* — Track changed samples in distributed processing  
@@ -101,21 +103,21 @@ ds.process([
 <details>
 <summary>[2025-12-01] Release v1.4.4: <b>NeurIPS’25 Spotlight, 6 New Video/MM OPs & S3 I/O</b> </summary>
 
-- NeurIPS’25 **Spotlight** for Data-Juicer 2.0
+- NeurIPS'25 **Spotlight** for Data-Juicer 2.0
 - *Repo split*: sandbox/recipes/agents moved to standalone repos
 - *S3 I/O* added to loader/exporter
 - *6 new video & multimodal OPs* (character detection, VGGT, whole-body pose, hand reconstruction) + docs/Ray/video I/O improvements and bug fixes
 </details>
 
-[View All Release Details](https://github.com/datajuicer/data-juicer/releases) · [View All History News](docs/news.md)
+View [All Release](https://github.com/datajuicer/data-juicer/releases) and [News Archive](docs/news.md)
 
 ---
 
 ## 🔌 Users & Ecosystems
-> The below list focuses on *developer-facing ingegration and usages* and is kept in *alphabetical order*.  
-> Missing your names? Feel free to [open a PR](https://github.com/datajuicer/data-juicer/pulls) or [contac us](#-contributing).
+> The below list focuses on *developer-facing ingegration and usages* in *alphabetical order*.  
+> Missing your project / name? Feel free to [open a PR](https://github.com/datajuicer/data-juicer/pulls) or [reach out](#-contributing).
 
-Data-Juicer plugs into your existing stack and grows with community contributions:
+Data-Juicer plugs into your existing stack and evolves with community contributions:
 
 ### Extensions
 - **[data-juicer-agents](https://github.com/datajuicer/data-juicer-agents)** — DJ Copilot and agentic workflows  
@@ -126,20 +128,21 @@ Data-Juicer plugs into your existing stack and grows with community contribution
 ### Frameworks & Platforms
 [AgentScope](https://github.com/agentscope-ai/agentscope) · [Apache Arrow](https://github.com/apache/arrow) · [Apache HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html) · [Apache Hudi](https://hudi.apache.org/) · [Apache Iceberg](https://iceberg.apache.org/) · [Apache Paimon](https://paimon.apache.org/) · [Delta Lake](https://delta.io/) · [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) · [EasyAnimate](https://github.com/aigc-apps/EasyAnimate) · [Eval-Scope](https://github.com/modelscope/evalscope) · [Huawei Ascend](https://www.huawei.com/en/products/cloud-computing-dc/atlas/ascend) · [Hugging Face](https://huggingface.co/) · [LanceDB](https://lancedb.github.io/lance/) · [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) · [ModelScope](https://modelscope.cn/) · [ModelScope Swift](https://github.com/modelscope/ms-swift) · [NVIDIA NeMo](https://github.com/NVIDIA/NeMo) · [Ray](https://docs.ray.io/) · [RM-Gallery](https://github.com/modelscope/RM-Gallery) · [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) · [Volcano Engine](https://www.volcengine.com/)
 
-### Enterprises
+### Industry
 Alibaba Group, Ant Group, BYD Auto, ByteDance, DTSTACK, JD.com, NVIDIA, OPPO, Xiaohongshu, Xiaomi, Ximalaya, and more.
 
-### Academic Institutions
+### Academia
 CAS, Nanjing University, Peking University, RUC, Tsinghua University, UCAS, Zhejiang University, and more.
 
 
-###  Contributing & Acknowledgements
+###  Contributing & Community
+We believe in *building together*. Whether you're fixing a typo, crafting a new operator, or sharing a breakthrough recipe, every contribution shapes the future of data processing.
 
 We welcome contributions at all levels: 
-- **[Good First Issues](https://github.com/datajuicer/data-juicer/labels/good%20first%20issue)** — Add a new operator, improve documentation, reporte a issue, or fix a bug.
-- **[Developer Guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.md)** — Optimize operators, engine, and new features.
-- **[DJ-Hub](https://github.com/datajuicer/data-juicer-hub)** - Share your knowledege (recipes and paper reading) to the Hub. 
-- **Community**: [Slack](https://join.slack.com/t/data-juicer/shared_invite/zt-23zxltg9d-Z4d3EJuhZbCLGwtnLWWUDg) · [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) · [Discord](https://discord.gg/ngQbB9hEVK)
+- **[Good First Issues](https://github.com/datajuicer/data-juicer/labels/good%20first%20issue)** — Add operators, improve docs, report issues, or fix bugs
+- **[Developer Guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.md)** — Optimize engines, add features, or enhance core infrastructure
+- **[DJ-Hub](https://github.com/datajuicer/data-juicer-hub)** — Share knowledge: recipes, papers, and best practices
+- **Connect**: [Slack](https://join.slack.com/t/data-juicer/shared_invite/zt-23zxltg9d-Z4d3EJuhZbCLGwtnLWWUDg) · [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) · [Discord](https://discord.gg/ngQbB9hEVK)
 
 | Discord | DingTalk |
 |:---:|:---:|
@@ -148,7 +151,7 @@ We welcome contributions at all levels:
 
 Data-Juicer is made possible by the users and community:
 - **Initiated by**: Alibaba Tongyi Lab  
-- **Co-developed with**: Alibaba Cloud PAI, Anyscale (Ray team), Sun Yat-sen University, NVIDIA (NeMo team), and more great [contributors](https://github.com/datajuicer/data-juicer/graphs/contributors).
+- **Co-developed with**: Alibaba Cloud PAI, Anyscale (Ray team), Sun Yat-sen University, NVIDIA (NeMo team), and [contributors worldwide](https://github.com/datajuicer/data-juicer/graphs/contributors)
 - **Inspired by**: Apache Arrow, Ray, Hugging Face Datasets, BLOOM, RedPajama-Data, ...
 
 ---
@@ -156,12 +159,11 @@ Data-Juicer is made possible by the users and community:
 ## 📄 License & Attribution
 
 Data-Juicer is released under the [Apache License 2.0](LICENSE).  
-Attribution is appreciated (e.g., via using our [badge](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/assets/DJ-Org-Logo.jpeg), or text as "This project uses Data-Juicer: https://github.com/datajuicer").
+Attribution is appreciated: please use our [badge](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/assets/DJ-Org-Logo.jpeg), or text as "This project uses Data-Juicer: https://github.com/datajuicer".
 
 ---
 
 ## 📖 Citation
-
 If you find Data-Juicer useful in your work, please cite:
 
 ```bibtex

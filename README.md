@@ -21,8 +21,6 @@
 
 Data-Juicer (DJ) transforms raw data chaos into AI-ready intelligence. It treats data processing as *composable infrastructure*—providing modular building blocks to clean, synthesize, and analyze data across the entire AI lifecycle, unlocking latent value in every byte.
 
-> *⭐ If Data-Juicer accelerates your work, please consider starring the repo* — it helps more developers and researchers discover the project and keeps you notified of new releases.
-
 Whether you're deduplicating web-scale pre-training corpora, curating agent interaction traces, or preparing domain-specific RAG indices, DJ scales seamlessly from your laptop to thousand-node clusters—no glue code required.
 
 > **Alibaba Cloud PAI** has deeply integrated Data-Juicer into its data processing products.  See **[Quickly submit a DataJuicer job](https://www.alibabacloud.com/help/en/pai/user-guide/quickly-submit-a-datajuicer-task)**.
@@ -54,6 +52,7 @@ ds.process([
 ])
 ```
 
+
 ---
 
 ## ✨ Why Data-Juicer?
@@ -75,6 +74,8 @@ ds.process([
 - **Efficiency**: Deduplicate 5TB in 2.8h using 1280 cores
 - **Optimization**: Automatic OP fusion (2-10x speedup), adaptive parallelism, CUDA acceleration, robustness
 - **Observability**: Built-in tracing for debugging, auditing, and iterative improvement
+
+> *⭐ If Data-Juicer saved you time or improved your data work, please consider starring the repo* It helps more developers and researchers discover the project and keeps you notified of new releases and features.
 
 ---
 
@@ -153,6 +154,12 @@ Data-Juicer is made possible by the users and community:
 - **Initiated by**: Alibaba Tongyi Lab  
 - **Co-developed with**: Alibaba Cloud PAI, Anyscale (Ray team), Sun Yat-sen University, NVIDIA (NeMo team), and [contributors worldwide](https://github.com/datajuicer/data-juicer/graphs/contributors)
 - **Inspired by**: Apache Arrow, Ray, Hugging Face Datasets, BLOOM, RedPajama-Data, ...
+
+---
+
+## Documentation
+
+For detailed documentation, please see [here](https://datajuicer.github.io/data-juicer/en/main/docs_index.html).
 
 ---
 

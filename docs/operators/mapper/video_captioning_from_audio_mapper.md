@@ -6,7 +6,7 @@ Mapper to caption a video according to its audio streams based on Qwen-Audio mod
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, hf, multimodal
+Tags 标签: gpu, hf, multimodal
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
@@ -15,8 +15,6 @@ Tags 标签: cpu, hf, multimodal
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/video_captioning_from_audio_mapper.py)

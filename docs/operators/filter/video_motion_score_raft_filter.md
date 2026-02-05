@@ -29,19 +29,22 @@ RAFT 的原始论文可在此处找到：https://arxiv.org/abs/2003.12039
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, video
+Tags 标签: gpu, video
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
 | `min_score` | <class 'float'> | `1.0` |  |
 | `max_score` | <class 'float'> | `1.7976931348623157e+308` |  |
+| `frame_field` | typing.Optional[str] | `None` |  |
 | `sampling_fps` | typing.Annotated[float, Gt(gt=0)] | `2` |  |
 | `size` | typing.Union[typing.Annotated[int, Gt(gt=0)], typing.Tuple[typing.Annotated[int, Gt(gt=0)]], typing.Tuple[typing.Annotated[int, Gt(gt=0)], typing.Annotated[int, Gt(gt=0)]], NoneType] | `None` |  |
 | `max_size` | typing.Optional[typing.Annotated[int, Gt(gt=0)]] | `None` |  |
 | `divisible` | typing.Annotated[int, Gt(gt=0)] | `8` |  |
 | `relative` | <class 'bool'> | `False` |  |
 | `any_or_all` | <class 'str'> | `'any'` |  |
+| `if_output_optical_flow` | <class 'bool'> | `False` |  |
+| `optical_flow_key` | <class 'str'> | `'video_optical_flow'` |  |
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 

@@ -10,7 +10,7 @@ This operator computes the similarity between two texts in a pair using a Huggin
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, hf, text
+Tags 标签: gpu, hf, text
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

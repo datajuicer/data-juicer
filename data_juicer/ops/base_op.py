@@ -70,11 +70,7 @@ def catch_map_batches_exception(method, skip_op_error=False, op_name=None):
 
             from loguru import logger
 
-            logger.error(
-                f"An error occurred in {op_name} when processing "
-                f'samples "{samples}" -- {type(e)}: {e} -- '
-                f"{traceback.format_exc()}"
-            )
+            logger.error(f"An error occurred in {op_name}: {e} -- {traceback.format_exc()}")
             ret = {key: [] for key in samples.keys()}
             ret[Fields.stats] = []
             ret[Fields.source_file] = []
@@ -264,11 +260,7 @@ def catch_map_single_exception(method, return_sample=True, skip_op_error=False, 
 
                 from loguru import logger
 
-                logger.error(
-                    f"An error occurred in {op_name} when processing "
-                    f'sample "{sample}" -- {type(e)}: {e} -- '
-                    f"{traceback.format_exc()}"
-                )
+                logger.error(f"An error occurred in {op_name}: {e} -- {traceback.format_exc()}")
                 ret = {key: [] for key in sample.keys()}
                 ret[Fields.stats] = []
                 ret[Fields.source_file] = []

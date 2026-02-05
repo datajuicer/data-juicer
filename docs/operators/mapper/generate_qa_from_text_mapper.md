@@ -10,7 +10,7 @@ This operator uses a Hugging Face model to generate QA pairs from the input text
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, vllm, hf, text
+Tags 标签: gpu, vllm, hf, text
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
@@ -23,8 +23,6 @@ Tags 标签: cpu, vllm, hf, text
 | `sampling_params` | typing.Optional[typing.Dict] | `None` | Sampling parameters for text generation, e.g {'temperature': 0.9, 'top_p': 0.95} |
 | `kwargs` |  | `''` | Extra keyword arguments. The default data format parsed by this interface is as follows: Model Input:     蒙古国的首都是乌兰巴托（Ulaanbaatar）     冰岛的首都是雷克雅未克（Reykjavik） Model Output:     蒙古国的首都是乌兰巴托（Ulaanbaatar）     冰岛的首都是雷克雅未克（Reykjavik）     Human: 请问蒙古国的首都是哪里？     Assistant: 你好，根据提供的信息，蒙古国的首都是乌兰巴托（Ulaanbaatar）。     Human: 冰岛的首都是哪里呢？     Assistant: 冰岛的首都是雷克雅未克（Reykjavik）。     ... |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/generate_qa_from_text_mapper.py)

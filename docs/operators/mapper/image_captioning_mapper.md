@@ -10,7 +10,7 @@ This operator generates captions for images in the input samples using a specifi
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, hf, multimodal
+Tags 标签: gpu, hf, multimodal
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
@@ -22,11 +22,10 @@ Tags 标签: cpu, hf, multimodal
 | `keep_original_sample` | <class 'bool'> | `True` | whether to keep the original sample. If it's set to False, there will be only generated captions in the final datasets and the original captions will be removed. It's True in default. |
 | `prompt` | typing.Optional[str] | `None` | a string prompt to guide the generation of blip2 model for all samples globally. It's None in default, which means no prompt provided. |
 | `prompt_key` | typing.Optional[str] | `None` | the key name of fields in samples to store prompts for each sample. It's used for set different prompts for different samples. If it's none, use prompt in parameter "prompt". It's None in default. |
+| `gpu_batch_size` | typing.Annotated[int, Gt(gt=0)] | `8` | the batch size for GPU inference. This controls how many images are processed together in a single GPU forward pass. Useful when the dataset batch size is larger than what the GPU can handle. Default is 8. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/image_captioning_mapper.py)

@@ -115,7 +115,7 @@ class VideoSplitByKeyFrameMapper(Mapper):
             )
 
     def get_split_key_frame(self, container, video_key: str = None):
-        timestamps = container.extract_keyframes().pts_time
+        timestamps = container.extract_keyframes(return_meta_only=True).pts_time
 
         if self.video_backend == "ffmpeg" and self.ffmpeg_extra_args:
             kwargs = {"ffmpeg_extra_args": self.ffmpeg_extra_args}

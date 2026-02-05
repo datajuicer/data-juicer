@@ -410,9 +410,19 @@ OP_NAME = "ray_bts_minhash_cpp_deduplicator"
 @OPERATORS.register_module(OP_NAME)
 class RayBTSMinhashCppDeduplicator(Deduplicator):
     """
-    A basic exact matching deduplicator for RAY.
-    Although its functionality is deduplication,
-    it is implemented as Filter sub-class.
+    A MinHash LSH deduplicator that operates in Ray distributed mode with C++ acceleration.
+
+    Same as ray_bts_minhash_deduplicator but with tokenization and MinHash signature
+    computation implemented in C++ for improved performance.
+
+    This operator uses the MinHash LSH technique to identify and remove near-duplicate
+    samples from a dataset. It supports various tokenization methods, including space,
+    punctuation, character, and sentencepiece. The Jaccard similarity threshold is used to
+    determine if two samples are considered duplicates. If the Jaccard similarity of two
+    samples is greater than or equal to the specified threshold, one of the samples is
+    filtered out. The operator computes the MinHash values for each sample and uses a union-
+    find algorithm to group similar samples. The key metric, Jaccard similarity, is computed
+    based on the shingling of the text.
     """
 
     # TODO: Set a more reasonable value

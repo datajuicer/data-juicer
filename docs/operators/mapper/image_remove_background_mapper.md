@@ -20,12 +20,10 @@ Tags 标签: cpu, image
 | `alpha_matting_background_threshold` | <class 'int'> | `10` | (int, optional) Background threshold for alpha matting. Defaults to 10. |
 | `alpha_matting_erode_size` | <class 'int'> | `10` | (int, optional) Erosion size for alpha matting. Defaults to 10. |
 | `bgcolor` | typing.Optional[typing.Tuple[int, int, int, int]] | `None` | (Optional[Tuple[int, int, int, int]], optional) Background color for the cutout image. Defaults to None. |
-| `save_dir` | <class 'str'> | `None` | The directory where generated image files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable. |
+| `save_dir` | <class 'str'> | `None` | The directory where generated image files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files.     This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable. *args (Optional[Any]): Additional positional arguments. **kwargs (Optional[Any]): Additional keyword arguments. |
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/image_remove_background_mapper.py)

@@ -30,8 +30,6 @@ Tags 标签: cpu, api, text
 | `sampling_params` | typing.Dict | `{}` | Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95} |
 | `kwargs` |  | `''` | Extra keyword arguments. |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/relation_identity_mapper.py)

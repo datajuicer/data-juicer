@@ -31,16 +31,23 @@ def get_abs_path(path, dataset_dir):
         return path
 
 
-def convert_to_absolute_paths(samples, dataset_dir, path_keys):
-    samples = samples.to_pydict()
+def convert_to_absolute_paths(samples: pyarrow.Table, dataset_dir, path_keys):
     for key in path_keys:
-        for idx in range(len(samples[key])):
-            paths = samples[key][idx]
-            if isinstance(paths, str):
-                samples[key][idx] = get_abs_path(paths, dataset_dir)
-            elif isinstance(paths, list):
-                samples[key][idx] = [get_abs_path(item, dataset_dir) for item in paths]
-    return pyarrow.Table.from_pydict(samples)
+        col_idx = samples.schema.get_field_index(key)
+        cols = samples.column(col_idx)
+
+        def _process_paths():
+            for col in cols:
+                path = col.as_py()
+                if isinstance(path, str):
+                    yield get_abs_path(path, dataset_dir)
+                elif isinstance(path, list):
+                    yield [get_abs_path(p, dataset_dir) for p in path]
+                else:
+                    yield path
+
+        samples = samples.set_column(col_idx, key, pyarrow.array(_process_paths()))
+    return samples
 
 
 # TODO: check path for nestdataset

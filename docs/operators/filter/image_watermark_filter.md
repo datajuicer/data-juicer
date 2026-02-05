@@ -10,7 +10,7 @@ This operator uses a Hugging Face watermark detection model to filter samples ba
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, hf, image
+Tags 标签: gpu, hf, image
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

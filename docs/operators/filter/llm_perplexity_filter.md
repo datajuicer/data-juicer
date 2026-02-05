@@ -10,7 +10,7 @@ This operator computes the perplexity score for each sample using a Hugging Face
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, hf
+Tags 标签: gpu, hf
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

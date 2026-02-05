@@ -681,7 +681,7 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
         device
     )
 
-    from data_juicer.ops.mapper.video_hand_reconstruction_hawor_mapper import MANO
+    from data_juicer.ops.common.mano_func import MANO
 
     mano_model = MANO(model_path=mano_right_path).to(device)
 

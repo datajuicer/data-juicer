@@ -75,7 +75,7 @@ ds.process([
 - **Optimization**: Automatic OP fusion (2-10x speedup), adaptive parallelism, CUDA acceleration, robustness
 - **Observability**: Built-in tracing for debugging, auditing, and iterative improvement
 
-> *⭐ If Data-Juicer saved you time or improved your data work, please consider starring the repo* It helps more developers and researchers discover the project and keeps you notified of new releases and features.
+> *⭐ If Data-Juicer saved you time or improved your data work, please consider starring the repo.* It helps more people discover the project and keeps you notified of new releases and features.
 
 ---
 
@@ -157,9 +157,18 @@ Data-Juicer is made possible by the users and community:
 
 ---
 
+
 ## Documentation
 
 For detailed documentation, please see [here](https://datajuicer.github.io/data-juicer/en/main/docs_index.html).
+
+**Quick Links:**
+- **[operator zoo](https://datajuicer.github.io/data-juicer/en/main/docs/Operators.md)** — Browse 200+ operators with examples
+- **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — Community-driven recipes and best practices
+- **[developer guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.md)** — Build your own code and contribute to DJ 
+- **[data-juicer-cookbook](https://datajuicer.github.io/data-juicer/en/main/docs/tutorial/DJ-Cookbook.html)** — resource archive
+- **[awesome_llm_data](https://datajuicer.github.io/data-juicer/en/main/docs/awesome_llm_data)** —  “Awesome List” for data-model co-development
+
 
 ---
 

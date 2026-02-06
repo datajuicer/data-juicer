@@ -1,8 +1,10 @@
 # ray_empty_formatter
 
+
 The class is used to create empty data for ray.
 
-该类用于为 ray 创建空数据。
+
+该类用于为 Ray 创建空数据。
 
 Type 算子类型: **formatter**
 
@@ -16,10 +18,8 @@ Tags 标签: cpu
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
-- [source code 源代码](../../../data_juicer/ops/formatter/ray_empty_formatter.py)
+- [source code 源代码](../../../data_juicer/format/empty_formatter.py)
 - [unit test 单元测试]()
 - [Return operator list 返回算子列表](../../Operators.md)

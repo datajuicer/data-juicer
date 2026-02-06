@@ -31,6 +31,8 @@ Tags 标签: cpu, multimodal
 | `min_last_split_duration` | <class 'float'> | `0` | The minimum allowable duration in seconds for the last video split. If the duration of the last split is less than this value, it will be discarded. |
 | `keep_original_sample` | <class 'bool'> | `True` | whether to keep the original sample. If it's set to False, there will be only cut sample in the final datasets and the original sample will be removed. It's True in default. |
 | `save_dir` | <class 'str'> | `None` | The directory where generated video files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable. |
+| `video_backend` | <class 'str'> | `'ffmpeg'` | video backend, can be `ffmpeg`, `av`. |
+| `ffmpeg_extra_args` | <class 'str'> | `''` | Extra ffmpeg args for splitting video, only valid when `video_backend` is `ffmpeg`. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 

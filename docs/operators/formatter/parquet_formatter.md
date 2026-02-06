@@ -1,12 +1,14 @@
 # parquet_formatter
 
+
 The class is used to load and format parquet-type files.
 
 Default suffixes is `['.parquet']`
 
-该类用于加载和格式化 parquet 类型的文件。
 
-默认后缀是 `['.parquet']`
+该类用于加载和格式化 Parquet 类型的文件。
+
+默认后缀为 `['.parquet']`
 
 Type 算子类型: **formatter**
 
@@ -19,10 +21,8 @@ Tags 标签: cpu
 | `suffixes` |  | `None` | files with specified suffixes to be processed |
 | `kwargs` |  | `''` | extra args |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
-- [source code 源代码](../../../data_juicer/ops/formatter/parquet_formatter.py)
+- [source code 源代码](../../../data_juicer/format/parquet_formatter.py)
 - [unit test 单元测试]()
 - [Return operator list 返回算子列表](../../Operators.md)

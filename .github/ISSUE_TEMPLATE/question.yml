@@ -15,8 +15,8 @@ body:
         Please check and try following methods to solve it by yourself. 请检查并尝试以下方法来以尝试自己解决问题。
       options:
         - label: >
-           I have read the [README](https://github.com/alibaba/data-juicer/blob/main/README.md) carefully.
-           我已经仔细阅读了 [README](https://github.com/alibaba/data-juicer/blob/main/README_ZH.md) 上的操作指引。
+           I have read the [README](https://github.com/datajuicer/data-juicer/blob/main/README.md) carefully.
+           我已经仔细阅读了 [README](https://github.com/datajuicer/data-juicer/blob/main/README_ZH.md) 上的操作指引。
           required: true
         - label: >
            I have pulled the latest code of main branch to run again and the problem still existed.
@@ -28,11 +28,11 @@ body:
     attributes:
       label: Search before asking 先搜索，再提问
       description: >
-        Please search the [issues](https://github.com/alibaba/data-juicer/issues) to see if a similar question already exists. 请先在 [issue 列表](https://github.com/alibaba/data-juicer/issues)中搜索是否已经有类似的问题已经存在。
+        Please search the [issues](https://github.com/datajuicer/data-juicer/issues) to see if a similar question already exists. 请先在 [issue 列表](https://github.com/datajuicer/data-juicer/issues)中搜索是否已经有类似的问题已经存在。
       options:
         - label: >
-            I have searched the Data-Juicer [issues](https://github.com/alibaba/data-juicer/issues) and found no similar questions.
-            我已经在 [issue列表](https://github.com/alibaba/data-juicer/issues) 中搜索但是没有发现类似的问题。
+            I have searched the Data-Juicer [issues](https://github.com/datajuicer/data-juicer/issues) and found no similar questions.
+            我已经在 [issue列表](https://github.com/datajuicer/data-juicer/issues) 中搜索但是没有发现类似的问题。
           required: true
 
   - type: textarea

@@ -76,6 +76,7 @@ class MetaKeys(object):
     image_tags = "image_tags"
     # # hand reconstruction
     hand_reconstruction_tags = "hand_reconstruction_tags"
+    hand_reconstruction_hawor_tags = "hand_reconstruction_hawor_tags"
     # # bounding box tag
     bbox_tag = DEFAULT_PREFIX + "bbox__"
     # # class label (from detection) tag

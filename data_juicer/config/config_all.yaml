@@ -70,6 +70,12 @@ eoc_special_token: '<|__dj__eoc|>'                          # the special token 
 executor_type: default                                      # type of executor, support "default" or "ray" for now.
 ray_address: auto                                           # the address of the Ray cluster.
 
+# partition configuration (for ray_partitioned executor)
+partition:
+  mode: auto                                                # partition mode: "auto" (use optimizer) or "manual" (specify count)
+  num_of_partitions: 4                                      # number of partitions for manual mode
+  target_size_mb: 256                                       # target partition size in MB for auto mode (128, 256, 512, or 1024). 256MB balances memory safety and efficiency.
+
 # only for data analysis
 percentiles: [0.25, 0.5, 0.75]                              # percentiles to analyze the dataset distribution
 export_original_dataset: false                              # whether to export the original dataset with stats. If you only need the stats of the dataset, setting it to false could speed up the exporting.

@@ -1,12 +1,14 @@
 # csv_formatter
 
+
 The class is used to load and format csv-type files.
 
 Default suffixes is `['.csv']`
 
-该类用于加载和格式化 csv 类型的文件。
 
-默认后缀是 `['.csv']`
+该类用于加载和格式化 CSV 类型的文件。
+
+默认后缀为 `['.csv']`
 
 Type 算子类型: **formatter**
 
@@ -19,10 +21,8 @@ Tags 标签: cpu
 | `suffixes` |  | `None` | files with specified suffixes to be processed |
 | `kwargs` |  | `''` | extra args |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
-- [source code 源代码](../../../data_juicer/ops/formatter/csv_formatter.py)
-- [unit test 单元测试]()
+- [source code 源代码](../../../data_juicer/format/csv_formatter.py)
+- [unit test 单元测试](../../../tests/format/test_csv_formatter.py)
 - [Return operator list 返回算子列表](../../Operators.md)

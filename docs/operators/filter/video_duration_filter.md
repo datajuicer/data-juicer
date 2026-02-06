@@ -22,6 +22,7 @@ Tags 标签: cpu, video
 | `min_duration` | <class 'float'> | `0` | The min video duration to keep samples in seconds. It's 0 by default. |
 | `max_duration` | <class 'float'> | `9223372036854775807` | The max video duration to keep samples in seconds. It's sys.maxsize by default. |
 | `any_or_all` | <class 'str'> | `'any'` | keep this sample with 'any' or 'all' strategy of all videos. 'any': keep this sample if any videos meet the condition. 'all': keep this sample only if all videos meet the condition. |
+| `video_backend` | <class 'str'> | `'ffmpeg'` | video backend, can be `ffmpeg`, `av`. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 

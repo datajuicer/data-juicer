@@ -131,7 +131,19 @@ class RayExporter:
         :param columns: the columns to export.
         :return:
         """
-        feature_fields = dataset.columns() if not columns else columns
+        # Handle empty dataset case - Ray returns None for columns() on empty datasets
+        # Check if dataset is empty by calling columns() regardless of columns parameter
+        cols = dataset.columns()
+        if cols is None:
+            # Empty dataset with unknown schema - create an empty file
+            logger.warning(f"Dataset is empty, creating empty export file at {export_path}")
+            os.makedirs(os.path.dirname(export_path) or ".", exist_ok=True)
+            with open(export_path, "w"):
+                pass  # Create empty file
+            return
+
+        # Use provided columns or infer from dataset
+        feature_fields = columns if columns else cols
         removed_fields = []
         if not self.keep_stats_in_res_ds:
             extra_fields = {Fields.stats, Fields.meta}
@@ -165,6 +177,11 @@ class RayExporter:
             num_shards = min(num_shards, dataset_num_rows)
             rows_per_file = int(dataset_num_rows / num_shards)
             export_kwargs["export_extra_args"]["min_rows_per_file"] = rows_per_file
+
+        # Ensure export directory exists (Ray's write_json treats export_path as a directory)
+        if not export_path.startswith("s3://"):
+            os.makedirs(export_path, exist_ok=True)
+
         return export_method(dataset, export_path, **export_kwargs)
 
     def export(self, dataset, columns=None):

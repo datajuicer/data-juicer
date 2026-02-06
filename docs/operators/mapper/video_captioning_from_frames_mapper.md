@@ -36,15 +36,17 @@ Tags 标签: gpu, hf, multimodal
 | `keep_original_sample` | <class 'bool'> | `True` | whether to keep the original sample. If it's set to False, there will be only generated captions in the final datasets and the original captions will be removed. It's True in default. |
 | `prompt` | typing.Optional[str] | `None` | a string prompt to guide the generation of image-to-text model for all samples globally. It's None in default, which means no prompt provided. |
 | `prompt_key` | typing.Optional[str] | `None` | the key name of fields in samples to store prompts for each sample. It's used for set different prompts for different samples. If it's none, use prompt in parameter "prompt". It's None in default. |
-| `frame_sampling_method` | <class 'str'> | `'all_keyframes'` | sampling method of extracting frame videos from the videos. Should be one of ["all_keyframes", "uniform"]. The former one extracts all key frames (the number of which depends on the duration of the video) and the latter one extract specified number of frames uniformly from the video. Default: "all_keyframes". |
-| `frame_num` | typing.Annotated[int, Gt(gt=0)] | `3` | the number of frames to be extracted uniformly from the video. Only works when frame_sampling_method is "uniform". If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration. |
+| `frame_field` | typing.Optional[str] | `None` | the field name of video frames to generate caption. If frame_field is None, extract frames from the video field. |
+| `frame_sampling_method` | <class 'str'> | `'all_keyframes'` | sampling method of extracting frame videos from the videos. Should be one of ["all_keyframes", "uniform"]. Only works when "frame_field" is none. The former one extracts all key frames (the number of which depends on the duration of the video) and the latter one extract specified number of frames uniformly from the video. Default: "all_keyframes". |
+| `frame_num` | typing.Annotated[int, Gt(gt=0)] | `3` | the number of frames to be extracted uniformly from the video frames. Only works when "frame_sampling_method" is "uniform" or "frame_field" is given. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration. |
 | `horizontal_flip` | <class 'bool'> | `False` | flip frame video horizontally (left to right). |
 | `vertical_flip` | <class 'bool'> | `False` | flip frame video vertically (top to bottom). |
+| `text_update_strategy` | <class 'str'> | `'rewrite'` | strategy to update the text field after caption generation. Can be one of ['keep_origin', 'rewrite']. 'keep_origin': keep the original text unchanged. 'rewrite': rewrite the text field with the generated captions concated by special tokens. |
+| `caption_field` | typing.Optional[str] | `None` | the field name to save the generated captions. |
+| `legacy_split_by_text_token` | <class 'bool'> | `True` | Whether to split by special tokens (e.g. <__dj__video>) in the text field and read videos in order, or use the 'videos' or 'frames' field directly. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/video_captioning_from_frames_mapper.py)

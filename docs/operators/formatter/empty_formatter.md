@@ -1,6 +1,8 @@
 # empty_formatter
 
+
 The class is used to create empty data.
+
 
 该类用于创建空数据。
 
@@ -16,10 +18,8 @@ Tags 标签: cpu
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
-- [source code 源代码](../../../data_juicer/ops/formatter/empty_formatter.py)
-- [unit test 单元测试]()
+- [source code 源代码](../../../data_juicer/format/empty_formatter.py)
+- [unit test 单元测试](../../../tests/format/test_empty_formatter.py)
 - [Return operator list 返回算子列表](../../Operators.md)

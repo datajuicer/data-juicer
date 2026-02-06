@@ -7,7 +7,7 @@ from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.mapper.video_split_by_scene_mapper import \
     VideoSplitBySceneMapper
-from data_juicer.utils.mm_utils import SpecialTokens
+from data_juicer.utils.mm_utils import SpecialTokens, load_file_byte
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class VideoSplitBySceneMapperTest(DataJuicerTestCaseBase):
@@ -236,6 +236,78 @@ class VideoSplitBySceneMapperTest(DataJuicerTestCaseBase):
 
     def test_save_field(self):
         self.test_output_format(save_field="clips")
+
+    def test_input_bytes(self, output_format='bytes', save_field=None):
+        ds_list = [
+            {
+                'id': 0,
+                'text':
+                f'{SpecialTokens.video} this is video1 {SpecialTokens.eoc}',
+                'videos': [load_file_byte(self.vid1_path)]  # 3 scenes
+            },
+            {
+                'id': 1,
+                'text':
+                f'{SpecialTokens.video} this is video2 {SpecialTokens.eoc}',
+                'videos': [load_file_byte(self.vid2_path)]  # 1 scene
+            },
+            {
+                'id': 2,
+                'text':
+                f'{SpecialTokens.video} this is video3 {SpecialTokens.eoc}',
+                'videos': [load_file_byte(self.vid3_path)]  # 2 scenes
+            }
+        ]
+        tgt_list = [
+            {
+                'id': 0,
+                'text':
+                f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} this is video1 {SpecialTokens.eoc}',  # noqa: E501
+                'scene_num': 3
+            },
+            {
+                'id': 1,
+                'text':
+                f'{SpecialTokens.video} this is video2 {SpecialTokens.eoc}',
+                'scene_num': 1
+            },
+            {
+                'id': 2,
+                'text':
+                f'{SpecialTokens.video}{SpecialTokens.video} this is video3 {SpecialTokens.eoc}',  # noqa: E501
+                'scene_num': 2
+            }
+        ]
+        op = VideoSplitBySceneMapper(
+            output_format=output_format,
+            save_dir=self.tmp_dir,
+            save_field=save_field)
+
+        dataset = Dataset.from_list(ds_list)
+        dataset = dataset.map(op.process)
+
+        res_list = dataset.to_list()
+        res_list = sorted(res_list, key=lambda x: x["id"])
+
+        save_field = save_field or "videos"
+        for i in range(len(ds_list)):
+            res = res_list[i] 
+            tgt = tgt_list[i]
+            self.assertEqual(res['id'], tgt['id'])
+            self.assertEqual(res['text'], tgt['text'])
+            self.assertEqual(len(res[save_field]), tgt['scene_num'])
+            if output_format == 'bytes':
+                self.assertTrue(all(isinstance(v, bytes) for v in res[save_field]))
+            else:
+                # If the input video field is in bytes format, 
+                # the splited videos will directly replace the original video field, 
+                # and the format will remain consistent with the previous bytes format. 
+                # If the output_format is "path", it will also be in bytes format, so a new storage field must be specified.
+                self.assertTrue(all(isinstance(v, str) for v in res[save_field]))
+                self.assertTrue(all(v.startswith(self.tmp_dir) for v in res[save_field]))
+
+    def test_input_bytes_and_out_bytes(self):
+        self.test_input_bytes(output_format="path", save_field="clips")
 
 
 if __name__ == '__main__':

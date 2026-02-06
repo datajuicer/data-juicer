@@ -17,6 +17,7 @@ Tags 标签: cpu, text
 |--------|------|--------|------|
 | `backend` | <class 'str'> | `'ray_actor'` | the backend for dedup, either 'ray_actor' or 'redis' |
 | `redis_address` | <class 'str'> | `'redis://localhost:6379'` | the address of redis server |
+| `dedup_set_num` | typing.Union[int, str] | `'auto'` | number of dedup set actors, or 'auto' to use CPU/2 |
 | `lowercase` | <class 'bool'> | `False` | Whether to convert sample text to lower case |
 | `ignore_non_character` | <class 'bool'> | `False` | Whether to ignore non-alphabet characters, including whitespaces, digits, and punctuations |
 | `args` |  | `''` | extra args |

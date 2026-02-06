@@ -35,6 +35,7 @@ class VideoCameraCalibrationStaticDeepcalibMapper(Mapper):
         duration: float = 0,
         tag_field_name: str = MetaKeys.static_camera_calibration_deepcalib_tags,
         frame_dir: str = DATA_JUICER_ASSETS_CACHE,
+        if_output_info: bool = True,
         output_info_dir: str = DATA_JUICER_ASSETS_CACHE,
         *args,
         **kwargs,
@@ -56,6 +57,8 @@ class VideoCameraCalibrationStaticDeepcalibMapper(Mapper):
         :param tag_field_name: The field name to store the tags. It's
             "static_camera_calibration_deepcalib_tags" in default.
         :param frame_dir: Output directory to save extracted frames.
+        :param if_output_info: Whether to save the camera parameters results
+            to an JSON file.
         :param output_info_dir: Output directory for saving camera parameters.
         :param args: extra args
         :param kwargs: extra args
@@ -85,6 +88,7 @@ class VideoCameraCalibrationStaticDeepcalibMapper(Mapper):
         self.duration = duration
         self.tag_field_name = tag_field_name
         self.frame_dir = frame_dir
+        self.if_output_info = if_output_info
         self.output_info_dir = output_info_dir
         self.INPUT_SIZE = 299
         self.focal_start = 40
@@ -168,13 +172,14 @@ class VideoCameraCalibrationStaticDeepcalibMapper(Mapper):
             "vfov_list": final_vfov_list,
         }
 
-        os.makedirs(self.output_info_dir, exist_ok=True)
-        with open(
-            os.path.join(
-                self.output_info_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0] + ".json"
-            ),
-            "w",
-        ) as f:
-            json.dump(sample[Fields.meta][self.tag_field_name], f)
+        if self.if_output_info:
+            os.makedirs(self.output_info_dir, exist_ok=True)
+            with open(
+                os.path.join(
+                    self.output_info_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0] + ".json"
+                ),
+                "w",
+            ) as f:
+                json.dump(sample[Fields.meta][self.tag_field_name], f)
 
         return sample

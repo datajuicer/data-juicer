@@ -10,20 +10,18 @@ This operator calculates the in-context influence of each sample by comparing pe
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, hf
+Tags 标签: gpu, hf
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
 | `valid_dataset` | typing.Optional[typing.List[typing.Dict]] | `None` | The dataset to use for validation. If None, 'self.prepare_valid_feature' should be manually called before applying the filter. |
 | `task_desc` | <class 'str'> | `None` | The description of the validation task. |
-| `valid_as_demo` | <class 'bool'> | `False` | If true, score =  L(A|Q) / L(A|task_desc, Q_v, A_v, Q); If false, score = L(A_v|Q) L(A_v|task_desc, Q, A, Q_v). |
+| `valid_as_demo` | <class 'bool'> | `False` | If true, score =  L(A\|Q) / L(A\|task_desc, Q_v, A_v, Q); If false, score = L(A_v\|Q) L(A_v\|task_desc, Q, A, Q_v). |
 | `n_shot` | typing.Optional[int] | `None` | The number of shots in validation. |
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/filter/in_context_influence_filter.py)

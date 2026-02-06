@@ -79,9 +79,11 @@ class FlaggedWordFilter(Filter):
         self.model_key = None
 
         self.FLAGGED_WORDS = load_words_asset(words_dir=flagged_words_dir, words_type="flagged_words")
-
+        # Convert lists to sets for O(1) membership lookup performance
+        for key in self.FLAGGED_WORDS:
+            self.FLAGGED_WORDS[key] = set(self.FLAGGED_WORDS[key])
         if "all" not in self.FLAGGED_WORDS:
-            self.FLAGGED_WORDS["all"] = [val for vals in self.FLAGGED_WORDS.values() for val in vals]
+            self.FLAGGED_WORDS["all"] = set(val for vals in self.FLAGGED_WORDS.values() for val in vals)
         if tokenization:
             self.model_key = prepare_model(model_type="sentencepiece", lang=lang)
 

@@ -54,6 +54,7 @@ VggtMapper(vggt_model_path='facebook/VGGT-1B', frame_num=2, duration=2, frame_di
 The VggtMapper operator processes video data to extract various 3D information such as camera parameters, depth maps, and point tracks. The input consists of video files and query points. The output includes detailed 3D information for each video, such as the shape of the camera parameters, depth maps, and point tracks. This example demonstrates the typical use case where the operator processes a single video with multiple query points and outputs the corresponding 3D information.
 VggtMapper算子处理视频数据以提取各种3D信息，如相机参数、深度图和点轨迹。输入包括视频文件和查询点。输出包含每个视频的详细3D信息，例如相机参数、深度图和点轨迹的形状。此示例展示了典型的使用场景，其中算子处理带有多个查询点的单个视频，并输出相应的3D信息。
 
+
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/vggt_mapper.py)
 - [unit test 单元测试](../../../tests/ops/mapper/test_vggt_mapper.py)

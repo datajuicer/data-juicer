@@ -10,7 +10,7 @@ This operator uses a Hugging Face CLIP model to compute the similarity between i
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, hf, multimodal
+Tags 标签: gpu, hf, multimodal
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

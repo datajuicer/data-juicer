@@ -37,7 +37,7 @@ def covert_image_to_base64(image_path):
 
 
 def format_cover_html(project_img_path):
-    readme_link = 'https://github.com/alibaba/data-juicer'
+    readme_link = 'https://github.com/datajuicer/data-juicer'
     config = {
         'name': "Data-Juicer",
         'label': "Op Insight",

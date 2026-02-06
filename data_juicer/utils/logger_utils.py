@@ -167,7 +167,13 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
             level=level,
             enqueue=not is_notebook(),
         )
-        logger.add(save_file)
+        logger.add(
+            save_file,
+            format=loguru_format,
+            level=level,
+            compression="gz",
+            enqueue=True,
+        )
 
     # for interest of levels: debug, error, warning
     logger.add(
@@ -175,6 +181,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
         level="DEBUG",
         filter=lambda x: "DEBUG" == x["level"].name,
         format=loguru_format,
+        compression="gz",
         enqueue=True,
         serialize=True,
     )
@@ -183,6 +190,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
         level="ERROR",
         filter=lambda x: "ERROR" == x["level"].name,
         format=loguru_format,
+        compression="gz",
         enqueue=True,
         serialize=True,
     )
@@ -191,6 +199,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
         level="WARNING",
         filter=lambda x: "WARNING" == x["level"].name,
         format=loguru_format,
+        compression="gz",
         enqueue=True,
         serialize=True,
     )

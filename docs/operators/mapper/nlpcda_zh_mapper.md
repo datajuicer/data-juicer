@@ -26,8 +26,6 @@ Tags 标签: cpu, text
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/nlpcda_zh_mapper.py)

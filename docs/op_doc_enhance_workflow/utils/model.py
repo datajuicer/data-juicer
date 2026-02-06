@@ -4,7 +4,7 @@ from data_juicer.utils.model_utils import (
     update_sampling_params,
 )
 
-API_MODEL = "qwen-max"
+API_MODEL = "qwen3-max"
 
 
 def chat(messages: list[dict]):

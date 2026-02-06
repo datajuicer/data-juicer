@@ -10,7 +10,7 @@ This operator uses a Hugging Face diffusion model to generate image pairs based 
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, text
+Tags 标签: gpu, text
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
@@ -26,8 +26,6 @@ Tags 标签: cpu, text
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/sdxl_prompt2prompt_mapper.py)

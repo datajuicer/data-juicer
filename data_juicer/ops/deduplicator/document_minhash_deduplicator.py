@@ -313,11 +313,14 @@ class DocumentMinhashDeduplicator(Deduplicator):
         if show_num > 0:
             for i in range(len(dataset)):
                 cluster_idx = union_find.find(i)
-                if cluster_idx not in dup_pairs and cluster_idx != i:
-                    dup_pairs[cluster_idx] = [
-                        dataset[cluster_idx],
-                        dataset[i],
-                    ]
+                if cluster_idx != i:
+                    if cluster_idx not in dup_pairs:
+                        dup_pairs[cluster_idx] = [
+                            dataset[cluster_idx],
+                            dataset[i],
+                        ]
+                    else:
+                        dup_pairs[cluster_idx].append(dataset[i])
                 if len(dup_pairs) >= show_num:
                     break
 

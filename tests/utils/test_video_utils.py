@@ -291,6 +291,18 @@ class TestVideoReader(DataJuicerTestCaseBase):
             finally:
                 reader.close()
 
+    def test_extract_keyframes_meta_only(self):
+        """Test extract_keyframes with return_meta_only=True"""
+        test_video_path = self.vid_path1
+        backends = self.get_backends()
+
+        for name, cls in backends.items():
+            with cls(test_video_path) as reader:
+                frames = reader.extract_keyframes(return_meta_only=True)
+                self.assertEqual(frames.frames, [])
+                self.assertEqual(frames.indices, [0, 144, 237])
+                self.assertEqual(frames.pts_time, [0.0, 6.0, 9.875])
+
 
 if __name__ == '__main__':
     unittest.main()

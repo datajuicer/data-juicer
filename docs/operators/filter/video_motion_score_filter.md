@@ -1,12 +1,12 @@
 # video_motion_score_filter
 
-Filter to keep samples with video motion scores within a specific range.
+Filter to keep samples with video motion scores from OpenCV within a specific range.
 
 The operator uses Farneback's algorithm from OpenCV to compute dense optical flow. It calculates the average motion score for each video and retains samples based on the specified minimum and maximum score thresholds. The 'any' or 'all' strategy determines whether to keep a sample if any or all videos meet the criteria. The motion score is computed as the mean magnitude of the optical flow, which can be normalized relative to the frame's diagonal length. The stats are cached under the key 'video_motion_score'.
 
-用于保留视频运动得分在特定范围内的样本的过滤器。
+用于保留 OpenCV 视频运动分数在指定范围内的样本的过滤器。
 
-该算子使用 OpenCV 中的 Farneback 算法来计算密集光流。它计算每个视频的平均运动得分，并根据指定的最小和最大得分阈值保留样本。'any' 或 'all' 策略决定了是否在有任何或所有视频满足条件时保留样本。运动得分计算为光流的平均幅度，可以相对于帧的对角线长度进行归一化。统计数据缓存在 'video_motion_score' 键下。
+该算子使用 OpenCV 中的 Farneback 算法计算稠密光流。它为每个视频计算平均运动分数，并根据指定的最小和最大分数阈值保留样本。'any' 或 'all' 策略决定只要任意视频或所有视频满足条件时是否保留样本。运动分数被计算为光流幅值的均值，该值可相对于帧对角线长度进行归一化。统计信息缓存在键 'video_motion_score' 下。
 
 Type 算子类型: **filter**
 
@@ -17,12 +17,15 @@ Tags 标签: cpu, video
 |--------|------|--------|------|
 | `min_score` | <class 'float'> | `0.25` | The minimum motion score to keep samples. |
 | `max_score` | <class 'float'> | `1.7976931348623157e+308` | The maximum motion score to keep samples. |
+| `frame_field` | typing.Optional[str] | `None` | the field name of video frames to compute motion score. If frame_field is None, extract frames from the video field. |
 | `sampling_fps` | typing.Annotated[float, Gt(gt=0)] | `2` | The sampling rate in frames_per_second for optical flow calculations. |
 | `size` | typing.Union[typing.Annotated[int, Gt(gt=0)], typing.Tuple[typing.Annotated[int, Gt(gt=0)]], typing.Tuple[typing.Annotated[int, Gt(gt=0)], typing.Annotated[int, Gt(gt=0)]], NoneType] | `None` | Resize frames before computing optical flow. If size is a sequence like (h, w), frame size will be matched to this. If size is an int, smaller edge of frames will be matched to this number. i.e, if height > width, then frame will be rescaled to (size * height / width, size). Default `None` to keep the original size. |
 | `max_size` | typing.Optional[typing.Annotated[int, Gt(gt=0)]] | `None` | The maximum allowed for the longer edge of resized frames. If the longer edge of frames is greater than max_size after being resized according to size, size will be overruled so that the longer edge is equal to max_size. As a result, the smaller edge may be shorter than size. This is only supported if size is an int. |
 | `divisible` | typing.Annotated[int, Gt(gt=0)] | `1` | The number that the dimensions must be divisible by. |
 | `relative` | <class 'bool'> | `False` | If `True`, the optical flow magnitude is normalized to a [0, 1] range, relative to the frame's diagonal length. |
 | `any_or_all` | <class 'str'> | `'any'` | keep this sample with 'any' or 'all' strategy of all videos. 'any': keep this sample if any videos meet the condition. 'all': keep this sample only if all videos meet the condition. |
+| `if_output_optical_flow` | <class 'bool'> | `False` | Determines whether to output the computed optical flows into the metas. The optical flows for each video will be stored in the shape of (num_frame, H, W, 2) |
+| `optical_flow_key` | <class 'str'> | `'video_optical_flow'` | The field name to store the optical flows. It's "video_optical_flow" in default. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 

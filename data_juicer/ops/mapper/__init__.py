@@ -97,6 +97,7 @@ from .video_depth_estimation_mapper import VideoDepthEstimationMapper
 from .video_extract_frames_mapper import VideoExtractFramesMapper
 from .video_face_blur_mapper import VideoFaceBlurMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
+from .video_hand_reconstruction_hawor_mapper import VideoHandReconstructionHaworMapper
 from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
 from .video_object_segmenting_mapper import VideoObjectSegmentingMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
@@ -200,6 +201,7 @@ __all__ = [
     "VideoDepthEstimationMapper",
     "VideoExtractFramesMapper",
     "VideoFFmpegWrappedMapper",
+    "VideoHandReconstructionHaworMapper",
     "VideoHandReconstructionMapper",
     "VideoFaceBlurMapper",
     "VideoObjectSegmentingMapper",

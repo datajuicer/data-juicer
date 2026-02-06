@@ -10,7 +10,7 @@ This operator uses a FastSAM model to detect and segment objects in images, retu
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, image
+Tags 标签: gpu, image
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
@@ -22,8 +22,6 @@ Tags 标签: cpu, image
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/image_segment_mapper.py)

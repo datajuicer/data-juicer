@@ -16,7 +16,7 @@ This operator extracts frames from videos and generates tags based on the conten
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, video
+Tags 标签: gpu, video
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

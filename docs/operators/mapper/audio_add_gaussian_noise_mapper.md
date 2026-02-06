@@ -22,8 +22,6 @@ Tags 标签: cpu, audio
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/audio_add_gaussian_noise_mapper.py)

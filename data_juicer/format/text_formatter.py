@@ -1,5 +1,6 @@
 import os
 from multiprocessing import Pool
+from typing import Optional
 
 import pdfplumber
 from datasets import Dataset, concatenate_datasets, load_dataset
@@ -152,7 +153,7 @@ class TextFormatter(LocalFormatter):
         self.dataset_path = dataset_path
         self.add_suffix = add_suffix
 
-    def load_dataset(self, num_proc: int = 1, global_cfg=None) -> Dataset:
+    def load_dataset(self, num_proc: Optional[int] = None, global_cfg=None) -> Dataset:
         """
         Load a dataset from local text-type files.
 
@@ -191,6 +192,9 @@ class TextFormatter(LocalFormatter):
                 self.data_files[file_type] = find_files_with_suffix(extracted_filetype_path, ".txt")[".txt"]
 
         # load text dataset, one text file as one sample
+        _num_proc = self.kwargs.pop("num_proc", 1)
+        num_proc = num_proc or _num_proc
+        logger.info(f"Loading dataset with num_proc: {num_proc}")
         datasets = load_dataset(
             "text",
             data_files={key.strip("."): self.data_files[key] for key in self.data_files},

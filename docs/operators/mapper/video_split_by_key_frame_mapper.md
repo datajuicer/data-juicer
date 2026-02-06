@@ -17,13 +17,18 @@ Tags 标签: cpu, multimodal
 |--------|------|--------|------|
 | `keep_original_sample` | <class 'bool'> | `True` | whether to keep the original sample. If it's set to False, there will be only split sample in the final datasets and the original sample will be removed. It's True in default. |
 | `save_dir` | <class 'str'> | `None` | The directory where generated video files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable. |
+| `video_backend` | <class 'str'> | `'av'` | video backend, can be `ffmpeg`, `av`. |
+| `ffmpeg_extra_args` | <class 'str'> | `''` | Extra ffmpeg args for splitting video, only valid when `video_backend` is `ffmpeg`. |
+| `output_format` | <class 'str'> | `'path'` | The output format of the videos. Supported formats are: ["path", "bytes"]. If format is "path", the output is a list of lists, where each inner list contains the path of the split videos. e.g.[         [video1_split1_path, video1_split2_path, ...],         [video2_split1_path, video2_split2_path, ...],         ...     ] (In the order of the videos). If format is "bytes", the output is a list of lists, where each inner list contains the bytes of the split videos. e.g. [         [video1_split1_byte, video1_split2_byte, ...],         [video2_split1_byte, video2_split2_byte, ...],         ...     ] (In the order of the videos). |
+| `save_field` | <class 'str'> | `None` | The new field name to save generated video files path. If not specified, will overwrite the original video field. |
+| `legacy_split_by_text_token` | <class 'bool'> | `True` | Whether to split by special tokens (e.g. <__dj__video>) in the text field and read videos in order, or use the 'videos' field directly. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 
 ## 📊 Effect demonstration 效果演示
 ### test
 ```python
-VideoSplitByKeyFrameMapper(keep_original_sample=False)
+VideoSplitByKeyFrameMapper(keep_original_sample=False, save_dir='tempfile.TemporaryDirectory().name')
 ```
 
 #### 📥 input data 输入数据
@@ -38,7 +43,7 @@ This example demonstrates the basic functionality of the VideoSplitByKeyFrameMap
 
 ### test_keep_ori_sample
 ```python
-VideoSplitByKeyFrameMapper()
+VideoSplitByKeyFrameMapper(save_dir='tempfile.TemporaryDirectory().name', ffmpeg_extra_args='-movflags frag_keyframe+empty_moov')
 ```
 
 #### 📥 input data 输入数据

@@ -10,7 +10,7 @@ This operator extracts audio streams from videos and uses a Hugging Face Audio S
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, hf, video
+Tags 标签: gpu, hf, video
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

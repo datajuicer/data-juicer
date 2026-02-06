@@ -80,6 +80,9 @@ BACKUP_MODEL_LINKS = {
     # DWPose
     "dwpose_onnx_det_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx",
     "dwpose_onnx_pose_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx",
+    # HaWoR
+    "hawor_model_path": "https://huggingface.co/ThunderVVV/HaWoR/resolve/main/hawor/checkpoints/hawor.ckpt",
+    "hawor_config_path": "https://huggingface.co/ThunderVVV/HaWoR/resolve/main/hawor/model_config.yaml",
 }
 
 
@@ -624,6 +627,65 @@ def prepare_huggingface_model(
             model = pipe
 
     return (model, processor) if return_model else processor
+
+
+def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **model_params):
+
+    device = model_params.pop("device", "cpu")
+
+    hawor_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "HaWoR")
+    if not os.path.exists(hawor_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/ThunderVVV/HaWoR.git", hawor_repo_path], check=True)
+    import sys
+
+    sys.path.append(hawor_repo_path)
+
+    from hawor.configs import get_config
+    from lib.models.hawor import HAWOR
+
+    if not os.path.exists(mano_right_path):
+        raise ValueError(
+            "Users need to download 'MANO_RIGHT.pkl' from https://mano.is.tue.mpg.de/ and comply with the MANO license."
+        )
+
+    if not os.path.exists(hawor_model_path):
+        hawor_model_dir = os.path.join(DJMC, "HaWor")
+        os.makedirs(hawor_model_dir, exist_ok=True)
+        hawor_model_path = os.path.join(hawor_model_dir, "hawor.ckpt")
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], hawor_model_path], check=True)
+
+    if not os.path.exists(hawor_config_path):
+        hawor_model_dir = os.path.join(DJMC, "HaWor")
+        os.makedirs(hawor_model_dir, exist_ok=True)
+        hawor_config_path = os.path.join(hawor_model_dir, "model_config.yaml")
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], hawor_config_path], check=True)
+
+    model_cfg = get_config(hawor_config_path, update_cachedir=True)
+
+    if (model_cfg.MODEL.BACKBONE.TYPE == "vit") and ("BBOX_SHAPE" not in model_cfg.MODEL):
+        model_cfg.defrost()
+        assert (
+            model_cfg.MODEL.IMAGE_SIZE == 256
+        ), f"MODEL.IMAGE_SIZE ({model_cfg.MODEL.IMAGE_SIZE}) should be 256 for ViT backbone"
+        model_cfg.MODEL.BBOX_SHAPE = [192, 256]
+        model_cfg.freeze()
+
+    if "DATA_DIR" in model_cfg.MANO:
+        model_cfg.defrost()
+        model_cfg.MANO.DATA_DIR = os.path.join(hawor_repo_path, "_DATA/data")
+        model_cfg.MANO.MODEL_PATH = mano_right_path
+        model_cfg.MANO.MEAN_PARAMS = os.path.join(hawor_repo_path, "_DATA/data/mano_mean_params.npz")
+        model_cfg.freeze()
+
+    hawor_model = HAWOR.load_from_checkpoint(hawor_model_path, strict=False, cfg=model_cfg, weights_only=False).to(
+        device
+    )
+
+    from data_juicer.ops.common.mano_func import MANO
+
+    mano_model = MANO(model_path=mano_right_path).to(device)
+
+    return hawor_model, model_cfg, mano_model
 
 
 def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):
@@ -1588,6 +1650,7 @@ MODEL_FUNCTION_MAPPING = {
     "dwpose": prepare_dwpose_model,
     "fasttext": prepare_fasttext_model,
     "fastsam": prepare_fastsam_model,
+    "hawor": prepare_hawor_model,
     "huggingface": prepare_huggingface_model,
     "kenlm": prepare_kenlm_model,
     "moge": prepare_moge_model,

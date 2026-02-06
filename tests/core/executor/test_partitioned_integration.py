@@ -17,9 +17,7 @@ import json
 import os
 import shutil
 import tempfile
-import time
 import unittest
-from unittest.mock import patch
 
 from data_juicer.config import init_configs
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor

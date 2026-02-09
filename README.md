@@ -29,7 +29,9 @@ Whether you're deduplicating web-scale pre-training corpora, curating agent inte
 
 ## 🚀 Quick Start
 
-**Zero-install exploration**: [JupyterLab Playground with Tutorials](http://8.138.149.181/) • [Ask DJ Copilot](https://datajuicer.github.io/data-juicer/en/main/docs_index.html)
+**Zero-install exploration**: 
+- [JupyterLab Playground with Tutorials](http://8.138.149.181/) 
+- [Ask DJ Copilot](https://datajuicer.github.io/data-juicer/en/main/docs_index.html)
 
 **Install & run**:
 ```bash
@@ -130,7 +132,7 @@ Data-Juicer plugs into your existing stack and evolves with community contributi
 
 
 ### Frameworks & Platforms
-[AgentScope](https://github.com/agentscope-ai/agentscope) · [Apache Arrow](https://github.com/apache/arrow) · [Apache HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html) · [Apache Hudi](https://hudi.apache.org/) · [Apache Iceberg](https://iceberg.apache.org/) · [Apache Paimon](https://paimon.apache.org/) · [Delta Lake](https://delta.io/) · [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) · [EasyAnimate](https://github.com/aigc-apps/EasyAnimate) · [Eval-Scope](https://github.com/modelscope/evalscope) · [Huawei Ascend](https://www.huawei.com/en/products/cloud-computing-dc/atlas/ascend) · [Hugging Face](https://huggingface.co/) · [LanceDB](https://lancedb.github.io/lance/) · [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) · [ModelScope](https://modelscope.cn/) · [ModelScope Swift](https://github.com/modelscope/ms-swift) · [NVIDIA NeMo](https://github.com/NVIDIA/NeMo) · [Ray](https://docs.ray.io/) · [RM-Gallery](https://github.com/modelscope/RM-Gallery) · [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) · [Volcano Engine](https://www.volcengine.com/)
+[AgentScope](https://github.com/agentscope-ai/agentscope) · [Apache Arrow](https://github.com/apache/arrow) · [Apache HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html) · [Apache Hudi](https://hudi.apache.org/) · [Apache Iceberg](https://iceberg.apache.org/) · [Apache Paimon](https://paimon.apache.org/) · [Alibaba PAI](https://www.alibabacloud.com/en/product/machine-learning?_p_lc=1) · [Delta Lake](https://delta.io/) · [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) · [EasyAnimate](https://github.com/aigc-apps/EasyAnimate) · [Eval-Scope](https://github.com/modelscope/evalscope) · [Huawei Ascend](https://www.huawei.com/en/products/cloud-computing-dc/atlas/ascend) · [Hugging Face](https://huggingface.co/) · [LanceDB](https://lancedb.github.io/lance/) · [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) · [ModelScope](https://modelscope.cn/) · [ModelScope Swift](https://github.com/modelscope/ms-swift) · [NVIDIA NeMo](https://github.com/NVIDIA/NeMo) · [Ray](https://docs.ray.io/) · [RM-Gallery](https://github.com/modelscope/RM-Gallery) · [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) · [Volcano Engine](https://www.volcengine.com/)
 
 ### Industry
 Alibaba Group, Ant Group, BYD Auto, ByteDance, DTSTACK, JD.com, NVIDIA, OPPO, Xiaohongshu, Xiaomi, Ximalaya, and more.

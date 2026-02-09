@@ -2,7 +2,7 @@
 <p align="center">
   <a href="https://pypi.org/project/py-data-juicer"><img src="https://img.shields.io/pypi/v/py-data-juicer?logo=pypi&color=026cad" alt="PyPI"></a>
   <a href="https://pepy.tech/projects/py-data-juicer"><img src="https://static.pepy.tech/personalized-badge/py-data-juicer?period=total&units=INTERNATIONAL_SYSTEM&left_color=grey&right_color=green&left_text=downloads" alt="Downloads"></a>
-  <a href="https://hub.docker.com/r/datajuicer/data-juicer"><img src="https://img.shields.io/docker/v/datajuicer/data-juicer?logo=docker&color=498bdf" alt="Docker"></a>
+   <a href="https://hub.docker.com/r/datajuicer/data-juicer"><img src="https://img.shields.io/docker/v/datajuicer/data-juicer?logo=docker&label=Docker&color=498bdf" alt="Docker"></a>
   <br>
   <a href="https://datajuicer.github.io/data-juicer/"><img src="https://img.shields.io/badge/📖_Docs-Website-026cad" alt="Docs"></a>
   <a href="https://datajuicer.github.io/data-juicer/en/main/docs/Operators.html"><img src="https://img.shields.io/badge/🧩_Operators-200+-blue" alt="Operators"></a>
@@ -34,7 +34,7 @@ Whether you're deduplicating web-scale pre-training corpora, curating agent inte
 **Install & run**:
 ```bash
 uv pip install py-data-juicer
-dj-process --config configs/basic.yaml
+dj-process --config demos/process_simple/process.yaml
 ```
 
 **Or compose in Python**:
@@ -46,10 +46,13 @@ from data_juicer.ops.mapper import WhitespaceNormalizationMapper
 ds = NestedDataset.from_dict({
     "text": ["Short", "This passes the filter.", "Text   with   spaces"]
 })
-ds.process([
+res_ds = ds.process([
     TextLengthFilter(min_len=10),
     WhitespaceNormalizationMapper()
 ])
+
+for s in res_ds:
+    print(s)
 ```
 
 
@@ -115,8 +118,8 @@ View [All Release](https://github.com/datajuicer/data-juicer/releases) and [News
 ---
 
 ## 🔌 Users & Ecosystems
-> The below list focuses on *developer-facing ingegration and usages* in *alphabetical order*.  
-> Missing your project / name? Feel free to [open a PR](https://github.com/datajuicer/data-juicer/pulls) or [reach out](#-contributing).
+> The below list focuses on *developer-facing integration and usages* in *alphabetical order*.  
+> Missing your project / name? Feel free to [open a PR](https://github.com/datajuicer/data-juicer/pulls) or [reach out](#contributing--community).
 
 Data-Juicer plugs into your existing stack and evolves with community contributions:
 
@@ -141,7 +144,7 @@ We believe in *building together*. Whether you're fixing a typo, crafting a new 
 
 We welcome contributions at all levels: 
 - **[Good First Issues](https://github.com/datajuicer/data-juicer/labels/good%20first%20issue)** — Add operators, improve docs, report issues, or fix bugs
-- **[Developer Guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.md)** — Optimize engines, add features, or enhance core infrastructure
+- **[Developer Guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.html)** — Optimize engines, add features, or enhance core infrastructure
 - **[DJ-Hub](https://github.com/datajuicer/data-juicer-hub)** — Share knowledge: recipes, papers, and best practices
 - **Connect**: [Slack](https://join.slack.com/t/data-juicer/shared_invite/zt-23zxltg9d-Z4d3EJuhZbCLGwtnLWWUDg) · [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) · [Discord](https://discord.gg/ngQbB9hEVK)
 
@@ -163,9 +166,9 @@ Data-Juicer is made possible by the users and community:
 For detailed documentation, please see [here](https://datajuicer.github.io/data-juicer/en/main/docs_index.html).
 
 **Quick Links:**
-- **[operator zoo](https://datajuicer.github.io/data-juicer/en/main/docs/Operators.md)** — Browse 200+ operators with examples
+- **[operator zoo](https://datajuicer.github.io/data-juicer/en/main/docs/Operators.html)** — Browse 200+ operators with examples
 - **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — Community-driven recipes and best practices
-- **[developer guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.md)** — Build your own code and contribute to DJ 
+- **[developer guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.html)** — Build your own code and contribute to DJ 
 - **[data-juicer-cookbook](https://datajuicer.github.io/data-juicer/en/main/docs/tutorial/DJ-Cookbook.html)** — resource archive
 - **[awesome_llm_data](https://datajuicer.github.io/data-juicer/en/main/docs/awesome_llm_data)** —  “Awesome List” for data-model co-development
 
@@ -183,14 +186,14 @@ Attribution is appreciated: please use our [badge](https://dail-wlcb.oss-cn-wula
 If you find Data-Juicer useful in your work, please cite:
 
 ```bibtex
-@inproceedings{chen2024datajuicer,
+@inproceedings{djv1,
   title={Data-Juicer: A One-Stop Data Processing System for Large Language Models},
   author={Chen, Daoyuan and Huang, Yilun and Ma, Zhijian and Chen, Hesen and Pan, Xuchen and Ge, Ce and Gao, Dawei and Xie, Yuexiang and Liu, Zhaoyang and Gao, Jinyang and Li, Yaliang and Ding, Bolin and Zhou, Jingren},
   booktitle={SIGMOD},
   year={2024}
 }
 
-@article{chen2025datajuicer2,
+@article{djv2,
   title={Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for and with Foundation Models},
   author={Chen, Daoyuan and Huang, Yilun and Pan, Xuchen and Jiang, Nana and Wang, Haibin and Zhang, Yilei and Ge, Ce and Chen, Yushuo and Zhang, Wenhao and Ma, Zhijian and Huang, Jun and Lin, Wei and Li, Yaliang and Ding, Bolin and Zhou, Jingren},
   journal={NeurIPS},

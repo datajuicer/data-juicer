@@ -88,6 +88,7 @@ from .video_camera_calibration_static_deepcalib_mapper import (
 from .video_camera_calibration_static_moge_mapper import (
     VideoCameraCalibrationStaticMogeMapper,
 )
+from .video_camera_pose_mapper import VideoCameraPoseMapper
 from .video_captioning_from_audio_mapper import VideoCaptioningFromAudioMapper
 from .video_captioning_from_frames_mapper import VideoCaptioningFromFramesMapper
 from .video_captioning_from_summarizer_mapper import VideoCaptioningFromSummarizerMapper

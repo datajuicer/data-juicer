@@ -30,7 +30,7 @@ DOCS
    docs/operators/formatter/index
    docs/operators/grouper/index
    docs/operators/selector/index
-   docs/operators/op/index
+   docs/operators/pipeline/index
 
 .. toctree::
    :maxdepth: 2

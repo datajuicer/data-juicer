@@ -1,4 +1,4 @@
-.. include:: README.md
+.. include:: README_ZH.md
    :parser: myst_parser.sphinx_
 
 .. toctree::

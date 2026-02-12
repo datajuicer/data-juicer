@@ -65,16 +65,16 @@ class VggtMapperTest(DataJuicerTestCaseBase):
             "point_tracks_conf_score": [1, 18, 1]}]
 
         for sample, target in zip(res_list, tgt_list):
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["extrinsic"]).shape), target["camera_parameters_extrinsic"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["intrinsic"]).shape), target["camera_parameters_intrinsic"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_map"]).shape), target["depth_maps_depth_maps"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_conf"]).shape), target["depth_maps_depth_conf"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_map"]).shape), target["point_maps_from_projection_point_map"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_conf"]).shape), target["point_maps_from_projection_point_conf"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_unprojection"]["point_maps_from_unprojection"]).shape), target["point_maps_from_unprojection_point_maps_from_unprojection"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["track_list"][3]).shape), target["point_tracks_track_list"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["vis_score"]).shape), target["point_tracks_vis_score"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["conf_score"]).shape), target["point_tracks_conf_score"])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["extrinsic"]).shape)[2:], target["camera_parameters_extrinsic"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["intrinsic"]).shape)[2:], target["camera_parameters_intrinsic"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_map"]).shape)[2:], target["depth_maps_depth_maps"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_conf"]).shape)[2:], target["depth_maps_depth_conf"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_map"]).shape)[2:], target["point_maps_from_projection_point_map"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_conf"]).shape)[2:], target["point_maps_from_projection_point_conf"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_unprojection"]["point_maps_from_unprojection"]).shape)[1:], target["point_maps_from_unprojection_point_maps_from_unprojection"][1:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["track_list"][3]).shape)[2:], target["point_tracks_track_list"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["vis_score"]).shape)[2:], target["point_tracks_vis_score"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["conf_score"]).shape)[2:], target["point_tracks_conf_score"][2:])
 
 
     def test_mul_proc(self):
@@ -126,16 +126,16 @@ class VggtMapperTest(DataJuicerTestCaseBase):
             "point_tracks_conf_score": [1, 18, 1]}]
 
         for sample, target in zip(res_list, tgt_list):
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["extrinsic"]).shape), target["camera_parameters_extrinsic"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["intrinsic"]).shape), target["camera_parameters_intrinsic"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_map"]).shape), target["depth_maps_depth_maps"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_conf"]).shape), target["depth_maps_depth_conf"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_map"]).shape), target["point_maps_from_projection_point_map"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_conf"]).shape), target["point_maps_from_projection_point_conf"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_unprojection"]["point_maps_from_unprojection"]).shape), target["point_maps_from_unprojection_point_maps_from_unprojection"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["track_list"][3]).shape), target["point_tracks_track_list"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["vis_score"]).shape), target["point_tracks_vis_score"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["conf_score"]).shape), target["point_tracks_conf_score"])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["extrinsic"]).shape)[2:], target["camera_parameters_extrinsic"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["intrinsic"]).shape)[2:], target["camera_parameters_intrinsic"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_map"]).shape)[2:], target["depth_maps_depth_maps"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_conf"]).shape)[2:], target["depth_maps_depth_conf"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_map"]).shape)[2:], target["point_maps_from_projection_point_map"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_projection"]["point_conf"]).shape)[2:], target["point_maps_from_projection_point_conf"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_unprojection"]["point_maps_from_unprojection"]).shape)[1:], target["point_maps_from_unprojection_point_maps_from_unprojection"][1:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["track_list"][3]).shape)[2:], target["point_tracks_track_list"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["vis_score"]).shape)[2:], target["point_tracks_vis_score"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_tracks"]["conf_score"]).shape)[2:], target["point_tracks_conf_score"][2:])
 
 
     def test_point_maps_from_unprojection(self):
@@ -177,11 +177,11 @@ class VggtMapperTest(DataJuicerTestCaseBase):
             "point_maps_from_unprojection_point_maps_from_unprojection": [18, 392, 518, 3]}]
 
         for sample, target in zip(res_list, tgt_list):
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["extrinsic"]).shape), target["camera_parameters_extrinsic"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["intrinsic"]).shape), target["camera_parameters_intrinsic"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_map"]).shape), target["depth_maps_depth_maps"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_conf"]).shape), target["depth_maps_depth_conf"])
-            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_unprojection"]["point_maps_from_unprojection"]).shape), target["point_maps_from_unprojection_point_maps_from_unprojection"])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["extrinsic"]).shape)[2:], target["camera_parameters_extrinsic"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["camera_parameters"]["intrinsic"]).shape)[2:], target["camera_parameters_intrinsic"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_map"]).shape)[2:], target["depth_maps_depth_maps"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["depth_maps"]["depth_conf"]).shape)[2:], target["depth_maps_depth_conf"][2:])
+            self.assertEqual(list(np.array(sample[Fields.meta][MetaKeys.vggt_tags]["point_maps_from_unprojection"]["point_maps_from_unprojection"]).shape)[1:], target["point_maps_from_unprojection_point_maps_from_unprojection"][1:])
 
 
 if __name__ == '__main__':

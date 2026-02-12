@@ -250,7 +250,7 @@ class LazyLoader(types.ModuleType):
             self._package_url = package_url.split("@", 1)[1]
         else:
             self._package_url = package_url
-        self._package_url = self._package_url.strip()
+        self._package_url = self._package_url.strip() if self._package_url else self._package_url
 
         self._auto_install = auto_install
 

@@ -124,7 +124,7 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
         # setup OPEnvManager
         self.op_env_manager = None
-        if self.cfg.open_op_env_manager:
+        if self.cfg.min_common_dep_num_to_combine >= 0:
             logger.info("Preparing OPEnvManager...")
             self.op_env_manager = OPEnvManager(
                 min_common_dep_num_to_combine=self.cfg.min_common_dep_num_to_combine,

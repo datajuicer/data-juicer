@@ -8,7 +8,7 @@ def load_ops(process_list, op_env_manager=None):
     :param process_list: A process list. Each item is an op name and its
         arguments.
     :param op_env_manager: The OPEnvManager to try to merge environment specs of different OPs that have common
-        dependencies. Only available when open_op_env_manager is true.
+        dependencies. Only available when min_common_dep_num_to_combine >= 0.
     :return: The op instance list.
     """
     ops = []

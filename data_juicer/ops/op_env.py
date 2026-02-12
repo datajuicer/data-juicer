@@ -45,7 +45,17 @@ def parse_single_requirement(req_str: str):
 
 def parse_requirements_list(req_list: List[str]):
     # parse the detailed requirements info from a list of pip package specifiers
-    return [parse_single_requirement(req_str) for req_str in req_list]
+    parsed = []
+    failed = []
+    for s in req_list:
+        r = parse_single_requirement(s)
+        if r is None:
+            failed.append(s)
+            continue
+        parsed.append(r)
+    if failed:
+        logger.error(f"Failed to parse {len(failed)} requirement(s), ignored: {failed}")
+    return parsed
 
 
 def parse_requirements_file(req_file: str):
@@ -533,6 +543,12 @@ class OPEnvManager:
             if latest_version:
                 latest_version = (
                     SpecifierSet(f"=={latest_version}") if include_latest else SpecifierSet(f"<{latest_version}")
+                )
+            elif latest_version is None:
+                logger.warning(
+                    f"Dependency conflict for {first_req.name or second_req.name}, "
+                    f"fallback to unpinned version under LATEST strategy: "
+                    f"{first_req} vs {second_req}"
                 )
             return Requirement(
                 name=first_req.name or second_req.name,

@@ -113,11 +113,14 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
     @TEST_TAG('ray')
     def test_get_abs_path_with_nonexistent_local_path(self):
         """Test get_abs_path when local path doesn't exist"""
-        # When the joined path doesn't exist, it should return the original path
-        dataset_dir = "/tmp/nonexistent_dataset"
+        # When the joined path doesn't exist, it should return the current path
+        dataset_dir = "./nonexistent_dataset"
         path = "existing_file.txt"
+        tgt_path = os.path.join(dataset_dir, path)
+        non_tgt_path = os.path.abspath(tgt_path)
         result = self.get_abs_path(path, dataset_dir)
-        self.assertEqual(result, path)
+        self.assertEqual(result, tgt_path)
+        self.assertNotEqual(result, non_tgt_path)
 
 class TestRayDataset(DataJuicerTestCaseBase):
     def setUp(self):

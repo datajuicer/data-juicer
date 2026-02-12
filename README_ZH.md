@@ -86,6 +86,15 @@ for s in res_ds:
 ## 📰 动态
 
 <details open>
+<summary>[2026-02-12] Release v1.5.0: <b>分区Ray执行器，OP级环境隔离，以及更多具身算子</b></summary>
+
+- 🚀 *分布式执行框架升级* — 新增分区Ray执行器与OP级隔离环境，强化容错性、可扩展性及依赖冲突管理。
+- 🤖 *具身AI视频处理能力扩展* — 集成相机校准、视频去畸变、手部重建、位姿估计等专用操作符，提升多视角视频处理能力。
+- 💪🏻 *系统性能与开发体验优化* — 支持批处理推理、内存/日志精简、关键逻辑重构，并更新文档与问题模板。
+- 🐳 *关键问题修复与稳定性提升* — 修复重复项追踪、参数冲突、首页渲染等缺陷，增强系统可靠性。
+</details>
+
+<details open>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot、视频字节 I/O 与 Ray 追踪</b></summary>
 
 - 🤖 *Q&A Copilot* — 现已上线我们的[文档站点](https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH.html) | [钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK)。欢迎询问任何与 Data-Juicer 生态系统相关的问题！  
@@ -95,7 +104,7 @@ for s in res_ds:
 - 🐳 *增强与修复* — 刷新 Docker 镜像、小幅性能提升、GitHub Insights 流量工作流、Ray 兼容性更新以及 Bug/文档修复。
 </details>
 
-<details open>
+<details >
 <summary>[2026-01-15] Release v1.4.5: <b>20+ 新 OP、Ray vLLM 管道与 Sphinx 文档升级</b> </summary>
 
 - *具身 AI OP*：添加/增强了用于视频标题生成（VLM）、视频对象分割（YOLOE+SAM2）、视频深度估计（可视化 + 点云）、人体姿态（MMPose）、图像标签（VLM）、单图像 3D 人体网格恢复（SAM 3D Body）的映射器，以及 *S3 上传/下载*。

@@ -24,7 +24,7 @@ Tags 标签: cpu
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
 | `field_key` | <class 'str'> | `''` | Filter based on the specified value corresponding to the target key. The target key corresponding to multi-level field information need to be separated by '.'. |
-| `target_value` | typing.List | `[]` | The range of specified field information corresponding to the samples that need to be retained. |
+| `target_value` | <class 'list'> | `[]` | The range of specified field information corresponding to the samples that need to be retained. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 

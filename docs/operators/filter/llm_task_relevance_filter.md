@@ -10,7 +10,7 @@ This operator evaluates the relevance of each sample to a specified validation t
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, vllm, hf, api
+Tags 标签: gpu, vllm, hf, api
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
@@ -23,8 +23,6 @@ Tags 标签: cpu, vllm, hf, api
 | `n_shot` | typing.Optional[int] | `None` | The number of shots in validation. |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/filter/llm_task_relevance_filter.py)

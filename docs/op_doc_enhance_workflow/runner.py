@@ -39,6 +39,7 @@ OPERATOR_MODULES = [
     "data_juicer.ops.selector",
     "data_juicer.ops.aggregator",
     "data_juicer.ops.grouper",
+    "data_juicer.ops.pipeline"
 ]
 
 

@@ -123,7 +123,7 @@ def find_files_with_suffix(
 
 def is_remote_path(path: str):
     """Check if the path is a remote path."""
-    return path.startswith(("http://", "https://"))
+    return path.startswith(("http://", "https://", "s3://", "gs://", "hdfs://"))
 
 
 def is_absolute_path(path: Union[str, Path]) -> bool:

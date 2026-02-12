@@ -82,6 +82,13 @@ from .sentence_split_mapper import SentenceSplitMapper
 from .text_chunk_mapper import TextChunkMapper
 from .text_tagging_by_prompt_mapper import TextTaggingByPromptMapper
 from .vggt_mapper import VggtMapper
+from .video_camera_calibration_static_deepcalib_mapper import (
+    VideoCameraCalibrationStaticDeepcalibMapper,
+)
+from .video_camera_calibration_static_moge_mapper import (
+    VideoCameraCalibrationStaticMogeMapper,
+)
+from .video_camera_pose_mapper import VideoCameraPoseMapper
 from .video_captioning_from_audio_mapper import VideoCaptioningFromAudioMapper
 from .video_captioning_from_frames_mapper import VideoCaptioningFromFramesMapper
 from .video_captioning_from_summarizer_mapper import VideoCaptioningFromSummarizerMapper
@@ -91,6 +98,7 @@ from .video_depth_estimation_mapper import VideoDepthEstimationMapper
 from .video_extract_frames_mapper import VideoExtractFramesMapper
 from .video_face_blur_mapper import VideoFaceBlurMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
+from .video_hand_reconstruction_hawor_mapper import VideoHandReconstructionHaworMapper
 from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
 from .video_object_segmenting_mapper import VideoObjectSegmentingMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
@@ -101,6 +109,7 @@ from .video_split_by_key_frame_mapper import VideoSplitByKeyFrameMapper
 from .video_split_by_scene_mapper import VideoSplitBySceneMapper
 from .video_tagging_from_audio_mapper import VideoTaggingFromAudioMapper
 from .video_tagging_from_frames_mapper import VideoTaggingFromFramesMapper
+from .video_undistort_mapper import VideoUndistortMapper
 from .video_whole_body_pose_estimation_mapper import VideoWholeBodyPoseEstimationMapper
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
 
@@ -183,6 +192,8 @@ __all__ = [
     "TextChunkMapper",
     "TextTaggingByPromptMapper",
     "VggtMapper",
+    "VideoCameraCalibrationStaticDeepcalibMapper",
+    "VideoCameraCalibrationStaticMogeMapper",
     "VideoCaptioningFromAudioMapper",
     "VideoCaptioningFromFramesMapper",
     "VideoCaptioningFromSummarizerMapper",
@@ -191,6 +202,7 @@ __all__ = [
     "VideoDepthEstimationMapper",
     "VideoExtractFramesMapper",
     "VideoFFmpegWrappedMapper",
+    "VideoHandReconstructionHaworMapper",
     "VideoHandReconstructionMapper",
     "VideoFaceBlurMapper",
     "VideoObjectSegmentingMapper",
@@ -202,6 +214,7 @@ __all__ = [
     "VideoSplitBySceneMapper",
     "VideoTaggingFromAudioMapper",
     "VideoTaggingFromFramesMapper",
+    "VideoUndistortMapper",
     "VideoWholeBodyPoseEstimationMapper",
     "WhitespaceNormalizationMapper",
 ]

@@ -23,23 +23,33 @@ from data_juicer.utils.webdataset_utils import _custom_default_decoder
 def get_abs_path(path, dataset_dir):
     if is_remote_path(path):
         return path
-    full_path = os.path.abspath(os.path.join(dataset_dir, path))
+    path = os.path.join(dataset_dir, path)
+    if is_remote_path(path):
+        return path
+    full_path = os.path.abspath(path)
     if os.path.exists(full_path):
         return full_path
     else:
         return path
 
 
-def convert_to_absolute_paths(samples, dataset_dir, path_keys):
-    samples = samples.to_pydict()
+def convert_to_absolute_paths(samples: pyarrow.Table, dataset_dir, path_keys):
     for key in path_keys:
-        for idx in range(len(samples[key])):
-            paths = samples[key][idx]
-            if isinstance(paths, str):
-                samples[key][idx] = get_abs_path(paths, dataset_dir)
-            elif isinstance(paths, list):
-                samples[key][idx] = [get_abs_path(item, dataset_dir) for item in paths]
-    return pyarrow.Table.from_pydict(samples)
+        col_idx = samples.schema.get_field_index(key)
+        cols = samples.column(col_idx)
+
+        def _process_paths():
+            for col in cols:
+                path = col.as_py()
+                if isinstance(path, str):
+                    yield get_abs_path(path, dataset_dir)
+                elif isinstance(path, list):
+                    yield [get_abs_path(p, dataset_dir) for p in path]
+                else:
+                    yield path
+
+        samples = samples.set_column(col_idx, key, pyarrow.array(_process_paths()))
+    return samples
 
 
 # TODO: check path for nestdataset
@@ -156,9 +166,29 @@ class RayDataset(DJDataset):
         if self._auto_proc:
             calculate_ray_np(operators)
 
+        # Check if dataset is empty - Ray returns None for columns() on empty datasets
+        # with unknown schema. If empty, skip processing as there's nothing to process.
+        try:
+            row_count = self.data.count()
+        except Exception:
+            row_count = 0
+
+        if row_count == 0:
+            from loguru import logger
+
+            logger.warning("Dataset is empty (0 rows), skipping operator processing")
+            return self
+
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming
-        cached_columns = set(self.data.columns())
+        columns_result = self.data.columns()
+        # Handle empty dataset case where columns() returns None
+        if columns_result is None:
+            from loguru import logger
+
+            logger.warning("Dataset has unknown schema (likely empty), skipping operator processing")
+            return self
+        cached_columns = set(columns_result)
 
         for op in operators:
             try:

@@ -23,10 +23,8 @@ Tags 标签: cpu
 | `rejected_key` | <class 'str'> | `'rejected'` | Key for the rejected answer |
 | `kwargs` |  | `''` |  |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
-- [source code 源代码](../../../data_juicer/ops/mapper/human_preference_annotation_mapper.py)
+- [source code 源代码](../../../data_juicer/ops/mapper/annotation/human_preference_annotation_mapper.py)
 - [unit test 单元测试](../../../tests/ops/mapper/annotation/test_human_preference_annotation_mapper.py)
 - [Return operator list 返回算子列表](../../Operators.md)

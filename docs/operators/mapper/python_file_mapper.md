@@ -26,8 +26,6 @@ Tags 标签: cpu
 | `batched` | <class 'bool'> | `False` | A boolean indicating whether to process input data in batches. |
 | `kwargs` |  | `''` | Additional keyword arguments passed to the parent class. |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/python_file_mapper.py)

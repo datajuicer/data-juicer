@@ -70,6 +70,12 @@ eoc_special_token: '<|__dj__eoc|>'                          # the special token 
 executor_type: default                                      # type of executor, support "default" or "ray" for now.
 ray_address: auto                                           # the address of the Ray cluster.
 
+# partition configuration (for ray_partitioned executor)
+partition:
+  mode: auto                                                # partition mode: "auto" (use optimizer) or "manual" (specify count)
+  num_of_partitions: 4                                      # number of partitions for manual mode
+  target_size_mb: 256                                       # target partition size in MB for auto mode (128, 256, 512, or 1024). 256MB balances memory safety and efficiency.
+
 # only for data analysis
 percentiles: [0.25, 0.5, 0.75]                              # percentiles to analyze the dataset distribution
 export_original_dataset: false                              # whether to export the original dataset with stats. If you only need the stats of the dataset, setting it to false could speed up the exporting.
@@ -529,6 +535,35 @@ process:
       overlap_len: 200                                        # Overlap length of the split texts if not split in the split pattern.
       tokenizer: 'gpt-4o'                                     # The tokenizer name of Hugging Face tokenizers. The text length will be calculate as the token num if it is offered. Otherwise, the text length equals to string length.
       trust_remote_code: True                                 # for loading huggingface model.
+  - vggt_mapper:                                        # Input a video of a single scene, and use VGGT to extract information including Camera Pose, Depth Maps, Point Maps, and 3D Point Tracks.
+      vggt_model_path: "facebook/VGGT-1B"                     # the path to the VGGT model.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 4                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      tag_field_name: 'vggt_tags'                             # the field name to store the tags. It's "vggt_tags" in default.
+      frame_dir: None                                         # Output directory to save extracted frames.
+      if_output_camera_parameters: True                       # Determines whether to output camera parameters.
+      if_output_depth_maps: True                              # Determines whether to output depth maps.
+      if_output_point_maps_from_projection: True              # Determines whether to output point maps directly inferred by VGGT.
+      if_output_point_maps_from_unprojection: True            # Determines whether to output point maps constructed from depth maps and camera parameters.
+      if_output_point_tracks: True                            # Determines whether to output point tracks.
+  - video_camera_calibration_static_deepcalib_mapper:   # Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib.
+      model_path: "weights_10_0.02.h5"                        # The path to the DeepCalib Regression model.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      tag_field_name: 'static_camera_calibration_deepcalib_tags'   # the field name to store the tags. It's "static_camera_calibration_deepcalib_tags" in default.
+      frame_dir: None                                         # Output directory to save extracted frames.
+      output_info_dir: None                                   # Output directory for saving camera parameters.
+  - video_camera_calibration_static_moge_mapper:        # Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib).
+      model_path: "Ruicheng/moge-2-vitl"                      # The path to the Moge-2 model.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      tag_field_name: 'static_camera_calibration_moge_tags'   # the field name to store the tags. It's "static_camera_calibration_moge_tags" in default.
+      frame_dir: None                                         # Output directory to save extracted frames.
+      if_output_info: True                                    # Whether to save the camera parameters results to an JSON file.
+      output_info_dir: None                                   # Output directory for saving camera parameters.
+      if_output_points_info: True                             # Determines whether to output point map in OpenCV camera coordinate system (x right, y down, z forward).
+      if_output_depth_info: True                              # Determines whether to output depth maps.
+      if_output_mask_info: True                               # Determines whether to output a binary mask for valid pixels.
   - video_captioning_from_audio_mapper:                     # caption a video according to its audio streams based on Qwen-Audio model
       keep_original_sample: true                              # whether to keep the original sample. If it's set to False, there will be only captioned sample in the final datasets and the original sample will be removed. It's True in default.
       memory: '30GB'                                    # This operation (Op) utilizes deep neural network models that consume a significant amount of memory for computation, hence the system's available memory might constrain the maximum number of processes that can be launched
@@ -633,6 +668,20 @@ process:
       frame_num: 3                                            # the number of frames to be extracted uniformly from the video. Only works when frame_sampling_method is "uniform". If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
       tag_field_name: 'video_frame_tags'                    # the key name in the meta field to store the tags. It's "video_frame_tags" in default.
       memory: '9GB'
+  - video_undistort_mapper:                             # Undistort raw videos with corresponding camera intrinsics and distortion coefficients.
+      output_video_dir: None                                # Output directory to save undistorted videos.
+      tag_field_name: 'video_undistortion_tags'             # The field name to store the tags. It's "video_undistortion_tags" in default.
+      batch_size_each_video: 1000                           # Number of frames to process and save per temporary TS file batch.
+      crf: 22                                               # Constant Rate Factor (CRF) for FFmpeg encoding quality.
+  - video_whole_body_pose_estimation_mapper:            # Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation.
+      onnx_det_model: 'yolox_l.onnx'                          # The path to 'yolox_l.onnx'.
+      onnx_pose_model: 'dw-ll_ucoco_384.onnx'                 # The path to 'dw-ll_ucoco_384.onnx'.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      tag_field_name: 'pose_estimation_tags'                  # the field name to store the tags. It's "pose_estimation_tags" in default.
+      frame_dir: None                                         # Output directory to save extracted frames.
+      if_save_visualization: False                            # Whether to save visualization results.
+      save_visualization_dir: None                            # The path for saving visualization results.
   - whitespace_normalization_mapper:                        # normalize different kinds of whitespaces to English whitespace.
 
   # Filter ops

@@ -10,11 +10,11 @@ Tags 标签: {{ tags | join(', ') }}
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
 {% for p in params %}
-| `{{ p.name }}` | {{ p.type }} | `{{ p.default }}` | {{ p.desc }} |
+| `{{ p.name }}` | {{ p.type }} | `{{ p.default | replace('\n', '\\n') | replace('|', '\|') }}` | {{ p.desc | replace('\n', '\\n') | replace('|', '\|') }} |
 {% endfor %}
 
-## 📊 Effect demonstration 效果演示
 {% if examples %}
+## 📊 Effect demonstration 效果演示
 {% for example in examples %}
 ### {{ example.method }}
 {% if example.op_code %}
@@ -29,16 +29,12 @@ Tags 标签: {{ tags | join(', ') }}
 #### 📤 output data 输出数据
 {{ example.output|safe }}
 
-#### ✨ explanation 解释
 {% if example.explanation %}
+#### ✨ explanation 解释
 {{ example.explanation }}
-{% else %}
-<mark>TODO</mark> 引入agent进行示例解析，简要说明算子行为
 {% endif %}
 
 {% endfor %}
-{% else %}
-not available 暂无
 {% endif %}
 
 ## 🔗 related links 相关链接

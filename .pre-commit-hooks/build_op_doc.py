@@ -292,7 +292,7 @@ def get_op_list_from_code_for_formatter():
         if formatter == "formatter.py":
             # add record for local/remote_formatter
             code_path = os.path.join(FORMATTER_CODE_PREFIX, formatter)
-            test_path = os.path.join(FORMATTER_TEST_PREFIX, "test_unify_format.py")
+            test_path = os.path.join(FORMATTER_TEST_PREFIX, "test_formatter.py")
             docstrings = get_class_and_docstring(code_path)
             for cls, doc in docstrings:
                 if cls == "LocalFormatter":

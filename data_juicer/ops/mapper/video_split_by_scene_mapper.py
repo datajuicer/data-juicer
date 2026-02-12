@@ -1,8 +1,12 @@
 import math
 import os
 import re
+import shutil
+import tempfile
+import uuid
 from itertools import chain
 
+from loguru import logger
 from pydantic import NonNegativeFloat, NonNegativeInt
 
 from data_juicer.utils.constant import Fields
@@ -129,6 +133,44 @@ class VideoSplitBySceneMapper(Mapper):
         self.detector_class = getattr(scenedetect.detectors, self.detector)
         self.detector_kwargs = {key: kwargs[key] for key in available_kwargs if key in kwargs}
 
+    def _detect_scenes_and_split_video(self, video, detector, is_video_path, redirected_video_key):
+        output_template = add_suffix_to_filename(redirected_video_key, "_$SCENE_NUMBER")
+        if is_video_path:
+            scene_list = scenedetect.detect(video, detector, show_progress=self.show_progress, start_in_scene=True)
+
+            if len(scene_list) > 1:
+                output_files = self._split_video(video, scene_list, output_template)
+            else:
+                output_files = [video]  # raw video path
+            return scene_list, output_files
+        else:
+            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as temp_file:
+                temp_file.write(video)
+                temp_file.flush()
+                scene_list = scenedetect.detect(
+                    temp_file.name, detector, show_progress=self.show_progress, start_in_scene=True
+                )
+                if len(scene_list) > 1:
+                    output_files = self._split_video(temp_file.name, scene_list, output_template)
+                else:
+                    shutil.copyfile(temp_file.name, redirected_video_key)
+                    output_files = [redirected_video_key]
+                return scene_list, output_files
+
+    def _split_video(self, video_path, scene_list, output_template):
+        scene_num_format = f"%0{max(3, math.floor(math.log(len(scene_list), 10)) + 1)}d"
+        output_files = [
+            output_template.replace("$SCENE_NUMBER", scene_num_format % (i + 1)) for i in range(len(scene_list))
+        ]
+        scenedetect.split_video_ffmpeg(
+            input_video_path=video_path,
+            scene_list=scene_list,
+            output_file_template=output_template,
+            show_progress=self.show_progress,
+            arg_override=self.ffmpeg_extra_args,
+        )
+        return output_files
+
     def process_single(self, sample, context=False):
         # there is no video in this sample
         if self.video_key not in sample or not sample[self.video_key]:
@@ -136,62 +178,65 @@ class VideoSplitBySceneMapper(Mapper):
             return sample
 
         # load videos
-        loaded_video_keys = sample[self.video_key]
+        loaded_videos = sample[self.video_key]
         output_video_keys = {}
         scene_counts = {}
 
-        for video_key in loaded_video_keys:
+        for video_idx, loaded_video in enumerate(loaded_videos):
             # skip duplicate
-            if video_key in output_video_keys:
+            if video_idx in output_video_keys:
                 continue
 
-            redirected_video_key = transfer_filename(video_key, OP_NAME, self.save_dir, **self._init_parameters)
-            output_template = add_suffix_to_filename(redirected_video_key, "_$SCENE_NUMBER")
-
+            is_video_path = isinstance(loaded_video, str)
+            redirected_video_key = (
+                transfer_filename(loaded_video, OP_NAME, self.save_dir, **self._init_parameters)
+                if is_video_path
+                else os.path.join(self.save_dir, f"{uuid.uuid4().hex}.mp4")
+            )
             # detect scenes
             detector = self.detector_class(self.threshold, self.min_scene_len, **self.detector_kwargs)
-            scene_list = scenedetect.detect(video_key, detector, show_progress=self.show_progress, start_in_scene=True)
-            scene_counts[video_key] = len(scene_list)
-
-            if len(scene_list) > 1:
-                # sync with split_video_ffmpeg internal
-                scene_num_format = f"%0{max(3, math.floor(math.log(len(scene_list), 10)) + 1)}d"  # noqa: E501
-                output_video_keys[video_key] = [
-                    output_template.replace("$SCENE_NUMBER", scene_num_format % (i + 1)) for i in range(len(scene_list))
-                ]
-                # split video into clips
-                scenedetect.split_video_ffmpeg(
-                    input_video_path=video_key,
-                    scene_list=scene_list,
-                    output_file_template=output_template,
-                    show_progress=self.show_progress,
-                    arg_override=self.ffmpeg_extra_args,
+            try:
+                scene_list, output_keys = self._detect_scenes_and_split_video(
+                    loaded_video, detector, is_video_path, redirected_video_key
                 )
-            else:
-                output_video_keys[video_key] = [video_key]
+                output_video_keys[video_idx] = output_keys
+                scene_counts[video_idx] = len(scene_list)
+            except Exception as e:
+                # Log or handle the error gracefully
+                output_video_keys[video_idx] = [redirected_video_key]
+                scene_counts[video_idx] = 0
+                logger.error(f"Error processing video {loaded_video}: {e}")
 
             if self.output_format == "bytes":
                 from data_juicer.utils.mm_utils import load_file_byte
 
-                output_video_keys[video_key] = [load_file_byte(f) for f in output_video_keys[video_key]]
+                output_video_keys[video_idx] = [load_file_byte(f) for f in output_video_keys[video_idx]]
 
         # replace split video tokens
         if self.text_key in sample:
-            scene_counts_iter = iter([scene_counts[key] for key in loaded_video_keys])
-            updated_text = re.sub(
+            scene_counts_iter = iter([scene_counts[key] for key in range(len(loaded_videos))])
+            sample[self.text_key] = re.sub(
                 re.escape(SpecialTokens.video),
                 lambda match: replace_func(match, scene_counts_iter),
                 sample[self.text_key],
             )
-            sample[self.text_key] = updated_text
 
-        # when the file is modified, its source file needs to be updated.
-        sample[Fields.source_file] = []
-        for value in loaded_video_keys:
-            sample[Fields.source_file].extend([value] * len(output_video_keys[value]))
-
+        # update source file and save field
+        sample[Fields.source_file] = list(
+            chain.from_iterable(
+                [
+                    (
+                        [loaded_videos[idx]] * len(output_video_keys[idx])
+                        if isinstance(loaded_videos[idx], str)
+                        else output_video_keys[idx]
+                    )
+                    for idx in range(len(loaded_videos))
+                ]
+            )
+        )
         if self.save_field:
-            sample[self.save_field] = list(chain.from_iterable([output_video_keys[key] for key in loaded_video_keys]))
+            sample[self.save_field] = list(chain.from_iterable(output_video_keys.values()))
         else:
-            sample[self.video_key] = list(chain.from_iterable([output_video_keys[key] for key in loaded_video_keys]))
+            sample[self.video_key] = list(chain.from_iterable(output_video_keys.values()))
+
         return sample

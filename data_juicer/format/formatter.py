@@ -1,5 +1,5 @@
 import os
-from typing import List, Union
+from typing import List, Optional, Union
 
 from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
 from jsonargparse import Namespace, dict_to_namespace
@@ -51,7 +51,7 @@ class LocalFormatter(BaseFormatter):
         self.data_files = find_files_with_suffix(dataset_path, suffixes)
         self.add_suffix = add_suffix
 
-    def load_dataset(self, num_proc: int = 1, global_cfg=None) -> Dataset:
+    def load_dataset(self, num_proc: Optional[int] = None, global_cfg=None) -> Dataset:
         """
         Load a dataset from dataset file or dataset directory, and unify its
         format.
@@ -62,6 +62,7 @@ class LocalFormatter(BaseFormatter):
         """
         _num_proc = self.kwargs.pop("num_proc", 1)
         num_proc = num_proc or _num_proc
+        logger.info(f"Loading dataset with num_proc: {num_proc}")
         datasets = load_dataset(
             self.type,
             data_files={key.strip("."): self.data_files[key] for key in self.data_files},

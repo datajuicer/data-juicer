@@ -89,7 +89,7 @@ class VideoHandReconstructionMapper(Mapper):
 
         super().__init__(*args, **kwargs)
 
-        LazyLoader.check_packages(["chumpy @ git+https://github.com/mattloper/chumpy"])
+        LazyLoader.check_packages(["chumpy@ git+https://github.com/mattloper/chumpy"])
         LazyLoader.check_packages(["smplx==0.1.28", "yacs", "timm", "pyrender", "pytorch_lightning"])
         LazyLoader.check_packages(["scikit-image"], pip_args=["--no-deps"])
 

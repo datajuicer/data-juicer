@@ -52,7 +52,9 @@ class TextTaggingByPromptMapperTest(DataJuicerTestCaseBase):
             enable_vllm=True,
             max_model_len=1024,
             max_num_seqs=16,
-            sampling_params={'temperature': 0.1, 'top_p': 0.95, 'max_tokens': 256})
+            sampling_params={'temperature': 0.1, 'top_p': 0.95, 'max_tokens': 256},
+            model_params={'gpu_memory_utilization': 0.8},
+        )
 
 
 if __name__ == '__main__':

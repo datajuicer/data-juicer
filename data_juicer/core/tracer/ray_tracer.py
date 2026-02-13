@@ -167,5 +167,7 @@ class RayTracer:
             # We'll use a generic name for now, could be improved with operator type detection
             res_name = self.get_trace_file_path(op_name)
             dif_df = pd.DataFrame(traces)
-            dif_df.to_json(res_name, orient="records", lines=True, force_ascii=False)
+            with open(res_name, "w") as out_buf:
+                dif_df.to_json(out_buf, orient="records", lines=True, force_ascii=False)
+                out_buf.flush()
             print(f"Exported {len(traces)} traced samples for op [{op_name}] to {res_name}")

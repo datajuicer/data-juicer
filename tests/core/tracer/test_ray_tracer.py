@@ -2,6 +2,7 @@ import os
 import unittest
 import tempfile
 import shutil
+import time
 import jsonlines as jl
 from data_juicer.core.tracer.ray_tracer import RayTracer
 from data_juicer.utils.unittest_utils import TEST_TAG
@@ -58,6 +59,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -87,6 +89,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         # File should not exist since no samples were collected
@@ -105,6 +108,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -135,6 +139,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -166,6 +171,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertFalse(os.path.exists(trace_file_path))
@@ -183,6 +189,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_filter.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -208,6 +215,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_filter.jsonl')
         self.assertFalse(os.path.exists(trace_file_path))
@@ -225,6 +233,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_filter.jsonl')
         self.assertFalse(os.path.exists(trace_file_path))
@@ -254,6 +263,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-limited_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -288,6 +298,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-limited_filter.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -327,6 +338,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Don't collect anything, just finalize
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         # No trace files should exist
         trace_dir = os.path.join(self.work_dir, 'trace')

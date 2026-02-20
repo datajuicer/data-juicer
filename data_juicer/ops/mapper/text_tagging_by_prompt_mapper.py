@@ -119,8 +119,7 @@ class TextTaggingByPromptMapper(Mapper):
         self.prompt = prompt
         self.tag_list = tag_list
         self.enable_vllm = enable_vllm
-        if model_params is None:
-            model_params = {}
+        model_params = (model_params or {}).copy()
         model_params.update({"trust_remote_code": trust_remote_code, "max_num_seqs": max_num_seqs})
         if tensor_parallel_size is not None:
             model_params["tensor_parallel_size"] = tensor_parallel_size

@@ -33,6 +33,7 @@ export_in_parallel: false                                   # whether to export 
 keep_stats_in_res_ds: false                                 # whether to keep the computed stats in the result dataset. The intermediate fields to store the stats computed by Filters will be removed if it's False. It's False in default.
 keep_hashes_in_res_ds: false                                # whether to keep the computed hashes in the result dataset. The intermediate fields to store the hashes computed by Deduplicators will be removed if it's False. It's False in default.
 export_extra_args: {}                                       # Other optional arguments for exporting in dict. For example, the key mapping info for exporting the WebDataset format.
+load_dataset_kwargs: {}                                     # extra kwargs passed to datasets.load_dataset(). Useful for format-specific options, e.g. chunksize (JSON), columns (Parquet), delimiter (CSV).
 
 auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.
 np: 4                                                       # number of subprocess to process your dataset

@@ -80,7 +80,7 @@ class ImageFaceCountFilter(Filter):
 
     def compute_stats_single(self, sample, context=False):
         # check if it's computed already
-        if StatsKeys.face_ratios in sample[Fields.stats]:
+        if StatsKeys.face_counts in sample[Fields.stats]:
             return sample
 
         # there is no image in this sample

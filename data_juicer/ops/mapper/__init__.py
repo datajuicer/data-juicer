@@ -47,6 +47,7 @@ from .imgdiff_difference_area_generator_mapper import Difference_Area_Generator_
 from .imgdiff_difference_caption_generator_mapper import (
     Difference_Caption_Generator_Mapper,
 )
+from .latex_figure_context_extractor_mapper import LatexFigureContextExtractorMapper
 from .mllm_mapper import MllmMapper
 from .nlpaug_en_mapper import NlpaugEnMapper
 from .nlpcda_zh_mapper import NlpcdaZhMapper
@@ -159,6 +160,7 @@ __all__ = [
     "ImageSegmentMapper",
     "ImageTaggingMapper",
     "ImageTaggingVLMMapper",
+    "LatexFigureContextExtractorMapper",
     "MllmMapper",
     "NlpaugEnMapper",
     "NlpcdaZhMapper",

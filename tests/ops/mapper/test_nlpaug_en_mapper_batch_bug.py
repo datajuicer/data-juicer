@@ -38,16 +38,8 @@ class NlpaugEnMapperBatchBugTest(unittest.TestCase):
         num_texts = len(result['text'])
         num_metas = len(result['meta'])
 
-        print(f"Input samples: 3")
-        print(f"Output texts: {num_texts}")
-        print(f"Output metas: {num_metas}")
-        print(f"Expected texts (correct): 6 (3 original + 3 augmented)")
-        print(f"Texts: {result['text']}")
-
         # Assert that ALL 3 original texts are present in the output
-        for original_text in ['The quick brown fox jumps over the lazy dog',
-                              'Machine learning is transforming the world today',
-                              'Natural language processing enables computers to understand text']:
+        for original_text in samples['text']:
             self.assertIn(original_text, result['text'],
                           f"Original text missing from output: {original_text}")
 
@@ -78,10 +70,6 @@ class NlpaugEnMapperBatchBugTest(unittest.TestCase):
         result = op.process_batched(samples)
         num_texts = len(result['text'])
 
-        print(f"\nWithout keep_original:")
-        print(f"Output texts: {num_texts}")
-        print(f"Expected: 3 (one augmented version per input sample)")
-
         # Should have exactly 3 augmented texts (one per input sample)
         self.assertEqual(num_texts, 3,
                          f"Expected 3 augmented texts, got {num_texts}")
@@ -106,10 +94,6 @@ class NlpaugEnMapperBatchBugTest(unittest.TestCase):
 
         result = op.process_batched(samples)
         num_texts = len(result['text'])
-
-        print(f"\nSequential mode:")
-        print(f"Output texts: {num_texts}")
-        print(f"Expected: 6 (2 original + 2*2 augmented)")
 
         # 2 originals + 2 samples * 2 aug_num = 6
         self.assertEqual(num_texts, 6,

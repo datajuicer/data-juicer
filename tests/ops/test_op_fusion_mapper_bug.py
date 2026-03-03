@@ -21,8 +21,7 @@ import unittest
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from copy import deepcopy
-from data_juicer.ops.base_op import OPERATORS, Mapper, Filter
+from data_juicer.ops.base_op import Mapper
 from data_juicer.ops.op_fusion import GeneralFusedOP
 from data_juicer.utils.constant import Fields
 
@@ -39,12 +38,8 @@ class MockUpperCaseMapper(Mapper):
     def process_batched(self, samples, **kwargs):
         # Create a NEW dict instead of mutating in-place
         # This is what triggers the bug
-        new_samples = {}
-        for key in samples:
-            if key == self.text_key:
-                new_samples[key] = [t.upper() for t in samples[key]]
-            else:
-                new_samples[key] = samples[key]
+        new_samples = samples.copy()
+        new_samples[self.text_key] = [t.upper() for t in samples[self.text_key]]
         return new_samples
 
 
@@ -60,12 +55,8 @@ class MockSuffixMapper(Mapper):
 
     def process_batched(self, samples, **kwargs):
         # Also returns a new dict
-        new_samples = {}
-        for key in samples:
-            if key == self.text_key:
-                new_samples[key] = [t + self.suffix for t in samples[key]]
-            else:
-                new_samples[key] = samples[key]
+        new_samples = samples.copy()
+        new_samples[self.text_key] = [t + self.suffix for t in samples[self.text_key]]
         return new_samples
 
 
@@ -119,9 +110,6 @@ class TestGeneralFusedOPMapperBug(unittest.TestCase):
 
         # With correct behavior: HELLO_DONE, WORLD_DONE
         # With bug: hello_DONE, world_DONE (uppercase is lost)
-        print(f"Result texts: {result['text']}")
-        print(f"Expected:     ['HELLO_DONE', 'WORLD_DONE']")
-
         self.assertEqual(result['text'], ['HELLO_DONE', 'WORLD_DONE'],
                          "BUG CONFIRMED: First mapper's results were discarded! "
                          "Got lowercase because upper_mapper's return value was "
@@ -145,9 +133,6 @@ class TestGeneralFusedOPMapperBug(unittest.TestCase):
 
         result = fused_op.process_batched(samples)
 
-        print(f"Result texts: {result['text']}")
-        print(f"Expected:     ['HELLO', 'WORLD']")
-
         self.assertEqual(result['text'], ['HELLO', 'WORLD'],
                          "BUG CONFIRMED: Mapper returned new dict, but "
                          "process_batched returns tmp_samples (original), "
@@ -170,9 +155,6 @@ class TestGeneralFusedOPMapperBug(unittest.TestCase):
         }
 
         result = fused_op.process_batched(samples)
-
-        print(f"Result texts: {result['text']}")
-        print(f"Expected:     ['hello_END', 'world_END']")
 
         # In-place mapper works: 'HELLO' -> 'hello' (mutates tmp_samples)
         # Suffix mapper creates new dict: 'hello' -> 'hello_END'

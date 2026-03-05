@@ -1,10 +1,8 @@
 # csv_formatter
 
-
 The class is used to load and format csv-type files.
 
 Default suffixes is `['.csv']`
-
 
 该类用于加载和格式化 CSV 类型的文件。
 

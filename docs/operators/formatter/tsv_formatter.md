@@ -1,10 +1,8 @@
 # tsv_formatter
 
-
 The class is used to load and format tsv-type files.
 
 Default suffixes is `['.tsv']`
-
 
 该类用于加载和格式化 TSV 类型的文件。
 

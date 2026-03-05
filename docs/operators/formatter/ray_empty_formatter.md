@@ -1,8 +1,6 @@
 # ray_empty_formatter
 
-
 The class is used to create empty data for ray.
-
 
 该类用于为 Ray 创建空数据。
 

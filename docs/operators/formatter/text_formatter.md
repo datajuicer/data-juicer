@@ -1,10 +1,8 @@
 # text_formatter
 
-
 The class is used to load and format text-type files.
 
 e.g. `['.txt', '.pdf', '.cpp', '.docx']`
-
 
 该类用于加载和格式化文本类型的文件。
 

@@ -22,7 +22,7 @@ Tags 标签: cpu, text
 ## 📊 Effect demonstration 效果演示
 ### test_key_value_grouper
 ```python
-KeyValueGrouper(['meta.language'])
+KeyValueGrouper()
 ```
 
 #### 📥 input data 输入数据

@@ -1,10 +1,8 @@
 # json_formatter
 
-
 The class is used to load and format json-type files.
 
 Default suffixes is `['.json', '.jsonl', '.jsonl.zst']`
-
 
 该类用于加载和格式化 JSON 类型的文件。
 

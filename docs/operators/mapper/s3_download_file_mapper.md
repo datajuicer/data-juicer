@@ -46,5 +46,5 @@ Tags 标签: cpu
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/s3_download_file_mapper.py)
-- [unit test 单元测试]()
+- [unit test 单元测试](../../../tests/ops/mapper/test_s3_download_file_mapper.py)
 - [Return operator list 返回算子列表](../../Operators.md)

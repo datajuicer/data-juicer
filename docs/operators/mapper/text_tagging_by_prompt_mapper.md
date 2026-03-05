@@ -19,6 +19,7 @@ Tags 标签: gpu, vllm, hf, text
 | `tensor_parallel_size` | <class 'int'> | `None` |  |
 | `max_model_len` | <class 'int'> | `None` |  |
 | `max_num_seqs` | <class 'int'> | `256` |  |
+| `model_params` | typing.Dict | `None` |  |
 | `sampling_params` | typing.Dict | `None` |  |
 | `args` |  | `''` |  |
 | `kwargs` |  | `''` |  |

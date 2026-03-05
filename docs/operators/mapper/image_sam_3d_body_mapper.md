@@ -2,7 +2,7 @@
 
 SAM 3D Body (3DB) is a promptable model for single-image full-body 3D human mesh recovery (HMR).
 
-SAM 3D Body（3DB）是一种可提示的模型，用于从单张图像中恢复完整人体的3D网格（HMR）。
+SAM 3D人体（3DB）是一种基于提示的模型，用于从单张图像中恢复完整人体的3D网格（HMR）。
 
 Type 算子类型: **mapper**
 

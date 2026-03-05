@@ -1,10 +1,8 @@
 # parquet_formatter
 
-
 The class is used to load and format parquet-type files.
 
 Default suffixes is `['.parquet']`
-
 
 该类用于加载和格式化 Parquet 类型的文件。
 

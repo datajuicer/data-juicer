@@ -1,8 +1,6 @@
 # empty_formatter
 
-
 The class is used to create empty data.
-
 
 该类用于创建空数据。
 

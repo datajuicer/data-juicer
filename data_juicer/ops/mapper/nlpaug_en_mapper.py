@@ -153,8 +153,7 @@ class NlpaugEnMapper(Mapper):
             else:
                 aug_texts = []
                 for aug_method in self.aug:
-                    aug_texts += aug_method.augment(text_to_aug,
-                                                    n=self.aug_num)
+                    aug_texts += aug_method.augment(text_to_aug, n=self.aug_num)
 
             if not isinstance(aug_texts, list):
                 aug_texts = [aug_texts]

@@ -28,7 +28,7 @@ class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
         self,
         face_track_query: str = "Please describe the person's facial expression, tell me the person's emotion through the video, like Happiness, Excitement, Love, Gratitude, Relief, Pride, Anger, Sadness, Fear, Guilt, Shame, Disgust, Surprise, Confusion, Curiosity, Boredom ...",
         trust_remote_code: bool = False,
-        cropping_face_video_tempt_path = './tempt_video/tmp_video_remove',
+        cropping_face_video_temp_path = './temp_video_path',
         video_describe_model_path: str = 'DAMO-NLP-SG/VideoLLaMA3-7B',
         video_facetrack_attribute_emotion: str = MetaKeys.video_facetrack_attribute_emotion,
         *args,
@@ -49,7 +49,7 @@ class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
 
         # self.pre_query_prompt = "The provided image arranges keyframes from a video in a grid view, keyframes are separated with white bands. "
         self.query = face_track_query
-        self.cropping_face_video_tempt_path = cropping_face_video_tempt_path
+        self.cropping_face_video_temp_path = cropping_face_video_temp_path
 
         self.video_describe_model_path = video_describe_model_path if video_describe_model_path else 'DAMO-NLP-SG/VideoLLaMA3-7B'
         self.model_key = prepare_model(
@@ -74,11 +74,11 @@ class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
         video_samples = samples[Fields.meta][MetaKeys.human_track_data_path]
         loaded_video_keys = samples[self.video_key]
         
-        cropping_face_video_tempt_path = tempfile.mkdtemp(dir=self.cropping_face_video_tempt_path)
-        if os.path.exists(cropping_face_video_tempt_path):
-            rmtree(cropping_face_video_tempt_path)
+        cropping_face_video_temp_path = tempfile.mkdtemp(dir=self.cropping_face_video_temp_path)
+        if os.path.exists(cropping_face_video_temp_path):
+            rmtree(cropping_face_video_temp_path)
 
-        os.makedirs(cropping_face_video_tempt_path, exist_ok = False)
+        os.makedirs(cropping_face_video_temp_path, exist_ok = False)
         model, processor = get_model(self.model_key, rank, self.use_cuda())
         for vedio_id,ASD_attribute_all_tracks_for_one_video in enumerate(video_samples):
             if len(ASD_attribute_all_tracks_for_one_video) == 0:
@@ -95,7 +95,7 @@ class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
                     xys_bbox = bbox_data['xys_bbox']
                     track_frame = bbox_data['frame']
 
-                face_video_out_path = os.path.join(cropping_face_video_tempt_path, loaded_video_keys[vedio_id].split('/')[-1][:-4] + '__' + str(track_id) + '.mp4')
+                face_video_out_path = os.path.join(cropping_face_video_temp_path, loaded_video_keys[vedio_id].split('/')[-1][:-4] + '__' + str(track_id) + '.mp4')
                 vOut = cv2.VideoWriter(face_video_out_path, cv2.VideoWriter_fourcc(*'XVID'), 25, (224,224))# Write video
 	
                 start_frame_id_in = 0
@@ -143,7 +143,7 @@ class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
             
             Total_information.append(description_for_each_track)
 
-        shutil.rmtree(cropping_face_video_tempt_path)
+        shutil.rmtree(cropping_face_video_temp_path)
         samples[Fields.meta][self.video_facetrack_attribute_emotion] = [Total_information]
         gc.collect()
         torch.cuda.empty_cache()

@@ -29,7 +29,7 @@ class VideoCaptioningFromHumanTracksMapper(Mapper):
         human_track_query: str = "Descibe the person's apperance. Less than 80 words. ",
         trust_remote_code: bool = False,
         video_describe_model_path: str = 'DAMO-NLP-SG/VideoLLaMA3-7B',
-        tempt_video_path: str = None,
+        temp_video_path: str = None,
         tag_field_name_track_video_caption: str = MetaKeys.track_video_caption,
         tag_field_name_video_track_is_child: str = MetaKeys.video_track_is_child,
         *args,
@@ -46,7 +46,7 @@ class VideoCaptioningFromHumanTracksMapper(Mapper):
 
         self.query = human_track_query
         self.is_child_query = 'Is the person a little child? Just answer yes or no. '
-        self.tempt_video_path = tempt_video_path
+        self.temp_video_path = temp_video_path
 
         self.video_describe_model_path = video_describe_model_path if video_describe_model_path else 'DAMO-NLP-SG/VideoLLaMA3-7B'
         self.model_key = prepare_model(
@@ -70,11 +70,11 @@ class VideoCaptioningFromHumanTracksMapper(Mapper):
         video_samples = samples[Fields.meta][MetaKeys.human_track_data_path]
         loaded_video_keys = samples[self.video_key]
 
-        cropping_face_video_tempt_path = tempfile.mkdtemp(dir=self.tempt_video_path)
-        if os.path.exists(cropping_face_video_tempt_path):
-            rmtree(cropping_face_video_tempt_path)
+        cropping_face_video_temp_path = tempfile.mkdtemp(dir=self.temp_video_path)
+        if os.path.exists(cropping_face_video_temp_path):
+            rmtree(cropping_face_video_temp_path)
         
-        os.makedirs(cropping_face_video_tempt_path, exist_ok = False)
+        os.makedirs(cropping_face_video_temp_path, exist_ok = False)
         
         model, processor = get_model(self.model_key, rank, self.use_cuda())
 
@@ -92,7 +92,7 @@ class VideoCaptioningFromHumanTracksMapper(Mapper):
                     xy_human_bbox = bbox_data['xy_human_bbox']
                     track_frame = bbox_data['frame']
                     
-                human_video_out_path = os.path.join(cropping_face_video_tempt_path, loaded_video_keys[vedio_id].split('/')[-1][:-4] + '__' + str(track_id) + '.mp4')
+                human_video_out_path = os.path.join(cropping_face_video_temp_path, loaded_video_keys[vedio_id].split('/')[-1][:-4] + '__' + str(track_id) + '.mp4')
                 wide_max = int((np.array(xy_human_bbox['x2']) - np.array(xy_human_bbox['x1'])).max())
                 height_max = int((np.array(xy_human_bbox['y2']) - np.array(xy_human_bbox['y1'])).max())
                 pad_max_w = (wide_max - (np.array(xy_human_bbox['x2']) - np.array(xy_human_bbox['x1']))).max()
@@ -196,7 +196,7 @@ class VideoCaptioningFromHumanTracksMapper(Mapper):
             Total_information.append(description_for_each_track)
             Is_child.append(is_child_for_each_track)
 
-        shutil.rmtree(cropping_face_video_tempt_path)
+        shutil.rmtree(cropping_face_video_temp_path)
         samples[Fields.meta][self.tag_field_name_track_video_caption] = [Total_information]
         samples[Fields.meta][self.tag_field_name_video_track_is_child] = [Is_child]
         gc.collect()

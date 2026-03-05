@@ -5,7 +5,7 @@ from thirdparty.humanvbench_models.audio_code.wav2vec_age_gender import process_
 from ..base_op import OPERATORS, Mapper
 from data_juicer.utils.model_utils import get_model, prepare_model
 
-NAME = 'video_audio_attribute_mapper'
+NAME = 'video_audio_detect_age_gender_mapper'
 CHECK_PKGS = [
     'transformers', 'transformers_stream_generator', 'einops', 'accelerate',
     'tiktoken'
@@ -16,9 +16,9 @@ from data_juicer.utils.model_utils import get_model, prepare_model
 
 
 @OPERATORS.register_module(NAME)
-class VideoAudioAttributeMapper(Mapper):
-    """Mapper to caption a video according to its audio streams based on
-    Qwen-Audio model.
+class VideoAudioDetectAgeGenderMapper(Mapper):
+    """
+    Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model.
     """
     _accelerator = 'cuda'
     _batched_op = True
@@ -54,7 +54,7 @@ class VideoAudioAttributeMapper(Mapper):
             return []
         
         if not MetaKeys.video_audio_tags in sample[Fields.meta]:
-            raise ValueError("video_audio_attribute_mapper must be operated after video_tagging_from_audio_mapper.")
+            raise ValueError("video_audio_detect_age_gender_mapper must be operated after video_tagging_from_audio_mapper.")
 
         # get paths of all video(s)
         loaded_video_keys = sample[self.video_key]

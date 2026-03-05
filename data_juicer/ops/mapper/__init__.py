@@ -73,15 +73,15 @@ from .video_split_by_scene_mapper import VideoSplitBySceneMapper
 from .video_tagging_from_audio_mapper import VideoTaggingFromAudioMapper
 from .video_tagging_from_frames_mapper import VideoTaggingFromFramesMapper
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
-from .video_active_speaker_mapper import VideoActiveSpeakerMapper
-from .video_audio_attribute_mapper import VideoAudioAttributeMapper
-from .video_audio_speech_ASR_mapper import VideoAudioSpeechASRMapper
+from .video_active_speaker_detect_mapper import VideoActiveSpeakerDetectMapper
+from .video_audio_detect_age_gender_mapper import VideoAudioDetectAgeGenderMapper
+from .video_audio_ASR_mapper import VideoAudioASRMapper
 from .video_audio_speech_emotion_mapper import VideoAudioSpeechEmotionMapper
 from .video_captioning_face_attribute_emotion_mapper import VideoCaptioningFaceAttributeEmotionMapper
 from .video_captioning_from_human_tracks_mapper import VideoCaptioningFromHumanTracksMapper
 from .video_human_tracks_extraction_mapper import VideoHumanTracksExtractionMapper
 from .video_captioning_face_attribute_emotion_mapper import VideoCaptioningFaceAttributeEmotionMapper
-from .video_humantrack_face_demographic_mapper import VideoHumantrackFaceDemographicMapper
+from .video_human_tracks_face_demographic_mapper import VideoHumantrackFaceDemographicMapper
 
 __all__ = [
     'AudioFFmpegWrappedMapper', 'CalibrateQAMapper', 'CalibrateQueryMapper',
@@ -114,8 +114,8 @@ __all__ = [
     'VideoResizeResolutionMapper', 'VideoSplitByDurationMapper',
     'VideoSplitByKeyFrameMapper', 'VideoSplitBySceneMapper',
     'VideoTaggingFromAudioMapper', 'VideoTaggingFromFramesMapper',
-    'WhitespaceNormalizationMapper','VideoActiveSpeakerMapper',
-    'VideoAudioAttributeMapper', 'VideoAudioSpeechASRMapper',
+    'WhitespaceNormalizationMapper','VideoActiveSpeakerDetectMapper',
+    'VideoAudioDetectAgeGenderMapper', 'VideoAudioASRMapper',
     'VideoCaptioningFaceAttributeEmotionMapper','VideoCaptioningFromHumanTracksMapper', 
     'VideoHumanTracksExtractionMapper', 'VideoCaptioningFaceAttributeEmotionMapper',
     'VideoHumantrackFaceDemographicMapper', 'VideoAudioSpeechEmotionMapper'

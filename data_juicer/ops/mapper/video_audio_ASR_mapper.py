@@ -5,14 +5,14 @@ from ..base_op import OPERATORS, Mapper
 import gc
 from data_juicer.utils.constant import Fields, MetaKeys
 
-OP_NAME = 'video_audio_speech_ASR_mapper'
+OP_NAME = 'video_audio_ASR_mapper'
 
 import torch
 torch.set_num_threads(1)
 
 
 @OPERATORS.register_module(OP_NAME)
-class VideoAudioSpeechASRMapper(Mapper):
+class VideoAudioASRMapper(Mapper):
     """Mapper to generate video tags from audio streams extracted by video
     using the Audio Spectrogram Transformer.
     """
@@ -54,7 +54,7 @@ class VideoAudioSpeechASRMapper(Mapper):
             return sample
         
         if not MetaKeys.video_audio_tags in sample[Fields.meta]:
-            raise ValueError("video_active_speaker_mapper must be operated after video_tagging_from_audio_mapper.")
+            raise ValueError("video_audio_ASR_mapper must be operated after video_tagging_from_audio_mapper.")
 
 
         # load video paths
@@ -95,11 +95,14 @@ class VideoAudioSpeechASRMapper(Mapper):
                         **kwargs1,
                     )
                 
+                # Example of output_ASR_emo[0][0]['text']:
+                # "<|en|><|NEUTRAL|><|Speech|> Hello, world."
+                # The split logic extracts language (en) and the clean text (Hello, world.)
                 video_audio_tags.append({'language':output_ASR_emo[0][0]['text'].split('<|',1)[-1].split('|>')[0], 'asr': output_ASR_emo[0][0]['text'].split('|>',4)[-1]})
             else:
                 video_audio_tags.append('')
             
         sample[Fields.meta][self.speech_ASR] = video_audio_tags
-        gc.collect()
-        torch.cuda.empty_cache()
+        # gc.collect()
+        # torch.cuda.empty_cache()
         return sample

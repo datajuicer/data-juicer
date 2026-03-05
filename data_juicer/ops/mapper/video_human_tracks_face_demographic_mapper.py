@@ -6,7 +6,7 @@ from ..op_fusion import LOADED_VIDEOS
 from data_juicer.utils.ASD_mapper_utils import get_video_array_cv2
 import gc
 
-OP_NAME = 'video_humantrack_face_demographic_mapper'
+OP_NAME = 'video_human_tracks_face_demographic_mapper'
 
 import torch, os
 import pickle
@@ -43,7 +43,7 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
 
     def process_single(self, samples, rank=None, context=False):
         if not MetaKeys.human_track_data_path in samples[Fields.meta]:
-            raise ValueError("video_humantrack_face_demographic_mapper must be operated after video_human_tracks_extraction_mapper.")
+            raise ValueError("video_human_tracks_face_demographic_mapper must be operated after video_human_tracks_extraction_mapper.")
         
         Total_information = []
         video_samples = samples[Fields.meta][MetaKeys.human_track_data_path]

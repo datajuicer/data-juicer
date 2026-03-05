@@ -5,8 +5,9 @@ from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 from data_juicer.utils.model_utils import get_model, prepare_model
 import gc,os
+from loguru import logger
 
-OP_NAME = 'video_active_speaker_mapper'
+OP_NAME = 'video_active_speaker_detect_mapper'
 
 import torch
 import sys
@@ -22,19 +23,21 @@ import tqdm, glob
 
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
-class VideoActiveSpeakerMapper(Mapper):
+class VideoActiveSpeakerDetectMapper(Mapper):
     _accelerator = 'cuda'
     _batched_op = True
 
     """
+    Detect active speakers in a video by analyzing visual face tracks and 
+    audio signals, including consistency checks for gender and age.
     """
 
     _default_kwargs = {'upsample_num_times': 0}
 
     def __init__(self,
-                 tempt_save_path: str = './HumanVBenchRecipe/dj_ASD_tempt',
+                 temp_save_path: str = './temp_path',
                  Light_ASD_model_path: str = './thirdparty/humanvbench_models/Light-ASD/weight/finetuning_TalkSet.model',
-                 acitve_threshold: int = 15,
+                 active_threshold: int = 15,
                  active_speaker_flag: str = MetaKeys.active_speaker_flag,
                  *args,
                  **kwargs):
@@ -46,9 +49,9 @@ class VideoActiveSpeakerMapper(Mapper):
         kwargs.setdefault('mem_required', '10GB')
         super().__init__(*args, **kwargs)
         self._init_parameters = self.remove_extra_parameters(locals())
-        self.acitve_threshold = acitve_threshold
+        self.active_threshold = active_threshold
 
-        self.tempt_save_path = tempt_save_path
+        self.temp_save_path = temp_save_path
 
         # Initialize ASD model
         self.ASD_model_key = prepare_model(model_type='Light_ASD',
@@ -80,7 +83,7 @@ class VideoActiveSpeakerMapper(Mapper):
             is_child_voice = 'Not Sure'
 
         # Consistency detection: only perform false positive detection on positive samples
-        if active_score>self.acitve_threshold:
+        if active_score>self.active_threshold:
             speak_active = True
             # age consistency test:
             if not is_child_voice == 'Not Sure':
@@ -102,29 +105,47 @@ class VideoActiveSpeakerMapper(Mapper):
             sample[Fields.source_file] = []
             return sample
         
-        if not MetaKeys.video_audio_tags in sample[Fields.meta]:
-            raise ValueError("video_active_speaker_mapper must be operated after video_tagging_from_audio_mapper.")
+        meta = sample.get(Fields.meta, {})
+        
+        # Core dependencies: Both human tracks and audio tags are required for ASD
+        has_tracks = MetaKeys.human_track_data_path in meta
+        has_audio_tags = MetaKeys.video_audio_tags in meta
 
-        if not MetaKeys.human_track_data_path in sample[Fields.meta]:
-            raise ValueError("video_active_speaker_mapper must be operated after video_human_tracks_extraction_mapper.")
+        if not (has_tracks and has_audio_tags):
+            missing = []
+            if not has_tracks: missing.append(MetaKeys.human_track_data_path)
+            if not has_audio_tags: missing.append(MetaKeys.video_audio_tags)
+            
+            logger.warning(
+                f"[{OP_NAME}] Skip sample: Missing mandatory keys {missing}. "
+                f"video_active_speaker_detect_mapper must be operated after video_tagging_from_audio_mapper. "
+                f"video_active_speaker_detect_mapper must be operated after video_human_tracks_extraction_mapper. "
+                f"Please ensure prior Mappers are executed correctly."
+            )
+            return sample
+        
+        # Optional dependencies for 'revise' function
+        has_audio_attr = MetaKeys.audio_speech_attribute in meta
+        has_face_attr = MetaKeys.video_facetrack_attribute_demographic in meta
+        has_child_attr = MetaKeys.video_track_is_child in meta
 
-        if not MetaKeys.audio_speech_attribute in sample[Fields.meta]:
-            raise ValueError("video_active_speaker_mapper must be operated after video_audio_attribute_mapper.")
-
-        if not MetaKeys.video_facetrack_attribute_demographic in sample[Fields.meta]:
-            raise ValueError("video_active_speaker_mapper must be operated after video_humantrack_face_demographic_mapper.")
-
-        if not MetaKeys.video_track_is_child in sample[Fields.meta]:
-            raise ValueError("video_active_speaker_mapper must be operated after video_captioning_from_human_tracks_mapper.")
+        revise_available = (has_audio_attr and has_face_attr and has_child_attr)
+        if not revise_available:
+            logger.info(
+                f"[{OP_NAME}] Some metadata missing. Running in 'Basic Mode' without consistency detection. "
+                f"To enable full consistency detection, ensure these OPs are executed: video_audio_detect_age_gender_mapper, video_humantrack_face_demographic_mapper and video_captioning_from_human_tracks_mapper."
+            )
 
         loaded_video_keys = sample[self.video_key]
-        audio_speech_attribute = sample[Fields.meta][MetaKeys.audio_speech_attribute]
-        face_demographic = sample[Fields.meta][MetaKeys.video_facetrack_attribute_demographic][0]
-        child_flag = sample[Fields.meta][MetaKeys.video_track_is_child][0]
+
+        if revise_available:
+            audio_speech_attribute = sample[Fields.meta][MetaKeys.audio_speech_attribute]
+            face_demographic = sample[Fields.meta][MetaKeys.video_facetrack_attribute_demographic][0]
+            child_flag = sample[Fields.meta][MetaKeys.video_track_is_child][0]
 
         Total_result = []
 
-        temp_dir = tempfile.mkdtemp(dir=self.tempt_save_path)
+        temp_dir = tempfile.mkdtemp(dir=self.temp_save_path)
         pyaviPath = os.path.join(temp_dir, 'pyavi')
         pyframesPath = os.path.join(temp_dir, 'pyframes')
         pyworkPath = os.path.join(temp_dir, 'pywork')
@@ -190,10 +211,17 @@ class VideoActiveSpeakerMapper(Mapper):
             speak_flag_for_tracks_in_a_video = []
             for track_idx,track_i  in enumerate(update_track):
                 active_count = longest_continuous_actives(track_i['active_scores'])
-                audio_attri = audio_speech_attribute[id_out][0]
-                is_child_descrip = child_flag[id_out][track_idx][0]
-                face_gender = face_demographic[id_out][track_idx]['gender']
-                flag = self.active_speaker_detection_revise(active_count, is_child_descrip, audio_attri, face_gender)
+                
+                if revise_available:
+                    audio_attri = audio_speech_attribute[id_out][0]
+                    is_child_descrip = child_flag[id_out][track_idx][0]
+                    face_gender = face_demographic[id_out][track_idx]['gender']
+                    flag = self.active_speaker_detection_revise(active_count, is_child_descrip, audio_attri, face_gender)
+                else:
+                    if active_count>self.active_threshold:
+                        flag = True
+                    else:
+                        flag = False
                 speak_flag_for_tracks_in_a_video.append(flag)
 
 

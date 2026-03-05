@@ -116,8 +116,7 @@ class VideoMotionScoreFilter(Filter):
         self.relative = relative
 
         self.extra_kwargs = self._default_kwargs.copy()
-        self.extra_kwargs.update(
-            (k, v) for k, v in kwargs.items() if k in self.extra_kwargs)
+        self.extra_kwargs.update((k, v) for k, v in kwargs.items() if k in self.extra_kwargs)
 
         if any_or_all not in ["any", "all"]:
             raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')

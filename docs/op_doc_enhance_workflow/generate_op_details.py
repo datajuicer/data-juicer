@@ -3,22 +3,20 @@
 Script to auto-generate operator documentation.
 """
 
-import json
 import os
 import re
 import fire
 from pathlib import Path
+from typing import Dict, List
 
 from jinja2 import Environment, FileSystemLoader
-from utils.parse_class import extract_class_attr_paths
-from utils.extractor import extract_test_info_from_path
-from utils.router import route
-from utils.view_model import to_legacy_view
 from utils.md_parser import load_existing_op_md
-from utils.llm_service import get_bilingual_descs, select_and_explain_examples
+from utils.llm_service import get_bilingual_descs
 
 from data_juicer.tools.op_search import OPSearcher
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
+
+from utils.example_loader import load_examples_by_op, build_examples_for_op
 
 # -----------------------------------------------------------------------------
 # Constants & Paths
@@ -28,16 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OPS_DOCS_DIR = ROOT / "docs" / "operators"
 OPS_DOCS_DIR.mkdir(parents=True, exist_ok=True)
 TEMPLATE_DIR = Path(__file__).parent / "templates"
-CACHE_PATH = Path(__file__).parent / "examples.json"
-
-NO_EXPLAIN_OPS = [
-    "llm_task_relevance_filter",
-    "in_context_influence_filter",
-    "text_embd_similarity_filter",
-    "audio_add_gaussian_noise_mapper",
-    "image_blur_mapper",
-    "image_captioning_from_gpt4v_mapper",
-]
+DEFAULT_EXAMPLES_PATH = Path(__file__).resolve().parent / "examples.jsonl"
 
 # -----------------------------------------------------------------------------
 # Utilities
@@ -106,12 +95,6 @@ def param_signature_to_list(sig, param_docs):
     return params_info
 
 
-def should_use_cache(new_info, cached_info):
-    if not cached_info:
-        return False
-    return (new_info.get("op_code") == cached_info.get("op_code") and new_info.get("ds") == cached_info.get("ds")) or (
-        new_info.get("ds") is None and cached_info.get("ds") is not None
-    )
 
 
 # -----------------------------------------------------------------------------
@@ -126,10 +109,7 @@ class DocGenerator:
             trim_blocks=True,
             lstrip_blocks=True,
         )
-        self.cache = {}
-        if CACHE_PATH.exists():
-            raw_cache = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
-            self.cache = self._absolutize(raw_cache)
+        self.captured_by_op: Dict[str, List[Dict]] = {}
 
     def rewrite_op_doc(self, op_name):
         """Placeholder for actual docstring rewrite logic."""
@@ -144,40 +124,6 @@ class DocGenerator:
             if result_info.get("new_docstring"):
                 return optimize_text(result_info["new_docstring"])
         return None
-
-    def process_example_list(self, examples, attr_map, op_info, test_file_full, existing_examples, explain_examples):
-        if op_info["name"] in NO_EXPLAIN_OPS:
-            return []
-
-        usable = {}
-        md_dir_abs = OPS_DOCS_DIR / op_info["type"]
-        for m, vals in examples.items():
-            if (vals["ds"] and vals["tgt"]) or vals["samples"]:
-                res = route(vals, attr_map, md_dir_abs, m)
-                if res:
-                    usable[m] = res
-
-        if not usable:
-            return []
-
-        if existing_examples:
-            select_methods = [m for m in existing_examples.keys() if m in usable]
-            explanations = {m: existing_examples[m]["explanation"] for m in select_methods}
-        elif not explain_examples:
-            select_methods = list(usable.keys())[:2]
-            explanations = {m: "" for m in select_methods}
-        else:
-            select_methods, explanations = select_and_explain_examples(usable, op_info, test_file_full)
-
-        return [
-            {
-                "method": m,
-                "op_code": usable[m].op_code or "",
-                "explanation": (explanations.get(m, "") or "").strip(),
-                **to_legacy_view(usable[m]),
-            }
-            for m in select_methods
-        ]
 
     def _de_absolutize(self, data):
         """Turn absolute path strings in data into placeholders"""
@@ -202,37 +148,21 @@ class DocGenerator:
             return data.replace("{PROJECT_ROOT}", root_str)
         return data
 
-    def handle_one(self, op_info, existing_md, explain_examples):
+    def handle_one(self, op_info, existing_md):
         params = param_signature_to_list(op_info["sig"], op_info["param_desc_map"])
-        examples_list = []
 
-        if op_info["test_path"] and Path(op_info["test_path"]).exists():
-            test_path = ROOT / Path(op_info["test_path"])
-            test_content = test_path.read_text(encoding="utf-8")[:5000]
-            new_ex = extract_test_info_from_path(test_path)
-            new_ex = {k: v for k, v in new_ex.items() if not any(x in k for x in ["parallel", "np"])}
+        # Build examples via the decoupled example processing layer
+        examples_list = build_examples_for_op(
+            op_name=op_info["name"],
+            op_type=op_info["type"],
+            captured_by_op=self.captured_by_op,
+            existing_examples=(
+                existing_md.get("examples") if existing_md else None
+            ),
+            md_dir=OPS_DOCS_DIR,
+        )
 
-            # Cache merge
-            cached_op = self.cache.get(op_info["name"], {})
-            final_ex = {}
-            for m, info in new_ex.items():
-                if should_use_cache(info, cached_op.get(m)):
-                    final_ex[m] = cached_op[m].copy()
-                    if info.get("tgt") is not None:
-                        final_ex[m]["tgt"] = info["tgt"]
-                else:
-                    final_ex[m] = info
-
-            self.cache[op_info["name"]] = self._de_absolutize(final_ex)
-            examples_list = self.process_example_list(
-                final_ex,
-                extract_class_attr_paths(test_path),
-                op_info,
-                test_content,
-                existing_md.get("examples") if existing_md else None,
-                explain_examples,
-            )
-        else:
+        if not (op_info["test_path"] and Path(op_info["test_path"]).exists()):
             op_info["test_path"] = None
 
         # Template Data
@@ -249,24 +179,40 @@ class DocGenerator:
         }
         return op_info_tmpl, examples_list
 
-    def gen(self, rewrite_docstring=False, explain_examples=False):
+    def gen(self, rewrite_docstring=False, explain_examples=False,
+            captured_examples_path=None):
         """
         Generate documentation for operators.
 
         :param rewrite_docstring: Whether to rewrite docstrings using LLM.
-        :param explain_examples: Whether to generate explanations for examples using LLM.
+        :param explain_examples: Whether to generate explanations for
+            examples using LLM.
+        :param captured_examples_path: Path to captured examples JSONL/JSON
+            file. Defaults to ``examples.jsonl`` in the workflow directory.
         """
+        # Load captured examples via the decoupled example layer
+        examples_path = captured_examples_path or str(DEFAULT_EXAMPLES_PATH)
+        self.captured_by_op = load_examples_by_op(examples_path)
+        if self.captured_by_op:
+            total = sum(len(v) for v in self.captured_by_op.values())
+            print(f"[Captured] Loaded {total} examples for "
+                  f"{len(self.captured_by_op)} operators from {examples_path}")
+        else:
+            print(f"[Warning] No captured examples found at: {examples_path}")
+            print("          Run tests with --capture-op-examples first.")
+
         searcher = OPSearcher(include_formatter=True)
         all_ops = searcher.all_ops
         op_detail_list, original_descs = [], []
 
         for op_name, op_info in all_ops.items():
             if "Formatter" in op_name:
-                op_info["name"] = camel_to_snake(op_name)
+                op_name = camel_to_snake(op_name)
+                op_info["name"] = op_name
 
             md_path = OPS_DOCS_DIR / op_info["type"] / f"{op_name}.md"
             existing_md = load_existing_op_md(md_path)
-            op_tmpl, ex_list = self.handle_one(op_info, existing_md, explain_examples)
+            op_tmpl, ex_list = self.handle_one(op_info, existing_md)
 
             cleaned_desc = optimize_text(op_info["desc"])
             if existing_md and existing_md.get("desc"):
@@ -284,13 +230,15 @@ class DocGenerator:
 
             op_detail_list.append((op_info["name"], op_tmpl, ex_list))
 
-        # Save Cache
-        self.cache = self._de_absolutize(self.cache)
-        CACHE_PATH.write_text(json.dumps(self.cache, indent=4, ensure_ascii=False), encoding="utf-8")
-
         # Bilingual Batch Processing
         bilingual_descs = get_bilingual_descs(original_descs)
         desc_iter = iter(bilingual_descs)
+
+        # Collect all valid op names (snake_case) for stale-file cleanup
+        valid_op_names = set()
+        for op_name_key, op_info in all_ops.items():
+            name = camel_to_snake(op_name_key) if "Formatter" in op_name_key else op_name_key
+            valid_op_names.add((op_info["type"], name))
 
         template = self.env.get_template("op_doc.md.j2")
         for name, tmpl, ex_list in op_detail_list:
@@ -303,7 +251,17 @@ class DocGenerator:
             out_path.write_text(content, encoding="utf-8")
             print(f"[Generated] {out_path}")
 
+        # Clean up stale md files for operators no longer in the codebase
+        removed_count = 0
+        for md_file in OPS_DOCS_DIR.rglob("*.md"):
+            op_type_dir = md_file.parent.name
+            op_name_stem = md_file.stem
+            if (op_type_dir, op_name_stem) not in valid_op_names:
+                md_file.unlink()
+                removed_count += 1
+                print(f"[Deleted] {md_file} (operator no longer exists)")
+        if removed_count:
+            print(f"[Cleanup] Removed {removed_count} stale doc(s)")
 
 if __name__ == "__main__":
-    # fire.Fire(DocGenerator)
-    DocGenerator().gen(rewrite_docstring=False, explain_examples=False)
+    fire.Fire(DocGenerator)

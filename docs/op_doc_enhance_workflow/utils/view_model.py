@@ -358,10 +358,23 @@ def _render_sample_card(sample: Dict[str, Any], sample_idx: int) -> str:
     )
 
 
-def _render_payload(payload: Dict[str, Any]) -> str:
-    """Render payload samples with enhanced sample-aware layout."""
+def _render_payload(payload: Dict[str, Any], allow_empty_label: bool = False) -> str:
+    """Render payload samples with enhanced sample-aware layout.
+
+    When *allow_empty_label* is True and there are no samples, a styled
+    "(empty)" placeholder is returned instead of an empty string.
+    """
     samples = payload.get("samples")
     if not isinstance(samples, list) or not samples:
+        if allow_empty_label:
+            return (
+                '<div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; '
+                'border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);">'
+                '<div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; '
+                'border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;">'
+                '<strong>Nothing Left</strong></div>'
+                '<div class="media-section" style="margin-bottom:8px;"></div></div>'
+            )
         return ""
     return "".join(_render_sample_card(s, i) for i, s in enumerate(samples))
 
@@ -370,5 +383,5 @@ def to_legacy_view(ex: ExampleIR) -> Dict:
     """Convert ExampleIR to legacy view format with rendered HTML content."""
     return {
         "input": _render_payload(ex.input or {}),
-        "output": _render_payload(ex.output or {}),
+        "output": _render_payload(ex.output or {}, allow_empty_label=True),
     }

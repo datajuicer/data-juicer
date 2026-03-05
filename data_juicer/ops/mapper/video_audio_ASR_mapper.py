@@ -15,6 +15,8 @@ torch.set_num_threads(1)
 class VideoAudioASRMapper(Mapper):
     """Mapper to generate video tags from audio streams extracted by video
     using the Audio Spectrogram Transformer.
+
+    Source: This operator is a part of HumanVBench (CVPR 2026).
     """
     _accelerator = 'cuda'
     _batched_op = True

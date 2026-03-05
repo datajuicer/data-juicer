@@ -30,6 +30,8 @@ class VideoActiveSpeakerDetectMapper(Mapper):
     """
     Detect active speakers in a video by analyzing visual face tracks and 
     audio signals, including consistency checks for gender and age.
+    
+    Source: This operator is a part of HumanVBench (CVPR 2026).
     """
 
     _default_kwargs = {'upsample_num_times': 0}

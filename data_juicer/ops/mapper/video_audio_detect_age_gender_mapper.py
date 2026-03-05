@@ -19,6 +19,8 @@ from data_juicer.utils.model_utils import get_model, prepare_model
 class VideoAudioDetectAgeGenderMapper(Mapper):
     """
     Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model.
+    
+    Source: This operator is a part of HumanVBench (CVPR 2026).
     """
     _accelerator = 'cuda'
     _batched_op = True

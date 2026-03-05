@@ -20,6 +20,14 @@ import tqdm
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoHumanTracksExtractionMapper(Mapper):
     """
+    Extract face and human bounding box tracks from videos.
+
+    This operator performs multi-stage processing including scene detection, 
+    face detection (S3FD), face tracking, and human detection (YOLOv8). 
+    It eventually generates synchronized face and human tracks and saves 
+    the bbox sequences into pickle files.
+    
+    Source: This operator is a part of HumanVBench (CVPR 2026).
     """
     _accelerator = 'cuda'
     _batched_op = True

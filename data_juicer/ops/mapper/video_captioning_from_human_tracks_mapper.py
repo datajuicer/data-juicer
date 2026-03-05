@@ -19,8 +19,12 @@ torch.set_num_threads(1)
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoCaptioningFromHumanTracksMapper(Mapper):
-    """Mapper to generate samples whose captions are generated based on
-    a video-to-text model and sampled video frame."""
+    """
+    Mapper to generate samples whose captions are generated based on
+    a video-to-text model and sampled video frame.
+    
+    Source: This operator is a part of HumanVBench (CVPR 2026).
+    """
     _accelerator = 'cuda'
     _batched_op = True
 

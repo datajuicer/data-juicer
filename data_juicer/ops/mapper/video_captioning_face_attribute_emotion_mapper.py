@@ -39,6 +39,8 @@ class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
 
         :param hf_video_blip: video-blip model name on huggingface
             to generate caption
+        
+        Source: This operator is a part of HumanVBench (CVPR 2026).
         """
         kwargs.setdefault('mem_required', '40GB')
         super().__init__(*args, **kwargs)

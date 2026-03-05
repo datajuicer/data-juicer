@@ -18,7 +18,10 @@ from PIL import ImageFilter
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoFaceRatioFilter(Filter):
-    """Keep data samples whose videos' durations are within a specified range.
+    """
+    Keep data samples whose videos' durations are within a specified range.
+    
+    Source: This operator is a part of HumanVBench (CVPR 2026).
     """
 
     def __init__(self,

@@ -538,12 +538,8 @@ class LatexFigureContextExtractorMapper(Mapper):
                         sf_citing = self._find_citing_paragraphs(sf.label, paragraphs)
                         # Merge parent + subfigure, deduplicated,
                         # preserving order
-                        seen = set()
-                        merged = []
-                        for p in parent_citing + sf_citing:
-                            if p not in seen:
-                                seen.add(p)
-                                merged.append(p)
+                        merged = list(dict.fromkeys(
+                            parent_citing + sf_citing))
 
                         self._append_output_row(
                             output_samples,

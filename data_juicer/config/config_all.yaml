@@ -199,6 +199,10 @@ process:
       model_params: {}                                        # Parameters for initializing the API model.
       sampling_params: {}                                     # Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95}
   - expand_macro_mapper:                                    # expand macro definitions in Latex text.
+  - latex_merge_tex_mapper:                                 # Extract and concatenate all .tex files from a compressed LaTeX project archive.
+      compressed_file_key: 'compressed_file'                   # Field storing the archive path.
+      separator: '\n\n'                                       # Separator between concatenated .tex files.
+      max_file_size: 52428800                                 # 50 MB; skip .tex entries larger than this (zip bomb protection).
   - extract_entity_attribute_mapper:                        # Extract attributes for given entities from the text.
       api_model: 'gpt-4o'                                     # API model name.
       query_entities: ["孙悟空", "猪八戒"]                      # Entity list to be queried.

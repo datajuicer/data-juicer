@@ -32,6 +32,7 @@ class LatexMergeTexMapper(Mapper):
         compressed_file_key: str = "compressed_file",
         separator: str = "\n\n",
         max_file_size: int = 50 * 1024 * 1024,
+        max_total_size: int = 100 * 1024 * 1024,
         *args,
         **kwargs,
     ):
@@ -46,6 +47,11 @@ class LatexMergeTexMapper(Mapper):
             for a single ``.tex`` entry inside the archive.  Entries
             exceeding this limit are skipped with a warning.  Set to
             ``None`` or ``0`` to disable the check.
+        :param max_total_size: Maximum allowed cumulative size in bytes
+            for all extracted ``.tex`` content combined.  Once this
+            limit is reached, remaining files in the archive are
+            skipped with a warning.  Set to ``None`` or ``0`` to
+            disable the check.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -53,6 +59,7 @@ class LatexMergeTexMapper(Mapper):
         self.compressed_file_key = compressed_file_key
         self.separator = separator
         self.max_file_size = max_file_size or 0
+        self.max_total_size = max_total_size or 0
 
     def _extract_tex_contents(self, archive_path: str):
         """Return a list of decoded ``.tex`` file contents from
@@ -61,25 +68,25 @@ class LatexMergeTexMapper(Mapper):
         path_lower = archive_path.lower()
 
         try:
-            if path_lower.endswith('.zip'):
-                return self._read_zip(archive_path, self.max_file_size)
-            elif path_lower.endswith(('.tar.gz', '.tgz', '.tar')):
-                return self._read_tar(archive_path, self.max_file_size)
+            if path_lower.endswith(".zip"):
+                return self._read_zip(archive_path, self.max_file_size, self.max_total_size)
+            elif path_lower.endswith((".tar.gz", ".tgz", ".tar")):
+                return self._read_tar(archive_path, self.max_file_size, self.max_total_size)
             else:
                 logger.warning(
-                    f"Unsupported archive format: {archive_path}. "
-                    f"Supported formats: .tar, .tar.gz, .tgz, .zip")
+                    f"Unsupported archive format: {archive_path}. " f"Supported formats: .tar, .tar.gz, .tgz, .zip"
+                )
                 return []
         except Exception:
-            logger.exception(
-                f"Failed to read archive {archive_path}")
+            logger.exception(f"Failed to read archive {archive_path}")
             return []
 
     @staticmethod
-    def _read_tar(archive_path: str, max_file_size: int = 0):
+    def _read_tar(archive_path: str, max_file_size: int = 0, max_total_size: int = 0):
         contents = []
-        with tarfile.open(archive_path, 'r:*') as tf:
-            for member in tf.getmembers():
+        total_bytes = 0
+        with tarfile.open(archive_path, "r:*") as tf:
+            for member in tf:
                 if not member.isfile():
                     continue
                 if not member.name.endswith(".tex"):
@@ -88,21 +95,43 @@ class LatexMergeTexMapper(Mapper):
                     logger.warning(
                         f"Skipping {member.name} in {archive_path}: "
                         f"declared size {member.size} bytes exceeds "
-                        f"limit of {max_file_size} bytes")
+                        f"limit of {max_file_size} bytes"
+                    )
                     continue
+                # Use declared header size to bail before reading.
+                if max_total_size and (total_bytes + member.size) > max_total_size:
+                    logger.warning(
+                        f"Cumulative extracted size would exceed limit "
+                        f"of {max_total_size} bytes in {archive_path}. "
+                        f"Skipping remaining files."
+                    )
+                    break
                 raw = tf.extractfile(member)
                 if raw is None:
                     continue
-                # Some older LaTeX files use Latin-1 or
-                # Windows-1252; replace undecodable bytes with
-                # U+FFFD rather than crashing the whole archive.
-                contents.append(
-                    raw.read().decode("utf-8", errors="replace"))
+                raw_bytes = raw.read()
+                if max_file_size and len(raw_bytes) > max_file_size:
+                    logger.warning(
+                        f"Skipping {member.name} in {archive_path}: "
+                        f"actual size {len(raw_bytes)} bytes exceeds "
+                        f"limit of {max_file_size} bytes"
+                    )
+                    continue
+                total_bytes += len(raw_bytes)
+                if max_total_size and total_bytes > max_total_size:
+                    logger.warning(
+                        f"Cumulative extracted size {total_bytes} bytes "
+                        f"exceeds limit of {max_total_size} bytes in "
+                        f"{archive_path}. Skipping remaining files."
+                    )
+                    break
+                contents.append(raw_bytes.decode("utf-8", errors="replace"))
         return contents
 
     @staticmethod
-    def _read_zip(archive_path: str, max_file_size: int = 0):
+    def _read_zip(archive_path: str, max_file_size: int = 0, max_total_size: int = 0):
         contents = []
+        total_bytes = 0
         with zipfile.ZipFile(archive_path) as zf:
             for name in zf.namelist():
                 if not name.endswith(".tex"):
@@ -112,10 +141,34 @@ class LatexMergeTexMapper(Mapper):
                     logger.warning(
                         f"Skipping {name} in {archive_path}: "
                         f"declared size {info.file_size} bytes exceeds "
-                        f"limit of {max_file_size} bytes")
+                        f"limit of {max_file_size} bytes"
+                    )
                     continue
-                contents.append(
-                    zf.read(name).decode("utf-8", errors="replace"))
+                # Use declared header size to bail before reading.
+                if max_total_size and (total_bytes + info.file_size) > max_total_size:
+                    logger.warning(
+                        f"Cumulative extracted size would exceed limit "
+                        f"of {max_total_size} bytes in {archive_path}. "
+                        f"Skipping remaining files."
+                    )
+                    break
+                raw_bytes = zf.read(name)
+                if max_file_size and len(raw_bytes) > max_file_size:
+                    logger.warning(
+                        f"Skipping {name} in {archive_path}: "
+                        f"actual size {len(raw_bytes)} bytes exceeds "
+                        f"limit of {max_file_size} bytes"
+                    )
+                    continue
+                total_bytes += len(raw_bytes)
+                if max_total_size and total_bytes > max_total_size:
+                    logger.warning(
+                        f"Cumulative extracted size {total_bytes} bytes "
+                        f"exceeds limit of {max_total_size} bytes in "
+                        f"{archive_path}. Skipping remaining files."
+                    )
+                    break
+                contents.append(raw_bytes.decode("utf-8", errors="replace"))
         return contents
 
     def process_single(self, sample):
@@ -123,7 +176,8 @@ class LatexMergeTexMapper(Mapper):
             raise ValueError(
                 f"Compressed file key '{self.compressed_file_key}' "
                 f"not found in sample. "
-                f"Available keys: {list(sample.keys())}")
+                f"Available keys: {list(sample.keys())}"
+            )
 
         path = sample[self.compressed_file_key]
         tex_contents = self._extract_tex_contents(path)

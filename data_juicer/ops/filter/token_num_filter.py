@@ -4,7 +4,6 @@ from data_juicer.utils.constant import Fields, StatsKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, Filter
-from ..common import get_words_from_document
 
 OP_NAME = "token_num_filter"
 
@@ -18,6 +17,8 @@ class TokenNumFilter(Filter):
     thresholds. The token count is stored in the 'num_token' field of the sample's stats. If
     the token count is not already computed, it will be calculated using the specified
     tokenizer."""
+
+    _batched_op = True
 
     def __init__(
         self,
@@ -48,15 +49,28 @@ class TokenNumFilter(Filter):
             model_type="huggingface", pretrained_model_name_or_path=hf_tokenizer, return_model=False
         )
 
-    def compute_stats_single(self, sample):
-        # check if it's computed already
-        if StatsKeys.num_token in sample[Fields.stats]:
-            return sample
+    def compute_stats_batched(self, samples, *args, **kwargs):
+        samples_list = samples[self.text_key]
+        samples_stats = samples[Fields.stats]
 
-        tokenizer = get_model(self.model_key)
-        tokens = get_words_from_document(sample[self.text_key], token_func=tokenizer.tokenize if tokenizer else None)
-        sample[Fields.stats][StatsKeys.num_token] = len(tokens)
-        return sample
+        # Collect indices and texts that need tokenization
+        indices = []
+        texts = []
+        for idx, stat in enumerate(samples_stats):
+            if StatsKeys.num_token not in stat:
+                indices.append(idx)
+                texts.append(samples_list[idx])
 
-    def process_single(self, sample):
-        return self.get_keep_boolean(sample[Fields.stats][StatsKeys.num_token], self.min_num, self.max_num)
+        if texts:
+            tokenizer = get_model(self.model_key)
+            encoded = tokenizer(texts, add_special_tokens=False)
+            for i, idx in enumerate(indices):
+                samples_stats[idx][StatsKeys.num_token] = len(encoded["input_ids"][i])
+
+        return samples
+
+    def process_batched(self, samples):
+        return [
+            self.get_keep_boolean(stat[StatsKeys.num_token], self.min_num, self.max_num)
+            for stat in samples[Fields.stats]
+        ]

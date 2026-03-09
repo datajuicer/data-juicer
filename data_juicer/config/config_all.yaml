@@ -33,6 +33,7 @@ export_in_parallel: false                                   # whether to export 
 keep_stats_in_res_ds: false                                 # whether to keep the computed stats in the result dataset. The intermediate fields to store the stats computed by Filters will be removed if it's False. It's False in default.
 keep_hashes_in_res_ds: false                                # whether to keep the computed hashes in the result dataset. The intermediate fields to store the hashes computed by Deduplicators will be removed if it's False. It's False in default.
 export_extra_args: {}                                       # Other optional arguments for exporting in dict. For example, the key mapping info for exporting the WebDataset format.
+load_dataset_kwargs: {}                                     # extra kwargs passed to datasets.load_dataset(). Useful for format-specific options, e.g. chunksize (JSON), columns (Parquet), delimiter (CSV).
 
 auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.
 np: 4                                                       # number of subprocess to process your dataset
@@ -198,6 +199,11 @@ process:
       model_params: {}                                        # Parameters for initializing the API model.
       sampling_params: {}                                     # Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95}
   - expand_macro_mapper:                                    # expand macro definitions in Latex text.
+  - latex_merge_tex_mapper:                                 # Extract and concatenate all .tex files from a compressed LaTeX project archive.
+      compressed_file_key: 'compressed_file'                   # Field storing the archive path.
+      separator: '\n\n'                                       # Separator between concatenated .tex files.
+      max_file_size: 52428800                                 # 50 MB; skip .tex entries larger than this (zip bomb protection).
+      max_total_size: 104857600                                 # 100 MB; cumulative limit for all extracted .tex content.
   - extract_entity_attribute_mapper:                        # Extract attributes for given entities from the text.
       api_model: 'gpt-4o'                                     # API model name.
       query_entities: ["孙悟空", "猪八戒"]                      # Entity list to be queried.

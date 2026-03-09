@@ -103,9 +103,8 @@ class WordRepetitionFilter(Filter):
 
             freq_word_ngrams = list(freq_word_ngrams.values())
             rep_more_than_one = [freq for freq in freq_word_ngrams if freq > 1]
-            samples_stats[idx][StatsKeys.word_rep_ratio] = (
-                (sum(rep_more_than_one) / sum(freq_word_ngrams)) if sum(freq_word_ngrams) != 0 else 0.0
-            )
+            total = sum(freq_word_ngrams)
+            samples_stats[idx][StatsKeys.word_rep_ratio] = (sum(rep_more_than_one) / total) if total != 0 else 0.0
 
         return samples
 

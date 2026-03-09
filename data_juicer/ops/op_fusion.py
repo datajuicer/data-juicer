@@ -237,7 +237,7 @@ class GeneralFusedOP(Mapper):
                 if check_op_method_param(op.process, "context"):
                     # add context param only when the core process method of this OP contains this param
                     process_args["context"] = True
-                samples = op.process_batched(tmp_samples, **process_args)
+                tmp_samples = op.process_batched(tmp_samples, **process_args)
             elif isinstance(op, Filter):
                 if check_op_method_param(op.compute_stats, "context"):
                     # add context param only when the core process method of this OP contains this param

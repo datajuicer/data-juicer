@@ -18,6 +18,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import uuid
 
 from data_juicer.config import init_configs
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
@@ -31,7 +32,12 @@ class PartitionedExecutorIntegrationTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.tmp_dir = tempfile.mkdtemp(prefix='test_partitioned_integration_')
+        # Use a shared directory under root_path instead of system /tmp
+        # This ensures the temp directory is accessible by all Ray workers
+        # in distributed mode (e.g., Docker containers sharing /workspace)
+        unique_name = f'test_partitioned_integration_{uuid.uuid4().hex[:8]}'
+        self.tmp_dir = os.path.join(self.root_path, 'tmp', unique_name)
+        os.makedirs(self.tmp_dir, exist_ok=True)
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -458,7 +464,12 @@ class CheckpointResumeIntegrationTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.tmp_dir = tempfile.mkdtemp(prefix='test_ckpt_resume_')
+        # Use a shared directory under root_path instead of system /tmp
+        # This ensures the temp directory is accessible by all Ray workers
+        # in distributed mode (e.g., Docker containers sharing /workspace)
+        unique_name = f'test_ckpt_resume_{uuid.uuid4().hex[:8]}'
+        self.tmp_dir = os.path.join(self.root_path, 'tmp', unique_name)
+        os.makedirs(self.tmp_dir, exist_ok=True)
 
     def tearDown(self) -> None:
         super().tearDown()

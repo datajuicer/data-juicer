@@ -692,5 +692,32 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
         self.assertIn('No data validator found', str(context.exception))
 
 
+    def test_load_dataset_forwards_extra_kwargs(self):
+        """Test that extra kwargs are forwarded through load_dataset."""
+        self.base_cfg.dataset = {
+            'configs': [{
+                'type': 'local',
+                'path': 'test_data/sample.jsonl',
+            }],
+        }
+        self.base_cfg.text_keys = ['text']
+        self.base_cfg.process = []
+
+        builder = DatasetBuilder(self.base_cfg, self.executor_type)
+
+        captured_kwargs = {}
+        original_load = builder.load_strategies[0].load_data
+
+        def spy_load_data(**kwargs):
+            captured_kwargs.update(kwargs)
+            return original_load(**kwargs)
+
+        builder.load_strategies[0].load_data = spy_load_data
+        builder.load_dataset(num_proc=1, chunksize=99999)
+
+        self.assertEqual(captured_kwargs['num_proc'], 1)
+        self.assertEqual(captured_kwargs['chunksize'], 99999)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -212,6 +212,16 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "must have a `type` field specifying the validator type.",
             )
             parser.add_argument(
+                "--load_dataset_kwargs",
+                type=Dict,
+                default={},
+                help="Extra keyword arguments passed through to the underlying "  # noqa: E251
+                "datasets.load_dataset() call. Useful for format-specific "
+                "options such as chunksize (JSON), columns (Parquet), or "
+                "delimiter (CSV). See the HuggingFace Datasets docs for "
+                "available options.",
+            )
+            parser.add_argument(
                 "--work_dir",
                 type=str,
                 default=None,

@@ -156,7 +156,10 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             logger.info("Loading dataset from dataset builder...")
             if load_data_np is None:
                 load_data_np = self.np
-            dataset = self.dataset_builder.load_dataset(num_proc=load_data_np)
+            load_kwargs = {"num_proc": load_data_np}
+            if getattr(self.cfg, "load_dataset_kwargs", None):
+                load_kwargs.update(dict(self.cfg.load_dataset_kwargs))
+            dataset = self.dataset_builder.load_dataset(**load_kwargs)
 
         # 2. extract processes and optimize their orders
         logger.info("Preparing process operators...")
@@ -282,7 +285,10 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             logger.info("Loading dataset from dataset builder...")
             if load_data_np is None:
                 load_data_np = self.np
-            dataset = self.dataset_builder.load_dataset(num_proc=load_data_np)
+            load_kwargs = {"num_proc": load_data_np}
+            if getattr(self.cfg, "load_dataset_kwargs", None):
+                load_kwargs.update(dict(self.cfg.load_dataset_kwargs))
+            dataset = self.dataset_builder.load_dataset(**load_kwargs)
 
         # Perform sampling based on the specified algorithm
         if sample_algo == "uniform":

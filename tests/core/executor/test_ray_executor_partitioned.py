@@ -1,6 +1,9 @@
 import os
+import shutil
 import tempfile
 import unittest
+import uuid
+
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
 from data_juicer.config import init_configs
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
@@ -11,13 +14,16 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Create temporary directory
-        self.tmp_dir = tempfile.mkdtemp(prefix='test_ray_executor_partitioned_')
+        # Use a shared directory under root_path instead of system /tmp
+        # This ensures the temp directory is accessible by all Ray workers
+        # in distributed mode (e.g., Docker containers sharing /workspace)
+        unique_name = f'test_ray_executor_partitioned_{uuid.uuid4().hex[:8]}'
+        self.tmp_dir = os.path.join(self.root_path, 'tmp', unique_name)
+        os.makedirs(self.tmp_dir, exist_ok=True)
 
     def tearDown(self) -> None:
         super().tearDown()
         # Clean up temporary directory
-        import shutil
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 
@@ -537,11 +543,15 @@ class PartitionedRayExecutorEdgeCasesTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.tmp_dir = tempfile.mkdtemp(prefix='test_ray_executor_edge_')
+        # Use a shared directory under root_path instead of system /tmp
+        # This ensures the temp directory is accessible by all Ray workers
+        # in distributed mode (e.g., Docker containers sharing /workspace)
+        unique_name = f'test_ray_executor_edge_{uuid.uuid4().hex[:8]}'
+        self.tmp_dir = os.path.join(self.root_path, 'tmp', unique_name)
+        os.makedirs(self.tmp_dir, exist_ok=True)
 
     def tearDown(self) -> None:
         super().tearDown()
-        import shutil
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 

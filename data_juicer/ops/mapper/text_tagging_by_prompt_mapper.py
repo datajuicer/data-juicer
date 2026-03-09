@@ -74,6 +74,7 @@ class TextTaggingByPromptMapper(Mapper):
         tensor_parallel_size: int = None,
         max_model_len: int = None,
         max_num_seqs: int = 256,
+        model_params: Dict = None,
         sampling_params: Dict = None,
         *args,
         **kwargs,
@@ -93,6 +94,7 @@ class TextTaggingByPromptMapper(Mapper):
             derived from the model config.
         :param max_num_seqs: It is only valid when enable_vllm is True.
             Maximum number of sequences to be processed in a single iteration.
+        :param model_params: Parameters for model initialization.
         :param sampling_params: Sampling parameters for text generation.
             e.g {'temperature': 0.9, 'top_p': 0.95}
         :param args: extra args
@@ -117,7 +119,8 @@ class TextTaggingByPromptMapper(Mapper):
         self.prompt = prompt
         self.tag_list = tag_list
         self.enable_vllm = enable_vllm
-        model_params = {"trust_remote_code": trust_remote_code, "max_num_seqs": max_num_seqs}
+        model_params = (model_params or {}).copy()
+        model_params.update({"trust_remote_code": trust_remote_code, "max_num_seqs": max_num_seqs})
         if tensor_parallel_size is not None:
             model_params["tensor_parallel_size"] = tensor_parallel_size
         if max_model_len is not None:

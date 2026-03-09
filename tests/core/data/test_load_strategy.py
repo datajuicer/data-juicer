@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from data_juicer.core.data.load_strategy import (
     DataLoadStrategyRegistry, DataLoadStrategy, StrategyKey,
     DefaultLocalDataLoadStrategy,
+    DefaultHuggingfaceDataLoadStrategy,
     RayLocalJsonDataLoadStrategy,
     DefaultS3DataLoadStrategy,
     RayS3DataLoadStrategy
@@ -255,7 +256,57 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         assert getattr(strategy.cfg, 'text_keys', ['text']) == ['text']
         assert getattr(strategy.cfg, 'suffixes', None) is None
         assert getattr(strategy.cfg, 'add_suffix', False) is False
-        
+
+    def test_local_strategy_forwards_load_dataset_kwargs(self):
+        """Test that extra kwargs passed to load_data reach datasets.load_dataset.
+
+        Passes a ``features`` kwarg that adds an extra column not present in the
+        source file.  If kwargs are forwarded correctly, the loaded dataset will
+        contain that column; if not, it won't.
+        """
+        from datasets import Features, Value
+
+        DataLoadStrategyRegistry._strategies = {}
+
+        sample_path = osp.join(WORK_DIR, "test_data", "sample.jsonl")
+        cfg = Namespace(text_keys=["text"], suffixes=None, process=[])
+        ds_config = {"type": "local", "path": sample_path}
+
+        extra_features = Features({"text": Value("string"), "extra": Value("string")})
+
+        strategy = DefaultLocalDataLoadStrategy(ds_config, cfg)
+        ds = strategy.load_data(num_proc=1, features=extra_features)
+
+        self.assertIn("extra", ds.features)
+
+    @patch("data_juicer.core.data.load_strategy.datasets.load_dataset")
+    def test_huggingface_strategy_forwards_load_dataset_kwargs(self, mock_load_dataset):
+        """Test that extra kwargs passed to load_data reach datasets.load_dataset.
+
+        The HuggingFace strategy calls ``datasets.load_dataset(path, ...)``
+        which requires a real hub dataset, so we mock it and assert the
+        ``features`` kwarg is present in the call.
+        """
+        from datasets import Features, Value
+
+        DataLoadStrategyRegistry._strategies = {}
+
+        cfg = Namespace(text_keys=["text"])
+        ds_config = {"type": "huggingface", "path": "dummy/dataset"}
+
+        mock_dataset = MagicMock()
+        mock_load_dataset.return_value = mock_dataset
+
+        extra_features = Features({"text": Value("string"), "extra": Value("string")})
+
+        strategy = DefaultHuggingfaceDataLoadStrategy(ds_config, cfg)
+
+        with patch("data_juicer.core.data.load_strategy.unify_format") as mock_unify:
+            mock_unify.return_value = mock_dataset
+            strategy.load_data(num_proc=1, features=extra_features)
+
+        self.assertEqual(mock_load_dataset.call_args.kwargs.get("features"), extra_features)
+
 
 class TestRayLocalJsonDataLoadStrategy(DataJuicerTestCaseBase):
     def setUp(self):

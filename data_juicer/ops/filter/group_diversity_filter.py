@@ -95,19 +95,26 @@ class GroupDiversityFilter(Filter):
 
     def compute_stats_batched(self, samples: Dict, rank: int = 0) -> Dict:
         stats_list = samples[Fields.stats]
-        if stats_list and StatsKeys.text_ebd_diversity_score in stats_list[0]:
+        if stats_list and StatsKeys.llm_embd_diversity in stats_list[0]:
             return samples
 
         texts_to_embed = samples[self.text_key]
         if not texts_to_embed:
             for stat in stats_list:
-                stat[StatsKeys.text_ebd_diversity] = 0.0
-                stat[StatsKeys.text_ebd_diversity_score] = 0.0
+                stat[StatsKeys.llm_embd_diversity] = 0.0
             return samples
 
         embeddings_array = self._embed_texts(texts_to_embed, rank=rank)
 
-        avg_embedding = np.mean(embeddings_array, axis=0)
+        valid_mask = ~np.all(embeddings_array == 0, axis=1)
+        valid_embeddings = embeddings_array[valid_mask]
+
+        if len(valid_embeddings) == 0:
+            for stat in stats_list:
+                stat[StatsKeys.llm_embd_diversity] = 0.0
+            return samples
+
+        avg_embedding = np.mean(valid_embeddings, axis=0)
 
         cos_sims = (
             torch.nn.functional.cosine_similarity(
@@ -118,23 +125,21 @@ class GroupDiversityFilter(Filter):
             .tolist()
         )
 
-        min_sim, max_sim = min(cos_sims), max(cos_sims)
-        range_sim = max_sim - min_sim
-
-        normalized_scores = []
-        if range_sim < 1e-8:
-            normalized_scores = [0.0] * len(cos_sims)
-        else:
-            for sim in cos_sims:
-                normalized_sim = self.norm_ratio * (max_sim - sim) / range_sim
-                normalized_scores.append(normalized_sim)
-
         for i, stat in enumerate(stats_list):
-            stat[StatsKeys.text_ebd_diversity] = cos_sims[i]
-            stat[StatsKeys.text_ebd_diversity_score] = normalized_scores[i]
+            stat[StatsKeys.llm_embd_diversity] = cos_sims[i]
 
         return samples
 
     def process_batched(self, samples: Dict) -> List[bool]:
         stats_list = samples[Fields.stats]
-        return [self.min_score <= stat[StatsKeys.text_ebd_diversity_score] <= self.max_score for stat in stats_list]
+        cos_sims = [stat[StatsKeys.llm_embd_diversity] for stat in stats_list]
+
+        min_sim, max_sim = min(cos_sims), max(cos_sims)
+        range_sim = max_sim - min_sim
+
+        if range_sim < 1e-8:
+            normalized_scores = [0.0] * len(cos_sims)
+        else:
+            normalized_scores = [self.norm_ratio * (max_sim - sim) / range_sim for sim in cos_sims]
+
+        return [self.min_score <= score <= self.max_score for score in normalized_scores]

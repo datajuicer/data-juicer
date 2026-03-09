@@ -59,17 +59,17 @@ class GroupDiversityFilterTest(DataJuicerTestCaseBase):
         stats_list = dataset.to_list()
         for sample in stats_list:
             logger.info(f"Text: '{sample['text']}', "
-                        f"Score: {sample[Fields.stats].get(StatsKeys.text_ebd_diversity_score, 'N/A')}")
+                        f"Score: {sample[Fields.stats].get(StatsKeys.llm_embd_diversity, 'N/A')}")
 
-        scores = [d[Fields.stats][StatsKeys.text_ebd_diversity_score] for d in stats_list]
+        scores = [d[Fields.stats][StatsKeys.llm_embd_diversity] for d in stats_list]
         
         outlier_score = scores[-1]
         other_scores = scores[:-1]
         
-        self.assertTrue(all(outlier_score > score for score in other_scores),
-                        "The outlier sample did not receive the highest diversity score.")
+        self.assertTrue(all(outlier_score < score for score in other_scores),
+                "The outlier sample did not receive the lowest diversity value.")
         
-        logger.info("Test passed: The outlier sample correctly received the highest diversity score.")
+        logger.info("Test passed: The outlier sample correctly received the lowest diversity value.")
 
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@ This operator filters video samples based on the presence of given tags in the v
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, video
+Tags 标签: gpu, video
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

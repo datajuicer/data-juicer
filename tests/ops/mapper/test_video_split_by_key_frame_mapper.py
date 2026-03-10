@@ -6,9 +6,10 @@ import shutil
 import tempfile
 
 from data_juicer.core.data import NestedDataset as Dataset
+from data_juicer.ops.base_op import Fields
 from data_juicer.ops.mapper.video_split_by_key_frame_mapper import \
     VideoSplitByKeyFrameMapper
-from data_juicer.utils.mm_utils import SpecialTokens
+from data_juicer.utils.mm_utils import SpecialTokens, load_file_byte
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 
 
@@ -111,7 +112,7 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
             f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 两个长头发的女子正坐在一张圆桌前讲话互动。 {SpecialTokens.eoc}',
             'split_frames_num': [6]
         }]
-        op = VideoSplitByKeyFrameMapper(keep_original_sample=False)
+        op = VideoSplitByKeyFrameMapper(keep_original_sample=False, save_dir=self.tmp_dir)
         self._run_video_split_by_key_frame_mapper(op, ds_list, tgt_list)
 
     @TEST_TAG("standalone", "ray")
@@ -161,7 +162,7 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
             f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 两个长头发的女子正坐在一张圆桌前讲话互动。 {SpecialTokens.eoc}',
             'split_frames_num': [6]
         }]
-        op = VideoSplitByKeyFrameMapper(ffmpeg_extra_args='-movflags frag_keyframe+empty_moov')
+        op = VideoSplitByKeyFrameMapper(save_dir=self.tmp_dir, ffmpeg_extra_args='-movflags frag_keyframe+empty_moov')
         self._run_video_split_by_key_frame_mapper(op, ds_list, tgt_list)
 
     @TEST_TAG("standalone", "ray")
@@ -197,7 +198,7 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
             f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 两个长头发的女子正坐在一张圆桌前讲话互动。 {SpecialTokens.eoc}',
             'split_frames_num': [6]
         }]
-        op = VideoSplitByKeyFrameMapper(keep_original_sample=False)
+        op = VideoSplitByKeyFrameMapper(keep_original_sample=False, save_dir=self.tmp_dir)
         self._run_video_split_by_key_frame_mapper(op,
                                                   ds_list,
                                                   tgt_list,
@@ -238,7 +239,7 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
             f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 白色的小羊站在一旁讲话。旁边还有两只灰色猫咪和一只拉着灰狼的猫咪。{SpecialTokens.eoc}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 两个长头发的女子正坐在一张圆桌前讲话互动。 {SpecialTokens.eoc}',
             'split_frames_num': [3, 6]
         }]
-        op = VideoSplitByKeyFrameMapper(keep_original_sample=False)
+        op = VideoSplitByKeyFrameMapper(keep_original_sample=False, save_dir=self.tmp_dir)
         self._run_video_split_by_key_frame_mapper(op, ds_list, tgt_list)
 
     @TEST_TAG("standalone", "ray")
@@ -278,6 +279,7 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
             keep_original_sample=False,
             output_format="bytes",
             save_field=save_field,
+            save_dir=self.tmp_dir,
             legacy_split_by_text_token=True)
 
         dataset = Dataset.from_list(ds_list)
@@ -291,6 +293,9 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
             tgt = tgt_list[i]
             self.assertEqual(res['id'], tgt['id'])
             self.assertEqual(res['text'], tgt['text'])
+            self.assertEqual(len(res[Fields.source_file]), tgt['split_frames_num'])
+            for clip_path in res[Fields.source_file]:
+                self.assertTrue(os.path.exists(clip_path))
             self.assertEqual(len(res[save_field]), tgt['split_frames_num'])
             self.assertTrue(all(isinstance(v, bytes) for v in res[save_field]))
 
@@ -333,6 +338,7 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
             output_format="path",
             save_dir=self.tmp_dir,
             save_field=save_field,
+            video_backend="ffmpeg",
             legacy_split_by_text_token=False)
 
         dataset = Dataset.from_list(ds_list)
@@ -354,6 +360,67 @@ class VideoSplitByKeyFrameMapperTest(DataJuicerTestCaseBase):
         self.assertListEqual(
             sorted([os.path.join(self.tmp_dir, f) for f in os.listdir(self.tmp_dir)]),
             sorted(all_clips))
+
+    @TEST_TAG("standalone", "ray")
+    def test_input_video_bytes(self):
+        ds_list = [{
+            'id': 0,
+            'text': f'{SpecialTokens.video} 白色的小羊站在一旁讲话。旁边还有两只灰色猫咪和一只拉着灰狼的猫咪。',
+            'videos': [load_file_byte(self.vid1_path)]
+        }, {
+            'id': 1,
+            'text':
+            f'{SpecialTokens.video} 身穿白色上衣的男子，拿着一个东西，拍打自己的胃部。{SpecialTokens.eoc}',
+            'videos': [load_file_byte(self.vid2_path)]
+        }, {
+            'id': 2,
+            'text':
+            f'{SpecialTokens.video} 两个长头发的女子正坐在一张圆桌前讲话互动。 {SpecialTokens.eoc}',
+            'videos': [load_file_byte(self.vid3_path)]
+        }]
+        tgt_list = [{
+            'id': 0,
+            'text':
+            f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 白色的小羊站在一旁讲话。旁边还有两只灰色猫咪和一只拉着灰狼的猫咪。{SpecialTokens.eoc}',
+            'split_frames_num': 3
+        }, {
+            'id': 1,
+            'text':
+            f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 身穿白色上衣的男子，拿着一个东西，拍打自己的胃部。{SpecialTokens.eoc}',
+            'split_frames_num': 3
+        }, {
+            'id': 2,
+            'text':
+            f'{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video}{SpecialTokens.video} 两个长头发的女子正坐在一张圆桌前讲话互动。 {SpecialTokens.eoc}',
+            'split_frames_num': 6
+        }]
+
+        save_field = "clips"
+        op = VideoSplitByKeyFrameMapper(
+            keep_original_sample=False,
+            output_format="bytes",
+            save_field=save_field,
+            save_dir=self.tmp_dir,
+            legacy_split_by_text_token=True,
+            video_backend="ffmpeg"
+            )
+
+        dataset = Dataset.from_list(ds_list)
+        dataset = dataset.map(op.process, num_proc=2)
+        res_list = dataset.to_list()
+        res_list = sorted(res_list, key=lambda x: x["id"])
+        
+        for i in range(len(ds_list)):
+            res = res_list[i] 
+            tgt = tgt_list[i]
+
+            self.assertEqual(len(res[Fields.source_file]), tgt['split_frames_num'])
+            for clip_path in res[Fields.source_file]:
+                self.assertTrue(os.path.exists(clip_path))
+            self.assertEqual(res['id'], tgt['id'])
+            self.assertEqual(res['text'], tgt['text'])
+            self.assertEqual(len(res[save_field]), tgt['split_frames_num'])
+            self.assertTrue(all(isinstance(v, bytes) for v in res[save_field]))
 
 
 if __name__ == '__main__':

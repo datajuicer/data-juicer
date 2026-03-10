@@ -42,12 +42,13 @@ class RemoveLongWordsMapper(Mapper):
         self.max_len = max_len
 
     def should_keep_long_word(self, word):
-        if self.min_len <= len(word) <= self.max_len:
+        word_len = len(word)
+        if self.min_len <= word_len <= self.max_len:
             return True
-        elif self.min_len <= len(strip(word, SPECIAL_CHARACTERS)) <= self.max_len:
-            return True
-        else:
-            return False
+        # Only strip when word is too long; if too short, stripping won't help
+        if word_len > self.max_len:
+            return self.min_len <= len(strip(word, SPECIAL_CHARACTERS)) <= self.max_len
+        return False
 
     def process_batched(self, samples):
         for idx, text in enumerate(samples[self.text_key]):

@@ -80,6 +80,9 @@ BACKUP_MODEL_LINKS = {
     # DWPose
     "dwpose_onnx_det_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx",
     "dwpose_onnx_pose_model": "https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx",
+    # HaWoR
+    "hawor_model_path": "https://huggingface.co/ThunderVVV/HaWoR/resolve/main/hawor/checkpoints/hawor.ckpt",
+    "hawor_config_path": "https://huggingface.co/ThunderVVV/HaWoR/resolve/main/hawor/model_config.yaml",
 }
 
 
@@ -419,6 +422,60 @@ def prepare_api_model(
     return (client, processor)
 
 
+def prepare_deepcalib_model(model_path, **model_params):
+
+    device = model_params.pop("device", None)
+    if device is None:
+        raise ValueError("video_camera_calibration_static_deepcalib_mapper currently supports GPU usage only.")
+    device = device.replace("cuda", "/gpu")
+
+    if not os.path.exists(model_path):
+        LazyLoader.check_packages(["gdown"])
+        deepcalib_folder = os.path.join(DJMC, "deepcalib")
+        deepcalib_model_path = os.path.join(deepcalib_folder, "Regression", "Single_net", "weights_10_0.02.h5")
+        os.makedirs(deepcalib_folder, exist_ok=True)
+
+        if not os.path.exists(deepcalib_model_path):
+
+            deepcalib_zip_path = os.path.join(DJMC, "deepcalib_weights.zip")
+            subprocess.run(["gdown", "1TYZn-f2z7O0hp_IZnNfZ06ExgU9ii70T", "-O", deepcalib_zip_path], check=True)
+
+            import zipfile
+
+            zip_file = zipfile.ZipFile(deepcalib_zip_path)
+            for names in zip_file.namelist():
+                zip_file.extract(names, deepcalib_folder)
+            zip_file.close()
+
+        model_path = deepcalib_model_path
+
+    LazyLoader.check_packages(["tensorflow"])
+    import tensorflow as tf
+    from keras.applications.inception_v3 import InceptionV3
+    from keras.layers import Dense, Flatten, Input
+    from keras.models import Model
+
+    gpus = tf.config.list_physical_devices("GPU")
+    tf.config.set_visible_devices(gpus[int(device.split(":")[-1])], "GPU")
+    tf.config.experimental.set_memory_growth(gpus[int(device.split(":")[-1])], True)
+    with tf.device(device):
+        input_shape = (299, 299, 3)
+        main_input = Input(shape=input_shape, dtype="float32", name="main_input")
+        phi_model = InceptionV3(weights="imagenet", include_top=False, input_tensor=main_input, input_shape=input_shape)
+        phi_features = phi_model.output
+        phi_flattened = Flatten(name="phi-flattened")(phi_features)
+        final_output_focal = Dense(1, activation="sigmoid", name="output_focal")(phi_flattened)
+        final_output_distortion = Dense(1, activation="sigmoid", name="output_distortion")(phi_flattened)
+
+        for layer in phi_model.layers:
+            layer.name = layer.name + "_phi"
+
+        model = Model(inputs=main_input, outputs=[final_output_focal, final_output_distortion])
+        model.load_weights(model_path)
+
+    return model
+
+
 def prepare_diffusion_model(pretrained_model_name_or_path, diffusion_type, **model_params):
     """
     Prepare and load an Diffusion model from HuggingFace.
@@ -572,6 +629,65 @@ def prepare_huggingface_model(
     return (model, processor) if return_model else processor
 
 
+def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **model_params):
+
+    device = model_params.pop("device", "cpu")
+
+    hawor_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "HaWoR")
+    if not os.path.exists(hawor_repo_path):
+        subprocess.run(["git", "clone", "https://github.com/ThunderVVV/HaWoR.git", hawor_repo_path], check=True)
+    import sys
+
+    sys.path.append(hawor_repo_path)
+
+    from hawor.configs import get_config
+    from lib.models.hawor import HAWOR
+
+    if not os.path.exists(mano_right_path):
+        raise ValueError(
+            "Users need to download 'MANO_RIGHT.pkl' from https://mano.is.tue.mpg.de/ and comply with the MANO license."
+        )
+
+    if not os.path.exists(hawor_model_path):
+        hawor_model_dir = os.path.join(DJMC, "HaWor")
+        os.makedirs(hawor_model_dir, exist_ok=True)
+        hawor_model_path = os.path.join(hawor_model_dir, "hawor.ckpt")
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], hawor_model_path], check=True)
+
+    if not os.path.exists(hawor_config_path):
+        hawor_model_dir = os.path.join(DJMC, "HaWor")
+        os.makedirs(hawor_model_dir, exist_ok=True)
+        hawor_config_path = os.path.join(hawor_model_dir, "model_config.yaml")
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], hawor_config_path], check=True)
+
+    model_cfg = get_config(hawor_config_path, update_cachedir=True)
+
+    if (model_cfg.MODEL.BACKBONE.TYPE == "vit") and ("BBOX_SHAPE" not in model_cfg.MODEL):
+        model_cfg.defrost()
+        assert (
+            model_cfg.MODEL.IMAGE_SIZE == 256
+        ), f"MODEL.IMAGE_SIZE ({model_cfg.MODEL.IMAGE_SIZE}) should be 256 for ViT backbone"
+        model_cfg.MODEL.BBOX_SHAPE = [192, 256]
+        model_cfg.freeze()
+
+    if "DATA_DIR" in model_cfg.MANO:
+        model_cfg.defrost()
+        model_cfg.MANO.DATA_DIR = os.path.join(hawor_repo_path, "_DATA/data")
+        model_cfg.MANO.MODEL_PATH = mano_right_path
+        model_cfg.MANO.MEAN_PARAMS = os.path.join(hawor_repo_path, "_DATA/data/mano_mean_params.npz")
+        model_cfg.freeze()
+
+    hawor_model = HAWOR.load_from_checkpoint(hawor_model_path, strict=False, cfg=model_cfg, weights_only=False).to(
+        device
+    )
+
+    from data_juicer.ops.common.mano_func import MANO
+
+    mano_model = MANO(model_path=mano_right_path).to(device)
+
+    return hawor_model, model_cfg, mano_model
+
+
 def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):
     """
     Prepare and load a kenlm model.
@@ -590,6 +706,18 @@ def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):
     except:  # noqa: E722
         kenlm_model = kenlm.Model(check_model(model_name, force=True), **model_params)
     return kenlm_model
+
+
+def prepare_moge_model(model_path, **model_params):
+
+    device = model_params.pop("device", "cpu")
+
+    LazyLoader.check_packages(["moge@ git+https://github.com/microsoft/MoGe.git"])
+    from moge.model.v2 import MoGeModel
+
+    model = MoGeModel.from_pretrained(model_path).to(device)
+
+    return model
 
 
 def prepare_nltk_model(lang, name_pattern="punkt.{}.pickle", **model_params):
@@ -1517,12 +1645,15 @@ def prepare_sam_3d_body_model(
 
 MODEL_FUNCTION_MAPPING = {
     "api": prepare_api_model,
+    "deepcalib": prepare_deepcalib_model,
     "diffusion": prepare_diffusion_model,
     "dwpose": prepare_dwpose_model,
     "fasttext": prepare_fasttext_model,
     "fastsam": prepare_fastsam_model,
+    "hawor": prepare_hawor_model,
     "huggingface": prepare_huggingface_model,
     "kenlm": prepare_kenlm_model,
+    "moge": prepare_moge_model,
     "nltk": prepare_nltk_model,
     "nltk_pos_tagger": prepare_nltk_pos_tagger,
     "opencv_classifier": prepare_opencv_classifier,
@@ -1564,6 +1695,14 @@ def get_model(model_key=None, rank=None, use_cuda=False):
     global MODEL_ZOO
     if model_key not in MODEL_ZOO:
         logger.debug(f"{model_key} not found in MODEL_ZOO ({mp.current_process().name})")
+
+        # Configure thread limits in worker processes to prevent thread over-subscription
+        # when running with multiple processes (num_proc > 1)
+        if mp.current_process().name != "MainProcess":
+            from data_juicer.utils.process_utils import setup_worker_threads
+
+            setup_worker_threads(num_threads=1)
+
         if use_cuda and cuda_device_count() > 0:
             rank = rank if rank is not None else 0
             rank = rank % cuda_device_count()

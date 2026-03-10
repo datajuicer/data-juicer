@@ -1,6 +1,7 @@
 import unittest
 from data_juicer.ops.mapper.text_tagging_by_prompt_mapper import TextTaggingByPromptMapper, DEFAULT_CLASSIFICATION_PROMPT, DEFAULT_CLASSIFICATION_LIST
 from data_juicer.utils.constant import Fields
+from data_juicer.utils.resource_utils import is_cuda_available
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 def check_string_in_list(string_list, output):
@@ -40,6 +41,7 @@ class TextTaggingByPromptMapperTest(DataJuicerTestCaseBase):
             }]
         self._run_tagging(samples)
 
+    @unittest.skipUnless(is_cuda_available(), 'vLLM requires CUDA')
     def test_tagging_vllm(self):
         samples = [
             {
@@ -50,7 +52,9 @@ class TextTaggingByPromptMapperTest(DataJuicerTestCaseBase):
             enable_vllm=True,
             max_model_len=1024,
             max_num_seqs=16,
-            sampling_params={'temperature': 0.1, 'top_p': 0.95, 'max_tokens': 256})
+            sampling_params={'temperature': 0.1, 'top_p': 0.95, 'max_tokens': 256},
+            model_params={'gpu_memory_utilization': 0.8},
+        )
 
 
 if __name__ == '__main__':

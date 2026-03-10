@@ -16,7 +16,7 @@ project_path = os.path.dirname(os.path.dirname(demo_path))
 stack_exchange_recipe_desc = '''
 # RedPajama & The Pile -- StackExchange (refined by Data-Juicer)
 
-A refined version of StackExchange dataset in RedPajama & The Pile by [Data-Juicer](https://github.com/alibaba/data-juicer). Removing some "bad" samples from the original merged dataset to make it higher-quality.
+A refined version of StackExchange dataset in RedPajama & The Pile by [Data-Juicer](https://github.com/datajuicer/data-juicer). Removing some "bad" samples from the original merged dataset to make it higher-quality.
 
 This dataset is usually used to pretrain a Large Language Model.
 
@@ -131,7 +131,7 @@ class Visualize:
             # initial_sidebar_state="expanded",
         )
 
-        readme_link = 'https://github.com/alibaba/data-juicer'
+        readme_link = 'https://github.com/datajuicer/data-juicer'
         st.markdown(
             '<div align = "center"> <font size = "70"> Data-Juicer \
             </font> </div>',

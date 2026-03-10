@@ -1,5 +1,126 @@
 import unittest
+import os
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
+
+class RayDatasetFuncsTest(DataJuicerTestCaseBase):
+
+    def setUp(self):
+        """Set up test data"""
+        super().setUp()
+        
+        import ray
+        from data_juicer.core.data.ray_dataset import (
+            get_abs_path,
+            convert_to_absolute_paths,
+            set_dataset_to_absolute_path,
+            preprocess_dataset
+        )
+        
+        self.get_abs_path = get_abs_path
+        self.convert_to_absolute_paths = convert_to_absolute_paths
+        self.set_dataset_to_absolute_path = set_dataset_to_absolute_path
+        self.preprocess_dataset = preprocess_dataset
+        
+        self.test_data = [
+            {
+                'text': 'Hello',
+                'images': ['image1.jpg', 'subdir/image2.png'],
+                'videos': ['video1.mp4'],
+                'audios': ['audio1.wav', 'audio2.mp3']
+            },
+            {
+                'text': 'World',
+                'images': ['image3.jpg'],
+                'videos': ['subdir/video2.mp4'],
+                'audios': ['audio3.wav']
+            }
+        ]
+
+        self.tmp_dir = 'tmp/test_ray_executor/'
+        os.makedirs(self.tmp_dir, exist_ok=True)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            os.system(f'rm -rf {self.tmp_dir}')
+
+    def _touch_a_file(self, path):
+        """Create a file at the given path"""
+        with open(path, 'w') as f:
+            f.write('test')
+
+    @TEST_TAG('ray')
+    def test_get_abs_path_local(self):
+        """Test get_abs_path function for local paths"""
+        import os
+        
+        # Test relative path
+        dataset_dir = self.tmp_dir
+        rel_path = "image.jpg"
+        full_path = os.path.join(dataset_dir, rel_path)
+        self._touch_a_file(full_path)
+        expected = os.path.abspath(os.path.join(dataset_dir, rel_path))
+        result = self.get_abs_path(rel_path, dataset_dir)
+        self.assertEqual(result, expected)
+        
+        # Test absolute path (should remain unchanged)
+        abs_path = os.path.abspath(full_path)
+        result = self.get_abs_path(abs_path, dataset_dir)
+        self.assertEqual(result, abs_path)
+        
+        # Test remote path (should remain unchanged)
+        remote_path = "http://bucket/file.jpg"
+        result = self.get_abs_path(remote_path, dataset_dir)
+        self.assertEqual(result, remote_path)
+
+    @TEST_TAG('ray')
+    def test_convert_to_absolute_paths(self):
+        """Test convert_to_absolute_paths function"""
+        import pyarrow as pa
+        
+        # Create a PyArrow table similar to what would be passed to the function
+
+        sample_data = {
+            'images': [['image1.jpg', 'subdir/image2.png'], ['image3.jpg']],
+            'videos': [['video1.mp4'], ['subdir/video2.mp4']]
+        }
+
+        for key, value_list in sample_data.items():
+            for sub_list in value_list:
+                for path in sub_list:
+                    full_path = os.path.join(self.tmp_dir, path)
+                    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                    self._touch_a_file(full_path)
+
+        table = pa.Table.from_pydict(sample_data)
+        
+        dataset_dir = self.tmp_dir
+        path_keys = ['images', 'videos']
+        
+        result_table = self.convert_to_absolute_paths(table, dataset_dir, path_keys)
+        
+        result_dict = result_table.to_pydict()
+
+        # Check that images were converted to absolute paths
+        self.assertTrue(result_dict['images'][0][0].startswith('/'))
+        self.assertTrue(result_dict['images'][0][1].startswith('/'))
+        self.assertTrue(result_dict['images'][1][0].startswith('/'))
+        
+        # Check that videos were converted to absolute paths
+        self.assertTrue(result_dict['videos'][0][0].startswith('/'))
+        self.assertTrue(result_dict['videos'][1][0].startswith('/'))
+    
+    @TEST_TAG('ray')
+    def test_get_abs_path_with_nonexistent_local_path(self):
+        """Test get_abs_path when local path doesn't exist"""
+        # When the joined path doesn't exist, it should return the current path
+        dataset_dir = "./nonexistent_dataset"
+        path = "existing_file.txt"
+        tgt_path = os.path.join(dataset_dir, path)
+        non_tgt_path = os.path.abspath(tgt_path)
+        result = self.get_abs_path(path, dataset_dir)
+        self.assertEqual(result, tgt_path)
+        self.assertNotEqual(result, non_tgt_path)
 
 class TestRayDataset(DataJuicerTestCaseBase):
     def setUp(self):

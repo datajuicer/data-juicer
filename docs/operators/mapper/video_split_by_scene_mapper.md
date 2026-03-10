@@ -20,6 +20,9 @@ Tags 标签: cpu, multimodal
 | `min_scene_len` | typing.Annotated[int, Ge(ge=0)] | `15` | Minimum length of any scene. |
 | `show_progress` | <class 'bool'> | `False` | Whether to show progress from scenedetect. |
 | `save_dir` | <class 'str'> | `None` | The directory where generated video files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable. |
+| `save_field` | <class 'str'> | `None` | The new field name to save generated video files path. If not specified, will overwrite the original video field. |
+| `ffmpeg_extra_args` | <class 'str'> | `'-movflags frag_keyframe+empty_moov'` | Extra ffmpeg args for splitting video. |
+| `output_format` | <class 'str'> | `'path'` | The output format of the videos. Supported formats are: ["path", "bytes"]. If format is "path", the output is a list of lists, where each inner list contains the path of the split videos. e.g.[         [video1_split1_path, video1_split2_path, ...],         [video2_split1_path, video2_split2_path, ...],         ...     ] (In the order of the videos). If format is "bytes", the output is a list of lists, where each inner list contains the bytes of the split videos. e.g. [         [video1_split1_byte, video1_split2_byte, ...],         [video2_split1_byte, video2_split2_byte, ...],         ...     ] (In the order of the videos). |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
 

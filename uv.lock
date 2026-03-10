@@ -1789,6 +1789,18 @@ wheels = [
 ]
 
 [[package]]
+name = "dep-logic"
+version = "0.5.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d8/00/93a90a4ce514e63a181486c6408ea50e8cdf7cdb73ab5580a6f7f5e5a496/dep_logic-0.5.2.tar.gz", hash = "sha256:f8dc4a74d1bad0d35a45c236572cf5d6534b5c2e84de87f2a354c849eec7e562", size = 36816, upload-time = "2025-08-02T00:22:20.706Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/a4/c6927ef27a8da0788da2fa5f577df6423102c0b50cbabd80f867570949ef/dep_logic-0.5.2-py3-none-any.whl", hash = "sha256:0e72ab6676afd32fe8702896a8b9886bddd6ccd457b77ba360e7b6c4c95ce4c0", size = 35733, upload-time = "2025-08-02T00:22:19.497Z" },
+]
+
+[[package]]
 name = "depyf"
 version = "0.19.0"
 source = { registry = "https://pypi.org/simple" }
@@ -6010,10 +6022,9 @@ name = "py-data-juicer"
 source = { editable = "." }
 dependencies = [
     { name = "av" },
-    { name = "boto3", version = "1.38.45", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '4' or platform_machine != 'aarch64' or sys_platform != 'darwin'" },
-    { name = "boto3", version = "1.40.61", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '4' and platform_machine == 'aarch64' and sys_platform == 'darwin'" },
     { name = "bs4" },
     { name = "datasets" },
+    { name = "dep-logic" },
     { name = "dill" },
     { name = "emoji" },
     { name = "fastapi" },
@@ -6066,6 +6077,8 @@ all = [
     { name = "audiomentations" },
     { name = "bitarray" },
     { name = "black" },
+    { name = "boto3", version = "1.38.45", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '4' or platform_machine != 'aarch64' or sys_platform != 'darwin'" },
+    { name = "boto3", version = "1.40.61", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '4' and platform_machine == 'aarch64' and sys_platform == 'darwin'" },
     { name = "build" },
     { name = "click" },
     { name = "coverage" },
@@ -6159,6 +6172,8 @@ dev = [
 ]
 distributed = [
     { name = "bitarray" },
+    { name = "boto3", version = "1.38.45", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '4' or platform_machine != 'aarch64' or sys_platform != 'darwin'" },
+    { name = "boto3", version = "1.40.61", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '4' and platform_machine == 'aarch64' and sys_platform == 'darwin'" },
     { name = "pyspark" },
     { name = "ray", extra = ["default"] },
     { name = "s3fs" },
@@ -6215,7 +6230,8 @@ requires-dist = [
     { name = "bitarray", marker = "extra == 'distributed'" },
     { name = "black", marker = "extra == 'all'", specifier = ">=25.1.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
-    { name = "boto3" },
+    { name = "boto3", marker = "extra == 'all'" },
+    { name = "boto3", marker = "extra == 'distributed'" },
     { name = "bs4" },
     { name = "build", marker = "extra == 'all'" },
     { name = "build", marker = "extra == 'dev'" },
@@ -6230,6 +6246,7 @@ requires-dist = [
     { name = "datasets", specifier = ">=2.19.0" },
     { name = "decord", marker = "extra == 'all'" },
     { name = "decord", marker = "extra == 'vision'" },
+    { name = "dep-logic" },
     { name = "diffusers", marker = "extra == 'all'", specifier = ">=0.33.0" },
     { name = "diffusers", marker = "extra == 'vision'", specifier = ">=0.33.0" },
     { name = "dill", specifier = "==0.3.8" },

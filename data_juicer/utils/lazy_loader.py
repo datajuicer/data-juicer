@@ -200,7 +200,7 @@ class LazyLoader(types.ModuleType):
             if "/" in package_name:  # Handle GitHub URLs
                 package_name = package_name.split("/")[-1].replace(".git", "")
             try:
-                importlib.import_module(package_name)
+                importlib.import_module(package_name.strip())
                 return True
             except ImportError:
                 return False
@@ -250,6 +250,7 @@ class LazyLoader(types.ModuleType):
             self._package_url = package_url.split("@", 1)[1]
         else:
             self._package_url = package_url
+        self._package_url = self._package_url.strip() if self._package_url else self._package_url
 
         self._auto_install = auto_install
 
@@ -373,6 +374,7 @@ class LazyLoader(types.ModuleType):
                 package_name = package_name.split("[")[0]
             if "/" in package_name:  # Handle GitHub URLs
                 package_name = package_name.split("/")[-1].replace(".git", "")
+            package_name = package_name.strip()
 
             # Use the version from dependencies if available and not a URL
             is_url = package_spec.startswith(("git+", "https://"))

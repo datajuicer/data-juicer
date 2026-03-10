@@ -95,7 +95,7 @@ class BTSUnionFind:
         for value in self.hash_table.values():
             if len(value) > 1:
                 self.union_list(value)
-        del self.hash_table
+        self.hash_table = {}
 
     def balanced_union_find(self):
         for x, y in self.edge_buffer:
@@ -729,7 +729,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
                 batch_format="pyarrow",
                 zero_copy_batch=True,
                 num_gpus=1,
-                concurrency=ray.data.ActorPoolStrategy(size=concurrency),
+                compute=ray.data.ActorPoolStrategy(size=concurrency),
                 batch_size=batch_size,
             )
             dataset.map_batches(band_with_uid, **self._get_map_batches_kwargs()).write_parquet(tmp_dir)

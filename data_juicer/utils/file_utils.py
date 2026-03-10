@@ -11,6 +11,7 @@ from typing import AsyncGenerator, Dict, List, Optional, Union
 
 import aiohttp
 import pandas as pd
+from datasets.utils.extract import GzipExtractor
 from datasets.utils.extract import ZstdExtractor as Extractor
 
 from data_juicer.utils.common_utils import dict_to_hash
@@ -112,6 +113,12 @@ def find_files_with_suffix(
             # just like '.jsonl.zst'
             file_suffixes = [suffix.lower() for suffix in file.suffixes]
             suffix = "".join(file_suffixes[-2:])
+        elif GzipExtractor.is_extractable(file):
+            # support gzip-format file
+            # and use the last 2 sub-suffixes as the final suffix
+            # just like '.jsonl.gz'
+            file_suffixes = [suffix.lower() for suffix in file.suffixes]
+            suffix = "".join(file_suffixes[-2:])
 
         if not suffixes or (suffix in suffixes):
             if suffix not in file_dict:
@@ -123,7 +130,7 @@ def find_files_with_suffix(
 
 def is_remote_path(path: str):
     """Check if the path is a remote path."""
-    return path.startswith(("http://", "https://"))
+    return path.startswith(("http://", "https://", "s3://", "gs://", "hdfs://"))
 
 
 def is_absolute_path(path: Union[str, Path]) -> bool:

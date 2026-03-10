@@ -2,12 +2,12 @@ import os
 import unittest
 import tempfile
 import shutil
+import time
 import jsonlines as jl
 from data_juicer.core.tracer.ray_tracer import RayTracer
 from data_juicer.utils.unittest_utils import TEST_TAG
 import ray
 
-@TEST_TAG("ray")
 class RayTracerTest(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -21,6 +21,7 @@ class RayTracerTest(unittest.TestCase):
         if ray.is_initialized():
             ray.shutdown()
 
+    @TEST_TAG("ray")
     def test_ray_tracer_initialization(self):
         """Test RayTracer initialization."""
         tracer = RayTracer.remote(self.work_dir)
@@ -33,6 +34,7 @@ class RayTracerTest(unittest.TestCase):
         # By default, should trace all ops if no op_list_to_trace provided
         self.assertTrue(should_trace)
 
+    @TEST_TAG("ray")
     def test_ray_tracer_with_op_list(self):
         """Test RayTracer with specific op list to trace."""
         tracer = RayTracer.remote(self.work_dir, op_list_to_trace=['specific_op'])
@@ -43,6 +45,7 @@ class RayTracerTest(unittest.TestCase):
         should_not_trace = ray.get(tracer.should_trace_op.remote('other_op'))
         self.assertFalse(should_not_trace)
 
+    @TEST_TAG("ray")
     def test_collect_mapper_sample_basic(self):
         """Test basic functionality of collect_mapper_sample method in RayTracer."""
         tracer = RayTracer.remote(self.work_dir, op_list_to_trace=['test_mapper'])
@@ -56,6 +59,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -71,6 +75,7 @@ class RayTracerTest(unittest.TestCase):
         }]
         self.assertEqual(expected, trace_records)
 
+    @TEST_TAG("ray")
     def test_collect_mapper_sample_no_change(self):
         """Test collect_mapper_sample when original and processed texts are the same."""
         tracer = RayTracer.remote(self.work_dir)
@@ -84,11 +89,13 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         # File should not exist since no samples were collected
         self.assertFalse(os.path.exists(trace_file_path))
 
+    @TEST_TAG("ray")
     def test_collect_mapper_sample_with_trace_keys(self):
         """Test collect_mapper_sample with trace_keys functionality."""
         tracer = RayTracer.remote(self.work_dir, trace_keys=['sample_id', 'source'], op_list_to_trace=['test_mapper'])
@@ -101,6 +108,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -118,6 +126,7 @@ class RayTracerTest(unittest.TestCase):
         }]
         self.assertEqual(expected, trace_records)
 
+    @TEST_TAG("ray")
     def test_collect_mapper_sample_with_missing_trace_keys(self):
         """Test collect_mapper_sample when trace keys are missing from sample."""
         tracer = RayTracer.remote(self.work_dir, trace_keys=['missing_key', 'existing_key'], op_list_to_trace=['test_mapper'])
@@ -130,6 +139,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -147,6 +157,7 @@ class RayTracerTest(unittest.TestCase):
         }]
         self.assertEqual(expected, trace_records)
 
+    @TEST_TAG("ray")
     def test_collect_mapper_sample_not_in_op_list(self):
         """Test collect_mapper_sample when op is not in the trace list."""
         tracer = RayTracer.remote(self.work_dir, op_list_to_trace=['other_mapper'])
@@ -160,10 +171,12 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
         self.assertFalse(os.path.exists(trace_file_path))
 
+    @TEST_TAG("ray")
     def test_collect_filter_sample_basic(self):
         """Test basic functionality of collect_filter_sample method."""
         tracer = RayTracer.remote(self.work_dir, op_list_to_trace=['test_filter'])
@@ -176,6 +189,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_filter.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -188,6 +202,7 @@ class RayTracerTest(unittest.TestCase):
         expected = [{'text': 'filtered text', 'sample_id': 'id-456'}]
         self.assertEqual(expected, trace_records)
 
+    @TEST_TAG("ray")
     def test_collect_filter_sample_should_keep(self):
         """Test collect_filter_sample when sample should be kept."""
         tracer = RayTracer.remote(self.work_dir)
@@ -200,10 +215,12 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_filter.jsonl')
         self.assertFalse(os.path.exists(trace_file_path))
 
+    @TEST_TAG("ray")
     def test_collect_filter_sample_not_in_op_list(self):
         """Test collect_filter_sample when op is not in the trace list."""
         tracer = RayTracer.remote(self.work_dir, op_list_to_trace=['other_filter'])
@@ -216,10 +233,12 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_filter.jsonl')
         self.assertFalse(os.path.exists(trace_file_path))
 
+    @TEST_TAG("ray")
     def test_collect_mapper_sample_show_num_limit(self):
         """Test collect_mapper_sample respects show_num limit."""
         tracer = RayTracer.remote(self.work_dir, show_num=2, op_list_to_trace=['limited_mapper'])
@@ -244,6 +263,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-limited_mapper.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -261,6 +281,7 @@ class RayTracerTest(unittest.TestCase):
         ]
         self.assertEqual(expected, trace_records)
 
+    @TEST_TAG("ray")
     def test_collect_filter_sample_show_num_limit(self):
         """Test collect_filter_sample respects show_num limit."""
         tracer = RayTracer.remote(self.work_dir, show_num=1, op_list_to_trace=['limited_filter'])
@@ -277,6 +298,7 @@ class RayTracerTest(unittest.TestCase):
         
         # Finalize traces to write to file
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-limited_filter.jsonl')
         self.assertTrue(os.path.exists(trace_file_path))
@@ -291,6 +313,7 @@ class RayTracerTest(unittest.TestCase):
         expected = [{'text': 'filtered text 1'}]
         self.assertEqual(expected, trace_records)
 
+    @TEST_TAG("ray")
     def test_is_collection_complete(self):
         """Test is_collection_complete method."""
         tracer = RayTracer.remote(self.work_dir, show_num=1, op_list_to_trace=['test_op'])
@@ -308,12 +331,14 @@ class RayTracerTest(unittest.TestCase):
         is_complete = ray.get(tracer.is_collection_complete.remote('test_op'))
         self.assertTrue(is_complete)
 
+    @TEST_TAG("ray")
     def test_finalize_traces_empty(self):
         """Test finalize_traces when no traces were collected."""
         tracer = RayTracer.remote(self.work_dir)
         
         # Don't collect anything, just finalize
         ray.get(tracer.finalize_traces.remote())
+        time.sleep(1)
         
         # No trace files should exist
         trace_dir = os.path.join(self.work_dir, 'trace')

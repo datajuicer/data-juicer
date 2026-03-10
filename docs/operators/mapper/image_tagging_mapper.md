@@ -10,7 +10,7 @@ This operator processes images to generate descriptive tags. It uses a Hugging F
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, image
+Tags 标签: gpu, image
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

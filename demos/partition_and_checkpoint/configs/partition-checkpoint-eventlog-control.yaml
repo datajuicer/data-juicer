@@ -1,0 +1,89 @@
+# =============================================================================
+# CONTROL CONFIG FOR partition-checkpoint-eventlog.yaml
+# =============================================================================
+# This is a control configuration file for partition-checkpoint-eventlog.yaml
+# that uses the non-partitioned Ray executor (executor_type: "ray") instead of
+# the partitioned executor (executor_type: "ray_partitioned").
+#
+# This config is useful for:
+# 1. Comparing performance between partitioned and non-partitioned executors
+# 2. Testing DAG execution without partitioning
+# 3. Simpler execution flow without partition management
+#
+# Key differences from partition-checkpoint-eventlog.yaml:
+# - executor_type: "ray" (instead of "ray_partitioned")
+# - No partition configuration needed
+# - Simpler execution model (no partition splitting/merging)
+# =============================================================================
+
+dataset_path: './demos/data/demo-dataset.jsonl'
+
+work_dir: "./outputs/partition-checkpoint-eventlog/{job_id}"
+export_path: '{work_dir}/processed.jsonl'
+np: 8
+
+executor_type: "ray"  # Non-partitioned Ray executor (control config)
+ray_address: "auto"
+
+# Process pipeline with real DataJuicer operations
+process:
+  # Text cleaning operations
+  - clean_links_mapper:
+      text_key: "text"
+      min_links: 0
+      max_links: 10
+
+  - clean_email_mapper:
+      text_key: "text"
+      min_emails: 0
+      max_emails: 5
+
+  - whitespace_normalization_mapper:
+      text_key: "text"
+
+  - fix_unicode_mapper:
+      text_key: "text"
+
+  # Text filtering operations
+  - text_length_filter:
+      text_key: "text"
+      min_len: 5
+      max_len: 10000
+
+  - alphanumeric_filter:
+      text_key: "text"
+      min_ratio: 0.1
+
+  # Quality filtering
+  - character_repetition_filter:
+      text_key: "text"
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  - word_repetition_filter:
+      text_key: "text"
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  - ray_bts_minhash_deduplicator:
+      tokenization: 'character'
+      lowercase: true
+      union_find_parallel_num: 2
+
+# Export configuration
+export_in_parallel: true
+keep_stats_in_res_ds: true
+keep_hashes_in_res_ds: true
+
+# =============================================================================
+# USAGE:
+# =============================================================================
+# This control config uses the non-partitioned Ray executor for comparison.
+# To use this config:
+#
+#    dj-process --config configs/demo/partition-checkpoint-eventlog-control.yaml
+#
+# For the partitioned executor version, use:
+#    dj-process --config configs/demo/partition-checkpoint-eventlog.yaml
+#
+# =============================================================================

@@ -10,7 +10,7 @@ This mapper takes input from the specified query key and outputs the predicted s
 
 Type 算子类型: **mapper**
 
-Tags 标签: cpu, hf, hf
+Tags 标签: gpu, hf, hf
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
@@ -23,8 +23,6 @@ Tags 标签: cpu, hf, hf
 | `score_key` | <class 'str'> | `'query_sentiment_label_score'` | The key name in the meta field to store the corresponding label score. It is 'query_sentiment_label_score' in default. |
 | `kwargs` |  | `''` | Extra keyword arguments. |
 
-## 📊 Effect demonstration 效果演示
-not available 暂无
 
 ## 🔗 related links 相关链接
 - [source code 源代码](../../../data_juicer/ops/mapper/query_sentiment_detection_mapper.py)

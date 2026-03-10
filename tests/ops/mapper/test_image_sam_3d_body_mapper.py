@@ -11,6 +11,19 @@ from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 
+def _is_egl_available():
+    """Check if EGL is available for offscreen rendering."""
+    try:
+        from OpenGL.platform import ctypesloader
+        ctypesloader.loadLibrary(None, 'EGL')
+        return True
+    except (ImportError, OSError, TypeError):
+        return False
+
+
+EGL_AVAILABLE = _is_egl_available()
+
+
 class ImageSAM3DBodyMapperTest(DataJuicerTestCaseBase):
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              'data')
@@ -106,10 +119,12 @@ class ImageSAM3DBodyMapperTest(DataJuicerTestCaseBase):
         """
         self._run_test(num_proc=2)
 
+    @unittest.skipUnless(EGL_AVAILABLE, 'EGL not available for visualization')
     def test_vis(self):
         self._run_test(visualization_dir=self.tmp_dir, num_proc=1)
 
     @TEST_TAG('ray')
+    @unittest.skipUnless(EGL_AVAILABLE, 'EGL not available for visualization')
     def test_ray(self):
         self._run_test(visualization_dir=self.tmp_dir, ray_mode=True, num_proc=2)
 

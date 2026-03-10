@@ -60,7 +60,7 @@ python execute_hpo_wandb.py --config configs/process.yaml --hpo_config configs/q
 ```
 
 对于数据菜谱的配置，即`<data-process-cfg-file-path>`，
-请参阅我们的 [指南](https://github.com/alibaba/data-juicer/blob/main/README_ZH.md#%E6%9E%84%E5%BB%BA%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)
+请参阅我们的 [指南](https://github.com/datajuicer/data-juicer/blob/main/README_ZH.md#%E6%9E%84%E5%BB%BA%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)
 获取更多详细信息。
 对于HPO的配置，即`<hpo-cfg-file-path>`，请参阅Sweep提供的 [指南](https://docs.wandb.ai/guides/sweeps/define-sweep-configuration) 。
 

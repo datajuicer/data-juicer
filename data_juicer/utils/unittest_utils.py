@@ -238,6 +238,11 @@ def get_partial_test_cases():
     test_files = [find_corresponding_test_file(file_path) for file_path in diff_files]
     if None in test_files:
         # can't find corresponding test files for some changed files: run all
+        no_test_diff_files = [file_path for i, file_path in enumerate(diff_files) if test_files[i] is None]
+        logger.warning(
+            f"Can't find corresponding test files for {len(no_test_diff_files)} files: {no_test_diff_files}."
+            f" Will run all test cases."
+        )
         return None
     # add test cases that must be run
     test_files = list(must_run.union(set(test_files)))

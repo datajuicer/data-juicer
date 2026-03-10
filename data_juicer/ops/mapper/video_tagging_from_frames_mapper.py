@@ -4,6 +4,7 @@ import numpy as np
 from pydantic import PositiveInt
 
 from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import (
     close_video,
     extract_key_frames,
@@ -72,6 +73,7 @@ class VideoTaggingFromFramesMapper(Mapper):
         """
         kwargs["memory"] = "9GB" if kwargs.get("memory", 0) == 0 else kwargs["memory"]
         super().__init__(*args, **kwargs)
+        LazyLoader.check_packages(["ram @ git+https://github.com/datajuicer/recognize-anything.git"])
         if frame_sampling_method not in ["all_keyframes", "uniform"]:
             raise ValueError(
                 f"Frame sampling method [{frame_sampling_method}] is not "

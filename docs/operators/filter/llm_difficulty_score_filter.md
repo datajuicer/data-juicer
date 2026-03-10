@@ -10,7 +10,7 @@ This operator uses a Hugging Face LLM to evaluate the difficulty of each sample.
 
 Type 算子类型: **filter**
 
-Tags 标签: cpu, vllm, hf, api
+Tags 标签: gpu, vllm, hf, api
 
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |

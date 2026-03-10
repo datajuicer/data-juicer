@@ -215,7 +215,18 @@ class ImageSAM3DBodyMapper(Mapper):
                     os.makedirs(self.visualization_dir, exist_ok=True)
                     vis_path = os.path.join(self.visualization_dir, os.path.splitext(img_name)[0] + "_vis.jpg")
                     img = cv2.imread(image_path)
-                    rend_img = vis_utils.visualize_sample_together(img, output, estimator.faces)
+                    try:
+                        rend_img = vis_utils.visualize_sample_together(img, output, estimator.faces)
+                    except (ImportError, OSError) as e:
+                        if "EGL" in str(e):
+                            raise RuntimeError(
+                                "Visualization requires EGL for offscreen rendering, but EGL "
+                                "library was not found. To fix this:\n"
+                                "  - On Ubuntu/Debian: apt-get install libegl1-mesa libegl1-mesa-dev\n"
+                                "  - On headless servers: also install libgl1-mesa-dri\n"
+                                "  - Or disable visualization by not setting visualization_dir"
+                            ) from e
+                        raise
                     cv2.imwrite(
                         vis_path,
                         rend_img.astype(np.uint8),

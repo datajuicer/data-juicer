@@ -587,7 +587,9 @@ else:
 ...
 ```
 
-5. As the number of OPs increases, Data-Juicer's dependencies also multiply. To prevent Data-Juicer from becoming excessively burdened with dependencies, we've implemented a strategy that incorporates lazy importing and on-demand installation of additional dependencies required by OPs. `LazyLoader` will check if the packages corresponding to the module being loaded are installed, and if not, it will dynamically install them automatically. Below is an example illustrating this approach:
+5. As the number of OPs increases, Data-Juicer's dependencies also multiply. To prevent Data-Juicer from becoming excessively burdened with dependencies, we've implemented a strategy that incorporates manual specification, lazy importing and on-demand installation of additional dependencies required by OPs.
+    - `_requirements` attribute of OPs can be used to specify the additional dependencies required by the OP. It could be a list of packages or a string path to a requirements.txt file. In ray mode, this attribute helps Data-Juicer to install these additional dependencies on computing nodes in the Ray cluster automatically. We recommend developers set this attribute explicitly for new OPs.
+    - `LazyLoader` will check if the packages corresponding to the module being loaded are installed, and if not, it will dynamically install them automatically.
 
 ```python
 # ... (import some library)
@@ -598,6 +600,9 @@ kenlm = LazyLoader('kenlm')
 sp = LazyLoader('sentencepiece')
 
 class PerplexityFilter(Filter):
+    # set the additional requirements for this OP explicitly
+    _requirements = ['kenlm', 'sentencepiece', 'fasttext-wheel']
+
     def __init__(self,
                 # ... (OP parameters)
                 *args,

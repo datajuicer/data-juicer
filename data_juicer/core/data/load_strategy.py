@@ -631,7 +631,7 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
 
             # Use ray.data functions directly with PyArrow filesystem support
             # Ray's read functions support filesystem parameter via PyArrow
-            if data_format in {"json", "jsonl"}:
+            if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
                 # For JSON, we need to use read_json_stream with filesystem
                 from data_juicer.core.data.ray_dataset import read_json_stream
 

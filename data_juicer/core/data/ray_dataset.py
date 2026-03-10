@@ -17,30 +17,39 @@ from data_juicer.ops import Deduplicator, Filter, Mapper, Pipeline
 from data_juicer.ops.base_op import DEFAULT_BATCH_SIZE, TAGGING_OPS
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import is_remote_path
-from data_juicer.utils.resource_utils import cuda_device_count
 from data_juicer.utils.webdataset_utils import _custom_default_decoder
 
 
 def get_abs_path(path, dataset_dir):
     if is_remote_path(path):
         return path
-    full_path = os.path.abspath(os.path.join(dataset_dir, path))
+    path = os.path.join(dataset_dir, path)
+    if is_remote_path(path):
+        return path
+    full_path = os.path.abspath(path)
     if os.path.exists(full_path):
         return full_path
     else:
         return path
 
 
-def convert_to_absolute_paths(samples, dataset_dir, path_keys):
-    samples = samples.to_pydict()
+def convert_to_absolute_paths(samples: pyarrow.Table, dataset_dir, path_keys):
     for key in path_keys:
-        for idx in range(len(samples[key])):
-            paths = samples[key][idx]
-            if isinstance(paths, str):
-                samples[key][idx] = get_abs_path(paths, dataset_dir)
-            elif isinstance(paths, list):
-                samples[key][idx] = [get_abs_path(item, dataset_dir) for item in paths]
-    return pyarrow.Table.from_pydict(samples)
+        col_idx = samples.schema.get_field_index(key)
+        cols = samples.column(col_idx)
+
+        def _process_paths():
+            for col in cols:
+                path = col.as_py()
+                if isinstance(path, str):
+                    yield get_abs_path(path, dataset_dir)
+                elif isinstance(path, list):
+                    yield [get_abs_path(p, dataset_dir) for p in path]
+                else:
+                    yield path
+
+        samples = samples.set_column(col_idx, key, pyarrow.array(_process_paths()))
+    return samples
 
 
 # TODO: check path for nestdataset
@@ -74,13 +83,6 @@ def preprocess_dataset(dataset: ray.data.Dataset, dataset_path, cfg) -> ray.data
     if dataset_path:
         dataset = set_dataset_to_absolute_path(dataset, dataset_path, cfg)
     return dataset
-
-
-def get_num_gpus(op, op_proc):
-    if not op.use_cuda():
-        return 0
-    proc_per_gpu = op_proc / cuda_device_count()
-    return 1.0 / proc_per_gpu
 
 
 def filter_batch(batch, filter_func):
@@ -164,12 +166,45 @@ class RayDataset(DJDataset):
         if self._auto_proc:
             calculate_ray_np(operators)
 
+        # Check if dataset is empty - Ray returns None for columns() on empty datasets
+        # with unknown schema. If empty, skip processing as there's nothing to process.
+        try:
+            row_count = self.data.count()
+        except Exception:
+            row_count = 0
+
+        if row_count == 0:
+            from loguru import logger
+
+            logger.warning("Dataset is empty (0 rows), skipping operator processing")
+            return self
+
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming
-        cached_columns = set(self.data.columns())
+        columns_result = self.data.columns()
+        # Handle empty dataset case where columns() returns None
+        if columns_result is None:
+            from loguru import logger
+
+            logger.warning("Dataset has unknown schema (likely empty), skipping operator processing")
+            return self
+        cached_columns = set(columns_result)
 
         for op in operators:
-            cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+            try:
+                cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+            except Exception as e:
+                logger.error(f"Error processing operator {op}: {e}.")
+                if op.runtime_env is not None:
+                    logger.error("Try to fallback to the base runtime environment.")
+                    original_runtime_env = op.runtime_env
+                    try:
+                        op.runtime_env = None
+                        cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+                    finally:
+                        op.runtime_env = original_runtime_env
+                else:
+                    raise e
         return self
 
     def _run_single_op(self, op, cached_columns=None, tracer=None):
@@ -320,7 +355,7 @@ class RayDataset(DJDataset):
 
     @classmethod
     def read(cls, data_format: str, paths: Union[str, List[str]]) -> RayDataset:
-        if data_format in {"json", "jsonl"}:
+        if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
             return RayDataset.read_json(paths)
         elif data_format == "webdataset":
             return RayDataset.read_webdataset(paths)
@@ -418,7 +453,7 @@ def read_json_stream(
     include_paths: bool = False,
     ignore_missing_paths: bool = False,
     shuffle: Union[Literal["files"], None] = None,
-    file_extensions: Optional[List[str]] = ["json", "jsonl"],
+    file_extensions: Optional[List[str]] = ["json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"],
     concurrency: Optional[int] = None,
     override_num_blocks: Optional[int] = None,
     **arrow_json_args,

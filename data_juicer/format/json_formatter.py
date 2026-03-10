@@ -6,10 +6,10 @@ class JsonFormatter(LocalFormatter):
     """
     The class is used to load and format json-type files.
 
-    Default suffixes is `['.json', '.jsonl', '.jsonl.zst']`
+    Default suffixes is `['.json', '.jsonl', '.json.gz', '.jsonl.gz', '.json.zst', '.jsonl.zst']`
     """
 
-    SUFFIXES = [".json", ".jsonl", ".jsonl.zst"]
+    SUFFIXES = [".json", ".jsonl", ".json.gz", ".jsonl.gz", ".json.zst", ".jsonl.zst"]
 
     def __init__(self, dataset_path, suffixes=None, **kwargs):
         """

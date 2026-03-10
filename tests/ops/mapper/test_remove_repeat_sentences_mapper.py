@@ -67,6 +67,62 @@ class RemoveRepeatSentencesMapperTest(DataJuicerTestCaseBase):
                                          min_repeat_sentence_length=5)
         self._run_helper(samples, op)
 
+    def test_custom_tokenizer_callable(self):
+
+        from nltk.tokenize import sent_tokenize
+
+        samples = [{
+            'text':
+            'The quick brown fox jumps over the lazy dog. Isn\'t it amazing? The quick brown fox jumps over the lazy dog. Speaking of weather, today is delightful.',
+            'target':
+            'The quick brown fox jumps over the lazy dog. Isn\'t it amazing? Speaking of weather, today is delightful.'
+        }]
+
+        op = RemoveRepeatSentencesMapper(tokenizer=sent_tokenize)
+        self._run_helper(samples, op)
+
+    def test_custom_tokenizer_lambda_str(self):
+
+        samples = [{
+            'text':
+            'The quick brown fox jumps over the lazy dog. Isn\'t it amazing? The quick brown fox jumps over the lazy dog. Speaking of weather, today is delightful.',
+            'target':
+            'The quick brown fox jumps over the lazy dog. Isn\'t it amazing? Speaking of weather, today is delightful.'
+        }]
+
+        op = RemoveRepeatSentencesMapper(
+            tokenizer="lambda text: __import__('nltk').sent_tokenize(text)")
+        self._run_helper(samples, op)
+
+    def test_custom_tokenizer_preserves_decimals(self):
+
+        from nltk.tokenize import sent_tokenize
+
+        samples = [{
+            'text':
+            'The package weighs 2.5 kg and ships tomorrow. Delivery takes 3 days. The package weighs 2.5 kg and ships tomorrow. Please confirm the order.',
+            'target':
+            'The package weighs 2.5 kg and ships tomorrow. Delivery takes 3 days. Please confirm the order.'
+        }]
+
+        op = RemoveRepeatSentencesMapper(tokenizer=sent_tokenize)
+        self._run_helper(samples, op)
+
+    def test_custom_tokenizer_invalid_type(self):
+
+        with self.assertRaises(ValueError):
+            RemoveRepeatSentencesMapper(tokenizer=123)
+
+    def test_custom_tokenizer_invalid_lambda_str(self):
+
+        with self.assertRaises(ValueError):
+            RemoveRepeatSentencesMapper(tokenizer="not a lambda")
+
+    def test_custom_tokenizer_lambda_wrong_arity(self):
+
+        with self.assertRaises(ValueError):
+            RemoveRepeatSentencesMapper(tokenizer="lambda a, b: a")
+
 
 if __name__ == '__main__':
     unittest.main()

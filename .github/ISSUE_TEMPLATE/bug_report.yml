@@ -3,114 +3,128 @@ description: Create a report to help us reproduce and fix the bug
 title: "[Bug]: "
 labels: ["bug"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🌍 International Community Notice
+        **This is an international community. Please use English when reporting issues to ensure the widest possible support and collaboration.**
+
+        If you're more comfortable with Chinese, we recommend using the [Q&A Copilot](https://datajuicer.github.io/data-juicer/en/main/docs_index.html) first, which supports multiple languages.
+
   - type: checkboxes
     attributes:
-      label: Before Reporting 报告之前
+      label: Before Reporting
       description: >
-        Please check and try following methods to solve it by yourself. 请先检查并通过一下方法尝试自己解决。
+        Please check and try following methods to solve it by yourself before reporting.
       options:
         - label: >
-           I have pulled the latest code of main branch to run again and the bug still existed.
-           我已经拉取了主分支上最新的代码，重新运行之后，问题仍不能解决。
+           I have asked the [Data-Juicer Q&A Copilot](https://datajuicer.github.io/data-juicer/en/main/docs_index.html) (available on Doc Site, DingTalk, or Discord), but the problem still persists.
           required: true
         - label: >
-           I have read the [README](https://github.com/alibaba/data-juicer/blob/main/README.md) carefully and no error occurred during the installation process. (Otherwise, we recommend that you can ask a question using the Question template)
-           我已经仔细阅读了 [README](https://github.com/alibaba/data-juicer/blob/main/README_ZH.md) 上的操作指引，并且在安装过程中没有错误发生。（否则，我们建议您使用Question模板向我们进行提问）
+           I have pulled the latest code of main branch to run again and the bug still existed.
+          required: true
+        - label: >
+           I have read the [README](https://github.com/datajuicer/data-juicer/blob/main/README.md) carefully and no error occurred during the installation process. (Otherwise, we recommend that you can ask a question using the Question template)
           required: true
 
   - type: checkboxes
     attributes:
-      label: Search before reporting 先搜索，再报告
+      label: Search before reporting
       description: >
-        Please search the [issues](https://github.com/alibaba/data-juicer/issues) to see if a similar bug already exists. 请先在 [issue 列表](https://github.com/alibaba/data-juicer/issues)中搜索是否已经有类似的bug已经存在。
+        Please search the [issues](https://github.com/datajuicer/data-juicer/issues) to see if a similar bug already exists.
       options:
         - label: >
-            I have searched the Data-Juicer [issues](https://github.com/alibaba/data-juicer/issues) and found no similar bugs.
-            我已经在 [issue列表](https://github.com/alibaba/data-juicer/issues) 中搜索但是没有发现类似的bug报告。
+            I have searched the Data-Juicer [issues](https://github.com/datajuicer/data-juicer/issues) and found no similar bugs.
           required: true
 
   - type: markdown
     attributes:
       value: |
         Thanks for your attention. We will try our best to solve the bug you reported, but more concrete information is necessary to reproduce the bug.
-        感谢您的关注。我们会尽我们最大努力去解决您报告的bug，但是一些更详细的信息对于帮助我们复现这个bug是必要的。
 
   - type: markdown
     attributes:
-      value: "## Environment Information-环境信息"
+      value: "## Environment Information"
 
   - type: input
     attributes:
-      label: OS 系统
-      description: e.g. Ubuntu, Windows, etc.
+      label: OS
+      description: e.g. Ubuntu, Windows, macOS, etc.
     validations:
       required: true
 
   - type: input
     attributes:
-      label: Installation Method 安装方式
+      label: Installation Method
       description: e.g. from source, pip, docker image, etc.
     validations:
       required: true
 
   - type: input
     attributes:
-      label: Data-Juicer Version Data-Juicer版本
-      description: e.g. latest, v0.1.2, etc.
+      label: Data-Juicer Version
+      description: e.g. latest, v1.4.6, etc.
     validations:
       required: false
 
   - type: input
     attributes:
-      label: Python Version Python版本
-      description: e.g. 3.7, 3.9, etc.
+      label: Python Version
+      description: e.g. 3.8, 3.9, 3.10, etc.
     validations:
       required: true
 
   - type: markdown
     attributes:
-      value: "## About Bug-Bug相关信息"
+      value: "## About Bug"
 
   - type: textarea
     attributes:
-      label: Describe the bug 描述这个bug
-      description: A clear and concise description of what the bug is. 请详细、清晰地描述这个bug是什么样的。
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: To Reproduce 如何复现
-      description: Steps to reproduce the behavior. 请列举复现这个bug的步骤。
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
       placeholder: |
-        1. Modify code '...' 编辑了什么地方的代码
-        2. Run command '...' 运行了什么命令
-        3. See error 看到了什么报错信息
+        1. Go to '...'
+        2. Run command '...'
+        3. See error
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: Configs 配置信息
-      description: If applicable, add Config codes to help explain your problem. 如果可以，请提供数据处理时的配置文件以帮助您阐述bug信息。
+      label: Configs
+      description: If applicable, add your processing config (YAML) or recipe to help explain your problem.
     validations:
       required: false
 
   - type: textarea
     attributes:
-      label: Logs 报错日志
-      description: If applicable, add log information to help explain your problem. 如果可以，请提供相关日志信息以帮助您阐述bug信息。
+      label: Logs
+      description: If applicable, add log information or error traceback to help explain your problem.
     validations:
       required: false
 
   - type: textarea
     attributes:
-      label: Screenshots 截图
-      description: If applicable, add screenshots to help explain your problem. 如果可以，请提供相关截图以帮助您阐述bug信息。
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
     validations:
       required: false
 
   - type: textarea
     attributes:
-      label: Additional 额外信息
-      description: Anything else you would like to share? 其他您想分享的信息。
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Anything else you would like to share?

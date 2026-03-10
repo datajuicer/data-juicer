@@ -3,6 +3,7 @@ from collections import Counter
 import numpy as np
 
 from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import load_data_with_context, load_image
 from data_juicer.utils.model_utils import get_model, prepare_model, ram, torch
 
@@ -38,6 +39,7 @@ class ImageTaggingMapper(Mapper):
         """
         kwargs["memory"] = "9GB" if kwargs.get("memory", 0) == 0 else kwargs["memory"]
         super().__init__(*args, **kwargs)
+        LazyLoader.check_packages(["ram @ git+https://github.com/datajuicer/recognize-anything.git"])
         self.model_key = prepare_model(
             model_type="recognizeAnything", pretrained_model_name_or_path="ram_plus_swin_large_14m.pth", input_size=384
         )

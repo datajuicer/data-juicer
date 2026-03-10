@@ -62,16 +62,15 @@ class CharacterRepetitionFilter(Filter):
                 samples_stats[idx][StatsKeys.char_rep_ratio] = 0.0
                 continue
 
-            freq_char_ngrams = sorted(list(freq_char_ngrams.values()), reverse=True)
-            num_no_rep_char_ngrams = len([el for el in freq_char_ngrams if el == 1])
+            freq_char_ngrams = sorted(freq_char_ngrams.values(), reverse=True)
+            num_no_rep_char_ngrams = freq_char_ngrams.count(1)
             num_rep_char_ngrams = min(
                 int(np.sqrt(len(freq_char_ngrams))),
                 len(freq_char_ngrams) - num_no_rep_char_ngrams,
             )
+            total = sum(freq_char_ngrams)
             samples_stats[idx][StatsKeys.char_rep_ratio] = (
-                (sum(freq_char_ngrams[:num_rep_char_ngrams]) / sum(freq_char_ngrams))
-                if sum(freq_char_ngrams) != 0
-                else 0.0
+                (sum(freq_char_ngrams[:num_rep_char_ngrams]) / total) if total != 0 else 0.0
             )
 
         return samples

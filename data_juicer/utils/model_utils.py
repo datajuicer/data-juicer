@@ -449,7 +449,7 @@ def prepare_deepcalib_model(model_path, **model_params):
 
         model_path = deepcalib_model_path
 
-    LazyLoader.check_packages(["tensorflow"])
+    LazyLoader.check_packages(["tensorflow==2.20.0"])
     import tensorflow as tf
     from keras.applications.inception_v3 import InceptionV3
     from keras.layers import Dense, Flatten, Input

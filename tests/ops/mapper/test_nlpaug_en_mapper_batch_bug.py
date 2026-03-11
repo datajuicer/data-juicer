@@ -3,11 +3,11 @@
 # In production (batch_size=1000), 999 out of 1000 samples are never augmented.
 
 import unittest
-
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.ops.mapper.nlpaug_en_mapper import NlpaugEnMapper
 
 
-class NlpaugEnMapperBatchBugTest(unittest.TestCase):
+class NlpaugEnMapperBatchBugTest(DataJuicerTestCaseBase):
     """Demonstrate that process_batched only augments the first sample."""
 
     def test_batch_only_augments_first_sample(self):

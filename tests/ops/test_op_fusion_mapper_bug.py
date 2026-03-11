@@ -14,13 +14,9 @@ GeneralFusedOP. The first mapper uppercases text, the second appends a
 suffix. Without the fix, the first mapper's results are discarded when
 the second mapper returns a new dict.
 """
-import sys
-import os
 import unittest
 
-# Add project root to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.ops.base_op import Mapper
 from data_juicer.ops.op_fusion import GeneralFusedOP
 from data_juicer.utils.constant import Fields
@@ -75,7 +71,7 @@ class MockInPlaceMapper(Mapper):
         return samples
 
 
-class TestGeneralFusedOPMapperBug(unittest.TestCase):
+class TestGeneralFusedOPMapperBug(DataJuicerTestCaseBase):
     """Test that demonstrates the mapper result discard bug in GeneralFusedOP."""
 
     def _make_fused_op(self, ops):

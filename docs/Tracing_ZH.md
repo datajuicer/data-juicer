@@ -1,228 +1,250 @@
-# 追踪
+# 数据追踪
 
-## 概览
+本文档描述 DataJuicer 的追踪系统，用于跟踪数据处理过程中样本级别的变化。
 
-Data-Juicer 提供了 **Tracer（追踪器）** 功能，允许你追踪和可视化数据处理流水线中对数据集所做的更改。这对于调试、理解不同算子的效果以及确保数据质量特别有用。
+## 概述
 
-启用后，追踪器将记录每个算子处理前后的样本级别变化，帮助你了解：
-- Mapper 算子对文本做了哪些修改
-- Filter 算子过滤掉了哪些样本
-- Deduplicator 算子检测到了哪些重复样本对
-- Data-Juicer 对数据的整体影响
+Tracer 记录每个算子在处理管道中如何修改、过滤或去重各个样本。这对以下场景非常有用：
 
-> **算子支持说明**：追踪器目前支持 Mapper、Filter 和 Deduplicator 算子。Selector、Grouper、Aggregator 和 Pipeline 类型的算子暂不支持追踪功能。
+- **调试** — 理解特定样本为何被修改或删除
+- **质量保证** — 验证算子是否按预期工作
+- **审计** — 维护数据转换的记录
 
-## 快速开始
+## 配置
 
-### 命令行快速启用
-
-如果你已经有一份配置文件，使用命令行参数是最快的启用方式，无需修改 YAML 文件：
-
-```shell
-# 使用默认设置启用追踪器
-dj-process --config your_config.yaml --open_tracer true
-```
-
-### 在配置文件中启用
-
-你也可以在 YAML 配置文件中直接配置追踪器：
+### 基本设置
 
 ```yaml
-# 基本追踪器配置
-project_name: 'demo-with-tracer'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-open_tracer: true  # 启用追踪器
-
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
-  - language_id_score_filter:
-      lang: 'en'
+open_tracer: false        # 启用/禁用追踪
+op_list_to_trace: []      # 要追踪的算子列表（空 = 所有算子）
+trace_num: 10             # 每个算子最多收集的样本数
+trace_keys: []            # 追踪输出中包含的额外字段
 ```
 
-运行处理：
+### 命令行
 
-```shell
-dj-process --config your_config.yaml
+```bash
+# 启用所有算子的追踪
+dj-process --config config.yaml --open_tracer true
+
+# 仅追踪特定算子
+dj-process --config config.yaml --open_tracer true \
+    --op_list_to_trace clean_email_mapper,words_num_filter
+
+# 每个算子收集更多样本
+dj-process --config config.yaml --open_tracer true --trace_num 50
+
+# 在追踪输出中包含额外字段
+dj-process --config config.yaml --open_tracer true \
+    --trace_keys sample_id,source_file
 ```
 
-## 配置参数
+## 输出结构
 
-追踪器可以通过以下参数在 YAML 配置文件或命令行参数中进行配置：
+追踪结果存储在工作目录的 `trace/` 子目录中：
 
-| 参数               | 类型 | 默认值  | 说明                                                                                                                                                                                                                                                                                   |
-| ------------------ | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open_tracer`      | bool | `false` | 是否启用追踪器来追踪处理过程中的变化。启用追踪器会增加一定的处理时间。                                                                                                                                                                                                                 |
-| `op_list_to_trace` | list | `[]`    | 要追踪的算子名称列表。如果为空，则追踪所有算子。仅在追踪器启用时可用。                                                                                                                                                                                                                 |
-| `trace_num`        | int  | `10`    | 每个算子记录的最大样本数量。达到此数量后，该算子将停止收集追踪信息。仅在追踪器启用时可用。                                                                                                                                                                                             |
-| `trace_keys`       | list | `[]`    | 在 Mapper 追踪输出中包含的样本字段名列表（例如 `['meta', 'source_file']`）。这些字段将从原始样本中提取并包含在追踪输出中，便于识别被修改的样本。对于 Filter 算子，会自动保存完整样本，无需此参数。对于 Deduplicator 算子，会保存完整的重复样本对，也无需此参数。仅在追踪器启用时可用。 |
-
-## 工作原理
-
-### Mapper 算子
-
-当 Mapper 算子修改样本时，追踪器会记录：
-- 处理前的原始文本
-- 处理后的文本
-- `trace_keys` 中指定字段在原始样本中的值（用于识别样本）
-
-默认只记录发生变化的字段，如需包含更多字段用于识别样本，请使用 `trace_keys` 参数（参见[高级用法示例](#在-mapper-追踪中包含指定字段)）。
-
-以 `chinese_convert_mapper` 算子为例，追踪文件（`sample_trace-chinese_convert_mapper.jsonl`）包含被修改的样本：
-
-```json
-{"original_text":"你好，请问你是谁","processed_text":"你好，請問你是誰"}
-{"original_text":"欢迎来到阿里巴巴！","processed_text":"歡迎來到阿里巴巴！"}
 ```
-
-### Filter 算子
-
-当 Filter 算子过滤样本时，追踪器会记录：
-- 被过滤掉的完整样本（包含所有字段和统计信息）
-
-追踪输出会包含 `__dj__stats__` 字段，其中记录了该样本的统计指标值（如文本长度、特殊字符占比等），便于分析样本被过滤的具体原因。
-
-以 `text_length_filter` 算子为例，追踪文件（`sample_trace-text_length_filter.jsonl`）会显示被过滤的完整样本：
-
-```json
-{"text":"Sur la plateforme MT4, plusieurs manières d'accéder à ces fonctionnalités sont conçues simultanément.","meta":{"src":"Oscar","date":null,"version":"2.0","author":null},"__dj__stats__":{"text_len":101}}
-{"text":"This paper proposed a novel method on LLM pretraining.","meta":{"src":"customized","date":null,"version":null,"author":"xxx"},"__dj__stats__":{"text_len":54}}
-```
-
-### Deduplicator 算子
-
-当 Deduplicator 算子检测到重复样本时，追踪器会记录：
-- 重复样本对（`dup1` 和 `dup2`），包含完整样本信息和 `__dj__hash` 哈希值
-- 记录的样本对数量由 `trace_num` 控制
-
-这有助于你了解哪些样本被认为是重复的，并验证去重逻辑。哈希值字段展示了用于判断重复的具体特征值。
-
-> **重要限制**：Deduplicator 追踪仅在默认（非 Ray）执行模式下可用。在 Ray 分布式模式下，Deduplicator 不支持追踪功能。
-
-以 `document_deduplicator` 算子为例，追踪文件（`duplicate-document_deduplicator.jsonl`）会显示重复样本对：
-
-```json
-{"dup1":{"text":"这是一段重复出现的示例文本。","meta":{"src":"customized","date":null,"version":"0.1","author":"xxx"},"__dj__hash":"18e72ba46f7e4ada6a9956df898488af"},"dup2":{"text":"这是一段重复出现的示例文本。","meta":{"src":"customized","date":null,"version":"0.1","author":"xxx"},"__dj__hash":"18e72ba46f7e4ada6a9956df898488af"}}
-```
-
-## 输出结果
-
-追踪结果存储在输出目录下的 `trace/` 子目录中。每个算子生成一个单独的 JSONL 文件：
-- Mapper 和 Filter 算子：`sample_trace-{算子名称}.jsonl`
-- Deduplicator 算子：`duplicate-{算子名称}.jsonl`
-
-例如：
-```
-outputs_dir/
+{work_dir}/
 └── trace/
-    ├── sample_trace-chinese_convert_mapper.jsonl
-    ├── sample_trace-text_length_filter.jsonl
-    └── duplicate-document_simhash_deduplicator.jsonl
+    ├── sample_trace-clean_email_mapper.jsonl
+    ├── sample_trace-words_num_filter.jsonl
+    ├── sample_trace-document_deduplicator.jsonl
+    └── ...
 ```
 
-每个追踪文件包含最多 `trace_num` 个样本，以 JSONL 格式展示该特定算子所做的更改。
+每个追踪文件为 JSONL 格式（每行一个 JSON 对象），内容因算子类型而异。
 
-> **注意**：启动处理任务时，`trace/` 目录中的现有文件会被自动清除，以避免与上次运行的结果混淆。
+## 追踪的算子类型
 
-## 高级用法示例
+### Mapper 追踪
 
-### 追踪特定算子
+对于 Mapper 算子，Tracer 记录文本内容发生变化的样本。每条记录包含：
 
-如果你只想追踪特定算子，使用 `op_list_to_trace` 参数：
+| 字段 | 描述 |
+|------|------|
+| `original_text` | Mapper 处理前的文本 |
+| `processed_text` | Mapper 处理后的文本 |
+| *trace_keys 字段* | 配置的 `trace_keys` 对应的值 |
 
-```yaml
-project_name: 'demo-selective-trace'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-open_tracer: true
-op_list_to_trace:
-  - chinese_convert_mapper
-  - text_length_filter
-
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
-  - language_id_score_filter:
-      lang: 'en'
-```
-
-在这个示例中，只有 `chinese_convert_mapper` 和 `text_length_filter` 会生成追踪文件，`language_id_score_filter` 不会被追踪。
-
-### 在 Mapper 追踪中包含指定字段
-
-使用 `trace_keys` 在 Mapper 追踪输出中包含指定字段，以便定位具体样本：
-
-```yaml
-project_name: 'demo-trace-with-keys'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-open_tracer: true
-trace_num: 20  # 每个算子最多记录 20 个样本
-trace_keys:
-  - meta
-
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
-  - language_id_score_filter:
-      lang: 'en'
-```
-
-对于 Mapper 算子，追踪输出将在每个条目的开头包含指定字段的值（从原始样本中提取），便于识别是哪个样本被修改：
-
+输出示例（`sample_trace-clean_email_mapper.jsonl`）：
 ```json
-{"meta":{"src":"customized","date":null,"version":null,"author":"xxx"},"original_text":"你好，请问你是谁","processed_text":"你好，請問你是誰"}
+{"original_text":"联系我们 user@example.com 获取详情。","processed_text":"联系我们  获取详情。"}
+{"original_text": "邮箱：admin@test.org", "processed_text": "邮箱："}
 ```
 
-而对于 Filter 和 Deduplicator 算子，会自动保存完整样本，不受 `trace_keys` 配置影响。
+仅收集文本实际发生变化的样本，未变化的样本会被跳过。
 
-### 增加追踪样本数量
+### Filter 追踪
 
-默认情况下，每个算子只记录 10 个样本的变化。如果需要查看更多样本，可以调整 `trace_num`：
+对于 Filter 算子，Tracer 记录被**过滤掉**（删除）的样本。每条记录包含完整的样本数据。
+
+输出示例（`sample_trace-words_num_filter.jsonl`）：
+```json
+{"text": "Too short.", "__dj__stats__": {"words_num": 2}}
+{"text": "Also brief.", "__dj__stats__": {"words_num": 2}}
+```
+
+仅收集被过滤掉的样本，通过过滤器的样本会被跳过。
+
+### Deduplicator 追踪
+
+对于 Deduplicator 算子，Tracer 记录近似重复的样本对。每条记录包含：
+
+| 字段 | 描述 |
+|------|------|
+| `dup1` | 重复对中的第一个样本 |
+| `dup2` | 重复对中的第二个样本 |
+
+输出示例（`duplicate-document_deduplicator.jsonl`）：
+```json
+{"dup1": "这是一段重复的文本。", "dup2": "这是一段重复的文本。"}
+```
+
+## 样本收集行为
+
+Tracer 使用高效的**样本级收集**方式：
+
+1. 每个算子在处理过程中最多收集 `trace_num` 个样本
+2. 收集到足够样本后提前停止
+3. 在默认模式下，收集是**线程安全**的，使用多进程锁
+4. 在 Ray 模式下，每个 Worker 有自己的 Tracer 实例（无需加锁）
+
+这种设计最大限度地减少了性能开销——Tracer 不会比较整个数据集，而是在处理过程中实时捕获变化。
+
+## trace_keys
+
+`trace_keys` 选项允许在追踪输出中包含原始样本的额外字段。这对于识别哪些样本受到影响非常有用：
 
 ```yaml
-project_name: 'demo-large-trace'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
 open_tracer: true
-trace_num: 100  # 每个算子记录最多 100 个样本
+trace_keys:
+  - sample_id
+  - source_file
+```
 
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
+使用此配置，Mapper 追踪条目将包含：
+```json
+{
+  "sample_id": "doc_00042",
+  "source_file": "corpus_part1.jsonl",
+  "original_text": "原始内容...",
+  "processed_text": "处理后的内容..."
+}
+```
+
+## API 参考
+
+### Tracer（默认模式）
+
+```python
+from data_juicer.core.tracer import Tracer
+
+tracer = Tracer(
+    work_dir="./outputs",
+    op_list_to_trace=["clean_email_mapper", "words_num_filter"],
+    show_num=10,
+    trace_keys=["sample_id"]
+)
+
+# 检查某个算子是否需要追踪
+tracer.should_trace_op("clean_email_mapper")  # True
+
+# 检查是否已收集足够的样本
+tracer.is_collection_complete("clean_email_mapper")  # False
+
+# 收集 Mapper 样本
+tracer.collect_mapper_sample(
+    op_name="clean_email_mapper",
+    original_sample={"text": "邮箱：a@b.com"},
+    processed_sample={"text": "邮箱："},
+    text_key="text"
+)
+
+# 收集 Filter 样本
+tracer.collect_filter_sample(
+    op_name="words_num_filter",
+    sample={"text": "太短"},
+    should_keep=False
+)
+```
+
+### RayTracer（分布式模式）
+
+```python
+from data_juicer.core.tracer.ray_tracer import RayTracer
+
+# RayTracer 是一个 Ray Actor — 通过 Ray 创建
+tracer = RayTracer.remote(
+    work_dir="./outputs",
+    op_list_to_trace=None,  # 追踪所有算子
+    show_num=10,
+    trace_keys=["sample_id"]
+)
+
+# 远程方法调用
+ray.get(tracer.collect_mapper_sample.remote(
+    op_name="clean_email_mapper",
+    original_sample={"text": "邮箱：a@b.com"},
+    processed_sample={"text": "邮箱："},
+    text_key="text"
+))
+
+# 最终化并导出所有追踪结果
+ray.get(tracer.finalize_traces.remote())
+```
+
+### 辅助函数
+
+`data_juicer.core.tracer` 模块提供了模式无关的辅助函数：
+
+```python
+from data_juicer.core.tracer import (
+    should_trace_op,
+    check_tracer_collect_complete,
+    collect_for_mapper,
+    collect_for_filter,
+)
+
+# 这些函数自动处理默认模式和 Ray 模式
+should_trace_op(tracer_instance, "clean_email_mapper")
+check_tracer_collect_complete(tracer_instance, "clean_email_mapper")
+collect_for_mapper(tracer_instance, "op_name", original, processed, "text")
+collect_for_filter(tracer_instance, "op_name", sample, should_keep=False)
 ```
 
 ## 性能考虑
 
-- **处理时间**：启用追踪器会给处理流水线增加一些开销。对于大规模生产运行，考虑禁用它或限制要追踪的算子。
-- **存储空间**：每个算子生成一个单独的追踪文件。总存储使用量取决于 `trace_num` 和样本的大小。
-- **内存**：追踪器使用高效的样本级别收集，每个算子只存储最多 `trace_num` 个样本。
+### 开销
 
-## 最佳实践
+- 当 `trace_num` 较小时（默认：10），追踪的额外开销极小
+- 一旦某个算子收集了 `trace_num` 个样本，就不再进行进一步收集
+- 主要成本是 Mapper 中原始文本与处理后文本的比较
 
-1. **开发和调试**：在开发过程中启用追踪器，以了解算子如何影响数据。
-2. **选择性追踪**：使用 `op_list_to_trace` 专注于感兴趣的特定算子。
-3. **样本识别**：使用 `trace_keys` 包含有助于识别样本的字段（例如 ID、源文件）。
-4. **生产运行**：在生产运行时禁用追踪器以最大化性能。
+### 建议
 
-## 相关功能
+| 场景 | 推荐设置 |
+|------|----------|
+| 开发/调试 | `open_tracer: true`，`trace_num: 10-50` |
+| 生产运行 | `open_tracer: false` |
+| 审计特定算子 | `open_tracer: true`，`op_list_to_trace: [特定算子]` |
+| 大规模追踪 | `open_tracer: true`，`trace_num: 100`，指定 `op_list_to_trace` |
 
-- [算子列表](Operators.md)：了解 Data-Juicer 中可用的算子。
-- [开发者指南](DeveloperGuide_ZH.md)：了解如何开发自定义算子。
+## 故障排除
+
+**没有生成追踪文件：**
+```bash
+# 验证追踪器是否启用
+grep "open_tracer" config.yaml
+
+# 检查追踪目录是否存在
+ls -la ./outputs/{work_dir}/trace/
+```
+
+**追踪文件为空：**
+- 对于 Mapper：算子可能没有修改任何样本
+- 对于 Filter：算子可能没有过滤掉任何样本
+- 检查日志中是否有类似 "Datasets before and after op [X] are all the same" 的警告
+
+**追踪文件中样本太少：**
+- 增加 `trace_num` 以收集更多样本
+- 数据集中变化/过滤的样本可能少于 `trace_num`

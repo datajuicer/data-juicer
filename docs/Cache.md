@@ -1,193 +1,276 @@
 # Cache Management
 
+This document describes DataJuicer's cache management system, including HuggingFace dataset caching, cache directory configuration, cache compression, and temporary storage.
+
 ## Overview
 
-Data-Juicer provides a cache management mechanism based on [HuggingFace Datasets](https://github.com/huggingface/datasets) to accelerate repetitive computations in data processing workflows.
+DataJuicer provides a caching mechanism based on HuggingFace Datasets to avoid redundant computation. When enabled, each operator generates cache files with a unique **fingerprint** based on:
+- The fingerprint of the input data
+- The operator name and parameters
+- The hash of the processing function
 
-LLM data processing often requires frequent re-execution due to reasons such as operator hyperparameter tuning, processing failures (e.g., exceeding available memory, disk space, or predefined time limits), especially for large-scale datasets. To address this, Data-Juicer provides built-in cache management to support elastic and reliable data processing. Based on a carefully organized directory structure, Data-Juicer automatically monitors configuration changes for each running process. When the same configuration is re-run, it can directly reuse previous computation results, avoiding redundant calculations.
+That is: same input + same operator configuration = same fingerprint = cache hit. Therefore, re-running the same pipeline on the same data will skip already-computed steps. For more details, please refer to our paper: [Data-Juicer: A One-Stop Data Processing System for Large Language Models](https://arxiv.org/abs/2309.02033).
 
-Furthermore, to address deficiencies in the cache management protocol of the original HuggingFace Datasets library, particularly when handling non-serializable third-party models and functions in certain operators, Data-Juicer has designed dedicated hashing methods to bypass the serialization process of these non-serializable objects, ensuring successful caching for every operator.
+The cache system also provides:
+- **Configurable cache directories** via environment variables or config options
+- **Cache compression** to reduce disk usage for large-scale datasets
+- **Temporary storage** for intermediate files in non-cache mode
+- **Fine-grained cache control** via context managers and decorators
 
-For more details, please refer to our paper: [Data-Juicer: A One-Stop Data Processing System for Large Language Models](https://arxiv.org/abs/2309.02033).
+## Configuration
 
-## Implementation and Optimization
-
-### Cache Mechanism
-
-Each operator generates a cache file with a unique **fingerprint** based on the following:
-- Fingerprint of input data
-- Operator name and parameters
-- Hash value of the processing function
-
-That is: Same input + Same operator configuration = Same fingerprint = Cache hit.
-
-Cache files are stored in the following directory structure:
-
-### Space Complexity Analysis
-
-For a dataset of size **S**, containing **M** Mappers, **F** Filters, and **D** Deduplicators, the peak space usage may be:
-
-```
-Space[cache_mode] = (1 + M + F + I(F > 0) + D) × S
-```
-
-Where:
-- Original dataset occupies **1×S** after loading
-- Each operator generates one cache copy, totaling **(M + F + D)×S**
-- `I(F > 0)` indicates that when Filters exist, the first Filter adding statistical columns generates an additional cache copy
-
-**Example**: 10GB dataset + 3 Mappers + 4 Filters + 1 Deduplicator:
-
-```
-Space = (1 + 3 + 4 + 1 + 1) × 10GB = 100GB
-```
-
-This means the theoretical peak may result in a 10x disk amplification.
-
-> See [paper](https://arxiv.org/abs/2309.02033) Section 4.1.1 and Appendix A.2 for details.
-
-### Cache Compression
-
-To address disk space issues, Data-Juicer integrates multiple compression technologies, such as [Zstandard (zstd)](https://github.com/facebook/zstd) and [LZ4](https://github.com/lz4/lz4). When enabled, the system automatically compresses cache files after each operator completes, and decompresses these compressed files when the same configuration re-runs that operator.
-
-Compared to processing time, compression/decompression time is relatively negligible, thanks to the high efficiency of the aforementioned compression technologies. This feature significantly reduces cache data storage, making it possible to process larger datasets without affecting speed or stability.
-
-| Algorithm | Compression Ratio | Speed | Recommended Scenario |
-|-----------|------------------|-------|---------------------|
-| `zstd` | Highest | Fast | Best overall |
-| `lz4` | Medium | Fastest | Speed priority |
-| `gzip` | High | Slower | Compatibility priority |
-
-Compression occurs **between operators**, not during processing, so it doesn't slow down actual data processing speed:
-
-```
-INFO - Compressing cache file to cache-*_of_*.arrow.zstd
-INFO - Decompressing cache file to cache-*_of_*.arrow
-```
-
-### Relationship with Checkpoints
-
-Cache and Checkpoint are **mutually exclusive** mechanisms:
-
-| Aspect | Cache Mode | Checkpoint Mode |
-|--------|-----------|----------------|
-| **Purpose** | Accelerate repeated runs with same configuration | Fault recovery and resumption |
-| **Space Usage** | `(1 + M + F + D) × S` (cumulative) | `3 × S` (constant) |
-| **Best For** | Iterative development, parameter tuning | Long-running production tasks |
-
-When `use_checkpoint: true` is enabled, cache is automatically disabled.
-
-## Quick Start
-
-### Basic Configuration
-
-Enable cache in configuration file (enabled by default):
+### Basic Cache Settings
 
 ```yaml
-project_name: 'demo-cache'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-use_cache: true  # Default value, can be omitted
-
-process:
-  - text_length_filter:
-      min_len: 100
-  - language_id_score_filter:
-      lang: 'en'
-      min_score: 0.8
+use_cache: true           # Enable/disable HuggingFace dataset caching
+ds_cache_dir: null         # Custom cache directory (overrides HF_DATASETS_CACHE)
+cache_compress: null       # Compression method: 'gzip', 'zstd', 'lz4', or null
+temp_dir: null             # Temp directory for intermediate files when cache is disabled
 ```
 
-### Enable Cache Compression
+### Command Line
 
-For large datasets, enabling compression is recommended:
+```bash
+# Enable caching (default)
+dj-process --config config.yaml --use_cache true
 
-```yaml
-project_name: 'demo-cache-compress'
-dataset_path: './data/large-dataset.jsonl'
-export_path: './outputs/large-processed.jsonl'
-
-use_cache: true
-cache_compress: 'zstd'  # Recommended
-ds_cache_dir: '/data/large_disk/dj_cache'  # Optional: use disk with more space
-
-process:
-  - text_length_filter:
-      min_len: 100
-  - language_id_score_filter:
-      lang: 'en'
-      min_score: 0.8
-```
-
-### Disable Cache
-
-For one-time processing or debugging scenarios:
-
-```yaml
-project_name: 'demo-no-cache'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-use_cache: false
-temp_dir: '/tmp/dj_temp'  # Optional: specify temporary file location
-
-process:
-  - my_custom_mapper:
-      param: value
-```
-
-### Command Line Usage
-
-```shell
-# Use default cache settings
-dj-process --config your_config.yaml
+# Disable caching
+dj-process --config config.yaml --use_cache false
 
 # Enable cache compression
-dj-process --config your_config.yaml --cache_compress zstd
+dj-process --config config.yaml --cache_compress zstd
 
-# Disable cache
-dj-process --config your_config.yaml --use_cache false
+# Custom cache directory
+dj-process --config config.yaml --ds_cache_dir /fast-storage/dj-cache
 ```
 
-## Configuration Parameters
+## Cache Directory Structure
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `use_cache` | bool | `true` | Whether to enable HuggingFace Datasets cache |
-| `cache_compress` | string | `null` | Compression algorithm: `gzip`, `zstd`, or `lz4` |
-| `ds_cache_dir` | string | `null` | Custom cache directory (default: `~/.cache/huggingface/datasets`) |
+DataJuicer organizes cache files in a hierarchical directory structure controlled by environment variables:
 
-## Cache Management
+```
+~/.cache/                              # CACHE_HOME (default)
+└── data_juicer/                       # DATA_JUICER_CACHE_HOME
+    ├── assets/                        # DATA_JUICER_ASSETS_CACHE
+    │   └── (extracted frames, stopwords, flagged words, etc.)
+    └── models/                        # DATA_JUICER_MODELS_CACHE
+        └── (downloaded model files)
+```
 
-### Check Cache Size
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CACHE_HOME` | `~/.cache` | Root cache directory |
+| `DATA_JUICER_CACHE_HOME` | `$CACHE_HOME/data_juicer` | DataJuicer cache root |
+| `DATA_JUICER_ASSETS_CACHE` | `$DATA_JUICER_CACHE_HOME/assets` | Assets cache (frames, word lists, etc.) |
+| `DATA_JUICER_MODELS_CACHE` | `$DATA_JUICER_CACHE_HOME/models` | Downloaded models cache |
+| `DATA_JUICER_EXTERNAL_MODELS_HOME` | `None` | External models directory |
+
+Override defaults by setting environment variables:
 
 ```bash
-du -sh ~/.cache/huggingface/datasets
+export DATA_JUICER_CACHE_HOME=/data/dj-cache
+export DATA_JUICER_MODELS_CACHE=/models/dj-models
+dj-process --config config.yaml
 ```
 
-### Clean Cache
+## Cache Compression
+
+For large-scale datasets (tens of GB or more), cache files can consume significant disk space. Cache compression reduces storage requirements by compressing intermediate cache files after each operator completes.
+
+### Supported Algorithms
+
+| Algorithm | Library | Speed | Compression Ratio | Recommended For |
+|-----------|---------|-------|-------------------|-----------------|
+| `zstd` | zstandard | Fast | High | General use (default) |
+| `lz4` | lz4 | Fastest | Moderate | Speed-critical workloads |
+| `gzip` | gzip | Slow | Highest | Compatibility needs |
+
+### Configuration
+
+```yaml
+use_cache: true
+cache_compress: zstd    # Enable zstd compression
+```
 
 ```bash
-# Clean all HuggingFace datasets cache
-rm -rf ~/.cache/huggingface/datasets/*
-
-# Or clean specific project cache (if custom ds_cache_dir is used)
-rm -rf /path/to/your/ds_cache_dir/*
+dj-process --config config.yaml --cache_compress zstd
 ```
 
-> [!Warning]
-> Cleaning cache means the next run will recompute everything.
+### Multi-Process Compression
+
+Cache compression supports parallel processing. The number of compression worker processes is controlled by the `np` parameter:
+
+```yaml
+np: 4                   # Number of parallel workers (also used for compression)
+cache_compress: zstd
+```
+
+## Cache Control API
+
+### DatasetCacheControl
+
+A context manager to temporarily enable or disable HuggingFace dataset caching within a specific scope:
+
+```python
+from data_juicer.utils.cache_utils import DatasetCacheControl
+
+# Temporarily disable caching
+with DatasetCacheControl(on=False):
+    # Operations here will not use cache
+    result = dataset.map(my_function)
+
+# Temporarily enable caching
+with DatasetCacheControl(on=True):
+    # Operations here will use cache
+    result = dataset.map(my_function)
+```
+
+### dataset_cache_control Decorator
+
+A decorator for functions that need to control cache state:
+
+```python
+from data_juicer.utils.cache_utils import dataset_cache_control
+
+@dataset_cache_control(on=False)
+def process_without_cache(dataset):
+    return dataset.map(my_function)
+```
+
+### CompressionOff
+
+A context manager to temporarily disable cache compression:
+
+```python
+from data_juicer.utils.compress import CompressionOff
+
+with CompressionOff():
+    # Cache compression is disabled in this scope
+    result = dataset.map(my_function)
+```
+
+### CompressManager
+
+Low-level API for manual compression/decompression:
+
+```python
+from data_juicer.utils.compress import CompressManager
+
+manager = CompressManager(compressor_format="zstd")
+
+# Compress a file
+manager.compress("input.arrow", "input.arrow.zstd")
+
+# Decompress a file
+manager.decompress("input.arrow.zstd", "input.arrow")
+```
+
+### CacheCompressManager
+
+High-level API for managing HuggingFace dataset cache compression:
+
+```python
+from data_juicer.utils.compress import CacheCompressManager
+
+manager = CacheCompressManager(compressor_format="zstd")
+
+# Compress previous dataset's cache files
+manager.compress(prev_ds=previous_dataset, this_ds=current_dataset, num_proc=4)
+
+# Decompress cache files for a dataset
+manager.decompress(ds=dataset, num_proc=4)
+
+# Clean up all compressed cache files
+manager.cleanup_cache_files(ds=dataset)
+```
+
+## Cache vs Checkpoint
+
+Cache and checkpoint are mutually exclusive — enabling checkpoint automatically disables cache:
+
+| Feature | Cache | Checkpoint |
+|---------|-------|------------|
+| **Purpose** | Accelerate repeated runs with same configuration | Fault recovery and resumption |
+| **Granularity** | Per-operator result | Full dataset snapshot |
+| **Storage Location** | HuggingFace cache directory | Work directory |
+| **Recovery Method** | Automatic (hash-based) | Manual (config-based) |
+| **Compression** | Supported (`cache_compress`) | Not applicable |
+| **Scenario** | Iterative development, parameter tuning | Long-running production tasks |
+
+```yaml
+# Cache mode (default)
+use_cache: true
+use_checkpoint: false
+
+# Checkpoint mode (cache auto-disabled)
+use_cache: true           # Will be overridden to false
+use_checkpoint: true
+```
+
+## Disabling Cache and Temporary Directory
+
+When `use_cache: false` or checkpoint mode is enabled (`use_checkpoint: true`), HuggingFace dataset caching is fully disabled. In this mode, DataJuicer writes intermediate files produced during operator processing to a temporary directory, and cleans them up automatically when processing completes. The `temp_dir` parameter controls where these intermediate files are stored.
+
+### Behavior
+
+- **Defaults to `null`**: When not set, the operating system determines the temporary directory location (typically `/tmp`), equivalent to Python's `tempfile.gettempdir()`.
+- **Takes effect automatically when cache is disabled**: Once caching is disabled, `temp_dir` is applied as the global temporary directory for the entire process via Python's `tempfile.tempdir`, affecting all temporary files created through `tempfile` in the process.
+- **Cache compression is automatically disabled**: When caching is disabled, `cache_compress` is automatically ignored and reset to `null`.
+
+### Configuration
+
+```yaml
+use_cache: false
+temp_dir: /data/dj-temp    # Custom temp directory; null means system default
+```
+
+```bash
+dj-process --config config.yaml --use_cache false --temp_dir /data/dj-temp
+```
+
+### Safety Notes
+
+> **Set `temp_dir` with caution — an unsafe path can cause unexpected program behavior.**
+
+- **Do not point to critical system directories** (e.g., `/`, `/usr`, `/etc`). Automatic cleanup of temporary files may accidentally delete important files.
+- **Do not point to directories containing important data**. Temporary file writes and cleanup operations may conflict with existing files.
+- **Ensure sufficient disk space**: When cache is disabled, intermediate files are written and deleted dynamically during processing. Peak disk usage is approximately equal to the output size of a single operator.
+- **The directory is created automatically if it does not exist**: DataJuicer calls `os.makedirs` to create the specified path if it is missing.
+- **`temp_dir` affects the entire process's `tempfile` behavior**: Because it sets the global `tempfile.tempdir` variable, this setting influences all components in the process that rely on `tempfile`, including third-party libraries.
+
+## Performance Considerations
+
+### When to Enable Cache
+
+- **Enable**: For iterative development where you frequently re-run pipelines with minor changes
+- **Enable**: When operators are computationally expensive and you want to skip already-computed steps
+- **Disable**: For one-shot processing to avoid disk overhead
+
+### When to Enable Compression
+
+- **Enable**: When dataset size exceeds tens of GB and disk space is limited
+- **Enable** `zstd`: For the best balance of speed and compression ratio
+- **Enable** `lz4`: When compression speed is critical
+- **Disable**: When disk space is abundant and you want maximum processing speed
 
 ## Troubleshooting
 
-### "Disk Full" Error During Processing
+**Cache files consuming too much disk space:**
+```bash
+# Check cache directory size
+du -sh ~/.cache/data_juicer/
 
-1. Enable compression: `cache_compress: 'zstd'`
-2. Use a larger disk: `ds_cache_dir: '/path/to/large/disk'`
-3. If it's a one-time run, disable cache: `use_cache: false`
+# Enable compression
+dj-process --config config.yaml --cache_compress zstd
+```
 
-### Processing Still Seems Slow Despite Having Cache
+**Stale cache causing unexpected results:**
+```bash
+# Clear HuggingFace dataset cache
+rm -rf ~/.cache/huggingface/datasets/
 
-Check if cache is actually being used:
-- Verify the fingerprint hasn't changed (same input + same operator configuration)
-- Check if `use_cache: false` is set somewhere
+# Or specify a fresh cache directory
+dj-process --config config.yaml --ds_cache_dir /tmp/fresh-cache
+```

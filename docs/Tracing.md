@@ -1,228 +1,250 @@
-# Tracing
+# Data Tracing
+
+This document describes DataJuicer's tracing system for tracking sample-level changes during data processing.
 
 ## Overview
 
-Data-Juicer provides a **Tracer** feature that allows you to track and visualize changes made to datasets during the data processing pipeline. This is particularly useful for debugging, understanding the effects of different operators, and ensuring data quality.
+The Tracer records how each operator modifies, filters, or deduplicates individual samples in the processing pipeline. This is useful for:
 
-When enabled, the tracer records sample-level changes before and after each operator processes them, helping you understand:
-- What text modifications the Mapper operators made
-- Which samples the Filter operators filtered out
-- Which duplicate sample pairs the Deduplicator operator detected
-- The overall impact of Data-Juicer on your data
+- **Debugging** — Understanding why specific samples were modified or removed
+- **Quality Assurance** — Verifying operators are working as expected
+- **Auditing** — Maintaining records of data transformations
 
-> **Operator Support Note**: The tracer currently supports Mapper, Filter, and Deduplicator operators. Tracing is not yet supported for Selector, Grouper, Aggregator, and Pipeline type operators.
+## Configuration
 
-## Quick Start
-
-### Quick Enable via Command Line
-
-If you already have a configuration file, using command-line parameters is the fastest way to enable tracing without modifying the YAML file:
-
-```shell
-# Enable tracer with default settings
-dj-process --config your_config.yaml --open_tracer true
-```
-
-### Enable in Configuration File
-
-You can also configure the tracer directly in your YAML configuration file:
+### Basic Settings
 
 ```yaml
-# Basic tracer configuration
-project_name: 'demo-with-tracer'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-open_tracer: true  # Enable tracer
-
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
-  - language_id_score_filter:
-      lang: 'en'
+open_tracer: false        # Enable/disable tracing
+op_list_to_trace: []      # List of operators to trace (empty = all operators)
+trace_num: 10             # Maximum number of samples to collect per operator
+trace_keys: []            # Additional fields to include in trace output
 ```
 
-Run processing:
+### Command Line
 
-```shell
-dj-process --config your_config.yaml
+```bash
+# Enable tracing for all operators
+dj-process --config config.yaml --open_tracer true
+
+# Trace only specific operators
+dj-process --config config.yaml --open_tracer true \
+    --op_list_to_trace clean_email_mapper,words_num_filter
+
+# Collect more samples per operator
+dj-process --config config.yaml --open_tracer true --trace_num 50
+
+# Include additional fields in trace output
+dj-process --config config.yaml --open_tracer true \
+    --trace_keys sample_id,source_file
 ```
 
-## Configuration Parameters
+## Output Structure
 
-The tracer can be configured through the following parameters in YAML configuration files or command-line arguments:
+Trace results are stored in the `trace/` subdirectory of the work directory:
 
-| Parameter          | Type | Default | Description                                                                                                                                                                                                                                                                 |
-| ------------------ | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open_tracer`      | bool | `false` | Whether to enable the tracer to track changes during processing. Enabling the tracer adds some processing overhead.                                                                                                                                                        |
-| `op_list_to_trace` | list | `[]`    | List of operator names to trace. If empty, all operators are traced. Only available when the tracer is enabled.                                                                                                                                                            |
-| `trace_num`        | int  | `10`    | Maximum number of samples recorded per operator. After reaching this number, the operator stops collecting tracing information. Only available when the tracer is enabled.                                                                                                    |
-| `trace_keys`       | list | `[]`    | List of sample field names to include in Mapper tracing output (e.g., `['meta', 'source_file']`). These fields will be extracted from the original sample and included in the tracing output to help identify modified samples. For Filter operators, complete samples are automatically saved without this parameter. For Deduplicator operators, complete duplicate pairs are saved without this parameter. Only available when the tracer is enabled. |
-
-## How It Works
-
-### Mapper Operators
-
-When a Mapper operator modifies samples, the tracer records:
-- The original text before processing
-- The processed text after processing
-- Values of fields specified in `trace_keys` from the original sample (for sample identification)
-
-By default, only modified fields are recorded. To include additional fields for sample identification, use the `trace_keys` parameter (see [Advanced Usage Examples](#including-specified-fields-in-mapper-tracing)).
-
-For example, with the `chinese_convert_mapper` operator, the trace file (`sample_trace-chinese_convert_mapper.jsonl`) contains modified samples:
-
-```json
-{"original_text":"你好，请问你是谁","processed_text":"你好，請問你是誰"}
-{"original_text":"欢迎来到阿里巴巴！","processed_text":"歡迎來到阿里巴巴！"}
 ```
-
-### Filter Operators
-
-When a Filter operator filters out samples, the tracer records:
-- Complete filtered samples (including all fields and statistical information)
-
-The tracing output includes a `__dj__stats__` field that records statistical metric values for the sample (such as text length, proportion of special characters, etc.), facilitating analysis of why the sample was filtered.
-
-For example, with the `text_length_filter` operator, the trace file (`sample_trace-text_length_filter.jsonl`) shows complete filtered samples:
-
-```json
-{"text":"Sur la plateforme MT4, plusieurs manières d'accéder à ces fonctionnalités sont conçues simultanément.","meta":{"src":"Oscar","date":null,"version":"2.0","author":null},"__dj__stats__":{"text_len":101}}
-{"text":"This paper proposed a novel method on LLM pretraining.","meta":{"src":"customized","date":null,"version":null,"author":"xxx"},"__dj__stats__":{"text_len":54}}
-```
-
-### Deduplicator Operators
-
-When a Deduplicator operator detects duplicate samples, the tracer records:
-- Duplicate sample pairs (`dup1` and `dup2`), including complete sample information and `__dj__hash` hash values
-- The number of recorded sample pairs is controlled by `trace_num`
-
-This helps you understand which samples are considered duplicates and validate the deduplication logic. The hash value field shows the specific characteristic values used to determine duplicates.
-
-> **Important Limitation**: Deduplicator tracing is only available in the default (non-Ray) execution mode. In Ray distributed mode, the Deduplicator does not support tracing.
-
-For example, with the `document_deduplicator` operator, the trace file (`duplicate-document_deduplicator.jsonl`) shows duplicate sample pairs:
-
-```json
-{"dup1":{"text":"This is a repeated sample text.","meta":{"src":"customized","date":null,"version":"0.1","author":"xxx"},"__dj__hash":"db2ac18521d0adb4b0b89259612ff1d7"},"dup2":{"text":"This is a repeated sample text.","meta":{"src":"customized","date":null,"version":"0.1","author":"xxx"},"__dj__hash":"db2ac18521d0adb4b0b89259612ff1d7"}}
-```
-
-## Output Results
-
-Tracing results are stored in a `trace/` subdirectory under the output directory. Each operator generates a separate JSONL file:
-- Mapper and Filter operators: `sample_trace-{operator_name}.jsonl`
-- Deduplicator operators: `duplicate-{operator_name}.jsonl`
-
-For example:
-```
-outputs_dir/
+{work_dir}/
 └── trace/
-    ├── sample_trace-chinese_convert_mapper.jsonl
-    ├── sample_trace-text_length_filter.jsonl
-    └── duplicate-document_simhash_deduplicator.jsonl
+    ├── sample_trace-clean_email_mapper.jsonl
+    ├── sample_trace-words_num_filter.jsonl
+    ├── sample_trace-document_deduplicator.jsonl
+    └── ...
 ```
 
-Each trace file contains up to `trace_num` samples, displaying changes made by that specific operator in JSONL format.
+Each trace file is in JSONL format (one JSON object per line), with content varying by operator type.
 
-> **Note**: Existing files in the `trace/` directory are automatically cleared when starting a processing task to avoid confusion with results from previous runs.
+## Traced Operator Types
 
-## Advanced Usage Examples
+### Mapper Tracing
 
-### Tracing Specific Operators
+For Mapper operators, the Tracer records samples where text content changes. Each record contains:
 
-If you only want to trace specific operators, use the `op_list_to_trace` parameter:
+| Field | Description |
+|-------|-------------|
+| `original_text` | Text before Mapper processing |
+| `processed_text` | Text after Mapper processing |
+| *trace_keys fields* | Values corresponding to configured `trace_keys` |
 
-```yaml
-project_name: 'demo-selective-trace'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-open_tracer: true
-op_list_to_trace:
-  - chinese_convert_mapper
-  - text_length_filter
-
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
-  - language_id_score_filter:
-      lang: 'en'
-```
-
-In this example, only `chinese_convert_mapper` and `text_length_filter` generate trace files, while `language_id_score_filter` is not traced.
-
-### Including Specified Fields in Mapper Tracing
-
-Use `trace_keys` to include specified fields in Mapper tracing output for better sample localization:
-
-```yaml
-project_name: 'demo-trace-with-keys'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
-open_tracer: true
-trace_num: 20  # Record at most 20 samples per operator
-trace_keys:
-  - meta
-
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
-  - language_id_score_filter:
-      lang: 'en'
-```
-
-For Mapper operators, the tracing output will include the values of specified fields at the beginning of each entry (extracted from the original sample), making it easy to identify which sample was modified:
-
+Example output (`sample_trace-clean_email_mapper.jsonl`):
 ```json
-{"meta":{"src":"customized","date":null,"version":null,"author":"xxx"},"original_text":"你好，请问你是谁","processed_text":"你好，請問你是誰"}
+{"original_text":"Contact us at user@example.com for details.","processed_text":"Contact us at  for details."}
+{"original_text": "Email: admin@test.org", "processed_text": "Email: "}
 ```
 
-For Filter and Deduplicator operators, complete samples are automatically saved and are not affected by the `trace_keys` configuration.
+Only samples with actual text changes are collected; unchanged samples are skipped.
 
-### Increasing the Number of Traced Samples
+### Filter Tracing
 
-By default, each operator records changes for only 10 samples. To view more samples, adjust `trace_num`:
+For Filter operators, the Tracer records samples that are **filtered out** (removed). Each record contains the complete sample data.
+
+Example output (`sample_trace-words_num_filter.jsonl`):
+```json
+{"text": "Too short.", "__dj__stats__": {"words_num": 2}}
+{"text": "Also brief.", "__dj__stats__": {"words_num": 2}}
+```
+
+Only samples that fail the filter are collected; samples passing the filter are skipped.
+
+### Deduplicator Tracing
+
+For Deduplicator operators, the Tracer records pairs of near-duplicate samples. Each record contains:
+
+| Field | Description |
+|-------|-------------|
+| `dup1` | First sample in the duplicate pair |
+| `dup2` | Second sample in the duplicate pair |
+
+Example output (`duplicate-document_deduplicator.jsonl`):
+```json
+{"dup1": "This is a duplicate text.", "dup2": "This is a duplicate text."}
+```
+
+## Sample Collection Behavior
+
+The Tracer uses an efficient **sample-level collection** approach:
+
+1. Each operator collects at most `trace_num` samples during processing
+2. Collection stops early once enough samples are gathered
+3. In default mode, collection is **thread-safe** using multiprocess locks
+4. In Ray mode, each Worker has its own Tracer instance (no locking needed)
+
+This design minimizes performance overhead — the Tracer does not compare the entire dataset, but captures changes in real-time during processing.
+
+## trace_keys
+
+The `trace_keys` option allows including additional fields from original samples in the trace output. This is useful for identifying which samples were affected:
 
 ```yaml
-project_name: 'demo-large-trace'
-dataset_path: './data/demo-dataset.jsonl'
-export_path: './outputs/demo-processed.jsonl'
-
 open_tracer: true
-trace_num: 100  # Record at most 100 samples per operator
+trace_keys:
+  - sample_id
+  - source_file
+```
 
-process:
-  - chinese_convert_mapper:
-      mode: 's2t'
-  - text_length_filter:
-      min_len: 2
-      max_len: 50
+With this configuration, Mapper trace entries will include:
+```json
+{
+  "sample_id": "doc_00042",
+  "source_file": "corpus_part1.jsonl",
+  "original_text": "Original content...",
+  "processed_text": "Processed content..."
+}
+```
+
+## API Reference
+
+### Tracer (Default Mode)
+
+```python
+from data_juicer.core.tracer import Tracer
+
+tracer = Tracer(
+    work_dir="./outputs",
+    op_list_to_trace=["clean_email_mapper", "words_num_filter"],
+    show_num=10,
+    trace_keys=["sample_id"]
+)
+
+# Check if an operator should be traced
+tracer.should_trace_op("clean_email_mapper")  # True
+
+# Check if enough samples have been collected
+tracer.is_collection_complete("clean_email_mapper")  # False
+
+# Collect Mapper sample
+tracer.collect_mapper_sample(
+    op_name="clean_email_mapper",
+    original_sample={"text": "Email: a@b.com"},
+    processed_sample={"text": "Email: "},
+    text_key="text"
+)
+
+# Collect Filter sample
+tracer.collect_filter_sample(
+    op_name="words_num_filter",
+    sample={"text": "too short"},
+    should_keep=False
+)
+```
+
+### RayTracer (Distributed Mode)
+
+```python
+from data_juicer.core.tracer.ray_tracer import RayTracer
+
+# RayTracer is a Ray Actor — created via Ray
+tracer = RayTracer.remote(
+    work_dir="./outputs",
+    op_list_to_trace=None,  # Trace all operators
+    show_num=10,
+    trace_keys=["sample_id"]
+)
+
+# Remote method calls
+ray.get(tracer.collect_mapper_sample.remote(
+    op_name="clean_email_mapper",
+    original_sample={"text": "Email: a@b.com"},
+    processed_sample={"text": "Email: "},
+    text_key="text"
+))
+
+# Finalize and export all trace results
+ray.get(tracer.finalize_traces.remote())
+```
+
+### Helper Functions
+
+The `data_juicer.core.tracer` module provides mode-agnostic helper functions:
+
+```python
+from data_juicer.core.tracer import (
+    should_trace_op,
+    check_tracer_collect_complete,
+    collect_for_mapper,
+    collect_for_filter,
+)
+
+# These functions automatically handle default mode and Ray mode
+should_trace_op(tracer_instance, "clean_email_mapper")
+check_tracer_collect_complete(tracer_instance, "clean_email_mapper")
+collect_for_mapper(tracer_instance, "op_name", original, processed, "text")
+collect_for_filter(tracer_instance, "op_name", sample, should_keep=False)
 ```
 
 ## Performance Considerations
 
-- **Processing Time**: Enabling the tracer adds some overhead to the processing pipeline. For large-scale production runs, consider disabling it or limiting the operators to trace.
-- **Storage Space**: Each operator generates a separate trace file. Total storage usage depends on `trace_num` and sample size.
-- **Memory**: The tracer uses efficient sample-level collection, storing at most `trace_num` samples per operator.
+### Overhead
 
-## Best Practices
+- When `trace_num` is small (default: 10), the additional overhead of tracing is minimal
+- Once an operator has collected `trace_num` samples, no further collection occurs
+- The main cost is comparing original and processed text in Mappers
 
-1. **Development and Debugging**: Enable the tracer during development to understand how operators affect your data.
-2. **Selective Tracing**: Use `op_list_to_trace` to focus on specific operators of interest.
-3. **Sample Identification**: Use `trace_keys` to include fields that help identify samples (e.g., IDs, source files).
-4. **Production Runs**: Disable the tracer during production runs to maximize performance.
+### Recommendations
 
-## Related Features
+| Scenario | Recommended Settings |
+|----------|----------------------|
+| Development/Debugging | `open_tracer: true`, `trace_num: 10-50` |
+| Production Runs | `open_tracer: false` |
+| Auditing Specific Operators | `open_tracer: true`, `op_list_to_trace: [specific operators]` |
+| Large-scale Tracing | `open_tracer: true`, `trace_num: 100`, specify `op_list_to_trace` |
 
-- [Operator List](Operators.md): Learn about the available operators in Data-Juicer.
-- [Developer Guide](DeveloperGuide.md): Learn how to develop custom operators.
+## Troubleshooting
+
+**No trace files generated:**
+```bash
+# Verify tracer is enabled
+grep "open_tracer" config.yaml
+
+# Check if trace directory exists
+ls -la ./outputs/{work_dir}/trace/
+```
+
+**Trace files are empty:**
+- For Mapper: The operator may not have modified any samples
+- For Filter: The operator may not have filtered out any samples
+- Check logs for warnings like "Datasets before and after op [X] are all the same"
+
+**Too few samples in trace files:**
+- Increase `trace_num` to collect more samples
+- There may be fewer than `trace_num` changed/filtered samples in the dataset

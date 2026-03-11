@@ -1,7 +1,5 @@
 # Dataset Export
 
-EN | [中文](Export_ZH.md)
-
 This document describes how DataJuicer exports processed datasets, including supported formats, sharding, parallel export, S3 export, and stats/hash management.
 
 ## Overview
@@ -26,6 +24,7 @@ export_in_parallel: false                  # Parallel export for single-file mod
 keep_stats_in_res_ds: false                # Keep computed stats in output
 keep_hashes_in_res_ds: false               # Keep computed hashes in output
 export_extra_args: {}                      # Additional format-specific arguments
+export_aws_credentials: null               # For S3 export, see S3 section for details
 ```
 
 ### Command Line
@@ -205,9 +204,9 @@ export_path: ./outputs/webdataset
 export_type: webdataset
 export_extra_args:
   field_mapping:
-    text: "txt"
-    images: "png"
-    metadata: "json"
+    txt: "text"
+    png: "images"
+    json: "metadata"
 ```
 
 ## API Reference

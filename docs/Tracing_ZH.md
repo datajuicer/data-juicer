@@ -48,7 +48,7 @@ dj-process --config config.yaml --open_tracer true \
 └── trace/
     ├── sample_trace-clean_email_mapper.jsonl
     ├── sample_trace-words_num_filter.jsonl
-    ├── sample_trace-document_deduplicator.jsonl
+    ├── duplicate-document_deduplicator.jsonl
     └── ...
 ```
 

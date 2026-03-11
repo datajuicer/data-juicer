@@ -211,7 +211,7 @@ use_checkpoint: true
 
 ## 缓存禁用与临时目录
 
-当 `use_cache: false` 或启用检查点（`use_checkpoint: true`）时，HuggingFace 数据集缓存会被完全禁用。此时，DataJuicer 会将算子处理过程中产生的中间文件写入系统临时目录，并在处理完成后自动清理。`temp_dir` 参数用于指定这些中间文件的存放位置。
+当 `use_cache: false` 或启用检查点（`use_checkpoint: true`）时，HuggingFace 数据集缓存会被完全禁用。此时，DataJuicer 会将算子处理过程中产生的中间文件写入一个临时目录，并在处理完成后自动清理。`temp_dir` 参数用于指定这些中间文件的存放位置。
 
 ### 行为说明
 

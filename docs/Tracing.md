@@ -48,7 +48,7 @@ Trace results are stored in the `trace/` subdirectory of the work directory:
 └── trace/
     ├── sample_trace-clean_email_mapper.jsonl
     ├── sample_trace-words_num_filter.jsonl
-    ├── sample_trace-document_deduplicator.jsonl
+    ├── duplicate-document_deduplicator.jsonl
     └── ...
 ```
 

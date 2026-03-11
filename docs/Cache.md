@@ -85,7 +85,7 @@ For large-scale datasets (tens of GB or more), cache files can consume significa
 |-----------|---------|-------|-------------------|-----------------|
 | `zstd` | zstandard | Fast | High | General use (default) |
 | `lz4` | lz4 | Fastest | Moderate | Speed-critical workloads |
-| `gzip` | gzip | Slow | Highest | Compatibility needs |
+| `gzip` | gzip | Slow | High | Compatibility needs |
 
 ### Configuration
 

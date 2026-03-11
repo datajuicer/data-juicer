@@ -1,7 +1,5 @@
 # 数据集导出
 
-中文 | [EN](Export.md)
-
 本文档描述 DataJuicer 如何导出处理后的数据集，包括支持的格式、分片、并行导出、S3 导出以及统计信息/哈希管理。
 
 ## 概述
@@ -26,6 +24,7 @@ export_in_parallel: false                  # 单文件模式下的并行导出
 keep_stats_in_res_ds: false                # 在输出中保留计算的统计信息
 keep_hashes_in_res_ds: false               # 在输出中保留计算的哈希值
 export_extra_args: {}                      # 额外的格式特定参数
+export_aws_credentials: null               # S3 导出专用，详见 S3 导出章节
 ```
 
 ### 命令行
@@ -205,9 +204,9 @@ export_path: ./outputs/webdataset
 export_type: webdataset
 export_extra_args:
   field_mapping:
-    text: "txt"
-    images: "png"
-    metadata: "json"
+    txt: "text"
+    png: "images"
+    json: "metadata"
 ```
 
 ## API 参考

@@ -231,3 +231,10 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
 ]
+
+[tool.uv]
+override-dependencies = [
+    "opencv-python; sys_platform == 'never'",
+    "opencv-python-headless; sys_platform == 'never'",
+    "opencv-contrib-python-headless; sys_platform == 'never'", # never install other versions of opencv-python
+]

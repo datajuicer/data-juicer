@@ -22,7 +22,7 @@ from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 with HiddenPrints():
-    cv2 = LazyLoader("cv2", "opencv-python")
+    cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "video_remove_watermark_mapper"
 

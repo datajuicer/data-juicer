@@ -11,7 +11,7 @@ from data_juicer.utils.mm_utils import calculate_resized_dimensions
 
 from ..base_op import OPERATORS, UNFORKABLE, Filter
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "video_motion_score_filter"
 

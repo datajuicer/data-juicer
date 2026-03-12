@@ -9,7 +9,7 @@ import numpy as np
 from data_juicer.utils.lazy_loader import LazyLoader
 
 torch = LazyLoader("torch")
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 onnxruntime = LazyLoader("onnxruntime")
 
 

@@ -13,7 +13,7 @@ from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "imgdiff_difference_caption_generator_mapper"
 

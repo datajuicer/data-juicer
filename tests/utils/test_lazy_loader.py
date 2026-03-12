@@ -181,7 +181,7 @@ dependencies = [
 
 [project.optional-dependencies]
 vision = [
-    "opencv-python",
+    "opencv-contrib-python",
     "Pillow>=10.0.0",
     "torchvision"
 ]
@@ -525,12 +525,12 @@ version = "0.1.0"
             mock_get_uv_lock.return_value = Path('/nonexistent/path/uv.lock')
             
             # Test installing a package from optional dependencies
-            LazyLoader._install_package('opencv-python')
+            LazyLoader._install_package('opencv-contrib-python')
             
             # Verify that the correct version was used
             mock_check_call.assert_called()
             args, kwargs = mock_check_call.call_args
-            self.assertIn('opencv-python', args[0])
+            self.assertIn('opencv-contrib-python', args[0])
 
     def test_install_package_with_version_override(self):
         """Test that package URL overrides version from dependencies."""

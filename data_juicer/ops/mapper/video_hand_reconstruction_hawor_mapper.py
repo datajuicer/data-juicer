@@ -21,7 +21,7 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_hand_reconstruction_hawor_mapper"
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 ultralytics = LazyLoader("ultralytics")
 torch = LazyLoader("torch")
 

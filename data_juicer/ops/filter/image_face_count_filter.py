@@ -11,7 +11,7 @@ from data_juicer.utils.model_utils import get_model, prepare_model
 from ..base_op import OPERATORS, UNFORKABLE, Filter
 from ..op_fusion import LOADED_IMAGES
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "image_face_count_filter"
 

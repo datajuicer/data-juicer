@@ -16,7 +16,7 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_whole_body_pose_estimation_mapper"
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 
 @OPERATORS.register_module(OP_NAME)

@@ -49,7 +49,7 @@ class LazyLoader(types.ModuleType):
 
     # Mapping of module names to their corresponding package names
     _module_to_package = {
-        "cv2": "opencv-python",
+        "cv2": "opencv-contrib-python",
         "PIL": "Pillow",
         "bs4": "beautifulsoup4",
         "sklearn": "scikit-learn",
@@ -65,7 +65,7 @@ class LazyLoader(types.ModuleType):
             module_name: The name of the module (e.g., 'cv2', 'PIL')
 
         Returns:
-            str: The corresponding package name (e.g., 'opencv-python', 'Pillow')
+            str: The corresponding package name (e.g., 'opencv-contrib-python', 'Pillow')
         """
         # Try to get the package name from the mapping
         if module_name in cls._module_to_package:
@@ -230,7 +230,7 @@ class LazyLoader(types.ModuleType):
 
         Args:
             module_name: The name of the module to import (e.g., 'cv2', 'ray.data', 'torchvision.models')
-            package_name: The name of the pip package to install (e.g., 'opencv-python', 'ray', 'torchvision')
+            package_name: The name of the pip package to install (e.g., 'opencv-contrib-python', 'ray', 'torchvision')
                         If None, will use the base module name (e.g., 'ray' for 'ray.data')
             package_url: The URL to install the package from (e.g., git+https://github.com/...)
             auto_install: Whether to automatically install missing dependencies

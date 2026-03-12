@@ -17,7 +17,7 @@ from ..base_op import OPERATORS, TAGGING_OPS, Mapper
 OP_NAME = "image_sam_3d_body_mapper"
 
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 
 @TAGGING_OPS.register_module(OP_NAME)
@@ -115,7 +115,7 @@ class ImageSAM3DBodyMapper(Mapper):
             [
                 "pytorch-lightning",
                 "pyrender",
-                "opencv-python",
+                "opencv-contrib-python",
                 "yacs",
                 "scikit-image",
                 "einops",

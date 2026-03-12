@@ -23,7 +23,7 @@ OP_NAME = "video_hand_reconstruction_mapper"
 # Note that pyrender requires numpy==1.26 to correctly generate rendering results.
 
 numpy = LazyLoader("numpy")
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 torch = LazyLoader("torch")
 
 

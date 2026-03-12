@@ -22,7 +22,7 @@ from data_juicer.utils.video_utils import create_video_reader
 from ..base_op import OPERATORS, TAGGING_OPS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "video_extract_frames_mapper"
 

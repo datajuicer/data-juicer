@@ -19,7 +19,7 @@ from ..base_op import OPERATORS, Filter
 from ..op_fusion import INTER_SAMPLED_FRAMES, LOADED_VIDEOS
 
 torch = LazyLoader("torch")
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "video_nsfw_filter"
 

@@ -17,7 +17,7 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_camera_calibration_static_deepcalib_mapper"
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 
 @OPERATORS.register_module(OP_NAME)

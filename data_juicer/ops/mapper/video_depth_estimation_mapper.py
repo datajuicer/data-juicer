@@ -14,7 +14,7 @@ from ..op_fusion import LOADED_VIDEOS
 OP_NAME = "video_depth_estimation_mapper"
 
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 torch = LazyLoader("torch")
 open3d = LazyLoader("open3d")
 

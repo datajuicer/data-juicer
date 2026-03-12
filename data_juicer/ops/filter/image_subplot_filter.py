@@ -8,7 +8,7 @@ from ..base_op import OPERATORS, Filter
 from ..op_fusion import LOADED_IMAGES
 
 # Lazy loading for OpenCV
-cv2 = LazyLoader("cv2", globals(), "opencv-python")
+cv2 = LazyLoader("cv2", globals(), "opencv-contrib-python")
 
 
 @OPERATORS.register_module("image_subplot_filter")

@@ -14,7 +14,6 @@ from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
 from data_juicer.core.ray_exporter import RayExporter
 from data_juicer.core.tracer.ray_tracer import RayTracer
 from data_juicer.ops import OPEnvManager, load_ops
-from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.utils.lazy_loader import LazyLoader
 
 ray = LazyLoader("ray")
@@ -149,7 +148,12 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process, self.op_env_manager)
 
-        # Initialize DAG execution planning (pass ops to avoid redundant loading)
+        # Apply optimizations BEFORE DAG init (so DAG reflects optimized ops)
+        from data_juicer.core.optimization_manager import apply_optimizations
+
+        ops = apply_optimizations(ops, self.cfg)
+
+        # Initialize DAG execution planning with OPTIMIZED ops
         self._initialize_dag_execution(self.cfg, ops=ops)
 
         # Log job start with DAG context
@@ -169,10 +173,6 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             "parallel_groups_count": len(self.pipeline_dag.parallel_groups) if self.pipeline_dag else 0,
         }
         self.log_job_start(job_config, len(ops))
-
-        if self.cfg.op_fusion:
-            logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops)
 
         with TempDirManager(self.tmp_dir):
             # 3. data process with DAG monitoring

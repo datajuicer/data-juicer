@@ -1,0 +1,56 @@
+# Mapper Fusion Showcase
+# This config demonstrates the mapper_fusion optimization strategy.
+#
+# Multiple consecutive mappers are fused into a single FusedMapper operation:
+# - Reduced dataset iteration overhead (1 pass instead of N passes)
+# - Better CPU cache locality
+# - Reduced multiprocessing setup overhead
+#
+# Run with:
+#   python tools/process_data.py --config demos/pipeline_optimization/configs/mapper_fusion_showcase.yaml
+
+project_name: 'mapper-fusion-showcase'
+dataset_path: 'demos/data/demo-dataset-deduplication.jsonl'
+export_path: 'outputs/mapper_fusion_showcase/result.jsonl'
+np: 4
+use_cache: false
+
+# Enable only mapper_fusion strategy
+enable_optimizer: true
+optimizer_strategies:
+  - mapper_fusion
+
+process:
+  # ============================================================
+  # FUSABLE MAPPERS (consecutive mappers will be fused)
+  # Without fusion: 5 separate dataset.map() calls
+  # With fusion: 1 dataset.map() call applying all 5
+  # ============================================================
+
+  # Text cleaning mappers - simple, fast operations
+  - clean_html_mapper: {}
+
+  - clean_links_mapper: {}
+
+  - clean_email_mapper: {}
+
+  - punctuation_normalization_mapper: {}
+
+  - whitespace_normalization_mapper: {}
+
+  # ============================================================
+  # FILTER (breaks the mapper chain)
+  # ============================================================
+
+  - text_length_filter:
+      min_len: 10
+      max_len: 10000
+
+  # ============================================================
+  # MORE FUSABLE MAPPERS (new chain after the filter)
+  # ============================================================
+
+  - remove_specific_chars_mapper:
+      chars_to_remove: '\t'
+
+  - fix_unicode_mapper: {}

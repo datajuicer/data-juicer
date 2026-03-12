@@ -1,0 +1,45 @@
+# Basic Pipeline Optimization Example
+# This config demonstrates how to enable the pipeline optimizer.
+#
+# Run with:
+#   python tools/process_data.py --config demos/pipeline_optimization/configs/basic.yaml
+
+project_name: 'optimization-basic-demo'
+dataset_path: 'demos/data/demo-dataset-deduplication.jsonl'
+export_path: 'outputs/optimization_demo/result.jsonl'
+np: 4
+use_cache: false
+
+# Enable the pipeline optimizer
+enable_optimizer: true
+optimizer_strategies:
+  - op_reorder      # Reorder operations for efficiency
+  - filter_fusion   # Fuse multiple filters into one
+
+process:
+  # These filters will be automatically fused and reordered
+  # The optimizer will:
+  # 1. Fuse all filters into a single FusedFilter operation
+  # 2. Reorder to put cheap filters first
+
+  - character_repetition_filter:
+      rep_len: 10
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  - special_characters_filter:
+      min_ratio: 0.0
+      max_ratio: 0.25
+
+  # These cheap filters should run first (optimizer will move them)
+  - text_length_filter:
+      min_len: 50
+      max_len: 10000
+
+  - words_num_filter:
+      min_num: 10
+      max_num: 2000
+
+  - alphanumeric_filter:
+      min_ratio: 0.25
+      max_ratio: 1.0

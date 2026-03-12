@@ -1,0 +1,72 @@
+# Operation Reordering Showcase
+# This config demonstrates the op_reorder optimization strategy.
+#
+# The operations are deliberately in a suboptimal order:
+# - Expensive operations (mappers, complex filters) come FIRST
+# - Cheap filters come LAST
+#
+# The optimizer will reorder them so cheap filters run first,
+# reducing the data volume before expensive operations run.
+#
+# Run with:
+#   python tools/process_data.py --config demos/pipeline_optimization/configs/op_reorder_showcase.yaml
+
+project_name: 'op-reorder-showcase'
+dataset_path: 'demos/data/demo-dataset-deduplication.jsonl'
+export_path: 'outputs/op_reorder_showcase/result.jsonl'
+np: 4
+use_cache: false
+
+# Enable only op_reorder strategy
+enable_optimizer: true
+optimizer_strategies:
+  - op_reorder
+
+process:
+  # ============================================================
+  # EXPENSIVE OPERATIONS (placed first - suboptimal!)
+  # Without optimization, these run on ALL data
+  # ============================================================
+
+  - text_chunk_mapper:
+      chunk_size: 500
+      mem_required: '2GB'
+
+  - text_entity_dependency_filter:
+      min_score: 0.9
+      mem_required: '3GB'
+
+  - text_pair_similarity_filter:
+      min_score: 0.8
+      mem_required: '2GB'
+
+  # ============================================================
+  # CHEAP FILTERS (placed last - suboptimal!)
+  # These should run FIRST to reduce data volume
+  # The optimizer will move these up
+  # ============================================================
+
+  - text_length_filter:
+      min_len: 50
+      max_len: 5000
+
+  - words_num_filter:
+      min_num: 10
+      max_num: 1000
+
+  - alphanumeric_filter:
+      min_ratio: 0.3
+      max_ratio: 1.0
+
+  # ============================================================
+  # DEPENDENCY CHAIN (optimizer preserves order)
+  # language_id must come before perplexity
+  # ============================================================
+
+  - language_id_score_filter:
+      lang: 'en'
+      min_score: 0.5
+
+  - perplexity_filter:
+      lang: 'en'
+      min_score: 0.1

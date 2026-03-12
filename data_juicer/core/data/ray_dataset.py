@@ -61,9 +61,9 @@ def set_dataset_to_absolute_path(dataset, dataset_path, cfg):
     path_keys = []
     columns = dataset.columns()
     for key in [
-        cfg.get("video_key", "videos"),
-        cfg.get("image_key", "images"),
-        cfg.get("audio_key", "audios"),
+        getattr(cfg, "video_key", "videos"),
+        getattr(cfg, "image_key", "images"),
+        getattr(cfg, "audio_key", "audios"),
     ]:
         if key in columns:
             path_keys.append(key)
@@ -101,8 +101,8 @@ class RayDataset(DJDataset):
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
 
         # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
-        if cfg and cfg.get("auto_op_parallelism") is not None:
-            self._auto_proc = cfg.get("auto_op_parallelism")
+        if cfg and getattr(cfg, "auto_op_parallelism", None) is not None:
+            self._auto_proc = getattr(cfg, "auto_op_parallelism")
         else:
             self._auto_proc = auto_op_parallelism
 

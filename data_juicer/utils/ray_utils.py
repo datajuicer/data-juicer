@@ -40,7 +40,8 @@ def initialize_ray(cfg=None, force=False):
         ray_address,
         ignore_reinit_error=True,
         runtime_env=dict(
-            py_modules=cfg.custom_operator_paths if cfg.get("custom_operator_paths", None) else None, env_vars=env_vars
+            py_modules=cfg.custom_operator_paths if getattr(cfg, "custom_operator_paths", None) else None,
+            env_vars=env_vars,
         ),
     )
 

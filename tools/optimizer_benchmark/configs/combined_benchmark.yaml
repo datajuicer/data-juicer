@@ -1,0 +1,139 @@
+# Combined Optimization Benchmark
+#
+# A comprehensive benchmark testing all optimization strategies:
+#
+# 1. MAPPER FUSION: 10 consecutive text cleaning mappers -> 1 fused mapper
+#    Benefit: Single pass through data instead of 10 passes
+#
+# 2. FILTER FUSION: Filters sharing intermediate variables get fused
+#    - __dj__words group (4 filters -> 1): words_num, word_repetition, stopwords, flagged_words
+#    - __dj__lines group (2 filters -> 1): average_line_length, maximum_line_length
+#    Benefit: Tokenize/split once, reuse across filters
+#
+# 3. OP REORDER: Expensive filters placed before cheap filters (intentionally bad)
+#    Optimizer will reorder: cheap filters first to reduce data early
+#    Benefit: Less data processed by expensive filters
+#
+# Expected optimization:
+#   - 10 mappers -> 1 fused mapper
+#   - 10 filters -> optimized order + fusion groups
+#   - Filter order optimized for early data reduction
+#
+# ============================================================
+# Benchmark Results (C4 dataset, 364K samples, 3 iterations)
+# ============================================================
+#   Speedup:           1.22x
+#   Improvement:       22.1%
+#   Statistically significant: Yes
+#   Throughput gain:   1.22x
+#   Memory efficiency: 0.63x (trades memory for speed)
+# ============================================================
+#
+# Usage:
+#   python tools/optimizer_benchmark/run_benchmark.py \
+#       --recipe-path tools/optimizer_benchmark/configs/combined_benchmark.yaml \
+#       --dataset-path <your_dataset.jsonl> \
+#       --strategies all_optimizations
+
+project_name: 'combined-benchmark'
+np: 12
+use_cache: false
+
+process:
+  # ============================================================
+  # SECTION 1: MAPPERS (10 consecutive text cleaners - can be fused)
+  # ============================================================
+  # These mappers perform sequential text cleaning operations.
+  # Mapper fusion combines them into a single pass through the data.
+
+  - clean_html_mapper: {}
+
+  - clean_links_mapper: {}
+
+  - clean_email_mapper: {}
+
+  - clean_ip_mapper: {}
+
+  - clean_copyright_mapper: {}
+
+  - fix_unicode_mapper: {}
+
+  - punctuation_normalization_mapper: {}
+
+  - whitespace_normalization_mapper: {}
+
+  - remove_specific_chars_mapper:
+      chars_to_remove: '\t'
+
+  - remove_long_words_mapper:
+      max_len: 100
+
+  # ============================================================
+  # SECTION 2: FILTERS IN SUBOPTIMAL ORDER
+  # Op reorder will fix this by moving cheap filters first
+  # ============================================================
+
+  # --- EXPENSIVE FILTERS FIRST (BAD - should run last) ---
+  # These filters require word tokenization and are computationally expensive
+
+  # Expensive: loads stopwords list, tokenizes text
+  - stopwords_filter:
+      lang: en
+      min_ratio: 0.05
+      max_ratio: 0.95
+
+  # Expensive: loads flagged words list, tokenizes text
+  - flagged_words_filter:
+      lang: en
+      max_ratio: 0.01
+
+  # Medium: tokenizes and counts word repetitions
+  - word_repetition_filter:
+      rep_len: 5
+      max_ratio: 0.5
+
+  # Medium: tokenizes to count words
+  - words_num_filter:
+      min_num: 20
+      max_num: 10000
+
+  # --- CHEAP FILTERS LAST (BAD - should run first) ---
+  # These filters are fast and should run early to reduce data
+
+  # Very cheap: just measures string length
+  - text_length_filter:
+      min_len: 100
+      max_len: 100000
+
+  # Cheap: character-level check
+  - alphanumeric_filter:
+      min_ratio: 0.60
+      max_ratio: 1.0
+
+  # Cheap: character-level check
+  - special_characters_filter:
+      min_ratio: 0.0
+      max_ratio: 0.25
+
+  # Medium: regex-based character repetition detection
+  - character_repetition_filter:
+      rep_len: 10
+      max_ratio: 0.3
+
+  # ============================================================
+  # SECTION 3: LINE-BASED FILTERS (share __dj__lines)
+  # These will be fused together by filter_fusion
+  # ============================================================
+
+  # Splits text into lines and computes average length
+  - average_line_length_filter:
+      min_len: 10
+      max_len: 5000
+
+  # Splits text into lines and finds maximum length
+  - maximum_line_length_filter:
+      min_len: 10
+      max_len: 10000
+
+  # Note: Filters requiring model loading (token_num_filter, perplexity_filter,
+  # language_id_score_filter) are excluded to avoid subprocess issues.

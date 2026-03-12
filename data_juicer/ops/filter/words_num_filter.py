@@ -56,7 +56,7 @@ class WordsNumFilter(Filter):
         if tokenization:
             self.model_key = prepare_model(model_type="sentencepiece", lang=lang)
 
-    def compute_stats_batched(self, samples, context=False):
+    def compute_stats_batched(self, samples, *args, **kwargs):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
         words_key = f"{InterVars.words}-{self.model_key}"
@@ -65,6 +65,7 @@ class WordsNumFilter(Filter):
             # check if it's computed already
             if StatsKeys.num_words in stat:
                 continue
+            context = kwargs.get("context", False)
             if context and words_key in samples[Fields.context][idx]:
                 words = samples[Fields.context][idx][words_key]
             else:

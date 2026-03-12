@@ -1,0 +1,75 @@
+# Filter Fusion Showcase
+# This config demonstrates the filter_fusion optimization strategy.
+#
+# Multiple independent filters are fused into a single FusedFilter operation:
+# - Reduces dataset iteration overhead (1 pass instead of N passes)
+# - Enables parallel execution of filter predicates
+# - Best results with 3+ filters
+#
+# Run with:
+#   python tools/process_data.py --config demos/pipeline_optimization/configs/filter_fusion_showcase.yaml
+
+project_name: 'filter-fusion-showcase'
+dataset_path: 'demos/data/demo-dataset-deduplication.jsonl'
+export_path: 'outputs/filter_fusion_showcase/result.jsonl'
+np: 4
+use_cache: false
+
+# Enable only filter_fusion strategy
+enable_optimizer: true
+optimizer_strategies:
+  - filter_fusion
+
+process:
+  # ============================================================
+  # FUSABLE FILTERS
+  # These 8 filters will be combined into a single FusedFilter
+  # Without fusion: 8 separate passes over the data
+  # With fusion: 1 pass with parallel predicate evaluation
+  # ============================================================
+
+  # Text length checks
+  - text_length_filter:
+      min_len: 50
+      max_len: 10000
+
+  - words_num_filter:
+      min_num: 10
+      max_num: 2000
+
+  # Line length checks
+  - average_line_length_filter:
+      min_len: 10
+      max_len: 500
+
+  - maximum_line_length_filter:
+      min_len: 10
+      max_len: 1000
+
+  # Character composition checks
+  - alphanumeric_filter:
+      min_ratio: 0.25
+      max_ratio: 1.0
+
+  - special_characters_filter:
+      min_ratio: 0.0
+      max_ratio: 0.25
+
+  # Repetition checks
+  - character_repetition_filter:
+      rep_len: 10
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  - word_repetition_filter:
+      rep_len: 5
+      min_ratio: 0.0
+      max_ratio: 0.3
+
+  # ============================================================
+  # NON-FUSABLE OPERATIONS
+  # Mappers are not fused with filters (different operation type)
+  # ============================================================
+
+  - clean_html_mapper: {}
+  - clean_links_mapper: {}

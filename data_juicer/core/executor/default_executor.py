@@ -16,7 +16,6 @@ from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
 from data_juicer.core.exporter import Exporter
 from data_juicer.core.tracer import Tracer
 from data_juicer.ops import load_ops
-from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.ops.selector import (
     FrequencySpecifiedFieldSelector,
     TopkSpecifiedFieldSelector,
@@ -165,7 +164,18 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process)
 
-        # Initialize DAG execution planning (pass ops to avoid redundant loading)
+        # Apply optimizations BEFORE DAG init (so DAG reflects optimized ops)
+        # The optimization manager handles:
+        # - enable_optimizer: true -> uses optimizer_strategies
+        # - op_fusion: true with fusion_strategy="greedy" -> filter_fusion
+        # - op_fusion: true with fusion_strategy="probe" -> op_reorder + filter_fusion
+        # If probing is enabled, operations are run on a small sample to measure
+        # actual costs for more accurate reordering decisions.
+        from data_juicer.core.optimization_manager import apply_optimizations
+
+        ops = apply_optimizations(ops, self.cfg, dataset=dataset)
+
+        # Initialize DAG execution planning with OPTIMIZED ops
         self._initialize_dag_execution(self.cfg, ops=ops)
 
         # Log job start with DAG context
@@ -185,16 +195,6 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             "parallel_groups_count": len(self.pipeline_dag.parallel_groups) if self.pipeline_dag else 0,
         }
         self.log_job_start(job_config, len(ops))
-
-        # OP fusion
-        if self.cfg.op_fusion:
-            probe_res = None
-            if self.cfg.fusion_strategy == "probe":
-                logger.info("Probe the OP speed for OP reordering...")
-                probe_res, _ = self.adapter.probe_small_batch(dataset, ops)
-
-            logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops, probe_res)
 
         # adaptive batch size
         if self.cfg.adaptive_batch_size:

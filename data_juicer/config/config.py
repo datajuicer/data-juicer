@@ -584,20 +584,17 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "--op_fusion",
                 type=bool,
                 default=False,
-                help="Whether to fuse operators that share the same intermediate "  # noqa: E251
-                "variables automatically. Op fusion might reduce the memory "
-                "requirements slightly but speed up the whole process.",
+                help="[DEPRECATED] Use 'enable_optimizer' with 'optimizer_strategies' instead. "
+                "Legacy option for fusing operators. When enabled, automatically maps to "
+                "the optimization framework: greedy -> filter_fusion, probe -> op_reorder + filter_fusion.",
             )
             parser.add_argument(
                 "--fusion_strategy",
                 type=str,
                 default="probe",
-                help='OP fusion strategy. Support ["greedy", "probe"] now. "greedy" '  # noqa: E251
-                "means keep the basic OP order and put the fused OP to the last "
-                'of each fused OP group. "probe" means Data-Juicer will probe '
-                "the running speed for each OP at the beginning and reorder the "
-                "OPs and fused OPs according to their probed speed (fast to "
-                'slow). It\'s "probe" in default.',
+                help="[DEPRECATED] Use optimizer_strategies instead. "
+                'Legacy fusion strategy: "greedy" (filter_fusion only) or '
+                '"probe" (op_reorder + filter_fusion).',
             )
             parser.add_argument(
                 "--adaptive_batch_size",
@@ -632,6 +629,36 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 type=bool,
                 default=False,
                 help="Whether to save all stats to only one file. Only used in " "Analysis.",
+            )
+            parser.add_argument(
+                "--enable_optimizer",
+                type=bool,
+                default=False,
+                help="Enable the core pipeline optimizer for operation reordering and fusion. "
+                "This is the recommended way to enable optimizations (replaces legacy op_fusion).",
+            )
+            parser.add_argument(
+                "--optimizer_strategies",
+                type=List[str],
+                default=["op_reorder"],
+                help="List of optimization strategies to apply. Available strategies: "
+                "'op_reorder' (reorder ops for efficiency), 'filter_fusion' (fuse consecutive filters), "
+                "'mapper_fusion' (fuse consecutive mappers). Example: ['op_reorder', 'filter_fusion']",
+            )
+            parser.add_argument(
+                "--optimizer_probe_enabled",
+                type=bool,
+                default=True,
+                help="Enable operation probing to measure actual costs for smarter reordering. "
+                "When enabled, each operation is run on a small sample to measure execution time "
+                "and selectivity. This provides more accurate cost estimates than static heuristics.",
+            )
+            parser.add_argument(
+                "--optimizer_probe_samples",
+                type=int,
+                default=100,
+                help="Number of samples to use for probing operation costs (default: 100). "
+                "Larger values give more accurate estimates but take longer to probe.",
             )
             parser.add_argument("--ray_address", type=str, default="auto", help="The address of the Ray cluster.")
 
@@ -830,7 +857,7 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         if not load_configs_only and hasattr(cfg, "job_id") and cfg.job_id:
             # Check if this is a resumption attempt by looking for existing job directory
             if cfg.work_dir and os.path.exists(cfg.work_dir):
-                logger.info(f"🔍 Checking for job resumption: {cfg.job_id}")
+                logger.info(f"Checking for job resumption: {cfg.job_id}")
                 cfg._same_yaml_config = validate_config_for_resumption(cfg, cfg.work_dir, args)
             else:
                 # New job, set flag to True
@@ -977,7 +1004,7 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
             os.makedirs(cfg.temp_dir, exist_ok=True)
         tempfile.tempdir = cfg.temp_dir
 
-    # The checkpoint mode is not compatible with op fusion for now.
+    # Handle legacy op_fusion config (now handled by optimization framework)
     if cfg.get("op_fusion", False):
         cfg.use_checkpoint = False
         cfg.fusion_strategy = cfg.fusion_strategy.lower()
@@ -985,6 +1012,13 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
             raise NotImplementedError(
                 f"Unsupported OP fusion strategy [{cfg.fusion_strategy}]. " f"Should be one of {FUSION_STRATEGIES}."
             )
+        # Log deprecation warning
+        logger.warning(
+            "'op_fusion' is deprecated. Use 'enable_optimizer: true' with "
+            "'optimizer_strategies: [filter_fusion]' instead. "
+            f"Your op_fusion config (fusion_strategy={cfg.fusion_strategy}) "
+            "will be automatically mapped to the optimization framework."
+        )
 
     # update huggingface datasets cache directory only when ds_cache_dir is set
     from datasets import config
@@ -1003,6 +1037,23 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     # add all filters that produce stats
     if cfg.get("auto", False):
         cfg.process = load_ops_with_stats_meta()
+
+    # Handle optimization configuration
+    cfg.enable_optimizer = cfg.get("enable_optimizer", False)
+    cfg.optimizer_strategies = cfg.get("optimizer_strategies", ["op_reorder"])
+
+    # Ensure optimizer_strategies is a list
+    if isinstance(cfg.optimizer_strategies, str):
+        cfg.optimizer_strategies = cfg.optimizer_strategies.split(",")
+
+    if cfg.enable_optimizer:
+        from data_juicer.core.optimizer.strategy import StrategyRegistry
+
+        available_strategies = StrategyRegistry.get_available_strategies()
+        logger.info(f"Pipeline optimizer enabled: {cfg.optimizer_strategies}")
+        logger.debug(f"Available strategies: {available_strategies}")
+    else:
+        logger.debug("Pipeline optimizer disabled")
 
     # Apply text_key modification during initializing configs
     # users can freely specify text_key for different ops using `text_key`
@@ -1350,18 +1401,18 @@ def validate_config_for_resumption(cfg: Namespace, work_dir: str, original_args:
         cli_match = len(cli_differences) == 0
 
         if not config_match or not cli_match:
-            logger.error("❌ Config validation failed - configurations don't match:")
+            logger.error("Config validation failed - configurations don't match:")
             if not config_match:
                 logger.error("   [config] Config file content differs")
             if not cli_match:
                 logger.error("   [cli] CLI arguments differ:")
                 for diff in cli_differences:
-                    logger.error(f"      {diff['key']}: {diff['original']} → {diff['current']}")
-            logger.error("💡 Use the same config file and CLI arguments for resumption")
+                    logger.error(f"      {diff['key']}: {diff['original']} -> {diff['current']}")
+            logger.error("Use the same config file and CLI arguments for resumption")
             cfg._same_yaml_config = False
             return False
 
-        logger.info("✅ Config validation passed - configurations match exactly")
+        logger.info("Config validation passed")
         cfg._same_yaml_config = True
         return True
 

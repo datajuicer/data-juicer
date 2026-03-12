@@ -1,0 +1,45 @@
+# Op Reorder Benchmark
+#
+# Tests the op_reorder optimization strategy.
+# This config has a deliberately suboptimal operation order to demonstrate
+# the optimizer's ability to reorder operations for better performance.
+#
+# The cheap filters (text_length_filter, words_num_filter) should be moved
+# before the more expensive filters (character_repetition_filter, special_characters_filter).
+#
+# Usage:
+#   python tools/optimizer_benchmark/run_benchmark.py \
+#       --recipe-path tools/optimizer_benchmark/configs/reorder_benchmark.yaml \
+#       --dataset-path <your_dataset.jsonl> \
+#       --strategies op_reorder
+
+project_name: 'reorder-benchmark'
+np: 12
+use_cache: false
+
+process:
+  # Medium-cost filters (run on all data without optimization)
+  - character_repetition_filter:
+      rep_len: 10
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  - special_characters_filter:
+      min_ratio: 0.0
+      max_ratio: 0.5
+
+  # CHEAP filters that should run FIRST (optimizer should move these up)
+  # text_length_filter typically removes ~30% of data
+  - text_length_filter:
+      min_len: 50
+      max_len: 5000
+
+  # words_num_filter is also cheap
+  - words_num_filter:
+      min_num: 5
+      max_num: 1000
+
+  # Another medium-cost filter
+  - alphanumeric_filter:
+      min_ratio: 0.3
+      max_ratio: 1.0

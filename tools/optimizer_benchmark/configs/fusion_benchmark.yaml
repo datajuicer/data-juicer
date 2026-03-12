@@ -1,0 +1,126 @@
+# Filter Fusion Benchmark Configuration
+#
+# This config demonstrates the performance benefits of filter fusion optimization.
+# Filters sharing intermediate variables are automatically fused to avoid redundant computation.
+#
+# Intermediate Variable Groups:
+#   __dj__words: words_num_filter, word_repetition_filter, stopwords_filter, flagged_words_filter
+#   __dj__lines: average_line_length_filter, maximum_line_length_filter
+#
+# Benchmark Results (C4 dataset):
+#
+#   10 Filters on 5K samples:
+#     - Baseline (no fusion):     5.21s
+#     - With filter fusion:       3.48s  (10 filters -> 6 ops)
+#     - Speedup:                  1.50x (33.2% faster)
+#
+#   6 Filters on 356K samples:
+#     - Baseline (no fusion):     45.80s
+#     - With filter fusion:       30.51s (6 filters -> 2 ops)
+#     - Speedup:                  1.50x (33.4% faster)
+#     - Time saved:               15.3s
+#
+# Fusion Groups Created:
+#   - __dj__words group: 4 filters -> 1 fused_filter (1.47x probe speedup)
+#   - __dj__lines group: 2 filters -> 1 fused_filter (1.57x probe speedup)
+#   - Standalone filters remain unfused (no shared computation)
+#
+# Usage:
+#   # Run without optimization (baseline)
+#   python tools/process_data.py --config tools/optimizer_benchmark/configs/fusion_benchmark.yaml
+#
+#   # Run with filter fusion optimization
+#   python tools/process_data.py --config tools/optimizer_benchmark/configs/fusion_benchmark.yaml \
+#       --enable_optimizer true --optimizer_strategies filter_fusion
+#
+#   # Run with filter fusion + probing validation
+#   python tools/process_data.py --config tools/optimizer_benchmark/configs/fusion_benchmark.yaml \
+#       --enable_optimizer true --optimizer_strategies filter_fusion \
+#       --optimizer_probe_enabled true --optimizer_probe_samples 100
+
+# Project info
+project_name: 'fusion_benchmark'
+
+# Dataset configuration
+# dataset_path: '/Users/yilei.z/Downloads/c4-train.00000-of-01024.part.jsonl'
+
+# Output configuration
+work_dir: './outputs/fusion_benchmark/{job_id}'
+export_path: '{work_dir}/processed.jsonl'
+
+# Processing configuration
+np: 4  # Number of processes
+
+# NOTE: Optimizer settings are controlled by the benchmark runner, not this config.
+# Use --strategies filter_fusion to enable filter fusion optimization.
+# Probing settings can be added here if needed:
+# optimizer_probe_enabled: true
+# optimizer_probe_samples: 100
+
+# Processing pipeline with filters that share intermediate variables
+process:
+  # ============================================
+  # Group 1: __dj__words filters (share word tokenization)
+  # These filters all tokenize text into words, which can be computed once and reused
+  # ============================================
+
+  # Filter by number of words
+  - words_num_filter:
+      min_num: 5
+      max_num: 100000
+
+  # Filter by word repetition ratio
+  - word_repetition_filter:
+      rep_len: 5
+      max_ratio: 0.5
+
+  # Filter by stopwords ratio
+  - stopwords_filter:
+      lang: en
+      min_ratio: 0.1
+      max_ratio: 0.9
+
+  # Filter by flagged/toxic words
+  - flagged_words_filter:
+      lang: en
+      max_ratio: 0.01
+
+  # ============================================
+  # Group 2: __dj__lines filters (share line splitting)
+  # These filters all split text into lines, which can be computed once and reused
+  # ============================================
+
+  # Filter by average line length
+  - average_line_length_filter:
+      min_len: 10
+      max_len: 10000
+
+  # Filter by maximum line length
+  - maximum_line_length_filter:
+      min_len: 10
+      max_len: 50000
+
+  # ============================================
+  # Additional text filters (no shared intermediate vars)
+  # These won't be fused but add to the pipeline complexity
+  # ============================================
+
+  # Filter by text length
+  - text_length_filter:
+      min_len: 50
+      max_len: 100000
+
+  # Filter by character repetition
+  - character_repetition_filter:
+      rep_len: 10
+      max_ratio: 0.2
+
+  # Filter by special characters ratio
+  - special_characters_filter:
+      min_ratio: 0.0
+      max_ratio: 0.3
+
+  # Filter by alphanumeric ratio
+  - alphanumeric_filter:
+      min_ratio: 0.5
+      max_ratio: 1.0

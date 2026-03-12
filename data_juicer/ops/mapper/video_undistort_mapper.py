@@ -46,6 +46,12 @@ class VideoUndistortMapper(Mapper):
 
         super().__init__(*args, **kwargs)
 
+        # remove possible conflicted opencv modules
+        subprocess.run(
+            ["pip", "uninstall", "-y", "opencv-python", "opencv-python-headless", "opencv-contrib-python-headless"],
+            check=True,
+        )
+
         opencv_contrib_python_exist_code = subprocess.run(["pip", "show", "opencv-contrib-python"])
         # This is written to fix version issues with Numpy
         if opencv_contrib_python_exist_code.returncode == 1:  # not exist

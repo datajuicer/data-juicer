@@ -53,7 +53,7 @@ class VideoUndistortMapper(Mapper):
         ]
 
         # if not, uninstall all opencv-related modules and reinstall opencv-contrib-python
-        if installed_opencv != ["opencv-contrib-python"]:
+        if set(installed_opencv) != {"opencv-contrib-python"}:
             # uninstall all opencv-related modules
             subprocess.run(
                 [
@@ -71,8 +71,8 @@ class VideoUndistortMapper(Mapper):
             # reinstall opencv-contrib-python
             LazyLoader.check_packages(["opencv-contrib-python"])
 
-        # fix the version of numpy
-        subprocess.run(["pip", "install", "numpy==1.26.4"], check=True)
+            # fix the version of numpy
+            subprocess.run(["pip", "install", "numpy==1.26.4"], check=True)
 
         cv2 = LazyLoader("cv2", "opencv-contrib-python")
 

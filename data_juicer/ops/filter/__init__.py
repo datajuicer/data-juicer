@@ -4,6 +4,7 @@ from .audio_nmf_snr_filter import AudioNMFSNRFilter
 from .audio_size_filter import AudioSizeFilter
 from .average_line_length_filter import AverageLineLengthFilter
 from .character_repetition_filter import CharacterRepetitionFilter
+from .combined_logical_filter import CombinedLogicalFilter
 from .flagged_words_filter import FlaggedWordFilter
 from .general_field_filter import GeneralFieldFilter
 from .image_aesthetics_filter import ImageAestheticsFilter
@@ -28,6 +29,7 @@ from .llm_difficulty_score_filter import LLMDifficultyScoreFilter
 from .llm_perplexity_filter import LLMPerplexityFilter
 from .llm_quality_score_filter import LLMQualityScoreFilter
 from .llm_task_relevance_filter import LLMTaskRelevanceFilter
+from .logical_filter import LogicalFilter
 from .maximum_line_length_filter import MaximumLineLengthFilter
 from .perplexity_filter import PerplexityFilter
 from .phrase_grounding_recall_filter import PhraseGroundingRecallFilter
@@ -78,6 +80,8 @@ __all__ = [
     "ImageTextSimilarityFilter",
     "ImageWatermarkFilter",
     "LanguageIDScoreFilter",
+    "LogicalFilter",
+    "CombinedLogicalFilter",
     "InContextInfluenceFilter",
     "InstructionFollowingDifficultyFilter",
     "LLMAnalysisFilter",

@@ -176,8 +176,8 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "--executor_type",
                 type=str,
                 default="default",
-                choices=["default", "ray", "ray_partitioned"],
-                help='Type of executor, support "default", "ray", or "ray_partitioned".',
+                choices=["default", "ray", "ray_partitioned", "branch"],
+                help='Type of executor, support "default", "ray", "ray_partitioned", or "branch".',
             )
             parser.add_argument(
                 "--dataset_path",

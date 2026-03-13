@@ -15,6 +15,10 @@ class ExecutorFactory:
             from .ray_executor_partitioned import PartitionedRayExecutor
 
             return PartitionedRayExecutor
+        elif executor_type == "branch":
+            from .branch_executor import BranchExecutor
+
+            return BranchExecutor
         # TODO: add nemo support
         #  elif executor_type == "nemo":
         #    return NemoExecutor

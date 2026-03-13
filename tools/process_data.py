@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from loguru import logger
 
 from data_juicer.config import init_configs
-from data_juicer.core import DefaultExecutor
 
 
 @contextmanager
@@ -21,20 +20,10 @@ def main():
         cfg = init_configs()
 
     with timing_context("Initializing executor"):
-        if cfg.executor_type == "default":
-            executor = DefaultExecutor(cfg)
-        elif cfg.executor_type == "ray":
-            from data_juicer.core.executor.ray_executor import RayExecutor
+        from data_juicer.core.executor.factory import ExecutorFactory
 
-            executor = RayExecutor(cfg)
-        elif cfg.executor_type == "ray_partitioned":
-            from data_juicer.core.executor.ray_executor_partitioned import (
-                PartitionedRayExecutor,
-            )
-
-            executor = PartitionedRayExecutor(cfg)
-        else:
-            raise ValueError(f"Unsupported executor type: {cfg.executor_type}")
+        executor_class = ExecutorFactory.create_executor(cfg.executor_type)
+        executor = executor_class(cfg)
 
     with timing_context("Running executor"):
         executor.run()

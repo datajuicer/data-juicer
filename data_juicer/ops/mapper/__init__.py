@@ -1,6 +1,7 @@
 from .annotation.human_preference_annotation_mapper import (
     HumanPreferenceAnnotationMapper,
 )
+from .arxiv_to_markdown_mapper import ArxivToMarkdownMapper
 from .audio_add_gaussian_noise_mapper import AudioAddGaussianNoiseMapper
 from .audio_ffmpeg_wrapped_mapper import AudioFFmpegWrappedMapper
 from .calibrate_qa_mapper import CalibrateQAMapper
@@ -57,6 +58,7 @@ from .optimize_qa_mapper import OptimizeQAMapper
 from .optimize_query_mapper import OptimizeQueryMapper
 from .optimize_response_mapper import OptimizeResponseMapper
 from .pair_preference_mapper import PairPreferenceMapper
+from .pdf_to_markdown_mapper import PdfToMarkdownMapper
 from .punctuation_normalization_mapper import PunctuationNormalizationMapper
 from .python_file_mapper import PythonFileMapper
 from .python_lambda_mapper import PythonLambdaMapper
@@ -116,6 +118,7 @@ from .video_whole_body_pose_estimation_mapper import VideoWholeBodyPoseEstimatio
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
 
 __all__ = [
+    "ArxivToMarkdownMapper",
     "AudioAddGaussianNoiseMapper",
     "AudioFFmpegWrappedMapper",
     "CalibrateQAMapper",
@@ -171,6 +174,7 @@ __all__ = [
     "OptimizeQueryMapper",
     "OptimizeResponseMapper",
     "PairPreferenceMapper",
+    "PdfToMarkdownMapper",
     "PunctuationNormalizationMapper",
     "PythonFileMapper",
     "PythonLambdaMapper",

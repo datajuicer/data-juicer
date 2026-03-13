@@ -118,6 +118,12 @@ audio = [
     "audiomentations",
 ]
 
+# Document / arXiv to Markdown (arxiv_to_markdown_mapper, pdf_to_markdown_mapper)
+document = [
+    "mineru",  # MinerU: high-precision PDF to Markdown
+    "crawl4ai",   # arXiv abstract page to Markdown (optional backend)
+]
+
 # Distributed Computing
 distributed = [
     "ray[default]>=2.51.0",  # distributed computing
@@ -175,6 +181,7 @@ dj-process = "data_juicer.tools.process_data:main"
 dj-analyze = "data_juicer.tools.analyze_data:main"
 dj-install = "data_juicer.tools.dj_install:main"
 dj-mcp = "data_juicer.tools.mcp_server:main"
+dj-op = "data_juicer.tools.run_op:main"
 
 [build-system]
 requires = [

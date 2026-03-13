@@ -57,6 +57,12 @@ for s in res_ds:
     print(s)
 ```
 
+**Quick one-shot op test** (run a single operator on one sample):
+```bash
+dj-op --list                                    # list operator names
+dj-op whitespace_normalization_mapper '{"text":"  hello  "}'
+echo '{"arxiv_id":"2501.14755"}' | dj-op arxiv_to_markdown_mapper
+```
 
 ---
 

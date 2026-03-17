@@ -31,7 +31,14 @@ class TempDirManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if os.path.exists(self.tmp_dir):
             logger.info(f"Removing tmp dir {self.tmp_dir} ...")
-            shutil.rmtree(self.tmp_dir)
+            # in some cases, such as we mount OSS bucket with fuse device using Fluid,
+            # cleaning up temporary directories via shutil.rmtree() fails,
+            # but os.rmdir() succeeds.
+            try:
+                shutil.rmtree(self.tmp_dir)
+            except OSError as e:
+                logger.warning(f"Remove tmp dir with shutil.rmtree() failed: {e}, will try os.rmdir()")
+                os.rmdir(self.tmp_dir)
 
 
 class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):

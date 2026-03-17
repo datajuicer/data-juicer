@@ -60,6 +60,7 @@ dependencies = [
     "mcp[cli]>=1.7.0",
     "pylance",
     "dep-logic",
+    "rank-bm25>=0.2.2",
 ]
 
 [project.optional-dependencies]

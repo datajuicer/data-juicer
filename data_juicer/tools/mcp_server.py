@@ -17,7 +17,7 @@ Available modes:
 
 Examples:
   dj-mcp granular-ops --transport stdio
-  dj-mcp recipe-flow --transport sse --port 8000
+  dj-mcp recipe-flow --transport streamable-http --port 8000
         """,
     )
 
@@ -26,8 +26,8 @@ Examples:
     parser.add_argument(
         "--transport",
         choices=["stdio", "sse", "streamable-http"],
-        default="stdio",
-        help="Transport protocol for MCP server (default: stdio)",
+        default="streamable-http",
+        help="Transport protocol for MCP server (default: streamable-http)",
     )
 
     parser.add_argument("--port", type=int, default=8080, help="Port number for HTTP-based transports (default: 8080)")

@@ -6057,6 +6057,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pylance" },
     { name = "python-docx" },
+    { name = "rank-bm25" },
     { name = "regex" },
     { name = "requests" },
     { name = "resampy" },
@@ -6335,6 +6336,7 @@ requires-dist = [
     { name = "python-docx" },
     { name = "qwen-vl-utils", marker = "extra == 'all'", specifier = "==0.0.14" },
     { name = "qwen-vl-utils", marker = "extra == 'vision'", specifier = "==0.0.14" },
+    { name = "rank-bm25", specifier = ">=0.2.2" },
     { name = "ray", extras = ["default"], marker = "extra == 'all'", specifier = ">=2.51.0" },
     { name = "ray", extras = ["default"], marker = "extra == 'distributed'", specifier = ">=2.51.0" },
     { name = "recommonmark", marker = "extra == 'all'" },
@@ -7480,6 +7482,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b6/b1/ad4fc2260a3badd278b38d642f3b987412f1f6682f0ef2b31b0572d5caa8/qwen_vl_utils-0.0.14.tar.gz", hash = "sha256:9c7cad5ae803b3a10f8bb7194deb12aeacdd032f92f4224e880c73587a7346ad", size = 8453, upload-time = "2025-09-23T09:38:57.532Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/43/80f67e0336cb2fc725f8e06f7fe35c1d0fe946f4d2b8b2175e797e07349e/qwen_vl_utils-0.0.14-py3-none-any.whl", hash = "sha256:5e28657bfd031e56bd447c5901b58ddfc3835285ed100f4c56580e0ade054e96", size = 8120, upload-time = "2025-09-23T09:38:56.297Z" },
+]
+
+[[package]]
+name = "rank-bm25"
+version = "0.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fc/0a/f9579384aa017d8b4c15613f86954b92a95a93d641cc849182467cf0bb3b/rank_bm25-0.2.2.tar.gz", hash = "sha256:096ccef76f8188563419aaf384a02f0ea459503fdf77901378d4fd9d87e5e51d", size = 8347, upload-time = "2022-02-16T12:10:52.196Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/21/f691fb2613100a62b3fa91e9988c991e9ca5b89ea31c0d3152a3210344f9/rank_bm25-0.2.2-py3-none-any.whl", hash = "sha256:7bd4a95571adadfc271746fa146a4bcfd89c0cf731e49c3d1ad863290adbe8ae", size = 8584, upload-time = "2022-02-16T12:10:50.626Z" },
 ]
 
 [[package]]

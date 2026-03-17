@@ -84,6 +84,14 @@ for s in res_ds:
 ---
 
 ## 📰 动态
+<details open>
+<summary>[2026-03-17] Release v1.5.1: <b>LaTeX 算子上线；压缩格式支持；算子健壮性修复</b></summary>
+
+- 📄 新增两个面向 LaTeX 的 Mapper 算子，将 data-juicer 的文档处理能力延伸至 .tex 压缩包和图片上下文的提取与处理。
+- 🗜️ 支持压缩数据集格式：现在可以直接加载 json[l].gz 文件，Ray 数据集也同步支持读取压缩 JSON 文件。
+- 📚 新增文档，覆盖缓存、导出和执行追踪等工作流，帮助用户更好地理解和调试数据处理流水线。
+- 🤖 对 data-juicer-agents 的重大重构与升级已经完成：项目架构及 CLI/会话能力经过全面重新设计，以提升可维护性与可扩展性。详情请参阅 [date-juicer-agents](https://github.com/datajuicer/data-juicer-agents).
+</details>
 
 <details open>
 <summary>[2026-02-12] Release v1.5.0: <b>分区Ray执行器，OP级环境隔离，以及更多具身算子</b></summary>
@@ -94,7 +102,7 @@ for s in res_ds:
 - 🐳 *关键问题修复与稳定性提升* — 修复重复项追踪、参数冲突、首页渲染等缺陷，增强系统可靠性。
 </details>
 
-<details open>
+<details>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot、视频字节 I/O 与 Ray 追踪</b></summary>
 
 - 🤖 *Q&A Copilot* — 现已上线我们的[文档站点](https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH.html) | [钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK)。欢迎询问任何与 Data-Juicer 生态系统相关的问题！  

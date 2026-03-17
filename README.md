@@ -87,6 +87,15 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
+<summary>[2026-03-17] Release v1.5.1: <b>LaTeX OPs; Compressed Format Support; Operator Robustness Fixes</b></summary>
+
+* 📄 Two new LaTeX-focused mapper OPs shipped, extending data-juicer's document processing capabilities to handle `.tex` archives and figure contexts.
+* 🗜️ Compressed dataset format support: `json[l].gz` files can now be loaded directly, and Ray datasets gain proper support for reading compressed JSON files.
+* 📚 New documentation added covering cache, export, and tracing workflows to help users better understand and debug data processing pipelines.
+* 🤖 Major refactor and upgrade of data-juicer-agents completed: The project architecture and CLI/session capabilities were comprehensively redesigned for better maintainability and extensibility. See [date-juicer-agents](https://github.com/datajuicer/data-juicer-agents) for more details.
+</details>
+
+<details open>
 <summary>[2026-02-12] Release v1.5.0: <b>Partitioned Ray Executor, OP-level Env Management, and More Embodied-AI OPs</b></summary>
 
 - 🚀 *Enhanced Distributed Execution Framework* -- Introduced partitioned Ray executor and OP-level isolated environments to improve fault tolerance, scalability, and dependency conflict resolution.
@@ -95,7 +104,7 @@ for s in res_ds:
 - 🐳 *Critical Bug Fixes & Stability Improvements* -- Resolved duplicate tracking, parameter conflicts, homepage rendering issues, and outdated docs for higher reliability.
 </details>
 
-<details open>
+<details>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot, Video Bytes I/O & Ray Tracing </b></summary>
 
 - 🤖 *Q&A Copilot* —  Now live on our [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK). Feel free to ask anything related to Data-Juicer ecosystem!  

@@ -73,7 +73,7 @@ class ImageAestheticsFilter(Filter):
             trust_remote_code=trust_remote_code,
         )
         # the original score predicted by laion-ai's scorer is within [0, 10]
-        self.need_normalized_by_ten = "shunk031/aesthetics-predictor" in hf_scorer_model
+        self.need_normalized_by_ten = "aesthetics-predictor" in hf_scorer_model
 
     def compute_stats_single(self, sample, rank=None, context=False):
         # check if it's computed already

@@ -145,9 +145,7 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         # 'straddling object straddles two block boundaries' ArrowInvalid error.
         #
 
-        read_opts = None
-        if "read_options" in self.cfg:
-            read_opts = self.cfg["read_options"]
+        read_opts = self.cfg.get("read_options")
 
         # 1. load data
         logger.info("Loading dataset with Ray...")

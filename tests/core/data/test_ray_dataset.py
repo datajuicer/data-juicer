@@ -39,7 +39,7 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
     def tearDown(self) -> None:
         super().tearDown()
         if os.path.exists(self.tmp_dir):
-            os.system(f"rm -rf {self.tmp_dir}")
+            import shutil; shutil.rmtree(self.tmp_dir)
 
     def _touch_a_file(self, path):
         """Create a file at the given path"""
@@ -123,8 +123,13 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
     def test_read_json_stream(self):
         """Test reading JSON stream with RayDataset"""
         from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
 
-        _text = "I have a very long text. " * 100000  # Create a long text to test large JSON objects
+        LONG_TEXT_MULTIPLIER = 100_000
+        BLOCK_SIZE_MB = 3
+        BLOCK_SIZE_BYTES = BLOCK_SIZE_MB * 1024 * 1024
+
+        _text = "I have a very long text. " * LONG_TEXT_MULTIPLIER  # Create a long text to test large JSON objects
         self.test_data.append({"text": _text, "images": ["image4.jpg"], "videos": [], "audios": []})
         # Create a temporary JSONL file
         jsonl_path = os.path.join(self.tmp_dir, "test.jsonl")
@@ -132,12 +137,9 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
             for item in self.test_data:
                 f.write(f"{json.dumps(item)}\n")
 
-        # --------------------
-        # In PyArrow 20.0.0+, when using open_json to read data in batches, an error may occur if a single record is too large and exceeds the default block size (1MB). The error message is "straddling object straddles two block boundaries". To fix this, we set a larger block size (e.g., 3MB) when reading the JSON stream. This allows PyArrow to read larger records without encountering the error.
-        # Load dataset from JSONL file
-        import pyarrow.json as js
-
-        read_options = js.ReadOptions(block_size=3 * 1024 * 1024)  # Set block size to 3MB
+        # In PyArrow 20.0.0+, a large record can cause a 'straddling object' error.
+        # We set a larger block size to allow PyArrow to read larger records.
+        read_options = js.ReadOptions(block_size=BLOCK_SIZE_BYTES)  # Set block size to 3MB
         dataset = read_json_stream(jsonl_path, read_options=read_options)
         self.assertEqual(len(dataset.take(3)[2]["text"]), len(_text))
 

@@ -646,6 +646,16 @@ class EventLoggingMixin:
             "operation_class": operation_name,
         }
 
+        # Ensure input_rows and output_rows are integers (they might be strings from some sources)
+        try:
+            input_rows = int(input_rows) if input_rows is not None else None
+        except (ValueError, TypeError):
+            input_rows = None
+        try:
+            output_rows = int(output_rows) if output_rows is not None else None
+        except (ValueError, TypeError):
+            output_rows = None
+
         # Only include row counts and derived metrics if they're meaningful (non-zero or explicitly set)
         if input_rows is not None and input_rows > 0:
             metadata["input_rows"] = input_rows

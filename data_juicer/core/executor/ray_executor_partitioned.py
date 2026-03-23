@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -179,9 +180,13 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         checkpoint_cfg = getattr(self.cfg, "checkpoint", None)
         checkpoint_dir = getattr(self.cfg, "checkpoint_dir", os.path.join(self.work_dir, "checkpoints"))
 
+        # Debug: log checkpoint_cfg type and value
+        logger.info(f"DEBUG: checkpoint_cfg type = {type(checkpoint_cfg)}, value = {checkpoint_cfg}")
+
         if checkpoint_cfg:
             # Use ConfigAccessor to handle both dict and object configurations
             checkpoint_enabled = ConfigAccessor.get(checkpoint_cfg, "enabled", True)
+            logger.info(f"DEBUG: checkpoint_enabled from ConfigAccessor = {checkpoint_enabled}")
             strategy_str = ConfigAccessor.get(checkpoint_cfg, "strategy", "every_op")
             checkpoint_n_ops = ConfigAccessor.get(checkpoint_cfg, "n_ops", 1)
             checkpoint_op_names = ConfigAccessor.get(checkpoint_cfg, "op_names", [])
@@ -449,11 +454,21 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Detect convergence points for global operations
         convergence_points = self._detect_convergence_points(self.cfg)
 
+        # Debug logging for checkpoint status
+        logger.info(f"DEBUG: checkpoint_enabled = {self.ckpt_manager.checkpoint_enabled}")
+        logger.info(f"DEBUG: convergence_points = {convergence_points}")
+
+        # Choose processing strategy based on checkpointing and convergence points
+        # Fast path: when checkpointing is disabled and no convergence points,
+        # process without manual partitioning to let Ray Data handle parallelism
         if convergence_points:
             logger.info(f"Found convergence points at operations: {convergence_points}")
             final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
+        elif not self.ckpt_manager.checkpoint_enabled:
+            logger.info("Checkpointing disabled, using fast path without manual partitioning")
+            final_dataset = self._process_without_partitioning(dataset, ops)
         else:
-            logger.info("No convergence points found, processing with simple partitioning")
+            logger.info("Checkpointing enabled, processing with partitioning for checkpoint support")
             final_dataset = self._process_with_simple_partitioning(dataset, ops)
 
         # Export final dataset
@@ -482,6 +497,42 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         else:
             logger.info("No temporary files found to clean up")
 
+    def _process_without_partitioning(self, dataset: RayDataset, ops: List) -> RayDataset:
+        """
+        Process dataset without manual partitioning.
+
+        This is the fast path when checkpointing is disabled.
+        Ray Data handles parallelism automatically through map_batches with concurrency.
+        """
+        logger.info("Processing without manual partitioning (fast path)...")
+
+        start_time = time.time()
+
+        # Pre-execute DAG monitoring (log operation start events)
+        if self.pipeline_dag:
+            self._pre_execute_operations_with_dag_monitoring(ops, partition_id=0)
+
+        # Execute operations (lazy evaluation - Ray Data handles parallelism)
+        processed_dataset = dataset.process(ops)
+
+        # Force materialization only at the end (required for export anyway)
+        logger.info("Materializing final dataset...")
+        processed_dataset.data = processed_dataset.data.materialize()
+
+        duration = time.time() - start_time
+        logger.info(f"Processing completed in {duration:.2f}s")
+
+        # Post-execute DAG monitoring
+        if self.pipeline_dag:
+            try:
+                output_rows = processed_dataset.data.count()
+                metrics = {"duration": duration, "input_rows": "unknown", "output_rows": output_rows}
+            except Exception:
+                metrics = {"duration": duration}
+            self._post_execute_operations_with_dag_monitoring(ops, partition_id=0, metrics=metrics)
+
+        return processed_dataset
+
     def _process_with_simple_partitioning(self, dataset: RayDataset, ops: List):
         """
         Process dataset with real partitioning using Ray Data's split and union.
@@ -500,9 +551,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Process each partition separately with checkpointing
         logger.info("Processing partitions with checkpointing support...")
-        processed_partitions = []
+        processed_partitions = [None] * len(partitions)
 
-        for i, partition in enumerate(partitions):
+        def process_single_partition(i, partition):
+            """Helper function to process a single partition."""
             logger.info(f"Processing partition {i+1}/{len(partitions)}")
 
             # Log partition start event
@@ -518,15 +570,24 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             # Apply operations with checkpointing support and DAG monitoring
             processed_partition = self._process_with_checkpointing(partition_dataset, i, ops)
 
-            # Store the processed partition's data
-            processed_partitions.append(processed_partition.data)
-
             # Log partition completion event
             self._log_event(
                 event_type=EventType.PARTITION_COMPLETE,
                 message=f"Completed processing of partition {i+1}/{len(partitions)}",
                 partition_id=i,
             )
+
+            return i, processed_partition.data
+
+        # Process partitions in parallel using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=len(partitions)) as executor:
+            futures = {
+                executor.submit(process_single_partition, i, partition): i
+                for i, partition in enumerate(partitions)
+            }
+            for future in as_completed(futures):
+                i, result = future.result()
+                processed_partitions[i] = result
 
         # Merge all processed partitions back into a single dataset
         logger.info("Merging processed partitions...")

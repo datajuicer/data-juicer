@@ -131,12 +131,33 @@ class RayExporter:
         :param columns: the columns to export.
         :return:
         """
+        # Debug: Log dataset info before export
+        logger.info(f"Starting export to: {export_path}")
+        
+        # Materialize the dataset first to get accurate count
+        # Ray dataset needs to be materialized before calling count() or num_blocks()
+        try:
+            dataset = dataset.materialize()
+            logger.info("Dataset materialized successfully")
+        except Exception as e:
+            logger.warning(f"Dataset materialize failed (may already be materialized): {e}")
+        
+        # Get row count for validation
+        try:
+            row_count = dataset.count()
+            logger.info(f"Dataset row count before export: {row_count}")
+            if row_count == 0:
+                logger.warning("Dataset is empty (0 rows)! Export will produce no data files.")
+        except Exception as e:
+            logger.warning(f"Could not get dataset row count: {e}")
+            row_count = None
+        
         # Handle empty dataset case - Ray returns None for columns() on empty datasets
         # Check if dataset is empty by calling columns() regardless of columns parameter
         cols = dataset.columns()
         if cols is None:
             # Empty dataset with unknown schema - create an empty file
-            logger.warning(f"Dataset is empty, creating empty export file at {export_path}")
+            logger.warning(f"Dataset is empty (no columns), creating empty export file at {export_path}")
             os.makedirs(os.path.dirname(export_path) or ".", exist_ok=True)
             with open(export_path, "w"):
                 pass  # Create empty file
@@ -182,7 +203,28 @@ class RayExporter:
         if not export_path.startswith("s3://"):
             os.makedirs(export_path, exist_ok=True)
 
-        return export_method(dataset, export_path, **export_kwargs)
+        result = export_method(dataset, export_path, **export_kwargs)
+        
+        # Post-export verification: check if files were actually written
+        if not export_path.startswith("s3://"):
+            if os.path.isdir(export_path):
+                files = os.listdir(export_path)
+                if files:
+                    logger.info(f"Export verification: {len(files)} file(s) written to {export_path}")
+                    # Log first few files for debugging
+                    for f in files[:5]:
+                        file_path = os.path.join(export_path, f)
+                        file_size = os.path.getsize(file_path)
+                        logger.info(f"  - {f} ({file_size} bytes)")
+                    if len(files) > 5:
+                        logger.info(f"  ... and {len(files) - 5} more files")
+                else:
+                    logger.warning(f"Export verification FAILED: No files written to {export_path}!")
+                    logger.warning("This may indicate the dataset was empty or an export error occurred.")
+            else:
+                logger.warning(f"Export path {export_path} is not a directory after export!")
+        
+        return result
 
     def export(self, dataset, columns=None):
         """

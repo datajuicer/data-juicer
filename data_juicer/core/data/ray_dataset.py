@@ -8,6 +8,7 @@ import pyarrow
 import ray
 from jsonargparse import Namespace
 from loguru import logger
+from ray.data import ActorPoolStrategy
 from ray.data._internal.util import get_compute_strategy
 
 from data_juicer.core.data import DJDataset
@@ -237,9 +238,16 @@ class RayDataset(DJDataset):
 
                 try:
                     if op.use_ray_actor():
-                        compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
-                        self.data = self.data.map_batches(
-                            op.__class__,
+                        # Repartition right before GPU actor stage to ensure enough data blocks
+                        # Pipeline: Read(streaming) → Repartition → GPU actors
+                        # Note: override_num_blocks cannot be passed to map_batches for actors,
+                        # so we repartition beforehand instead
+                        override_num_blocks = getattr(op, 'override_num_blocks', None)
+                        if override_num_blocks is not None:
+                            self.data = self.data.repartition(override_num_blocks)
+
+                        compute = ActorPoolStrategy(size=op.num_proc)
+                        map_batches_kwargs = dict(
                             fn_args=None,
                             fn_kwargs=None,
                             fn_constructor_args=op._init_args,
@@ -251,10 +259,10 @@ class RayDataset(DJDataset):
                             batch_format="pyarrow",
                             runtime_env=op.runtime_env,
                         )
+                        self.data = self.data.map_batches(op.__class__, **map_batches_kwargs)
                     else:
                         compute = get_compute_strategy(op.process, concurrency=op.num_proc)
-                        self.data = self.data.map_batches(
-                            op.process,
+                        map_batches_kwargs = dict(
                             batch_size=batch_size,
                             batch_format="pyarrow",
                             num_cpus=op.num_cpus,
@@ -262,6 +270,10 @@ class RayDataset(DJDataset):
                             compute=compute,
                             runtime_env=op.runtime_env,
                         )
+                        override_num_blocks = getattr(op, 'override_num_blocks', None)
+                        if override_num_blocks is not None:
+                            map_batches_kwargs['override_num_blocks'] = override_num_blocks
+                        self.data = self.data.map_batches(op.process, **map_batches_kwargs)
                 finally:
                     # Restore original process method
                     if tracer and should_trace_op(tracer, op._name) and original_process:
@@ -280,9 +292,16 @@ class RayDataset(DJDataset):
                     )
                     cached_columns.add(Fields.stats)
                 if op.use_ray_actor():
-                    compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
-                    self.data = self.data.map_batches(
-                        op.__class__,
+                    # Repartition AFTER CPU preprocessing but BEFORE GPU actor stage
+                    # Pipeline: Read(streaming) → CPU preprocessing(streaming) → Repartition → GPU actors
+                    # This allows Read → CPU to stream freely without pipeline barriers,
+                    # then repartition splits collapsed blocks into enough pieces for GPU utilization
+                    override_num_blocks = getattr(op, 'override_num_blocks', None)
+                    if override_num_blocks is not None:
+                        self.data = self.data.repartition(override_num_blocks)
+
+                    compute = ActorPoolStrategy(size=op.num_proc)
+                    map_batches_kwargs = dict(
                         fn_args=None,
                         fn_kwargs=None,
                         fn_constructor_args=op._init_args,
@@ -294,10 +313,10 @@ class RayDataset(DJDataset):
                         batch_format="pyarrow",
                         runtime_env=op.runtime_env,
                     )
+                    self.data = self.data.map_batches(op.__class__, **map_batches_kwargs)
                 else:
                     compute = get_compute_strategy(op.compute_stats, concurrency=op.num_proc)
-                    self.data = self.data.map_batches(
-                        op.compute_stats,
+                    map_batches_kwargs = dict(
                         batch_size=batch_size,
                         batch_format="pyarrow",
                         num_cpus=op.num_cpus,
@@ -305,6 +324,10 @@ class RayDataset(DJDataset):
                         compute=compute,
                         runtime_env=op.runtime_env,
                     )
+                    override_num_blocks = getattr(op, 'override_num_blocks', None)
+                    if override_num_blocks is not None:
+                        map_batches_kwargs['override_num_blocks'] = override_num_blocks
+                    self.data = self.data.map_batches(op.compute_stats, **map_batches_kwargs)
                 if op.stats_export_path is not None:
                     self.data.write_json(op.stats_export_path, force_ascii=False)
                 # Wrap process method with tracer for sample-level collection

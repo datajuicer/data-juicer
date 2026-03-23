@@ -18,9 +18,12 @@ References:
 
 import time
 from dataclasses import dataclass
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Dict, TYPE_CHECKING
 from collections import deque
 import psutil
+
+if TYPE_CHECKING:
+    from .tower import StageMetrics
 
 from ..scheduler.micro_scheduler import MicroScheduler, BatchSizeController
 from ..scheduler.tower import ResourceQuota, StageMetrics, TopologyMode
@@ -112,15 +115,32 @@ class Captain:
         # OOM tracking
         self.oom_events = 0
         self.last_oom_time = 0.0
+        self._total_oom_count: int = 0  # Cumulative OOM count for metrics reporting
+        
+        # Backpressure state
+        self._backpressure_active: bool = False
+        self._backpressure_slowdown: float = 0.5  # Default slowdown ratio
+        
+        # Metrics tracking fields for Tower consumption
+        self._recent_throughput: float = 0.0  # samples/sec from recent batches
+        self._recent_latency_ms: float = 0.0  # average latency from recent batches
+        self._current_cpu_util: float = 0.0  # latest CPU utilization
+        self._current_memory_util: float = 0.0  # latest memory utilization
+        self._current_gpu_util: float = 0.0  # latest GPU utilization
     
     def set_quota(self, quota: ResourceQuota):
         """
         Receive resource quota from Tower
         
         Args:
-            quota: Resource allocation from Tower
+            quota: Resource allocation from Tower. May include a 'backpressure'
+                   attribute to signal upstream throttling.
         """
         self.quota = quota
+        
+        # Check for backpressure signal from Tower
+        if hasattr(quota, 'backpressure'):
+            self._backpressure_active = quota.backpressure
         
         # Update micro-scheduler constraints if quota changed
         if self.micro_scheduler and quota.memory_quota_mb > 0:
@@ -174,6 +194,12 @@ class Captain:
             current_batch_size = self.micro_scheduler.controller.current_batch_size
         else:
             current_batch_size = self.config.initial_batch_size
+        
+        # Apply backpressure throttling if active
+        if self._backpressure_active:
+            # Throttle: reduce effective batch size and add delay
+            current_batch_size = max(1, int(current_batch_size * self._backpressure_slowdown))
+            time.sleep(0.1)  # Small delay to reduce pressure on downstream
         
         # Dequeue samples if not provided
         if sample_batch is None:
@@ -260,6 +286,19 @@ class Captain:
             self.metrics.queue_depth = len(self.queue)
             self.metrics.oom_count = self.oom_events
             self.metrics.current_parallelism = 1  # Single-actor for now
+            
+            # Update internal metrics tracking fields for collect_metrics()
+            elapsed_time = time.time() - start_time
+            processed_count = actual_batch_size
+            self._recent_throughput = processed_count / elapsed_time if elapsed_time > 0 else 0
+            self._recent_latency_ms = elapsed_time * 1000 / processed_count if processed_count > 0 else 0
+            self._current_cpu_util = snapshot.cpu_percent
+            self._current_memory_util = (
+                (snapshot.memory_mb / self.quota.memory_quota_mb * 100)
+                if self.quota and self.quota.memory_quota_mb > 0
+                else 0
+            )
+            self._current_gpu_util = snapshot.gpu_utilization or 0
         
         # Check if should report to Tower
         current_time = time.time()
@@ -283,6 +322,7 @@ class Captain:
             snapshot: Resource snapshot at OOM time
         """
         self.oom_events += 1
+        self._total_oom_count += 1  # Increment cumulative OOM count for metrics
         self.last_oom_time = time.time()
         
         # Emergency backoff
@@ -347,6 +387,40 @@ class Captain:
                 'cpu_quota': self.quota.cpu_quota if self.quota else 0,
             } if self.quota else None
         }
+    
+    def collect_metrics(self) -> 'StageMetrics':
+        """Collect current metrics snapshot for Tower consumption.
+        
+        This is the standardized interface for Tower to pull metrics from Captain.
+        Returns a StageMetrics object containing the current state of this stage.
+        
+        Returns:
+            StageMetrics: A snapshot containing:
+                - stage_name: Name of this operator stage
+                - queue_depth: Number of pending samples in queue
+                - current_parallelism: Current number of actors (1 for single-actor)
+                - throughput: Recent throughput in samples/sec
+                - avg_latency_ms: Recent average processing latency
+                - cpu_utilization: Current CPU utilization percentage
+                - memory_utilization: Current memory utilization percentage
+                - gpu_utilization: Current GPU utilization percentage (if applicable)
+                - oom_count: Cumulative OOM event count
+        """
+        # Use local import to avoid circular dependencies
+        from .tower import StageMetrics
+        
+        return StageMetrics(
+            stage_name=self.config.stage_name,
+            queue_depth=len(self.queue),
+            current_parallelism=self.metrics.current_parallelism,
+            throughput=self._recent_throughput if self._recent_throughput > 0 else self.metrics.throughput,
+            avg_latency_ms=self._recent_latency_ms if self._recent_latency_ms > 0 else self.metrics.avg_latency_ms,
+            cpu_utilization=self._current_cpu_util if self._current_cpu_util > 0 else self.metrics.cpu_utilization,
+            memory_utilization=self._current_memory_util if self._current_memory_util > 0 else self.metrics.memory_utilization,
+            gpu_utilization=self._current_gpu_util if self._current_gpu_util > 0 else self.metrics.gpu_utilization,
+            oom_count=self._total_oom_count,
+            last_update=time.time()
+        )
 
 
 class CaptainPool:
@@ -404,4 +478,19 @@ class CaptainPool:
         return {
             name: captain.get_stats()
             for name, captain in self.captains.items()
+        }
+    
+    def collect_all_metrics(self) -> Dict[str, 'StageMetrics']:
+        """Collect metrics from all managed Captains.
+        
+        This is the standardized interface for Tower to pull metrics from all
+        Captains in the pool at once.
+        
+        Returns:
+            Dict[str, StageMetrics]: A dictionary mapping captain stage names
+                to their current StageMetrics snapshots.
+        """
+        return {
+            stage_name: captain.collect_metrics()
+            for stage_name, captain in self.captains.items()
         }

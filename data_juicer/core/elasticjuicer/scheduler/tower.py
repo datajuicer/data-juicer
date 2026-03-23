@@ -16,12 +16,17 @@ References:
 - Report Section 5.1: Tower/Captain architecture
 """
 
+import logging
+import threading
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from enum import Enum
 import numpy as np
 from collections import deque
+
+if TYPE_CHECKING:
+    from .scheduler_config import SchedulerConfig
 
 
 class TopologyMode(Enum):
@@ -56,6 +61,7 @@ class ResourceQuota:
     gpu_quota: float = 0.0            # GPU cores allocated (0-1)
     target_throughput: float = 0.0    # Target samples/sec (SLO)
     topology_mode: TopologyMode = TopologyMode.ADAPTIVE
+    backpressure: bool = False        # Whether upstream backpressure is active
 
 
 @dataclass
@@ -91,7 +97,8 @@ class Tower:
         target_queue_depth: int = 100,
         sla_latency_ms: float = 5000.0,
         update_interval_sec: float = 5.0,
-        history_window: int = 20
+        history_window: int = 20,
+        config: Optional['SchedulerConfig'] = None
     ):
         """
         Initialize Tower global scheduler
@@ -102,11 +109,13 @@ class Tower:
             sla_latency_ms: SLA latency target (max allowed latency)
             update_interval_sec: How often to recompute resource allocation
             history_window: Window size for tracking metrics history
+            config: Optional SchedulerConfig for rebalance settings
         """
         self.cluster = cluster_state
         self.target_queue_depth = target_queue_depth
         self.sla_latency_ms = sla_latency_ms
         self.update_interval = update_interval_sec
+        self.config = config
         
         # Track all stages and their metrics
         self.stages: Dict[str, StageMetrics] = {}
@@ -124,6 +133,29 @@ class Tower:
         # SLA violation tracking
         self.sla_violations = 0
         self.total_requests = 0
+        
+        # Captain registry for direct metric collection and quota broadcast
+        self._captains: Dict[str, Any] = {}
+        
+        # Rebalance loop control
+        self._running: bool = False
+        self._rebalance_thread: Optional[threading.Thread] = None
+        
+        # Rebalance interval from config or fallback to update_interval
+        self.rebalance_interval: float = (
+            config.rebalance_interval_sec if config else update_interval_sec
+        )
+        
+        # Backpressure threshold from config
+        self._backpressure_threshold: float = (
+            config.backpressure_threshold if config else 0.9
+        )
+        
+        # Per-stage backpressure state tracking
+        self._backpressure_states: Dict[str, bool] = {}
+        
+        # Track registration order for upstream detection
+        self._stage_order: List[str] = []
     
     def register_stage(self, stage_name: str, initial_parallelism: int = 1) -> str:
         """
@@ -146,6 +178,13 @@ class Tower:
         
         # Initialize metrics history
         self.metrics_history[stage_name] = deque(maxlen=self.history_window)
+        
+        # Track stage registration order for upstream detection
+        if stage_name not in self._stage_order:
+            self._stage_order.append(stage_name)
+        
+        # Initialize backpressure state
+        self._backpressure_states[stage_name] = False
         
         # Allocate initial quota
         initial_quota = self._compute_initial_quota(stage_name, initial_parallelism)
@@ -484,3 +523,347 @@ class Tower:
                 self.cluster.total_memory_mb * 100
             ) if self.cluster.total_memory_mb > 0 else 0
         }
+    
+    # ========== Captain Registry Methods ==========
+    
+    def register_captain(self, captain_id: str, captain: Any) -> None:
+        """Register a Captain instance for direct metric collection and quota broadcast.
+        
+        Args:
+            captain_id: Unique identifier for the captain
+            captain: Captain instance to register
+        """
+        self._captains[captain_id] = captain
+    
+    def unregister_captain(self, captain_id: str) -> None:
+        """Remove a Captain from the registry.
+        
+        Args:
+            captain_id: Unique identifier of the captain to remove
+        """
+        self._captains.pop(captain_id, None)
+    
+    # ========== Rebalance Loop Methods ==========
+    
+    def collect_all_metrics(self) -> Dict[str, StageMetrics]:
+        """Step 1: Collect metrics from all registered Captains.
+        
+        For each registered captain, call captain.collect_metrics() if available,
+        or use captain.metrics directly. Also update internal stage_metrics dict.
+        
+        Returns:
+            Dict mapping stage_name to StageMetrics
+        """
+        collected_metrics: Dict[str, StageMetrics] = {}
+        
+        for captain_id, captain in self._captains.items():
+            try:
+                # Try collect_metrics() method first, fall back to metrics attribute
+                if hasattr(captain, 'collect_metrics'):
+                    metrics = captain.collect_metrics()
+                elif hasattr(captain, 'metrics'):
+                    metrics = captain.metrics
+                else:
+                    continue
+                
+                if metrics and hasattr(metrics, 'stage_name'):
+                    stage_name = metrics.stage_name
+                    collected_metrics[stage_name] = metrics
+                    
+                    # Update internal stage metrics
+                    if stage_name in self.stages:
+                        self.stages[stage_name] = metrics
+            except Exception as e:
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to collect metrics from captain {captain_id}: {e}")
+        
+        # Also include stages that have metrics but no registered captain
+        for stage_name, metrics in self.stages.items():
+            if stage_name not in collected_metrics:
+                collected_metrics[stage_name] = metrics
+        
+        return collected_metrics
+    
+    def identify_bottleneck(self, metrics: Dict[str, StageMetrics]) -> Optional[str]:
+        """Step 2: Identify the bottleneck stage (highest queue depth / lowest throughput).
+        
+        Find the single worst bottleneck based on queue depth and throughput.
+        Uses existing _identify_bottlenecks() logic but returns only the worst one.
+        
+        Args:
+            metrics: Dict of stage metrics
+            
+        Returns:
+            stage_name of worst bottleneck, or None if no bottleneck
+        """
+        if not metrics:
+            return None
+        
+        # Get all bottleneck candidates
+        bottlenecks = self._identify_bottlenecks()
+        
+        if not bottlenecks:
+            return None
+        
+        # Find the worst bottleneck based on score
+        # Score = (queue_depth / target) + (1 - throughput_ratio)
+        worst_bottleneck = None
+        worst_score = -1.0
+        
+        for stage_name in bottlenecks:
+            if stage_name not in metrics:
+                continue
+            
+            stage_metrics = metrics[stage_name]
+            
+            # Calculate bottleneck severity score
+            queue_ratio = (
+                stage_metrics.queue_depth / self.target_queue_depth
+                if self.target_queue_depth > 0 else 0
+            )
+            
+            # Consider throughput relative to what's needed
+            # Higher queue with lower throughput = worse bottleneck
+            throughput_factor = 1.0
+            if stage_metrics.throughput > 0 and stage_metrics.queue_depth > 0:
+                # Time to drain queue at current throughput
+                drain_time = stage_metrics.queue_depth / stage_metrics.throughput
+                sla_time = self.sla_latency_ms / 1000.0
+                throughput_factor = drain_time / sla_time if sla_time > 0 else 1.0
+            
+            score = queue_ratio + throughput_factor
+            
+            if score > worst_score:
+                worst_score = score
+                worst_bottleneck = stage_name
+        
+        return worst_bottleneck
+    
+    def reallocate_resources(
+        self,
+        bottleneck: Optional[str],
+        metrics: Dict[str, StageMetrics]
+    ) -> Dict[str, ResourceQuota]:
+        """Step 3: Reallocate resources, increasing quota for bottleneck.
+        
+        If bottleneck exists, shift resources toward it using tower_allocation_weights
+        from config (via get_stage_weight).
+        
+        Args:
+            bottleneck: Name of bottleneck stage, or None
+            metrics: Current stage metrics
+            
+        Returns:
+            Dict mapping captain_id to new ResourceQuota
+        """
+        # Compute weights for each stage
+        stage_weights: Dict[str, float] = {}
+        for stage_name in self.stages:
+            # Base weight from config
+            if self.config:
+                base_weight = self.config.get_stage_weight(stage_name)
+            else:
+                base_weight = 1.0
+            
+            # Boost weight for bottleneck stage
+            if stage_name == bottleneck:
+                base_weight *= 1.5  # 50% boost for bottleneck
+            
+            stage_weights[stage_name] = base_weight
+        
+        # Normalize weights
+        total_weight = sum(stage_weights.values())
+        if total_weight > 0:
+            for stage_name in stage_weights:
+                stage_weights[stage_name] /= total_weight
+        
+        # Allocate resources based on weights
+        for captain_id, quota in self.quotas.items():
+            stage_name = self._get_stage_from_captain(captain_id)
+            if stage_name not in self.stages:
+                continue
+            
+            stage_metrics = metrics.get(stage_name, self.stages[stage_name])
+            weight = stage_weights.get(stage_name, 1.0 / max(1, len(self.stages)))
+            
+            # Compute target parallelism
+            target_parallelism = self._compute_target_parallelism(
+                stage_metrics,
+                is_bottleneck=(stage_name == bottleneck)
+            )
+            
+            # Allocate resources proportionally to weight
+            resource_allocation = {
+                'cpu': self.cluster.available_cpu_cores * weight * target_parallelism,
+                'memory_mb': self.cluster.available_memory_mb * weight * target_parallelism,
+                'gpu': self.cluster.available_gpus * weight * target_parallelism
+            }
+            
+            # Update quota
+            quota.target_parallelism = target_parallelism
+            quota.cpu_quota = resource_allocation['cpu']
+            quota.memory_quota_mb = resource_allocation['memory_mb']
+            quota.gpu_quota = resource_allocation['gpu']
+            quota.target_throughput = self._compute_target_throughput(stage_metrics)
+            quota.topology_mode = self._decide_topology(stage_name, stage_metrics)
+        
+        return self.quotas
+    
+    def apply_backpressure(
+        self,
+        bottleneck: Optional[str],
+        metrics: Dict[str, StageMetrics]
+    ) -> None:
+        """Step 3b: Apply backpressure to upstream stages if needed.
+        
+        If bottleneck stage memory_utilization > backpressure_threshold:
+            Find upstream stages (stages registered before bottleneck)
+            Set backpressure=True flag on their quotas
+        
+        Args:
+            bottleneck: Name of bottleneck stage, or None
+            metrics: Current stage metrics
+        """
+        # Reset all backpressure states first
+        for stage_name in self._backpressure_states:
+            self._backpressure_states[stage_name] = False
+        
+        if not bottleneck or bottleneck not in metrics:
+            # No bottleneck, clear all backpressure
+            for quota in self.quotas.values():
+                quota.backpressure = False
+            return
+        
+        bottleneck_metrics = metrics[bottleneck]
+        
+        # Check if memory utilization exceeds threshold
+        # memory_utilization is in percentage (0-100), threshold is ratio (0-1)
+        memory_util_ratio = bottleneck_metrics.memory_utilization / 100.0
+        
+        if memory_util_ratio <= self._backpressure_threshold:
+            # Below threshold, no backpressure needed
+            for quota in self.quotas.values():
+                quota.backpressure = False
+            return
+        
+        # Find bottleneck position in stage order
+        try:
+            bottleneck_idx = self._stage_order.index(bottleneck)
+        except ValueError:
+            return
+        
+        # Apply backpressure to all upstream stages (before bottleneck)
+        upstream_stages = set(self._stage_order[:bottleneck_idx])
+        
+        for captain_id, quota in self.quotas.items():
+            stage_name = self._get_stage_from_captain(captain_id)
+            if stage_name in upstream_stages:
+                quota.backpressure = True
+                self._backpressure_states[stage_name] = True
+            else:
+                quota.backpressure = False
+    
+    def broadcast_quotas(self, quotas: Dict[str, ResourceQuota]) -> None:
+        """Step 4: Send updated quotas to all Captains.
+        
+        For each captain in registry, call captain.set_quota(quota).
+        
+        Args:
+            quotas: Dict mapping captain_id to ResourceQuota
+        """
+        logger = logging.getLogger(__name__)
+        
+        for captain_id, captain in self._captains.items():
+            # Find matching quota
+            quota = quotas.get(captain_id)
+            
+            if quota is None:
+                # Try to find quota by stage name
+                for qid, q in quotas.items():
+                    if self._get_stage_from_captain(qid) == self._get_stage_from_captain(captain_id):
+                        quota = q
+                        break
+            
+            if quota is None:
+                continue
+            
+            try:
+                if hasattr(captain, 'set_quota'):
+                    captain.set_quota(quota)
+            except Exception as e:
+                logger.warning(f"Failed to broadcast quota to captain {captain_id}: {e}")
+    
+    # ========== Rebalance Loop Lifecycle ==========
+    
+    def start(self) -> None:
+        """Start the rebalance loop in a background thread."""
+        if self._running:
+            return
+        
+        self._running = True
+        self._rebalance_thread = threading.Thread(
+            target=self._rebalance_loop,
+            daemon=True,
+            name="Tower-Rebalance-Loop"
+        )
+        self._rebalance_thread.start()
+    
+    def stop(self) -> None:
+        """Stop the rebalance loop."""
+        self._running = False
+        if self._rebalance_thread and self._rebalance_thread.is_alive():
+            self._rebalance_thread.join(timeout=self.rebalance_interval * 2)
+            self._rebalance_thread = None
+    
+    def _rebalance_loop(self) -> None:
+        """Main rebalance loop - runs periodically.
+        
+        Implements the adaptive tower macro-scheduler:
+        for each rebalance_interval:
+            1. Collect metrics from all Captains
+            2. Identify bottleneck stage (highest queue / lowest throughput)
+            3. Reallocate resources (increase quota for bottleneck, apply backpressure)
+            4. Broadcast new quotas to Captains
+        """
+        logger = logging.getLogger(__name__)
+        logger.info(f"Tower rebalance loop started (interval={self.rebalance_interval}s)")
+        
+        while self._running:
+            try:
+                # Step 1: Collect metrics from all Captains
+                metrics = self.collect_all_metrics()
+                
+                if metrics:
+                    # Step 2: Identify bottleneck stage
+                    bottleneck = self.identify_bottleneck(metrics)
+                    
+                    # Step 3: Reallocate resources
+                    new_quotas = self.reallocate_resources(bottleneck, metrics)
+                    
+                    # Step 3b: Apply backpressure if needed
+                    self.apply_backpressure(bottleneck, metrics)
+                    
+                    # Step 4: Broadcast new quotas to Captains
+                    self.broadcast_quotas(new_quotas)
+                    
+                    if bottleneck:
+                        logger.debug(f"Rebalance: bottleneck={bottleneck}, applying adjustments")
+                        
+            except Exception as e:
+                logger.error(f"Rebalance loop error: {e}")
+            
+            # Wait for next interval
+            time.sleep(self.rebalance_interval)
+        
+        logger.info("Tower rebalance loop stopped")
+    
+    # ========== Context Manager Support ==========
+    
+    def __enter__(self) -> 'Tower':
+        """Context manager entry - start the rebalance loop."""
+        self.start()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Context manager exit - stop the rebalance loop."""
+        self.stop()

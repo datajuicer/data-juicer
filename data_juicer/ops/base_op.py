@@ -402,6 +402,10 @@ class OP(metaclass=OPMetaClass):
         self.ray_execution_mode = kwargs.get("ray_execution_mode", None)
         assert self.ray_execution_mode in [None, "actor", "task"]
 
+        # Override the number of output blocks for Ray Data map_batches
+        # (helps prevent Ray block starvation when Ray fuses/coalesces blocks)
+        self.override_num_blocks = kwargs.get("override_num_blocks", None)
+
         # Local import to avoid logger being serialized in multiprocessing
         from loguru import logger
 

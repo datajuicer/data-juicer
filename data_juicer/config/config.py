@@ -121,9 +121,7 @@ def build_base_parser() -> ArgumentParser:
         help="The number of samples to be analyzed " "automatically. It's 1000 in default.",
     )
 
-    parser.add_argument(
-        "--hpo_config", type=str, help="Path to a configuration file when using auto-HPO tool.", required=False
-    )
+    parser.add_argument("--hpo_config", type=str, help="Path to a configuration file when using auto-HPO tool.", required=False)
     parser.add_argument(
         "--data_probe_algo",
         type=str,
@@ -199,6 +197,14 @@ def build_base_parser() -> ArgumentParser:
         "options such as chunksize (JSON), columns (Parquet), or "
         "delimiter (CSV). See the HuggingFace Datasets docs for "
         "available options.",
+    )
+    parser.add_argument(
+        "--read_options",
+        type=Dict,
+        default={},
+        help="Read options passed through to PyArrow reading functions "
+        "(e.g., block_size for JSON reading). This configuration is "
+        "especially useful when reading large JSON files.",
     )
     parser.add_argument(
         "--work_dir",
@@ -866,9 +872,7 @@ def update_ds_cache_dir_and_related_vars(new_ds_cache_path):
     config.DEFAULT_DOWNLOADED_DATASETS_PATH = os.path.join(config.HF_DATASETS_CACHE, config.DOWNLOADED_DATASETS_DIR)
     config.DOWNLOADED_DATASETS_PATH = Path(config.DEFAULT_DOWNLOADED_DATASETS_PATH)
     # - path to store extracted datasets (e.g. xxx.jsonl.zst)
-    config.DEFAULT_EXTRACTED_DATASETS_PATH = os.path.join(
-        config.DEFAULT_DOWNLOADED_DATASETS_PATH, config.EXTRACTED_DATASETS_DIR
-    )
+    config.DEFAULT_EXTRACTED_DATASETS_PATH = os.path.join(config.DEFAULT_DOWNLOADED_DATASETS_PATH, config.EXTRACTED_DATASETS_DIR)
     config.EXTRACTED_DATASETS_PATH = Path(config.DEFAULT_EXTRACTED_DATASETS_PATH)
 
 
@@ -1078,9 +1082,7 @@ def _collect_config_info_from_class_docs(configurable_ops, parser):
 
         # Add arguments for all provided operators
         for op_name, op_class in configurable_ops:
-            params = parser.add_class_arguments(
-                theclass=op_class, nested_key=op_name, fail_untyped=False, instantiate=False
-            )
+            params = parser.add_class_arguments(theclass=op_class, nested_key=op_name, fail_untyped=False, instantiate=False)
             op_params[op_name] = params
 
         return op_params
@@ -1186,9 +1188,7 @@ def update_op_process(cfg, parser, used_ops=None):
                             op_name_count[op_name] += 1
                         cfg.process[i] = {
                             op_name: (
-                                None
-                                if internal_op_para is None
-                                else namespace_to_dict(internal_op_para[op_name_count[op_name]])
+                                None if internal_op_para is None else namespace_to_dict(internal_op_para[op_name_count[op_name]])
                             )
                         }
         else:
@@ -1665,9 +1665,7 @@ def prepare_side_configs(ori_config: Union[str, Namespace, Dict]):
                 config = json.load(fin)
         else:
             raise TypeError(
-                f"Unrecognized config file type: [{ori_config}]. "
-                f'Should be one of the types [".yaml", ".yml", '
-                f'".json"].'
+                f"Unrecognized config file type: [{ori_config}]. " f'Should be one of the types [".yaml", ".yml", ' f'".json"].'
             )
     elif isinstance(ori_config, dict) or isinstance(ori_config, Namespace):
         config = ori_config

@@ -181,7 +181,7 @@ def build_base_parser() -> ArgumentParser:
         default=None,
         help="Configuration used to create a dataset. "  # noqa: E251
         "The dataset will be created from this configuration if provided. "
-        "It must contain the `--hpo_configtype` field to specify the dataset name.",
+        "It must contain the `--type` field to specify the dataset name.",
     )
     parser.add_argument(
         "--validators",

@@ -731,8 +731,17 @@ process:
       use_words_aug: false                                    # whether to augment words, especially for Chinese and Vietnamese
       words_aug_group_sizes: [2]                              # the group size of words to augment
       words_aug_join_char: ""                                 # the join char between words to augment
-  - general_field_filter:                                    # Filter to keep samples based on a general field filter condition.
-      filter_condition: ""                                  # The filter condition as a string. It can include logical operators (and/or) and chain comparisons.
+  - general_field_filter:                                   # Filter to keep samples based on a general field filter condition.
+      filter_condition: ""                                    # The filter condition as a string. It can include logical operators (and/or) and chain comparisons.
+  - group_diversity_filter:                                 # filter samples based on their semantic diversity within a group.
+      api_or_hf_model: "text-embedding-v3"                    # API or huggingface embedding model name.
+      is_hf_model: false                                      # indicates if the model is from HuggingFace.
+      api_endpoint: "/embeddings"                             # embedding URL endpoint for the API.
+      response_path: "data.0.embedding"                       # path to extract content from the API response.
+      ebd_dim: 512                                            # the embedding's dimension via API.
+      min_score: 0.0                                          # the min score of filter range
+      max_score: 1.0                                          # the max score of filter range
+      norm_ratio: 0.5                                         # ratio to normalize the score.
   - image_aesthetics_filter:                                # filter samples according to the aesthetics score of images.
       hf_scorer_model: shunk031/aesthetics-predictor-v2-sac-logos-ava1-l14-linearMSE # Huggingface model name for the aesthetics predictor
       min_score: 0.3                                          # the min aesthetics score of filter range

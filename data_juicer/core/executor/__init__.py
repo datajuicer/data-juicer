@@ -3,5 +3,6 @@ from .default_executor import DefaultExecutor
 from .factory import ExecutorFactory
 from .ray_executor import RayExecutor
 from .ray_executor_partitioned import PartitionedRayExecutor
+from .elastic_ray_executor import ElasticRayExecutor
 
-__all__ = ["ExecutorBase", "ExecutorFactory", "DefaultExecutor", "RayExecutor", "PartitionedRayExecutor"]
+__all__ = ["ExecutorBase", "ExecutorFactory", "DefaultExecutor", "RayExecutor", "PartitionedRayExecutor", "ElasticRayExecutor"]

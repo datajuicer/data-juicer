@@ -33,6 +33,12 @@ def main():
             )
 
             executor = PartitionedRayExecutor(cfg)
+        elif cfg.executor_type == "elastic_ray":
+            from data_juicer.core.executor.elastic_ray_executor import (
+                ElasticRayExecutor,
+            )
+
+            executor = ElasticRayExecutor(cfg)
         else:
             raise ValueError(f"Unsupported executor type: {cfg.executor_type}")
 

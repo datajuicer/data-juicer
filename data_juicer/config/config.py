@@ -176,8 +176,16 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "--executor_type",
                 type=str,
                 default="default",
-                choices=["default", "ray", "ray_partitioned"],
-                help='Type of executor, support "default", "ray", or "ray_partitioned".',
+                choices=["default", "ray", "ray_partitioned", "elastic_ray"],
+                help='Type of executor, support "default", "ray", "ray_partitioned", or "elastic_ray".',
+            )
+            parser.add_argument(
+                "--elastic_juicer",
+                type=Dict,
+                default={},
+                help="Configuration for ElasticJuicer adaptive scheduling when using elastic_ray executor. "
+                     "Keys: scheduler_preset (conservative/gpu/aggressive), "
+                     "rebalance_interval (float, seconds), config_path (optional YAML path).",
             )
             parser.add_argument(
                 "--dataset_path",

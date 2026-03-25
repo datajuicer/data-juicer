@@ -30,6 +30,13 @@ except ImportError:
 
 
 @dataclass
+class SampleFeatures:
+    """Sample features for MicroScheduler prediction."""
+    batch_size: int = 1
+    estimated_memory_mb: float = 0.0
+
+
+@dataclass
 class MemoryState:
     """Current memory state"""
     timestamp: float

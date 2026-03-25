@@ -847,7 +847,17 @@ class Tower:
                     self.broadcast_quotas(new_quotas)
                     
                     if bottleneck:
-                        logger.debug(f"Rebalance: bottleneck={bottleneck}, applying adjustments")
+                        logger.info(f"Tower rebalance: bottleneck={bottleneck}")
+                    else:
+                        logger.info("Tower rebalance: no bottleneck detected")
+                    
+                    # Log throughput metrics per stage
+                    for stage_name, stage_metrics in metrics.items():
+                        logger.info(
+                            f"  [{stage_name}] throughput={stage_metrics.throughput:.1f} sps, "
+                            f"latency={stage_metrics.avg_latency_ms:.1f}ms, "
+                            f"queue={stage_metrics.queue_depth}"
+                        )
                         
             except Exception as e:
                 logger.error(f"Rebalance loop error: {e}")

@@ -1,12 +1,14 @@
 import json
 import os
 import shutil
+import subprocess
 import uuid
 
+import cv2
 import numpy as np
 from loguru import logger
 
-from data_juicer.utils.constant import Fields
+from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import OPERATORS, Mapper
@@ -52,6 +54,8 @@ class ExportToLeRobotMapper(Mapper):
         fps: int = 10,
         robot_type: str = "egodex_hand",
         chunks_size: int = DEFAULT_CHUNKS_SIZE,
+        segment_field: str = None,
+        frame_field: str = MetaKeys.video_frames,
         *args,
         **kwargs,
     ):
@@ -60,9 +64,16 @@ class ExportToLeRobotMapper(Mapper):
 
         :param output_dir: Root directory for the LeRobot dataset output.
         :param hand_action_field: Meta field with action/state data.
+            Used in whole-video mode (segment_field=None).
         :param fps: Frames per second for the dataset.
         :param robot_type: Robot type identifier for info.json.
         :param chunks_size: Max episodes per chunk directory (default 1000).
+        :param segment_field: Meta field storing atomic action segments.
+            When set, each segment becomes a separate episode with its
+            own caption as task description. When None (default), falls
+            back to whole-video export via hand_action_field.
+        :param frame_field: Sample field with extracted frame image paths.
+            Used in segment mode to create per-segment videos.
         """
         super().__init__(*args, **kwargs)
         self.output_dir = output_dir
@@ -70,6 +81,8 @@ class ExportToLeRobotMapper(Mapper):
         self.fps = fps
         self.robot_type = robot_type
         self.chunks_size = chunks_size
+        self.segment_field = segment_field
+        self.frame_field = frame_field
 
         # Staging directories for parallel-safe writes
         self.staging_data_dir = os.path.join(output_dir, "staging", "data")
@@ -156,10 +169,180 @@ class ExportToLeRobotMapper(Mapper):
         with open(meta_path, "w", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+    @staticmethod
+    def _encode_frames_to_video(frame_paths, output_path, fps=30):
+        """Encode a sequence of frame images into an H.264 mp4 video.
+
+        :param frame_paths: List of image file paths.
+        :param output_path: Destination mp4 path.
+        :param fps: Output video frame rate.
+        :return: output_path on success, None on failure.
+        """
+        if not frame_paths:
+            return None
+
+        # Read all frames and collect raw bytes upfront
+        first = cv2.imread(frame_paths[0])
+        if first is None:
+            return None
+        h, w = first.shape[:2]
+
+        raw_chunks = [first.tobytes()]
+        for p in frame_paths[1:]:
+            img = cv2.imread(p)
+            if img is None:
+                continue
+            if img.shape[:2] != (h, w):
+                img = cv2.resize(img, (w, h))
+            raw_chunks.append(img.tobytes())
+        raw_data = b"".join(raw_chunks)
+
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-f",
+            "rawvideo",
+            "-vcodec",
+            "rawvideo",
+            "-pix_fmt",
+            "bgr24",
+            "-s",
+            f"{w}x{h}",
+            "-r",
+            str(fps),
+            "-i",
+            "-",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-preset",
+            "fast",
+            "-crf",
+            "23",
+            "-movflags",
+            "frag_keyframe+empty_moov",
+            output_path,
+        ]
+        try:
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            _, stderr = proc.communicate(input=raw_data)
+            if proc.returncode != 0:
+                logger.warning(f"ffmpeg encode failed (rc={proc.returncode}): " f"{stderr.decode()[-300:]}")
+                return None
+        except Exception as e:
+            logger.warning(f"ffmpeg encode error: {e}")
+            return None
+
+        return output_path if os.path.exists(output_path) else None
+
+    def _get_frame_paths(self, sample):
+        """Get flat list of frame image paths from sample."""
+        frame_data = sample.get(self.frame_field, [])
+        if not frame_data:
+            # Also check inside meta
+            frame_data = sample.get(Fields.meta, {}).get(self.frame_field, [])
+        # Unwrap nested list from reassembly: [[frames]] → [frames]
+        if isinstance(frame_data, list) and frame_data and isinstance(frame_data[0], list):
+            frame_data = frame_data[0]
+        return frame_data
+
     def process_single(self, sample=None, rank=None):
         if Fields.meta not in sample:
             return sample
 
+        if self.segment_field:
+            return self._process_segments(sample)
+        return self._process_whole_video(sample)
+
+    def _process_segments(self, sample):
+        """Per-segment export: each atomic action segment → one episode.
+
+        Each segment's VLM caption becomes the episode's task description.
+        A segment video is created from the extracted frame images.
+        """
+        meta = sample.get(Fields.meta, {})
+        segments = meta.get(self.segment_field, [])
+        if not segments:
+            logger.warning("No segments found, skipping export.")
+            sample[Fields.meta]["lerobot_export"] = []
+            return sample
+
+        all_frames = self._get_frame_paths(sample)
+        exported_episodes = []
+
+        for seg in segments:
+            states = seg.get("states", [])
+            actions = seg.get("actions", [])
+
+            if len(states) < 2:
+                continue
+
+            # Pad actions with zeros if missing (e.g. last segment)
+            if not actions or len(actions) < len(states):
+                actions = [[0.0] * 7] * len(states)
+
+            # Task description from VLM caption
+            caption = seg.get("caption", {})
+            if isinstance(caption, dict):
+                task_desc = caption.get("action", "")
+            else:
+                task_desc = str(caption) if caption else ""
+
+            # Skip segments explicitly marked as no action
+            if task_desc == "N/A":
+                continue
+
+            # Fallback description when caption is empty
+            if not task_desc:
+                hand = seg.get("hand_type", "hand")
+                task_desc = f"{hand} hand action"
+
+            # Frame range and valid IDs
+            start = seg.get("start_frame", 0)
+            end = seg.get("end_frame", len(all_frames) - 1)
+            valid_fids = seg.get("valid_frame_ids", list(range(start, end + 1)))
+            # Convert to segment-relative frame indices (0-based)
+            seg_relative_fids = [fid - start for fid in valid_fids]
+
+            ep_uuid = uuid.uuid4().hex
+
+            # Stage parquet
+            parquet_path, num_frames = self._stage_parquet(states, actions, ep_uuid, seg_relative_fids)
+
+            # Create segment video from frame images
+            video_dst = None
+            if all_frames:
+                seg_frame_paths = [
+                    all_frames[fid]
+                    for fid in range(start, min(end + 1, len(all_frames)))
+                    if fid < len(all_frames) and all_frames[fid]
+                ]
+                if seg_frame_paths:
+                    video_path = os.path.join(self.staging_video_dir, f"{ep_uuid}.mp4")
+                    video_dst = self._encode_frames_to_video(seg_frame_paths, video_path, self.fps)
+
+            # Stage metadata
+            self._stage_episode_meta(ep_uuid, num_frames, task_desc, video_dst)
+
+            exported_episodes.append(
+                {
+                    "uuid": ep_uuid,
+                    "parquet_path": parquet_path,
+                    "video_path": video_dst,
+                    "num_frames": num_frames,
+                    "segment_id": seg.get("segment_id", -1),
+                    "hand_type": seg.get("hand_type", "unknown"),
+                }
+            )
+
+        sample[Fields.meta]["lerobot_export"] = exported_episodes
+        return sample
+
+    def _process_whole_video(self, sample):
+        """Original whole-video export: one video → one episode."""
         action_data_list = sample[Fields.meta].get(self.hand_action_field, [])
         if not action_data_list:
             logger.warning("No hand action data found, skipping export.")

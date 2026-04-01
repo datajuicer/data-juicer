@@ -289,6 +289,158 @@ class ExportToLeRobotMapperTest(DataJuicerTestCaseBase):
         video_files = [f for f in os.listdir(video_dir) if f.endswith('.mp4')]
         self.assertEqual(len(video_files), 2)
 
+    # ------------------------------------------------------------------
+    # Segment-based export tests
+    # ------------------------------------------------------------------
+    def _make_segment_sample(self, n_frames=30, n_segments=2):
+        """Create a sample with atomic action segments for segment export."""
+        # Create dummy frame images
+        frame_dir = os.path.join(self.output_dir, 'frames')
+        os.makedirs(frame_dir, exist_ok=True)
+        frame_paths = []
+        for i in range(n_frames):
+            img = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+            path = os.path.join(frame_dir, f'frame_{i:04d}.jpg')
+            import cv2
+            cv2.imwrite(path, img)
+            frame_paths.append(path)
+
+        frames_per_seg = n_frames // n_segments
+        segments = []
+        for s in range(n_segments):
+            start = s * frames_per_seg
+            end = min((s + 1) * frames_per_seg - 1, n_frames - 1)
+            n = end - start + 1
+            states = np.random.randn(n, 8).astype(np.float32).tolist()
+            actions = np.random.randn(n, 7).astype(np.float32).tolist()
+            segments.append({
+                "hand_type": "right" if s % 2 == 0 else "left",
+                "segment_id": s,
+                "start_frame": start,
+                "end_frame": end,
+                "states": states,
+                "actions": actions,
+                "valid_frame_ids": list(range(start, end + 1)),
+                "caption": {
+                    "think": "test reasoning",
+                    "action": f"Pick up object {s}",
+                },
+            })
+
+        return {
+            "video_frames": frame_paths,
+            "text": "",
+            Fields.meta: {
+                "atomic_action_segments": segments,
+            },
+        }
+
+    def test_segment_export_creates_episodes(self):
+        """Each segment should become a separate episode."""
+        sample = self._make_segment_sample(n_frames=30, n_segments=3)
+        op = ExportToLeRobotMapper(
+            output_dir=self.output_dir,
+            segment_field='atomic_action_segments',
+            fps=10,
+        )
+
+        dataset = Dataset.from_list([sample])
+        dataset = dataset.map(op.process, num_proc=1, with_rank=True)
+        res_list = dataset.to_list()
+
+        export_info = res_list[0][Fields.meta].get('lerobot_export', [])
+        self.assertEqual(len(export_info), 3)
+
+        for ep in export_info:
+            self.assertIn('segment_id', ep)
+            self.assertIn('hand_type', ep)
+            self.assertGreater(ep['num_frames'], 0)
+            self.assertTrue(os.path.exists(ep['parquet_path']))
+
+    def test_segment_export_finalize(self):
+        """Full segment pipeline: process + finalize."""
+        sample = self._make_segment_sample(n_frames=30, n_segments=2)
+        op = ExportToLeRobotMapper(
+            output_dir=self.output_dir,
+            segment_field='atomic_action_segments',
+            fps=10,
+            robot_type='egodex_hand',
+        )
+
+        dataset = Dataset.from_list([sample])
+        dataset = dataset.map(op.process, num_proc=1, with_rank=True)
+
+        ExportToLeRobotMapper.finalize_dataset(
+            output_dir=self.output_dir, fps=10, robot_type='egodex_hand',
+        )
+
+        with open(os.path.join(self.output_dir, 'meta', 'info.json')) as f:
+            info = json.load(f)
+        self.assertEqual(info['total_episodes'], 2)
+        # Each segment has its own task description
+        self.assertEqual(info['total_tasks'], 2)
+
+        # Check episode parquet files
+        data_dir = os.path.join(self.output_dir, 'data', 'chunk-000')
+        parquets = [f for f in os.listdir(data_dir) if f.endswith('.parquet')]
+        self.assertEqual(len(parquets), 2)
+
+        # Check tasks.jsonl has per-segment captions
+        with open(os.path.join(self.output_dir, 'meta', 'tasks.jsonl')) as f:
+            tasks = [json.loads(line) for line in f if line.strip()]
+        task_names = {t['task'] for t in tasks}
+        self.assertIn('Pick up object 0', task_names)
+        self.assertIn('Pick up object 1', task_names)
+
+    def test_segment_export_skips_na(self):
+        """Segments with N/A caption should be skipped."""
+        sample = self._make_segment_sample(n_frames=20, n_segments=2)
+        # Mark first segment as N/A
+        sample[Fields.meta]['atomic_action_segments'][0]['caption'] = {
+            'think': '', 'action': 'N/A'}
+
+        op = ExportToLeRobotMapper(
+            output_dir=self.output_dir,
+            segment_field='atomic_action_segments',
+            fps=10,
+        )
+
+        dataset = Dataset.from_list([sample])
+        dataset = dataset.map(op.process, num_proc=1, with_rank=True)
+        res_list = dataset.to_list()
+
+        export_info = res_list[0][Fields.meta].get('lerobot_export', [])
+        self.assertEqual(len(export_info), 1)  # Only seg1 exported
+        self.assertEqual(export_info[0]['segment_id'], 1)
+
+    def test_segment_export_frame_index_relative(self):
+        """Frame indices in parquet should be segment-relative (0-based)."""
+        import pyarrow.parquet as pq
+
+        sample = self._make_segment_sample(n_frames=20, n_segments=1)
+        seg = sample[Fields.meta]['atomic_action_segments'][0]
+        # Segment covers frames 0-19
+        self.assertEqual(seg['start_frame'], 0)
+
+        op = ExportToLeRobotMapper(
+            output_dir=self.output_dir,
+            segment_field='atomic_action_segments',
+            fps=10,
+        )
+
+        dataset = Dataset.from_list([sample])
+        dataset = dataset.map(op.process, num_proc=1, with_rank=True)
+        res_list = dataset.to_list()
+
+        ep = res_list[0][Fields.meta]['lerobot_export'][0]
+        table = pq.read_table(ep['parquet_path'])
+        df = table.to_pandas()
+
+        # frame_index should be 0-based (segment-relative)
+        self.assertEqual(df['frame_index'].tolist()[0], 0)
+        self.assertEqual(df['frame_index'].tolist()[-1],
+                         len(seg['states']) - 1)
+
     def test_valid_frame_ids_in_parquet(self):
         """Test that valid_frame_ids are used as frame_index in parquet."""
         import pyarrow.parquet as pq

@@ -11,9 +11,7 @@ from ..base_op import OPERATORS, Deduplicator
 BRACKETS_ONLY = frozenset("{}[]();")
 LATEX_ENV_RE = re.compile(r"^\s*\\(begin|end)\{")
 HTML_TAG_RE = re.compile(r"^\s*</?[a-z][a-z0-9]*[^>]*>?\s*$", re.IGNORECASE)
-SPECIAL_CHAR_RE = re.compile(
-    rf"\s+|\d+|[{re.escape(string.punctuation)}]"
-)
+SPECIAL_CHAR_RE = re.compile(rf"\s+|\d+|[{re.escape(string.punctuation)}]")
 
 
 @OPERATORS.register_module("document_line_deduplicator")
@@ -129,9 +127,7 @@ class DocumentLineDeduplicator(Deduplicator):
                     norm = norm.lower()
                 if self.ignore_special_character:
                     norm = SPECIAL_CHAR_RE.sub("", norm)
-                md5 = hashlib.md5(
-                    norm.strip().encode("utf-8")
-                ).hexdigest()
+                md5 = hashlib.md5(norm.strip().encode("utf-8")).hexdigest()
                 line_hashes.append(md5)
 
         sample[HashKeys.line_hashes] = line_hashes
@@ -155,15 +151,12 @@ class DocumentLineDeduplicator(Deduplicator):
 
         # --- count document frequency for each line hash ---------------
         doc_freq: Dict[str, int] = defaultdict(int)
-        for line_hashes in dataset[HashKeys.line_hashes]:
-            unique_hashes = {h for h in line_hashes if h}
+        for row in dataset:
+            unique_hashes = {h for h in row[HashKeys.line_hashes] if h}
             for h in unique_hashes:
                 doc_freq[h] += 1
 
-        high_freq: Set[str] = {
-            h for h, cnt in doc_freq.items()
-            if cnt > self.frequency_threshold
-        }
+        high_freq: Set[str] = {h for h, cnt in doc_freq.items() if cnt > self.frequency_threshold}
 
         if not high_freq:
             # nothing to remove – drop the temporary column and return
@@ -201,6 +194,7 @@ class DocumentLineDeduplicator(Deduplicator):
 
         dataset = dataset.map(
             _remove_high_freq_lines,
+            num_proc=self.runtime_np() if show_num == 0 else 1,
             load_from_cache_file=False if show_num > 0 else True,
         )
 

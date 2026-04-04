@@ -144,9 +144,7 @@ class DocumentLineDeduplicatorTest(DataJuicerTestCaseBase):
             {"text": "Foo"},
         ]
         dataset = Dataset.from_list(ds_list)
-        op = DocumentLineDeduplicator(
-            frequency_threshold=2, lowercase=True
-        )
+        op = DocumentLineDeduplicator(frequency_threshold=2, lowercase=True)
         self._run_line_dedup(dataset, tgt_list, op)
 
     def test_ignore_special_character(self):
@@ -162,9 +160,7 @@ class DocumentLineDeduplicatorTest(DataJuicerTestCaseBase):
             {"text": "Content C"},
         ]
         dataset = Dataset.from_list(ds_list)
-        op = DocumentLineDeduplicator(
-            frequency_threshold=2, ignore_special_character=True
-        )
+        op = DocumentLineDeduplicator(frequency_threshold=2, ignore_special_character=True)
         self._run_line_dedup(dataset, tgt_list, op)
 
     def test_single_document(self):
@@ -189,9 +185,7 @@ class DocumentLineDeduplicatorTest(DataJuicerTestCaseBase):
         ]
         dataset = Dataset.from_list(ds_list)
         op = DocumentLineDeduplicator(frequency_threshold=2)
-        dup_pairs = self._run_line_dedup(
-            dataset, tgt_list, op, show_num=1
-        )
+        dup_pairs = self._run_line_dedup(dataset, tgt_list, op, show_num=1)
         self.assertEqual(len(dup_pairs), 1)
 
 

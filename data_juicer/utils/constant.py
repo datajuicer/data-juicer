@@ -324,6 +324,7 @@ class HashKeys(object):
     hash = DEFAULT_PREFIX + "hash"
     minhash = DEFAULT_PREFIX + "minhash"
     simhash = DEFAULT_PREFIX + "simhash"
+    line_hashes = DEFAULT_PREFIX + "line_hashes"
 
     # image
     imagehash = DEFAULT_PREFIX + "imagehash"

@@ -1,4 +1,5 @@
 from .document_deduplicator import DocumentDeduplicator
+from .document_line_deduplicator import DocumentLineDeduplicator
 from .document_minhash_deduplicator import (
     DocumentMinhashDeduplicator,
     DocumentMinhashDeduplicatorWithUid,
@@ -18,6 +19,7 @@ from .video_deduplicator import VideoDeduplicator
 
 __all__ = [
     "DocumentDeduplicator",
+    "DocumentLineDeduplicator",
     "DocumentMinhashDeduplicator",
     "DocumentMinhashDeduplicatorWithUid",
     "DocumentSimhashDeduplicator",

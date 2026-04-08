@@ -181,7 +181,7 @@ def build_base_parser() -> ArgumentParser:
         default=None,
         help="Configuration used to create a dataset. "  # noqa: E251
         "The dataset will be created from this configuration if provided. "
-        "It must contain the `type` field to specify the dataset name.",
+        "It must contain the `--type` field to specify the dataset name.",
     )
     parser.add_argument(
         "--validators",
@@ -199,6 +199,14 @@ def build_base_parser() -> ArgumentParser:
         "options such as chunksize (JSON), columns (Parquet), or "
         "delimiter (CSV). See the HuggingFace Datasets docs for "
         "available options.",
+    )
+    parser.add_argument(
+        "--read_options",
+        type=Dict,
+        default={},
+        help="Read options passed through to PyArrow reading functions "
+        "(e.g., block_size for JSON reading). This configuration is "
+        "especially useful when reading large JSON files.",
     )
     parser.add_argument(
         "--work_dir",

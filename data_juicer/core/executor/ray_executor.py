@@ -147,9 +147,16 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         :param skip_return: skip return for API called.
         :return: processed dataset.
         """
+        # LLM data contains very large single json objects (lines). PyArrow's default block_size
+        # for open_json is only 1MB. We increase it massively (e.g. 256MB) to avoid the
+        # 'straddling object straddles two block boundaries' ArrowInvalid error.
+        #
+
+        read_opts = self.cfg.get("read_options")
+
         # 1. load data
         logger.info("Loading dataset with Ray...")
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
+        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np, read_options=read_opts)
         columns = dataset.data.columns()
 
         # 2. extract processes

@@ -452,7 +452,7 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                 except StopIteration:
                     return
         except pyarrow.lib.ArrowInvalid as e:
-            raise ValueError(f"Failed to read JSON file: {path}.") from e
+            raise ValueError(f"Failed to read JSON file: {path}. Underlying PyArrow Error: {e}") from e
 
 
 def read_json_stream(

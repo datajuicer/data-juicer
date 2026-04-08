@@ -3,9 +3,9 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.filter.llm_analysis_filter import LLMAnalysisFilter
 from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
     api_or_hf_model = 'qwen2.5-72b-instruct'
 

@@ -5,9 +5,9 @@ import unittest
 from datasets import load_dataset
 from data_juicer.core.data import NestedDataset
 from data_juicer.ops.mapper.optimize_prompt_mapper import OptimizePromptMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class OptimizePromptMapperTest(DataJuicerTestCaseBase):
     prompt_key = 'prompt'
     root_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..')

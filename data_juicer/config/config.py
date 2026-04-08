@@ -1681,8 +1681,6 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
     """
     set init configs of data-juicer for cfg
     """
-    temp_dir = tempfile.gettempdir()
-    temp_file = os.path.join(temp_dir, "job_dj_config.json")
     if isinstance(cfg, Namespace):
         cfg = namespace_to_dict(cfg)
 
@@ -1703,10 +1701,13 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
         for attr in internal_attrs:
             cfg.pop(attr, None)
 
-    # create a temp config file
-    with open(temp_file, "w") as f:
-        json.dump(prepare_cfgs_for_export(cfg), f)
-    inited_dj_cfg = init_configs(["--config", temp_file], load_configs_only=load_configs_only)
+    # Use a unique temporary file per call to avoid race conditions when
+    # multiple requests are processed concurrently (e.g. in API service mode).
+    # The file is automatically deleted after the with-block exits.
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", prefix="job_dj_config_", delete=True) as temp_f:
+        json.dump(prepare_cfgs_for_export(cfg), temp_f)
+        temp_f.flush()
+        inited_dj_cfg = init_configs(["--config", temp_f.name], load_configs_only=load_configs_only)
     return inited_dj_cfg
 
 

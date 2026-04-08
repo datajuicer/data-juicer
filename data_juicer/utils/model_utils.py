@@ -204,6 +204,7 @@ class ChatAPIModel:
         self.model = model
         self.endpoint = endpoint or "/chat/completions"
         self.response_path = response_path or "choices.0.message.content"
+        self.last_response = None  # last chat completion JSON (for usage / debugging)
 
         client_args = filter_arguments(openai.OpenAI, kwargs)
         if "base_url" not in client_args and os.environ.get("OPENAI_BASE_URL"):
@@ -241,9 +242,11 @@ class ChatAPIModel:
                 self.endpoint, body=body, cast_to=httpx.Response, stream=stream, stream_cls=stream_cls
             )
             result = response.json()
+            self.last_response = result
             return nested_access(result, self.response_path) or ""
         except Exception as e:
             logger.exception(e)
+            self.last_response = None
             return ""
 
 
@@ -347,6 +350,81 @@ class ResponsesAPIModel:
             return ""
 
 
+def _merge_openai_compatible_env_into_model_params(model_params):
+    """Fill OpenAI client kwargs from environment (DashScope REST / OpenAI-compatible).
+
+    Supported env vars:
+    - ``OPENAI_API_KEY``, ``DASHSCOPE_API_KEY``, or ``SK`` -> ``api_key``
+    - ``OPENAI_BASE_URL``, ``OPENAI_API_URL``, or ``DASHSCOPE_BASE_URL`` -> ``base_url``
+      (trailing slash stripped)
+
+    Explicit keys in ``model_params`` take precedence.
+    """
+    out = dict(model_params) if model_params else {}
+    if not out.get("api_key"):
+        key = os.environ.get("OPENAI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("SK")
+        if key:
+            out["api_key"] = key
+    if not out.get("base_url"):
+        base = (
+            os.environ.get("OPENAI_BASE_URL")
+            or os.environ.get("OPENAI_API_URL")
+            or os.environ.get("DASHSCOPE_BASE_URL")
+        )
+        if base:
+            out["base_url"] = base.rstrip("/")
+    return out
+
+
+def _is_dashscope_openai_compatible_base(base_url: Optional[str]) -> bool:
+    if not base_url:
+        return False
+    u = base_url.lower()
+    if "dashscope" in u:
+        return True
+    if "compatible-mode" in u and "aliyun" in u:
+        return True
+    return False
+
+
+def _maybe_remap_model_for_dashscope(
+    model: Optional[str], base_url: Optional[str], endpoint: Optional[str]
+) -> Optional[str]:
+    """DashScope compatible-mode does not serve OpenAI model ids (e.g. gpt-4o).
+
+    If the base URL looks like DashScope compatible API and the model id is not a
+    typical Qwen/DeepSeek id, remap using ``DASHSCOPE_DEFAULT_MODEL`` or
+    ``OPENAI_DEFAULT_MODEL``, else ``qwen-plus``.
+
+    Skipped for non-chat endpoints (e.g. ``/embeddings``).
+    """
+    ep = (endpoint or "").lower()
+    if "embedd" in ep:
+        return model
+    if not model or not _is_dashscope_openai_compatible_base(base_url):
+        return model
+    m = model.lower()
+    if m.startswith("qwen") or m.startswith("deepseek"):
+        return model
+    remapped = os.environ.get("DASHSCOPE_DEFAULT_MODEL") or os.environ.get("OPENAI_DEFAULT_MODEL")
+    if remapped:
+        if remapped != model:
+            logger.info(
+                "Remapping API model [{}] -> [{}] for DashScope compatible endpoint",
+                model,
+                remapped,
+            )
+        return remapped
+    fallback = "qwen-plus"
+    logger.info(
+        "API model [{}] is not a DashScope model id; using [{}]. "
+        "Set DASHSCOPE_DEFAULT_MODEL or pass api_or_hf_model explicitly.",
+        model,
+        fallback,
+    )
+    return fallback
+
+
 def prepare_api_model(
     model, *, endpoint=None, response_path=None, return_processor=False, processor_config=None, **model_params
 ):
@@ -374,10 +452,15 @@ def prepare_api_model(
         for initializing a Hugging Face processor. It is only relevant if
         `return_processor` is set to True.
     :param model_params: Additional parameters for configuring the API model.
+        Environment variables ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and
+        ``OPENAI_API_KEY`` / ``DASHSCOPE_API_KEY`` are merged when not set here
+        (OpenAI-compatible / DashScope REST).
     :return: A callable APIModel instance, and optionally a processor
         if `return_processor` is True.
     """
+    model_params = _merge_openai_compatible_env_into_model_params(model_params)
     endpoint = endpoint or "/chat/completions"
+    model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)
 
     ENDPOINT_CLASS_MAP = {
         "chat": ChatAPIModel,
@@ -1393,11 +1476,11 @@ def update_sampling_params(
 
     model_generation_config = {}
     if fetch_generation_config_from_hf:
-        from transformers import GenerationConfig
-
         pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
         try:
-            model_generation_config = GenerationConfig.from_pretrained(pretrained_model_name_or_path).to_dict()
+            model_generation_config = transformers.GenerationConfig.from_pretrained(
+                pretrained_model_name_or_path
+            ).to_dict()
         except Exception as e:
             logger.warning(
                 f"No generation config found for the model " f"[{pretrained_model_name_or_path}]. Error: {e}"

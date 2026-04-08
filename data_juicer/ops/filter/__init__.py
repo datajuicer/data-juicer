@@ -24,6 +24,7 @@ from .instruction_following_difficulty_filter import (
 )
 from .language_id_score_filter import LanguageIDScoreFilter
 from .llm_analysis_filter import LLMAnalysisFilter
+from .llm_condition_filter import LLMConditionFilter
 from .llm_difficulty_score_filter import LLMDifficultyScoreFilter
 from .llm_perplexity_filter import LLMPerplexityFilter
 from .llm_quality_score_filter import LLMQualityScoreFilter
@@ -91,6 +92,7 @@ __all__ = [
     "SpecialCharactersFilter",
     "SpecifiedFieldFilter",
     "SpecifiedNumericFieldFilter",
+    "LLMConditionFilter",
     "StopWordsFilter",
     "SuffixFilter",
     "TextActionFilter",

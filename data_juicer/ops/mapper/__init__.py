@@ -49,6 +49,7 @@ from .imgdiff_difference_caption_generator_mapper import (
 )
 from .latex_figure_context_extractor_mapper import LatexFigureContextExtractorMapper
 from .latex_merge_tex_mapper import LatexMergeTexMapper
+from .llm_extract_mapper import LLMExtractMapper
 from .mllm_mapper import MllmMapper
 from .nlpaug_en_mapper import NlpaugEnMapper
 from .nlpcda_zh_mapper import NlpcdaZhMapper
@@ -189,6 +190,7 @@ __all__ = [
     "RemoveWordsWithIncorrectSubstringsMapper",
     "ReplaceContentMapper",
     "S3DownloadFileMapper",
+    "LLMExtractMapper",
     "S3UploadFileMapper",
     "SDXLPrompt2PromptMapper",
     "SentenceAugmentationMapper",

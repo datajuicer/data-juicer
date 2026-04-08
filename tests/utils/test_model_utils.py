@@ -397,5 +397,46 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         # No assertion needed, just checking it doesn't raise an exception
 
 
+class DashScopeOpenAICompatTest(unittest.TestCase):
+    """Env merge + model remap for DashScope OpenAI-compatible REST."""
+
+    def test_merge_env_from_openai_and_dashscope_aliases(self):
+        from data_juicer.utils.model_utils import _merge_openai_compatible_env_into_model_params
+
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "",
+                "DASHSCOPE_API_KEY": "ds-key",
+                "OPENAI_API_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1/",
+            },
+            clear=False,
+        ):
+            m = _merge_openai_compatible_env_into_model_params({})
+        self.assertEqual(m.get("api_key"), "ds-key")
+        self.assertTrue(m["base_url"].endswith("/v1"))
+
+    def test_remap_gpt4o_on_dashscope_chat_only(self):
+        from data_juicer.utils.model_utils import _maybe_remap_model_for_dashscope
+
+        base = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        overrides = {"DASHSCOPE_DEFAULT_MODEL": "", "OPENAI_DEFAULT_MODEL": ""}
+        with patch.dict(os.environ, overrides, clear=False):
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope("gpt-4o", base, "/chat/completions"),
+                "qwen-plus",
+            )
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope("gpt-4o", base, "/embeddings"),
+                "gpt-4o",
+            )
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope(
+                    "qwen-turbo", base, "/chat/completions"
+                ),
+                "qwen-turbo",
+            )
+
+
 if __name__ == '__main__':
     unittest.main()

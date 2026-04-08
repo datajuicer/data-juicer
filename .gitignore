@@ -42,6 +42,8 @@ perf_bench_data/
 # env file
 .env
 
+demos/local/*
+
 # cython outputs
 /data_juicer/ops/deduplicator/minhash.cpython-*
 /data_juicer/ops/deduplicator/tokenize.c

@@ -3,7 +3,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Any, List
+from typing import List
 
 import translators as ts
 
@@ -242,42 +242,58 @@ class OPRecord:
         return not self.__eq__(other)
 
 
-class ClassVisitor(ast.NodeVisitor):
-    """
-    A class visitor for AST to get the doc strings of each class.
-    """
+def _compact_class_or_module_name(name: str) -> str:
+    """Normalize for matching OP module stem to PascalCase class (e.g. ray_bts <-> RayBTS)."""
+    return re.sub(r"[^a-zA-Z0-9]", "", name).lower()
 
-    def __init__(self):
-        super().__init__()
-        self.docs = []
 
-    def visit_ClassDef(self, node: ast.ClassDef) -> Any:
-        name = node.name
-        node_info = ast.get_docstring(node)
-        if node_info is None:
-            print(f"No docstring found for class {name}")
-            self.generic_visit(node)
-            return
-        docstring = " ".join(node_info.split()).split(". ")[0]
-        if not docstring.endswith("."):
-            docstring += "."
-        self.docs.append((name, docstring))
-        self.generic_visit(node)
+_OP_CLASS_SUFFIXES = (
+    "Mapper",
+    "Filter",
+    "Deduplicator",
+    "Formatter",
+    "Grouper",
+    "Selector",
+    "Aggregator",
+    "Pipeline",
+)
 
-    def get_class_docs(self):
-        return self.docs
+
+def pick_doc_for_op(docstrings: List[tuple], op_stem: str) -> str:
+    """Pick the docstring row for the public OP class, not helper classes in the same file."""
+    if not docstrings:
+        raise ValueError(f"No class-level docstrings found for op stem {op_stem!r}")
+    target = _compact_class_or_module_name(op_stem)
+    for cls_name, doc in docstrings:
+        if _compact_class_or_module_name(cls_name) == target:
+            return doc
+    for cls_name, doc in reversed(docstrings):
+        if any(cls_name.endswith(suffix) for suffix in _OP_CLASS_SUFFIXES):
+            return doc
+    return docstrings[-1][1]
 
 
 def get_class_and_docstring(code_path):
     """
-    Get the class name and its doc strings from the given Python code path.
+    Get (class_name, first-sentence doc) for each ClassDef in the file that has a class docstring.
+
+    Helper classes without docstrings are skipped silently (no CI noise).
     """
     with open(code_path, "r", encoding="utf-8") as fin:
         code = fin.read()
         tree = ast.parse(code)
-        cls_visitor = ClassVisitor()
-        cls_visitor.visit(tree)
-        return cls_visitor.docs
+        docs: List[tuple] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            node_info = ast.get_docstring(node)
+            if node_info is None:
+                continue
+            docstring = " ".join(node_info.split()).split(". ")[0]
+            if not docstring.endswith("."):
+                docstring += "."
+            docs.append((node.name, docstring))
+        return docs
 
 
 def get_op_list_from_code_for_formatter():
@@ -319,15 +335,16 @@ def get_op_list_from_code_for_formatter():
             if "_cpp" in code_path:
                 continue
             docstrings = get_class_and_docstring(code_path)
-            _, doc = docstrings[0]
+            stem = formatter.replace(".py", "")
+            doc = pick_doc_for_op(docstrings, stem)
             op_record_list.append(
                 OPRecord(
                     type=type,
-                    name=formatter.replace(".py", ""),
+                    name=stem,
                     desc=doc,
                     test=test_path if os.path.exists(test_path) else "-",
-                    info=info_link(formatter.replace(".py", "")),
-                    ref=ref_link(formatter.replace(".py", "")),
+                    info=info_link(stem),
+                    ref=ref_link(stem),
                 )
             )
     return op_record_list
@@ -347,7 +364,8 @@ def get_op_list_from_code():
         type_dir = os.path.join(OP_CODE_PREFIX, type)
         if os.path.isfile(type_dir):
             continue
-        op_num_dict[type] = 0
+        # Only count types that have at least one OP file, so op_num_dict matches
+        # parse_op_num_from_doc() (overview table has no row for empty type dirs).
         for op in os.listdir(type_dir):
             if op in OP_EXCLUDE:
                 continue
@@ -358,20 +376,21 @@ def get_op_list_from_code():
             if not code_path.endswith(".py") or "_cpp" in code_path:
                 continue
             docstrings = get_class_and_docstring(code_path)
-            _, doc = docstrings[0]
-            info = info_link(op.replace(".py", ""))
+            stem = op.replace(".py", "")
+            doc = pick_doc_for_op(docstrings, stem)
+            info = info_link(stem)
             op_record_list.append(
                 OPRecord(
                     type=type,
-                    name=op.replace(".py", ""),
+                    name=stem,
                     desc=doc,
                     tags=analyze_tag_from_code(code_path),
                     test=test_path if os.path.exists(test_path) else "-",
                     info=info,
-                    ref=ref_link(op.replace(".py", "")),
+                    ref=ref_link(stem),
                 )
             )
-            op_num_dict[type] += 1
+            op_num_dict[type] = op_num_dict.get(type, 0) + 1
     op_record_list.sort(key=lambda record: (record.type, record.name))
     return op_record_list, op_num_dict
 

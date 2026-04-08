@@ -204,7 +204,7 @@ def get_diff_files(prefix_filter=["data_juicer/", "tests/"]):
     """Get git diff files in target dirs except the __init__.py files"""
     changed_files = (
         subprocess.check_output(
-            ["git", "diff", "--name-only", "--diff-filter=ACMRT", "origin/main"],
+            ["git", "diff", "--name-only", "--diff-filter=ACMRT", "origin/main...HEAD"],
             universal_newlines=True,
         )
         .strip()

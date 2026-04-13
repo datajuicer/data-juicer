@@ -119,12 +119,14 @@ class RayExecutorEncryptTest(DataJuicerTestCaseBase):
                 pass  # Ray may fail to init; we only care about exporter args
         return captured
 
+    @TEST_TAG('ray')
     def test_ray_executor_no_encrypt_by_default(self):
         """RayExecutor passes encrypt_before_export=False by default."""
         cfg = self._make_cfg()
         captured = self._build_executor_no_ray(cfg)
         self.assertFalse(captured.get('encrypt_before_export', False))
 
+    @TEST_TAG('ray')
     def test_ray_executor_passes_encrypt_flag(self):
         """RayExecutor forwards encrypt_before_export=True to RayExporter."""
         cfg = self._make_cfg({
@@ -134,6 +136,7 @@ class RayExecutorEncryptTest(DataJuicerTestCaseBase):
         captured = self._build_executor_no_ray(cfg)
         self.assertTrue(captured.get('encrypt_before_export', False))
 
+    @TEST_TAG('ray')
     def test_ray_executor_passes_key_path(self):
         """RayExecutor forwards encryption_key_path to RayExporter."""
         cfg = self._make_cfg({

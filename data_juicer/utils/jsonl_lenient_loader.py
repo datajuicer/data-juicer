@@ -16,7 +16,6 @@ from typing import Any, Dict, Iterator, List, Tuple
 
 import zstandard as zstd
 from datasets import Dataset
-from loguru import logger
 
 from data_juicer.utils.constant import Fields
 
@@ -56,16 +55,22 @@ def iter_lenient_jsonl_records(
     :param add_suffix_column: if True, set ``Fields.suffix`` to match the
         default HF loader (``\".\" + ext_key.strip(\".\")``).
     """
+    # Use stdlib logging inside generator for pickle compatibility with dill.
+    # loguru Logger contains multiprocessing.Condition which cannot be pickled.
+    import logging
+
+    _logger = logging.getLogger(__name__)
+
     skipped = 0
     for path, ext_key in file_ext_pairs:
         if not os.path.isfile(path):
-            logger.warning(f"[lenient jsonl] missing file, skip: {path}")
+            _logger.warning(f"[lenient jsonl] missing file, skip: {path}")
             continue
         suffix_val = ("." + ext_key.strip(".")) if add_suffix_column else None
         try:
             line_iter = _iter_text_lines(path)
         except OSError as exc:
-            logger.error(f"[lenient jsonl] cannot open {path}: {exc}")
+            _logger.error(f"[lenient jsonl] cannot open {path}: {exc}")
             continue
         for lineno, line in enumerate(line_iter, 1):
             chunk = line.strip()
@@ -75,12 +80,12 @@ def iter_lenient_jsonl_records(
                 obj = json.loads(chunk)
             except (json.JSONDecodeError, ValueError) as exc:
                 skipped += 1
-                logger.warning(f"[lenient jsonl] skip {path}:{lineno}: {exc}")
+                _logger.warning(f"[lenient jsonl] skip {path}:{lineno}: {exc}")
                 continue
             if not isinstance(obj, dict):
                 skipped += 1
                 typ = type(obj).__name__
-                logger.warning(f"[lenient jsonl] skip {path}:{lineno}: " f"expected JSON object, got {typ}")
+                _logger.warning(f"[lenient jsonl] skip {path}:{lineno}: " f"expected JSON object, got {typ}")
                 continue
             if suffix_val is not None:
                 row = dict(obj)
@@ -90,7 +95,7 @@ def iter_lenient_jsonl_records(
                 yield obj
 
     if skipped:
-        logger.info(f"[lenient jsonl] finished with {skipped} skipped line(s) " "(see warnings above)")
+        _logger.info(f"[lenient jsonl] finished with {skipped} skipped line(s) " "(see warnings above)")
 
 
 def dataset_from_lenient_jsonl_files(
@@ -100,10 +105,16 @@ def dataset_from_lenient_jsonl_files(
 ) -> Dataset:
     """Build a :class:`datasets.Dataset` by streaming all given JSONL files."""
 
-    def _gen():
+    def _gen(pairs, add_suffix):
         yield from iter_lenient_jsonl_records(
-            file_ext_pairs,
-            add_suffix_column=add_suffix_column,
+            pairs,
+            add_suffix_column=add_suffix,
         )
 
-    return Dataset.from_generator(_gen)
+    return Dataset.from_generator(
+        _gen,
+        gen_kwargs={
+            "pairs": file_ext_pairs,
+            "add_suffix": add_suffix_column,
+        },
+    )

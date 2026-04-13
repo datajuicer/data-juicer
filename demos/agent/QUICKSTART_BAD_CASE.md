@@ -72,7 +72,6 @@
 
 ## 常见问题
 
-- `**uv pip install kenlm` / `perplexity_filter` 编译失败（macOS `'cstddef' file not found`）**：默认菜谱已 **不启用** `perplexity_filter`；若必须算 perplexity 见 `**KENLM_MACOS.md`**。  
 - **smoke 导出 0 条、verify 报 `got 0`**：若 YAML 里含 `language_id_score_filter` 且 `lang: "zh"`，FastText 标签可能不是字面 `"zh"`，会把 demo 全过滤掉。`09_bad_case_smoke.yaml` 已去掉该算子；全量 `agent_interaction_quality_analysis.yaml` 仍保留，大语料上一般正常。  
 - `**lid.176.bin` 下载失败**：全量菜谱里的 `language_id_score_filter` 需要语言模型；可先跑 `01_normalize_only` 或换网络/手动放到 `~/.cache/data_juicer/models/`（见 `minimal_configs/README.md`）。  
 - **full 中途 API 失败**：导出可能不完整；可用 `verify_bad_case_export.py`（不加 `--require-insight`）检查 bad-case 字段是否已写出。  

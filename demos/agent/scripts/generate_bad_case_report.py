@@ -4331,7 +4331,6 @@ def _html_page(
     )
     adv = (
         "<p>进阶说明见 <code>demos/agent/BAD_CASE_INSIGHTS.md</code>、"
-        "<code>ENTITY_RELATION_TUNING.md</code>、"
         "<code>demos/agent/scripts/README.md</code>。</p>"
     )
 

@@ -65,7 +65,7 @@
 | `llm_analysis_filter`                    | `llm_analysis_score` + `llm_analysis_record.recommendation`              | discard + 低分 → `high`/`medium`（可 `*_discard_must_be_strict`）                                                                       |
 | `llm_quality_score_filter`               | `llm_quality_score` + `llm_quality_record`                               | 同上，信号码 `llm_reply_quality_eval_low`                                                                                                |
 | `dialog_sentiment_detection_mapper`      | `dialog_sentiment_labels`                                                | `signal_on_negative_sentiment_hint` 开启时 → `medium`（易噪，报告里归「附录」类）                                                                   |
-| `perplexity_filter` + `stats.perplexity` | `stats.perplexity`                                                       | **可选**：KenLM；macOS 上 pip 常编译失败，默认菜谱可关掉 filter + `signal_on_high_perplexity: false`（见 `**KENLM_MACOS.md`**）                         |
+| `perplexity_filter` + `stats.perplexity` | `stats.perplexity`                                                       | **可选**：KenLM；默认菜谱为关闭状态 filter + `signal_on_high_perplexity: false`                         |
 | `llm_difficulty_score_filter` + quality  | difficulty + `llm_quality_score`                                         | **默认关**；`signal_hard_query_poor_reply` → `medium`                                                                                  |
 | §5b 对话/轨迹质检算子                            | `meta` 中各 `dialog_*`、`agent_trace_coherence`、`agent_tool_relevance`（1–5） | `signal_on_low_dialog_quality_meta`：任一条目 `score ≤ threshold` 的轴数达标 → `medium`：`dialog_turn_quality_meta_low`（读已有 meta，**无额外 LLM**） |
 | 文本                                       | `query` / `response`                                                     | 长 query + 极短回复 → `medium`                                                                                                          |
@@ -128,7 +128,6 @@ jq -c '."__dj__meta__".agent_insight_llm.headline, ."__dj__meta__".agent_bad_cas
 - `tool_success_tagger_mapper`、`usage_counter_mapper`  
 - `llm_analysis_filter`、`llm_quality_score_filter`、`llm_difficulty_score_filter`  
 - `agent_bad_case_signal_mapper`、`agent_insight_llm_mapper`  
-- `extract_entity_attribute_mapper`、`relation_identity_mapper`（字段空泛 / `role_relation` 等见 `**ENTITY_RELATION_TUNING.md**`）
 
 若需 **按 session 聚合** 再判坏，请在数据中带 `session_id` 并在分析脚本中 groupby；当前算子为**逐条样本**。
 

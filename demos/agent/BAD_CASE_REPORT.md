@@ -2,6 +2,13 @@
 
 面向：**跑完 `dj-process` 后只想看汇总与图**，不必记一串脚本。完整跑法见 [`QUICKSTART_BAD_CASE.md`](QUICKSTART_BAD_CASE.md)，文档索引见 [`README.md`](README.md)。
 
+- 产出报告示例
+
+<div align="center">
+  <video src="https://gist.github.com/user-attachments/assets/df3687ab-72fc-4a15-ba2f-2448312b4405" width="100%" controls loop></video>
+</div>
+
+
 ## 一行命令
 
 在仓库根目录（替换为你的 `processed.jsonl`）：
@@ -38,4 +45,4 @@ python demos/agent/scripts/generate_bad_case_report.py \
 
 ## 仍是「进阶」的内容（刻意不收进报告页）
 
-见 **`BAD_CASE_INSIGHTS.md`**（分层逻辑）、**`ENTITY_RELATION_TUNING.md`**、**`PERFORMANCE_LLM.md`**、**`scripts/README.md`**（`compute_percentile_thresholds`、`slice_export_by_tier`、校准 JSON 等）。
+见 **`BAD_CASE_INSIGHTS.md`**（分层逻辑）、**`PERFORMANCE_LLM.md`**、**`scripts/README.md`**（`compute_percentile_thresholds`、`slice_export_by_tier`、校准 JSON 等）。

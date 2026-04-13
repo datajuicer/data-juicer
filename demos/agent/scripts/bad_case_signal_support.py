@@ -113,7 +113,7 @@ SIGNAL_SUPPORT_ROWS: List[Dict[str, Any]] = [
         "role": "appendix",
         "weight_hint": "medium",
         "upstream": (
-            "stats.perplexity；perplexity_filter（KenLM，macOS 常需 conda/brew 工具链；"
+            "stats.perplexity；perplexity_filter（KenLM；"
             "默认菜谱可关）"
         ),
     },

@@ -20,6 +20,9 @@
 ## 运行方式（在仓库根目录）
 
 ```bash
+# 00 获取demo数据集
+bash demos/agent/scripts/fetch_demo_data.sh
+
 # 01 仅 normalize，无 LLM
 dj-process --config demos/agent/minimal_configs/01_normalize_only.yaml
 

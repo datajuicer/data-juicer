@@ -172,7 +172,7 @@ process:
       lang: ""
       min_score: 0.0
   # perplexity_filter 依赖 KenLM（C++）；macOS ARM 上 pip 源码编译常失败（缺 libc++/Eigen 等）。
-  # 装好 KenLM 后再取消注释，并把第 9 步 signal_on_high_perplexity 设为 true。见 demos/agent/KENLM_MACOS.md
+  # 装好 KenLM 后再取消注释，并把第 9 步 signal_on_high_perplexity 设为 true
   # - perplexity_filter:
   #     lang: "zh"
   #     min_ppl: 0.0
@@ -209,7 +209,6 @@ process:
 #       max_num: 9999999
 
   # ----- 7. （默认关闭）实体 / 关系 / 关键词 — LLM 多、收益有限；需要时再取消注释 -----
-  # 见 demos/agent/ENTITY_RELATION_TUNING.md
   # - extract_entity_attribute_mapper: ...
   # - relation_identity_mapper: ...
   # - extract_keyword_mapper: ...

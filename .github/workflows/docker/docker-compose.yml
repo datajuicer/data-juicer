@@ -24,6 +24,8 @@ services:
     shm_size: "256G"
     deploy:
       resources:
+        limits:
+          cpus: '128'
         reservations:
           devices:
           - driver: nvidia
@@ -52,6 +54,8 @@ services:
     shm_size: "256G"
     deploy:
       resources:
+        limits:
+          cpus: '128'
         reservations:
           devices:
           - driver: nvidia

@@ -33,7 +33,33 @@ class Hasher:
     def hash_default(cls, value: Any) -> str:
         """
         Use dill to serialize objects to avoid serialization failures.
+
+        If the object exposes a ``_fingerprint_bytes()`` method (e.g. OP
+        subclasses), use it so that execution-only attributes like
+        ``work_dir`` are excluded from the cache key.
         """
+        fingerprint_bytes = getattr(value, "_fingerprint_bytes", None)
+        if callable(fingerprint_bytes):
+            return cls.hash_bytes(fingerprint_bytes())
+        # For bound methods / wrapped functions whose __self__ supports
+        # _fingerprint_bytes, hash the (fingerprint, method_name) pair
+        # instead of dill-dumping the bound method (which would
+        # re-serialize the full object including excluded attrs).
+        obj = getattr(value, "__self__", None)
+        if obj is not None:
+            obj_fp = getattr(obj, "_fingerprint_bytes", None)
+            if callable(obj_fp):
+                func_name = getattr(value, "__name__", getattr(value, "__qualname__", ""))
+                return cls.hash_bytes(obj_fp() + dill.dumps(func_name))
+        # functools.wraps closures: check __wrapped__.__self__
+        wrapped = getattr(value, "__wrapped__", None)
+        if wrapped is not None:
+            obj = getattr(wrapped, "__self__", None)
+            if obj is not None:
+                obj_fp = getattr(obj, "_fingerprint_bytes", None)
+                if callable(obj_fp):
+                    func_name = getattr(wrapped, "__name__", getattr(wrapped, "__qualname__", ""))
+                    return cls.hash_bytes(obj_fp() + dill.dumps(func_name))
         return cls.hash_bytes(dill.dumps(value))
 
     @classmethod

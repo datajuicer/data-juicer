@@ -709,7 +709,7 @@ class LabelStudioAnnotationMapper(BaseAnnotationMapper, ABC):
     # for pickling
     def __getstate__(self):
         """Control how the object is pickled"""
-        state = super().__getstate__()
+        state = self.__dict__.copy()
         # Remove unpicklable attributes
         if "client" in state:
             del state["client"]  # Remove Label Studio client

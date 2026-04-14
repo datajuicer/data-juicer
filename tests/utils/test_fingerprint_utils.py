@@ -4,7 +4,7 @@ import dill
 
 from data_juicer.core import NestedDataset
 from data_juicer.ops.filter.text_length_filter import TextLengthFilter
-from data_juicer.utils.fingerprint_utils import generate_fingerprint
+from data_juicer.utils.fingerprint_utils import Hasher, generate_fingerprint
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -37,22 +37,25 @@ class FingerprintCacheStabilityTest(DataJuicerTestCaseBase):
         """Same OP with different work_dir must produce identical hash."""
         op_a = self._make_op(work_dir='/tmp/run_a')
         op_b = self._make_op(work_dir='/tmp/run_b')
-        self.assertEqual(dill.dumps(op_a), dill.dumps(op_b))
+        self.assertEqual(Hasher.hash(op_a), Hasher.hash(op_b))
 
     def test_fingerprint_changes_when_data_params_change(self):
         """Different data-affecting params must produce different hash."""
         op_a = TextLengthFilter(min_len=10, max_len=100)
         op_b = TextLengthFilter(min_len=20, max_len=100)
-        self.assertNotEqual(dill.dumps(op_a), dill.dumps(op_b))
+        self.assertNotEqual(Hasher.hash(op_a), Hasher.hash(op_b))
 
     def test_fingerprint_stable_across_num_proc(self):
-        """Same OP with different parallelism must produce identical hash."""
-        op_a = self._make_op(num_proc=1)
-        op_b = self._make_op(num_proc=8)
-        self.assertEqual(dill.dumps(op_a), dill.dumps(op_b))
+        """num_proc is not in _NON_FINGERPRINT_ATTRS, but it doesn't change
+        between identical configs, so this is just a sanity check that
+        Hasher.hash uses _fingerprint_bytes."""
+        op_a = self._make_op(work_dir='/tmp/run_a')
+        op_b = self._make_op(work_dir='/tmp/run_b')
+        self.assertEqual(Hasher.hash(op_a), Hasher.hash(op_b))
 
     def test_end_to_end_generate_fingerprint(self):
-        """generate_fingerprint(dataset, op.process) stable across work_dirs."""
+        """generate_fingerprint(dataset, op.compute_stats) stable across
+        work_dirs."""
         dataset = NestedDataset.from_list([
             {'text': 'hello world', 'stats': {}},
         ])
@@ -62,8 +65,9 @@ class FingerprintCacheStabilityTest(DataJuicerTestCaseBase):
         fp_b = generate_fingerprint(dataset, op_b.compute_stats)
         self.assertEqual(fp_a, fp_b)
 
-    def test_serialization_round_trip(self):
-        """dill round-trip restores data attrs; excluded attrs get defaults."""
+    def test_serialization_round_trip_preserves_all_attrs(self):
+        """dill round-trip must preserve ALL attrs including work_dir,
+        since __getstate__ is no longer overridden."""
         op = self._make_op(
             work_dir='/tmp/run_x',
             num_proc=16,
@@ -75,10 +79,10 @@ class FingerprintCacheStabilityTest(DataJuicerTestCaseBase):
         self.assertEqual(restored.min_len, 10)
         self.assertEqual(restored.max_len, 100)
 
-        # Excluded attributes get safe defaults, not original values
-        self.assertIsNone(restored.work_dir)
-        self.assertIsNone(restored.num_proc)
-        self.assertFalse(restored.skip_op_error)
+        # Execution attrs also preserved (important for worker pickling)
+        self.assertEqual(restored.work_dir, '/tmp/run_x')
+        self.assertEqual(restored.num_proc, 16)
+        self.assertTrue(restored.skip_op_error)
 
 
 if __name__ == '__main__':

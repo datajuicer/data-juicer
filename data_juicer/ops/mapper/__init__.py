@@ -46,7 +46,6 @@ from .fix_unicode_mapper import FixUnicodeMapper
 from .generate_qa_from_examples_mapper import GenerateQAFromExamplesMapper
 from .generate_qa_from_text_mapper import GenerateQAFromTextMapper
 from .image_blur_mapper import ImageBlurMapper
-from .image_captioning_from_gpt4v_mapper import ImageCaptioningFromGPT4VMapper
 from .image_captioning_mapper import ImageCaptioningMapper
 from .image_detection_yolo_mapper import ImageDetectionYoloMapper
 from .image_diffusion_mapper import ImageDiffusionMapper
@@ -183,7 +182,6 @@ __all__ = [
     "GenerateQAFromTextMapper",
     "HumanPreferenceAnnotationMapper",
     "ImageBlurMapper",
-    "ImageCaptioningFromGPT4VMapper",
     "ImageCaptioningMapper",
     "ImageDetectionYoloMapper",
     "ImageDiffusionMapper",

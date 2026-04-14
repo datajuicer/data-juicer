@@ -46,7 +46,7 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | [filter](#filter) | 57 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 124 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 123 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 2 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 5 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -226,7 +226,6 @@ All the specific operators are listed below, each featured with several capabili
 | generate_qa_from_examples_mapper | 🚀GPU 🌊vLLM 🧩HF 🟢Stable | Generates question and answer pairs from examples using a Hugging Face model. 使用拥抱面部模型从示例生成问题和答案对。 | [info](operators/mapper/generate_qa_from_examples_mapper.md) | - |
 | generate_qa_from_text_mapper | 🔤Text 🚀GPU 🌊vLLM 🧩HF 🟢Stable | Generates question and answer pairs from text using a specified model. 使用指定的模型从文本生成问题和答案对。 | [info](operators/mapper/generate_qa_from_text_mapper.md) | - |
 | image_blur_mapper | 🏞Image 💻CPU 🟢Stable | Blurs images in the dataset with a specified probability and blur type. 使用指定的概率和模糊类型对数据集中的图像进行模糊处理。 | [info](operators/mapper/image_blur_mapper.md) | - |
-| image_captioning_from_gpt4v_mapper | 🔮Multimodal 💻CPU 🟡Beta | Generates text captions for images using the GPT-4 Vision model. 使用GPT-4视觉模型为图像生成文本标题。 | [info](operators/mapper/image_captioning_from_gpt4v_mapper.md) | - |
 | image_captioning_mapper | 🔮Multimodal 🚀GPU 🧩HF 🟢Stable | Generates image captions using a Hugging Face model and appends them to samples. 使用拥抱面部模型生成图像标题，并将其附加到样本中。 | [info](operators/mapper/image_captioning_mapper.md) | - |
 | image_detection_yolo_mapper | 🏞Image 🚀GPU 🟡Beta | Perform object detection using YOLO on images and return bounding boxes and class labels. 使用YOLO对图像执行对象检测，并返回边界框和类标签。 | [info](operators/mapper/image_detection_yolo_mapper.md) | - |
 | image_diffusion_mapper | 🔮Multimodal 🚀GPU 🧩HF 🟢Stable | Generate images using a diffusion model based on provided captions. 使用基于提供的字幕的扩散模型生成图像。 | [info](operators/mapper/image_diffusion_mapper.md) | - |

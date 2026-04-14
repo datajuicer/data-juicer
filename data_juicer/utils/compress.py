@@ -322,7 +322,7 @@ class CacheCompressManager:
 
         files_to_remove = []
         files_printed = set()
-        if num_proc > 1:
+        if num_proc and num_proc > 1:
             pool = Pool(num_proc)
         for full_name in caches_to_compress:
             # ignore the cache file of the original dataset and only consider

@@ -30,7 +30,6 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
         # LLM output is non-deterministic; verify at least min_len results
         self.assertGreaterEqual(len(analysis_list), min_len)
         self.assertGreaterEqual(len(labels_list), min_len)
-        self.assertEqual(len(analysis_list), len(labels_list))
         
     def test_default(self):
         

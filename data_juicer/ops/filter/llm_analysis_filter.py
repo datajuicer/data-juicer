@@ -250,6 +250,20 @@ json
         sx = str(val).strip()
         return [sx] if sx else []
 
+    @staticmethod
+    def _normalize_tags_to_dict(tags) -> dict:
+        """Normalize tags to dict for stable Arrow schema."""
+        if tags is None:
+            return {}
+        if isinstance(tags, dict):
+            # Ensure all values are strings for consistent schema
+            return {str(k): str(v) if not isinstance(v, (list, dict)) else str(v) for k, v in tags.items()}
+        if isinstance(tags, str):
+            return {"tags": tags}
+        if isinstance(tags, (list, tuple)):
+            return {"tags": ", ".join(str(x) for x in tags)}
+        return {"tags": str(tags)}
+
     def parse_output(self, raw_output):
         def extract_outer_braces(s):
             if s is None or (isinstance(s, str) and not s.strip()):
@@ -332,11 +346,13 @@ json
 
         if score:
             sample[Fields.stats][StatsKeys.llm_analysis_score] = score
-        sample[Fields.stats][StatsKeys.llm_analysis_record] = record
+        # Normalize record to empty dict if None for stable Arrow schema
+        sample[Fields.stats][StatsKeys.llm_analysis_record] = record if record is not None else {}
 
-        if tags and isinstance(tags, dict):
-            for key, value in tags.items():
-                sample[Fields.stats][key] = value
+        # Normalize tags to dict for stable Arrow schema
+        normalized_tags = self._normalize_tags_to_dict(tags)
+        for key, value in normalized_tags.items():
+            sample[Fields.stats][key] = value
 
         return sample
 

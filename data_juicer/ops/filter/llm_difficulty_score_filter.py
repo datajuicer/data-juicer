@@ -86,11 +86,13 @@ json
         score, record, tags = self.generate_llm_analysis(sample, rank)
 
         sample[Fields.stats][StatsKeys.llm_difficulty_score] = score
-        sample[Fields.stats][StatsKeys.llm_difficulty_record] = record
+        # Normalize record to empty dict if None for stable Arrow schema
+        sample[Fields.stats][StatsKeys.llm_difficulty_record] = record if record is not None else {}
 
-        if tags and isinstance(tags, dict):
-            for key, value in tags.items():
-                sample[Fields.stats][key] = value
+        # Normalize tags to dict for stable Arrow schema
+        normalized_tags = self._normalize_tags_to_dict(tags)
+        for key, value in normalized_tags.items():
+            sample[Fields.stats][key] = value
 
         return sample
 

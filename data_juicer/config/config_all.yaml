@@ -349,16 +349,6 @@ process:
       blur_type: 'gaussian'                                   # type of blur kernel, including ['mean', 'box', 'gaussian']
       radius: 2                                               # radius of blur kernel
       save_dir: null                                          # The directory where generated files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
-  - image_captioning_from_gpt4v_mapper:                     # generate samples whose texts are generated based on gpt-4-vision and the image
-      mode: 'description'                                     # mode of text generated from images, can be one of ['reasoning', 'description', 'conversation', 'custom']
-      api_key: ''                                             # the API key to authenticate the request
-      max_token: 500                                          # the maximum number of tokens to generate. Default is 500.
-      temperature: 1.0                                        # controls the randomness of the output (range from 0 to 1). Default is 0.
-      system_prompt: ''                                       # a string prompt used to set the context of a conversation and provide global guidance or rules for the gpt4-vision so that it can  generate responses in the expected way. If `mode` set to `custom`, the parameter will be used
-      user_prompt: ''                                         # a string prompt to guide the generation of gpt4-vision for each samples. It's "" in default, which means no prompt provided
-      user_prompt_key: null                                   # the key name of fields in samples to store prompts for each sample. It's used for set different prompts for different samples. If it's none, use prompt in parameter "prompt". It's None in default
-      keep_original_sample: true                              # whether to keep the original sample. If it's set to False, there will be only generated text in the final datasets and the original text will be removed. It's True in default
-      any_or_all: 'any'                                       # keep this sample with 'any' or 'all' strategy of all images. 'any': keep this sample if any images meet the condition. 'all': keep this sample only if all images meet the condition
   - image_captioning_mapper:                                # generate captions for images to augment datasets
       hf_img2seq: 'Salesforce/blip2-opt-2.7b'                 # model name on huggingface to generate caption
       caption_num: 1                                          # how many candidate captions to generate for each image

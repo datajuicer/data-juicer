@@ -2,7 +2,7 @@ import argparse
 import inspect
 import os
 import sys
-from typing import Annotated, Optional
+from typing import Annotated, Optional, get_type_hints
 
 from pydantic import Field
 
@@ -11,6 +11,30 @@ from data_juicer.tools.op_search import OPSearcher
 from data_juicer.utils.lazy_loader import LazyLoader
 
 fastmcp = LazyLoader("mcp.server.fastmcp", "mcp[cli]")
+
+
+def resolve_signature_annotations(func, sig: inspect.Signature) -> inspect.Signature:
+    """Resolve postponed/string annotations into real runtime types.
+
+    When a module uses ``from __future__ import annotations``, all
+    annotations are stored as strings. This helper calls
+    ``typing.get_type_hints`` on the original callable to obtain the
+    real type objects and rebuilds the signature with them.
+    """
+    try:
+        module = sys.modules.get(func.__module__, None) if hasattr(func, "__module__") else None
+        globalns = module.__dict__ if module else {}
+        hints = get_type_hints(func, globalns=globalns, localns=globalns)
+    except Exception:
+        hints = {}
+
+    new_params = []
+    for name, param in sig.parameters.items():
+        resolved_annotation = hints.get(name, param.annotation)
+        new_params.append(param.replace(annotation=resolved_annotation))
+
+    return_annotation = hints.get("return", sig.return_annotation)
+    return sig.replace(parameters=new_params, return_annotation=return_annotation)
 
 
 # Dynamic MCP Tool Creation
@@ -31,13 +55,18 @@ def create_operator_function(op, mcp):
     This function dynamically creates a function that can be registered as an MCP tool,
     with proper signature and documentation based on the operator's __init__ method.
     """
-    sig = op["sig"]
+    raw_sig = op["sig"]
+    init_func = op.get("init_func")
+    if init_func is not None:
+        sig = resolve_signature_annotations(init_func, raw_sig)
+    else:
+        sig = raw_sig
     docstring = op["desc"]
     param_docstring = op["param_desc"]
 
     # Create new function signature with dataset_path as first parameter
     # Consider adding other common parameters later, such as export_psth
-    new_parameters = [
+    fixed_params = [
         inspect.Parameter("dataset_path", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=str),
         inspect.Parameter(
             "export_path",
@@ -51,11 +80,18 @@ def create_operator_function(op, mcp):
             annotation=Optional[int],
             default=None,
         ),
-    ] + [
+    ]
+    op_params = [
         process_parameter(name, param)
         for name, param in sig.parameters.items()
         if name not in ("args", "kwargs", "self")
     ]
+    # Merge all params, then reorder: required (no default) first,
+    # optional (with default) second, to satisfy Python's signature rule.
+    all_params = fixed_params + op_params
+    required_params = [p for p in all_params if p.default is inspect.Parameter.empty]
+    optional_params = [p for p in all_params if p.default is not inspect.Parameter.empty]
+    new_parameters = required_params + optional_params
     new_signature = sig.replace(parameters=new_parameters, return_annotation=str)
 
     def func(*args, **kwargs):
@@ -66,7 +102,7 @@ def create_operator_function(op, mcp):
         export_path = bound_arguments.arguments.pop("export_path")
         dataset_path = bound_arguments.arguments.pop("dataset_path")
         np = bound_arguments.arguments.pop("np")
-        args_dict = {k: v for k, v in bound_arguments.arguments.items() if v}
+        args_dict = {k: v for k, v in bound_arguments.arguments.items() if v is not None}
 
         dj_cfg = {
             "dataset_path": dataset_path,

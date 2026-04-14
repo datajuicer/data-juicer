@@ -165,6 +165,7 @@ class OPRecord:
         self.desc = op_cls.__doc__ or ""
         self.tags = analyze_tag_from_cls(op_cls, name)
         self.sig = inspect.signature(op_cls.__init__)
+        self.init_func = op_cls.__init__
         self.param_desc = extract_param_docstring(op_cls.__init__.__doc__ or "")
         self.param_desc_map = self._parse_param_desc()
         self.source_path = str(get_source_path(op_cls))
@@ -209,6 +210,7 @@ class OPRecord:
             "desc": self.desc,
             "tags": self.tags,
             "sig": self.sig,
+            "init_func": self.init_func,
             "param_desc": self.param_desc,
             "param_desc_map": self.param_desc_map,
             "source_path": self.source_path,

@@ -224,6 +224,14 @@ class StatsKeysMeta(type):
             tmp_dj_cfg = copy.deepcopy(dj_cfg)
             tmp_dj_cfg.use_cache = False
             tmp_dj_cfg.use_checkpoint = False
+            tmp_dj_cfg.auto_op_parallelism = False  # Disable auto parallelism to track StatsKeys access
+            tmp_dj_cfg.np = None  # Disable multiprocessing to track StatsKeys access
+            # Force disable multiprocessing for each op to track StatsKeys access
+            for op_config in tmp_dj_cfg.process:
+                op_name = list(op_config.keys())[0]
+                if op_config[op_name] is not None:
+                    op_config[op_name]["auto_op_parallelism"] = False
+                    op_config[op_name]["num_proc"] = None
 
             from data_juicer.config import get_init_configs
             from data_juicer.core import Analyzer
@@ -271,6 +279,14 @@ class StatsKeysMeta(type):
                 tmp_dj_cfg.dataset_path = tmp_f_name
                 tmp_dj_cfg.use_cache = False
                 tmp_dj_cfg.use_checkpoint = False
+                tmp_dj_cfg.auto_op_parallelism = False  # Disable auto parallelism to track StatsKeys access
+                tmp_dj_cfg.np = None  # Disable multiprocessing to track StatsKeys access
+                # Force disable multiprocessing for each op to track StatsKeys access
+                for op_config in tmp_dj_cfg.process:
+                    op_name = list(op_config.keys())[0]
+                    if op_config[op_name] is not None:
+                        op_config[op_name]["auto_op_parallelism"] = False
+                        op_config[op_name]["num_proc"] = None
 
                 from data_juicer.config import get_init_configs
                 from data_juicer.core import Analyzer

@@ -228,7 +228,7 @@ class VideoCameraPoseMapper(Mapper):
         dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
         if Fields.meta not in dataset.features:
             dataset = dataset.add_column(name=Fields.meta, column=[{}] * dataset.num_rows)
-        dataset = dataset.map(self.fused_ops[0].process, num_proc=1, with_rank=True)
+        dataset = dataset.map(self.fused_ops[0].process, num_proc=None, with_rank=True)
         res_list = dataset.to_list()
 
         temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]

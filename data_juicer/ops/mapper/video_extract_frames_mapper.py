@@ -264,7 +264,7 @@ class VideoExtractFramesMapper(Mapper):
 
     def process_single(self, sample, context=False):
         # check if it's generated already
-        if self.frame_field in sample:
+        if self.frame_field in sample and sample[self.frame_field]:
             return sample
 
         # there is no videos in this sample

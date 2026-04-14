@@ -96,7 +96,7 @@ class VideoUndistortMapper(Mapper):
             os.path.join(folder, f"{video_name}.mp4"),
             c="copy",
             movflags="frag_keyframe+empty_moov",
-        ).run()
+        ).run(overwrite_output=True)
 
         # Cleanup temporary TS files and list file
         for i in range(batch_counts):

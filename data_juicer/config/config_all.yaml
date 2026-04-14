@@ -972,6 +972,7 @@ process:
       min_score: 0.25                                         # the minimum motion score to keep samples
       max_score: 10000.0                                      # the maximum motion score to keep samples
       sampling_fps: 2                                         # the samplig rate of frames_per_second to compute optical flow
+      original_fps: null                                      # the original FPS of the video from which the frames were extracted, only used when frame_field is specified
       size: null                                              # resize frames along the smaller edge before computing optical flow, or a sequence like (h, w)
       max_size: null                                          # maximum allowed for the longer edge of resized frames
       divisible: 1                                            # The number that the dimensions must be divisible by.
@@ -981,6 +982,7 @@ process:
       min_score: 1.0                                          # the minimum motion score to keep samples
       max_score: 10000.0                                      # the maximum motion score to keep samples
       sampling_fps: 2                                         # the samplig rate of frames_per_second to compute optical flow
+      original_fps: null                                      # the original FPS of the video from which the frames were extracted, only used when frame_field is specified
       size: null                                              # resize frames along the smaller edge before computing optical flow, or a sequence like (h, w)
       max_size: null                                          # maximum allowed for the longer edge of resized frames
       divisible: 8                                            # The number that the dimensions must be divisible by.

@@ -426,11 +426,13 @@ class VideoHandReconstructionHaworMapper(Mapper):
             cur_camera_calibration = sample[Fields.meta][self.camera_calibration_field][video_idx]
             all_fov_x = cur_camera_calibration.get(CameraCalibrationKeys.hfov, None)
 
-            # If horizontal FoV is not directly available, compute from intrinsics
+            # If horizontal FoV is not directly available, compute from intrinsics.
+            # K is in pixel coordinates: hfov = 2 * arctan(cx / fx),
+            # where cx ≈ width/2 (principal point convention).
             if all_fov_x is None:
                 intrinsics = cur_camera_calibration.get(CameraCalibrationKeys.intrinsics, None)
                 if intrinsics is not None:
-                    all_fov_x = [2 * np.arctan(1 / 2 / k[0][0]) for k in intrinsics]
+                    all_fov_x = [2 * np.arctan(k[0][2] / k[0][0]) for k in intrinsics]
                 else:
                     raise ValueError(
                         f"The sample must include an '{CameraCalibrationKeys.hfov}' field or an '{CameraCalibrationKeys.intrinsics}' field in the camera calibration info to store the horizontal FoV for hand reconstruction."

@@ -269,6 +269,7 @@ class VideoTrajectoryOverlayMapper(Mapper):
         save_dir: str,
         intrinsics_list: list = None,
         fov_x: float = None,
+        file_prefix: str = "",
     ) -> dict:
         """Process a single segment: sample frames, overlay trajectory.
 
@@ -277,6 +278,8 @@ class VideoTrajectoryOverlayMapper(Mapper):
                 If provided, used for accurate projection (preferred).
             fov_x: fallback horizontal FOV in radians when intrinsics_list
                 is not available.
+            file_prefix: prefix added to overlay filenames to avoid
+                collisions when multiple videos share the same save_dir.
 
         Returns the segment dict with ``overlay_frames`` added.
         """
@@ -364,8 +367,8 @@ class VideoTrajectoryOverlayMapper(Mapper):
             points_2d = np.array(points_2d_list)
             frame = self._draw_trajectory(frame, points_2d, 0)
 
-            # Save overlay frame
-            fname = f"seg{seg_id}_{hand_type}_" f"f{fid:06d}_overlay.jpg"
+            # Save overlay frame (prefix avoids collisions across videos)
+            fname = (f"{file_prefix}_" if file_prefix else "") + f"seg{seg_id}_{hand_type}_f{fid:06d}_overlay.jpg"
             out_path = os.path.join(save_dir, fname)
             cv2.imwrite(out_path, frame)
             overlay_paths.append(out_path)
@@ -377,6 +380,19 @@ class VideoTrajectoryOverlayMapper(Mapper):
     # ------------------------------------------------------------------
     # Main entry
     # ------------------------------------------------------------------
+    def _sample_prefix(self, sample: dict) -> str:
+        """Derive a short unique prefix from the sample's video path.
+
+        Used to namespace overlay files so different videos sharing
+        the same save_dir do not overwrite each other.
+        """
+        videos = sample.get(self.video_key, [])
+        if videos:
+            v = videos[0] if isinstance(videos, list) else videos
+            return os.path.splitext(os.path.basename(v))[0]
+
+        return "unknown"
+
     def process_single(self, sample=None, rank=None):
         if Fields.meta not in sample:
             return sample
@@ -430,6 +446,9 @@ class VideoTrajectoryOverlayMapper(Mapper):
         if save_dir:
             os.makedirs(save_dir, exist_ok=True)
 
+        # Unique prefix to avoid filename collisions across videos
+        prefix = self._sample_prefix(sample)
+
         # Process each segment
         for i, seg in enumerate(segments):
             try:
@@ -440,6 +459,7 @@ class VideoTrajectoryOverlayMapper(Mapper):
                     save_dir,
                     intrinsics_list=intrinsics_list,
                     fov_x=fov_x,
+                    file_prefix=prefix,
                 )
             except Exception as e:
                 logger.warning(

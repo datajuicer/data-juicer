@@ -53,6 +53,7 @@ class VideoMotionScoreFilter(Filter):
         max_score: float = sys.float_info.max,
         frame_field: Optional[str] = None,
         sampling_fps: PositiveFloat = 2,
+        original_fps: Optional[PositiveFloat] = None,
         size: Union[PositiveInt, Tuple[PositiveInt], Tuple[PositiveInt, PositiveInt], None] = None,
         max_size: Optional[PositiveInt] = None,
         divisible: PositiveInt = 1,
@@ -72,6 +73,11 @@ class VideoMotionScoreFilter(Filter):
             If frame_field is None, extract frames from the video field.
         :param sampling_fps: The sampling rate in frames_per_second for
             optical flow calculations.
+        :param original_fps: The original FPS of the video from which the
+            frames were extracted. Only used when `frame_field` is specified.
+            When provided, frames will be sampled at `sampling_fps` rate
+            by computing `sampling_step = round(original_fps / sampling_fps)`.
+            If None, all frames will be processed without sampling.
         :param size: Resize frames before computing optical flow. If size is a
             sequence like (h, w), frame size will be matched to this. If size
             is an int, smaller edge of frames will be matched to this number.
@@ -101,6 +107,7 @@ class VideoMotionScoreFilter(Filter):
         self.min_score = min_score
         self.max_score = max_score
         self.sampling_fps = sampling_fps
+        self.original_fps = original_fps
         self.frame_field = frame_field
 
         if isinstance(size, (list, tuple)):
@@ -198,7 +205,18 @@ class VideoMotionScoreFilter(Filter):
         video_motion_scores = []
         optical_flows = []
         prev_frame = None
-        for frame in frames:
+
+        # compute sampling step if original_fps is provided
+        sampling_step = 1
+        if self.original_fps is not None and self.original_fps > 0:
+            effective_fps = min(self.sampling_fps, self.original_fps)
+            sampling_step = max(round(self.original_fps / effective_fps), 1)
+
+        for frame_idx, frame in enumerate(frames):
+            # skip frames according to sampling_step
+            if sampling_step > 1 and frame_idx % sampling_step != 0:
+                continue
+
             if isinstance(frame, bytes):
                 image_array = np.frombuffer(frame, dtype=np.uint8)
                 frame = cv2.imdecode(image_array, cv2.IMREAD_COLOR)

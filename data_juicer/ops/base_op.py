@@ -301,6 +301,61 @@ class OP(metaclass=OPMetaClass):
     #   2. a string of the path to the requirements.txt file
     _requirements = None
 
+    # Attributes excluded from serialization fingerprinting.
+    # These do not affect data transformation output, so they must not
+    # contribute to cache keys (dill.dumps → Hasher).
+    _NON_FINGERPRINT_ATTRS = frozenset(
+        {
+            # root cause: unique per run (job_id embedded)
+            "work_dir",
+            # parallelism / scheduling — same result regardless of setting
+            "num_proc",
+            "auto_op_parallelism",
+            # error-handling policy
+            "skip_op_error",
+            # resource / Ray scheduling hints
+            "cpu_required",
+            "gpu_required",
+            "mem_required",
+            "num_cpus",
+            "num_gpus",
+            "memory",
+            "runtime_env",
+            "ray_execution_mode",
+            # raw constructor args stashed by OPMetaClass for Ray actor
+            # reconstruction — not data-affecting
+            "_init_args",
+            "_init_kwargs",
+        }
+    )
+
+    def __getstate__(self):
+        """Return state for pickling/dill, excluding execution-only attrs."""
+        return {k: v for k, v in self.__dict__.items() if k not in self._NON_FINGERPRINT_ATTRS}
+
+    def __setstate__(self, state):
+        """Restore state, filling safe defaults for excluded attrs."""
+        self.__dict__.update(state)
+        defaults = {
+            "work_dir": None,
+            "num_proc": None,
+            "auto_op_parallelism": True,
+            "skip_op_error": False,
+            "cpu_required": None,
+            "gpu_required": None,
+            "mem_required": None,
+            "num_cpus": None,
+            "num_gpus": None,
+            "memory": None,
+            "runtime_env": None,
+            "ray_execution_mode": None,
+            "_init_args": (),
+            "_init_kwargs": {},
+        }
+        for attr, default in defaults.items():
+            if attr not in self.__dict__:
+                self.__dict__[attr] = default
+
     def __init__(self, *args, **kwargs):
         """
         Base class of operators.

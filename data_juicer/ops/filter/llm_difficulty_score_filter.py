@@ -86,8 +86,8 @@ json
         score, record, tags = self.generate_llm_analysis(sample, rank)
 
         sample[Fields.stats][StatsKeys.llm_difficulty_score] = score
-        # Normalize record to empty dict if None for stable Arrow schema
-        sample[Fields.stats][StatsKeys.llm_difficulty_record] = record if record is not None else {}
+        # Normalize record to ensure stable Arrow schema (handles nested None values)
+        sample[Fields.stats][StatsKeys.llm_difficulty_record] = self._normalize_record(record)
 
         # Normalize tags to dict for stable Arrow schema
         normalized_tags = self._normalize_tags_to_dict(tags)

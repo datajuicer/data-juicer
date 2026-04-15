@@ -264,6 +264,40 @@ json
             return {"tags": ", ".join(str(x) for x in tags)}
         return {"tags": str(tags)}
 
+    @staticmethod
+    def _normalize_record(record) -> dict:
+        """Normalize record dict to ensure all nested values have consistent types.
+
+        This prevents Arrow schema conflicts when:
+        - Some samples have None values while others have actual values
+        - Different samples have different nested structures
+        """
+        if record is None:
+            return {}
+        if not isinstance(record, dict):
+            return {"value": str(record)}
+
+        def _normalize_value(v):
+            """Recursively normalize a value to a stable Arrow-compatible type."""
+            if v is None:
+                return ""  # Convert None to empty string
+            if isinstance(v, str):
+                return v
+            if isinstance(v, (int, float)):
+                return v
+            if isinstance(v, bool):
+                return v
+            if isinstance(v, (list, tuple)):
+                # Convert list items, filtering out None
+                return [_normalize_value(x) for x in v]
+            if isinstance(v, dict):
+                # Recursively normalize dict
+                return {k: _normalize_value(nv) for k, nv in v.items()}
+            # Fallback: convert to string
+            return str(v)
+
+        return {k: _normalize_value(v) for k, v in record.items()}
+
     def parse_output(self, raw_output):
         def extract_outer_braces(s):
             if s is None or (isinstance(s, str) and not s.strip()):
@@ -346,8 +380,8 @@ json
 
         if score:
             sample[Fields.stats][StatsKeys.llm_analysis_score] = score
-        # Normalize record to empty dict if None for stable Arrow schema
-        sample[Fields.stats][StatsKeys.llm_analysis_record] = record if record is not None else {}
+        # Normalize record to ensure stable Arrow schema (handles nested None values)
+        sample[Fields.stats][StatsKeys.llm_analysis_record] = self._normalize_record(record)
 
         # Normalize tags to dict for stable Arrow schema
         normalized_tags = self._normalize_tags_to_dict(tags)

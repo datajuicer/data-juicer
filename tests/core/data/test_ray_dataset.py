@@ -119,7 +119,7 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
         self.assertEqual(result, tgt_path)
         self.assertNotEqual(result, non_tgt_path)
 
-    # @TEST_TAG("ray")
+    @TEST_TAG("ray")
     def test_read_json_stream(self):
         """Test reading JSON stream with RayDataset"""
         from data_juicer.core.data.ray_dataset import read_json_stream

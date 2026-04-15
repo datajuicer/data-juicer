@@ -331,13 +331,17 @@ class StatsKeysConstant(object):
     word_rep_ratio = "word_rep_ratio"
     llm_analysis_score = "llm_analysis_score"
     llm_analysis_record = "llm_analysis_record"
+    llm_analysis_tags = "llm_analysis_tags"
     llm_quality_score = "llm_quality_score"
     llm_quality_record = "llm_quality_record"
+    llm_quality_tags = "llm_quality_tags"
     llm_difficulty_score = "llm_difficulty_score"
     llm_difficulty_record = "llm_difficulty_record"
+    llm_difficulty_tags = "llm_difficulty_tags"
     llm_perplexity = "llm_perplexity"
     llm_task_relevance = "llm_task_relevance"
     llm_task_relevance_record = "llm_task_relevance_record"
+    llm_task_relevance_tags = "llm_task_relevance_tags"
     # llm_condition_filter: True if sample satisfies the user-given condition
     llm_condition_filter_result = "llm_condition_filter_result"
     # llm_* semantic ops: token/cost usage (dict with prompt_tokens, completion_tokens, total_tokens, cost_estimate)

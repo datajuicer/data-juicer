@@ -4,6 +4,7 @@ from data_juicer.core import NestedDataset
 from data_juicer.ops.base_op import OP
 from data_juicer.ops.load import load_ops
 from data_juicer.ops.op_fusion import fuse_operators, GeneralFusedOP
+from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -2005,13 +2006,20 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
         dataset2 = self._get_fresh_dataset()
         res1 = dataset1.process(fused_op)
         res2 = dataset2.process(unfused_op)
-        
-        # invoke process_batched directly with a fresh dataset
-        dataset3 = self._get_fresh_dataset()
-        for op in fused_op.fused_ops:
-            dataset3 = OP.run(op, dataset3)
-        res3 = fused_op.process_batched(dataset3.to_dict())
         self.assertDatasetEqual(res1, res2)
+
+        # Verify process_batched directly: feed a raw (pre-OP) dict so that
+        # Fields.stats values are plain Python dicts, not Arrow-serialized structs.
+        # Running OP.run first would turn Fields.stats into Arrow struct, and
+        # to_dict() on that struct returns strings in datasets>=4.x, breaking
+        # the subsequent compute_stats_single call inside process_batched.
+        dataset3 = self._get_fresh_dataset()
+        # Add the stats column as plain Python dicts before calling process_batched
+        dataset3 = dataset3.add_column(
+            name=Fields.stats,
+            column=[{}] * dataset3.num_rows
+        )
+        res3 = fused_op.process_batched(dataset3.to_dict())
         self.assertEqual(res1.to_dict(), res3)
 
     def test_regular_config(self):

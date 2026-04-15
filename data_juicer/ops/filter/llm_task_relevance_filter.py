@@ -179,16 +179,14 @@ json
         # Normalize record to ensure stable Arrow schema (handles nested None values)
         sample[Fields.stats][StatsKeys.llm_task_relevance_record] = self._normalize_record(record)
 
-        # Normalize tags to dict for stable Arrow schema
-        normalized_tags = self._normalize_tags_to_dict(tags)
-        for key, value in normalized_tags.items():
-            sample[Fields.stats][key] = value
+        # Store all tags under a single fixed key to avoid dynamic key schema conflicts.
+        sample[Fields.stats][StatsKeys.llm_task_relevance_tags] = self._normalize_tags_to_str(tags)
 
         return sample
 
     def process_single(self, sample, rank=None):
-        itm_score = sample[Fields.stats][StatsKeys.llm_task_relevance]
-        if itm_score is None:
+        itm_score = sample[Fields.stats].get(StatsKeys.llm_task_relevance, 0.0)
+        if not itm_score:  # 0.0 means LLM analysis failed
             return True
 
         return self.get_keep_boolean(itm_score, self.min_score, None)

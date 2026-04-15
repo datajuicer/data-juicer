@@ -251,6 +251,25 @@ json
         return [sx] if sx else []
 
     @staticmethod
+    def _normalize_tags_to_str(tags) -> str:
+        """Serialize tags to a single stable string for Arrow schema.
+
+        Tags are stored under one fixed key (llm_analysis_tags / llm_*_tags) as
+        a JSON string so that every sample always writes the same key with the
+        same Arrow type (string), regardless of what keys the LLM returned.
+        Storing tags as dynamic top-level keys in stats causes Arrow
+        string-vs-null schema conflicts when different samples have different tag keys.
+        """
+        if tags is None:
+            return ""
+        if isinstance(tags, str):
+            return tags
+        try:
+            return json.dumps(tags, ensure_ascii=False)
+        except (TypeError, ValueError):
+            return str(tags)
+
+    @staticmethod
     def _normalize_tags_to_dict(tags) -> dict:
         """Normalize tags to dict for stable Arrow schema."""
         if tags is None:
@@ -271,6 +290,7 @@ json
         This prevents Arrow schema conflicts when:
         - Some samples have None values while others have actual values
         - Different samples have different nested structures
+        - dimension_scores values may be int or float across samples
         """
         if record is None:
             return {}
@@ -278,21 +298,34 @@ json
             return {"value": str(record)}
 
         def _normalize_value(v):
-            """Recursively normalize a value to a stable Arrow-compatible type."""
+            """Recursively normalize a value to a stable Arrow-compatible type.
+
+            Key rules:
+            - None -> empty string (avoids null type in Arrow)
+            - int/float -> float (unified numeric type for Arrow)
+            - bool -> bool (keep as-is, must check before int since bool is subclass of int)
+            - list/tuple -> list[str] (Arrow requires uniform element types)
+            - dict -> dict[str, str] (flatten nested dicts to string values)
+            - everything else -> str
+            """
             if v is None:
                 return ""  # Convert None to empty string
+            if isinstance(v, bool):
+                return v  # Must check bool before int (bool is subclass of int)
+            if isinstance(v, (int, float)):
+                return float(v)  # Unify to float to avoid int/float schema conflict
             if isinstance(v, str):
                 return v
-            if isinstance(v, (int, float)):
-                return v
-            if isinstance(v, bool):
-                return v
             if isinstance(v, (list, tuple)):
-                # Convert list items, filtering out None
-                return [_normalize_value(x) for x in v]
+                # Normalize list items and ensure uniform type (all strings)
+                items = [_normalize_value(x) for x in v]
+                # If any item is not a string, convert all to strings for uniformity
+                if items and not all(isinstance(x, str) for x in items):
+                    items = [str(x) for x in items]
+                return items
             if isinstance(v, dict):
-                # Recursively normalize dict
-                return {k: _normalize_value(nv) for k, nv in v.items()}
+                # Recursively normalize dict, but flatten values to strings for schema stability
+                return {str(k): str(_normalize_value(nv)) for k, nv in v.items()}
             # Fallback: convert to string
             return str(v)
 
@@ -309,14 +342,14 @@ json
             return None
 
         if raw_output is None or (isinstance(raw_output, str) and not (raw_output or "").strip()):
-            return 0, None, None
+            return 0.0, None, None
         json_str = extract_outer_braces(raw_output)
         if json_str is None:
-            return 0, None, None
+            return 0.0, None, None
         try:
             data = json.loads(json_str)
         except (json.JSONDecodeError, TypeError):
-            return 0, None, None
+            return 0.0, None, None
         # Model outputs sometimes use "review" vs ["review"], breaking dataset shard alignment
         data["recommendation"] = self._normalize_recommendation_to_str_list(data.get("recommendation"))
         tags = data.get("tags", None)
@@ -328,12 +361,12 @@ json
             for key in self.dim_required_keys:
                 total_score += dimension_scores[key]
             # div 5 for normalization
-            avg_score = total_score / len(self.dim_required_keys) / 5
+            avg_score = float(total_score) / len(self.dim_required_keys) / 5
         else:
-            avg_score = None
+            avg_score = 0.0  # Use 0.0 instead of None for stable Arrow float schema
             logger.warning(
                 "Either dimension_scores is empty or dim_required_keys "
-                "is empty. Dimension score has been set to None, "
+                "is empty. Dimension score has been set to 0.0, "
                 "Ensure this setting is intentional to disable the "
                 "dimension score. "
             )
@@ -350,7 +383,7 @@ json
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": self.build_input(sample)},
         ]
-        score, record, tags = 0, None, None
+        score, record, tags = 0.0, None, None
         for _ in range(self.try_num):
             try:
                 if self.enable_vllm:
@@ -378,22 +411,22 @@ json
 
         score, record, tags = self.generate_llm_analysis(sample, rank)
 
-        if score:
-            sample[Fields.stats][StatsKeys.llm_analysis_score] = score
+        # score is always float (0.0 on failure); store unconditionally for stable Arrow schema
+        sample[Fields.stats][StatsKeys.llm_analysis_score] = score
         # Normalize record to ensure stable Arrow schema (handles nested None values)
         sample[Fields.stats][StatsKeys.llm_analysis_record] = self._normalize_record(record)
 
-        # Normalize tags to dict for stable Arrow schema
-        normalized_tags = self._normalize_tags_to_dict(tags)
-        for key, value in normalized_tags.items():
-            sample[Fields.stats][key] = value
+        # Store all tags under a single fixed key to avoid dynamic key schema conflicts.
+        # Dynamic keys (e.g. "topic", "style") vary across samples, causing Arrow
+        # string-vs-null schema merge errors when some samples have the key and others don't.
+        sample[Fields.stats][StatsKeys.llm_analysis_tags] = self._normalize_tags_to_str(tags)
 
         return sample
 
     def process_single(self, sample, rank=None):
-        itm_score = sample[Fields.stats].get(StatsKeys.llm_analysis_score)
+        itm_score = sample[Fields.stats].get(StatsKeys.llm_analysis_score, 0.0)
         if itm_score:
             return self.get_keep_boolean(itm_score, self.min_score, self.max_score)
         else:
-            # disable the dimension score filter
+            # score is 0.0, meaning LLM analysis failed; disable the filter
             return True

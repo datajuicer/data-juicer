@@ -86,10 +86,8 @@ json
         # Normalize record to ensure stable Arrow schema (handles nested None values)
         sample[Fields.stats][StatsKeys.llm_quality_record] = self._normalize_record(record)
 
-        # Normalize tags to dict for stable Arrow schema
-        normalized_tags = self._normalize_tags_to_dict(tags)
-        for key, value in normalized_tags.items():
-            sample[Fields.stats][key] = value
+        # Store all tags under a single fixed key to avoid dynamic key schema conflicts.
+        sample[Fields.stats][StatsKeys.llm_quality_tags] = self._normalize_tags_to_str(tags)
 
         return sample
 

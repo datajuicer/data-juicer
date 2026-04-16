@@ -65,6 +65,16 @@ def _load_calibration_json(path: str) -> Optional[Dict[str, Any]]:
 
 
 def _normalize_recommendation(record: Any) -> str:
+    # record may be a JSON string (serialized by _normalize_record) or a dict
+    if isinstance(record, str):
+        if not record:
+            return ""
+        try:
+            import json as _json
+
+            record = _json.loads(record)
+        except Exception:
+            return ""
     if not isinstance(record, dict):
         return ""
     r = record.get("recommendation")

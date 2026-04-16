@@ -85,6 +85,14 @@ def _json_safe(x: Any, depth: int = 0) -> Any:
 def _truncate_record(rec: Any, max_chars: int = 1200) -> Any:
     if rec is None:
         return None
+    # record may be a JSON string (serialized by _normalize_record); parse it first
+    if isinstance(rec, str):
+        if not rec:
+            return None
+        try:
+            rec = json.loads(rec)
+        except Exception:
+            return rec[:max_chars] + "…" if len(rec) > max_chars else rec
     s = json.dumps(_json_safe(rec), ensure_ascii=False)
     if len(s) <= max_chars:
         return json.loads(s)

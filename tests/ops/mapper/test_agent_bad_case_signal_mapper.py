@@ -55,10 +55,10 @@ class TestAgentBadCaseSignalMapper(DataJuicerTestCaseBase):
             Fields.meta: {},
             Fields.stats: {
                 StatsKeys.llm_analysis_score: 0.2,
-                StatsKeys.llm_analysis_record: {
+                StatsKeys.llm_analysis_record: json.dumps({
                     "recommendation": "discard",
                     "dimension_scores": {},
-                },
+                }),
             },
             "query": "q",
             "response": "r",

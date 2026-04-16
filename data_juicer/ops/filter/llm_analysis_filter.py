@@ -284,52 +284,24 @@ json
         return {"tags": str(tags)}
 
     @staticmethod
-    def _normalize_record(record) -> dict:
-        """Normalize record dict to ensure all nested values have consistent types.
+    def _normalize_record(record) -> str:
+        """Serialize record to a stable JSON string for Arrow schema.
 
-        This prevents Arrow schema conflicts when:
-        - Some samples have None values while others have actual values
-        - Different samples have different nested structures
-        - dimension_scores values may be int or float across samples
+        Record is stored as a JSON string (not a dict) so that every sample
+        always writes the same Arrow column type (string). Storing record as a
+        nested dict causes Arrow schema conflicts because:
+        - Empty lists [] are inferred as list<null>, non-empty as list<string>
+        - dimension_scores values may be int vs float across samples
+        - Some samples may have extra keys others don't
+        All of these cause 'Couldn't cast array of type string to null' errors
+        when shards are merged.
         """
         if record is None:
-            return {}
-        if not isinstance(record, dict):
-            return {"value": str(record)}
-
-        def _normalize_value(v):
-            """Recursively normalize a value to a stable Arrow-compatible type.
-
-            Key rules:
-            - None -> empty string (avoids null type in Arrow)
-            - int/float -> float (unified numeric type for Arrow)
-            - bool -> bool (keep as-is, must check before int since bool is subclass of int)
-            - list/tuple -> list[str] (Arrow requires uniform element types)
-            - dict -> dict[str, str] (flatten nested dicts to string values)
-            - everything else -> str
-            """
-            if v is None:
-                return ""  # Convert None to empty string
-            if isinstance(v, bool):
-                return v  # Must check bool before int (bool is subclass of int)
-            if isinstance(v, (int, float)):
-                return float(v)  # Unify to float to avoid int/float schema conflict
-            if isinstance(v, str):
-                return v
-            if isinstance(v, (list, tuple)):
-                # Normalize list items and ensure uniform type (all strings)
-                items = [_normalize_value(x) for x in v]
-                # If any item is not a string, convert all to strings for uniformity
-                if items and not all(isinstance(x, str) for x in items):
-                    items = [str(x) for x in items]
-                return items
-            if isinstance(v, dict):
-                # Recursively normalize dict, but flatten values to strings for schema stability
-                return {str(k): str(_normalize_value(nv)) for k, nv in v.items()}
-            # Fallback: convert to string
-            return str(v)
-
-        return {k: _normalize_value(v) for k, v in record.items()}
+            return ""
+        try:
+            return json.dumps(record, ensure_ascii=False)
+        except (TypeError, ValueError):
+            return str(record)
 
     def parse_output(self, raw_output):
         def extract_outer_braces(s):

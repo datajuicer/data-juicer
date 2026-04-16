@@ -85,5 +85,106 @@ class FingerprintCacheStabilityTest(DataJuicerTestCaseBase):
         self.assertTrue(restored.skip_op_error)
 
 
+class FusedFilterFingerprintTest(DataJuicerTestCaseBase):
+    """Tests that FusedFilter fingerprints exclude child OP work_dirs."""
+
+    def test_fused_filter_stable_across_work_dirs(self):
+        from data_juicer.ops.filter.words_num_filter import WordsNumFilter
+        from data_juicer.ops.op_fusion import FusedFilter
+
+        f1a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        f2a = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_a = FusedFilter('fused', [f1a, f2a])
+
+        f1b = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/b')
+        f2b = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/b')
+        fused_b = FusedFilter('fused', [f1b, f2b])
+
+        self.assertEqual(Hasher.hash(fused_a), Hasher.hash(fused_b))
+
+    def test_fused_filter_differs_when_child_params_change(self):
+        from data_juicer.ops.filter.words_num_filter import WordsNumFilter
+        from data_juicer.ops.op_fusion import FusedFilter
+
+        f1a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        f2a = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_a = FusedFilter('fused', [f1a, f2a])
+
+        f1b = TextLengthFilter(min_len=50, max_len=10000, work_dir='/tmp/a')
+        f2b = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_b = FusedFilter('fused', [f1b, f2b])
+
+        self.assertNotEqual(Hasher.hash(fused_a), Hasher.hash(fused_b))
+
+
+class WrappedFunctionFingerprintTest(DataJuicerTestCaseBase):
+    """Tests that wrapped bound methods (via wrap_func_with_nested_access)
+    produce stable fingerprints across work_dirs."""
+
+    def test_wrapped_compute_stats_stable(self):
+        from data_juicer.core.data.dj_dataset import wrap_func_with_nested_access
+
+        op_a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        op_b = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/b')
+        wa = wrap_func_with_nested_access(op_a.compute_stats)
+        wb = wrap_func_with_nested_access(op_b.compute_stats)
+        self.assertEqual(Hasher.hash(wa), Hasher.hash(wb))
+
+    def test_wrapped_differs_when_params_change(self):
+        from data_juicer.core.data.dj_dataset import wrap_func_with_nested_access
+
+        op_a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        op_b = TextLengthFilter(min_len=50, max_len=10000, work_dir='/tmp/a')
+        wa = wrap_func_with_nested_access(op_a.compute_stats)
+        wb = wrap_func_with_nested_access(op_b.compute_stats)
+        self.assertNotEqual(Hasher.hash(wa), Hasher.hash(wb))
+
+    def test_multistep_pipeline_cache_hit(self):
+        """Full pipeline with multiple OPs: second run with different
+        work_dir must produce zero new cache files."""
+        import glob
+        import os
+
+        from datasets import load_dataset, enable_caching
+
+        from data_juicer.ops.filter.alphanumeric_filter import AlphanumericFilter
+        from data_juicer.ops.filter.words_num_filter import WordsNumFilter
+        from data_juicer.utils.constant import Fields
+
+        enable_caching()
+        ds = NestedDataset(load_dataset(
+            'json',
+            data_files='demos/data/demo-dataset.jsonl',
+            split='train',
+        ))
+        if Fields.stats not in ds.features:
+            ds = ds.map(lambda x: {Fields.stats: {}})
+        cache_dir = os.path.dirname(ds.cache_files[0]['filename'])
+
+        def run_pipeline(dataset, work_dir):
+            ops = [
+                TextLengthFilter(min_len=5, max_len=10000, work_dir=work_dir),
+                WordsNumFilter(min_num=2, max_num=1000, work_dir=work_dir),
+                AlphanumericFilter(min_ratio=0.0, max_ratio=1.0,
+                                   work_dir=work_dir),
+            ]
+            cur = dataset
+            for op in ops:
+                cur = cur.map(op.compute_stats, num_proc=1)
+                cur = cur.filter(op.process, num_proc=1)
+            return cur
+
+        run_pipeline(ds, '/tmp/pipeline_test_A')
+        cache_after_a = set(glob.glob(os.path.join(cache_dir, '*.arrow')))
+
+        run_pipeline(ds, '/tmp/pipeline_test_B')
+        cache_after_b = set(glob.glob(os.path.join(cache_dir, '*.arrow')))
+
+        new_files = cache_after_b - cache_after_a
+        self.assertEqual(len(new_files), 0,
+                         f'Pipeline B created {len(new_files)} new cache '
+                         f'files; expected 0 (full cache hit)')
+
+
 if __name__ == '__main__':
     unittest.main()

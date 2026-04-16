@@ -329,10 +329,27 @@ class OP(metaclass=OPMetaClass):
         poison the cache.  Callable attributes (bound/wrapped methods like
         ``process``, ``compute_stats``) are also excluded because they
         close over ``self`` and would re-introduce the excluded attrs.
+
+        Nested OP instances (e.g. ``FusedFilter.fused_filters``) are
+        recursively fingerprinted via their own ``_fingerprint_bytes``
+        so that their ``work_dir`` is also excluded.
         """
         import dill
 
-        state = {k: v for k, v in self.__dict__.items() if k not in self._NON_FINGERPRINT_ATTRS and not callable(v)}
+        def _sanitize(v):
+            """Recursively replace OP instances with their fingerprint bytes."""
+            if isinstance(v, OP) and hasattr(v, "_fingerprint_bytes"):
+                return v._fingerprint_bytes()
+            if isinstance(v, (list, tuple)):
+                converted = [_sanitize(item) for item in v]
+                return type(v)(converted)
+            return v
+
+        state = {}
+        for k, v in self.__dict__.items():
+            if k in self._NON_FINGERPRINT_ATTRS or callable(v):
+                continue
+            state[k] = _sanitize(v)
         return dill.dumps(state)
 
     def __init__(self, *args, **kwargs):

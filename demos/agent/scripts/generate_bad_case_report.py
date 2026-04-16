@@ -3601,7 +3601,7 @@ def _chart_by_model(model_tier: Dict[str, Counter], plt_mod) -> Optional[str]:
     if len(ordered) <= top_n:
         models = [m for m, _ in ordered]
         per_model: Dict[str, Counter] = {m: model_tier[m] for m in models}
-        title = "按 request_model 堆叠分档（每段数字为该档条数）"
+        title = "按 request_model 堆叠分档（每段数字为该档占比）"
     else:
         models = [m for m, _ in ordered[:top_n]]
         per_model = {m: model_tier[m] for m in models}
@@ -3611,7 +3611,7 @@ def _chart_by_model(model_tier: Dict[str, Counter], plt_mod) -> Optional[str]:
         models.append(other_label)
         per_model[other_label] = other_c
         title = (
-            f"按 request_model 堆叠分档（Top {top_n} 请求量 + 其余合并；每段数字为该档条数）"
+            f"按 request_model 堆叠分档（Top {top_n} 请求量 + 其余合并；每段数字为该档占比）"
         )
     fig, ax = plt_mod.subplots(figsize=(max(6, len(models) * 0.9), 3.8))
     n = len(models)
@@ -3619,30 +3619,79 @@ def _chart_by_model(model_tier: Dict[str, Counter], plt_mod) -> Optional[str]:
     w = 0.65
     bottom = [0.0] * n
     colors = {"high_precision": "#c0392b", "watchlist": "#f39c12", "none": "#bdc3c7"}
+    _tier_legend_zh = {
+        "high_precision": "高置信异常样本（Bad Case）",
+        "watchlist": "待观察样本（不完美交互）",
+        "none": "正常样本（高质量交互）",
+    }
+    # Pre-compute per-model totals for ratio calculation
+    model_totals = [sum(per_model[m].values()) for m in models]
+    # Collect all (i, yc, label, v, col_total) for deferred label rendering
+    # to allow visibility filtering based on bar height proportion
+    label_tasks: List[tuple] = []  # (xi, yc, text, v, col_total)
     for tier in tiers:
         vs = [float(per_model[m].get(tier, 0)) for m in models]
         if not any(vs):
             continue
-        leg = f"{_tier_zh(tier)} ({tier})"
+        leg = _tier_legend_zh.get(tier, tier)
         ax.bar(x, vs, bottom=bottom, label=leg, color=colors[tier], width=w)
-        vmax = max(vs) if vs else 1.0
         for i, v in enumerate(vs):
             if v > 0:
                 yc = bottom[i] + v / 2.0
-                ax.text(
-                    x[i],
-                    yc,
-                    str(int(v)),
-                    ha="center",
-                    va="center",
-                    fontsize=9,
-                    color="white" if v >= vmax * 0.25 else "#222",
-                )
+                label_tasks.append((x[i], yc, v, model_totals[i]))
         bottom = [b + v for b, v in zip(bottom, vs)]
+    # Determine figure height in data units for min-height threshold
+    col_max = max(bottom) if bottom else 1.0
+    # Minimum segment height (as fraction of tallest column) to show label inline;
+    # segments shorter than this get their label placed just above the segment.
+    MIN_RATIO_FOR_INLINE = 0.08
+    for xi, yc, v, col_total in label_tasks:
+        ratio = v / col_total if col_total > 0 else 0.0
+        label_text = f"{ratio:.0%}"
+        seg_height_frac = v / col_max if col_max > 0 else 0.0
+        if seg_height_frac >= MIN_RATIO_FOR_INLINE:
+            # Segment tall enough: render label centred inside the bar segment
+            ax.text(
+                xi,
+                yc,
+                label_text,
+                ha="center",
+                va="center",
+                fontsize=8,
+                color="white",
+            )
+        else:
+            # Segment too short: render small label just above the segment top,
+            # slightly offset to avoid overlap with neighbouring text
+            seg_top = yc + v / 2.0
+            ax.text(
+                xi,
+                seg_top + col_max * 0.012,
+                label_text,
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                color="#555",
+            )
+    # Annotate the total sample count above each stacked bar
+    for i, total in enumerate(model_totals):
+        if total > 0:
+            ax.text(
+                x[i],
+                bottom[i] + col_max * 0.015,
+                str(int(total)),
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                fontweight="bold",
+                color="#333",
+            )
+    # Extend y-axis upper limit so the top-bar annotations are not clipped
+    ax.set_ylim(0, col_max * 1.12)
     ax.set_xticks(x)
     ax.set_xticklabels(models)
     ax.set_title(title)
-    ax.set_ylabel("条数")
+    ax.set_ylabel("样本数目")
     ax.legend()
     plt_mod.setp(ax.xaxis.get_majorticklabels(), rotation=30, ha="right")
     fig.tight_layout()

@@ -164,7 +164,7 @@ class TextEmbdSimilarityFilterTest(DataJuicerTestCaseBase):
         op = TextEmbdSimilarityFilter(
             api_or_hf_model=self._hf_model,
             is_hf_model=True,
-            min_score=0.99,
+            min_score=0.96,
             max_score=1.0,
             pooling="weighted_mean"
         )

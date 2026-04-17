@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 import unittest
 from datasets import load_dataset
 from data_juicer.core import DefaultExecutor, NestedDataset
@@ -108,6 +110,57 @@ class DefaultExecutorTest(DataJuicerTestCaseBase):
         executor = DefaultExecutor(cfg)
         with self.assertRaises(ValueError):
             executor.sample_data(sample_algo='unknown_algo')
+
+
+class DefaultExecutorEncryptTest(DataJuicerTestCaseBase):
+    """Tests that DefaultExecutor correctly passes encryption params to Exporter."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp()
+        from cryptography.fernet import Fernet
+        self._key = Fernet.generate_key()
+        self._key_file = os.path.join(self.tmp_dir, 'enc.key')
+        with open(self._key_file, 'wb') as f:
+            f.write(self._key)
+
+    def tearDown(self):
+        super().tearDown()
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        os.environ.pop('DJ_ENCRYPTION_KEY', None)
+
+    def _make_cfg(self, extra: dict = None):
+        cfg = init_configs(['--config', test_yaml_path])
+        cfg.export_path = os.path.join(self.tmp_dir, 'res.jsonl')
+        cfg.work_dir = self.tmp_dir
+        if extra:
+            for k, v in extra.items():
+                setattr(cfg, k, v)
+        return cfg
+
+    def test_default_executor_no_encrypt_by_default(self):
+        """Exporter.encrypt_before_export defaults to False when not set."""
+        cfg = self._make_cfg()
+        executor = DefaultExecutor(cfg)
+        self.assertFalse(executor.exporter.encrypt_before_export)
+        self.assertIsNone(executor.exporter._fernet)
+
+    def test_default_executor_passes_encrypt_flag(self):
+        """encrypt_before_export=True is forwarded to Exporter._fernet."""
+        cfg = self._make_cfg({
+            'encrypt_before_export': True,
+            'encryption_key_path': self._key_file,
+        })
+        executor = DefaultExecutor(cfg)
+        self.assertTrue(executor.exporter.encrypt_before_export)
+        self.assertIsNotNone(executor.exporter._fernet)
+
+    def test_default_executor_encrypt_key_via_env(self):
+        """Fernet key from DJ_ENCRYPTION_KEY env var is picked up."""
+        os.environ['DJ_ENCRYPTION_KEY'] = self._key.decode()
+        cfg = self._make_cfg({'encrypt_before_export': True})
+        executor = DefaultExecutor(cfg)
+        self.assertIsNotNone(executor.exporter._fernet)
 
 
 if __name__ == '__main__':

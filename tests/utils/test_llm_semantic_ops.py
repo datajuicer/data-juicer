@@ -11,9 +11,10 @@ from data_juicer.utils.llm_semantic_ops import (
     record_batch_to_dicts,
     InferenceStrategy,
 )
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
-class TestLLMCallUsage(unittest.TestCase):
+class TestLLMCallUsage(DataJuicerTestCaseBase):
     def test_to_dict(self):
         u = LLMCallUsage(
             prompt_tokens=10, completion_tokens=5, total_tokens=15
@@ -45,7 +46,7 @@ class TestLLMCallUsage(unittest.TestCase):
         self.assertEqual(u.total_tokens, 0)
 
 
-class TestRecordRowAndBatch(unittest.TestCase):
+class TestRecordRowAndBatch(DataJuicerTestCaseBase):
     def test_record_row_from_dict(self):
         d = {"topic": "sports", "sentiment": "positive"}
         row = RecordRow.from_schema_dict(d)
@@ -77,7 +78,7 @@ class TestRecordRowAndBatch(unittest.TestCase):
         self.assertEqual(back, items)
 
 
-class TestPrompts(unittest.TestCase):
+class TestPrompts(DataJuicerTestCaseBase):
     def test_get_extract_prompt_direct(self):
         text = "Hello world."
         schema = {"topic": "Main topic.", "label": "One label."}

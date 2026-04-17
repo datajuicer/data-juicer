@@ -1,0 +1,44 @@
+# Minimal：无 LLM，跑通 bad case 信号与分层（对齐 BAD_CASE_INSIGHTS.md 的「可本地验证」路径）
+# 不含 llm_analysis / llm_quality / agent_insight_llm；tier 主要来自工具、用量、空回复等启发式。
+project_name: agent-minimal-09-bad-case-smoke
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_bad_case_smoke/processed.jsonl
+# 主 jsonl 内保留 __dj__meta__/__dj__stats__，便于 jq 与 demos/agent/scripts/* 单文件分析
+keep_stats_in_res_ds: true
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+      copy_lineage_fields: true
+  - usage_counter_mapper:
+      choices_key: "response_choices"
+      usage_key: "response_usage"
+  - tool_success_tagger_mapper:
+      messages_key: "messages"
+      store_per_tool_results: true
+  - agent_tool_type_mapper:
+      top_k_dominant: 5
+  - text_length_filter:
+      min_len: 0
+      max_len: 9999999
+  - words_num_filter:
+      lang: "zh"
+      min_num: 0
+      max_num: 9999999
+  # 故意不放 language_id_score_filter：FastText 对 agent 短文本/混排可能判成非 "zh"，
+  # lang: "zh" 时会把整批样本滤空（Left 0 samples）。全量菜谱可保留；smoke 以跑通 tier 为主。
+  - agent_bad_case_signal_mapper:
+      signal_on_tool_fail: true
+      signal_on_low_tool_success_ratio: true
+      min_tool_rounds_for_ratio_signal: 2
+      signal_on_llm_analysis_low: false
+      signal_on_llm_text_quality_low: false
+      high_precision_on_tool_fail_alone: true

@@ -1,0 +1,25 @@
+# Minimal: normalize + PII + clean
+project_name: agent-minimal-03
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/03_clean.jsonl
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+  - pii_redaction_mapper:
+      mask_paths: true
+      mask_emails: true
+      mask_secrets: true
+      mask_ids: true
+      redact_keys: ["text", "query", "response", "dialog_history", "messages"]
+      messages_key: "messages"
+  - clean_html_mapper: {}
+  - clean_copyright_mapper: {}

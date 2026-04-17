@@ -109,6 +109,42 @@ validators:
 ```
 
 
+### JSONL per-line fault tolerance (skip bad lines)
+
+For a few corrupted lines or parser failures in the HuggingFace JSON/ujson path, enable **lenient JSONL loading**: read with stdlib :func:`json.loads` **line by line**, **skip** lines that fail parsing (with warnings), and keep the rest. The result is still a HuggingFace ``Dataset``, so downstream ops behave like normal JSONL.
+
+**Enable (either works):**
+
+```yaml
+load_jsonl_lenient: true
+```
+
+```bash
+DATA_JUICER_JSONL_LENIENT=1 dj-process --config path/to/config.yaml
+```
+
+**Constraints:**
+
+- Only ``.jsonl`` / ``.jsonl.gz`` / ``.jsonl.zst`` shards are read. Other matched files (e.g. ``.json`` in the same folder) are **skipped** with a warning so the loader does **not** fall back to HuggingFace/ujson (which would hit ``Value is too big!`` again). Use ``suffixes: ['.jsonl']`` if needed.
+- Intended for **DefaultExecutor** local JSONL; unrelated to Parquet.
+- Search logs for ``[lenient jsonl]`` for skipped lines.
+
+### JSON / JSONL load error: ``Value is too big!``
+
+When loading local JSONL, HuggingFace ``datasets`` may parse lines with ``ujson`` (via pandas). **Very large JSON integers** (e.g. long numeric IDs) can exceed what ujson supports and raise ``ValueError: Value is too big!``. This is usually about **numeric fields**, not necessarily huge strings.
+
+**Mitigations:**
+
+1. **Preferred (no data rewrite):** force stdlib ``json`` before running:
+
+   ```bash
+   DATA_JUICER_USE_STDLIB_JSON=1 dj-process --config path/to/config.yaml
+   ```
+
+2. **At source:** export problematic fields as **strings** (quoted in JSON).
+
+3. **Other formats:** e.g. Parquet, to avoid this JSON code path.
+
 ### Legacy dataset_path Configuration
 
 The `dataset_path` configuration is the original way to specify the dataset path. It's simplistic and easy to use, but lacks flexibility. It can be used in yaml or command line input. Some examples:

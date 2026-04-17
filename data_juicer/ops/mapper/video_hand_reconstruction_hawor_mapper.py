@@ -357,7 +357,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
         dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
         if Fields.meta not in dataset.features:
             dataset = dataset.add_column(name=Fields.meta, column=[{}] * dataset.num_rows)
-        dataset = dataset.map(self.fused_ops[0].process, num_proc=1, with_rank=True)
+        dataset = dataset.map(self.fused_ops[0].process, num_proc=None, with_rank=True)
         res_list = dataset.to_list()
 
         all_fov_x = res_list[0][Fields.meta][MetaKeys.static_camera_calibration_moge_tags]["hfov_list"]

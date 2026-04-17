@@ -76,7 +76,14 @@ OP_TYPE_DESC = {
 # >>> OP code/test paths and exclusive files/dirs
 OP_CODE_PREFIX = "data_juicer/ops/"
 OP_TEST_PREFIX = "tests/ops/"
-OP_EXCLUDE = {"__init__.py", "common", "__pycache__"}
+OP_EXCLUDE = {
+    "__init__.py",
+    "common",
+    "__pycache__",
+    # Helper module under mapper/ (not a registered OP)
+    "dialog_llm_input_utils.py",
+    "dialog_quality_llm_utils.py",
+}
 
 FORMATTER_CODE_PREFIX = "data_juicer/format/"
 FORMATTER_TEST_PREFIX = "tests/format/"
@@ -273,6 +280,16 @@ def pick_doc_for_op(docstrings: List[tuple], op_stem: str) -> str:
     return docstrings[-1][1]
 
 
+def is_registered_op(code_path):
+    """
+    Return True only if the file contains an OPERATORS.register_module call,
+    indicating it defines a concrete registered OP rather than a base class.
+    """
+    with open(code_path, "r", encoding="utf-8") as fin:
+        content = fin.read()
+    return "OPERATORS.register_module" in content
+
+
 def get_class_and_docstring(code_path):
     """
     Get (class_name, first-sentence doc) for each ClassDef in the file that has a class docstring.
@@ -374,6 +391,8 @@ def get_op_list_from_code():
             if os.path.isdir(code_path):
                 continue
             if not code_path.endswith(".py") or "_cpp" in code_path:
+                continue
+            if not is_registered_op(code_path):
                 continue
             docstrings = get_class_and_docstring(code_path)
             stem = op.replace(".py", "")
@@ -658,6 +677,41 @@ def check_and_update_op_record(old_op_record_list, new_op_record_list):
     return updated_op_record_list
 
 
+def print_op_doc_diff(old_op_num_dict, new_op_num_dict, old_op_record_list, updated_op_record_list):
+    """
+    Print the difference between the old and new op_num_dict and op_record_list.
+    """
+    all_types = set(old_op_num_dict) | set(new_op_num_dict)
+    for t in sorted(all_types):
+        old_cnt = old_op_num_dict.get(t)
+        new_cnt = new_op_num_dict.get(t)
+        if old_cnt != new_cnt:
+            print(f"  [op_num] type={t}: {old_cnt} -> {new_cnt}")
+
+    old_record_dict = {r.name: r for r in old_op_record_list}
+    new_record_dict = {r.name: r for r in updated_op_record_list}
+    old_names = set(old_record_dict)
+    new_names = set(new_record_dict)
+    for name in sorted(new_names - old_names):
+        print(f"  [op_record] ADDED:   {new_record_dict[name]}")
+    for name in sorted(old_names - new_names):
+        print(f"  [op_record] REMOVED: {old_record_dict[name]}")
+    for name in sorted(old_names & new_names):
+        old_r, new_r = old_record_dict[name], new_record_dict[name]
+        if old_r != new_r:
+            print(f"  [op_record] CHANGED: {name}")
+            if old_r.type != new_r.type:
+                print(f"    type:  {old_r.type!r} -> {new_r.type!r}")
+            if set(old_r.tags) != set(new_r.tags):
+                print(f"    tags:  {old_r.tags} -> {new_r.tags}")
+            if old_r.desc != new_r.desc:
+                print(f"    desc:  {old_r.desc!r} -> {new_r.desc!r}")
+            if old_r.info != new_r.info:
+                print(f"    info:  {old_r.info!r} -> {new_r.info!r}")
+            if old_r.ref != new_r.ref:
+                print(f"    ref:   {old_r.ref!r} -> {new_r.ref!r}")
+
+
 def main():
     old_op_record_list, old_op_num_dict = parse_op_record_from_current_doc()
     new_op_record_list, new_op_num_dict = get_op_list_from_code()
@@ -666,6 +720,7 @@ def main():
     if new_op_num_dict == old_op_num_dict and old_op_record_list == updated_op_record_list:
         exit(0)
     else:
+        print_op_doc_diff(old_op_num_dict, new_op_num_dict, old_op_record_list, updated_op_record_list)
         generate_new_doc(updated_op_record_list, old_op_record_list)
         print("Operator document is updated.")
         exit(1)

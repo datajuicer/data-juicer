@@ -1,6 +1,8 @@
+import json
 import os
 from multiprocessing import Pool
 
+from datasets import Dataset as HFDataset
 from loguru import logger
 
 from data_juicer.utils.constant import Fields, HashKeys
@@ -22,6 +24,8 @@ class Exporter:
         keep_stats_in_res_ds=False,
         keep_hashes_in_res_ds=False,
         export_stats=True,
+        encrypt_before_export=False,
+        encryption_key_path=None,
         **kwargs,
     ):
         """
@@ -40,6 +44,14 @@ class Exporter:
         :param keep_hashes_in_res_ds: whether to keep hashes in the result
             dataset.
         :param export_stats: whether to export the stats of dataset.
+        :param encrypt_before_export: whether to encrypt each exported file
+            in-place immediately after writing. Requires a valid Fernet key
+            accessible via ``encryption_key_path`` or the environment
+            variable ``DJ_ENCRYPTION_KEY``. S3 paths are skipped (use S3
+            SSE instead). Default: False.
+        :param encryption_key_path: path to a file containing the Fernet key.
+            Falls back to the ``DJ_ENCRYPTION_KEY`` environment variable when
+            ``None``. Only used when ``encrypt_before_export`` is True.
         """
         self.export_path = export_path
         self.export_shard_size = export_shard_size
@@ -57,6 +69,22 @@ class Exporter:
             )
         self.num_proc = num_proc
         self.max_shard_size_str = ""
+
+        # Set up encryption for local export
+        self.encrypt_before_export = encrypt_before_export
+        self._fernet = None
+        if encrypt_before_export:
+            if export_path.startswith("s3://"):
+                logger.warning(
+                    "encrypt_before_export is True but export_path is an S3 "
+                    "path. Local-file encryption is skipped for S3 exports. "
+                    "Use S3 server-side encryption (SSE) to protect data at rest."
+                )
+                self.encrypt_before_export = False
+            else:
+                from data_juicer.utils.encryption_utils import load_fernet_key
+
+                self._fernet = load_fernet_key(encryption_key_path)
 
         # Check if export_path is S3 and create storage_options if needed
         self.storage_options = None
@@ -139,6 +167,40 @@ class Exporter:
         suffix = export_path.split(".")[-1].lower()
         return suffix
 
+    @staticmethod
+    def _ensure_meta_stats_dicts_for_export(dataset):
+        """
+        If __dj__meta__ or __dj__stats__ are stored as JSON strings (e.g. after
+        Arrow/Ray serialization with ensure_ascii=True), parse them back to dict
+        so that to_json(force_ascii=False) writes proper UTF-8 instead of \\uXXXX.
+        """
+        meta_key = Fields.meta
+        stats_key = Fields.stats
+        columns_to_fix = [c for c in [meta_key, stats_key] if c in dataset.column_names]
+
+        if not columns_to_fix:
+            return dataset
+
+        def _parse_if_string(row):
+            out = dict(row)
+            for col in columns_to_fix:
+                val = out.get(col)
+                if isinstance(val, str):
+                    try:
+                        out[col] = json.loads(val)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            return out
+
+        return dataset.map(_parse_if_string, desc="Preparing meta/stats for UTF-8 export")
+
+    def _encrypt_local_file(self, path):
+        """Encrypt a local file in-place if encrypt_before_export is enabled."""
+        if self.encrypt_before_export and self._fernet is not None:
+            from data_juicer.utils.encryption_utils import encrypt_file
+
+            encrypt_file(path, path, self._fernet)
+
     def _export_impl(self, dataset, export_path, suffix, export_stats=True):
         """
         Export a dataset to specific path.
@@ -159,12 +221,16 @@ class Exporter:
                 export_columns.append(Fields.meta)
             if len(export_columns):
                 ds_stats = dataset.select_columns(export_columns)
+                # If meta/stats were serialized as JSON strings (e.g. \\uXXXX),
+                # parse back to dict so to_json(force_ascii=False) writes UTF-8.
+                ds_stats = Exporter._ensure_meta_stats_dicts_for_export(ds_stats)
                 stats_file = export_path.replace("." + suffix, "_stats.jsonl")
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
                 # Add storage_options if available (for S3 export)
                 if self.storage_options is not None:
                     export_kwargs["storage_options"] = self.storage_options
                 Exporter.to_jsonl(ds_stats, stats_file, **export_kwargs)
+                self._encrypt_local_file(stats_file)
 
         if self.export_ds:
             # fetch the corresponding export method according to the suffix
@@ -193,6 +259,7 @@ class Exporter:
                 if self.storage_options is not None:
                     export_kwargs["storage_options"] = self.storage_options
                 export_method(dataset, export_path, **export_kwargs)
+                self._encrypt_local_file(export_path)
             else:
                 # compute the dataset size and number of shards to split
                 if dataset._indices is not None:
@@ -260,6 +327,9 @@ class Exporter:
                     )
                 pool.close()
                 pool.join()
+                # Encrypt each local shard after all shards are written.
+                for fname in filenames:
+                    self._encrypt_local_file(fname)
 
     def export(self, dataset):
         """
@@ -280,6 +350,48 @@ class Exporter:
         self.keep_stats_in_res_ds = keep_stats_in_res_ds
 
     @staticmethod
+    def _row_to_json_serializable(obj):
+        """Convert a row or value to JSON-serializable form; keep Unicode as-is."""
+        if isinstance(obj, dict):
+            return {k: Exporter._row_to_json_serializable(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [Exporter._row_to_json_serializable(v) for v in obj]
+        if hasattr(obj, "item"):  # numpy scalar
+            return obj.item()
+        if hasattr(obj, "tolist"):
+            return obj.tolist()
+        if hasattr(obj, "as_py"):  # pyarrow scalar
+            return Exporter._row_to_json_serializable(obj.as_py())
+        return obj
+
+    @staticmethod
+    def _write_jsonl_utf8(dataset, export_path, storage_options=None):
+        """
+        Write dataset to JSONL with UTF-8 text (no \\uXXXX escape).
+        HuggingFace's to_json(force_ascii=False) can still escape in some paths;
+        we iterate and use json.dumps(ensure_ascii=False) per row.
+        Use HFDataset.__getitem__ to get raw batch (avoid NestedQueryDict wrapping
+        which fails on None in list columns e.g. response_usage).
+        """
+        batch_size = 1000
+        total = len(dataset)
+        os.makedirs(os.path.dirname(os.path.abspath(export_path)), exist_ok=True)
+        with open(export_path, "w", encoding="utf-8") as f:
+            for start in range(0, total, batch_size):
+                end = min(start + batch_size, total)
+                batch = HFDataset.__getitem__(dataset, slice(start, end))
+                if isinstance(batch, dict):
+                    keys = list(batch.keys())
+                    for i in range(len(batch[keys[0]])):
+                        row = {k: batch[k][i] for k in keys}
+                        row = Exporter._row_to_json_serializable(row)
+                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                else:
+                    for row in batch:
+                        row = Exporter._row_to_json_serializable(row)
+                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    @staticmethod
     def to_jsonl(dataset, export_path, num_proc=1, **kwargs):
         """
         Export method for jsonl target files.
@@ -290,12 +402,15 @@ class Exporter:
         :param kwargs: extra arguments.
         :return:
         """
-        # Add storage_options if provided (for S3 export)
+        # Use custom UTF-8 writer so all text (e.g. text, meta, dialog_history)
+        # is written as UTF-8, not \\uXXXX. HF to_json(force_ascii=False) can still
+        # escape in batch/multiproc paths.
         storage_options = kwargs.get("storage_options")
         if storage_options is not None:
+            # S3 or custom storage: fall back to HF to_json
             dataset.to_json(export_path, force_ascii=False, num_proc=num_proc, storage_options=storage_options)
         else:
-            dataset.to_json(export_path, force_ascii=False, num_proc=num_proc)
+            Exporter._write_jsonl_utf8(dataset, export_path)
 
     @staticmethod
     def to_json(dataset, export_path, num_proc=1, **kwargs):

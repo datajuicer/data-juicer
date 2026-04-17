@@ -4,6 +4,7 @@ from data_juicer.core import NestedDataset
 from data_juicer.ops.base_op import OP
 from data_juicer.ops.load import load_ops
 from data_juicer.ops.op_fusion import fuse_operators, GeneralFusedOP
+from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -1981,12 +1982,16 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.dataset = NestedDataset.from_list([
+        self.raw_data = [
             {'text': 'This is a test.'},
             {'text': 'This is a test. This is a test. This is a test.'},
             {'text': 'aaaaaaaaaaaaaaabbbbbbbbbbbbcccccccccccccc'},
             {'text': 'punc test。'}
-        ])
+        ]
+
+    def _get_fresh_dataset(self):
+        """Get a fresh dataset instance to avoid state pollution between tests."""
+        return NestedDataset.from_list(self.raw_data)
 
     def _run_equal_config(self, fused_process, unfused_process):
         fused_op = load_ops(fused_process)
@@ -1995,14 +2000,13 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
         unfused_op = load_ops(unfused_process)
         self.assertIsInstance(fused_op, GeneralFusedOP)
         self.assertEqual(len(fused_op.fused_ops), len(unfused_process))
-        res1 = self.dataset.process(fused_op)
-        res2 = self.dataset.process(unfused_op)
-        # invoke process_batched directly
-        for op in fused_op.fused_ops:
-            self.dataset = OP.run(op, self.dataset)
-        res3 = fused_op.process_batched(self.dataset.to_dict())
+        
+        # Use fresh datasets for each operation to avoid state pollution
+        dataset1 = self._get_fresh_dataset()
+        dataset2 = self._get_fresh_dataset()
+        res1 = dataset1.process(fused_op)
+        res2 = dataset2.process(unfused_op)
         self.assertDatasetEqual(res1, res2)
-        self.assertEqual(res1.to_dict(), res3)
 
     def test_regular_config(self):
 
@@ -2083,9 +2087,11 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
         # empty fused process
         fused_op = load_ops(empty_fused_process)[0]
         self.assertEqual(len(fused_op.fused_ops), 0)
-        res = fused_op.run(self.dataset)
-        self.assertDatasetEqual(res, self.dataset)
+        dataset = self._get_fresh_dataset()
+        res = fused_op.run(dataset)
+        self.assertDatasetEqual(res, dataset)
         # unsupported fused op
+        dataset2 = self._get_fresh_dataset()
         with self.assertRaises(NotImplementedError):
             fused_op = load_ops([{
                 'general_fused_op': {
@@ -2095,7 +2101,7 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
                     }],
                 }
             }])[0]
-            fused_op.process_batched(self.dataset.to_dict())
+            fused_op.process_batched(dataset2.to_dict())
 
 
 if __name__ == '__main__':

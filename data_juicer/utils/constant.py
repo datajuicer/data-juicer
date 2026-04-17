@@ -143,6 +143,57 @@ class MetaKeys(object):
     # # LLM semantic ops: token/cost usage per call (prompt_tokens, completion_tokens, total_tokens, cost_estimate)
     llm_semantic_usage = "llm_semantic_usage"
 
+    # === agent / dialog quality analysis tags ===
+    # # from agent_dialog_normalize_mapper
+    agent_tool_types = "agent_tool_types"
+    agent_skill_types = "agent_skill_types"
+    agent_skill_insights = "agent_skill_insights"
+    agent_turn_count = "agent_turn_count"
+    # # lineage / cohort fields (copied from raw agent JSON e.g. request_model, pt)
+    agent_request_model = "agent_request_model"
+    agent_pt = "agent_pt"
+    agent_total_cost_time_ms = "agent_total_cost_time_ms"
+    # # stable ids / message indices (for reports, showcase, log correlation)
+    agent_request_id = "agent_request_id"
+    agent_last_user_msg_idx = "agent_last_user_msg_idx"
+    agent_last_assistant_msg_idx = "agent_last_assistant_msg_idx"
+    # # True if dialog_history / text / query / response were shrunk via head+tail cap
+    agent_dialog_history_compressed = "agent_dialog_history_compressed"
+    # # from agent_bad_case_signal_mapper — structured, conservatively triaged
+    agent_bad_case_signals = "agent_bad_case_signals"
+    agent_bad_case_tier = "agent_bad_case_tier"
+    # # from agent_insight_llm_mapper — LLM synthesis for attribution / dashboards
+    agent_insight_llm = "agent_insight_llm"
+    agent_insight_llm_raw = "agent_insight_llm_raw"
+    # last writer (e.g. agent_insight_llm_mapper) records pipeline UI / report locale hint
+    agent_pipeline_output_lang = "agent_pipeline_output_lang"
+    # # from pii_llm_suspect_mapper — optional LLM audit for missed regex PII
+    pii_llm_suspect = "pii_llm_suspect"
+    pii_llm_suspect_raw = "pii_llm_suspect_raw"
+    # # dialog/agent turn-quality LLM mappers (see dialog_* / agent_* mapper files)
+    dialog_memory_consistency = "dialog_memory_consistency"
+    dialog_coreference = "dialog_coreference"
+    dialog_topic_shift = "dialog_topic_shift"
+    dialog_error_recovery = "dialog_error_recovery"
+    dialog_clarification_quality = "dialog_clarification_quality"
+    dialog_proactivity = "dialog_proactivity"
+    dialog_non_repetition = "dialog_non_repetition"
+    agent_trace_coherence = "agent_trace_coherence"
+    agent_tool_relevance = "agent_tool_relevance"
+    # # from agent_tool_type_mapper
+    primary_tool_type = "primary_tool_type"
+    dominant_tool_types = "dominant_tool_types"
+    # # from usage_counter_mapper
+    prompt_tokens = "prompt_tokens"
+    completion_tokens = "completion_tokens"
+    total_tokens = "total_tokens"
+    # # from tool_success_tagger_mapper
+    tool_success_count = "tool_success_count"
+    tool_fail_count = "tool_fail_count"
+    tool_unknown_count = "tool_unknown_count"
+    tool_success_ratio = "tool_success_ratio"
+    tool_results = "tool_results"
+
 
 class StatsKeysMeta(type):
     """
@@ -173,6 +224,14 @@ class StatsKeysMeta(type):
             tmp_dj_cfg = copy.deepcopy(dj_cfg)
             tmp_dj_cfg.use_cache = False
             tmp_dj_cfg.use_checkpoint = False
+            tmp_dj_cfg.auto_op_parallelism = False  # Disable auto parallelism to track StatsKeys access
+            tmp_dj_cfg.np = None  # Disable multiprocessing to track StatsKeys access
+            # Force disable multiprocessing for each op to track StatsKeys access
+            for op_config in tmp_dj_cfg.process:
+                op_name = list(op_config.keys())[0]
+                if op_config[op_name] is not None:
+                    op_config[op_name]["auto_op_parallelism"] = False
+                    op_config[op_name]["num_proc"] = None
 
             from data_juicer.config import get_init_configs
             from data_juicer.core import Analyzer
@@ -220,6 +279,14 @@ class StatsKeysMeta(type):
                 tmp_dj_cfg.dataset_path = tmp_f_name
                 tmp_dj_cfg.use_cache = False
                 tmp_dj_cfg.use_checkpoint = False
+                tmp_dj_cfg.auto_op_parallelism = False  # Disable auto parallelism to track StatsKeys access
+                tmp_dj_cfg.np = None  # Disable multiprocessing to track StatsKeys access
+                # Force disable multiprocessing for each op to track StatsKeys access
+                for op_config in tmp_dj_cfg.process:
+                    op_name = list(op_config.keys())[0]
+                    if op_config[op_name] is not None:
+                        op_config[op_name]["auto_op_parallelism"] = False
+                        op_config[op_name]["num_proc"] = None
 
                 from data_juicer.config import get_init_configs
                 from data_juicer.core import Analyzer
@@ -264,13 +331,17 @@ class StatsKeysConstant(object):
     word_rep_ratio = "word_rep_ratio"
     llm_analysis_score = "llm_analysis_score"
     llm_analysis_record = "llm_analysis_record"
+    llm_analysis_tags = "llm_analysis_tags"
     llm_quality_score = "llm_quality_score"
     llm_quality_record = "llm_quality_record"
+    llm_quality_tags = "llm_quality_tags"
     llm_difficulty_score = "llm_difficulty_score"
     llm_difficulty_record = "llm_difficulty_record"
+    llm_difficulty_tags = "llm_difficulty_tags"
     llm_perplexity = "llm_perplexity"
     llm_task_relevance = "llm_task_relevance"
     llm_task_relevance_record = "llm_task_relevance_record"
+    llm_task_relevance_tags = "llm_task_relevance_tags"
     # llm_condition_filter: True if sample satisfies the user-given condition
     llm_condition_filter_result = "llm_condition_filter_result"
     # llm_* semantic ops: token/cost usage (dict with prompt_tokens, completion_tokens, total_tokens, cost_estimate)

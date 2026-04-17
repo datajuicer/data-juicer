@@ -99,7 +99,7 @@ class TestLLMConditionFilter(DataJuicerTestCaseBase):
         self.assertEqual(len(filtered.to_list()), 1)
 
 
-class TestLLMConditionFilterUsageAccumulation(unittest.TestCase):
+class TestLLMConditionFilterUsageAccumulation(DataJuicerTestCaseBase):
     @patch("data_juicer.ops.filter.llm_condition_filter.get_model", return_value=object())
     @patch("data_juicer.ops.filter.llm_condition_filter.condition_filter_one")
     def test_usage_is_accumulated_in_stats(self, mock_condition_filter_one, _mock_get_model):

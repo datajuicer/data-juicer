@@ -244,6 +244,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             getattr(self.cfg, "export_shard_size", 0),
             keep_stats_in_res_ds=getattr(self.cfg, "keep_stats_in_res_ds", True),
             keep_hashes_in_res_ds=getattr(self.cfg, "keep_hashes_in_res_ds", False),
+            encrypt_before_export=getattr(self.cfg, "encrypt_before_export", False),
+            encryption_key_path=getattr(self.cfg, "encryption_key_path", None),
             **export_extra_args,
         )
 

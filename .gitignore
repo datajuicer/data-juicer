@@ -39,6 +39,9 @@ tmp/
 # perf bench data
 perf_bench_data/
 
+# some local demo data
+demos/local/*
+
 # env file
 .env
 

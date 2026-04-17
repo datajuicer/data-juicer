@@ -33,7 +33,13 @@ export_in_parallel: false                                   # whether to export 
 keep_stats_in_res_ds: false                                 # whether to keep the computed stats in the result dataset. The intermediate fields to store the stats computed by Filters will be removed if it's False. It's False in default.
 keep_hashes_in_res_ds: false                                # whether to keep the computed hashes in the result dataset. The intermediate fields to store the hashes computed by Deduplicators will be removed if it's False. It's False in default.
 export_extra_args: {}                                       # Other optional arguments for exporting in dict. For example, the key mapping info for exporting the WebDataset format.
+# If loading local JSONL fails with ujson ValueError: Value is too big!, run with:
+#   DATA_JUICER_USE_STDLIB_JSON=1 dj-process --config your.yaml
+# Per-line tolerance (stdlib json, skip bad lines; jsonl-only inputs), see DatasetCfg:
+#   load_jsonl_lenient: true
+#   # or: DATA_JUICER_JSONL_LENIENT=1
 load_dataset_kwargs: {}                                     # extra kwargs passed to datasets.load_dataset(). Useful for format-specific options, e.g. chunksize (JSON), columns (Parquet), delimiter (CSV).
+load_jsonl_lenient: false                                    # if true, stream jsonl* shards with stdlib json and skip bad lines; other suffixes in the same folder are ignored (not HF fallback). Confirm logs contain "[lenient jsonl] ACTIVE".
 
 auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.
 np: 4                                                       # number of subprocess to process your dataset
@@ -55,6 +61,11 @@ op_fusion: false                                            # whether to fuse op
 fusion_strategy: 'probe'                                    # OP fusion strategy. Support ['greedy', 'probe'] now. 'greedy' means keep the basic OP order and put the fused OP to the last of each fused OP group. 'probe' means Data-Juicer will probe the running speed for each OP at the beginning and reorder the OPs and fused OPs according to their probed speed (fast to slow). It's 'probe' in default.
 cache_compress: null                                        # the compression method of the cache file, which can be specified in ['gzip', 'zstd', 'lz4']. If this parameter is None, the cache file will not be compressed. We recommend you turn on this argument when your input dataset is larger than tens of GB and your disk space is not enough.
 adaptive_batch_size: false                                  # whether to use adaptive batch sizes for each OP according to the probed results. It's False in default.
+
+# for data encryption / decryption
+decrypt_after_reading: false                                # whether to decrypt input files after reading. Each file is decrypted in-memory (plaintext never written to disk). HF cache is automatically disabled. Requires encryption_key_path or DJ_ENCRYPTION_KEY env var.
+encrypt_before_export: false                                # whether to encrypt output files before writing to disk. Each exported file is encrypted in-place immediately after being written. Requires encryption_key_path or DJ_ENCRYPTION_KEY env var.
+encryption_key_path: null                                   # path to a file containing the Fernet key (base64 url-safe string). Falls back to environment variable DJ_ENCRYPTION_KEY if not set.
 
 # for multimodal data processing
 image_key: 'images'                                         # key name of field to store the list of sample image paths.
@@ -338,16 +349,6 @@ process:
       blur_type: 'gaussian'                                   # type of blur kernel, including ['mean', 'box', 'gaussian']
       radius: 2                                               # radius of blur kernel
       save_dir: null                                          # The directory where generated files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
-  - image_captioning_from_gpt4v_mapper:                     # generate samples whose texts are generated based on gpt-4-vision and the image
-      mode: 'description'                                     # mode of text generated from images, can be one of ['reasoning', 'description', 'conversation', 'custom']
-      api_key: ''                                             # the API key to authenticate the request
-      max_token: 500                                          # the maximum number of tokens to generate. Default is 500.
-      temperature: 1.0                                        # controls the randomness of the output (range from 0 to 1). Default is 0.
-      system_prompt: ''                                       # a string prompt used to set the context of a conversation and provide global guidance or rules for the gpt4-vision so that it can  generate responses in the expected way. If `mode` set to `custom`, the parameter will be used
-      user_prompt: ''                                         # a string prompt to guide the generation of gpt4-vision for each samples. It's "" in default, which means no prompt provided
-      user_prompt_key: null                                   # the key name of fields in samples to store prompts for each sample. It's used for set different prompts for different samples. If it's none, use prompt in parameter "prompt". It's None in default
-      keep_original_sample: true                              # whether to keep the original sample. If it's set to False, there will be only generated text in the final datasets and the original text will be removed. It's True in default
-      any_or_all: 'any'                                       # keep this sample with 'any' or 'all' strategy of all images. 'any': keep this sample if any images meet the condition. 'all': keep this sample only if all images meet the condition
   - image_captioning_mapper:                                # generate captions for images to augment datasets
       hf_img2seq: 'Salesforce/blip2-opt-2.7b'                 # model name on huggingface to generate caption
       caption_num: 1                                          # how many candidate captions to generate for each image

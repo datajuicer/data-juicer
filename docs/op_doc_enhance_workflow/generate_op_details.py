@@ -36,7 +36,6 @@ NO_EXPLAIN_OPS = [
     "text_embd_similarity_filter",
     "audio_add_gaussian_noise_mapper",
     "image_blur_mapper",
-    "image_captioning_from_gpt4v_mapper",
 ]
 
 # -----------------------------------------------------------------------------

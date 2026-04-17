@@ -26,14 +26,9 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
 
         for d in dataset:
             stats = d[Fields.stats]
-            if 'topic' in stats:
-                self.assertTrue(isinstance(stats['topic'], (str, list)))
-                if isinstance(stats['topic'], list):
-                    self.assertTrue(all(isinstance(item, str) for item in stats['topic']))
-            if 'style' in stats:
-                self.assertTrue(isinstance(stats['style'], (str, list)))
-                if isinstance(stats['style'], list):
-                    self.assertTrue(all(isinstance(item, str) for item in stats['style']))
+            # Tags are now stored under a single fixed key as JSON string
+            tags_str = stats.get(StatsKeys.llm_analysis_tags, "")
+            self.assertIsInstance(tags_str, str)
         
         dataset = dataset.filter(op.process, batch_size=op.batch_size)
         dataset_test = dataset.select_columns(column_names=['text'])

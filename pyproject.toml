@@ -17,7 +17,7 @@ classifiers = [
 
 # Core dependencies
 dependencies = [
-    "datasets>=2.19.0", # core data loading
+    "datasets>=4.7.0", # core data loading
     "fsspec==2023.5.0", # file system operations
     "pandas", # data manipulation
     "numpy>=1.26.4,<2.0.0", # numerical operations
@@ -58,7 +58,7 @@ generic = [
     "vllm==0.11.0",  # LLM serving
     "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "onnxruntime",  # ONNX runtime
-    "cudf-cu12==25.4.0", # dataframe on GPU
+    "cudf-cu12==25.10.0; sys_platform == 'linux'",  # dataframe on GPU (Linux only)
 ]
 
 # Computer Vision

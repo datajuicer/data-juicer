@@ -114,6 +114,8 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             self.cfg.export_shard_size,
             keep_stats_in_res_ds=self.cfg.keep_stats_in_res_ds,
             keep_hashes_in_res_ds=self.cfg.keep_hashes_in_res_ds,
+            encrypt_before_export=getattr(self.cfg, "encrypt_before_export", False),
+            encryption_key_path=getattr(self.cfg, "encryption_key_path", None),
             **export_extra_args,
         )
 

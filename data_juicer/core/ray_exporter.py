@@ -1,5 +1,6 @@
 import os
 from functools import partial
+from pathlib import Path
 
 from loguru import logger
 
@@ -33,6 +34,8 @@ class RayExporter:
         export_shard_size=0,
         keep_stats_in_res_ds=True,
         keep_hashes_in_res_ds=False,
+        encrypt_before_export=False,
+        encryption_key_path=None,
         **kwargs,
     ):
         """
@@ -46,6 +49,13 @@ class RayExporter:
             dataset.
         :param keep_hashes_in_res_ds: whether to keep hashes in the result
             dataset.
+        :param encrypt_before_export: whether to encrypt each exported file
+            in-place after Ray has finished writing. All files inside the
+            export directory will be encrypted. S3 paths are skipped.
+            Default: False.
+        :param encryption_key_path: path to a file containing the Fernet key.
+            Falls back to the ``DJ_ENCRYPTION_KEY`` environment variable when
+            ``None``. Only used when ``encrypt_before_export`` is True.
         """
         self.export_path = export_path
         self.export_shard_size = export_shard_size
@@ -58,6 +68,22 @@ class RayExporter:
                 f"for now. Only support {self._SUPPORTED_FORMATS}. Please check export_type or export_path."
             )
         self.export_extra_args = kwargs if kwargs is not None else {}
+
+        # Set up encryption for local export
+        self.encrypt_before_export = encrypt_before_export
+        self._fernet = None
+        if encrypt_before_export:
+            if export_path.startswith("s3://"):
+                logger.warning(
+                    "encrypt_before_export is True but export_path is an S3 "
+                    "path. Local-file encryption is skipped for S3 exports. "
+                    "Use S3 server-side encryption (SSE) to protect data at rest."
+                )
+                self.encrypt_before_export = False
+            else:
+                from data_juicer.utils.encryption_utils import load_fernet_key
+
+                self._fernet = load_fernet_key(encryption_key_path)
 
         # Check if export_path is S3 and create filesystem if needed
         self.s3_filesystem = None
@@ -182,7 +208,20 @@ class RayExporter:
         if not export_path.startswith("s3://"):
             os.makedirs(export_path, exist_ok=True)
 
-        return export_method(dataset, export_path, **export_kwargs)
+        result = export_method(dataset, export_path, **export_kwargs)
+
+        # Encrypt all exported files in-place after Ray has finished writing
+        if self.encrypt_before_export and self._fernet is not None and not export_path.startswith("s3://"):
+            from data_juicer.utils.encryption_utils import encrypt_file
+
+            export_dir = Path(export_path)
+            if export_dir.is_dir():
+                for fpath in export_dir.iterdir():
+                    if fpath.is_file():
+                        encrypt_file(str(fpath), str(fpath), self._fernet)
+                        logger.debug(f"Encrypted exported file: {fpath}")
+
+        return result
 
     def export(self, dataset, columns=None):
         """

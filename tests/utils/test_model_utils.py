@@ -85,7 +85,9 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         mock_processor = MagicMock()
         mock_tiktoken.encoding_for_model.return_value = mock_processor
 
-        model = prepare_api_model('test_model')
+        # Pass explicit base_url to avoid environment variable (e.g. OPENAI_BASE_URL)
+        # from CI being merged and triggering DashScope model remapping.
+        model = prepare_api_model('test_model', base_url='https://api.openai.com/v1')
         self.assertEqual(model._client, mock_client)
         self.assertEqual(model.model, 'test_model')
         self.assertEqual(model.endpoint, '/chat/completions')
@@ -93,7 +95,7 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         # Test with processor for chat model
         mock_openai.OpenAI.reset_mock()
         mock_tiktoken.encoding_for_model.reset_mock()
-        model, processor = prepare_api_model('test_model', return_processor=True)
+        model, processor = prepare_api_model('test_model', base_url='https://api.openai.com/v1', return_processor=True)
         self.assertEqual(model._client, mock_client)
         self.assertEqual(processor, mock_processor)
         mock_tiktoken.encoding_for_model.assert_called_once()
@@ -397,7 +399,7 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         # No assertion needed, just checking it doesn't raise an exception
 
 
-class DashScopeOpenAICompatTest(unittest.TestCase):
+class DashScopeOpenAICompatTest(DataJuicerTestCaseBase):
     """Env merge + model remap for DashScope OpenAI-compatible REST."""
 
     def test_merge_env_from_openai_and_dashscope_aliases(self):

@@ -1,0 +1,17 @@
+# Minimal: 仅 agent_dialog_normalize_mapper，无 LLM，用于验证配置与数据格式
+# 原始 agent 数据无 text 字段，formatter 需用已有键通过校验；第一个 op 会写出 text
+project_name: agent-minimal-01
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/01_normalize_only.jsonl
+text_keys: "id"  # 原始数据有 id，无 text；agent_dialog_normalize_mapper 会创建 text
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true

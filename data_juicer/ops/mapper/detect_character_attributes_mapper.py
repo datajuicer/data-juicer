@@ -103,7 +103,7 @@ class DetectCharacterAttributesMapper(Mapper):
         )
 
         character_locations = detect_location_dataset.map(
-            self.fused_ops[0].process, num_proc=1, with_rank=True
+            self.fused_ops[0].process, num_proc=None, with_rank=True
         ).to_list()
         character_locations = character_locations[0][Fields.meta]["main_character_locations_list"]
 

@@ -1,0 +1,25 @@
+# Minimal: normalize + PII 脱敏
+project_name: agent-minimal-02
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/02_normalize_pii.jsonl
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+  - pii_redaction_mapper:
+      mask_paths: true
+      mask_emails: true
+      mask_secrets: true
+      mask_ids: true
+      mask_channel_ids: true
+      mask_platform_open_ids: true
+      redact_keys: ["text", "query", "response", "dialog_history", "messages"]
+      messages_key: "messages"

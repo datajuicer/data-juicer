@@ -17,7 +17,7 @@ classifiers = [
 
 # Core dependencies
 dependencies = [
-    "datasets>=2.19.0", # core data loading
+    "datasets>=4.7.0", # core data loading
     "fsspec==2023.5.0", # file system operations
     "pandas", # data manipulation
     "numpy>=1.26.4,<2.0.0", # numerical operations
@@ -32,35 +32,20 @@ dependencies = [
     "psutil", # system monitoring
     "pydantic>=2.0", # data validation
     "uv",
-    "wordcloud==1.9.4",
-    "spacy==3.8.7",
     "httpx",
-    "av==13.1.0", # video/audio handling
     "emoji==2.2.0", # emoji handling
     "tabulate",
-    "librosa>=0.10",
-    "resampy",
-    "samplerate==0.1.0",
     "bs4",
-    "matplotlib",
-    "plotly", # interactive plots
-    "seaborn",
     "requests",
     "wget",
-    "pdfplumber",
-    "python-docx",
     "streamlit",
     "Pillow",
-    "fastapi>=0.110",
     "mwparserfromhell",
     "regex", # regular expressions
     "tomli",
     "tomli-w",
     "gitpython",
-    "mcp[cli]>=1.7.0",
-    "pylance",
     "dep-logic",
-    "rank-bm25>=0.2.2",
 ]
 
 [project.optional-dependencies]
@@ -73,11 +58,12 @@ generic = [
     "vllm==0.11.0",  # LLM serving
     "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "onnxruntime",  # ONNX runtime
-    "cudf-cu12==25.4.0", # dataframe on GPU
+    "cudf-cu12==25.10.0; sys_platform == 'linux'",  # dataframe on GPU (Linux only)
 ]
 
 # Computer Vision
 vision = [
+    "av==13.1.0", # video/audio handling
     "opencv-contrib-python",
     "imagededup",  # Image deduplication
     "diffusers>=0.33.0",  # Diffusion models
@@ -107,10 +93,16 @@ nlp = [
     "opencc==1.1.9",  # Chinese conversion
     "spacy-pkuseg",  # Chinese segmentation
     "rouge",  # Text evaluation
+    "pdfplumber",  # For PDF input and processing
+    "spacy==3.8.7",
+    "python-docx",  # For docx input and processing
 ]
 
 # Audio Processing
 audio = [
+    "librosa>=0.10",
+    "resampy",
+    "samplerate==0.1.0",
     "torchaudio",  # Audio processing with PyTorch
     "torchcodec==0.7",
     "soundfile",  # audio handling
@@ -126,6 +118,7 @@ distributed = [
     "s3fs",  # S3 filesystem support for cloud storage
     "boto3",  # AWS SDK for S3 operations
     "bitarray", # efficient arrays of booleans
+    "pylance",  # to support I/O for lance data in ray mode
 ]
 
 # Development & Tools
@@ -158,6 +151,15 @@ ai_services = [
     "label-studio==1.17.0",  # Data labeling
 ]
 
+# tools, including analysis, mcp, ...
+tools = [
+    "matplotlib",  # For drawing analysis results
+    "wordcloud==1.9.4",  # For drawing word clouds
+    "mcp[cli]>=1.7.0",  # For mcp service
+    "rank-bm25>=0.2.2",  # For OP search
+    "fastapi>=0.110",  # For using data-juicer in a service way
+]
+
 
 # All dependencies (default + all optional)
 all = [
@@ -168,6 +170,7 @@ all = [
     "py-data-juicer[distributed]",
     "py-data-juicer[dev]",
     "py-data-juicer[ai_services]",
+    "py-data-juicer[tools]",
 ]
 
 [project.scripts]

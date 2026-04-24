@@ -2,10 +2,11 @@ import argparse
 import os
 from typing import Dict, List, Optional
 
-from mcp.server.fastmcp import FastMCP
-
 from data_juicer.tools.mcp_tool import execute_analyze, execute_op
 from data_juicer.tools.op_search import OPSearcher
+from data_juicer.utils.lazy_loader import LazyLoader
+
+fastmcp = LazyLoader("mcp.server.fastmcp", "mcp[cli]")
 
 # Operator Management
 ops_list_path = os.getenv("DJ_OPS_LIST_PATH", None)
@@ -427,7 +428,7 @@ def create_mcp_server(port: str = "8000"):
     Args:
         port (str, optional): Port number. Defaults to "8000".
     """
-    mcp = FastMCP("Data-Juicer Server", port=port)
+    mcp = fastmcp.FastMCP("Data-Juicer Server", port=port)
 
     mcp.tool()(get_global_config_schema)
     mcp.tool()(get_dataset_load_strategies)

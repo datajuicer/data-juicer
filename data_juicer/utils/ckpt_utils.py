@@ -190,7 +190,12 @@ class CheckpointManager(CheckpointManagerBase):
         :return: Path to checkpoint directory
         """
         left_sample_num = len(ds)
-        ds.save_to_disk(self.ckpt_ds_dir, num_proc=min(self.num_proc, left_sample_num))
+        if left_sample_num > 0:
+            ds.save_to_disk(self.ckpt_ds_dir, num_proc=min(self.num_proc, left_sample_num))
+        else:
+            # Empty dataset: skip save_to_disk to avoid ZeroDivisionError in
+            # datasets._estimate_nbytes when the Arrow table has 0 rows.
+            logger.warning("Checkpoint skipped: dataset is empty.")
 
         with open(self.ckpt_op_record, "w") as fout:
             json.dump(self.op_record, fout)

@@ -70,7 +70,7 @@ json
   },
   "flags": ["accuracy_concern", "logical_confusion"],
   "rationale": "The text provides rich information but suffers from logical confusion and lacks contextual coherence. Excellent grammatical structure offset by factual inaccuracies.",
-  "recommendation": "review"
+  "recommendation": ["review"]
 }
 """  # noqa: E501
     DEFAULT_DIM_REQUIRED_KEYS = ["accuracy", "grammar", "informativeness", "coherence"]
@@ -83,11 +83,11 @@ json
         score, record, tags = self.generate_llm_analysis(sample, rank)
 
         sample[Fields.stats][StatsKeys.llm_quality_score] = score
-        sample[Fields.stats][StatsKeys.llm_quality_record] = record
+        # Normalize record to ensure stable Arrow schema (handles nested None values)
+        sample[Fields.stats][StatsKeys.llm_quality_record] = self._normalize_record(record)
 
-        if tags and isinstance(tags, dict):
-            for key, value in tags.items():
-                sample[Fields.stats][key] = value
+        # Store all tags under a single fixed key to avoid dynamic key schema conflicts.
+        sample[Fields.stats][StatsKeys.llm_quality_tags] = self._normalize_tags_to_str(tags)
 
         return sample
 

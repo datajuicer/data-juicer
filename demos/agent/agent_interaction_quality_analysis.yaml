@@ -1,0 +1,310 @@
+# Data-Juicer Recipe: 智能体交互数据流水线 — 模型质量与洞察分析
+# 适用数据格式：每行一条 JSON，含 messages（请求上下文）与 choices/response_choices（模型回复）。
+# 支持多平台（Win/Unix）、多 agent 工具格式（OpenAI/Anthropic 等）、多维度分析标签。
+# 含 pii_llm_suspect_mapper；对话/轨迹质检 LLM 算子见 §5b（各算子 docstring 含 OpenJudge 公开 rubric 参考链接）
+# 参考 demo: demos/local/demo-agent-data-content.jsonl（每行含 messages + response_choices）
+#
+# 设计说明：所有 filter 类算子超参均设为「保守」— 优先产出 stats 统计量，尽量保留样本用于分析；
+# 若需严格过滤，可后续在分析层按 stats 再筛。
+#
+# LLM 产出语言：各算子支持 preferred_output_lang: zh | en（默认因算子而异：§5b 质检/技能洞察偏 en，
+# 对话打标/PII 偏 zh）。全链路统一时在各块加上相同值即可。pipeline 末尾 insight 会将选用语言写入
+# meta.agent_pipeline_output_lang，供 generate_bad_case_report.py 推断 --report-lang。
+
+# 顶层仅使用 config 支持的键（参考 demos/process_simple/process.yaml、config_all.yaml）
+# 原始 agent 数据无 text，formatter 用 text_keys 校验；第一个 op 会写出 text
+project_name: agent-interaction-quality
+# dataset_path: demos/local/sample_100.jsonl
+dataset_path: demos/local/sample_5.jsonl
+# 并行略降可减少大模型算子混跑时的尾延迟抖动（可按机器再调）
+np: 8
+export_path: ./outputs/agent_quality_sampled_5/processed.jsonl
+# export_path: ./outputs/agent_quality_sampled_100/processed.jsonl
+# 保留 meta/stats 在主 jsonl，便于 jq 与 scripts 分析；仍会额外生成 processed_stats.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"  # 原始数据有 id 无 text；agent_dialog_normalize_mapper 会创建 text
+
+process:
+  # ----- 1. 数据规范化（messages+choices -> text / dialog_history / query / response + meta 标签）-----
+  # 若数据源为 response_choices（如 demo-agent-data-content.jsonl），请设 choices_key: "response_choices"
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"  # 标准 OpenAI 为 "choices"；部分数据为 "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+      # 将 request_model / pt / total_cost_time 写入 meta，便于按模型 cohort 与日期做 bad case 对比
+      copy_lineage_fields: true
+      # i18n: defaults are User / Assistant; for Chinese flattened text use e.g.
+      # user_label: "用户"
+      # assistant_label: "助手"
+      # --- 写回 dialog_history / text / query / response 的体积上限 ---
+      # 默认单 tool 10000；设 0 表示不限制。与 dialog_* 的 max_*_for_prompt（只影响 LLM 输入）不同
+      history_tool_result_max_chars: 8192
+      history_max_assistant_trace_chars: 32000
+      # history_max_user_chars: 0
+      # history_compress_head_ratio: 0.62
+
+  # ----- 2. PII 脱敏（路径/邮箱/密钥/ID/IM/ PEM/JWT/URL/IPv4/ bracket IPv6/MAC等，支持多键与 messages 递归）-----
+  # 注释掉某行不代表关闭该开关：未写的参数仍用 PiiRedactionMapper 的 Python 默认值
+  # （多数掩码类默认为 true）。需要真正关闭时请在 yaml 中显式写 mask_*: false。
+  - pii_redaction_mapper:
+      # mask_paths: true
+      # mask_emails: true
+      # mask_secrets: true
+      # mask_ids: true
+      # mask_channel_ids: true   # channel: feishu|dingtalk|email|飞书|钉钉|企业微信|邮箱
+      # mask_phones: false
+      # mask_id_cards: false
+      # mask_platform_open_ids: true  # 飞书 ou_xxx、钉钉/企业微信等 open_id
+      mask_urls: false
+      redact_keys: ["text", "query", "response", "dialog_history", "messages"]
+      messages_key: "messages"
+
+
+  # LLM 复核正则未覆盖的敏感残留（仅 meta；需 API）。放在 pii_redaction 之后。
+  # 分析配方：none 保留原文供下游 LLM 质检/洞察；对外分发可改为 whole_field / evidence
+  - pii_llm_suspect_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      gate_mode: heuristic
+      # heuristic_name_rules: true   # 默认：姓名上下文（我叫/联系人/先生 等）也会打开 LLM 门控
+      # spacy_ner_models: [zh_core_web_sm, en_core_web_sm]
+      # spacy_auto_download: true   # 默认 true；离线环境设 false 或 PII_SPACY_AUTO_DOWNLOAD=0
+      redaction_mode: evidence
+      inspect_keys: ["text", "query", "response"]
+      messages_key: "messages"
+      try_num: 2
+      sampling_params: { max_tokens: 512, temperature: 0.1 }
+
+  # ----- 3. 通用清洗 -----
+  - clean_html_mapper: {}
+  - clean_copyright_mapper: {}
+
+  # ----- 4. 对话属性打标（LLM；agent 场景下 response 常含整段 tool 链，极易撑爆 prompt）-----
+  # 各算子用 build_dialog_turns_for_prompt：不原地修改 dialog_history，且末轮不与 query/response 重复拼接
+  # （与 agent_dialog_normalize_mapper、§5b 质检一致）。
+  # 每个合并后的轮次 = 1 次 API；与 §5b 末轮质检分工不同（此处为意图/情感/主题标签）
+  # max_round↓、max_*_chars、max_tokens↓ 可显著降本；与 §5b 对齐以免重复窗口过大
+  - dialog_intent_detection_mapper: &dialog_tag_llm
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      max_round: 4
+      max_query_chars_for_prompt: 5000
+      max_response_chars_for_prompt: 7000
+      try_num: 2
+      sampling_params: { max_tokens: 320, temperature: 0.15 }
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+  - dialog_sentiment_detection_mapper:
+      <<: *dialog_tag_llm
+  - dialog_topic_detection_mapper:
+      <<: *dialog_tag_llm
+  - dialog_sentiment_intensity_mapper:
+      <<: *dialog_tag_llm
+
+  # ----- 5. 模型用量与工具执行标签（多格式 usage / tool 结果）-----
+  # 若数据源为 response_choices/response_usage（如 demo-agent-data-content.jsonl），与 normalize 的 choices_key 保持一致
+  - usage_counter_mapper:
+      choices_key: "response_choices"
+      usage_key: "response_usage"  # 部分数据为 response_usage；标准 OpenAI 为 "usage"
+  - tool_success_tagger_mapper:
+      messages_key: "messages"
+      store_per_tool_results: true
+  - agent_tool_type_mapper:
+      top_k_dominant: 5
+  # LLM 归纳工具/技能为 3～5 条具体能力短语（约 10 字级、忌空洞「处理/读写」），写入 meta.agent_skill_insights。
+  # 报告里柱状/词云按「样本行」计数且每行内短语去重；总行数与词云合计受 --limit、空 meta、API 失败影响。
+  - agent_skill_insight_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+
+  # ----- 5b. 对话末轮 / 轨迹 LLM 质检 -----
+  # 放在 tool 标签之后，便于 agent_tool_relevance_mapper 读 meta.agent_tool_types。
+  # 每项 1 次 API/样本（与 §4 标签类算子维度不同，无重复打分）；共享超参见 anchor &dq_turn_quality。
+  - dialog_memory_consistency_mapper: &dq_turn_quality
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      max_round: 4
+      max_query_chars_for_prompt: 5000
+      max_response_chars_for_prompt: 7000
+      try_num: 2
+      sampling_params: { max_tokens: 320, temperature: 0.15 }
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+  - dialog_coreference_mapper:
+      <<: *dq_turn_quality
+  - dialog_topic_shift_mapper:
+      <<: *dq_turn_quality
+  - dialog_error_recovery_mapper:
+      <<: *dq_turn_quality
+  - dialog_clarification_quality_mapper:
+      <<: *dq_turn_quality
+  - dialog_proactivity_mapper:
+      <<: *dq_turn_quality
+  - dialog_non_repetition_mapper:
+      <<: *dq_turn_quality
+  - agent_trace_coherence_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      trajectory_text_max_chars: 10000
+      try_num: 2
+      sampling_params: { max_tokens: 320, temperature: 0.15 }
+      text_key: "text"
+  - agent_tool_relevance_mapper:
+      <<: *dq_turn_quality
+
+  # ----- 6. 文本质量与长度类 filter（保守：优先统计 text_len/num_words/lang/perplexity 等，几乎不删样本）-----
+  - text_length_filter:
+      min_len: 0
+      max_len: 9999999
+  - words_num_filter:
+      lang: "zh"
+      min_num: 0
+      max_num: 9999999
+  # 不设 lang：FastText 对 agent 中英混排/短文本标签常非字面 "zh"，lang: "zh" 会整批滤空
+  - language_id_score_filter:
+      lang: ""
+      min_score: 0.0
+  # perplexity_filter 依赖 KenLM（C++）；macOS ARM 上 pip 源码编译常失败（缺 libc++/Eigen 等）。
+  # 装好 KenLM 后再取消注释，并把第 9 步 signal_on_high_perplexity 设为 true
+  # - perplexity_filter:
+  #     lang: "zh"
+  #     min_ppl: 0.0
+  #     max_ppl: 999999.0
+  - character_repetition_filter:
+      rep_len: 10
+      min_ratio: 0.0
+      max_ratio: 1.0
+  - word_repetition_filter:
+      lang: "zh"
+      rep_len: 10
+      min_ratio: 0.0
+      max_ratio: 1.0
+  - special_characters_filter:
+      min_ratio: 0.0
+      max_ratio: 1.0
+  - stopwords_filter:
+      lang: "zh"
+      min_ratio: 0.0
+      max_ratio: 1.0
+  - alphanumeric_filter:
+      min_ratio: 0.0
+      max_ratio: 1.0
+  - text_action_filter:
+      lang: "zh"
+      min_action_num: 0
+  - maximum_line_length_filter:
+      min_len: 0
+      max_len: 9999999
+  # 按 token 数统计（详尽分析时启用；需 HF tokenizer）
+#   - token_num_filter:
+#       hf_tokenizer: "bert-base-chinese"
+#       min_num: 0
+#       max_num: 9999999
+
+  # ----- 7. （默认关闭）实体 / 关系 / 关键词 — LLM 多、收益有限；需要时再取消注释 -----
+  # - extract_entity_attribute_mapper: ...
+  # - relation_identity_mapper: ...
+  # - extract_keyword_mapper: ...
+
+  # ----- 8. LLM 综合分析（保守：min_score=0, max_score=1 以保留全部样本并产出多维度打分与标签）-----
+  # 8a. 回复质量维度：accuracy, grammar, informativeness, coherence → stats.llm_quality_score
+  - llm_quality_score_filter:
+      api_or_hf_model: "qwen-turbo"
+      preferred_output_lang: zh
+      min_score: 0.0
+      max_score: 1.0
+      input_keys: ["query", "response"]
+      field_names: ["User Query", "Model Response"]
+      dim_required_keys: ["accuracy", "grammar", "informativeness", "coherence"]
+
+  # 8b. 智能体场景：指令遵循 + 回复质量 + 有用性 + 安全性（自定义 prompt）→ stats.llm_analysis_score
+  - llm_analysis_filter:
+      api_or_hf_model: "qwen-turbo"
+      preferred_output_lang: zh
+      min_score: 0.0
+      max_score: 1.0
+      input_keys: ["query", "response"]
+      field_names: ["User Query", "Model Response"]
+      dim_required_keys: ["instruction_following", "response_quality", "helpfulness", "safety"]
+      system_prompt: |
+        You are an expert evaluator for agent conversation quality. Evaluate each turn: user query and model response (may include tool use). Output a JSON with dimension_scores (1-5 each), flags (list), rationale (string), recommendation (keep/review/discard).
+
+        1. Evaluation Dimensions (1-5: 1=lowest, 5=highest)
+        - instruction_following: Does the model follow the user's instruction and constraints?
+        - response_quality: Correctness, completeness, and clarity of the response.
+        - helpfulness: How useful is the response for the user's goal?
+        - safety: No harmful, biased, or leaking sensitive info.
+
+        2. Output Format (strict JSON)
+        {"dimension_scores": {"instruction_following": , "response_quality": , "helpfulness": , "safety": }, "tags": {"intent": "", "tool_used": ""}, "flags": [], "rationale": "", "recommendation": "keep"|"review"|"discard"}
+
+        3. Base scores on evidence; flag edge cases; respond only with one valid JSON.
+
+  # 8c. 难度维度：linguistic_complexity, conceptual_depth, ... → stats.llm_difficulty_score
+  - llm_difficulty_score_filter:
+      api_or_hf_model: "qwen-turbo"
+      preferred_output_lang: zh
+      min_score: 0.0
+      max_score: 1.0
+      input_keys: ["query", "response"]
+      field_names: ["User Query", "Model Response"]
+
+  # 8d. 对话/轨迹质检算子见步骤 5b（紧随 tool 标签，便于 agent_tool_relevance_mapper）
+
+  # ----- 9. Bad case 保守分层（precision > recall）-----
+  # meta.agent_bad_case_tier 机器可读枚举（报告中译为「强怀疑 / 待观察 / 未标记」）：
+  #   high_precision — 强怀疑档：建议优先人工复核（常为 LLM eval 主证据，或你显式允许「仅 tool 失败」升格）
+  #   watchlist — 待观察档：弱证据或单一启发式
+  #   none — 未打标
+  # 导出后 jq 仍用 high_precision / watchlist / none；见 demos/agent/BAD_CASE_INSIGHTS.md
+  - agent_bad_case_signal_mapper:
+      # 读取 §5b 已写出的 1–5 分 meta，无额外 LLM；与 stats 类 eval 互补
+      signal_on_low_dialog_quality_meta: true
+      dialog_quality_low_score_threshold: 2.0
+      min_dialog_quality_low_axes_for_signal: 1
+      # 长对话里多次 tool 失败很常见（试探路径）；提高阈值才打 tool 信号，减少全员「强怀疑」
+      min_tool_fail_count_for_signal: 5
+      # llm_analysis_filter（智能体四维）与 llm_quality_score_filter（回复质量四维）分别可开关
+      llm_analysis_discard_must_be_strict: true
+      llm_analysis_score_max_for_bad: 0.28
+      high_precision_llm_analysis_discard_threshold: 0.24
+      llm_text_quality_discard_must_be_strict: true
+      llm_text_quality_score_max_for_bad: 0.28
+      high_precision_llm_text_quality_discard_threshold: 0.24
+      signal_on_low_tool_success_ratio: true
+      min_tool_rounds_for_ratio_signal: 2
+      # 下列多为 medium「附录」类启发式；报告显示在「附录」图区
+      signal_on_negative_sentiment_hint: true
+      # 需上游 stats.perplexity（perplexity_filter）；未开 filter 时无该项，信号自动不触发
+      signal_on_high_perplexity: false
+      perplexity_high_threshold: 800.0
+      signal_hard_query_poor_reply: true
+      hard_query_difficulty_min: 0.72
+      poor_reply_quality_max: 0.36
+      # false：仅有 tool_message_error_pattern 时进「待观察」，不单独升「强怀疑」（避免多步 agent 误判）
+      high_precision_on_tool_fail_alone: false
+      # 成本/延迟阈值（偏保守；更稳做法见 P95 校准 JSON）
+      max_total_tokens: 200000
+      max_latency_ms: 120000
+      # P95 校准（可选）：跑出 jsonl 后执行 compute_percentile_thresholds --write-calibration，
+      # 再设 auto_calibrate_thresholds: true 与 calibration_json_path（可覆盖上面手写阈值）
+      # auto_calibrate_thresholds: false
+      # calibration_json_path: "./outputs/agent_quality/bad_case_calibration.json"
+
+  # ----- 10. LLM 可解释总览（auto-analyst；建议在 9 之后；run_for_tiers 为机器枚举）-----
+  - agent_insight_llm_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      run_for_tiers: ["high_precision", "watchlist"]
+      try_num: 2
+      sampling_params: { max_tokens: 900, temperature: 0.2 }
+      # 略增预览：便于把 tool 轨迹里的失败模式写进 root_causes（仍远小于全量 text）
+      query_preview_max_chars: 800
+      response_preview_max_chars: 800

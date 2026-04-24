@@ -29,7 +29,7 @@ class TextActionFilter(Filter):
             parameter.
         """
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(["spacy-pkuseg"], "--no-deps")
+        LazyLoader.check_packages(["spacy", "spacy-pkuseg"], "--no-deps")
 
         if lang not in ["en", "zh"]:
             raise ValueError(

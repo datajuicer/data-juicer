@@ -419,7 +419,6 @@ class VideoHandReconstructionHaworMapper(Mapper):
         hand_det_model = get_model(self.det_model_key, rank, self.use_cuda())
 
         videos_frames = sample[self.frame_field]
-
         sample[Fields.meta][self.tag_field_name] = []
 
         for video_idx in range(len(videos_frames)):

@@ -322,7 +322,7 @@ class CacheCompressManager:
 
         files_to_remove = []
         files_printed = set()
-        if num_proc > 1:
+        if num_proc and num_proc > 1:
             pool = Pool(num_proc)
         for full_name in caches_to_compress:
             # ignore the cache file of the original dataset and only consider
@@ -338,7 +338,7 @@ class CacheCompressManager:
             if not os.path.exists(compress_filename):
                 if formatted_cache_name not in files_printed:
                     logger.info(f"Compressing cache file to {formatted_cache_name}")
-                if num_proc > 1:
+                if num_proc and num_proc > 1:
                     pool.apply_async(
                         self.compress_manager.compress,
                         args=(
@@ -353,7 +353,7 @@ class CacheCompressManager:
                     logger.debug(f"Found compressed cache file {formatted_cache_name}")
             files_printed.add(formatted_cache_name)
             files_to_remove.append(full_name)
-        if num_proc > 1:
+        if num_proc and num_proc > 1:
             pool.close()
             pool.join()
 
@@ -382,7 +382,7 @@ class CacheCompressManager:
             cache_directory=cache_directory, fingerprints=fingerprints, extension=self.compressor_extension
         )
         files_printed = set()
-        if num_proc > 1:
+        if num_proc and num_proc > 1:
             pool = Pool(num_proc)
         for f_name in f_names:
             full_name = os.path.abspath(os.path.join(cache_directory, f_name))
@@ -393,7 +393,7 @@ class CacheCompressManager:
                 if formatted_cache_name not in files_printed:
                     logger.info(f"Decompressing cache file to " f"{formatted_cache_name}")
                     files_printed.add(formatted_cache_name)
-                if num_proc > 1:
+                if num_proc and num_proc > 1:
                     pool.apply_async(
                         self.compress_manager.decompress,
                         args=(
@@ -406,7 +406,7 @@ class CacheCompressManager:
             else:
                 if formatted_cache_name not in files_printed:
                     logger.debug(f"Found uncompressed cache files " f"{formatted_cache_name}")
-        if num_proc > 1:
+        if num_proc and num_proc > 1:
             pool.close()
             pool.join()
 

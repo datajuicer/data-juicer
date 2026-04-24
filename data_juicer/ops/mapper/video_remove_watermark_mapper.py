@@ -1,7 +1,6 @@
 import os
 from typing import List, Optional
 
-import av
 import numpy as np
 from pydantic import PositiveInt
 
@@ -202,6 +201,9 @@ class VideoRemoveWatermarkMapper(Mapper):
         return cv2.dilate(mask, kernel)
 
     def _clean_watermark(self, frame, watermark_mask):
+        from data_juicer.utils.video_utils import setup_av
+
+        av = LazyLoader("av", post_import=setup_av)
         np_frame = frame.to_ndarray(format="bgr24")
         new_np_frame = cv2.inpaint(np_frame, watermark_mask, 3, cv2.INPAINT_NS)
         return av.VideoFrame.from_ndarray(new_np_frame, format="bgr24")

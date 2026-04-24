@@ -1,0 +1,27 @@
+# Minimal: normalize + extract_entity_attribute + relation_identity + extract_keyword（需 LLM）
+project_name: agent-minimal-07
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/07_entity_keyword.jsonl
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+  - extract_entity_attribute_mapper:
+      api_model: "qwen-turbo"
+      query_entities: ["用户", "助手", "任务"]
+      query_attributes: ["目标", "行为"]
+  - relation_identity_mapper:
+      api_model: "qwen-turbo"
+      source_entity: "用户"
+      target_entity: "助手"
+  - extract_keyword_mapper:
+      api_model: "qwen-turbo"
+      keyword_key: "keyword"

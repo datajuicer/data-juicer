@@ -3,6 +3,7 @@ import time
 from functools import partial
 from multiprocessing import get_context
 
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.resource_utils import (
     cpu_count,
     get_cpu_utilization,
@@ -119,7 +120,7 @@ class Monitor:
 
     @staticmethod
     def draw_resource_util_graph(resource_util_list, store_dir):
-        import matplotlib.pyplot as plt
+        plt = LazyLoader("matplotlib.pyplot")
 
         # avoid error when running on not-main process/thread
         plt.switch_backend("agg")

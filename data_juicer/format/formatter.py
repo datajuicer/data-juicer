@@ -63,12 +63,56 @@ class LocalFormatter(BaseFormatter):
         _num_proc = self.kwargs.pop("num_proc", 1)
         num_proc = num_proc or _num_proc
         logger.info(f"Loading dataset with num_proc: {num_proc}")
-        datasets = load_dataset(
-            self.type,
-            data_files={key.strip("."): self.data_files[key] for key in self.data_files},
-            num_proc=num_proc,
-            **self.kwargs,
-        )
+
+        # If decrypt_after_reading is enabled, decrypt each file into a
+        # temporary file so that no plaintext from the original encrypted
+        # file is written to the regular filesystem.  We write to a NamedTemp-
+        # oraryFile with delete=False, collect all paths, call load_dataset,
+        # then immediately remove the temp files so plaintext does not linger.
+        decrypt = global_cfg is not None and getattr(global_cfg, "decrypt_after_reading", False)
+        if decrypt:
+            import tempfile
+
+            from data_juicer.utils.encryption_utils import (
+                decrypt_file_to_bytes,
+                get_secure_tmpdir,
+                load_fernet_key,
+            )
+
+            fernet = load_fernet_key(getattr(global_cfg, "encryption_key_path", None))
+            tmp_dir = get_secure_tmpdir()
+            decrypted_data_files = {}
+            tmp_paths = []  # track for cleanup
+            for ext, paths in self.data_files.items():
+                tmp_file_paths = []
+                for p in paths:
+                    data = decrypt_file_to_bytes(p, fernet)
+                    suffix = os.path.splitext(p)[-1]
+                    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False, dir=tmp_dir) as tmp:
+                        tmp.write(data)
+                        tmp_paths.append(tmp.name)
+                        tmp_file_paths.append(tmp.name)
+                decrypted_data_files[ext.strip(".")] = tmp_file_paths
+            try:
+                datasets = load_dataset(
+                    self.type,
+                    data_files=decrypted_data_files,
+                    num_proc=num_proc,
+                    **self.kwargs,
+                )
+            finally:
+                for tp in tmp_paths:
+                    try:
+                        os.remove(tp)
+                    except OSError:
+                        pass
+        else:
+            datasets = load_dataset(
+                self.type,
+                data_files={key.strip("."): self.data_files[key] for key in self.data_files},
+                num_proc=num_proc,
+                **self.kwargs,
+            )
         if self.add_suffix:
             logger.info("Add suffix info into dataset...")
             datasets = add_suffixes(datasets, num_proc)

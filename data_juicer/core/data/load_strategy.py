@@ -635,7 +635,8 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
                 # For JSON, we need to use read_json_stream with filesystem
                 from data_juicer.core.data.ray_dataset import read_json_stream
 
-                dataset = read_json_stream(path, filesystem=s3_fs)
+                read_options = kwargs.get("read_options")
+                dataset = read_json_stream(path, filesystem=s3_fs, read_options=read_options)
             elif data_format == "parquet":
                 dataset = ray.data.read_parquet(path, filesystem=s3_fs)
             elif data_format == "csv":
@@ -647,6 +648,10 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
             elif data_format == "tfrecords":
                 dataset = ray.data.read_tfrecords(path, filesystem=s3_fs)
             elif data_format == "lance":
+                # use lazy loader to check pylance installation
+                from data_juicer.utils.lazy_loader import LazyLoader
+
+                LazyLoader.check_packages(["pylance"])
                 dataset = ray.data.read_lance(path, filesystem=s3_fs)
             else:
                 raise ValueError(f"Unsupported data format for S3: {data_format}")

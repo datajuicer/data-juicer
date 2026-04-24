@@ -38,7 +38,7 @@ class TextEntityDependencyFilter(Filter):
         """
         super().__init__(*args, **kwargs)
         # '--no-deps' do not update numpy
-        LazyLoader.check_packages(["spacy-pkuseg"], "--no-deps")
+        LazyLoader.check_packages(["spacy", "spacy-pkuseg"], "--no-deps")
 
         if lang not in ["en", "zh"]:
             raise ValueError(

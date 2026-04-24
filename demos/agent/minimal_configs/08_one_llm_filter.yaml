@@ -1,0 +1,23 @@
+# Minimal: normalize + 单个 LLM filter（如 llm_quality_score_filter）
+project_name: agent-minimal-08
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/08_one_llm_filter.jsonl
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+  - llm_quality_score_filter:
+      api_or_hf_model: "qwen-turbo"
+      min_score: 0.0
+      max_score: 1.0
+      input_keys: ["query", "response"]
+      field_names: ["User Query", "Model Response"]
+      dim_required_keys: ["accuracy", "grammar", "informativeness", "coherence"]

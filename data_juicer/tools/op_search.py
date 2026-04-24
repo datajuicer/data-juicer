@@ -9,10 +9,10 @@ from typing import Dict, List, Optional
 
 from docstring_parser import parse
 from loguru import logger
-from rank_bm25 import BM25Okapi
 
 from data_juicer.format.formatter import FORMATTERS
 from data_juicer.ops import OPERATORS
+from data_juicer.utils.lazy_loader import LazyLoader
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -165,6 +165,7 @@ class OPRecord:
         self.desc = op_cls.__doc__ or ""
         self.tags = analyze_tag_from_cls(op_cls, name)
         self.sig = inspect.signature(op_cls.__init__)
+        self.init_func = op_cls.__init__
         self.param_desc = extract_param_docstring(op_cls.__init__.__doc__ or "")
         self.param_desc_map = self._parse_param_desc()
         self.source_path = str(get_source_path(op_cls))
@@ -209,6 +210,7 @@ class OPRecord:
             "desc": self.desc,
             "tags": self.tags,
             "sig": self.sig,
+            "init_func": self.init_func,
             "param_desc": self.param_desc,
             "param_desc_map": self.param_desc_map,
             "source_path": self.source_path,
@@ -362,7 +364,8 @@ class OPSearcher:
             text = self._get_searchable_text(record, fields)
             corpus_tokens.append(self._tokenize(text))
 
-        self._bm25_index = BM25Okapi(corpus_tokens)
+        rank_bm25 = LazyLoader("rank_bm25", "rank-bm25")
+        self._bm25_index = rank_bm25.BM25Okapi(corpus_tokens)
         self._bm25_records = records
         self._bm25_fields_key = tuple(fields)
 

@@ -1,0 +1,26 @@
+# Minimal: normalize + 若干 filter（无 LLM）
+project_name: agent-minimal-05
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/05_filters.jsonl
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+  - text_length_filter:
+      min_len: 0
+      max_len: 9999999
+  - words_num_filter:
+      lang: "zh"
+      min_num: 0
+      max_num: 9999999
+  - language_id_score_filter:
+      lang: "zh"
+      min_score: 0.0

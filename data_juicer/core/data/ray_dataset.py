@@ -437,9 +437,27 @@ class JSONStreamDatasource(_JSONDatasourceBase):
             while True:
                 try:
                     batch = reader.read_next_batch()
-                    table = pyarrow.Table.from_batches([batch], schema=schema)
                     if schema is None:
-                        schema = table.schema
+                        schema = batch.schema
+                        table = pyarrow.Table.from_batches([batch])
+                    elif schema.equals(batch.schema):
+                        table = pyarrow.Table.from_batches(
+                            [batch], schema=schema
+                        )
+                    else:
+                        try:
+                            schema = pyarrow.unify_schemas(
+                                [schema, batch.schema]
+                            )
+                        except (pyarrow.lib.ArrowInvalid,
+                                pyarrow.lib.ArrowTypeError) as e:
+                            raise ValueError(
+                                f"Schema incompatibility in {path}: {e}. "
+                                f"Cannot unify {schema} with {batch.schema}"
+                            ) from e
+                        table = pyarrow.Table.from_batches(
+                            [batch], schema=schema
+                        )
                     yield table
                 except StopIteration:
                     return

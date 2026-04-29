@@ -30,10 +30,49 @@ class Hasher:
         return m.hexdigest()
 
     @classmethod
+    def _find_op_owner(cls, value):
+        """Walk the ``__self__`` / ``__wrapped__`` chain to find an object
+        that exposes ``_fingerprint_bytes``.  Returns ``(obj, func_name)``
+        or ``(None, None)``."""
+        # Direct bound method
+        obj = getattr(value, "__self__", None)
+        if obj is not None:
+            if callable(getattr(obj, "_fingerprint_bytes", None)):
+                func_name = getattr(value, "__name__", getattr(value, "__qualname__", ""))
+                return obj, func_name
+        # Walk the full __wrapped__ chain (handles multiple decorator
+        # layers such as wrap_func_with_nested_access → @wraps → bound
+        # method).
+        cur = value
+        for _ in range(10):  # guard against infinite loops
+            cur = getattr(cur, "__wrapped__", None)
+            if cur is None:
+                break
+            obj = getattr(cur, "__self__", None)
+            if obj is not None and callable(getattr(obj, "_fingerprint_bytes", None)):
+                func_name = getattr(cur, "__name__", getattr(cur, "__qualname__", ""))
+                return obj, func_name
+        return None, None
+
+    @classmethod
     def hash_default(cls, value: Any) -> str:
         """
         Use dill to serialize objects to avoid serialization failures.
+
+        If the object exposes a ``_fingerprint_bytes()`` method (e.g. OP
+        subclasses), use it so that execution-only attributes like
+        ``work_dir`` are excluded from the cache key.
         """
+        fingerprint_bytes = getattr(value, "_fingerprint_bytes", None)
+        if callable(fingerprint_bytes):
+            return cls.hash_bytes(fingerprint_bytes())
+        # For bound methods / wrapped functions whose __self__ supports
+        # _fingerprint_bytes, hash the (fingerprint, method_name) pair
+        # instead of dill-dumping the bound method (which would
+        # re-serialize the full object including excluded attrs).
+        obj, func_name = cls._find_op_owner(value)
+        if obj is not None:
+            return cls.hash_bytes(obj._fingerprint_bytes() + dill.dumps(func_name))
         return cls.hash_bytes(dill.dumps(value))
 
     @classmethod

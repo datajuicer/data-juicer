@@ -181,7 +181,7 @@ def build_base_parser() -> ArgumentParser:
         default=None,
         help="Configuration used to create a dataset. "  # noqa: E251
         "The dataset will be created from this configuration if provided. "
-        "It must contain the `type` field to specify the dataset name.",
+        "It must contain the `--type` field to specify the dataset name.",
     )
     parser.add_argument(
         "--validators",
@@ -199,6 +199,14 @@ def build_base_parser() -> ArgumentParser:
         "options such as chunksize (JSON), columns (Parquet), or "
         "delimiter (CSV). See the HuggingFace Datasets docs for "
         "available options.",
+    )
+    parser.add_argument(
+        "--read_options",
+        type=Dict,
+        default={},
+        help="Read options passed through to PyArrow reading functions "
+        "(e.g., block_size for JSON reading). This configuration is "
+        "especially useful when reading large JSON files.",
     )
     parser.add_argument(
         "--work_dir",
@@ -260,6 +268,33 @@ def build_base_parser() -> ArgumentParser:
         help="Export-specific AWS credentials for S3 export. If export_path is S3 and this is not provided, "
         "an error will be raised. Should contain aws_access_key_id, aws_secret_access_key, aws_region, "
         "and optionally aws_session_token and endpoint_url.",
+    )
+    parser.add_argument(
+        "--decrypt_after_reading",
+        type=bool,
+        default=False,
+        help="Whether to decrypt input dataset files after reading. When True, "
+        "each input file is decrypted in memory using a Fernet key before "
+        "being loaded by HuggingFace datasets. No plaintext file is written "
+        "to disk. HuggingFace cache is automatically disabled to prevent "
+        "plaintext Arrow files from being persisted. Default: False.",
+    )
+    parser.add_argument(
+        "--encrypt_before_export",
+        type=bool,
+        default=False,
+        help="Whether to encrypt output dataset files before writing to disk. "
+        "When True, each exported file is encrypted in-place with a Fernet "
+        "key immediately after being written. Default: False.",
+    )
+    parser.add_argument(
+        "--encryption_key_path",
+        type=Optional[str],
+        default=None,
+        help="Path to a file containing the Fernet encryption key (base64 "
+        "url-safe string). If not provided, the key is read from the "
+        "environment variable DJ_ENCRYPTION_KEY. Required when either "
+        "decrypt_after_reading or encrypt_before_export is True.",
     )
     parser.add_argument(
         "--keep_stats_in_res_ds",
@@ -395,9 +430,9 @@ def build_base_parser() -> ArgumentParser:
     parser.add_argument(
         "--open_monitor",
         type=bool,
-        default=True,
+        default=False,
         help="Whether to open the monitor to trace resource utilization for "  # noqa: E251
-        "each OP during data processing. It's True in default.",
+        "each OP during data processing. It's False in default.",
     )
     parser.add_argument(
         "--use_checkpoint",
@@ -756,6 +791,13 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         setting up logger.
     :return: a global cfg object used by the DefaultExecutor or Analyzer
     """
+    # Optional: stdlib json for HF datasets JSONL (avoids ujson "Value is too big!")
+    from data_juicer.utils.datasets_json_compat import (
+        apply_stdlib_json_patch_for_datasets,
+    )
+
+    apply_stdlib_json_patch_for_datasets()
+
     if args is None:
         args = sys.argv[1:]
     with timing_context("Total config initialization time"):
@@ -977,6 +1019,37 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
             os.makedirs(cfg.temp_dir, exist_ok=True)
         tempfile.tempdir = cfg.temp_dir
 
+    # encryption mode: force disable HF cache to prevent plaintext Arrow files
+    # from being persisted to disk, and validate the key early.
+    if cfg.get("decrypt_after_reading", False) or cfg.get("encrypt_before_export", False):
+        if cfg.get("use_cache", True):
+            logger.warning(
+                "Encryption mode is enabled: forcing use_cache=False to "
+                "prevent plaintext Arrow cache files from being written to disk."
+            )
+            from datasets import disable_caching
+
+            disable_caching()
+            cfg.use_cache = False
+            if cfg.cache_compress:
+                logger.warning("Disable cache compression due to disabled cache.")
+                cfg.cache_compress = None
+            import tempfile
+
+            logger.warning(
+                f"Set temp directory to store temp files to [{cfg.temp_dir}]. "
+                "For maximum security, set temp_dir to a memory-backed "
+                "filesystem such as /dev/shm."
+            )
+            if cfg.temp_dir is not None and not os.path.exists(cfg.temp_dir):
+                os.makedirs(cfg.temp_dir, exist_ok=True)
+            tempfile.tempdir = cfg.temp_dir
+        # Validate key availability early so the job fails fast on
+        # misconfiguration rather than deep into processing.
+        from data_juicer.utils.encryption_utils import load_fernet_key
+
+        load_fernet_key(cfg.get("encryption_key_path", None))
+
     # The checkpoint mode is not compatible with op fusion for now.
     if cfg.get("op_fusion", False):
         cfg.use_checkpoint = False
@@ -1195,15 +1268,20 @@ def update_op_process(cfg, parser, used_ops=None):
             # Add new operator
             cfg.process.append({op_name: None if internal_op_para is None else namespace_to_dict(internal_op_para)})
 
-    # Optimize type checking
+    # Optimize type checking: deepcopy(parser) does not replicate nested add_class_arguments,
+    # so only pass global args to temp_parser to avoid "Unrecognized arguments" for op.* keys.
     recognized_args = {
         action.dest for action in parser._actions if hasattr(action, "dest") and isinstance(action, ActionTypeHint)
     }
+    exclude_prefixes = tuple(used_ops) + tuple(f"{op_name}." for op_name in (used_ops or ()))
 
-    # check the op params via type hint
     temp_parser = copy.deepcopy(parser)
-
-    temp_args = namespace_to_arg_list(temp_cfg, includes=recognized_args, excludes=["config"])
+    temp_args = namespace_to_arg_list(
+        temp_cfg,
+        includes=recognized_args,
+        excludes=["config"],
+        exclude_prefixes=exclude_prefixes,
+    )
 
     if temp_cfg.config:
         temp_args.extend(["--config", os.path.abspath(temp_cfg.config[0])])
@@ -1216,15 +1294,27 @@ def update_op_process(cfg, parser, used_ops=None):
     return cfg
 
 
-def namespace_to_arg_list(namespace, prefix="", includes=None, excludes=None):
+def namespace_to_arg_list(namespace, prefix="", includes=None, excludes=None, exclude_prefixes=None):
     arg_list = []
+    exclude_prefixes = exclude_prefixes or ()
 
     for key, value in vars(namespace).items():
+        concat_key = f"{prefix}{key}"
+        if exclude_prefixes and (
+            concat_key in exclude_prefixes
+            or any(concat_key.startswith(p + ".") for p in exclude_prefixes if "." not in p)
+        ):
+            continue
         if issubclass(type(value), Namespace):
-            nested_args = namespace_to_arg_list(value, f"{prefix}{key}.")
+            nested_args = namespace_to_arg_list(
+                value,
+                f"{prefix}{key}.",
+                includes=includes,
+                excludes=excludes,
+                exclude_prefixes=exclude_prefixes,
+            )
             arg_list.extend(nested_args)
         elif value is not None:
-            concat_key = f"{prefix}{key}"
             if includes is not None and concat_key not in includes:
                 continue
             if excludes is not None and concat_key in excludes:
@@ -1681,8 +1771,6 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
     """
     set init configs of data-juicer for cfg
     """
-    temp_dir = tempfile.gettempdir()
-    temp_file = os.path.join(temp_dir, "job_dj_config.json")
     if isinstance(cfg, Namespace):
         cfg = namespace_to_dict(cfg)
 
@@ -1703,10 +1791,13 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
         for attr in internal_attrs:
             cfg.pop(attr, None)
 
-    # create a temp config file
-    with open(temp_file, "w") as f:
-        json.dump(prepare_cfgs_for_export(cfg), f)
-    inited_dj_cfg = init_configs(["--config", temp_file], load_configs_only=load_configs_only)
+    # Use a unique temporary file per call to avoid race conditions when
+    # multiple requests are processed concurrently (e.g. in API service mode).
+    # The file is automatically deleted after the with-block exits.
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", prefix="job_dj_config_", delete=True) as temp_f:
+        json.dump(prepare_cfgs_for_export(cfg), temp_f)
+        temp_f.flush()
+        inited_dj_cfg = init_configs(["--config", temp_f.name], load_configs_only=load_configs_only)
     return inited_dj_cfg
 
 

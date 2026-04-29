@@ -18,11 +18,15 @@ import numpy as np
 import numpy.typing as npt
 
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import close_video, cut_video_by_seconds
 
 # TODO: support cuda
 
-av = LazyLoader("av")
+
+def setup_av(mod):
+    mod.logging.set_level(mod.logging.PANIC)
+
+
+av = LazyLoader("av", post_import=setup_av)
 cv2 = LazyLoader("cv2")
 decord = LazyLoader("decord")
 
@@ -305,6 +309,8 @@ class AVReader(VideoReader):
 
         frames, encoded_data = None, None
         if (not to_numpy) or output_path:
+            from data_juicer.utils.mm_utils import cut_video_by_seconds
+
             res = cut_video_by_seconds(
                 input_video=self.container,
                 output_video=output_path,
@@ -340,6 +346,8 @@ class AVReader(VideoReader):
             return False
 
     def close(self):
+        from data_juicer.utils.mm_utils import close_video
+
         close_video(self.container)
 
 
@@ -550,7 +558,7 @@ class FFmpegReader(VideoReader):
                     "-i",
                     self.video_path,
                     "-vf",
-                    "showinfo,select=eq(pict_type\,I)",  # noqa: W605
+                    r"showinfo,select=eq(pict_type\,I)",  # noqa: W605
                     "-vsync",
                     "vfr",
                     "-f",
@@ -564,7 +572,7 @@ class FFmpegReader(VideoReader):
                     "-i",
                     self.video_path,
                     "-vf",
-                    "showinfo,select=eq(pict_type\,I)",  # noqa: W605
+                    r"showinfo,select=eq(pict_type\,I)",  # noqa: W605
                     "-vsync",
                     "vfr",
                     "-f",

@@ -236,12 +236,8 @@ class Difference_Caption_Generator_Mapper(Mapper):
             crop_image1_samples = crop_image1_samples.add_column(
                 name=Fields.stats, column=[{}] * crop_image1_samples.num_rows
             )
-        crop_image1_filtered = crop_image1_samples.map(
-            self.fused_ops[1].compute_stats, num_proc=self.image_text_matching_filter_args["num_proc"], with_rank=True
-        )
-        crop_image1_filtered = crop_image1_filtered.filter(
-            self.fused_ops[1].process, num_proc=self.image_text_matching_filter_args["num_proc"]
-        )
+        crop_image1_filtered = crop_image1_samples.map(self.fused_ops[1].compute_stats, num_proc=None, with_rank=True)
+        crop_image1_filtered = crop_image1_filtered.filter(self.fused_ops[1].process, num_proc=None)
         crop_image1_filtered = crop_image1_filtered.to_list()
 
         crop_image2_samples = data_juicer.core.NestedDataset.from_list(crop_image2_list)
@@ -249,12 +245,8 @@ class Difference_Caption_Generator_Mapper(Mapper):
             crop_image2_samples = crop_image2_samples.add_column(
                 name=Fields.stats, column=[{}] * crop_image2_samples.num_rows
             )
-        crop_image2_filtered = crop_image2_samples.map(
-            self.fused_ops[1].compute_stats, num_proc=self.image_text_matching_filter_args["num_proc"], with_rank=True
-        )
-        crop_image2_filtered = crop_image2_filtered.filter(
-            self.fused_ops[1].process, num_proc=self.image_text_matching_filter_args["num_proc"]
-        )
+        crop_image2_filtered = crop_image2_samples.map(self.fused_ops[1].compute_stats, num_proc=None, with_rank=True)
+        crop_image2_filtered = crop_image2_filtered.filter(self.fused_ops[1].process, num_proc=None)
         crop_image2_filtered = crop_image2_filtered.to_list()
 
         crop_image2_filtered_bbox_id = []
@@ -294,11 +286,9 @@ class Difference_Caption_Generator_Mapper(Mapper):
             )
 
         filtered_caption_pairs = filtered_caption_pairs.map(
-            self.fused_ops[2].compute_stats, num_proc=self.text_pair_similarity_filter_args["num_proc"], with_rank=True
+            self.fused_ops[2].compute_stats, num_proc=None, with_rank=True
         )
-        filtered_caption_pairs = filtered_caption_pairs.filter(
-            self.fused_ops[2].process, num_proc=self.text_pair_similarity_filter_args["num_proc"]
-        )
+        filtered_caption_pairs = filtered_caption_pairs.filter(self.fused_ops[2].process, num_proc=None)
         filtered_caption_pairs = filtered_caption_pairs.to_list()
 
         effective_bboxes_caption1 = []

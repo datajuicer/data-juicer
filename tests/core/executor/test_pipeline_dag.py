@@ -17,12 +17,13 @@ from data_juicer.core.executor.dag_execution_strategies import (
     is_global_operation
 )
 from data_juicer.ops import load_ops
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
 # Note: PipelineAST tests removed - AST functionality was removed in favor of strategy-based DAG building
 
 
-class TestPipelineDAG(unittest.TestCase):
+class TestPipelineDAG(DataJuicerTestCaseBase):
     """Test DAG execution planning functionality."""
 
     def setUp(self):
@@ -127,7 +128,7 @@ class TestPipelineDAG(unittest.TestCase):
         self.assertIn("completion_percentage", summary)
 
 
-class TestDAGExecutionStrategies(unittest.TestCase):
+class TestDAGExecutionStrategies(DataJuicerTestCaseBase):
     """Test DAG execution strategies."""
 
     def setUp(self):

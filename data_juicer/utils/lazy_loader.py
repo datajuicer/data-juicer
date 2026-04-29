@@ -224,7 +224,14 @@ class LazyLoader(types.ModuleType):
             else:
                 logger.info(f"Package [{package_spec}] already installed, carry on..")
 
-    def __init__(self, module_name: str, package_name: str = None, package_url: str = None, auto_install: bool = True):
+    def __init__(
+        self,
+        module_name: str,
+        package_name: str = None,
+        package_url: str = None,
+        auto_install: bool = True,
+        post_import=None,
+    ):
         """
         Initialize the LazyLoader.
 
@@ -257,6 +264,8 @@ class LazyLoader(types.ModuleType):
         frame = inspect.currentframe().f_back
         self._parent_module_globals = frame.f_globals
         self._module = None
+
+        self.post_import = post_import
 
         # Print trace information
         # logger.debug(
@@ -434,6 +443,8 @@ class LazyLoader(types.ModuleType):
             # Try importing again
             try:
                 self._module = importlib.import_module(self._module_name)
+                if self.post_import:
+                    self.post_import(self._module)
             except ImportError as import_error:
                 raise ImportError(
                     f"Failed to import {self._module_name} after "

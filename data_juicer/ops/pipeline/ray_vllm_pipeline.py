@@ -39,5 +39,5 @@ class RayVLLMEnginePipeline(Pipeline):
                 f"Supported types are: {all_accelerator_types}"
             )
 
-    def run(self, dataset: ray.data.Dataset, *, exporter=None, tracer=None, reduce=True) -> ray.data.Dataset:
+    def run(self, dataset: "ray.data.Dataset", *, exporter=None, tracer=None, reduce=True) -> "ray.data.Dataset":
         raise NotImplementedError

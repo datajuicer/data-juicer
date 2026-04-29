@@ -1,6 +1,5 @@
 import os
 
-import av
 from PIL import ImageFilter
 
 from data_juicer.utils.constant import Fields
@@ -108,6 +107,10 @@ class VideoFaceBlurMapper(Mapper):
         sample, videos = load_data_with_context(sample, context, loaded_video_keys, load_video)
 
         model = get_model(self.model_key)
+
+        from data_juicer.utils.video_utils import setup_av
+
+        av = LazyLoader("av", post_import=setup_av)
 
         def _blur_func(frame):
             image = frame.to_image()

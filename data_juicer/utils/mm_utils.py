@@ -6,7 +6,6 @@ import re
 import shutil
 from typing import ClassVar, Dict, List, Optional, Tuple, Union
 
-import av
 import numpy as np
 import PIL
 from datasets import Audio, Image
@@ -16,11 +15,10 @@ from pydantic import PositiveInt
 from data_juicer.utils.constant import DEFAULT_PREFIX, SPECIAL_TOKEN_ENV_PREFIX, Fields
 from data_juicer.utils.file_utils import add_suffix_to_filename
 from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.video_utils import setup_av
 
 cv2 = LazyLoader("cv2", "opencv-contrib-python")
-
-# suppress most warnings from av
-av.logging.set_level(av.logging.PANIC)
+av = LazyLoader("av", post_import=setup_av)
 
 
 _DEFAULT_TOKEN_FORMATS: Dict[str, str] = {
@@ -350,7 +348,7 @@ def load_video(path, mode="r"):
     return container
 
 
-def get_video_duration(input_video: Union[str, av.container.InputContainer], video_stream_index: int = 0):
+def get_video_duration(input_video: Union[str, "av.container.InputContainer"], video_stream_index: int = 0):
     """
     Get the video's duration from the container
 
@@ -377,7 +375,7 @@ def get_video_duration(input_video: Union[str, av.container.InputContainer], vid
     return float(duration)
 
 
-def get_decoded_frames_from_video(input_video: Union[str, av.container.InputContainer], video_stream_index: int = 0):
+def get_decoded_frames_from_video(input_video: Union[str, "av.container.InputContainer"], video_stream_index: int = 0):
     """
     Get the video's frames from the container
 
@@ -399,7 +397,7 @@ def get_decoded_frames_from_video(input_video: Union[str, av.container.InputCont
 
 
 def cut_video_by_seconds(
-    input_video: Union[str, av.container.InputContainer],
+    input_video: Union[str, "av.container.InputContainer"],
     output_video: str,
     start_seconds: float,
     end_seconds: Optional[float] = None,
@@ -515,7 +513,7 @@ def cut_video_by_seconds(
     return os.path.exists(output_video)
 
 
-def process_each_frame(input_video: Union[str, av.container.InputContainer], output_video: str, frame_func):
+def process_each_frame(input_video: Union[str, "av.container.InputContainer"], output_video: str, frame_func):
     """
     Process each frame in video by replacing each frame by
     `frame_func(frame)`.
@@ -579,7 +577,7 @@ def process_each_frame(input_video: Union[str, av.container.InputContainer], out
         return input_video if isinstance(input_video, str) else input_video.name
 
 
-def extract_key_frames_by_seconds(input_video: Union[str, av.container.InputContainer], duration: float = 1):
+def extract_key_frames_by_seconds(input_video: Union[str, "av.container.InputContainer"], duration: float = 1):
     """Extract key frames by seconds.
     :param input_video: input video path or av.container.InputContainer.
     :param duration: duration of each video split in seconds.
@@ -611,7 +609,7 @@ def extract_key_frames_by_seconds(input_video: Union[str, av.container.InputCont
     return all_key_frames
 
 
-def extract_key_frames(input_video: Union[str, av.container.InputContainer], video_stream_index: int = 0):
+def extract_key_frames(input_video: Union[str, "av.container.InputContainer"], video_stream_index: int = 0):
     """
     Extract key frames from the input video. If there is no keyframes in the
     video, return the first frame.
@@ -656,7 +654,7 @@ def extract_key_frames(input_video: Union[str, av.container.InputContainer], vid
     return key_frames
 
 
-def get_key_frame_seconds(input_video: Union[str, av.container.InputContainer]):
+def get_key_frame_seconds(input_video: Union[str, "av.container.InputContainer"]):
     """
     Get seconds of key frames in the input video.
     """
@@ -667,7 +665,7 @@ def get_key_frame_seconds(input_video: Union[str, av.container.InputContainer]):
 
 
 def extract_video_frames_uniformly_by_seconds(
-    input_video: Union[str, av.container.InputContainer], frame_num: PositiveInt, duration: float = 1
+    input_video: Union[str, "av.container.InputContainer"], frame_num: PositiveInt, duration: float = 1
 ):
     """Extract video frames uniformly by seconds.
     :param input_video: input video path or av.container.InputContainer.
@@ -703,7 +701,7 @@ def extract_video_frames_uniformly_by_seconds(
 
 
 def extract_video_frames_uniformly(
-    input_video: Union[str, av.container.InputContainer],
+    input_video: Union[str, "av.container.InputContainer"],
     frame_num: PositiveInt,
 ):
     """
@@ -827,7 +825,7 @@ def extract_video_frames_uniformly(
 
 
 def extract_audio_from_video(
-    input_video: Union[str, av.container.InputContainer],
+    input_video: Union[str, "av.container.InputContainer"],
     output_audio: Optional[str] = None,
     start_seconds: int = 0,
     end_seconds: Optional[int] = None,
@@ -1049,7 +1047,7 @@ def parse_string_to_roi(roi_string, roi_type="pixel"):
         return None
 
 
-def close_video(container: av.container.InputContainer):
+def close_video(container: "av.container.InputContainer"):
     """
     Close the video stream and container to avoid memory leak.
 

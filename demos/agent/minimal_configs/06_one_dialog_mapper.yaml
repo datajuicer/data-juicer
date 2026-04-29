@@ -1,0 +1,22 @@
+# Minimal: normalize + 单个 dialog mapper（需 LLM api_model）
+project_name: agent-minimal-06
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/06_one_dialog_mapper.jsonl
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+  - dialog_intent_detection_mapper:
+      api_model: "qwen-turbo"
+      max_round: 5
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"

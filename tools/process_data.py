@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from loguru import logger
 
 from data_juicer.config import init_configs
-from data_juicer.core import DefaultExecutor
 
 
 @contextmanager
@@ -22,6 +21,8 @@ def main():
 
     with timing_context("Initializing executor"):
         if cfg.executor_type == "default":
+            from data_juicer.core import DefaultExecutor
+
             executor = DefaultExecutor(cfg)
         elif cfg.executor_type == "ray":
             from data_juicer.core.executor.ray_executor import RayExecutor

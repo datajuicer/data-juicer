@@ -2,22 +2,16 @@ import logging
 import math
 import os
 
-import matplotlib.font_manager as fm
-import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
-from wordcloud import WordCloud
 
 from data_juicer.utils.constant import DEFAULT_PREFIX, Fields
+from data_juicer.utils.lazy_loader import LazyLoader
 
 from .overall_analysis import OverallAnalysis
 
-logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
-FONT = os.environ.get("ANALYZER_FONT", "Heiti SC")
-FONT_PATH = fm.findfont(FONT)
-
-plt.rcParams["font.sans-serif"] = [FONT]
-plt.rcParams["axes.unicode_minus"] = False
+fm = LazyLoader("matplotlib.font_manager")
+plt = LazyLoader("matplotlib.pyplot")
 
 
 def get_row_col(total_num, factor=2):
@@ -76,6 +70,13 @@ class ColumnWiseAnalysis:
         :param save_stats_in_one_file: whether save all analysis figures of all
             stats into one image file
         """
+        # setup matplotlib
+        logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+        self.font = os.environ.get("ANALYZER_FONT", "Heiti SC")
+
+        plt.rcParams["font.sans-serif"] = [self.font]
+        plt.rcParams["axes.unicode_minus"] = False
+
         self.stats = pd.DataFrame(dataset[Fields.stats])
         self.meta = pd.DataFrame(dataset[Fields.meta])
         # remove non-tag columns
@@ -311,7 +312,8 @@ class ColumnWiseAnalysis:
             else:
                 word_nums[w] = 1
 
-        wc = WordCloud(font_path=FONT_PATH, width=400, height=320)
+        wordcloud = LazyLoader("wordcloud")
+        wc = wordcloud.WordCloud(font_path=fm.findfont(self.font), width=400, height=320)
         wc.generate_from_frequencies(word_nums)
 
         if ax is None:

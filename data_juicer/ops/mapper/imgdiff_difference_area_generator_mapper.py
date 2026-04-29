@@ -345,12 +345,8 @@ class Difference_Area_Generator_Mapper(Mapper):
             crop_image1_samples = crop_image1_samples.add_column(
                 name=Fields.stats, column=[{}] * crop_image1_samples.num_rows
             )
-        crop_image1_filtered = crop_image1_samples.map(
-            self.fused_ops[2].compute_stats, num_proc=self.image_text_matching_filter_args["num_proc"], with_rank=True
-        )
-        crop_image1_filtered = crop_image1_filtered.filter(
-            self.fused_ops[2].process, num_proc=self.image_text_matching_filter_args["num_proc"]
-        )
+        crop_image1_filtered = crop_image1_samples.map(self.fused_ops[2].compute_stats, num_proc=None, with_rank=True)
+        crop_image1_filtered = crop_image1_filtered.filter(self.fused_ops[2].process, num_proc=None)
         crop_image1_filtered = crop_image1_filtered.to_list()
 
         crop_image2_samples = data_juicer.core.NestedDataset.from_list(crop_image2_samples)
@@ -358,12 +354,8 @@ class Difference_Area_Generator_Mapper(Mapper):
             crop_image2_samples = crop_image2_samples.add_column(
                 name=Fields.stats, column=[{}] * crop_image2_samples.num_rows
             )
-        crop_image2_filtered = crop_image2_samples.map(
-            self.fused_ops[2].compute_stats, num_proc=self.image_text_matching_filter_args["num_proc"], with_rank=True
-        )
-        crop_image2_filtered = crop_image2_filtered.filter(
-            self.fused_ops[2].process, num_proc=self.image_text_matching_filter_args["num_proc"]
-        )
+        crop_image2_filtered = crop_image2_samples.map(self.fused_ops[2].compute_stats, num_proc=None, with_rank=True)
+        crop_image2_filtered = crop_image2_filtered.filter(self.fused_ops[2].process, num_proc=None)
         crop_image2_filtered = crop_image2_filtered.to_list()
 
         crop_image2_filtered_bbox_id = []
@@ -400,11 +392,9 @@ class Difference_Area_Generator_Mapper(Mapper):
                 name=Fields.stats, column=[{}] * filtered_sub_image_pairs.num_rows
             )
         filtered_sub_image_pairs = filtered_sub_image_pairs.map(
-            self.fused_ops[0].compute_stats, num_proc=self.image_pair_similarity_filter_args["num_proc"], with_rank=True
+            self.fused_ops[0].compute_stats, num_proc=None, with_rank=True
         )
-        filtered_sub_image_pairs = filtered_sub_image_pairs.filter(
-            self.fused_ops[0].process, num_proc=self.image_pair_similarity_filter_args["num_proc"]
-        )
+        filtered_sub_image_pairs = filtered_sub_image_pairs.filter(self.fused_ops[0].process, num_proc=None)
         filtered_sub_image_pairs = filtered_sub_image_pairs.to_list()
 
         if len(filtered_sub_image_pairs) == 0:

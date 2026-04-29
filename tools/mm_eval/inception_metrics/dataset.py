@@ -1,13 +1,9 @@
 import os
-import av
 import cv2
 import json
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
-from typing import Any
 
 import einops
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 

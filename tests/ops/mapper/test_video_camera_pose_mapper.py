@@ -50,13 +50,14 @@ class VideoCameraPoseMapperTest(DataJuicerTestCaseBase):
             moge_output_info_dir=DATA_JUICER_ASSETS_CACHE,
             if_save_info=True,
             output_info_dir=DATA_JUICER_ASSETS_CACHE,
+            num_proc=num_proc,
         )
 
         dataset = Dataset.from_list(ds_list)
         if Fields.meta not in dataset.features:
             dataset = dataset.add_column(name=Fields.meta,
                                          column=[{}] * dataset.num_rows)
-        dataset = dataset.map(op.process, num_proc=num_proc, with_rank=True)
+        dataset = dataset.map(op.process, with_rank=True)
         res_list = dataset.to_list()
 
         for sample, target in zip(res_list, tgt_list):

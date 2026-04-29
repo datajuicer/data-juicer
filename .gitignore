@@ -39,8 +39,13 @@ tmp/
 # perf bench data
 perf_bench_data/
 
+# some local demo data
+demos/local/*
+
 # env file
 .env
+
+demos/local/*
 
 # cython outputs
 /data_juicer/ops/deduplicator/minhash.cpython-*

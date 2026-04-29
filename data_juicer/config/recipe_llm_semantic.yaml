@@ -1,0 +1,39 @@
+# Recipe example: LLM semantic ops (extract + condition filter)
+# - llm_extract_mapper: extract structured fields from text; results in meta, cost in meta.llm_semantic_usage
+# - llm_condition_filter: keep samples satisfying a natural language condition; cost in stats.llm_semantic_usage
+# Use with API or HuggingFace/vLLM backend. Compatible with jsonl and unstructured text.
+#
+# DashScope OpenAI-compatible REST (env only is enough):
+#   export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+#   export OPENAI_API_KEY=<sk>   # or DASHSCOPE_API_KEY
+# Optional: export DASHSCOPE_BASE_URL / OPENAI_API_URL (same as OPENAI_BASE_URL)
+# Default gpt-4o is auto-remapped to qwen-plus on DashScope; override with DASHSCOPE_DEFAULT_MODEL or api_or_hf_model.
+
+project_name: 'llm_semantic_demo'
+dataset_path: null  # set to your jsonl path
+export_path: './outputs/llm_semantic/processed.jsonl'
+
+np: 2
+text_keys: 'text'
+executor_type: default
+
+process:
+  # Extract topic and sentiment from each sample's text; write to meta.llm_extract (or meta_output_key)
+  - llm_extract_mapper:
+      input_keys: ['text']
+      output_schema:
+        topic: "One short phrase: main topic or theme."
+        sentiment: "One word: positive, negative, or neutral."
+      api_or_hf_model: 'gpt-4o'
+      meta_output_key: 'llm_extract'
+      try_num: 2
+      sampling_params:
+        temperature: 0.3
+        max_tokens: 256
+
+  # Keep only samples that satisfy the condition (e.g. contain a question)
+  - llm_condition_filter:
+      text_key: 'text'
+      condition: "The text contains a clear question or request for information."
+      api_or_hf_model: 'gpt-4o'
+      try_num: 2

@@ -187,6 +187,7 @@ For detailed documentation, please see [here](https://datajuicer.github.io/data-
 
 **Quick Links:**
 - **[operator zoo](https://datajuicer.github.io/data-juicer/en/main/docs/Operators.html)** — Browse 200+ operators with examples
+- **[Agent interaction quality & bad-case](demos/agent/README.md)** — In-repo recipe, JSONL pipeline, HTML report (`demos/agent/`; operators such as `agent_bad_case_signal_mapper` are also listed in [docs/Operators.md](docs/Operators.md))
 - **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — Community-driven recipes and best practices
 - **[developer guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.html)** — Build your own code and contribute to DJ 
 - **[data-juicer-cookbook](https://datajuicer.github.io/data-juicer/en/main/docs/tutorial/DJ-Cookbook.html)** — resource archive

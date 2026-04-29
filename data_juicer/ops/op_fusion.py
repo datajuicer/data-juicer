@@ -7,6 +7,7 @@ from data_juicer.ops.base_op import OP, OPERATORS, Filter, Mapper
 from data_juicer.ops.load import load_ops
 from data_juicer.utils.common_utils import check_op_method_param
 from data_juicer.utils.constant import Fields, InterVars
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.registry import Registry
 
 # Type of intermediate vars
@@ -147,7 +148,9 @@ class FusedFilter(Filter):
         self.num_proc = min([op.runtime_np() for op in self.fused_filters])
 
     def compute_stats_batched(self, samples, rank=None):
-        import av
+        from data_juicer.utils.video_utils import setup_av
+
+        av = LazyLoader("av", post_import=setup_av)
 
         # context for the intermediate vars
         num_samples = len(samples[Fields.stats])
@@ -222,7 +225,9 @@ class GeneralFusedOP(Mapper):
     def process_batched(self, samples, rank=None):
         from copy import deepcopy
 
-        import av
+        from data_juicer.utils.video_utils import setup_av
+
+        av = LazyLoader("av", post_import=setup_av)
 
         tmp_samples = deepcopy(samples)
 

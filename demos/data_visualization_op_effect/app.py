@@ -5,7 +5,6 @@ import copy
 import math
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -15,6 +14,9 @@ from data_juicer.config import init_configs
 from data_juicer.core import Analyzer
 from data_juicer.ops.base_op import OPERATORS
 from data_juicer.utils.constant import Fields, StatsKeys
+from data_juicer.utils.lazy_loader import LazyLoader
+
+plt = LazyLoader('matplotlib.pyplot')
 
 
 @st.cache_data

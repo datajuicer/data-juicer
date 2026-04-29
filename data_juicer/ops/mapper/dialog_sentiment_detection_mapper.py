@@ -5,6 +5,14 @@ from loguru import logger
 from pydantic import NonNegativeInt, PositiveInt
 
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
+from data_juicer.ops.mapper.dialog_llm_input_utils import (
+    build_dialog_turns_for_prompt,
+    clip_query_response_pair,
+)
+from data_juicer.utils.agent_output_locale import (
+    dialog_detection_output_language_note,
+    normalize_preferred_output_lang,
+)
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
@@ -74,8 +82,11 @@ class DialogSentimentDetectionMapper(Mapper):
         analysis_pattern: Optional[str] = None,
         labels_pattern: Optional[str] = None,
         try_num: PositiveInt = 3,
+        max_query_chars_for_prompt: NonNegativeInt = 0,
+        max_response_chars_for_prompt: NonNegativeInt = 0,
         model_params: Dict = {},
         sampling_params: Dict = {},
+        preferred_output_lang: str = "zh",
         **kwargs,
     ):
         """
@@ -111,6 +122,10 @@ class DialogSentimentDetectionMapper(Mapper):
             labels.
         :param try_num: The number of retry attempts when there is an API
             call error or output parsing error.
+        :param max_query_chars_for_prompt: If > 0, truncate each user query
+            string before building the API prompt (agent-friendly).
+        :param max_response_chars_for_prompt: If > 0, truncate each LLM /
+            assistant side string (often huge when tool traces are flattened).
         :param model_params: Parameters for initializing the API model.
         :param sampling_params: Extra parameters passed to the API call.
             e.g {'temperature': 0.9, 'top_p': 0.95}
@@ -139,6 +154,9 @@ class DialogSentimentDetectionMapper(Mapper):
         )
 
         self.try_num = try_num
+        self.max_query_chars_for_prompt = int(max_query_chars_for_prompt)
+        self.max_response_chars_for_prompt = int(max_response_chars_for_prompt)
+        self.preferred_output_lang = normalize_preferred_output_lang(preferred_output_lang)
 
     def build_input(self, history, query):
         if self.sentiment_candidates:
@@ -168,7 +186,7 @@ class DialogSentimentDetectionMapper(Mapper):
         return analysis, labels
 
     def process_single(self, sample, rank=None):
-        meta = sample[Fields.meta]
+        meta = sample.setdefault(Fields.meta, {})
         if self.labels_key in meta and self.analysis_key in meta:
             return sample
 
@@ -178,19 +196,30 @@ class DialogSentimentDetectionMapper(Mapper):
         labels_list = []
         history = []
 
-        dialog = sample[self.history_key]
-        if self.query_key in sample and sample[self.query_key]:
-            if self.response_key in sample and sample[self.response_key]:
-                dialog.append((sample[self.query_key], sample[self.response_key]))
-            else:
-                dialog.append((sample[self.query_key], ""))
+        dialog = build_dialog_turns_for_prompt(
+            sample,
+            history_key=self.history_key,
+            query_key=self.query_key,
+            response_key=self.response_key,
+        )
 
         for qa in dialog:
-            input_prompt = self.build_input(history, qa)
+            q_use, r_use = clip_query_response_pair(
+                qa[0],
+                qa[1],
+                self.max_query_chars_for_prompt,
+                self.max_response_chars_for_prompt,
+            )
+            qa_use = (q_use, r_use)
+            input_prompt = self.build_input(history, qa_use)
             messages = [
                 {
                     "role": "system",
-                    "content": self.system_prompt,
+                    "content": self.system_prompt
+                    + dialog_detection_output_language_note(
+                        self.preferred_output_lang,
+                        "sentiment",
+                    ),
                 },
                 {
                     "role": "user",
@@ -210,12 +239,13 @@ class DialogSentimentDetectionMapper(Mapper):
             analysis_list.append(analysis)
             labels_list.append(labels)
 
-            history.append(self.query_template.format(query=qa[0]))
+            history.append(self.query_template.format(query=q_use))
             history.append(self.analysis_template.format(analysis=analysis))
             history.append(self.labels_template.format(labels=labels))
-            history.append(self.response_template.format(response=qa[1]))
+            history.append(self.response_template.format(response=r_use))
 
-        meta[self.labels_key] = labels_list
+        # Deduplicate labels while preserving order
+        meta[self.labels_key] = list(dict.fromkeys(labels_list))
         meta[self.analysis_key] = analysis_list
 
         return sample

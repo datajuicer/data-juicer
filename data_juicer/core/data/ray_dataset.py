@@ -371,6 +371,11 @@ class RayDataset(DJDataset):
             "binary_files",
             "lance",
         }:
+            if data_format == "lance":
+                # use lazy loader to check pylance installation
+                from data_juicer.utils.lazy_loader import LazyLoader
+
+                LazyLoader.check_packages(["pylance"])
             return getattr(ray.data, f"read_{data_format}")(paths)
 
     @classmethod
@@ -393,7 +398,17 @@ class RayDataset(DJDataset):
         return self.data.to_pandas().to_dict(orient="records")
 
 
-class JSONStreamDatasource(ray.data.read_api.ArrowJSONDatasource):
+# Ray renamed ArrowJSONDatasource -> JSONDatasource in newer releases
+_read_api = ray.data.read_api
+_JSONDatasourceBase = getattr(_read_api, "ArrowJSONDatasource", None) or getattr(_read_api, "JSONDatasource", None)
+if _JSONDatasourceBase is None:
+    raise ImportError(
+        "ray.data.read_api has neither ArrowJSONDatasource nor JSONDatasource; "
+        "please upgrade or pin a compatible Ray version."
+    )
+
+
+class JSONStreamDatasource(_JSONDatasourceBase):
     """
     A temp Datasource for reading json stream.
 
@@ -437,7 +452,7 @@ class JSONStreamDatasource(ray.data.read_api.ArrowJSONDatasource):
                 except StopIteration:
                     return
         except pyarrow.lib.ArrowInvalid as e:
-            raise ValueError(f"Failed to read JSON file: {path}.") from e
+            raise ValueError(f"Failed to read JSON file: {path}. Underlying PyArrow Error: {e}") from e
 
 
 def read_json_stream(

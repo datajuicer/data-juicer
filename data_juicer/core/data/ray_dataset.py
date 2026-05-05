@@ -346,7 +346,7 @@ class RayDataset(DJDataset):
             import traceback
 
             traceback.print_exc()
-            exit(1)
+            raise
 
         return cached_columns
 

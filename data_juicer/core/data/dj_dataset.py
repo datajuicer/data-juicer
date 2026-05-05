@@ -318,8 +318,7 @@ class NestedDataset(Dataset, DJDataset):
                     )
                     adapter.analyze_small_batch(dataset, f"{idx}_{op._name}")
         except:  # noqa: E722
-            logger.error(f"An error occurred during Op [{op._name}].")
-            traceback.print_exc()
+            logger.exception(f"An error occurred during Op [{op._name}].")
             raise
         finally:
             if checkpointer and dataset is not self:

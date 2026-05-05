@@ -342,10 +342,7 @@ class RayDataset(DJDataset):
                 logger.error("Ray executor only support Filter, Mapper, Deduplicator and Pipeline OPs for now")
                 raise NotImplementedError
         except:  # noqa: E722
-            logger.error(f"An error occurred during Op [{op._name}].")
-            import traceback
-
-            traceback.print_exc()
+            logger.exception(f"An error occurred during Op [{op._name}].")
             raise
 
         return cached_columns

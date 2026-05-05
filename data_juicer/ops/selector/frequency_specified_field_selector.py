@@ -88,7 +88,7 @@ class FrequencySpecifiedFieldSelector(Selector):
             if self.topk and self.topk < select_num:
                 select_num = self.topk
 
-        select_index = list(chain.from_iterable(
-            sorted(field_value_dict.values(), key=len, reverse=self.reverse)[: int(select_num)]
-        ))
+        select_index = list(
+            chain.from_iterable(sorted(field_value_dict.values(), key=len, reverse=self.reverse)[: int(select_num)])
+        )
         return dataset.select(select_index)

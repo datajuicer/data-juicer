@@ -3,7 +3,11 @@ from unittest.mock import MagicMock, patch
 from datasets import Dataset
 
 from data_juicer.core.data import NestedDataset
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.ops import Deduplicator
+from data_juicer.utils.unittest_utils import (
+    TEST_TAG,
+    DataJuicerTestCaseBase,
+)
 
 
 class TestDjDatasetErrorPropagation(DataJuicerTestCaseBase):
@@ -43,6 +47,77 @@ class TestDjDatasetErrorPropagation(DataJuicerTestCaseBase):
             with self.assertRaises(ValueError):
                 self.dataset.process([failing_op])
             mock_exit.assert_not_called()
+
+
+class TestRayDatasetErrorPropagation(DataJuicerTestCaseBase):
+    """Test that RayDataset._run_single_op() propagates exceptions and
+    that the runtime_env fallback in process() works correctly."""
+
+    def setUp(self):
+        super().setUp()
+
+    def _make_failing_op(self, error=None, runtime_env=None):
+        """Create a mock operator that passes isinstance(op, Deduplicator)
+        and raises on run()."""
+        op = MagicMock(spec=Deduplicator)
+        op._name = 'test_failing_dedup'
+        op.runtime_env = runtime_env
+        op.run.side_effect = error or RuntimeError('dedup failed')
+        return op
+
+    @TEST_TAG('ray')
+    def test_run_single_op_propagates_exception(self):
+        """_run_single_op should propagate exceptions instead of exit(1)."""
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        dataset = RayDataset(ray.data.from_items([{'text': 'hello'}]))
+        op = self._make_failing_op()
+
+        with self.assertRaises(RuntimeError) as ctx:
+            dataset._run_single_op(op)
+        self.assertIn('dedup failed', str(ctx.exception))
+
+    @TEST_TAG('ray')
+    def test_process_fallback_on_runtime_env_failure(self):
+        """When an op with runtime_env fails, process() should retry
+        without runtime_env (fallback logic at lines 194-207)."""
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        dataset = RayDataset(ray.data.from_items([{'text': 'hello'}]))
+        op = self._make_failing_op(
+            error=RuntimeError('env setup failed'),
+            runtime_env={'pip': ['nonexistent-pkg']},
+        )
+        # Make the retry (with runtime_env=None) succeed
+        op.run.side_effect = [
+            RuntimeError('env setup failed'),  # first call fails
+            ray.data.from_items([{'text': 'hello'}]),  # retry succeeds
+        ]
+
+        # Should not raise because the fallback succeeds
+        result = dataset.process([op])
+        self.assertIsNotNone(result)
+        # Verify runtime_env was restored after fallback
+        self.assertEqual(op.runtime_env, {'pip': ['nonexistent-pkg']})
+
+    @TEST_TAG('ray')
+    def test_process_raises_when_no_runtime_env_fallback(self):
+        """When an op without runtime_env fails, process() should
+        propagate the exception (no fallback available)."""
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        dataset = RayDataset(ray.data.from_items([{'text': 'hello'}]))
+        op = self._make_failing_op(
+            error=ValueError('processing error'),
+            runtime_env=None,
+        )
+
+        with self.assertRaises(ValueError) as ctx:
+            dataset.process([op])
+        self.assertIn('processing error', str(ctx.exception))
 
 
 if __name__ == '__main__':

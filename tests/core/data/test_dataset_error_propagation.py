@@ -62,6 +62,9 @@ class TestRayDatasetErrorPropagation(DataJuicerTestCaseBase):
         op = MagicMock(spec=Deduplicator)
         op._name = 'test_failing_dedup'
         op.runtime_env = runtime_env
+        op.num_cpus = None
+        op.num_gpus = None
+        op.memory = None
         op.run.side_effect = error or RuntimeError('dedup failed')
         return op
 

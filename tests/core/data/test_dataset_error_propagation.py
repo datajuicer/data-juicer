@@ -85,7 +85,8 @@ class TestRayDatasetErrorPropagation(DataJuicerTestCaseBase):
         import ray
         from data_juicer.core.data.ray_dataset import RayDataset
 
-        dataset = RayDataset(ray.data.from_items([{'text': 'hello'}]))
+        dataset = RayDataset(ray.data.from_items([{'text': 'hello'}]),
+                             auto_op_parallelism=False)
         op = self._make_failing_op(
             error=RuntimeError('env setup failed'),
             runtime_env={'pip': ['nonexistent-pkg']},
@@ -109,7 +110,8 @@ class TestRayDatasetErrorPropagation(DataJuicerTestCaseBase):
         import ray
         from data_juicer.core.data.ray_dataset import RayDataset
 
-        dataset = RayDataset(ray.data.from_items([{'text': 'hello'}]))
+        dataset = RayDataset(ray.data.from_items([{'text': 'hello'}]),
+                             auto_op_parallelism=False)
         op = self._make_failing_op(
             error=ValueError('processing error'),
             runtime_env=None,

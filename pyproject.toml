@@ -35,7 +35,7 @@ dependencies = [
     "httpx",
     "emoji==2.2.0", # emoji handling
     "tabulate",
-    "bs4",
+    "beautifulsoup4",
     "requests",
     "wget",
     "streamlit",

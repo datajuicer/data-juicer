@@ -275,7 +275,9 @@ class RayDataset(DJDataset):
                         process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
                     )
                     cached_columns.add(Fields.stats)
-                if op.use_ray_actor():
+                prepare_for_ray_map_batches = getattr(op, "_prepare_for_ray_map_batches", None)
+                use_instance_for_ray_tasks = bool(prepare_for_ray_map_batches and prepare_for_ray_map_batches())
+                if op.use_ray_actor() and not use_instance_for_ray_tasks:
                     compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
@@ -301,6 +303,8 @@ class RayDataset(DJDataset):
                         compute=compute,
                         runtime_env=op.runtime_env,
                     )
+                    if use_instance_for_ray_tasks:
+                        self.data = self.data.materialize()
                 if op.stats_export_path is not None:
                     self.data.write_json(op.stats_export_path, force_ascii=False)
                 # Wrap process method with tracer for sample-level collection

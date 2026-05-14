@@ -76,8 +76,7 @@ class ActorBackend(Backend):
 
     def prepare_for_ray_execution(self):
         """Create shared actors before this backend is serialized to Ray tasks."""
-        RemoteDedupSet = self._RemoteDedupSet or get_remote_dedup_set()
-        self._dedup_sets = [RemoteDedupSet.remote() for _ in range(self.dedup_set_num)]
+        self._ensure_actors()
 
     def is_unique(self, md5_value: str):
         self._ensure_actors()
@@ -141,8 +140,7 @@ class RayBasicDeduplicator(Filter):
     def _prepare_for_ray_map_batches(self):
         if isinstance(self.backend, ActorBackend):
             self.backend.prepare_for_ray_execution()
-            return True
-        return False
+        return True
 
     def calculate_hash(self, sample, context=False):
         """Calculate hash value for the sample."""

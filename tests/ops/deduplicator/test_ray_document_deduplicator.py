@@ -34,7 +34,7 @@ class RayDocumentDeduplicatorTest(DataJuicerTestCaseBase):
         from data_juicer.core.data.ray_dataset import RayDataset
 
         dataset = RayDataset(
-            ray.data.from_items(list(dataset)),
+            ray.data.from_items(dataset.to_list()),
             cfg={'auto_op_parallelism': False},
             auto_op_parallelism=False,
         )

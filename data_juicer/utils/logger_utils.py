@@ -153,14 +153,7 @@ def get_log_file_path():
             return handler._sink._file.name
 
 
-def setup_logger(
-    save_dir,
-    distributed_rank=0,
-    filename="log.txt",
-    mode="o",
-    level="INFO",
-    redirect="auto",
-):
+def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", level="INFO", redirect="auto"):
     """
     Setup logger for training and testing.
 
@@ -245,28 +238,15 @@ def setup_logger(
 
 
 def make_log_summarization(max_show_item=10):
-    error_pattern = (
-        r"^An error occurred in (.*?) when "
-        r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
-    )
+    error_pattern = r"^An error occurred in (.*?) when " r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
     log_file = get_log_file_path()
     if log_file is None:
         return
-    log_file = (
-        log_file.replace("_ERROR", "").replace("_WARNING", "").replace("_DEBUG", "")
-    )
+    log_file = log_file.replace("_ERROR", "").replace("_WARNING", "").replace("_DEBUG", "")
     error_log_file = add_suffix_to_filename(log_file, "_ERROR")
     warning_log_file = add_suffix_to_filename(log_file, "_WARNING")
-    error_pattern = (
-        r"^An error occurred in (.*?) when "
-        r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
-    )
-    log_file = (
-        get_log_file_path()
-        .replace("_ERROR", "")
-        .replace("_WARNING", "")
-        .replace("_DEBUG", "")
-    )
+    error_pattern = r"^An error occurred in (.*?) when " r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
+    log_file = get_log_file_path().replace("_ERROR", "").replace("_WARNING", "").replace("_DEBUG", "")
     error_log_file = add_suffix_to_filename(log_file, "_ERROR")
     warning_log_file = add_suffix_to_filename(log_file, "_WARNING")
 
@@ -310,10 +290,7 @@ def make_log_summarization(max_show_item=10):
             error_table.append([op_name, error_type, error_msg, num])
         table = tabulate(error_table, table_header, tablefmt="fancy_grid")
         summary += table
-    summary += (
-        f"\nError/Warning details can be found in the log file "
-        f"[{log_file}] and its related log files."
-    )
+    summary += f"\nError/Warning details can be found in the log file " f"[{log_file}] and its related log files."
     logger.opt(ansi=True).info(summary)
 
 

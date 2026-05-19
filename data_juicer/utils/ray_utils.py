@@ -36,9 +36,7 @@ def initialize_ray(cfg=None, force=False):
         if k.startswith(SPECIAL_TOKEN_ENV_PREFIX):
             env_vars.update({k: v})
 
-    custom_operator_paths = None
-    if cfg is not None and cfg.get("custom_operator_paths", None):
-        custom_operator_paths = cfg.custom_operator_paths
+    custom_operator_paths = (cfg.get("custom_operator_paths") or None) if cfg else None
 
     ray.init(
         ray_address,

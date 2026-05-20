@@ -59,7 +59,7 @@ class VideoUndistortMapper(Mapper):
         """
         super().__init__(*args, **kwargs)
 
-        import cv2
+        cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
         self.VideoCapture = cv2.VideoCapture
         self.CAP_PROP_FRAME_HEIGHT = cv2.CAP_PROP_FRAME_HEIGHT

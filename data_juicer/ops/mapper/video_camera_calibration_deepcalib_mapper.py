@@ -46,7 +46,7 @@ class VideoCameraCalibrationDeepcalibMapper(Mapper):
 
         super().__init__(*args, **kwargs)
 
-        LazyLoader.check_packages(["tensorflow"])
+        LazyLoader.check_packages(["tensorflow==2.20.0"])
         import keras
         from keras.applications.imagenet_utils import preprocess_input
 

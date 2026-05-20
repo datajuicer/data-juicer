@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import numpy as np
 
@@ -59,7 +60,11 @@ class VideoUndistortMapper(Mapper):
         """
         super().__init__(*args, **kwargs)
 
-        cv2 = LazyLoader("cv2", "opencv-contrib-python")
+        import importlib.metadata
+
+        cv2_version = importlib.metadata.version("opencv-python")
+        subprocess.run(["pip", "install", f"opencv-contrib-python=={cv2_version}"], check=True)
+        import cv2
 
         self.VideoCapture = cv2.VideoCapture
         self.CAP_PROP_FRAME_HEIGHT = cv2.CAP_PROP_FRAME_HEIGHT

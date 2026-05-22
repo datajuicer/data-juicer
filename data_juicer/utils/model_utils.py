@@ -1453,6 +1453,13 @@ def update_sampling_params(
 ):
     """Update sampling_params with max_tokens/max_new_tokens from model or defaults.
 
+    For vLLM: ensures `max_tokens` is set (vLLM default 16 is too small).
+    For HF local: ensures `max_new_tokens` is set (transformers default 20 is too small).
+
+    This function should NOT be called for API models — API providers have
+    their own defaults, and injecting params like `max_new_tokens` would be
+    invalid for OpenAI-compatible endpoints.
+
     When fetch_generation_config_from_hf is False (e.g. API-only models like
     gemini-2.5-flash via DashScope), skip HuggingFace GenerationConfig fetch to
     avoid connection errors. Default None means: fetch when enable_vllm or when

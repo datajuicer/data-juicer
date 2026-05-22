@@ -414,7 +414,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Load the full dataset using a single DatasetBuilder
         logger.info("Loading dataset with single DatasetBuilder...")
 
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
+        override_num_blocks = getattr(self.cfg, "override_num_blocks", None)
+        dataset = self.datasetbuilder.load_dataset(
+            num_proc=load_data_np, override_num_blocks=override_num_blocks
+        )
         columns = dataset.schema().columns
 
         # Prepare operations

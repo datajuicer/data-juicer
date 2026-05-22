@@ -201,6 +201,8 @@ class RayLocalJsonDataLoadStrategy(RayDataLoadStrategy):
     def load_data(self, **kwargs):
         from data_juicer.core.data.ray_dataset import RayDataset
 
+        override_num_blocks = kwargs.pop("override_num_blocks", None)
+
         path = self.ds_config["path"]
 
         # Convert to absolute path if relative
@@ -281,7 +283,7 @@ class RayLocalJsonDataLoadStrategy(RayDataLoadStrategy):
         else:
             logger.info(f"Loading {data_format} data.")
         try:
-            dataset = RayDataset.read(data_format, path)
+            dataset = RayDataset.read(data_format, path, override_num_blocks=override_num_blocks)
             return RayDataset(dataset, dataset_path=path, cfg=self.cfg)
         except Exception as e:
             if auto_detect:

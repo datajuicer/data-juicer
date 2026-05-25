@@ -699,6 +699,11 @@ process:
       save_visualization_dir: None                            # The path for saving visualization results.
   - whitespace_normalization_mapper:                        # normalize different kinds of whitespaces to English whitespace.
 
+  # Pipeline ops
+  - repartition_pipeline:                                   # repartition a Ray Dataset into a target number of blocks.
+      num_blocks: 1                                           # Target number of Ray Dataset blocks.
+      shuffle: False                                          # Whether to shuffle records during repartition.
+
   # Filter ops
   - alphanumeric_filter:                                    # filter text with alphabet/numeric ratio out of specific range.
       tokenization: false                                     # whether to count the ratio of alphanumeric to the total number of tokens.

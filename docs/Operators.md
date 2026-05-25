@@ -47,7 +47,7 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
 | [mapper](#mapper) | 123 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
-| [pipeline](#pipeline) | 2 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
+| [pipeline](#pipeline) | 3 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 5 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
 All the specific operators are listed below, each featured with several capability tags. 
@@ -310,6 +310,7 @@ All the specific operators are listed below, each featured with several capabili
 | Operator 算子 | Tags 标签 | Description 描述 | Details 详情 | Reference 参考 |
 |----------|------|-------------|-------------|-------------|
 | llm_inference_with_ray_vllm_pipeline | 🚀GPU 🟡Beta | Pipeline to generate response using vLLM engine on Ray. 使用Ray上的vLLM引擎生成响应的管道。 | - | - |
+| repartition_pipeline | 💻CPU 🟡Beta | Repartition a Ray Dataset into a target number of blocks. 将射线数据集重新分区为目标数量的块。 | [info](operators/pipeline/repartition_pipeline.md) | - |
 | vlm_inference_with_ray_vllm_pipeline | 🏞Image 🚀GPU 🟡Beta | Pipeline to generate response using vLLM engine on Ray. 使用Ray上的vLLM引擎生成响应的管道。 | - | - |
 
 ## selector <a name="selector"/>

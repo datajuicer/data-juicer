@@ -348,10 +348,13 @@ class RayDataset(DJDataset):
 
     @classmethod
     def read(cls, data_format: str, paths: Union[str, List[str]], **kwargs) -> RayDataset:
+        # Pop override_num_blocks since native Ray read functions don't support it
+        override_num_blocks = kwargs.pop("override_num_blocks", None)
+
         if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
-            return RayDataset.read_json(paths, **kwargs)
+            return RayDataset.read_json(paths, override_num_blocks=override_num_blocks, **kwargs)
         elif data_format == "webdataset":
-            return RayDataset.read_webdataset(paths, **kwargs)
+            return RayDataset.read_webdataset(paths, override_num_blocks=override_num_blocks, **kwargs)
         elif data_format in {
             "parquet",
             "images",
@@ -369,23 +372,35 @@ class RayDataset(DJDataset):
                 from data_juicer.utils.lazy_loader import LazyLoader
 
                 LazyLoader.check_packages(["pylance"])
-            return getattr(ray.data, f"read_{data_format}")(paths, **kwargs)
+            dataset = getattr(ray.data, f"read_{data_format}")(paths, **kwargs)
+            if override_num_blocks:
+                dataset = dataset.repartition(override_num_blocks)
+            return dataset
 
     @classmethod
-    def read_json(cls, paths: Union[str, List[str]], override_num_blocks: Optional[int] = None) -> RayDataset:
+    def read_json(
+        cls, paths: Union[str, List[str]], override_num_blocks: Optional[int] = None, **kwargs
+    ) -> ray.data.Dataset:
         # Note: a temp solution for reading json stream
         # TODO: replace with ray.data.read_json_stream once it is available
         import pyarrow.json as js
 
         try:
             js.open_json
-            return read_json_stream(paths, override_num_blocks=override_num_blocks)
+            return read_json_stream(paths, override_num_blocks=override_num_blocks, **kwargs)
         except AttributeError:
-            return ray.data.read_json(paths, override_num_blocks=override_num_blocks)
+            dataset = ray.data.read_json(paths, **kwargs)
+            if override_num_blocks:
+                dataset = dataset.repartition(override_num_blocks)
+            return dataset
 
     @classmethod
-    def read_webdataset(cls, paths: Union[str, List[str]], **kwargs) -> RayDataset:
-        return ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"), **kwargs)
+    def read_webdataset(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
+        override_num_blocks = kwargs.pop("override_num_blocks", None)
+        dataset = ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"), **kwargs)
+        if override_num_blocks:
+            dataset = dataset.repartition(override_num_blocks)
+        return dataset
 
     def to_list(self) -> list:
         return self.data.to_pandas().to_dict(orient="records")

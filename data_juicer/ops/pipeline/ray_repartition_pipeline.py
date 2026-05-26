@@ -1,10 +1,10 @@
 from data_juicer.ops.base_op import OPERATORS, Pipeline
 
-OP_NAME = "repartition_pipeline"
+OP_NAME = "ray_repartition_pipeline"
 
 
 @OPERATORS.register_module(OP_NAME)
-class RepartitionPipeline(Pipeline):
+class RayRepartitionPipeline(Pipeline):
     """Repartition a Ray Dataset into a target number of blocks.
 
     This operator performs dataset-level block repartitioning through Ray
@@ -35,5 +35,7 @@ class RepartitionPipeline(Pipeline):
         from data_juicer.core.data import NestedDataset
 
         if isinstance(dataset, NestedDataset):
-            raise RuntimeError("repartition_pipeline requires Ray executor because local datasets do not have blocks")
+            raise RuntimeError(
+                "ray_repartition_pipeline requires Ray executor because local datasets do not have blocks"
+            )
         return dataset.repartition(num_blocks=self.num_blocks, shuffle=self.shuffle)

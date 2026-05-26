@@ -310,7 +310,7 @@ All the specific operators are listed below, each featured with several capabili
 | Operator 算子 | Tags 标签 | Description 描述 | Details 详情 | Reference 参考 |
 |----------|------|-------------|-------------|-------------|
 | llm_inference_with_ray_vllm_pipeline | 🚀GPU 🟡Beta | Pipeline to generate response using vLLM engine on Ray. 使用Ray上的vLLM引擎生成响应的管道。 | - | - |
-| repartition_pipeline | 💻CPU 🟡Beta | Repartition a Ray Dataset into a target number of blocks. 将射线数据集重新分区为目标数量的块。 | [info](operators/pipeline/repartition_pipeline.md) | - |
+| ray_repartition_pipeline | 💻CPU 🟡Beta | Repartition a Ray Dataset into a target number of blocks. 将射线数据集重新分区为目标数量的块。 | [info](operators/pipeline/ray_repartition_pipeline.md) | - |
 | vlm_inference_with_ray_vllm_pipeline | 🏞Image 🚀GPU 🟡Beta | Pipeline to generate response using vLLM engine on Ray. 使用Ray上的vLLM引擎生成响应的管道。 | - | - |
 
 ## selector <a name="selector"/>

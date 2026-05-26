@@ -1,4 +1,4 @@
-# repartition_pipeline
+# ray_repartition_pipeline
 
 Repartition a Ray Dataset into a target number of blocks.
 
@@ -21,6 +21,6 @@ Tags 标签: ray, cpu
 | `shuffle` | <class 'bool'> | `False` | Whether to shuffle records during repartition. |
 
 ## 🔗 related links 相关链接
-- [source code 源代码](../../../data_juicer/ops/pipeline/repartition_pipeline.py)
-- [unit test 单元测试](../../../tests/ops/pipeline/test_repartition_pipeline.py)
+- [source code 源代码](../../../data_juicer/ops/pipeline/ray_repartition_pipeline.py)
+- [unit test 单元测试](../../../tests/ops/pipeline/test_ray_repartition_pipeline.py)
 - [Return operator list 返回算子列表](../../Operators.md)

@@ -700,7 +700,7 @@ process:
   - whitespace_normalization_mapper:                        # normalize different kinds of whitespaces to English whitespace.
 
   # Pipeline ops
-  - repartition_pipeline:                                   # repartition a Ray Dataset into a target number of blocks.
+  - ray_repartition_pipeline:                               # repartition a Ray Dataset into a target number of blocks.
       num_blocks: 1                                           # Target number of Ray Dataset blocks.
       shuffle: False                                          # Whether to shuffle records during repartition.
 

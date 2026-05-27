@@ -47,6 +47,7 @@ class VideoCameraPoseMegaSaMMapper(Mapper):
         max_frames: int = 1000,
         droid_buffer: int = 1024,
         save_dir: str = None,
+        use_prepare_env: bool = False,
         *args,
         **kwargs,
     ):
@@ -65,10 +66,12 @@ class VideoCameraPoseMegaSaMMapper(Mapper):
             cam_c2w) as .npy files instead of storing them inline.
             When set, tag_dict stores file paths (strings) instead of
             numpy arrays, which avoids memory limit.
+        :param use_prepare_env: Whether to prepare the environment.
         :param args: extra args
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
+
         self.droid_buffer = droid_buffer
         self.save_dir = save_dir
         if save_dir is not None:
@@ -76,28 +79,36 @@ class VideoCameraPoseMegaSaMMapper(Mapper):
 
         megasam_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "mega-sam")
         # droid_slam conflict with the VideoCalibrationMapper
-        droid_slam_home = os.path.join(megasam_repo_path, "base", "droid_slam")
+        self.droid_slam_home = os.path.join(megasam_repo_path, "base", "droid_slam")
 
-        self._prepare_env(megasam_repo_path, droid_slam_home)
+        self._prepare_env(megasam_repo_path, self.droid_slam_home, use_prepare_env)
 
-        droid_module_path = f"{droid_slam_home}/droid.py"
-        spec = importlib.util.spec_from_file_location("droid", droid_module_path)
-        if spec is None:
-            raise ImportError(f"Could not load spec from {droid_module_path}")
-        droid = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(droid)
-
-        from lietorch import SE3
-
-        self.SE3 = SE3
-        self.Droid = droid.Droid
+        self._initialized = False
 
         self.tag_field_name = tag_field_name
         self.max_frames = max_frames
         self.frame_field = frame_field
         self.camera_calibration_field = camera_calibration_field
 
-    def _prepare_env(self, megasam_repo_path, droid_slam_home):
+    def _ensure_initialized(self):
+        if self._initialized:
+            return
+
+        from lietorch import SE3
+
+        droid_module_path = f"{self.droid_slam_home}/droid.py"
+        spec = importlib.util.spec_from_file_location("droid", droid_module_path)
+        if spec is None:
+            raise ImportError(f"Could not load spec from {droid_module_path}")
+        droid = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(droid)
+
+        self.SE3 = SE3
+        self.Droid = droid.Droid
+
+        self._initialized = True
+
+    def _prepare_env(self, megasam_repo_path, droid_slam_home, use_prepare_env):
         for i in range(len(sys.path)):
             if "DroidCalib/droid_slam" in sys.path[i]:
                 logger.warning("Removing DroidCalib/droid_slam from sys.path, it maybe conflicting with mega-sam.")
@@ -164,30 +175,31 @@ class VideoCameraPoseMegaSaMMapper(Mapper):
             ) as f:
                 f.write(temp_file_content)
 
-        try:
-            import torch_scatter  # noqa F401
-        except ImportError:
-            """ "Please refer to https://github.com/rusty1s/pytorch_scatter to locate the
-            installation link that is compatible with your PyTorch and CUDA versions."""
-            # torch_version = "2.6.0"
-            # cuda_version = "cu124"
-            subprocess.run(
-                [
-                    "pip",
-                    "install",
-                    "torch-scatter",
-                    # "-f",
-                    # f"https://data.pyg.org/whl/torch-{torch_version}+{cuda_version}.html",
-                ],
-                cwd=os.path.join(megasam_repo_path, "base"),
-            )
+        if use_prepare_env:
+            try:
+                import torch_scatter  # noqa F401
+            except ImportError:
+                """ "Please refer to https://github.com/rusty1s/pytorch_scatter to locate the
+                installation link that is compatible with your PyTorch and CUDA versions."""
+                # torch_version = "2.6.0"
+                # cuda_version = "cu124"
+                subprocess.run(
+                    [
+                        "pip",
+                        "install",
+                        "torch-scatter",
+                        # "-f",
+                        # f"https://data.pyg.org/whl/torch-{torch_version}+{cuda_version}.html",
+                    ],
+                    cwd=os.path.join(megasam_repo_path, "base"),
+                )
 
-        try:
-            import droid_backends  # noqa F401
-            import lietorch  # noqa F401
-        except ImportError:
-            subprocess.run(["pip", "uninstall", "droid_backends", "-y"])
-            subprocess.run(["python", "setup.py", "install"], cwd=os.path.join(megasam_repo_path, "base"))
+            try:
+                import droid_backends  # noqa F401
+                import lietorch  # noqa F401
+            except ImportError:
+                subprocess.run(["pip", "uninstall", "droid_backends", "-y"])
+                subprocess.run(["python", "setup.py", "install"], cwd=os.path.join(megasam_repo_path, "base"))
 
     def _preprocess_stream(self, frames, depth_list, intrinsics_list):
         """Pre-process all frames once and cache the results.
@@ -245,6 +257,9 @@ class VideoCameraPoseMegaSaMMapper(Mapper):
             yield item
 
     def process_single(self, sample=None, rank=None):
+        # 确保在正确的 conda 环境中初始化
+        self._ensure_initialized()
+
         # check if it's generated already
         if self.tag_field_name in sample[Fields.meta]:
             return sample
@@ -366,16 +381,16 @@ class VideoCameraPoseMegaSaMMapper(Mapper):
                 sample[Fields.meta][self.tag_field_name].append(
                     {
                         CameraCalibrationKeys.depth: depth_path,
-                        CameraCalibrationKeys.intrinsics: K,
+                        CameraCalibrationKeys.intrinsics: K.tolist(),  # Python list
                         CameraCalibrationKeys.cam_c2w: c2w_path,
                     }
                 )
             else:
                 sample[Fields.meta][self.tag_field_name].append(
                     {
-                        CameraCalibrationKeys.depth: return_depths,
-                        CameraCalibrationKeys.intrinsics: K,
-                        CameraCalibrationKeys.cam_c2w: return_cam_c2w,
+                        CameraCalibrationKeys.depth: return_depths.tolist(),  # Python list
+                        CameraCalibrationKeys.intrinsics: K.tolist(),  # Python list
+                        CameraCalibrationKeys.cam_c2w: return_cam_c2w.tolist(),  # Python list
                     }
                 )
 

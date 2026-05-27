@@ -24,6 +24,9 @@ process:
       output_mask: false
       batch_mode: true
   - video_hand_reconstruction_hawor_mapper:
+      hawor_model_path: 'hawor.ckpt'
+      hawor_config_path: 'model_config.yaml'
+      hawor_detector_path: 'detector.pt'
       camera_calibration_field: 'camera_calibration_moge_tags'
       tag_field_name: 'hand_reconstruction_hawor_tags'
       mano_right_path: '/path/to/MANO_RIGHT.pkl'

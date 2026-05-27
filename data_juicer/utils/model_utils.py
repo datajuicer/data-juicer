@@ -730,8 +730,7 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, ma
 
     sys.path.append(hawor_repo_path)
 
-    from hawor.configs import get_config
-    from lib.models.hawor import HAWOR
+    from data_juicer.ops.common.hawor_func import HAWOR, get_config
 
     if not os.path.exists(mano_right_path):
         raise ValueError(

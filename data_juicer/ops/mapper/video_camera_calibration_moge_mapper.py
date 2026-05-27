@@ -251,17 +251,20 @@ class VideoCameraCalibrationMogeMapper(Mapper):
             if self.save_dir is not None:
                 tag_dict[CameraCalibrationKeys.points] = [self._save_numpy(arr, "points") for arr in final_points_list]
             else:
-                tag_dict[CameraCalibrationKeys.points] = final_points_list
+                # Convert numpy arrays to standard Python lists for Ray/Arrow compatibility
+                tag_dict[CameraCalibrationKeys.points] = [arr.tolist() for arr in final_points_list]
         if need_depth:
             if self.save_dir is not None:
                 tag_dict[CameraCalibrationKeys.depth] = [self._save_numpy(arr, "depth") for arr in final_depth_list]
             else:
-                tag_dict[CameraCalibrationKeys.depth] = final_depth_list
+                # Convert numpy arrays to standard Python lists for Ray/Arrow compatibility
+                tag_dict[CameraCalibrationKeys.depth] = [arr.tolist() for arr in final_depth_list]
         if need_mask:
             if self.save_dir is not None:
                 tag_dict[CameraCalibrationKeys.mask] = [self._save_numpy(arr, "mask") for arr in final_mask_list]
             else:
-                tag_dict[CameraCalibrationKeys.mask] = final_mask_list
+                # Convert numpy arrays to standard Python lists for Ray/Arrow compatibility
+                tag_dict[CameraCalibrationKeys.mask] = [arr.tolist() for arr in final_mask_list]
 
     def process_single(self, sample=None, rank=None):
         # there is no video in this sample

@@ -1,14 +1,10 @@
 import os
 import subprocess
-import sys
 import tempfile
 
 import numpy as np
 
-from data_juicer.utils.cache_utils import (
-    DATA_JUICER_ASSETS_CACHE,
-    DATA_JUICER_MODELS_CACHE,
-)
+from data_juicer.utils.cache_utils import DATA_JUICER_MODELS_CACHE
 from data_juicer.utils.constant import CameraCalibrationKeys, Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
@@ -77,14 +73,11 @@ class VideoHandReconstructionHaworMapper(Mapper):
 
         super().__init__(*args, **kwargs)
 
-        hawor_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "HaWoR")
-        if not os.path.exists(hawor_repo_path):
-            subprocess.run(["git", "clone", "https://github.com/ThunderVVV/HaWoR.git", hawor_repo_path], check=True)
-
-        sys.path.append(hawor_repo_path)
-        from hawor.utils.rotation import rotation_matrix_to_angle_axis
-        from lib.eval_utils.custom_utils import interpolate_bboxes
-        from lib.pipeline.tools import parse_chunks
+        from data_juicer.ops.common.hawor_func import (
+            interpolate_bboxes,
+            parse_chunks,
+            rotation_matrix_to_angle_axis,
+        )
 
         self.interpolate_bboxes = interpolate_bboxes
         self.parse_chunks = parse_chunks
@@ -521,7 +514,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
                     "hand_pose": hand_pose_list,
                     "betas": betas_list,
                     "transl": transl_list,
-                    "joints_cam": joints_cam,  # (T, 21, 3) or None
+                    "joints_cam": joints_cam.tolist() if joints_cam is not None else None,  # (T, 21, 3)
                 }
 
             sample[Fields.meta][self.tag_field_name].append(

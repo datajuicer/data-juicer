@@ -2104,5 +2104,41 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
             fused_op.process_batched(dataset2.to_dict())
 
 
+class FusedFilterFingerprintTest(DataJuicerTestCaseBase):
+    """Tests that FusedFilter fingerprints exclude child OP work_dirs."""
+
+    def test_fused_filter_stable_across_work_dirs(self):
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.filter.words_num_filter import WordsNumFilter
+        from data_juicer.ops.op_fusion import FusedFilter
+        from data_juicer.utils.fingerprint_utils import Hasher
+
+        f1a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        f2a = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_a = FusedFilter('fused', [f1a, f2a])
+
+        f1b = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/b')
+        f2b = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/b')
+        fused_b = FusedFilter('fused', [f1b, f2b])
+
+        self.assertEqual(Hasher.hash(fused_a), Hasher.hash(fused_b))
+
+    def test_fused_filter_differs_when_child_params_change(self):
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.filter.words_num_filter import WordsNumFilter
+        from data_juicer.ops.op_fusion import FusedFilter
+        from data_juicer.utils.fingerprint_utils import Hasher
+
+        f1a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        f2a = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_a = FusedFilter('fused', [f1a, f2a])
+
+        f1b = TextLengthFilter(min_len=50, max_len=10000, work_dir='/tmp/a')
+        f2b = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_b = FusedFilter('fused', [f1b, f2b])
+
+        self.assertNotEqual(Hasher.hash(fused_a), Hasher.hash(fused_b))
+
+
 if __name__ == '__main__':
     unittest.main()

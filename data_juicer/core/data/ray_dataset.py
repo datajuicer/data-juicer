@@ -174,8 +174,6 @@ class RayDataset(DJDataset):
             row_count = 0
 
         if row_count == 0:
-            from loguru import logger
-
             logger.warning("Dataset is empty (0 rows), skipping operator processing")
             return self
 
@@ -184,8 +182,6 @@ class RayDataset(DJDataset):
         columns_result = self.data.columns()
         # Handle empty dataset case where columns() returns None
         if columns_result is None:
-            from loguru import logger
-
             logger.warning("Dataset has unknown schema (likely empty), skipping operator processing")
             return self
         cached_columns = set(columns_result)
@@ -342,11 +338,8 @@ class RayDataset(DJDataset):
                 logger.error("Ray executor only support Filter, Mapper, Deduplicator and Pipeline OPs for now")
                 raise NotImplementedError
         except:  # noqa: E722
-            logger.error(f"An error occurred during Op [{op._name}].")
-            import traceback
-
-            traceback.print_exc()
-            exit(1)
+            logger.exception(f"An error occurred during Op [{op._name}].")
+            raise
 
         return cached_columns
 

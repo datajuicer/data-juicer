@@ -257,7 +257,7 @@ class VideoCameraPoseMegaSaMMapper(Mapper):
             yield item
 
     def process_single(self, sample=None, rank=None):
-        # 确保在正确的 conda 环境中初始化
+
         self._ensure_initialized()
 
         # check if it's generated already

@@ -25,8 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir py-data-juicer -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-RUN pip install --no-cache-dir -U "ray[default]" -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN pip install --no-cache-dir py-data-juicer
+RUN pip install --no-cache-dir -U "ray[default]"
 
 RUN git clone --depth 1 https://github.com/ThunderVVV/HaWoR.git /root/.cache/data_juicer/assets/HaWoR
 
@@ -43,21 +43,21 @@ RUN cd /root/.cache/data_juicer/assets/HaWoR \
     && sed -i 's/^torch-scatter==.*/# &/' requirements.txt \
     && sed -i 's/^numpy==.*/numpy/' requirements.txt
 
-RUN pip install --no-cache-dir torch-scatter -f https://data.pyg.org/whl/torch-2.4.1+cu124.html -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN pip install --no-cache-dir torch-scatter -f https://data.pyg.org/whl/torch-2.4.1+cu124.html
 
 # MoGe-2 camera calibration
-RUN pip install --no-cache-dir "moge @ git+https://github.com/microsoft/MoGe.git" -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN pip install --no-cache-dir "moge @ git+https://github.com/microsoft/MoGe.git"
 
 # HaWoR dependencies (install from requirements.txt)
-RUN pip install --no-cache-dir -r /root/.cache/data_juicer/assets/HaWoR/requirements.txt -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN pip install --no-cache-dir -r /root/.cache/data_juicer/assets/HaWoR/requirements.txt
 # chumpy needs --no-build-isolation, install separately
-RUN pip install --no-cache-dir --no-build-isolation "chumpy @ git+https://github.com/mattloper/chumpy" -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN pip install --no-cache-dir --no-build-isolation "chumpy @ git+https://github.com/mattloper/chumpy"
 
-RUN pip install --no-cache-dir scipy pyarrow av opencv-contrib-python Pillow -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-RUN pip install --no-cache-dir openai -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-RUN pip install numpy==1.26.4 -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-RUN pip install opencv-python==4.10.0.84 opencv-contrib-python==4.10.0.84 -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-RUN pip install --upgrade --force-reinstall click -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+RUN pip install --no-cache-dir scipy pyarrow av opencv-contrib-python Pillow
+RUN pip install --no-cache-dir openai
+RUN pip install numpy==1.26.4
+RUN pip install opencv-python==4.10.0.84 opencv-contrib-python==4.10.0.84
+RUN pip install --upgrade --force-reinstall click
 
 # ===============create mega-sam conda environment================
 RUN conda create -n mega-sam --clone base -y

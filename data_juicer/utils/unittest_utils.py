@@ -20,6 +20,14 @@ CLEAR_MODEL = False
 FROM_FORK = False
 
 
+class _SkipIfFromFork:
+    def __bool__(self):
+        return FROM_FORK
+
+
+_SKIP_IF_FROM_FORK = _SkipIfFromFork()
+
+
 def TEST_TAG(*tags):
     """Tags for test case.
     Currently, `standalone`, `ray` are supported.
@@ -54,6 +62,11 @@ def skip_if_from_fork(reason):
     """Decorator that skips test if running from a fork, evaluated at runtime."""
 
     def decorator(func):
+        if isinstance(func, type) and issubclass(func, unittest.TestCase):
+            func.__unittest_skip__ = _SKIP_IF_FROM_FORK
+            func.__unittest_skip_why__ = reason
+            return func
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if FROM_FORK:

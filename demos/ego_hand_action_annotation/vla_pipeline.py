@@ -168,6 +168,7 @@ if __name__ == '__main__':
         batch_size=1,
         num_cpus=1,
         batch_format="pyarrow",
+        runtime_env={"conda": "base"},
     )
 
     ds = ds.map_batches(
@@ -187,7 +188,7 @@ if __name__ == '__main__':
         num_gpus=0.15,  # adjust the ratio based on the gpu type
         batch_format="pyarrow",
         compute=ActorPoolStrategy(min_size=1, max_size=2),  # adjust the scope based on available resources
-        runtime_env=None,
+        runtime_env={"conda": "base"},
     )
 
     ds = ds.map_batches(
@@ -224,6 +225,7 @@ if __name__ == '__main__':
         batch_size=1,
         num_cpus=1,
         batch_format="pyarrow",
+        runtime_env={"conda": "base"},
     )
 
     ds = ds.map_batches(
@@ -240,6 +242,7 @@ if __name__ == '__main__':
         batch_size=1,
         num_cpus=1,
         batch_format="pyarrow",
+        runtime_env={"conda": "base"},
     )
 
     ds = ds.map_batches(
@@ -258,7 +261,7 @@ if __name__ == '__main__':
         batch_size=1,
         num_cpus=1,
         batch_format="pyarrow",
-        runtime_env=None,
+        runtime_env={"conda": "base"},
     )
 
     ds.write_parquet(output_dir)

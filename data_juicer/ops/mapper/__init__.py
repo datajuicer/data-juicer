@@ -102,6 +102,7 @@ from .text_tagging_by_prompt_mapper import TextTaggingByPromptMapper
 from .tool_success_tagger_mapper import ToolSuccessTaggerMapper
 from .usage_counter_mapper import UsageCounterMapper
 from .vggt_mapper import VggtMapper
+from .video_animal_pose_mapper import VideoAnimalPoseMapper
 from .video_camera_calibration_static_deepcalib_mapper import (
     VideoCameraCalibrationStaticDeepcalibMapper,
 )
@@ -117,6 +118,7 @@ from .video_captioning_from_vlm_mapper import VideoCaptioningFromVLMMapper
 from .video_depth_estimation_mapper import VideoDepthEstimationMapper
 from .video_extract_frames_mapper import VideoExtractFramesMapper
 from .video_face_blur_mapper import VideoFaceBlurMapper
+from .video_face_keypoints_mapper import VideoFaceKeypointsMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
 from .video_hand_reconstruction_hawor_mapper import VideoHandReconstructionHaworMapper
 from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
@@ -232,6 +234,7 @@ __all__ = [
     "ToolSuccessTaggerMapper",
     "UsageCounterMapper",
     "VggtMapper",
+    "VideoAnimalPoseMapper",
     "VideoCameraCalibrationStaticDeepcalibMapper",
     "VideoCameraCalibrationStaticMogeMapper",
     "VideoCaptioningFromAudioMapper",
@@ -245,6 +248,7 @@ __all__ = [
     "VideoHandReconstructionHaworMapper",
     "VideoHandReconstructionMapper",
     "VideoFaceBlurMapper",
+    "VideoFaceKeypointsMapper",
     "VideoObjectSegmentingMapper",
     "VideoRemoveWatermarkMapper",
     "VideoResizeAspectRatioMapper",

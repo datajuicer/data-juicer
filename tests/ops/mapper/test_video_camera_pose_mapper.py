@@ -1,13 +1,14 @@
 import os
 import unittest
 import numpy as np
+import tempfile
+import shutil
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.video_camera_pose_mapper import VideoCameraPoseMapper
 from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 
 
 
@@ -18,8 +19,17 @@ class VideoCameraPoseMapperTest(DataJuicerTestCaseBase):
     vid11_path = os.path.join(data_path, 'video11.mp4')
     vid12_path = os.path.join(data_path, 'video12.mp4')
 
+    def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory().name
+        super().setUp()
 
-    def _run_and_assert(self, num_proc):
+    def tearDown(self):
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+
+
+    def _run_and_assert(self, num_proc, output_frame_dir):
         ds_list = [{
             'videos': [self.vid3_path]
         },  {
@@ -45,11 +55,11 @@ class VideoCameraPoseMapperTest(DataJuicerTestCaseBase):
             moge_model_path="Ruicheng/moge-2-vitl",
             frame_num=1,
             duration=1,
-            frame_dir=DATA_JUICER_ASSETS_CACHE,
+            frame_dir=output_frame_dir,
             if_output_moge_info=False,
-            moge_output_info_dir=DATA_JUICER_ASSETS_CACHE,
+            moge_output_info_dir=os.path.join(self.tmp_dir, "moge_info"),
             if_save_info=True,
-            output_info_dir=DATA_JUICER_ASSETS_CACHE,
+            output_info_dir=os.path.join(self.tmp_dir, "camera_pose_info"),
             num_proc=num_proc,
         )
 
@@ -68,10 +78,10 @@ class VideoCameraPoseMapperTest(DataJuicerTestCaseBase):
 
 
     def test(self):
-        self._run_and_assert(num_proc=1)
+        self._run_and_assert(num_proc=1, output_frame_dir=os.path.join(self.tmp_dir, "camera_pose_test1"))
 
     def test_mul_proc(self):
-        self._run_and_assert(num_proc=2)
+        self._run_and_assert(num_proc=2, output_frame_dir=os.path.join(self.tmp_dir, "camera_pose_test2"))
 
 
 if __name__ == '__main__':

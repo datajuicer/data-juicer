@@ -31,6 +31,7 @@ class VideoDepthEstimationMapper(Mapper):
     def __init__(
         self,
         video_depth_model_path: str = "video_depth_anything_vitb.pth",
+        if_save_point_cloud: bool = True,
         point_cloud_dir_for_metric: str = DATA_JUICER_ASSETS_CACHE,
         max_res: int = 1280,
         torch_dtype: str = "fp16",
@@ -45,8 +46,9 @@ class VideoDepthEstimationMapper(Mapper):
 
         :param video_depth_model_path: The path to the Video-Depth-Anything model.
             If the model is a 'metric' model, the code will automatically switch
-            to metric mode, and the user should input the path for storing point
-            clouds.
+            to metric mode.
+        :param if_save_point_cloud: Whether to save point cloud results (the user
+            should input the path for storing point clouds).
         :param point_cloud_dir_for_metric: The path for storing point
             clouds (for a 'metric' model).
         :param max_res: The maximum resolution threshold for videos; videos exceeding
@@ -90,19 +92,22 @@ class VideoDepthEstimationMapper(Mapper):
         self.tag_field_name = MetaKeys.video_depth_tags
         self.max_res = max_res
         self.torch_dtype = torch_dtype
+        self.if_save_point_cloud = if_save_point_cloud
         self.point_cloud_dir_for_metric = point_cloud_dir_for_metric
         self.if_save_visualization = if_save_visualization
         self.save_visualization_dir = save_visualization_dir
         self.grayscale = grayscale
+        self.frame_field = MetaKeys.video_frames
         self.model_key = prepare_model(model_type="video_depth_anything", model_path=video_depth_model_path)
 
     def process_single(self, sample=None, rank=None):
+
         # check if it's generated already
         if self.tag_field_name in sample[Fields.meta]:
             return sample
 
         # there is no video in this sample
-        if self.video_key not in sample or not sample[self.video_key]:
+        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
             sample[Fields.meta][self.tag_field_name] = {"depth_data": [], "fps": -1}
             return sample
 
@@ -112,7 +117,33 @@ class VideoDepthEstimationMapper(Mapper):
             device = f"cuda:{str(rank)}"
         else:
             device = "cuda"
-        frames, target_fps = self.read_video_frames(sample[self.video_key][0], -1, -1, self.max_res)
+
+        if self.frame_field in sample:
+            if "fps" not in sample:
+                raise ValueError("If inputting extracted frames instead of a video, the 'fps' must be provided.")
+            target_fps = sample["fps"]
+
+            first_frame = cv2.imread(sample[self.frame_field][0])
+            original_height = int(first_frame.shape[0])
+            original_width = int(first_frame.shape[1])
+
+            if self.max_res > 0 and max(original_height, original_width) > self.max_res:
+                scale = self.max_res / max(original_height, original_width)
+                height = round(original_height * scale)
+                width = round(original_width * scale)
+
+            frames = []
+            for temp_frame_path in sample[self.frame_field]:
+                temp_frame = cv2.imread(temp_frame_path)
+                temp_frame = cv2.cvtColor(temp_frame, cv2.COLOR_BGR2RGB)
+                if self.max_res > 0 and max(original_height, original_width) > self.max_res:
+                    temp_frame = cv2.resize(temp_frame, (width, height))
+                frames.append(temp_frame)
+            frames = np.stack(frames, axis=0)
+
+        else:
+            frames, target_fps = self.read_video_frames(sample[self.video_key][0], -1, -1, self.max_res)
+
         depths, fps = video_depth_anything_model.infer_video_depth(
             frames,
             target_fps,
@@ -122,7 +153,10 @@ class VideoDepthEstimationMapper(Mapper):
         )
 
         if self.if_save_visualization:
-            video_name = os.path.basename(sample[self.video_key][0])
+            if self.video_key in sample:
+                video_name = os.path.basename(sample[self.video_key][0])
+            else:
+                video_name = sample[self.frame_field][0].split("/")[-2]
             os.makedirs(self.save_visualization_dir, exist_ok=True)
             processed_video_path = os.path.join(
                 self.save_visualization_dir, os.path.splitext(video_name)[0] + "_src.mp4"
@@ -131,7 +165,7 @@ class VideoDepthEstimationMapper(Mapper):
             self.save_video(frames, processed_video_path, fps=fps)
             self.save_video(depths, depth_vis_path, fps=fps, is_depths=True, grayscale=self.grayscale)
 
-        if self.metric:
+        if self.metric and self.if_save_point_cloud:
             os.makedirs(self.point_cloud_dir_for_metric, exist_ok=True)
             width, height = depths[0].shape[-1], depths[0].shape[-2]
             x, y = np.meshgrid(np.arange(width), np.arange(height))

@@ -561,6 +561,16 @@ process:
       if_output_point_maps_from_projection: True              # Determines whether to output point maps directly inferred by VGGT.
       if_output_point_maps_from_unprojection: True            # Determines whether to output point maps constructed from depth maps and camera parameters.
       if_output_point_tracks: True                            # Determines whether to output point tracks.
+  - video_animal_pose_mapper:                           # Detect quadruped animal pose on the video.
+      vitpose_model_path: "apt36k.pth"                        # The path to the ViTPose model.
+      vitpose_config: "configs/animal/2d_kpt_sview_rgb_img/topdown_heatmap/apt36k/ViTPose_huge_apt36k_256x192.py"   # Please select the appropriate model configuration.
+      yoloe_model_path: "yoloe-26x-seg.pt"                    # The path to the YOLOE model.
+      animal_class: []                                        # Specifies the quadruped animal categories to be detected. If no value is input, the default list will be used.
+      if_save_visualization: True                             # Whether to save visualization results.
+      save_visualization_dir: null                            # The path for saving visualization results.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                         # Output directory to save extracted frames.
   - video_camera_calibration_static_deepcalib_mapper:   # Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib.
       model_path: "weights_10_0.02.h5"                        # The path to the DeepCalib Regression model.
       frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
@@ -632,6 +642,13 @@ process:
       blur_type: 'gaussian'                                   # type of blur kernel, including ['mean', 'box', 'gaussian']
       radius: 2                                               # radius of blur kernel
       save_dir: null                                          # The directory where generated files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
+  - video_face_keypoints_mapper:                            # Detect face keypoints (98 points) on the video.
+      ldeq_model_path: "final.pth.tar"                        # The path to the LDEQ model.
+      if_save_visualization: True                             # Whether to save visualization results.
+      save_visualization_dir: null                            # The path for saving visualization results.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                         # Output directory to save extracted frames.
   - video_ffmpeg_wrapped_mapper:                            # simple wrapper for FFmpeg video filters
       filter_name: null                                       # ffmpeg audio filter name. e.g. 'scale'.
       filter_kwargs: null                                     # keyword-arguments passed to ffmpeg filter. e.g. {'width': 224, 'height': 224}.

@@ -1,13 +1,14 @@
 import os
 import unittest
 import numpy as np
+import tempfile
+import shutil
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.video_hand_reconstruction_hawor_mapper import VideoHandReconstructionHaworMapper
 from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 
 
 @unittest.skip('Users need to download MANO_RIGHT.pkl.')
@@ -16,11 +17,25 @@ class VideoHandReconstructionHaworMapperTest(DataJuicerTestCaseBase):
                              'data')
     vid3_path = os.path.join(data_path, 'video3.mp4')
     vid4_path = os.path.join(data_path, 'video4.mp4')
+    vid3_frames_dir = os.path.join(data_path, 'video3_frames')
+    vid4_frames_dir = os.path.join(data_path, 'video4_frames')
+    vid3_frames_path = []
+    vid4_frames_path = []
+    for x in os.listdir(vid3_frames_dir):
+        vid3_frames_path.append(os.path.join(vid3_frames_dir, x))
+    for x in os.listdir(vid4_frames_dir):
+        vid4_frames_path.append(os.path.join(vid4_frames_dir, x))
 
     ds_list = [{
         'videos': [vid3_path]
     },  {
         'videos': [vid4_path]
+    }]
+
+    ds_for_extracted_frames_list = [{
+        MetaKeys.video_frames: vid3_frames_path,
+    },  {
+        MetaKeys.video_frames: vid4_frames_path,
     }]
 
     tgt_list = [{
@@ -49,6 +64,38 @@ class VideoHandReconstructionHaworMapperTest(DataJuicerTestCaseBase):
         "right_transl_list_shape": (4, 3),
     }]
 
+    tgt_for_extracted_frames_list = [{
+        "fov_x": 0.7623036428395666,
+        "left_beta_list_shape": (6, 10),
+        "left_hand_pose_list_shape": (6, 15, 3, 3),
+        "left_global_orient_list_shape": (6, 3, 3),
+        "left_transl_list_shape": (6, 3),
+        "right_beta_list_shape": (6, 10),
+        "right_hand_pose_list_shape": (6, 15, 3, 3),
+        "right_global_orient_list_shape": (6, 3, 3),
+        "right_transl_list_shape": (6, 3),
+    }, {
+        "fov_x": 0.6412188912675015,
+        "left_beta_list_shape": (4, 10),
+        "left_hand_pose_list_shape": (4, 15, 3, 3),
+        "left_global_orient_list_shape": (4, 3, 3),
+        "left_transl_list_shape": (4, 3),
+        "right_beta_list_shape": (2, 10),
+        "right_hand_pose_list_shape": (2, 15, 3, 3),
+        "right_global_orient_list_shape": (2, 3, 3),
+        "right_transl_list_shape": (2, 3),
+    }]
+
+
+    def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory().name
+        super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+
     def test(self):
 
         op = VideoHandReconstructionHaworMapper(
@@ -60,8 +107,8 @@ class VideoHandReconstructionHaworMapperTest(DataJuicerTestCaseBase):
             frame_num=1,
             duration=1,
             thresh=0.2,
-            frame_dir=DATA_JUICER_ASSETS_CACHE,
-            moge_output_info_dir=DATA_JUICER_ASSETS_CACHE,
+            frame_dir=self.tmp_dir,
+            moge_output_info_dir=self.tmp_dir,
         )
         dataset = Dataset.from_list(self.ds_list)
         if Fields.meta not in dataset.features:
@@ -93,8 +140,8 @@ class VideoHandReconstructionHaworMapperTest(DataJuicerTestCaseBase):
             frame_num=1,
             duration=1,
             thresh=0.2,
-            frame_dir=DATA_JUICER_ASSETS_CACHE,
-            moge_output_info_dir=DATA_JUICER_ASSETS_CACHE,
+            frame_dir=self.tmp_dir,
+            moge_output_info_dir=self.tmp_dir,
         )
         dataset = Dataset.from_list(self.ds_list)
         if Fields.meta not in dataset.features:
@@ -104,6 +151,36 @@ class VideoHandReconstructionHaworMapperTest(DataJuicerTestCaseBase):
         res_list = dataset.to_list()
 
         for sample, target in zip(res_list, self.tgt_list):
+            self.assertEqual(abs(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["fov_x"] - target["fov_x"]) < 0.01, True)
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_beta_list"]).shape[1:], target["left_beta_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_hand_pose_list"]).shape[1:], target["left_hand_pose_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_global_orient_list"]).shape[1:], target["left_global_orient_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_transl_list"]).shape[1:], target["left_transl_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_beta_list"]).shape[1:], target["right_beta_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_hand_pose_list"]).shape[1:], target["right_hand_pose_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_global_orient_list"]).shape[1:], target["right_global_orient_list_shape"][1:])
+            self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["right_transl_list"]).shape[1:], target["right_transl_list_shape"][1:])
+
+
+    def test_for_extracted_frames(self):
+
+        op = VideoHandReconstructionHaworMapper(
+            hawor_model_path="hawor.ckpt",
+            hawor_config_path="model_config.yaml",
+            hawor_detector_path="detector.pt",
+            moge_model_path="Ruicheng/moge-2-vitl",
+            mano_right_path="path_to_mano_right_pkl",
+            thresh=0.2,
+            moge_output_info_dir=self.tmp_dir,
+        )
+        dataset = Dataset.from_list(self.ds_for_extracted_frames_list)
+        if Fields.meta not in dataset.features:
+            dataset = dataset.add_column(name=Fields.meta,
+                                         column=[{}] * dataset.num_rows)
+        dataset = dataset.map(op.process, num_proc=1, with_rank=True)
+        res_list = dataset.to_list()
+
+        for sample, target in zip(res_list, self.tgt_for_extracted_frames_list):
             self.assertEqual(abs(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["fov_x"] - target["fov_x"]) < 0.01, True)
             self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_beta_list"]).shape[1:], target["left_beta_list_shape"][1:])
             self.assertEqual(np.array(sample[Fields.meta][MetaKeys.hand_reconstruction_hawor_tags]["left_hand_pose_list"]).shape[1:], target["left_hand_pose_list_shape"][1:])

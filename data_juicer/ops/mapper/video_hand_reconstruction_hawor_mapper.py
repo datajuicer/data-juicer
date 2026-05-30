@@ -148,6 +148,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
         self.hawor_detector_path = hawor_detector_path
         self.frame_num = frame_num
         self.duration = duration
+        self.frame_field = MetaKeys.video_frames
         self.tag_field_name = tag_field_name
         self.frame_dir = frame_dir
         self.thresh = thresh
@@ -348,24 +349,52 @@ class VideoHandReconstructionHaworMapper(Mapper):
             return sample
 
         # there is no video in this sample
-        if self.video_key not in sample or not sample[self.video_key]:
-            return []
+        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
+            sample[Fields.meta][self.tag_field_name] = {
+                "fov_x": -1,
+                "left_frame_id_list": [],
+                "left_beta_list": [],
+                "left_hand_pose_list": [],
+                "left_global_orient_list": [],
+                "left_transl_list": [],
+                "right_frame_id_list": [],
+                "right_beta_list": [],
+                "right_hand_pose_list": [],
+                "right_global_orient_list": [],
+                "right_transl_list": [],
+            }
+            return sample
 
         # --- 1. FoV Estimation (MoGe) ---
-        ds_list = [{"videos": sample[self.video_key]}]
 
-        dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-        if Fields.meta not in dataset.features:
-            dataset = dataset.add_column(name=Fields.meta, column=[{}] * dataset.num_rows)
-        dataset = dataset.map(self.fused_ops[0].process, num_proc=None, with_rank=True)
-        res_list = dataset.to_list()
+        if self.frame_field in sample:
+            ds_list = [{MetaKeys.video_frames: sample[self.frame_field]}]
 
-        all_fov_x = res_list[0][Fields.meta][MetaKeys.static_camera_calibration_moge_tags]["hfov_list"]
+            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
+            if Fields.meta not in dataset.features:
+                dataset = dataset.add_column(name=Fields.meta, column=[{}] * dataset.num_rows)
+            dataset = dataset.map(self.fused_ops[0].process, num_proc=1, with_rank=True)
+            res_list = dataset.to_list()
 
-        temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-        frames_root = os.path.join(self.frame_dir, temp_frame_name)
-        frame_names = os.listdir(frames_root)
-        frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
+            all_fov_x = res_list[0][Fields.meta][MetaKeys.static_camera_calibration_moge_tags]["hfov_list"]
+
+            frames_path = sample[self.frame_field]
+
+        else:
+            ds_list = [{"videos": sample[self.video_key]}]
+
+            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
+            if Fields.meta not in dataset.features:
+                dataset = dataset.add_column(name=Fields.meta, column=[{}] * dataset.num_rows)
+            dataset = dataset.map(self.fused_ops[0].process, num_proc=1, with_rank=True)
+            res_list = dataset.to_list()
+
+            all_fov_x = res_list[0][Fields.meta][MetaKeys.static_camera_calibration_moge_tags]["hfov_list"]
+
+            temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
+            frames_root = os.path.join(self.frame_dir, temp_frame_name)
+            frame_names = os.listdir(frames_root)
+            frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
 
         images = []
         for temp_frame_path in frames_path:

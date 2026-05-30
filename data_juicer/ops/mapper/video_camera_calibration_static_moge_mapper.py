@@ -93,6 +93,7 @@ class VideoCameraCalibrationStaticMogeMapper(Mapper):
 
         self.frame_num = frame_num
         self.duration = duration
+        self.frame_field = MetaKeys.video_frames
         self.tag_field_name = tag_field_name
         self.frame_dir = frame_dir
         self.output_info_dir = output_info_dir
@@ -108,18 +109,39 @@ class VideoCameraCalibrationStaticMogeMapper(Mapper):
             return sample
 
         # there is no video in this sample
-        if self.video_key not in sample or not sample[self.video_key]:
-            return []
+        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
+            sample[Fields.meta][self.tag_field_name] = {
+                "frames_folder": "",
+                "frame_names": [],
+                "intrinsics_list": [],
+                "hfov_list": [],
+                "vfov_list": [],
+                "points_list": [],
+                "depth_list": [],
+                "mask_list": [],
+            }
+            return sample
 
-        # load videos
-        ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
+        if self.frame_field in sample:
+            frames_path = sample[self.frame_field]
+            frame_names = []
+            for temp_frame_name in sample[self.frame_field]:
+                frame_names.append(temp_frame_name.split("/")[-1])
+            frames_root = os.path.dirname(frames_path[0])
+            video_name = frames_path[0].split("/")[-2]
 
-        dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-        dataset = self.fused_ops[0].run(dataset)
+        else:
+            # load videos
+            ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
 
-        frames_root = os.path.join(self.frame_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0])
-        frame_names = os.listdir(frames_root)
-        frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
+            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
+            dataset = self.fused_ops[0].run(dataset)
+
+            frames_root = os.path.join(self.frame_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0])
+            frame_names = os.listdir(frames_root)
+            frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
+            video_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
+
         model = get_model(self.model_key, rank, self.use_cuda())
 
         final_k_list = []
@@ -183,9 +205,7 @@ class VideoCameraCalibrationStaticMogeMapper(Mapper):
         if self.if_output_info:
             os.makedirs(self.output_info_dir, exist_ok=True)
             with open(
-                os.path.join(
-                    self.output_info_dir, os.path.splitext(os.path.basename(sample[self.video_key][0]))[0] + ".json"
-                ),
+                os.path.join(self.output_info_dir, video_name + ".json"),
                 "w",
             ) as f:
                 json.dump(sample[Fields.meta][self.tag_field_name], f)

@@ -632,6 +632,34 @@ def prepare_dwpose_model(onnx_det_model, onnx_pose_model, **model_params):
     return dwpose_model
 
 
+def prepare_face_keypoints_ldeq_model(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+
+    from data_juicer.ops.common.ldeq_face_keypoints_func import LDEQ
+
+    if not os.path.exists(model_path):
+        if not os.path.exists(DJMC):
+            os.makedirs(DJMC)
+        LazyLoader.check_packages(["gdown"])
+        import gdown
+
+        model_path = os.path.join(DJMC, "final.pth.tar")
+        gdown.download("https://drive.google.com/uc?id=1w73vFdN2IZf4AcNfIULx695ptj1LHe_J", model_path)
+
+    ckpt = torch.load(model_path, map_location="cuda", weights_only=False)
+    train_args = ckpt["args"]
+    ldeq_model = LDEQ(train_args).to(device)
+    ldeq_model.load_state_dict(ckpt["state_dict"], strict=False)
+    ldeq_model.eval()
+
+    from insightface.app import FaceAnalysis
+
+    detector = FaceAnalysis(name="buffalo_l", allowed_modules=["detection"])
+    detector.prepare(ctx_id=0, det_size=(1280, 1280))
+
+    return ldeq_model, detector, train_args
+
+
 def prepare_fastsam_model(model_path, **model_params):
     device = model_params.pop("device", "cpu")
     model = ultralytics.FastSAM(check_model(model_path)).to(device)
@@ -1280,6 +1308,46 @@ def prepare_vggt_model(model_path, **model_params):
     return model
 
 
+def prepare_vitpose_animal_pose_model(model_path, vitpose_config, **model_params):
+    device = model_params.pop("device", "cpu")
+
+    vitpose_repo_path = os.path.join(DATA_JUICER_ASSETS_CACHE, "ViTPose")
+    if not os.path.exists(vitpose_repo_path):
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "https://github.com/ViTAE-Transformer/ViTPose.git",
+                vitpose_repo_path,
+            ],
+            check=True,
+        )
+    sys.path.append(vitpose_repo_path)
+
+    from mmpose.apis import init_pose_model
+
+    if os.path.exists(model_path):
+        pose_inferencer = init_pose_model(os.path.join(vitpose_repo_path, vitpose_config), model_path, device=device)
+    else:
+        vitpose_config = "ViTPose_huge_apt36k_256x192"
+        if not os.path.exists(DJMC):
+            os.makedirs(DJMC)
+
+        model_path = os.path.join(DJMC, "vitpose_huge.pth")
+        wget.download("https://download.cs.stanford.edu/viscam/AiM/ckpt/apt36k.pth", model_path)
+
+        pose_inferencer = init_pose_model(
+            os.path.join(
+                vitpose_repo_path,
+                "configs/animal/2d_kpt_sview_rgb_img/topdown_heatmap/apt36k/ViTPose_huge_apt36k_256x192.py",
+            ),
+            model_path,
+            device=device,
+        )
+
+    return pose_inferencer
+
+
 def prepare_vllm_model(pretrained_model_name_or_path, return_processor=False, **model_params):
     """
     Prepare and load a HuggingFace model with the corresponding processor.
@@ -1761,6 +1829,7 @@ MODEL_FUNCTION_MAPPING = {
     "deepcalib": prepare_deepcalib_model,
     "diffusion": prepare_diffusion_model,
     "dwpose": prepare_dwpose_model,
+    "face_keypoints_ldeq": prepare_face_keypoints_ldeq_model,
     "fasttext": prepare_fasttext_model,
     "fastsam": prepare_fastsam_model,
     "hawor": prepare_hawor_model,
@@ -1776,6 +1845,7 @@ MODEL_FUNCTION_MAPPING = {
     "simple_aesthetics": prepare_simple_aesthetics_model,
     "spacy": prepare_spacy_model,
     "vggt": prepare_vggt_model,
+    "vitpose_animal_pose": prepare_vitpose_animal_pose_model,
     "video_blip": prepare_video_blip_model,
     "video_depth_anything": prepare_video_depth_anything,
     "vllm": prepare_vllm_model,

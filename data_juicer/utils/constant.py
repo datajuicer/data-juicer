@@ -70,6 +70,12 @@ class MetaKeys(object):
     video_depth_tags = "video_depth_tags"
     # # video optical flow
     video_optical_flow = "video_optical_flow"
+    # # video normal map
+    video_normal_map_tags = "video_normal_map_tags"
+    # # video optical flow tags
+    video_optical_flow_tags = "video_optical_flow_tags"
+    # # video universal segmentation tags
+    video_universal_segmentation_tags = "video_universal_segmentation_tags"
     # # info extracted by VGGT
     vggt_tags = "vggt_tags"
     # # image tags

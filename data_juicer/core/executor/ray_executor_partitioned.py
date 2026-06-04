@@ -55,10 +55,7 @@ class TempDirManager:
             try:
                 shutil.rmtree(self.tmp_dir)
             except OSError as e:
-                logger.warning(
-                    f"Remove tmp dir with shutil.rmtree() failed: {e}, "
-                    "will try os.rmdir()"
-                )
+                logger.warning(f"Remove tmp dir with shutil.rmtree() failed: {e}, " "will try os.rmdir()")
                 os.rmdir(self.tmp_dir)
 
 
@@ -492,10 +489,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             try:
                 shutil.rmtree(tmp_base_dir)
             except OSError as e:
-                logger.warning(
-                    f"Remove tmp dir with shutil.rmtree() failed: {e}, "
-                    "will try os.rmdir()"
-                )
+                logger.warning(f"Remove tmp dir with shutil.rmtree() failed: {e}, " "will try os.rmdir()")
                 os.rmdir(tmp_base_dir)
             logger.info("Temporary files cleaned up successfully")
         else:
@@ -1022,9 +1016,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             try:
                 shutil.rmtree(self.ckpt_manager.ckpt_dir)
             except OSError as e:
-                logger.warning(
-                    f"Remove ckpt dir with shutil.rmtree() failed: {e}, "
-                    "will try os.rmdir()"
-                )
+                logger.warning(f"Remove ckpt dir with shutil.rmtree() failed: {e}, " "will try os.rmdir()")
                 os.rmdir(self.ckpt_manager.ckpt_dir)
             os.makedirs(self.ckpt_manager.ckpt_dir, exist_ok=True)

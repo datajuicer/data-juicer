@@ -89,11 +89,11 @@ for s in res_ds:
 <details open>
 <summary>[2026-05-29] Release v1.5.2: <b>Semantic LLM OPs, Cross-doc Line Dedup & Leaner Dependencies</b></summary>
 
-* 🧠 *Semantic LLM Operators (MVP)* — Introduced `llm_extract_mapper`, `llm_condition_filter`, and `llm_structured_ops` with unified `llm_*` naming and configurable inference strategies (join/agg/top-k planned).
 * 🧹 *New Deduplicator* — Added `DocumentLineDeduplicator` for cross-document line-level dedup, removing boilerplate lines (templates, copyright notices, navigation bars) by global document frequency.
 * 🤖 *Agent Data Quality Toolkit* — Shipped interaction-quality OPs & recipe, a bad-case HTML report, and more robust JSONL / HuggingFace meta loading.
 * 📦 *Leaner & Faster Install* — Slimmed the default dependency set (Ray, audio, spaCy, av, etc. moved to on-demand extras) to speed up installation.
 * 🐳 *Stability & Robustness Fixes* — Library-safe error handling (raise over `exit(1)`), Ray init/temp-dir fixes, valid API params (drop invalid `max_new_tokens`), PyArrow 20+ batch JSON reading, local-path aesthetics model support, and more performance/bug fixes.
+* 🧠 *Semantic LLM Operators* — Introduced `llm_extract_mapper`, `llm_condition_filter`, and `llm_structured_ops` with unified `llm_*` naming and configurable inference strategies (join/agg/top-k planned).
 </details>
 
 <details open>

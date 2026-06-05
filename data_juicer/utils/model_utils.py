@@ -718,6 +718,57 @@ def prepare_huggingface_model(
     return (model, processor) if return_model else processor
 
 
+def prepare_human_3d_pose_human3r(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+
+    human3r_repo = os.path.join(DATA_JUICER_ASSETS_CACHE, "Human3R")
+    if not os.path.exists(human3r_repo):
+        subprocess.run(["git", "clone", "https://github.com/fanegg/Human3R.git", human3r_repo], check=True)
+
+        raise ValueError(
+            "The Human3R repository has been automatically"
+            f"downloaded to the folder {DATA_JUICER_ASSETS_CACHE}."
+            "Please follow the instructions in the official"
+            "Human3R repository and run bash scripts/fetch_smplx.sh"
+            "to download the required models."
+        )
+
+    sys.path.append(human3r_repo)
+    sys.path.append(os.path.join(human3r_repo, "src"))
+    from src.dust3r.inference import inference_recurrent_lighter
+    from src.dust3r.model import ARCroco3DStereo
+
+    sys.path.remove(human3r_repo)
+    sys.path.remove(os.path.join(human3r_repo, "src"))
+
+    if not os.path.exists(model_path):
+        model_path = os.path.join(DJMC, "human3r_896L.pth")
+        placeholder = os.path.join(DJMC, "human3r/placeholder")
+
+        if not os.path.exists(model_path):
+
+            if not os.path.exists(placeholder):
+                os.makedirs(placeholder)
+
+                huggingface_hub = LazyLoader("huggingface_hub")
+                huggingface_hub.hf_hub_download(repo_id="faneggg/human3r", filename="human3r_896L.pth", local_dir=DJMC)
+
+    import time
+
+    count_turn = 0
+    while not os.path.exists(model_path):
+        if count_turn >= 1000:
+            raise ValueError("Model download failed.")
+        time.sleep(10)
+        logger.info("Downloading model...")
+        count_turn += 1
+
+    model = ARCroco3DStereo.from_pretrained(model_path).to(device)
+    model.eval()
+
+    return model, inference_recurrent_lighter
+
+
 def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **model_params):
 
     device = model_params.pop("device", "cpu")
@@ -1765,6 +1816,7 @@ MODEL_FUNCTION_MAPPING = {
     "fastsam": prepare_fastsam_model,
     "hawor": prepare_hawor_model,
     "huggingface": prepare_huggingface_model,
+    "human_3d_pose_human3r": prepare_human_3d_pose_human3r,
     "kenlm": prepare_kenlm_model,
     "moge": prepare_moge_model,
     "nltk": prepare_nltk_model,

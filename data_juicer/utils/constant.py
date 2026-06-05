@@ -70,6 +70,8 @@ class MetaKeys(object):
     video_depth_tags = "video_depth_tags"
     # # video optical flow
     video_optical_flow = "video_optical_flow"
+    # # video human 3d pose tags
+    video_human_3d_pose_tags = "video_human_3d_pose_tags"
     # # info extracted by VGGT
     vggt_tags = "vggt_tags"
     # # image tags

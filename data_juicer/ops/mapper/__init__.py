@@ -120,6 +120,7 @@ from .video_face_blur_mapper import VideoFaceBlurMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
 from .video_hand_reconstruction_hawor_mapper import VideoHandReconstructionHaworMapper
 from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
+from .video_human_3d_pose_mapper import VideoHuman3DPoseMapper
 from .video_object_segmenting_mapper import VideoObjectSegmentingMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
 from .video_resize_aspect_ratio_mapper import VideoResizeAspectRatioMapper
@@ -244,6 +245,7 @@ __all__ = [
     "VideoFFmpegWrappedMapper",
     "VideoHandReconstructionHaworMapper",
     "VideoHandReconstructionMapper",
+    "VideoHuman3DPoseMapper",
     "VideoFaceBlurMapper",
     "VideoObjectSegmentingMapper",
     "VideoRemoveWatermarkMapper",

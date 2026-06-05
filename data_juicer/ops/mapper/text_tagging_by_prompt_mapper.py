@@ -114,11 +114,6 @@ class TextTaggingByPromptMapper(Mapper):
         """  # noqa
 
         super().__init__(*args, **kwargs)
-        if not enable_vllm or not is_ray_mode():
-            # In Ray mode with vllm, num_proc is left to the caller so Ray can
-            # schedule one actor per GPU for data parallelism.
-            self.num_proc = 1
-            
 
         self.prompt = prompt
         self.tag_list = tag_list
@@ -133,6 +128,9 @@ class TextTaggingByPromptMapper(Mapper):
         sampling_params = update_sampling_params(sampling_params, hf_model, self.enable_vllm)
 
         if enable_vllm:
+            if not is_ray_mode():
+                # cannot initialize vllm replicas on different GPUs
+                self.num_proc = 1
             self.model_key = prepare_model(
                 model_type="vllm",
                 pretrained_model_name_or_path=hf_model,

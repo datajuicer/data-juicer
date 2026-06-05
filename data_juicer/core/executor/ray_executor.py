@@ -159,7 +159,9 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
         # 1. load data
         logger.info("Loading dataset with Ray...")
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np, read_options=read_opts, override_num_blocks=override_num_blocks)
+        dataset = self.datasetbuilder.load_dataset(
+            num_proc=load_data_np, read_options=read_opts, override_num_blocks=override_num_blocks
+        )
         columns = dataset.data.columns()
 
         # 2. extract processes

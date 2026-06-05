@@ -96,7 +96,7 @@ for s in res_ds:
 * 🐳 *Stability & Robustness Fixes* — Library-safe error handling (raise over `exit(1)`), Ray init/temp-dir fixes, valid API params (drop invalid `max_new_tokens`), PyArrow 20+ batch JSON reading, local-path aesthetics model support, and more performance/bug fixes.
 </details>
 
-<details open>
+<details>
 <summary>[2026-03-17] Release v1.5.1: <b>LaTeX OPs; Compressed Format Support; Operator Robustness Fixes</b></summary>
 
 * 📄 Two new LaTeX-focused mapper OPs shipped, extending data-juicer's document processing capabilities to handle `.tex` archives and figure contexts.
@@ -105,7 +105,7 @@ for s in res_ds:
 * 🤖 Major refactor and upgrade of data-juicer-agents completed: The project architecture and CLI/session capabilities were comprehensively redesigned for better maintainability and extensibility. See [date-juicer-agents](https://github.com/datajuicer/data-juicer-agents) for more details.
 </details>
 
-<details open>
+<details>
 <summary>[2026-02-12] Release v1.5.0: <b>Partitioned Ray Executor, OP-level Env Management, and More Embodied-AI OPs</b></summary>
 
 - 🚀 *Enhanced Distributed Execution Framework* -- Introduced partitioned Ray executor and OP-level isolated environments to improve fault tolerance, scalability, and dependency conflict resolution.

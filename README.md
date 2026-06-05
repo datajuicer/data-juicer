@@ -96,7 +96,7 @@ for s in res_ds:
 * 🐳 *Stability & Robustness Fixes* — Library-safe error handling (raise over `exit(1)`), Ray init/temp-dir fixes, valid API params (drop invalid `max_new_tokens`), PyArrow 20+ batch JSON reading, local-path aesthetics model support, and more performance/bug fixes.
 </details>
 
-<details>
+<details open>
 <summary>[2026-03-17] Release v1.5.1: <b>LaTeX OPs; Compressed Format Support; Operator Robustness Fixes</b></summary>
 
 * 📄 Two new LaTeX-focused mapper OPs shipped, extending data-juicer's document processing capabilities to handle `.tex` archives and figure contexts.

@@ -81,6 +81,7 @@ eoc_special_token: '<|__dj__eoc|>'                          # the special token 
 # for distributed processing
 executor_type: default                                      # type of executor, support "default" or "ray" for now.
 ray_address: auto                                           # the address of the Ray cluster.
+override_num_blocks: null                                   # override the number of output blocks for Ray Data read operations. Useful for controlling parallelism when reading large datasets. Default is null (no override).
 
 # partition configuration (for ray_partitioned executor)
 partition:

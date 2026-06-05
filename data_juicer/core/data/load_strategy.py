@@ -571,6 +571,8 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
     def load_data(self, **kwargs):
         from data_juicer.core.data.ray_dataset import RayDataset
 
+        override_num_blocks = kwargs.pop("override_num_blocks", None)
+
         path = self.ds_config["path"]
         validate_s3_path(path)
 
@@ -638,23 +640,25 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
                 from data_juicer.core.data.ray_dataset import read_json_stream
 
                 read_options = kwargs.get("read_options")
-                dataset = read_json_stream(path, filesystem=s3_fs, read_options=read_options)
+                dataset = read_json_stream(
+                    path, filesystem=s3_fs, read_options=read_options, override_num_blocks=override_num_blocks
+                )
             elif data_format == "parquet":
-                dataset = ray.data.read_parquet(path, filesystem=s3_fs)
+                dataset = ray.data.read_parquet(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "csv":
-                dataset = ray.data.read_csv(path, filesystem=s3_fs)
+                dataset = ray.data.read_csv(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "text":
-                dataset = ray.data.read_text(path, filesystem=s3_fs)
+                dataset = ray.data.read_text(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "numpy":
-                dataset = ray.data.read_numpy(path, filesystem=s3_fs)
+                dataset = ray.data.read_numpy(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "tfrecords":
-                dataset = ray.data.read_tfrecords(path, filesystem=s3_fs)
+                dataset = ray.data.read_tfrecords(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "lance":
                 # use lazy loader to check pylance installation
                 from data_juicer.utils.lazy_loader import LazyLoader
 
                 LazyLoader.check_packages(["pylance"])
-                dataset = ray.data.read_lance(path, filesystem=s3_fs)
+                dataset = ray.data.read_lance(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             else:
                 raise ValueError(f"Unsupported data format for S3: {data_format}")
 

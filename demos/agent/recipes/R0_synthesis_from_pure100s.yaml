@@ -1,0 +1,31 @@
+# R0 专用：从 ``demos/local/synthesis/pure_100s_dedup_rerun.jsonl``（已跑
+# ``agent_interaction_quality_analysis`` 类配方）接 R2 / R3。
+#
+# 该集无 ``agent_lineage_sample_id`` / ``agent_lineage_tag_*``，故用
+# ``group_key_mode: normalized_query`` 合组；质量分缺省时回落到
+# ``stats.llm_quality_score``；模型名读 ``meta.agent_request_model``。
+#
+# Run: ``dj-process --config demos/agent/recipes/R0_synthesis_from_pure100s.yaml``
+project_name: agent-train-data-R0-synthesis-pure100s
+dataset_path: demos/local/synthesis/pure_100s_dedup_rerun.jsonl
+np: 4
+export_path: ./outputs/synthesis_pure100s_R0/from_analysis.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"
+
+process:
+  - agent_cross_model_pair_mapper:
+      group_key_mode: normalized_query
+      query_key: "query"
+      model_meta: "agent_request_model"
+      version_meta: "agent_lineage_tag_version"
+      score_meta: "agent_lineage_tag_quality"
+      fallback_score_stat: "llm_quality_score"
+      min_group_size: 2
+
+  - agent_session_deduplicator:
+      group_key_mode: regex_extract
+      timestamp_field: time
+      regex_pattern: "\n- Session ID:\\s*(?P<session_id>\\S+)\\s*\n- User ID:\\s*(?P<user_id>\\S+)\\s*\n"
+      regex_search_target: "messages.0.content.0.text"

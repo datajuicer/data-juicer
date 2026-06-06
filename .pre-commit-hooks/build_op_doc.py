@@ -5,7 +5,10 @@ import re
 from pathlib import Path
 from typing import List
 
-import translators as ts
+# Avoid translators probing the public internet on import (flaky behind proxies / offline).
+os.environ.setdefault("translators_default_region", "EN")
+
+import translators as ts  # noqa: E402
 
 DOC_PATH = "docs/Operators.md"
 
@@ -577,30 +580,42 @@ def parse_op_record_from_current_doc():
     """
     Parse the old-version OP records from the existing OP doc.
     """
-    # patterns
-    tab_pattern = r"\| +(.*?) +\| +(.*?) +\| +(.*?) +\| +(.*?) +\| +(.*?) +\|"
+    # Five-column operator table row (same layout as generated OP tables).
+    row_pattern = re.compile(r"^\| +(.*?) +\| +(.*?) +\| +(.*?) +\| +(.*?) +\| +(.*?) +\|\s*$")
+    # Section headers look like: ## mapper <a name="mapper"/>
+    section_pattern = re.compile(
+        r"^## (formatter|mapper|filter|deduplicator|selector|grouper|aggregator|pipeline) " r'<a name="[^"]+"/>\s*$'
+    )
 
     if os.path.exists(DOC_PATH):
         op_record_list = []
         with open(DOC_PATH, "r", encoding="utf-8") as fin:
             content = fin.read()
             op_num_dict = parse_op_num_from_doc(content)
-            res = re.findall(tab_pattern, content)
-            for name, tags, desc, info, ref in res:
-                # skip table header
-                if name == "Operator 算子":
+            current_type = None
+            for line in content.splitlines():
+                sec = section_pattern.match(line)
+                if sec:
+                    current_type = sec.group(1)
+                    continue
+                row_m = row_pattern.match(line)
+                if not row_m or current_type is None:
+                    continue
+                name, tags, desc, info, ref = row_m.groups()
+                # skip table header / separator rows
+                if name == "Operator 算子" or name.strip("-").strip() == "":
                     continue
                 # extract tags
-                type = name.split("_")[-1]
+                op_type = current_type
                 tags = [remove_emojis(tag.lower()) for tag in tags.split(" ")]
                 # only need English description
                 desc_parts = desc.split(". ")
                 desc = desc_parts[0] + "."
                 desc_zh = ". ".join(desc_parts[1:])
-                test_path = os.path.join(OP_TEST_PREFIX, type, f"test_{name}.py")
+                test_path = os.path.join(OP_TEST_PREFIX, op_type, f"test_{name}.py")
                 op_record_list.append(
                     OPRecord(
-                        type=type,
+                        type=op_type,
                         name=name,
                         desc=desc,
                         desc_zh=desc_zh,

@@ -81,6 +81,34 @@ class TestUsageCounterMapper(DataJuicerTestCaseBase):
         self.assertEqual(meta[MetaKeys.prompt_tokens], 200)
         self.assertEqual(meta[MetaKeys.completion_tokens], 100)
 
+    def test_multiple_distinct_totals_reconcile_with_sum_pc(self):
+        op = UsageCounterMapper(
+            choices_key="choices",
+            usage_key="usage",
+            dedupe_identical_usage=True,
+        )
+        sample = {
+            "choices": [
+                {"usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 50}},
+                {"usage": {"prompt_tokens": 12, "completion_tokens": 7, "total_tokens": 80}},
+            ],
+            Fields.meta: {},
+        }
+        out = op.process_single(sample)
+        meta = out[Fields.meta]
+        self.assertEqual(meta[MetaKeys.prompt_tokens], 22)
+        self.assertEqual(meta[MetaKeys.completion_tokens], 12)
+        self.assertEqual(meta[MetaKeys.total_tokens], 80)
+
+    def test_empty_usage_writes_zero_total_tokens(self):
+        op = UsageCounterMapper(choices_key="response_choices", usage_key="response_usage")
+        sample = {"response_choices": [], Fields.meta: {}}
+        out = op.process_single(sample)
+        meta = out[Fields.meta]
+        self.assertEqual(meta[MetaKeys.prompt_tokens], 0)
+        self.assertEqual(meta[MetaKeys.completion_tokens], 0)
+        self.assertEqual(meta[MetaKeys.total_tokens], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

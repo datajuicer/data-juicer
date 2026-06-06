@@ -65,13 +65,29 @@ def _get_usage_from_obj(obj: Any) -> dict:
 
 
 def _aggregate_usage(usages: List[dict]) -> tuple:
-    """Sum prompt/completion; total if present else prompt+completion."""
-    p = sum(u.get("prompt_tokens") or 0 for u in usages)
-    c = sum(u.get("completion_tokens") or 0 for u in usages)
-    totals = [u.get("total_tokens") for u in usages if u.get("total_tokens") is not None]
-    t = totals[0] if totals else None
-    if t is None and (p or c):
-        t = p + c
+    """Sum prompt/completion across usage blocks; reconcile ``total_tokens`` across choices."""
+    p = sum(int(u.get("prompt_tokens") or 0) for u in usages)
+    c = sum(int(u.get("completion_tokens") or 0) for u in usages)
+    totals: List[int] = []
+    for u in usages:
+        raw_t = u.get("total_tokens")
+        if raw_t is None:
+            continue
+        try:
+            totals.append(int(raw_t))
+        except (TypeError, ValueError):
+            continue
+    base = p + c
+    if not totals:
+        # Always int: Arrow infers ``Value('null')`` if some shards only see None.
+        return p, c, int(base)
+    mx = max(totals)
+    # When multiple non-identical totals exist (e.g. multi-choice / chunked usage), avoid
+    # silently taking only the first snapshot; prefer the max of explicit totals vs p+c.
+    if len(totals) > 1 and len(set(totals)) > 1:
+        t = max(mx, base)
+    else:
+        t = max(mx, base)
     return p, c, t
 
 

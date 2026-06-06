@@ -13,6 +13,22 @@ from data_juicer.utils.constant import Fields, MetaKeys
 
 OP_NAME = "tool_success_tagger_mapper"
 
+
+def _coerce_message_list(val: Any) -> List[dict]:
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return [x for x in val if isinstance(x, dict)]
+    if isinstance(val, str) and val.strip():
+        try:
+            parsed = json.loads(val)
+            if isinstance(parsed, list):
+                return [x for x in parsed if isinstance(x, dict)]
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
 # Default: success = Wrote/Success/OK; error = Error/Exception/failed
 DEFAULT_SUCCESS_PATTERNS = [
     r"(?i)wrote\s+\d+\s*bytes",
@@ -78,6 +94,7 @@ def _classify_tool_content(
     content: str,
     success_patterns: List[re.Pattern],
     error_patterns: List[re.Pattern],
+    default_label: str = "success",
 ) -> str:
     """Return 'success', 'error', or 'unknown'."""
     if not content:
@@ -88,7 +105,9 @@ def _classify_tool_content(
     for pat in success_patterns:
         if pat.search(content):
             return "success"
-    # Non-empty content without error often means success (e.g. tool returned data)
+    # Non-empty content without clear signals: training pipelines may prefer 'unknown'.
+    if default_label in ("unknown", "success"):
+        return default_label
     return "success"
 
 
@@ -98,6 +117,8 @@ class ToolSuccessTaggerMapper(Mapper):
     """Set meta tool_success_count, tool_fail_count, tool_success_ratio.
 
     Scans messages for role=tool; configurable success/error patterns.
+    When there are no success+fail tool rounds, ``tool_success_ratio`` is ``-1.0``
+    (undefined), not ``None``, so Arrow keeps a float-typed column.
     """
 
     def __init__(
@@ -107,19 +128,21 @@ class ToolSuccessTaggerMapper(Mapper):
         success_patterns: Optional[List[str]] = None,
         error_patterns: Optional[List[str]] = None,
         store_per_tool_results: bool = True,
+        default_label: str = "success",
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.messages_key = messages_key
         self.tool_role_names = tool_role_names or ["tool", "tool_use"]
         self.store_per_tool_results = store_per_tool_results
+        self.default_label = str(default_label or "success").lower()
+        if self.default_label not in ("success", "unknown"):
+            self.default_label = "success"
         self._success_pats = [re.compile(p) for p in (success_patterns or DEFAULT_SUCCESS_PATTERNS)]
         self._error_pats = [re.compile(p) for p in (error_patterns or DEFAULT_ERROR_PATTERNS)]
 
     def process_single(self, sample):
-        messages = sample.get(self.messages_key) or []
-        if not isinstance(messages, list):
-            messages = []
+        messages = _coerce_message_list(sample.get(self.messages_key))
 
         results = []
         success_count = 0
@@ -131,7 +154,12 @@ class ToolSuccessTaggerMapper(Mapper):
             if role not in self.tool_role_names:
                 continue
             content = _content_to_str(m.get("content"))
-            label = _classify_tool_content(content, self._success_pats, self._error_pats)
+            label = _classify_tool_content(
+                content,
+                self._success_pats,
+                self._error_pats,
+                default_label=self.default_label,
+            )
             results.append({"content_preview": content[:200], "result": label})
             if label == "success":
                 success_count += 1
@@ -141,7 +169,9 @@ class ToolSuccessTaggerMapper(Mapper):
                 unknown_count += 1
 
         total = success_count + fail_count
-        ratio = (success_count / total) if total else None
+        # Always store a float64-compatible scalar: HF Arrow infers ``Value('null')``
+        # if the first shards only see None, then later shards fail when a float appears.
+        ratio = float(success_count / total) if total > 0 else -1.0
 
         if Fields.meta not in sample:
             sample[Fields.meta] = {}

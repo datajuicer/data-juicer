@@ -91,6 +91,32 @@ def test_list_str_for_hf_meta_empty_uses_string_placeholder():
     assert _list_str_for_hf_meta(["a", "b"]) == ["a", "b"]
 
 
+def test_lineage_extra_keys_and_tool_chain_complete():
+    op = AgentDialogNormalizeMapper(
+        text_key="text",
+        history_key="dialog_history",
+        query_key="query",
+        response_key="response",
+        copy_tag_object=True,
+        lineage_extra_keys=["sample_id", "tag.model"],
+    )
+    sample = {
+        "id": "row-1",
+        "sample_id": "S9",
+        "tag": {"model": "glm-5", "quality": 0.9},
+        "messages": [
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "ok"},
+        ],
+    }
+    out = op.process_single(sample)
+    m = out[Fields.meta]
+    assert m["agent_lineage_sample_id"] == "S9"
+    assert m["agent_lineage_tag_model"] == "glm-5"
+    assert isinstance(m[MetaKeys.agent_tag], dict)
+    assert m[MetaKeys.agent_tool_chain_complete] is True
+
+
 def test_process_single_always_sets_dialog_history_compressed_bool():
     op = AgentDialogNormalizeMapper(
         text_key="text",

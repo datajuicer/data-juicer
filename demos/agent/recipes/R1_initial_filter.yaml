@@ -1,0 +1,116 @@
+# R1: training-dataset-oriented initial pass (cheap CPU; optional API only if you extend).
+#
+# --- 与 ``demos/agent/recipes/agent_interaction_quality_analysis.yaml`` 的差异（设计如此）---
+# 全量分析配方含：PII / 清洗 / §4 对话打标（intent·sentiment·topic…）/ §5b 末轮 LLM 质检
+#（dialog_*、agent_trace_coherence、agent_tool_relevance）/ 大量 text filters（写 stats）/
+# §8 ``llm_*_score_filter``（写 ``stats.llm_quality_score``、``llm_analysis_score``、``llm_difficulty_score``）/
+# 以及分析侧的 ``agent_bad_case_signal_mapper``、``agent_insight_llm_mapper`` 等。
+# 本 R1 **只保留** 与训练 cohort / 工具链 / 噪声标签强相关、且默认无 API 的一段：
+# normalize → cross_model_pair → dedup → sys_log/harness → usage → tool_success → agent_tool_type。
+# 因此走路径 A（R1→R2→R3）时：``meta.dialog_*``、§5b 质检、``stats.llm_*`` 等 **默认不存在**；
+# ``agent_error_taxonomy_mapper`` / ``agent_learnable_value_mapper`` / R2 的 ``agent_bad_case_signal_mapper``
+# 会 **退化为** 仅依赖已有 meta（如 cross_model、tool、normalize 产出）与 **有则用之** 的 stats；
+# ``agent_learnable_value_mapper`` 中 ``weight_difficulty`` 依赖的 ``stats.llm_difficulty_score`` 若无则按 0 处理。
+# 若需要与分析同级的信号密度，请走路径 B：先跑全量分析导出，再 ``R0_bridge_from_analysis`` → R2 → R3；
+# 或在 R1 之后、R2 之前 **按需插入** 分析配方中的 LLM 块（§4/§5b/§8），成本与 ``PERFORMANCE_LLM.md`` 一致。
+#
+# If you already ran ``demos/agent/recipes/agent_interaction_quality_analysis.yaml`` on raw logs, prefer
+# ``R0_bridge_from_analysis.yaml`` then ``R2_train_data_stack.yaml`` (see ``recipes/README.md``).
+# Order matters: cross-model pairing runs BEFORE any query-level dedup so PK rows are kept.
+# Exact dedup here uses ``text_key: id`` (file-level duplicate lines only). For semantic
+# dedup on ``query``, enable the commented ``document_minhash_deduplicator`` only when
+# the batch is single-model-per-query (otherwise cross-model rows may collapse).
+project_name: agent-training-dataset-R1-initial-filter
+dataset_path: demos/agent/demo-data-100.jsonl
+np: 4
+export_path: ./outputs/agent_training_dataset_R1/processed.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+      copy_lineage_fields: true
+      copy_tag_object: true
+      lineage_extra_keys:
+        - "sample_id"
+        - "tag.model"
+        - "tag.version"
+        - "tag.category"
+        - "tag.quality"
+        - "tag.round"
+        - "tag.max_token_length"
+        - "tag.tool_call_failure_ratio"
+      history_tool_result_max_chars: 16384
+      history_max_assistant_trace_chars: 48000
+
+  - clean_copyright_mapper: {}
+
+  - clean_html_mapper: {}
+
+  - agent_cross_model_pair_mapper:
+      pair_key_meta: "agent_lineage_sample_id"
+      model_meta: "agent_lineage_tag_model"
+      version_meta: "agent_lineage_tag_version"
+      score_meta: "agent_lineage_tag_quality"
+      fallback_score_stat: "llm_quality_score"
+      min_group_size: 2
+      # group_key_mode: exact            # default: same ``agent_lineage_sample_id``
+      # group_key_mode: normalized_query # same normalized ``query`` (different lineage ok)
+      # group_key_mode: simhash_lsh      # near-duplicate ``query`` (+ optional ``extra_group_text_key``)
+      # simhash_max_hamming: 10
+      # extra_group_text_key: ""        # sample top-level key or meta key for env digest (optional)
+
+  - agent_session_deduplicator:
+      group_key_mode: regex_extract
+      timestamp_field: time
+      regex_pattern: "\n- Session ID:\\s*(?P<session_id>\\S+)\\s*\n- User ID:\\s*(?P<user_id>\\S+)\\s*\n"
+      regex_search_target: "messages.0.content.0.text"
+
+  # Uncomment ONLY for single-model-per-query corpora (see header).
+  # - document_minhash_deduplicator:
+  #     text_key: "query"
+  #     tokenization: "character"
+  #     window_size: 5
+  #     jaccard_threshold: 0.85
+
+  - agent_sys_log_noise_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+
+  - agent_harness_noise_mapper:
+      messages_key: "messages"
+
+  - usage_counter_mapper:
+      choices_key: "response_choices"
+      usage_key: "response_usage"
+
+  - tool_success_tagger_mapper:
+      messages_key: "messages"
+      store_per_tool_results: true
+      default_label: "unknown"
+
+  - agent_tool_type_mapper:
+      top_k_dominant: 5
+
+  - pii_redaction_mapper:
+      mask_urls: true
+      redact_keys: ["text", "query", "response", "dialog_history", "messages"]
+      messages_key: "messages"
+
+  - pii_llm_suspect_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      gate_mode: heuristic
+      redaction_mode: whole_field
+      inspect_keys: ["text", "query", "response"]
+      messages_key: "messages"
+      try_num: 2
+      sampling_params: { max_tokens: 512, temperature: 0.1 }

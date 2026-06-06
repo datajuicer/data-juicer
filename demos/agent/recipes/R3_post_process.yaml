@@ -1,0 +1,50 @@
+# R3: training-dataset post-process — PII / copyright / HTML cleanup, then LLM safety + teacher
+# distill + rewrite hints, then ``meta.agent_training_card``.
+#
+# Input: R2 ``processed.jsonl`` (``R2_training_dataset_stack.yaml``), whether R2 was fed from
+# R1 or from R0-after-analysis (see ``recipes/README.md`` paths A / B). Requires ``text``,
+# ``messages``, and R2 meta (``agent_training_dataset_tier``, taxonomy, learnable value, etc.).
+#
+# **Training-dataset output** (``export_path``; default ``./outputs/agent_training_dataset_R3/training_dataset.jsonl``).
+#
+# **强模型**: 将 ``api_or_hf_model`` / ``api_model`` 换成更强模型；蒸馏与安全控制建议同档或略强，PII LLM 与 bronze 改写可用较轻模型控费。
+#
+# 无 API 时：整段注释掉四个 LLM 算子，仅保留确定性清洗 + ``agent_training_card_mapper``。
+#
+# Run: ``dj-process --config demos/agent/recipes/R3_post_process.yaml``
+project_name: agent-training-dataset-R3-post-process
+dataset_path: ./outputs/agent_training_dataset_R2/processed.jsonl
+np: 2
+export_path: ./outputs/agent_training_dataset_R3/training_dataset.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"
+
+process:
+
+
+  - agent_safety_gate_mapper:
+      text_key: "text"
+      api_or_hf_model: "qwen-plus"
+      try_num: 2
+      sampling_params: { max_tokens: 64, temperature: 0.0 }
+
+  - agent_distill_trajectory_mapper:
+      api_model: "qwen-plus"
+      preferred_output_lang: zh
+      only_for_training_dataset_tiers: ["gold", "silver"]
+      require_safety_gate_ok: true
+      max_context_chars: 12000
+      try_num: 2
+      sampling_params: { max_tokens: 2048, temperature: 0.2 }
+
+  - agent_rewrite_hint_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      only_for_training_dataset_tiers: ["bronze"]
+      try_num: 2
+      sampling_params: { max_tokens: 900, temperature: 0.2 }
+
+  - agent_training_card_mapper:
+      include_distilled: true
+      include_rewrite_hints: true

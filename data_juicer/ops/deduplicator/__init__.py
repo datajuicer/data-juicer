@@ -1,3 +1,4 @@
+from .agent_session_deduplicator import AgentSessionDeduplicator
 from .document_deduplicator import DocumentDeduplicator
 from .document_line_deduplicator import DocumentLineDeduplicator
 from .document_minhash_deduplicator import (
@@ -18,6 +19,7 @@ from .ray_video_deduplicator import RayVideoDeduplicator
 from .video_deduplicator import VideoDeduplicator
 
 __all__ = [
+    "AgentSessionDeduplicator",
     "DocumentDeduplicator",
     "DocumentLineDeduplicator",
     "DocumentMinhashDeduplicator",

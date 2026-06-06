@@ -1,0 +1,63 @@
+# R2: training-value stack (ROI: taxonomy + learnable value + bad-case signals).
+#
+# ``dataset_path`` — pick **one**:
+#   A) ``./outputs/agent_training_dataset_R1/processed.jsonl`` after ``R1_initial_filter.yaml``, or
+#   B) ``./outputs/agent_training_dataset_R0/from_analysis.jsonl`` after ``R0_bridge_from_analysis.yaml``
+#      (upstream: ``agent_interaction_quality_analysis.yaml`` export).
+#
+# Reuses ``dialog_*`` meta + ``stats.llm_*`` when present (path B). Path A may omit full §5b
+# dialog LLM axes; taxonomy/learnable then lean on tool/cross-model/llm scalar scores only.
+# 路径 A 下具体缺哪些字段、对 taxonomy / learnable / bad_case 的影响见 ``TRAIN_DATA_FIELD_GUIDE.md`` §5.1。
+#
+# If your export lacks ``agent_lineage_*`` / ``agent_tag``, prepend one
+# ``agent_dialog_normalize_mapper`` block (same as R1) on **raw** JSONL first.
+#
+# Requires LLM API for ``agent_insight_llm_mapper`` only; comment that op out to skip.
+project_name: agent-training-dataset-R2-from-existing-tags
+dataset_path: ./outputs/agent_training_dataset_R1/processed.jsonl
+np: 4
+export_path: ./outputs/agent_training_dataset_R2/processed.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"
+
+process:
+  - agent_sys_log_noise_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+
+  - agent_harness_noise_mapper:
+      messages_key: "messages"
+
+  - agent_error_taxonomy_mapper:
+      hard_drop_safety_severity: 0.75
+
+  - agent_learnable_value_mapper:
+      weight_difficulty: 0.35
+      weight_taxonomy_focus: 0.25
+      weight_completeness: 0.20
+      weight_generalizability: 0.10
+      weight_cross_model: 0.10
+      tier_gold: 0.70
+      tier_silver: 0.50
+      tier_bronze: 0.30
+
+  - agent_bad_case_signal_mapper:
+      signal_on_tool_fail: true
+      min_tool_fail_count_for_signal: 5
+      high_precision_on_tool_fail_alone: false
+      signal_on_llm_analysis_low: true
+      signal_on_llm_text_quality_low: true
+      signal_on_learnable_value_tier: true
+      exclude_if_sys_log_or_harness_noise: true
+      min_medium_signals_for_watchlist: 2
+
+  # Optional (requires API). Uncomment when running on a machine with credentials.
+  # - agent_insight_llm_mapper:
+  #     api_model: "qwen-turbo"
+  #     preferred_output_lang: zh
+  #     run_for_tiers: ["high_precision", "watchlist"]
+  #     try_num: 2
+  #     sampling_params: { max_tokens: 900, temperature: 0.2 }
+  #     query_preview_max_chars: 800
+  #     response_preview_max_chars: 800

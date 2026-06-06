@@ -1037,6 +1037,13 @@ process:
       max_ratio: 0.5                                          # the max ratio of filter range
 
   # Deduplicator ops
+  - agent_session_deduplicator:                             # deduplicates conversation samples at session level by (session_id, user_id), keeping only the latest timestamp
+      group_key_mode: field                                   # extraction mode: 'field' or 'regex_extract'
+      session_id_field: session_id                            # field path for session id (used when mode is 'field')
+      user_id_field: user_id                                  # field path for user id (used when mode is 'field')
+      timestamp_field: timestamp                              # field path for timestamp; larger = newer
+      regex_pattern: ''                                       # regex with named groups session_id and user_id (used when mode is 'regex_extract')
+      regex_search_target: ''                                 # field path to search the regex in, or 'first_system_message'
   - document_deduplicator:                                  # deduplicate text samples using md5 hashing exact matching method
       lowercase: false                                        # whether to convert text to lower case
       ignore_non_character: false                             # whether to ignore non-alphabet characters, including whitespaces, digits, and punctuations

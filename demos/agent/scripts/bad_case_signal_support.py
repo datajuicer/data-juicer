@@ -34,7 +34,9 @@ SIGNAL_SUPPORT_ROWS: List[Dict[str, Any]] = [
         "upstream": (
             "meta.tool_fail_count、tool_unknown_count；"
             "tool_success_tagger_mapper（messages role=tool）；"
-            "第 9 步需 fail≥min_tool_fail_count_for_signal 才发本信号（减轻单条试错 bias）"
+            "第 9 步需 fail≥min_tool_fail_count_for_signal 才发本信号（减轻单条试错 bias）；"
+            "若 exclude_if_sys_log_or_harness_noise=true 且 meta.agent_sys_log_noise / agent_harness_noise "
+            "标记 is_likely_noise，则本信号 weight 由 high 降为 medium"
         ),
     },
     {
@@ -124,6 +126,35 @@ SIGNAL_SUPPORT_ROWS: List[Dict[str, Any]] = [
         "upstream": (
             "stats.llm_difficulty_score ∩ stats.llm_quality_score；"
             "难度与质量联合启发式"
+        ),
+    },
+    {
+        "code": "learnable_value_tier_gold",
+        "role": "structured",
+        "weight_hint": "medium",
+        "upstream": (
+            "meta.agent_learnable_value_tier、meta.agent_learnable_value；"
+            "agent_learnable_value_mapper（训练优先级 / training-dataset tier）"
+        ),
+    },
+    {
+        "code": "learnable_value_tier_silver",
+        "role": "structured",
+        "weight_hint": "medium",
+        "upstream": "同上（tier=silver）",
+    },
+    {
+        "code": "learnable_value_tier_bronze",
+        "role": "structured",
+        "weight_hint": "medium",
+        "upstream": "同上（tier=bronze）",
+    },
+    {
+        "code": "learnable_value_tier_drop",
+        "role": "structured",
+        "weight_hint": "medium",
+        "upstream": (
+            "同上（tier=drop）；常与 agent_error_taxonomy.hard_drop_recommended 或低分联合出现"
         ),
     },
 ]

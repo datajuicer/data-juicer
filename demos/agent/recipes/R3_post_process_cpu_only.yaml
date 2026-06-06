@@ -1,0 +1,26 @@
+# R3 (CPU-only): same inputs/outputs as R3_post_process.yaml but **no remote LLM**.
+# Use for smoke tests or air-gapped re-exports after R2 (R1 or R0→R2 chain). Does not call
+# PII LLM / safety / distill / rewrite; still writes ``meta.agent_training_card`` from meta.
+#
+# Run: ``dj-process --config demos/agent/recipes/R3_post_process_cpu_only.yaml``
+project_name: agent-train-data-R3-post-process-cpu
+dataset_path: ./outputs/agent_train_data_R2/processed.jsonl
+np: 2
+export_path: ./outputs/agent_train_data_R3/train_data.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"
+
+process:
+  - pii_redaction_mapper:
+      mask_urls: true
+      redact_keys: ["text", "query", "response", "dialog_history", "messages"]
+      messages_key: "messages"
+
+  - clean_copyright_mapper: {}
+
+  - clean_html_mapper: {}
+
+  - agent_training_card_mapper:
+      include_distilled: true
+      include_rewrite_hints: true

@@ -153,6 +153,25 @@ class MetaKeys(object):
     agent_request_model = "agent_request_model"
     agent_pt = "agent_pt"
     agent_total_cost_time_ms = "agent_total_cost_time_ms"
+    # # optional copy of raw ``tag`` object (agent_dialog_normalize_mapper)
+    agent_tag = "agent_tag"
+    # # flat cohort keys from lineage_extra_keys use the naming pattern
+    # ``agent_lineage_<path_with_underscores>`` (e.g. sample_id -> agent_lineage_sample_id,
+    # tag.model -> agent_lineage_tag_model). See AgentDialogNormalizeMapper docstring.
+    # # cross-model / session health (training-dataset-oriented mappers)
+    agent_cross_model_pair = "agent_cross_model_pair"
+    agent_sys_log_noise = "agent_sys_log_noise"
+    agent_harness_noise = "agent_harness_noise"
+    agent_tool_chain_complete = "agent_tool_chain_complete"
+    agent_error_taxonomy = "agent_error_taxonomy"
+    agent_learnable_value = "agent_learnable_value"
+    agent_learnable_value_tier = "agent_learnable_value_tier"
+    agent_training_dataset_tier = "agent_training_dataset_tier"
+    # # R3 post-process / training-dataset export (see demos/agent/recipes/R3_post_process.yaml)
+    agent_training_safety_gate = "agent_training_safety_gate"
+    agent_distilled_trajectory = "agent_distilled_trajectory"
+    agent_rewrite_hints = "agent_rewrite_hints"
+    agent_training_card = "agent_training_card"
     # # stable ids / message indices (for reports, showcase, log correlation)
     agent_request_id = "agent_request_id"
     agent_last_user_msg_idx = "agent_last_user_msg_idx"
@@ -413,6 +432,9 @@ class HashKeys(object):
 
     # duplicate flag
     is_unique = DEFAULT_PREFIX + "is_unique"
+
+    # agent session dedup: stores plain group_key (session_id::user_id), not a cryptographic hash
+    agent_session_group = DEFAULT_PREFIX + "agent_session_group__"
 
 
 class InterVars(object):

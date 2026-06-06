@@ -1,0 +1,152 @@
+project_name: agent-train-data-R0-bridge-from-analysis
+# assume this dataset is processed by agent_interaction_quality_analysis.yaml (same schema as agent_interaction_quality_analysis export).
+dataset_path: demos/local/pure_100s_original.jsonl
+np: 4
+export_path: outputs/Rx_A_from_original/result.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"
+
+process:
+  # R1
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+      copy_lineage_fields: true
+      copy_tag_object: true
+      lineage_extra_keys:
+        - "sample_id"
+        - "tag.model"
+        - "tag.version"
+        - "tag.category"
+        - "tag.quality"
+        - "tag.round"
+        - "tag.max_token_length"
+        - "tag.tool_call_failure_ratio"
+      history_tool_result_max_chars: 16384
+      history_max_assistant_trace_chars: 48000
+
+  - clean_copyright_mapper: {}
+
+  - clean_html_mapper: {}
+
+  - agent_cross_model_pair_mapper:
+      pair_key_meta: "agent_lineage_sample_id"
+      model_meta: "agent_lineage_tag_model"
+      version_meta: "agent_lineage_tag_version"
+      score_meta: "agent_lineage_tag_quality"
+      fallback_score_stat: "llm_quality_score"
+      min_group_size: 2
+
+  - agent_session_deduplicator:
+      group_key_mode: regex_extract
+      timestamp_field: time
+      regex_pattern: "\n- Session ID:\\s*(?P<session_id>\\S+)\\s*\n- User ID:\\s*(?P<user_id>\\S+)\\s*\n"
+      regex_search_target: "messages.0.content.0.text"
+
+  - agent_sys_log_noise_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+
+  - agent_harness_noise_mapper:
+      messages_key: "messages"
+
+  - usage_counter_mapper:
+      choices_key: "response_choices"
+      usage_key: "response_usage"
+
+  - tool_success_tagger_mapper:
+      messages_key: "messages"
+      store_per_tool_results: true
+      default_label: "unknown"
+
+  - agent_tool_type_mapper:
+      top_k_dominant: 5
+
+  - pii_redaction_mapper:
+      mask_urls: true
+      redact_keys: ["text", "query", "response", "dialog_history", "messages"]
+      messages_key: "messages"
+
+  - pii_llm_suspect_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      gate_mode: heuristic
+      redaction_mode: whole_field
+      inspect_keys: ["text", "query", "response"]
+      messages_key: "messages"
+      try_num: 2
+      sampling_params: { max_tokens: 512, temperature: 0.1 }
+
+  # R2
+  # comment on duplicate OPs, applied in R1 already
+  # - agent_sys_log_noise_mapper:
+  #     messages_key: "messages"
+  #     choices_key: "response_choices"
+
+  # - agent_harness_noise_mapper:
+  #     messages_key: "messages"
+
+  - agent_error_taxonomy_mapper:
+      hard_drop_safety_severity: 0.75
+
+  - agent_learnable_value_mapper:
+      weight_difficulty: 0.35
+      weight_taxonomy_focus: 0.25
+      weight_completeness: 0.20
+      weight_generalizability: 0.10
+      weight_cross_model: 0.10
+      tier_gold: 0.70
+      tier_silver: 0.50
+      tier_bronze: 0.30
+
+  - agent_bad_case_signal_mapper:
+      signal_on_tool_fail: true
+      min_tool_fail_count_for_signal: 5
+      high_precision_on_tool_fail_alone: false
+      signal_on_llm_analysis_low: true
+      signal_on_llm_text_quality_low: true
+      signal_on_learnable_value_tier: true
+      exclude_if_sys_log_or_harness_noise: true
+      min_medium_signals_for_watchlist: 2
+
+  - agent_insight_llm_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      run_for_tiers: ["high_precision", "watchlist"]
+      try_num: 2
+      sampling_params: { max_tokens: 900, temperature: 0.2 }
+      query_preview_max_chars: 800
+      response_preview_max_chars: 800
+
+  # R3
+  - agent_safety_gate_mapper:
+      text_key: "text"
+      api_or_hf_model: "qwen-plus"
+      try_num: 2
+      sampling_params: { max_tokens: 64, temperature: 0.0 }
+
+  - agent_distill_trajectory_mapper:
+      api_model: "qwen-plus"
+      preferred_output_lang: zh
+      only_for_training_dataset_tiers: ["gold", "silver"]
+      require_safety_gate_ok: true
+      max_context_chars: 12000
+      try_num: 2
+      sampling_params: { max_tokens: 2048, temperature: 0.2 }
+
+  - agent_rewrite_hint_mapper:
+      api_model: "qwen-turbo"
+      preferred_output_lang: zh
+      only_for_training_dataset_tiers: ["bronze"]
+      try_num: 2
+      sampling_params: { max_tokens: 900, temperature: 0.2 }
+
+  - agent_training_card_mapper:
+      include_distilled: true
+      include_rewrite_hints: true

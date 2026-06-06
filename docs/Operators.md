@@ -42,11 +42,11 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | Type 类型 | Number 数量 | Description 描述 |
 |------|:------:|-------------|
 | [aggregator](#aggregator) | 4 | Aggregate for batched samples, such as summary or conclusion. 对批量样本进行汇总，如得出总结或结论。 |
-| [deduplicator](#deduplicator) | 10 | Detects and removes duplicate samples. 识别、删除重复样本。 |
+| [deduplicator](#deduplicator) | 11 | Detects and removes duplicate samples. 识别、删除重复样本。 |
 | [filter](#filter) | 57 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 123 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 132 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 2 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 5 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -83,6 +83,7 @@ All the specific operators are listed below, each featured with several capabili
 
 | Operator 算子 | Tags 标签 | Description 描述 | Details 详情 | Reference 参考 |
 |----------|------|-------------|-------------|-------------|
+| agent_session_deduplicator | 🔤Text 💻CPU 🟡Beta | Deduplicates conversation samples at the session level to keep the latest ones. 在会话级别删除重复的会话样本以保留最新的会话样本。 | - | - |
 | document_deduplicator | 🔤Text 💻CPU 🟢Stable | Deduplicates samples at the document level using exact matching. 使用完全匹配在文档级别删除重复的样本。 | [info](operators/deduplicator/document_deduplicator.md) | - |
 | document_line_deduplicator | 🔤Text 💻CPU 🟡Beta | Deduplicates at the line level across documents. 在文档间按行级别去重。 | - | - |
 | document_minhash_deduplicator | 🔤Text 💻CPU 🟢Stable | Deduplicates samples at the document level using MinHash LSH. 使用MinHash LSH在文档级别删除重复样本。 | [info](operators/deduplicator/document_minhash_deduplicator.md) | - |
@@ -182,12 +183,21 @@ All the specific operators are listed below, each featured with several capabili
 | Operator 算子 | Tags 标签 | Description 描述 | Details 详情 | Reference 参考 |
 |----------|------|-------------|-------------|-------------|
 | agent_bad_case_signal_mapper | 💻CPU 🟡Beta | Attach structured bad-case *signals* and a conservative *tier* to each sample. 将结构化的坏情况 * 信号 * 和保守 * 层 * 附加到每个样本。 | - | - |
+| agent_cross_model_pair_mapper | 💻CPU 🟡Beta | Annotate rows that share the same cohort key. 为共享相同队列键的行添加注释。 | - | - |
 | agent_dialog_normalize_mapper | 🔤Text 💻CPU 🟡Beta | Normalize agent format (messages + choices) to DJ fields. 将代理格式 (消息选择) 标准化为DJ字段。 | - | - |
+| agent_distill_trajectory_mapper | 🚀GPU 🌊vLLM 🧩HF 🔗API 🔴Alpha | Write ``meta.agent_distilled_trajectory`` for selected training-dataset tiers (API). 为选定的训练数据集层 (API) 编写 &#39;&#39;meta.Agent_distilled_tralthe&#39;&#39;。 | - | - |
+| agent_error_taxonomy_mapper | 💻CPU 🔴Alpha | Populate ``meta.agent_error_taxonomy`` from existing stats/meta (rules only). 从现有统计/元数据中填充“meta.agent_error_taxonomy”（仅规则）。 | - | - |
+| agent_harness_noise_mapper | 💻CPU 🔴Alpha | Write ``meta.agent_harness_noise`` when eval/harness patterns appear in messages. 当评估/测试框架模式出现在消息中时，写入“meta.agent_harness_noise”。 | - | - |
 | agent_insight_llm_mapper | 💻CPU 🔗API 🟡Beta | Synthesize stats + LLM eval text into ``meta.agent_insight_llm`` (JSON). 将stats LLM eval文本合成为 &#39;&#39;meta.agent_insight_llm &#39;&#39;(JSON)。 | - | - |
+| agent_learnable_value_mapper | 💻CPU 🔴Alpha | Write training-value scalar and tier meta fields. 编写训练值标量和层元字段。 | - | - |
+| agent_rewrite_hint_mapper | 🚀GPU 🌊vLLM 🧩HF 🔗API 🔴Alpha | Write ``meta.agent_rewrite_hints`` (JSON) for selected tiers. 为选定的层级编写“meta.agent_rewrite_hints”（JSON）。 | - | - |
+| agent_safety_gate_mapper | 🔤Text 🚀GPU 🌊vLLM 🧩HF 🔗API 🔴Alpha | Run a natural-language condition on ``text_key``; store result in meta (no drop). 对“text_key”字段执行自然语言条件查询；将结果存储到元数据中（不删除）。 | - | - |
 | agent_skill_insight_mapper | 💻CPU 🔗API 🔴Alpha | Summarize agent_tool_types and agent_skill_types into insights via LLM. 通过大语言模型将代理工具类型和代理技能类型总结为洞察。 | - | - |
+| agent_sys_log_noise_mapper | 💻CPU 🔴Alpha | Write ``meta.agent_sys_log_noise`` with cheap structural checks. 用廉价的结构检查编写 &#39;&#39;meta.Agent_ sys_log_noise &#39;&#39;。 | - | - |
 | agent_tool_relevance_mapper | 💻CPU 🔴Alpha | Rough fit between tools/capabilities and the user task (uses meta tool tags). 工具/功能与用户任务之间的粗略匹配 (使用元工具标签)。 | - | [OpenJudge tool graders](https://agentscope-ai.github.io/OpenJudge/built_in_graders/agent_graders/) |
 | agent_tool_type_mapper | 💻CPU 🔴Alpha | Set primary_tool_type and dominant_tool_types from meta.agent_tool_types. 从meta.Agent_ tool_types设置primary_tool_type和dominant_tool_types。 | - | - |
 | agent_trace_coherence_mapper | 🔤Text 💻CPU 🔴Alpha | Coherence of the flattened session ``text`` (goal focus, few detours). 扁平化会话 “文本” 的连贯性 (目标集中，少走弯路)。 | - | [OpenJudge trajectory graders](https://agentscope-ai.github.io/OpenJudge/built_in_graders/agent_graders/) |
+| agent_training_card_mapper | 💻CPU 🟡Beta | Aggregate training-dataset fields into ``meta.agent_training_card`` (JSON string for Arrow). 将训练数据集字段聚合到 “meta.agent_training_card” (箭头的JSON字符串) 中。 | - | - |
 | audio_add_gaussian_noise_mapper | 📣Audio 💻CPU 🟡Beta | Mapper to add Gaussian noise to audio samples. 映射器将高斯噪声添加到音频样本。 | [info](operators/mapper/audio_add_gaussian_noise_mapper.md) | - |
 | audio_ffmpeg_wrapped_mapper | 📣Audio 💻CPU 🟢Stable | Wraps FFmpeg audio filters for processing audio files in a dataset. 包装FFmpeg音频过滤器，用于处理数据集中的音频文件。 | [info](operators/mapper/audio_ffmpeg_wrapped_mapper.md) | - |
 | calibrate_qa_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Calibrates question-answer pairs based on reference text using an API model. 使用API模型根据参考文本校准问答对。 | [info](operators/mapper/calibrate_qa_mapper.md) | - |
@@ -275,7 +285,7 @@ All the specific operators are listed below, each featured with several capabili
 | sentence_split_mapper | 🔤Text 💻CPU 🟢Stable | Splits text samples into individual sentences based on the specified language. 根据指定的语言将文本样本拆分为单个句子。 | [info](operators/mapper/sentence_split_mapper.md) | - |
 | text_chunk_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Split input text into chunks based on specified criteria. 根据指定的条件将输入文本拆分为块。 | [info](operators/mapper/text_chunk_mapper.md) | - |
 | text_tagging_by_prompt_mapper | 🔤Text 🚀GPU 🌊vLLM 🧩HF 🟡Beta | Mapper to generate text tags using prompt with LLM. Mapper使用带有LLM的prompt生成文本标记。 | [info](operators/mapper/text_tagging_by_prompt_mapper.md) | - |
-| tool_success_tagger_mapper | 💻CPU 🔴Alpha | Set meta tool_success_count, tool_fail_count, tool_success_ratio. 设置meta tool_success_count、tool_fail_count、tool_success_ratio。 | - | - |
+| tool_success_tagger_mapper | 💻CPU 🟡Beta | Set meta tool_success_count, tool_fail_count, tool_success_ratio. 设置meta tool_success_count、tool_fail_count、tool_success_ratio。 | - | - |
 | usage_counter_mapper | 💻CPU 🟡Beta | Write token usage to meta from choices/usage (OpenAI/Anthropic-style). 从选择/用法 (OpenAI/Anthropic风格) 将令牌用法写入meta。 | - | - |
 | vggt_mapper | 🎬Video 🚀GPU 🟡Beta | Input a video of a single scene, and use VGGT to extract information including Camera Pose, Depth Maps, Point Maps, and 3D Point Tracks. 输入单个场景的视频，并使用VGGT提取包括相机姿态、深度图、点图和3D点轨迹的信息。 | [info](operators/mapper/vggt_mapper.md) | - |
 | video_camera_calibration_static_deepcalib_mapper | 🎬Video 🚀GPU 🟡Beta | Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib. 使用DeepCalib计算静态摄像机的摄像机内部和视场 (FOV)。 | [info](operators/mapper/video_camera_calibration_static_deepcalib_mapper.md) | - |

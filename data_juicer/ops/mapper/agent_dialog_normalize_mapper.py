@@ -4,6 +4,7 @@
 # Normalize agent interaction format (messages + choices) to DJ fields for
 # dialog/text ops. Supports multi-platform, multi-agent tool formats.
 
+import json
 import re
 from typing import Any, List, Optional, Sequence, Tuple
 
@@ -78,6 +79,73 @@ def _get_tool_name_from_call(tc: dict) -> Optional[str]:
     if tc.get("name"):
         return tc["name"]
     return None
+
+
+def _arrow_stabilize_openai_message_dict(m: dict) -> None:
+    """Ensure common keys exist on every message so ``messages`` Arrow structs unify.
+
+    Some turns omit ``tool_calls`` / ``reasoning_content`` / ``content``; others include
+    ``tool_calls``. HF ``datasets`` then infers a narrow struct and later batches fail
+    with ``Couldn't cast ... tool_calls ... to {content, reasoning_content, role}``.
+    """
+    if not isinstance(m, dict):
+        return
+    if m.get("tool_calls") is None:
+        m["tool_calls"] = []
+    if m.get("tool_use") is None:
+        m["tool_use"] = []
+    if m.get("reasoning_content") is None:
+        m["reasoning_content"] = ""
+    if m.get("content") is None:
+        m["content"] = ""
+
+
+def _stringify_dict_tool_arguments_in_calls(tool_calls: Any) -> None:
+    """Coerce ``tool_calls[]`` / ``tool_use[]`` dict ``arguments`` to JSON strings.
+
+    Rows may mix ``{"command": "ls"}`` with ``{"command": "...", "timeout": 60}``.
+    HuggingFace ``datasets`` / Arrow then fails casting nested structs
+    (e.g. ``struct<command: string, timeout: int64>`` vs ``{"command": string}``).
+    OpenAI-style calls use ``function.arguments``; some stacks also put ``arguments``
+    at the call root.
+    """
+    if not tool_calls or not isinstance(tool_calls, list):
+        return
+    for tc in tool_calls:
+        if not isinstance(tc, dict):
+            continue
+        fn = tc.get("function") or tc.get("function_call")
+        if isinstance(fn, dict):
+            args = fn.get("arguments")
+            if isinstance(args, dict):
+                fn["arguments"] = json.dumps(args, ensure_ascii=False)
+        args_top = tc.get("arguments")
+        if isinstance(args_top, dict):
+            tc["arguments"] = json.dumps(args_top, ensure_ascii=False)
+
+
+def _stringify_tool_arguments_in_messages_list(messages: Any) -> None:
+    if not isinstance(messages, list):
+        return
+    for m in messages:
+        if not isinstance(m, dict):
+            continue
+        for key in ("tool_calls", "tool_use"):
+            _stringify_dict_tool_arguments_in_calls(m.get(key))
+        _arrow_stabilize_openai_message_dict(m)
+
+
+def _stringify_tool_arguments_in_choices(choices: Any) -> None:
+    if not isinstance(choices, list):
+        return
+    for ch in choices:
+        if not isinstance(ch, dict):
+            continue
+        msg = ch.get("message")
+        if isinstance(msg, dict):
+            for key in ("tool_calls", "tool_use"):
+                _stringify_dict_tool_arguments_in_calls(msg.get(key))
+            _arrow_stabilize_openai_message_dict(msg)
 
 
 def _tool_calls_summary(
@@ -177,6 +245,8 @@ def _extract_tool_types(messages: List[dict]) -> List[str]:
 _SKILL_PATTERNS = [
     re.compile(r"[/\\]([a-zA-Z][a-zA-Z0-9_]*)[/\\]SKILL\.md", re.IGNORECASE),
     re.compile(r"##\s+([a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)?)\s*(?:\n|$)"),
+    # Chinese / CJK skill-style headers (short segment; avoids matching long prose headings)
+    re.compile(r"##\s+([\u4e00-\u9fff][\u4e00-\u9fff0-9_\-]{1,32})\s*(?:\n|$)"),
     re.compile(
         r"Check\s+[\"'].*?([a-zA-Z][a-zA-Z0-9_]*)/SKILL\.md",
         re.IGNORECASE,
@@ -304,6 +374,42 @@ def _messages_to_history(
     return history
 
 
+def lineage_meta_key(extra_key: str) -> str:
+    """Stable meta key for :attr:`AgentDialogNormalizeMapper.lineage_extra_keys` paths."""
+    return "agent_lineage_" + str(extra_key).strip().replace(".", "_")
+
+
+def _get_nested_value(root: dict, path: str) -> Any:
+    cur: Any = root
+    for part in str(path).strip().split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
+
+
+def _tool_chain_complete(messages: List[dict]) -> bool:
+    """Heuristic: no dangling tool role at end; no assistant tool_calls left without tool replies before next user."""
+    if not messages:
+        return True
+    if (messages[-1].get("role") or "").lower() == "tool":
+        return False
+    pending = 0
+    for m in messages:
+        if not isinstance(m, dict):
+            continue
+        role = (m.get("role") or "").lower()
+        if role == "assistant":
+            tcs = m.get("tool_calls") or m.get("tool_use") or []
+            pending = len(tcs) if tcs else 0
+        elif role == "tool" and pending > 0:
+            pending -= 1
+        elif role == "user":
+            if pending > 0:
+                return False
+    return pending == 0
+
+
 def _last_user_assistant_msg_indices(
     messages: List[dict],
 ) -> Tuple[Optional[int], Optional[int]]:
@@ -379,7 +485,10 @@ class AgentDialogNormalizeMapper(Mapper):
     ``copy_lineage_fields`` is True, also copies request_model, pt,
     total_cost_time, and (when ``copy_request_id``) the first non-empty
     id among ``request_id_keys`` from the sample root into meta for cohort
-    analysis and stable drill-down links. Always records last user/assistant
+    analysis and stable drill-down links. ``lineage_extra_keys`` copies extra
+    root paths (dot notation, e.g. ``tag.model``) into ``meta`` as
+    ``agent_lineage_<path_with_underscores>``. ``copy_tag_object`` stores the full
+    ``tag`` dict under ``meta.agent_tag`` when present. Always records last user/assistant
     message indices (in the raw ``messages`` list) when present.
     Supports multi-format tool_calls (e.g. tool_calls[].function.name as in
     OpenAI / demos/local/demo-agent-data-content.json) and configurable
@@ -403,6 +512,8 @@ class AgentDialogNormalizeMapper(Mapper):
         user_label: str = DEFAULT_USER_LABEL,
         assistant_label: str = DEFAULT_ASSISTANT_LABEL,
         copy_lineage_fields: bool = True,
+        copy_tag_object: bool = False,
+        lineage_extra_keys: Optional[List[str]] = None,
         copy_request_id: bool = True,
         request_id_keys: List[str] = [
             "request_id",
@@ -426,6 +537,8 @@ class AgentDialogNormalizeMapper(Mapper):
         self.user_label = user_label
         self.assistant_label = assistant_label
         self.copy_lineage_fields = copy_lineage_fields
+        self.copy_tag_object = bool(copy_tag_object)
+        self.lineage_extra_keys = list(lineage_extra_keys or [])
         self.copy_request_id = copy_request_id
         self.request_id_keys = request_id_keys
         self.history_tool_result_max_chars = history_tool_result_max_chars
@@ -439,6 +552,10 @@ class AgentDialogNormalizeMapper(Mapper):
 
         if not isinstance(messages, list):
             messages = []
+        else:
+            _stringify_tool_arguments_in_messages_list(messages)
+        if isinstance(choices, list):
+            _stringify_tool_arguments_in_choices(choices)
 
         compressed_ref = [False]
         history = _messages_to_history(
@@ -493,5 +610,18 @@ class AgentDialogNormalizeMapper(Mapper):
                 meta[MetaKeys.agent_pt] = sample["pt"]
             if sample.get("total_cost_time") is not None:
                 meta[MetaKeys.agent_total_cost_time_ms] = sample["total_cost_time"]
+
+        if self.copy_tag_object and isinstance(sample.get("tag"), dict):
+            meta[MetaKeys.agent_tag] = sample["tag"]
+
+        for lk in self.lineage_extra_keys:
+            lk = str(lk).strip()
+            if not lk or lk == "tag":
+                continue
+            val = _get_nested_value(sample, lk)
+            if val is not None:
+                meta[lineage_meta_key(lk)] = val
+
+        meta[MetaKeys.agent_tool_chain_complete] = _tool_chain_complete(messages)
 
         return sample

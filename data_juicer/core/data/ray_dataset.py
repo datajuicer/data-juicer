@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import os
 from functools import partial
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -222,7 +223,37 @@ class RayDataset(DJDataset):
 
         try:
             batch_size = getattr(op, "batch_size", 1) if op.is_batched_op() else 1
-            if isinstance(op, Mapper):
+            if isinstance(op, Mapper) and getattr(type(op), "REQUIRES_FULL_DATASET_PASS", False):
+                # Mappers that override run() with a full-table pass (e.g. cross-model
+                # pairing) are not invoked by map_batches(self.process, ...). Materialize
+                # once, annotate, and rebuild the Ray dataset.
+                from data_juicer.utils.model_utils import free_models
+
+                n_rows = int(self.data.count() or 0)
+                if n_rows == 0:
+                    logger.info("OP {} full-dataset pass: 0 rows, skipping", op._name)
+                else:
+                    logger.info(
+                        "OP {} full-dataset pass on {} rows (Ray materialize; see op docstring)",
+                        op._name,
+                        n_rows,
+                    )
+                    raw = self.data.take_all()
+                    rows: List[dict] = []
+                    for r in raw:
+                        if isinstance(r, dict):
+                            rows.append(copy.deepcopy(r))
+                        elif hasattr(r, "as_dict") and callable(r.as_dict):
+                            rows.append(copy.deepcopy(r.as_dict()))
+                        else:
+                            rows.append(copy.deepcopy(dict(r)))
+                    op.apply_full_dataset_annotations(rows)
+                    self.data = ray.data.from_items(rows)
+                    if rows:
+                        for k in rows[0].keys():
+                            cached_columns.add(k)
+                free_models()
+            elif isinstance(op, Mapper):
                 # Wrap process method with tracer for sample-level collection
                 original_process = None
                 if tracer and should_trace_op(tracer, op._name):

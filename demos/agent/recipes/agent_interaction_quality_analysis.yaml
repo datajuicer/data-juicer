@@ -1,4 +1,6 @@
 # Data-Juicer Recipe: 智能体交互数据流水线 — 模型质量与洞察分析
+# 训练数据集管线延伸：本配方产出后可接 ``demos/agent/recipes/R0_bridge_from_analysis.yaml`` → R2 → R3
+# （见 ``demos/agent/recipes/README.md`` 路径 B 与 ``TRAIN_DATA_FIELD_GUIDE.md``）。
 # 适用数据格式：每行一条 JSON，含 messages（请求上下文）与 choices/response_choices（模型回复）。
 # 支持多平台（Win/Unix）、多 agent 工具格式（OpenAI/Anthropic 等）、多维度分析标签。
 # 含 pii_llm_suspect_mapper；对话/轨迹质检 LLM 算子见 §5b（各算子 docstring 含 OpenJudge 公开 rubric 参考链接）

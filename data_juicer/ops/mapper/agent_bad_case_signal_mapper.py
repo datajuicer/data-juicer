@@ -35,6 +35,16 @@ _DIALOG_QUALITY_SCORE_META_KEYS = (
 _calibration_missing_path_warned: Optional[str] = None
 
 
+def _sys_log_or_harness_noise(meta: dict) -> bool:
+    sys_log = meta.get(MetaKeys.agent_sys_log_noise) or {}
+    h = meta.get(MetaKeys.agent_harness_noise) or {}
+    if isinstance(sys_log, dict) and sys_log.get("is_likely_noise"):
+        return True
+    if isinstance(h, dict) and h.get("is_likely_noise"):
+        return True
+    return False
+
+
 def _load_calibration_json(path: str) -> Optional[Dict[str, Any]]:
     if not path or not str(path).strip():
         return None
@@ -121,6 +131,11 @@ class AgentBadCaseSignalMapper(Mapper):
     ``meta.agent_request_model``. When ``calibration_manual_overrides_auto`` is
     true (default), explicit ``max_total_tokens`` / ``max_latency_ms`` / perplexity
     settings in YAML override the file; set it false to prefer calibration.
+
+    For pre-training effectiveness checks across recipe revisions, compare
+    before/after exports with ``demos/agent/scripts/transition_report.py`` to
+    quantify red/yellow/green transitions, signal burden changes, and stage
+    retention/drop profiles.
     """
 
     def __init__(
@@ -178,6 +193,9 @@ class AgentBadCaseSignalMapper(Mapper):
         signal_on_low_dialog_quality_meta: bool = True,
         dialog_quality_low_score_threshold: float = 2.0,
         min_dialog_quality_low_axes_for_signal: int = 1,
+        # --- training-dataset gating / noise (optional; keeps legacy audit tiers unchanged) ---
+        exclude_if_sys_log_or_harness_noise: bool = False,
+        signal_on_learnable_value_tier: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -235,6 +253,8 @@ class AgentBadCaseSignalMapper(Mapper):
         self.signal_on_low_dialog_quality_meta = bool(signal_on_low_dialog_quality_meta)
         self.dialog_quality_low_score_threshold = float(dialog_quality_low_score_threshold)
         self.min_dialog_quality_low_axes_for_signal = max(1, int(min_dialog_quality_low_axes_for_signal))
+        self.exclude_if_sys_log_or_harness_noise = bool(exclude_if_sys_log_or_harness_noise)
+        self.signal_on_learnable_value_tier = bool(signal_on_learnable_value_tier)
 
     def _resolve_calibration_row(self, meta: dict) -> Dict[str, Any]:
         if not self.auto_calibrate_thresholds or not self._calibration:
@@ -364,11 +384,14 @@ class AgentBadCaseSignalMapper(Mapper):
 
         fail_count = int(meta.get(MetaKeys.tool_fail_count) or 0)
         if self.signal_on_tool_fail and fail_count >= self.min_tool_fail_count_for_signal:
+            tw = "high"
+            if self.exclude_if_sys_log_or_harness_noise and _sys_log_or_harness_noise(meta):
+                tw = "medium"
             self._append(
                 signals,
                 "tool_message_error_pattern",
                 f"tool_fail_count={fail_count}",
-                "high",
+                tw,
             )
 
         succ = int(meta.get(MetaKeys.tool_success_count) or 0)
@@ -378,6 +401,7 @@ class AgentBadCaseSignalMapper(Mapper):
             self.signal_on_low_tool_success_ratio
             and rounds >= self.min_tool_rounds_for_ratio_signal
             and ratio is not None
+            and float(ratio) >= 0.0
             and float(ratio) <= self.tool_success_ratio_max_for_signal
         ):
             self._append(
@@ -507,6 +531,17 @@ class AgentBadCaseSignalMapper(Mapper):
                     signals,
                     "dialog_turn_quality_meta_low",
                     f"axes={lows}, threshold={th}",
+                    "medium",
+                )
+
+        if self.signal_on_learnable_value_tier:
+            tier = meta.get(MetaKeys.agent_learnable_value_tier)
+            lv = meta.get(MetaKeys.agent_learnable_value)
+            if isinstance(tier, str) and tier.strip():
+                self._append(
+                    signals,
+                    f"learnable_value_tier_{tier.strip()}",
+                    f"tier={tier},learnable_value={lv}",
                     "medium",
                 )
 

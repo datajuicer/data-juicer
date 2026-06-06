@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from loguru import logger
 from pydantic import PositiveInt
@@ -22,6 +22,17 @@ from data_juicer.utils.constant import Fields, MetaKeys, StatsKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 OP_NAME = "agent_insight_llm_mapper"
+
+_DEFAULT_INSIGHT_EXTRA_META_KEYS = (
+    MetaKeys.agent_error_taxonomy,
+    MetaKeys.agent_learnable_value,
+    MetaKeys.agent_learnable_value_tier,
+    MetaKeys.agent_training_dataset_tier,
+    MetaKeys.agent_cross_model_pair,
+    MetaKeys.agent_sys_log_noise,
+    MetaKeys.agent_harness_noise,
+    MetaKeys.agent_tool_chain_complete,
+)
 
 _DIALOG_QUALITY_LLM_META_KEYS = (
     MetaKeys.dialog_memory_consistency,
@@ -119,6 +130,7 @@ def _build_evidence_pack(
     response_key: str,
     query_max: int,
     response_max: int,
+    extra_meta_keys: Optional[Tuple[str, ...]] = None,
 ) -> dict:
     meta = sample.get(Fields.meta) or {}
     stats = sample.get(Fields.stats) or {}
@@ -131,6 +143,11 @@ def _build_evidence_pack(
         return labels[:n]
 
     dq_pack = _dialog_quality_llm_pack(meta)
+
+    training_dataset: Dict[str, Any] = {}
+    for k in extra_meta_keys or ():
+        if k in meta and meta.get(k) is not None:
+            training_dataset[k] = _json_safe(meta.get(k))
 
     return {
         "lineage": {
@@ -178,6 +195,7 @@ def _build_evidence_pack(
             "tier": meta.get(MetaKeys.agent_bad_case_tier),
         },
         "dialog_quality_llm": _truncate_record(dq_pack, max_chars=2800) if dq_pack else None,
+        "training_dataset": training_dataset if training_dataset else None,
         "query_preview": q[:query_max],
         "response_preview": r[:response_max],
     }
@@ -211,6 +229,7 @@ class AgentInsightLLMMapper(Mapper):
         model_params: Dict = {},
         sampling_params: Dict = {},
         preferred_output_lang: str = "en",
+        insight_extra_meta_keys: Optional[List[str]] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -231,6 +250,12 @@ class AgentInsightLLMMapper(Mapper):
             response_path=response_path,
             **model_params,
         )
+        if insight_extra_meta_keys is not None:
+            self.insight_extra_meta_keys: Tuple[str, ...] = tuple(
+                str(x).strip() for x in insight_extra_meta_keys if str(x).strip()
+            )
+        else:
+            self.insight_extra_meta_keys = _DEFAULT_INSIGHT_EXTRA_META_KEYS
 
     def process_single(self, sample, rank=None):
         meta = sample.setdefault(Fields.meta, {})
@@ -249,6 +274,7 @@ class AgentInsightLLMMapper(Mapper):
             self.response_key,
             self.query_preview_max_chars,
             self.response_preview_max_chars,
+            extra_meta_keys=self.insight_extra_meta_keys,
         )
         user_content = json.dumps(pack, ensure_ascii=False)
         messages = [

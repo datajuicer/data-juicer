@@ -17,8 +17,10 @@
 | `compute_percentile_thresholds.py` | 按 `agent_request_model` 汇总 token / 延迟 / `stats.perplexity`；控制台分位数，或 `--write-calibration` 生成 JSON |
 | `analyze_bad_case_cohorts.py` | 按 model / pt / tier 汇总；可选 `--out-csv`、`--pandas-priority` |
 | `slice_export_by_tier.py` | 按 `meta.agent_bad_case_tier`（及可选 `--model`）导出子集 jsonl |
+| `diff_agent_exports.py` | 按 `id` 对齐两次 **训练数据集 / 中间 processed** JSONL，对比所选 `meta` / `stats` 键（验证迭代 diff） |
+| `transition_report.py` | 训练前离线评估：红/黄/绿迁移矩阵、净提升、风险迁移、signal burden、排序一致性；支持 stage 留存与 dropped 样本画像 |
 
-依赖：`python>=3.8`；`analyze_bad_case_cohorts.py` 的 pandas 路径可选（无则标准库聚合）。
+依赖：`python>=3.8`；`analyze_bad_case_cohorts.py` 的 pandas 路径可选（无则标准库聚合）。`diff_agent_exports.py` 需 `jsonlines`。
 
 ---
 
@@ -48,6 +50,16 @@ python demos/agent/scripts/slice_export_by_tier.py \
   --input ./outputs/agent_quality/processed.jsonl \
   --tier high_precision \
   --output ./outputs/agent_quality/high_precision_only.jsonl
+
+python demos/agent/scripts/transition_report.py \
+  --before ./outputs/agent_train_data_R2/processed.jsonl \
+  --after ./outputs/agent_train_data_R3/train_data.jsonl \
+  --stage raw=./outputs/agent_raw/processed.jsonl \
+  --stage r1=./outputs/agent_train_data_R1/processed.jsonl \
+  --stage r2=./outputs/agent_train_data_R2/processed.jsonl \
+  --stage r3=./outputs/agent_train_data_R3/train_data.jsonl \
+  --require-safety-ok \
+  --out-json ./outputs/agent_train_data_R3/transition_report.json
 ```
 
 ## 与端到端流程的对应关系

@@ -1,0 +1,47 @@
+# R0: bridge from **analysis** export to **training-dataset** stack (R2 / R3).
+#
+# Use when your JSONL already ran ``demos/agent/recipes/agent_interaction_quality_analysis.yaml``
+# (or equivalent: ``text``, ``messages``, ``dialog_*``, ``stats.llm_*``, tool tags), but you
+# still need **cross-model pairwise cohorts** and **file-level id dedup** before R2.
+#
+# Prerequisites:
+#   - ``group_key_mode: exact`` (default): ``agent_lineage_sample_id`` + model/version/quality meta.
+#   - ``group_key_mode: normalized_query`` / ``simhash_lsh``: see ``agent_cross_model_pair_mapper``
+#     docstring when **lineage id does not link** cross-model rows; optional ``extra_group_text_key``
+#     to fold env/tool digest into simhash input.
+# If lineage is missing and you do not use similarity modes, run **one** ``agent_dialog_normalize_mapper``
+# block from ``R1_initial_filter.yaml`` on raw JSONL first, then re-run analysis if needed, then R0.
+#
+# Typical chain:
+#   1) ``agent_interaction_quality_analysis.yaml`` → ``processed.jsonl``
+#   2) **this file** → ``from_analysis.jsonl``
+#   3) ``R2_train_data_stack.yaml`` (set ``dataset_path`` to R0 export)
+#   4) ``R3_post_process.yaml`` or ``R3_post_process_cpu_only.yaml``
+#
+# Run: ``dj-process --config demos/agent/recipes/R0_bridge_from_analysis.yaml``
+project_name: agent-train-data-R0-bridge-from-analysis
+# TODO: point to your analysis run output (same schema as agent_interaction_quality_analysis export).
+dataset_path: ./outputs/agent_quality_sampled_5/processed.jsonl
+np: 4
+export_path: ./outputs/agent_train_data_R0/from_analysis.jsonl
+keep_stats_in_res_ds: true
+use_checkpoint: true
+text_keys: "id"
+
+process:
+  - agent_cross_model_pair_mapper:
+      pair_key_meta: "agent_lineage_sample_id"
+      model_meta: "agent_lineage_tag_model"
+      version_meta: "agent_lineage_tag_version"
+      score_meta: "agent_lineage_tag_quality"
+      fallback_score_stat: "llm_quality_score"
+      min_group_size: 2
+      # group_key_mode: simhash_lsh
+      # simhash_max_hamming: 10
+      # extra_group_text_key: "tools"
+
+  - agent_session_deduplicator:
+      group_key_mode: regex_extract
+      timestamp_field: time
+      regex_pattern: "\n- Session ID:\\s*(?P<session_id>\\S+)\\s*\n- User ID:\\s*(?P<user_id>\\S+)\\s*\n"
+      regex_search_target: "messages.0.content.0.text"

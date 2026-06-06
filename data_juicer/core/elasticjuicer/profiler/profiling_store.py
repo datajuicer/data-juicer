@@ -10,7 +10,9 @@ Supports online learning and model updating.
 """
 
 import json
+import logging
 import pickle
+import time as _time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
@@ -19,6 +21,8 @@ from scipy.optimize import curve_fit
 
 from .resource_monitor import OpExecutionStats, ResourceSnapshot
 from .ocs_annotator import OpCostSignature
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -71,14 +75,16 @@ class ResourceThroughputCurve:
 class ProfilingStore:
     """
     Persistent store for operator profiling data.
-    
+
     Provides:
     - Storage and retrieval of execution stats
     - Resource-throughput curve fitting
     - Online model updates
     - Query interface for schedulers
     """
-    
+
+    SCHEMA_VERSION = "1.0"
+
     def __init__(self, storage_dir: str = "./elastic_juicer_profiles"):
         self.storage_dir = Path(storage_dir)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
@@ -92,12 +98,37 @@ class ProfilingStore:
         self._load_all()
     
     def _load_all(self):
-        """Load all stored profiles"""
-        # Load execution stats
+        """Load all stored profiles, checking schema version."""
+        # Load execution stats (versioned pickle wrapper)
         stats_file = self.storage_dir / "execution_stats.pkl"
         if stats_file.exists():
-            with open(stats_file, 'rb') as f:
-                self.execution_stats = pickle.load(f)
+            try:
+                with open(stats_file, 'rb') as f:
+                    raw = pickle.load(f)
+                if isinstance(raw, dict) and "meta" in raw and "stats" in raw:
+                    file_version = raw["meta"].get("schema_version")
+                    if file_version != self.SCHEMA_VERSION:
+                        logger.warning(
+                            "ProfilingStore schema version mismatch: "
+                            "file=%s, code=%s. Skipping load.",
+                            file_version, self.SCHEMA_VERSION,
+                        )
+                    else:
+                        self.execution_stats = raw["stats"]
+                elif isinstance(raw, dict):
+                    # Legacy format (pre-versioning): dict[str, OpExecutionStats]
+                    logger.warning(
+                        "ProfilingStore data has no schema version (legacy). "
+                        "Loading anyway; will be re-saved with version on next save_all()."
+                    )
+                    self.execution_stats = raw
+                else:
+                    logger.warning(
+                        "ProfilingStore data has unexpected type %s. Skipping.",
+                        type(raw).__name__,
+                    )
+            except Exception as e:
+                logger.warning("Failed to load execution_stats.pkl: %s", e)
         
         # Load OCS signatures
         ocs_file = self.storage_dir / "ocs_signatures.json"
@@ -120,11 +151,22 @@ class ProfilingStore:
                 }
     
     def save_all(self):
-        """Persist all profiles to disk"""
-        # Save execution stats
+        """Persist all profiles to disk (versioned wrapper)."""
+        # Save execution stats with schema version
         stats_file = self.storage_dir / "execution_stats.pkl"
+        wrapped = {
+            "meta": {
+                "schema_version": self.SCHEMA_VERSION,
+                "saved_at": _time.time(),
+            },
+            "stats": self.execution_stats,
+        }
         with open(stats_file, 'wb') as f:
-            pickle.dump(self.execution_stats, f)
+            pickle.dump(wrapped, f)
+        logger.info(
+            "ProfilingStore saved %d entries (schema=%s)",
+            len(self.execution_stats), self.SCHEMA_VERSION,
+        )
         
         # Save OCS signatures
         ocs_file = self.storage_dir / "ocs_signatures.json"

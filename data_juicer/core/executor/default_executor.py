@@ -207,6 +207,28 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
                 if op.is_batched_op():
                     op.batch_size = bs_per_op[i]
 
+            # Persist probe results to ProfilingStore so ElasticRayExecutor
+            # can load them as priors on the next run.
+            if getattr(self.cfg, 'persist_probe_to_profiling_store', True):
+                try:
+                    from data_juicer.core.elasticjuicer.profiler.probe_adapter import ProbeAdapter
+                    from data_juicer.core.elasticjuicer.profiler.profiling_store import ProfilingStore
+
+                    store_dir = getattr(
+                        self.cfg, 'profiling_store_dir',
+                        './elastic_juicer_profiles',
+                    )
+                    bridge = ProbeAdapter(ProfilingStore(storage_dir=store_dir))
+                    bridge.ingest_probe_results(
+                        probe_results=self.adapter._last_analysis,
+                        op_names=[op._name for op in ops],
+                        probe_batch_sizes=bs_per_op,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to persist probe to ProfilingStore: %s", e
+                    )
+
         # 3. data process with DAG monitoring
         # - If tracer is open, trace each op after it's processed
         # - If checkpoint is open, clean the cache files after each process

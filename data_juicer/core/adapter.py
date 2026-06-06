@@ -112,6 +112,11 @@ class Adapter:
         # calculate batch size for each OP according to the analysis results
         bs_per_op = self.batch_size_strategy(load_analysis_res, base_bs=probed_batch_size)
 
+        # Stash probe results so ProbeAdapter (PR-1) can translate them to
+        # ElasticJuicer ProfilingStore schema in a subsequent call.
+        self._last_analysis = load_analysis_res
+        self._last_probe_batch_sizes = bs_per_op
+
         return bs_per_op
 
     @dataset_cache_control(on=True)

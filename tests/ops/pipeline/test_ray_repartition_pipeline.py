@@ -1,28 +1,10 @@
-import importlib
 import unittest
 
-import pyarrow as pa
-
-_register_extension_type = pa.register_extension_type
-
-
-def _register_extension_type_once(extension_type):
-    try:
-        _register_extension_type(extension_type)
-    except pa.ArrowKeyError:
-        if not extension_type.extension_name.startswith("datasets.features.features."):
-            raise
-
-
-pa.register_extension_type = _register_extension_type_once
-
-NestedDataset = importlib.import_module("data_juicer.core.data").NestedDataset
-load_ops = importlib.import_module("data_juicer.ops.load").load_ops
-RayRepartitionPipeline = importlib.import_module(
-    "data_juicer.ops.pipeline.ray_repartition_pipeline"
-).RayRepartitionPipeline
-
-pa.register_extension_type = _register_extension_type
+from data_juicer.core.data import NestedDataset
+from data_juicer.ops.load import load_ops
+from data_juicer.ops.pipeline.ray_repartition_pipeline import \
+    RayRepartitionPipeline
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 
 
 class FakeRayDataset:
@@ -34,30 +16,38 @@ class FakeRayDataset:
         return self
 
 
-class RayRepartitionPipelineTest(unittest.TestCase):
+class RayRepartitionPipelineTest(DataJuicerTestCaseBase):
+
+    @TEST_TAG('ray')
     def test_ray_dataset_repartitions_without_shuffle_by_default(self):
         dataset = FakeRayDataset()
 
         output = RayRepartitionPipeline(num_blocks=128).run(dataset)
 
         self.assertIs(output, dataset)
-        self.assertEqual(dataset.repartition_kwargs, {"num_blocks": 128, "shuffle": False})
+        self.assertEqual(dataset.repartition_kwargs,
+                         {"num_blocks": 128, "shuffle": False})
 
+    @TEST_TAG('ray')
     def test_defaults_to_one_block(self):
         dataset = FakeRayDataset()
 
         output = RayRepartitionPipeline().run(dataset)
 
         self.assertIs(output, dataset)
-        self.assertEqual(dataset.repartition_kwargs, {"num_blocks": 1, "shuffle": False})
+        self.assertEqual(dataset.repartition_kwargs,
+                         {"num_blocks": 1, "shuffle": False})
 
+    @TEST_TAG('ray')
     def test_ray_dataset_repartitions_with_shuffle(self):
         dataset = FakeRayDataset()
 
-        output = RayRepartitionPipeline(num_blocks=64, shuffle=True).run(dataset)
+        output = RayRepartitionPipeline(num_blocks=64,
+                                        shuffle=True).run(dataset)
 
         self.assertIs(output, dataset)
-        self.assertEqual(dataset.repartition_kwargs, {"num_blocks": 64, "shuffle": True})
+        self.assertEqual(dataset.repartition_kwargs,
+                         {"num_blocks": 64, "shuffle": True})
 
     def test_local_nested_dataset_fails_fast(self):
         dataset = NestedDataset.from_list([{"id": 1}])
@@ -71,8 +61,10 @@ class RayRepartitionPipelineTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "num_blocks"):
                     RayRepartitionPipeline(num_blocks=invalid_num_blocks)
 
+    @TEST_TAG('ray')
     def test_load_ops_can_load_ray_repartition_pipeline(self):
-        ops = load_ops([{"ray_repartition_pipeline": {"num_blocks": 32, "shuffle": True}}])
+        ops = load_ops([{"ray_repartition_pipeline":
+                         {"num_blocks": 32, "shuffle": True}}])
 
         self.assertEqual(len(ops), 1)
         self.assertIsInstance(ops[0], RayRepartitionPipeline)
@@ -80,5 +72,5 @@ class RayRepartitionPipelineTest(unittest.TestCase):
         self.assertTrue(ops[0].shuffle)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

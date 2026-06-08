@@ -163,5 +163,73 @@ class TestDownload(DataJuicerTestCaseBase):
         assert all(field in result.features for field in expected_format.keys())
 
 
+class ValidateSnapshotFormatTest(DataJuicerTestCaseBase):
+
+    def test_none_is_valid(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        validate_snapshot_format(None)
+
+    def test_valid_format(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        validate_snapshot_format("2020-50")
+        validate_snapshot_format("2024-01")
+        validate_snapshot_format("2024-53")
+
+    def test_invalid_format_no_dash(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError) as ctx:
+            validate_snapshot_format("202050")
+        self.assertIn("Invalid snapshot format", str(ctx.exception))
+
+    def test_invalid_format_extra_parts(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError):
+            validate_snapshot_format("2020-50-01")
+
+    def test_invalid_format_letters(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError):
+            validate_snapshot_format("abcd-ef")
+
+    def test_year_too_low(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError) as ctx:
+            validate_snapshot_format("1999-01")
+        self.assertIn("Year must be between", str(ctx.exception))
+
+    def test_year_too_high(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError) as ctx:
+            validate_snapshot_format("2101-01")
+        self.assertIn("Year must be between", str(ctx.exception))
+
+    def test_week_zero(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError) as ctx:
+            validate_snapshot_format("2020-00")
+        self.assertIn("Week must be between", str(ctx.exception))
+
+    def test_week_too_high(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError) as ctx:
+            validate_snapshot_format("2020-54")
+        self.assertIn("Week must be between", str(ctx.exception))
+
+    def test_boundary_valid_year(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        validate_snapshot_format("2000-01")
+        validate_snapshot_format("2100-53")
+
+    def test_boundary_valid_week(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        validate_snapshot_format("2024-01")
+        validate_snapshot_format("2024-53")
+
+    def test_empty_string(self):
+        from data_juicer.download.downloader import validate_snapshot_format
+        with self.assertRaises(ValueError):
+            validate_snapshot_format("")
+
+
 if __name__ == '__main__':
     unittest.main()

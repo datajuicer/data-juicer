@@ -1017,18 +1017,6 @@ wheels = [
 ]
 
 [[package]]
-name = "bs4"
-version = "0.0.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "beautifulsoup4" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/aa/4acaf814ff901145da37332e05bb510452ebed97bc9602695059dd46ef39/bs4-0.0.2.tar.gz", hash = "sha256:a48685c58f50fe127722417bae83fe6badf500d54b55f7e39ffe43b798653925", size = 698, upload-time = "2024-01-17T18:15:47.371Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/bb/bf7aab772a159614954d84aa832c129624ba6c32faa559dfb200a534e50b/bs4-0.0.2-py2.py3-none-any.whl", hash = "sha256:abf8742c0805ef7f662dce4b51cca104cffe52b835238afc169142ab9b3fbccc", size = 1189, upload-time = "2024-01-17T18:15:48.613Z" },
-]
-
-[[package]]
 name = "build"
 version = "1.2.2.post1"
 source = { registry = "https://pypi.org/simple" }
@@ -6244,7 +6232,7 @@ wheels = [
 name = "py-data-juicer"
 source = { editable = "." }
 dependencies = [
-    { name = "bs4" },
+    { name = "beautifulsoup4" },
     { name = "datasets" },
     { name = "dep-logic" },
     { name = "dill" },
@@ -6464,13 +6452,13 @@ requires-dist = [
     { name = "audiomentations", marker = "extra == 'audio'" },
     { name = "av", marker = "extra == 'all'", specifier = "==13.1.0" },
     { name = "av", marker = "extra == 'vision'", specifier = "==13.1.0" },
+    { name = "beautifulsoup4" },
     { name = "bitarray", marker = "extra == 'all'" },
     { name = "bitarray", marker = "extra == 'distributed'" },
     { name = "black", marker = "extra == 'all'", specifier = ">=25.1.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
     { name = "boto3", marker = "extra == 'all'" },
     { name = "boto3", marker = "extra == 'distributed'" },
-    { name = "bs4" },
     { name = "build", marker = "extra == 'all'" },
     { name = "build", marker = "extra == 'dev'" },
     { name = "click", marker = "extra == 'all'" },

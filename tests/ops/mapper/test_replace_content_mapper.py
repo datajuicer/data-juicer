@@ -60,5 +60,70 @@ class ReplaceContentMapperTest(DataJuicerTestCaseBase):
         self._run_helper(op, samples)
 
 
+    def test_none_pattern_returns_unchanged(self):
+        samples = [
+            {'text': 'Hello world', 'target': 'Hello world'},
+        ]
+        op = ReplaceContentMapper(pattern=None)
+        self._run_helper(op, samples)
+
+    def test_multiple_patterns_with_list_repl(self):
+        samples = [
+            {
+                'text': 'foo@bar.com called 123-456',
+                'target': '<EMAIL> called <PHONE>',
+            },
+        ]
+        op = ReplaceContentMapper(
+            pattern=[r'[\w]+@[\w]+\.[\w]+', r'\d+-\d+'],
+            repl=['<EMAIL>', '<PHONE>'],
+        )
+        self._run_helper(op, samples)
+
+    def test_multiple_patterns_single_repl(self):
+        samples = [
+            {
+                'text': 'aaa bbb ccc',
+                'target': 'X X ccc',
+            },
+        ]
+        op = ReplaceContentMapper(
+            pattern=['aaa', 'bbb'],
+            repl='X',
+        )
+        self._run_helper(op, samples)
+
+    def test_mismatched_pattern_repl_length_raises(self):
+        op = ReplaceContentMapper(
+            pattern=['a', 'b', 'c'],
+            repl=['x'],
+        )
+        samples = [{'text': 'a b c'}]
+        dataset = Dataset.from_list(samples)
+        with self.assertRaises(ValueError):
+            dataset.map(op.process, batch_size=2)
+
+    def test_raw_string_pattern_stripped(self):
+        """Pattern wrapped in r'...' should have the r-string markers removed."""
+        samples = [
+            {
+                'text': 'test 123 end',
+                'target': 'test <NUM> end',
+            },
+        ]
+        op = ReplaceContentMapper(pattern="r'\\d+'", repl='<NUM>')
+        self._run_helper(op, samples)
+
+    def test_empty_repl_removes_match(self):
+        samples = [
+            {
+                'text': 'Hello World 123',
+                'target': 'Hello World ',
+            },
+        ]
+        op = ReplaceContentMapper(pattern=r'\d+', repl='')
+        self._run_helper(op, samples)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -434,9 +434,11 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                 **self.arrow_json_args,
             )
             schema = None
+            batches = []
             while True:
                 try:
                     batch = reader.read_next_batch()
+                    batches.append(batch)
                     if schema is None:
                         schema = batch.schema
                     elif not schema.equals(batch.schema):
@@ -446,11 +448,20 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                             raise ValueError(
                                 f"Schema incompatibility in {path}: {e}. " f"Cannot unify {schema} with {batch.schema}"
                             ) from e
-                    table = pyarrow.Table.from_batches([batch], schema=schema)
-                    yield table
                 except StopIteration:
-                    return
+                    break
+            for batch in batches:
+                yield pyarrow.Table.from_batches([batch], schema=schema)
         except pyarrow.lib.ArrowInvalid as e:
+            if "changed from" in str(e):
+                import pyarrow.json as paj
+
+                yield paj.read_json(
+                    path,
+                    read_options=self.read_options,
+                    **self.arrow_json_args,
+                )
+                return
             raise ValueError(f"Failed to read JSON file: {path}. Underlying PyArrow Error: {e}") from e
 
 

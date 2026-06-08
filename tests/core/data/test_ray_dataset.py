@@ -143,6 +143,28 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
         dataset = read_json_stream(jsonl_path, read_options=read_options)
         self.assertEqual(len(dataset.take(3)[2]["text"]), len(_text))
 
+    @TEST_TAG("ray")
+    def test_read_json_stream_schema_evolution(self):
+        """Regression test for #936: null -> concrete type schema evolution."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+
+        jsonl_path = os.path.join(self.tmp_dir, "schema_evolution.jsonl")
+        rows = [{"id": i, "meta": {"url": None}} for i in range(30)]
+        rows.append({"id": 999, "meta": {"url": "https://example.com"}})
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(
+            jsonl_path, override_num_blocks=1, read_options=read_options
+        )
+        result = dataset.take_all()
+        self.assertEqual(len(result), 31)
+        self.assertEqual(result[-1]["id"], 999)
+        self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
+
 
 class TestRayDataset(DataJuicerTestCaseBase):
     def setUp(self):
@@ -303,27 +325,5 @@ class TestRayDataset(DataJuicerTestCaseBase):
         self.assertIsInstance(row["score"], int)
 
 
-  
-      @TEST_TAG("ray")
-      def test_read_json_stream_schema_evolution(self):
-          """Regression test for #936: null -> concrete type schema evolution."""
-          from data_juicer.core.data.ray_dataset import read_json_stream
-          import pyarrow.json as js
-  
-          jsonl_path = os.path.join(self.tmp_dir, "schema_evolution.jsonl")
-          rows = [{"id": i, "meta": {"url": None}} for i in range(30)]
-          rows.append({"id": 999, "meta": {"url": "https://example.com"}})
-          with open(jsonl_path, "w") as f:
-              for row in rows:
-                  f.write(json.dumps(row, ensure_ascii=False) + "\n")
-  
-          read_options = js.ReadOptions(use_threads=False, block_size=256)
-          dataset = read_json_stream(
-              jsonl_path, override_num_blocks=1, read_options=read_options
-          )
-          result = dataset.take_all()
-          self.assertEqual(len(result), 31)
-          self.assertEqual(result[-1]["id"], 999)
-          self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
 if __name__ == "__main__":
     unittest.main()

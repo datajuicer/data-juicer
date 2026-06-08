@@ -277,6 +277,11 @@ class RayDataset(DJDataset):
                     cached_columns.add(Fields.stats)
                 prepare_for_ray_map_batches = getattr(op, "_prepare_for_ray_map_batches", None)
                 use_instance_for_ray_tasks = bool(prepare_for_ray_map_batches and prepare_for_ray_map_batches())
+                if use_instance_for_ray_tasks and op.use_ray_actor():
+                    logger.info(
+                        f"{op._name}: overriding ray_execution_mode from actor to task "
+                        f"to preserve shared dedup state across workers"
+                    )
                 if op.use_ray_actor() and not use_instance_for_ray_tasks:
                     compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
                     self.data = self.data.map_batches(

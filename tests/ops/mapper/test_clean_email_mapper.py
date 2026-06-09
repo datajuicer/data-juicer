@@ -52,16 +52,33 @@ class CleanEmailMapperTest(DataJuicerTestCaseBase):
 
 
     def test_custom_pattern(self):
-        """Custom pattern via r-string should have r'...' markers stripped."""
+        """Custom pattern must produce different results from default pattern.
+
+        Default pattern: [A-Za-z0-9.\\-+_]+@[a-z0-9.\\-+_]+\\.[a-z]+
+        Custom pattern below also matches {user}@host forms (curly braces).
+        The input '{admin}@srv.co' does NOT match the default pattern (because
+        '{' and '}' are not in the default character class), but DOES match
+        the custom one — proving the custom pattern is actually used.
+        """
+        input_text = 'Contact: {admin}@srv.co for info'
+        # Verify default pattern does NOT match this input
+        default_op = CleanEmailMapper(repl='<MAIL>')
+        ds = Dataset.from_list([{'text': input_text}])
+        default_result = ds.map(default_op.process, batch_size=2)
+        self.assertEqual(default_result[0]['text'], input_text,
+                         "Precondition failed: default pattern should NOT "
+                         "match '{admin}@srv.co'")
+
+        # Now verify custom pattern DOES match
         samples = [{
-            'text': 'Contact: user@example.org for info',
+            'text': input_text,
             'target': 'Contact: <MAIL> for info',
         }]
-        op = CleanEmailMapper(
-            pattern=r"r'[A-Za-z0-9.+_]+@[a-z0-9.+_]+\.[a-z]+'",
+        custom_op = CleanEmailMapper(
+            pattern=r"r'[A-Za-z0-9.+_{}\-]+@[a-z0-9.+_\-]+\.[a-z]+'",
             repl='<MAIL>',
         )
-        self._run_clean_email(op, samples)
+        self._run_clean_email(custom_op, samples)
 
     def test_no_email_unchanged(self):
         samples = [{

@@ -69,15 +69,16 @@ class DocumentLineDeduplicatorTest(DataJuicerTestCaseBase):
 
     def test_skip_brackets(self):
         """Bracket-only lines are never removed even if high-frequency."""
+        # Use multi-char bracket lines to pass min_line_length check
         ds_list = [
-            {"text": "{\nHello\n}"},
-            {"text": "{\nWorld\n}"},
-            {"text": "{\nFoo\n}"},
+            {"text": "{}\nHello\n[]"},
+            {"text": "{}\nWorld\n[]"},
+            {"text": "{}\nFoo\n[]"},
         ]
         tgt_list = [
-            {"text": "{\nHello\n}"},
-            {"text": "{\nWorld\n}"},
-            {"text": "{\nFoo\n}"},
+            {"text": "{}\nHello\n[]"},
+            {"text": "{}\nWorld\n[]"},
+            {"text": "{}\nFoo\n[]"},
         ]
         dataset = Dataset.from_list(ds_list)
         op = DocumentLineDeduplicator(frequency_threshold=2)
@@ -170,6 +171,18 @@ class DocumentLineDeduplicatorTest(DataJuicerTestCaseBase):
         dataset = Dataset.from_list(ds_list)
         op = DocumentLineDeduplicator(frequency_threshold=2)
         self._run_line_dedup(dataset, tgt_list, op)
+
+    def test_compute_hash_skips_existing(self):
+        """compute_hash does not overwrite pre-existing line_hashes."""
+        from data_juicer.utils.constant import HashKeys
+
+        ds_list = [
+            {"text": "Hello\nWorld", HashKeys.line_hashes: ["pre", "existing"]},
+        ]
+        dataset = Dataset.from_list(ds_list)
+        op = DocumentLineDeduplicator(frequency_threshold=2)
+        result = dataset.map(op.compute_hash)
+        self.assertEqual(result[0][HashKeys.line_hashes], ["pre", "existing"])
 
     def test_show_num(self):
         """show_num returns duplicate pair information."""

@@ -88,5 +88,65 @@ class WordRepetitionFilterTest(DataJuicerTestCaseBase):
         self._run_word_repetition_filter(dataset, tgt_list, op)
 
 
+    def test_compute_stats_batched_directly(self):
+        """Directly call compute_stats_batched for non-tokenization path."""
+        from data_juicer.utils.constant import Fields, StatsKeys
+
+        op = WordRepetitionFilter(rep_len=2, min_ratio=0.0, max_ratio=0.5, tokenization=False)
+        # 'hello world' repeated 5 times -> high word 2-gram repetition
+        text_repetitive = ' '.join(['hello world'] * 5 + ['unique text here'])
+        text_unique = 'all different words in this sentence no repeats at all'
+        samples = {
+            'text': [text_repetitive, text_unique],
+            Fields.stats: [{}, {}],
+        }
+        result = op.compute_stats_batched(samples)
+        # Repetitive text should have high ratio
+        self.assertGreater(result[Fields.stats][0][StatsKeys.word_rep_ratio], 0.5)
+        # Unique text should have ratio 0.0
+        self.assertAlmostEqual(result[Fields.stats][1][StatsKeys.word_rep_ratio], 0.0)
+
+    def test_process_batched_directly(self):
+        """Directly call process_batched to verify filtering."""
+        from data_juicer.utils.constant import Fields, StatsKeys
+
+        op = WordRepetitionFilter(rep_len=2, min_ratio=0.0, max_ratio=0.5, tokenization=False)
+        samples = {
+            Fields.stats: [
+                {StatsKeys.word_rep_ratio: 0.8},   # exceeds max -> filtered
+                {StatsKeys.word_rep_ratio: 0.3},   # within range -> kept
+                {StatsKeys.word_rep_ratio: 0.0},   # within range -> kept
+            ],
+        }
+        keep_flags = list(op.process_batched(samples))
+        self.assertEqual(keep_flags, [False, True, True])
+
+    def test_compute_stats_batched_empty_words(self):
+        """Text that produces no word n-grams gets ratio 0.0."""
+        from data_juicer.utils.constant import Fields, StatsKeys
+
+        op = WordRepetitionFilter(rep_len=5, min_ratio=0.0, max_ratio=1.0, tokenization=False)
+        # Very short text with fewer words than rep_len=5
+        samples = {
+            'text': ['hi there', ''],
+            Fields.stats: [{}, {}],
+        }
+        result = op.compute_stats_batched(samples)
+        self.assertAlmostEqual(result[Fields.stats][0][StatsKeys.word_rep_ratio], 0.0)
+        self.assertAlmostEqual(result[Fields.stats][1][StatsKeys.word_rep_ratio], 0.0)
+
+    def test_compute_stats_batched_skips_existing(self):
+        """Already computed stats are preserved."""
+        from data_juicer.utils.constant import Fields, StatsKeys
+
+        op = WordRepetitionFilter(rep_len=2, min_ratio=0.0, max_ratio=1.0, tokenization=False)
+        samples = {
+            'text': ['hello world hello world hello world'],
+            Fields.stats: [{StatsKeys.word_rep_ratio: 0.42}],
+        }
+        result = op.compute_stats_batched(samples)
+        self.assertAlmostEqual(result[Fields.stats][0][StatsKeys.word_rep_ratio], 0.42)
+
+
 if __name__ == '__main__':
     unittest.main()

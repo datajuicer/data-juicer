@@ -352,7 +352,12 @@ class NotificationMixinTest(DataJuicerTestCaseBase):
 
     @patch.dict(
         os.environ,
-        {"DATA_JUICER_EMAIL_PASSWORD": "env_password"},
+        {
+            "DATA_JUICER_EMAIL_PASSWORD": "env_password",
+            "DATA_JUICER_SMTP_TEST_COM_PASSWORD": "",
+            "DATA_JUICER_EMAIL_CERT": "",
+            "DATA_JUICER_EMAIL_KEY": "",
+        },
         clear=False,
     )
     @patch("smtplib.SMTP_SSL")
@@ -570,6 +575,8 @@ class NotificationMixinTest(DataJuicerTestCaseBase):
         {
             "DATA_JUICER_EMAIL_CERT": "/env/cert.pem",
             "DATA_JUICER_EMAIL_KEY": "/env/key.pem",
+            "DATA_JUICER_EMAIL_PASSWORD": "",
+            "DATA_JUICER_SMTP_TEST_COM_PASSWORD": "",
         },
         clear=False,
     )

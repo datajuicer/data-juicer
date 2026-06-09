@@ -186,14 +186,13 @@ class StreamToLoguruTest(DataJuicerTestCaseBase):
         self.assertFalse(stream.isatty())
 
     def test_buffer_truncate_on_write(self):
-        """Buffer is truncated to BUFFER_SIZE after write."""
+        """Buffer content is truncated to BUFFER_SIZE after write."""
         from data_juicer.utils.logger_utils import StreamToLoguru
         stream = StreamToLoguru()
         stream.BUFFER_SIZE = 10  # Small buffer for test
         stream.write("a" * 100)
-        # After truncate(10), the buffer position is at 10 but content
-        # up to that point is retained
-        self.assertLessEqual(stream.buffer.tell(), 100)
+        # truncate(10) keeps only the first 10 characters of content
+        self.assertEqual(len(stream.buffer.getvalue()), 10)
 
 
 class HiddenPrintsTest(DataJuicerTestCaseBase):

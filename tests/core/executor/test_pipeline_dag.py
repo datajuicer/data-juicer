@@ -239,14 +239,14 @@ class PipelineDAGFailureTest(DataJuicerTestCaseBase):
         self.assertEqual(node["start_time"], start_time)
 
     def test_mark_node_failed_without_start_time(self):
-        """When a node fails before being started, duration should be ~0."""
+        """When a node fails before being started, duration should be 0."""
         self.dag.nodes["n1"] = _make_node("n1")
         self.dag.mark_node_failed("n1", "failed early")
 
         node = self.dag.nodes["n1"]
         self.assertEqual(node["status"], DAGNodeStatus.FAILED.value)
         self.assertIsNotNone(node["actual_duration"])
-        self.assertLessEqual(node["actual_duration"], 1.0)
+        self.assertEqual(node["actual_duration"], 0.0)
 
     def test_mark_node_failed_nonexistent_node(self):
         self.dag.mark_node_failed("nonexistent", "error")
@@ -476,13 +476,13 @@ class PipelineDAGCompletionTest(DataJuicerTestCaseBase):
         self.assertEqual(self.dag.nodes["n1"]["actual_duration"], 42.0)
 
     def test_mark_completed_without_start(self):
-        """Complete a node that was never started - duration should be ~0."""
+        """Complete a node that was never started - duration should be 0."""
         self.dag.nodes["n1"] = _make_node("n1")
         self.dag.mark_node_completed("n1")
 
         node = self.dag.nodes["n1"]
         self.assertEqual(node["status"], DAGNodeStatus.COMPLETED.value)
-        self.assertLessEqual(node["actual_duration"], 1.0)
+        self.assertEqual(node["actual_duration"], 0.0)
 
     def test_execution_summary_mixed_states(self):
         self.dag.nodes["a"] = _make_node("a", execution_order=0)

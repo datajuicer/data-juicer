@@ -350,38 +350,35 @@ class NotificationMixinTest(DataJuicerTestCaseBase):
         result = obj.send_notification("test msg", notification_type="email")
         self.assertTrue(result)
 
-    @patch.dict(
-        os.environ,
-        {
+    def test_send_email_password_from_env(self):
+        env_vars = {
             "DATA_JUICER_EMAIL_PASSWORD": "env_password",
             "DATA_JUICER_SMTP_TEST_COM_PASSWORD": "",
             "DATA_JUICER_EMAIL_CERT": "",
             "DATA_JUICER_EMAIL_KEY": "",
-        },
-        clear=False,
-    )
-    @patch("smtplib.SMTP_SSL")
-    def test_send_email_password_from_env(self, mock_smtp_ssl):
-        mock_server = MagicMock()
-        mock_smtp_ssl.return_value.__enter__ = MagicMock(
-            return_value=mock_server
-        )
-        mock_smtp_ssl.return_value.__exit__ = MagicMock(return_value=False)
+        }
+        with patch.dict(os.environ, env_vars, clear=False), \
+             patch("smtplib.SMTP_SSL") as mock_smtp_ssl:
+            mock_server = MagicMock()
+            mock_smtp_ssl.return_value.__enter__ = MagicMock(
+                return_value=mock_server
+            )
+            mock_smtp_ssl.return_value.__exit__ = MagicMock(return_value=False)
 
-        obj = self._make_obj(
-            enabled=True,
-            email={
-                "smtp_server": "smtp.test.com",
-                "smtp_port": 465,
-                "use_ssl": True,
-                "username": "user@test.com",
-                "sender_email": "user@test.com",
-                "recipients": ["dest@test.com"],
-                # no password in config; should use env var
-            },
-        )
-        result = obj.send_notification("test msg", notification_type="email")
-        self.assertTrue(result)
+            obj = self._make_obj(
+                enabled=True,
+                email={
+                    "smtp_server": "smtp.test.com",
+                    "smtp_port": 465,
+                    "use_ssl": True,
+                    "username": "user@test.com",
+                    "sender_email": "user@test.com",
+                    "recipients": ["dest@test.com"],
+                    # no password in config; should use env var
+                },
+            )
+            result = obj.send_notification("test msg", notification_type="email")
+            self.assertTrue(result)
 
     def test_send_email_sender_name_formatting(self):
         obj = self._make_obj(
@@ -570,44 +567,41 @@ class NotificationMixinTest(DataJuicerTestCaseBase):
         call_args = mock_smtp_ssl.call_args
         self.assertEqual(call_args[0][0], "smtp.test.com")
 
-    @patch.dict(
-        os.environ,
-        {
+    def test_send_email_cert_from_env(self):
+        env_vars = {
             "DATA_JUICER_EMAIL_CERT": "/env/cert.pem",
             "DATA_JUICER_EMAIL_KEY": "/env/key.pem",
             "DATA_JUICER_EMAIL_PASSWORD": "",
             "DATA_JUICER_SMTP_TEST_COM_PASSWORD": "",
-        },
-        clear=False,
-    )
-    @patch("smtplib.SMTP_SSL")
-    @patch("ssl.create_default_context")
-    def test_send_email_cert_from_env(self, mock_ssl_ctx, mock_smtp_ssl):
-        mock_server = MagicMock()
-        mock_smtp_ssl.return_value.__enter__ = MagicMock(
-            return_value=mock_server
-        )
-        mock_smtp_ssl.return_value.__exit__ = MagicMock(return_value=False)
-        mock_ctx = MagicMock()
-        mock_ssl_ctx.return_value = mock_ctx
+        }
+        with patch.dict(os.environ, env_vars, clear=False), \
+             patch("smtplib.SMTP_SSL") as mock_smtp_ssl, \
+             patch("ssl.create_default_context") as mock_ssl_ctx:
+            mock_server = MagicMock()
+            mock_smtp_ssl.return_value.__enter__ = MagicMock(
+                return_value=mock_server
+            )
+            mock_smtp_ssl.return_value.__exit__ = MagicMock(return_value=False)
+            mock_ctx = MagicMock()
+            mock_ssl_ctx.return_value = mock_ctx
 
-        obj = self._make_obj(
-            enabled=True,
-            email={
-                "smtp_server": "smtp.test.com",
-                "smtp_port": 465,
-                "use_ssl": True,
-                "use_cert_auth": True,
-                "sender_email": "user@test.com",
-                "recipients": ["dest@test.com"],
-                # cert/key from env, not config
-            },
-        )
-        result = obj.send_notification("test", notification_type="email")
-        self.assertTrue(result)
-        mock_ctx.load_cert_chain.assert_called_once_with(
-            certfile="/env/cert.pem", keyfile="/env/key.pem"
-        )
+            obj = self._make_obj(
+                enabled=True,
+                email={
+                    "smtp_server": "smtp.test.com",
+                    "smtp_port": 465,
+                    "use_ssl": True,
+                    "use_cert_auth": True,
+                    "sender_email": "user@test.com",
+                    "recipients": ["dest@test.com"],
+                    # cert/key from env, not config
+                },
+            )
+            result = obj.send_notification("test", notification_type="email")
+            self.assertTrue(result)
+            mock_ctx.load_cert_chain.assert_called_once_with(
+                certfile="/env/cert.pem", keyfile="/env/key.pem"
+            )
 
 
 if __name__ == "__main__":

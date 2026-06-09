@@ -1,7 +1,8 @@
+import json
 import os
 import time
 import unittest
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch
 
 from data_juicer.ops.mixins import EventDrivenMixin, NotificationMixin
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
@@ -168,8 +169,11 @@ class NotificationMixinTest(DataJuicerTestCaseBase):
 
     def test_send_notification_none_type(self):
         obj = self._make_obj(enabled=True)
-        # notification_type=None should just log and return None
+        mock_handler = MagicMock(return_value=True)
+        obj.notification_handlers = {"email": mock_handler}
+        # notification_type=None must dispatch to no handler at all
         obj.send_notification("hello", notification_type=None)
+        mock_handler.assert_not_called()
 
     def test_send_notification_unsupported_type(self):
         obj = self._make_obj(enabled=True)
@@ -181,8 +185,12 @@ class NotificationMixinTest(DataJuicerTestCaseBase):
             enabled=True,
             email={"enabled": False},
         )
+        mock_handler = MagicMock(return_value=True)
+        obj.notification_handlers["email"] = mock_handler
         result = obj.send_notification("hello", notification_type="email")
+        # disabled channel returns True but must NOT actually send
         self.assertTrue(result)
+        mock_handler.assert_not_called()
 
     def test_send_notification_kwargs_override(self):
         obj = self._make_obj(
@@ -426,8 +434,12 @@ class NotificationMixinTest(DataJuicerTestCaseBase):
         result = obj.send_notification("hello slack", notification_type="slack")
         self.assertTrue(result)
         mock_post.assert_called_once()
-        call_kwargs = mock_post.call_args
-        self.assertIn("hello slack", call_kwargs[1].get("data", call_kwargs[0][1] if len(call_kwargs[0]) > 1 else ""))
+        # url is the first positional arg; payload is JSON in the `data` kwarg
+        self.assertEqual(
+            mock_post.call_args[0][0], "https://hooks.slack.com/test")
+        payload = json.loads(mock_post.call_args[1]["data"])
+        self.assertEqual(payload["text"], "hello slack")
+        self.assertEqual(payload["channel"], "#test")
 
     @patch("requests.post")
     def test_send_slack_notification_failure(self, mock_post):

@@ -24,7 +24,6 @@ class JsonFormatterTest(DataJuicerTestCaseBase):
 
         self._path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "structured")
         self._file = os.path.join(self._path, "demo-dataset.jsonl")
-        print(self._file)
         # create compressed variants for testing
         # create a temp directory to hold generated compressed files
         self._temp_dir = tempfile.mkdtemp()

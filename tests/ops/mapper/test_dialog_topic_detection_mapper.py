@@ -55,7 +55,7 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct')
+        op = DialogTopicDetectionMapper(api_model='qwen3.6-plus')
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -81,7 +81,7 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogTopicDetectionMapper(api_model='qwen3.6-plus',
                                             max_round=1)
         self._run_op(op, samples)
 
@@ -108,7 +108,7 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogTopicDetectionMapper(api_model='qwen3.6-plus',
                                             max_round=0)
         self._run_op(op, samples)
 
@@ -133,7 +133,7 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogTopicDetectionMapper(api_model='qwen3.6-plus',
                                             max_round=1)
         self._run_op(op, samples)
 
@@ -160,7 +160,7 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogTopicDetectionMapper(api_model='qwen3.6-plus',
                                 topic_candidates=['评价', '沟通', '闲聊', '其他'])
         self._run_op(op, samples)
 
@@ -189,7 +189,7 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
 
         labels_key = 'my_label'
         analysis_key = 'my_analysis'
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogTopicDetectionMapper(api_model='qwen3.6-plus',
                                         labels_key=labels_key,
                                         analysis_key=analysis_key)
         self._run_op(op, samples, labels_key=labels_key, analysis_key=analysis_key)

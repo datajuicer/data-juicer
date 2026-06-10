@@ -49,10 +49,10 @@ class RelationIdentityMapperTest(DataJuicerTestCaseBase):
             self.assertNotEqual(data[Fields.meta][output_key], '')
 
     def test_default(self):
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op('qwen3.6-plus')
 
     def test_rename_key(self):
-        self._run_op('qwen2.5-72b-instruct', output_key='output')
+        self._run_op('qwen3.6-plus', output_key='output')
 
 
 if __name__ == '__main__':

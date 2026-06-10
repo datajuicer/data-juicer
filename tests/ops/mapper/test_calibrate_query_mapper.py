@@ -66,7 +66,7 @@ class CalibrateQueryMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
         # export OPENAI_API_KEY=your_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op('qwen3.6-plus')
 
 
 if __name__ == '__main__':

@@ -42,7 +42,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
         
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.6-plus',
             entity='李莲花',
             query_entity_type='人物'
         )
@@ -62,7 +62,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
 
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.6-plus',
             entity='李莲花',
             query_entity_type='人物',
             input_key='events',
@@ -83,7 +83,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.6-plus',
             entity='李莲花',
             query_entity_type='人物',
             max_token_num=40

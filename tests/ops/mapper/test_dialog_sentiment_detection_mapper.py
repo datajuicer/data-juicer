@@ -54,7 +54,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct')
+        op = DialogSentimentDetectionMapper(api_model='qwen3.6-plus')
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -80,7 +80,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.6-plus',
                                             max_round=1)
         self._run_op(op, samples)
 
@@ -107,7 +107,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.6-plus',
                                             max_round=0)
         self._run_op(op, samples)
 
@@ -132,7 +132,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.6-plus',
                                             max_round=1)
         self._run_op(op, samples)
 
@@ -159,7 +159,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.6-plus',
                                 sentiment_candidates=['认可', '不满', '困惑'])
         self._run_op(op, samples)
 
@@ -188,7 +188,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
 
         labels_key = 'my_label'
         analysis_key = 'my_analysis'
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.6-plus',
                                             labels_key=labels_key,
                                             analysis_key=analysis_key)
         self._run_op(op, samples, labels_key=labels_key, analysis_key=analysis_key)

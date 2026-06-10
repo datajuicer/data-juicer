@@ -38,7 +38,7 @@ class OptimizePromptMapperTest(DataJuicerTestCaseBase):
 
     def test_api_model(self):
         sampling_params = {'max_new_tokens': 200}
-        self._run_op(model="qwen2.5-72b-instruct", is_hf_model=False, sampling_params=sampling_params)
+        self._run_op(model="qwen3.6-plus", is_hf_model=False, sampling_params=sampling_params)
 
 
 if __name__ == '__main__':

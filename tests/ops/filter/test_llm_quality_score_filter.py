@@ -10,7 +10,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_fro
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMQualityScoreFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen2.5-72b-instruct'
+    api_or_hf_model = 'qwen3.6-plus'
 
     def _run_test(self, dataset: Dataset, op):
         if Fields.stats not in dataset.features:

@@ -52,7 +52,7 @@ class LLMRayVLLMEnginePipelineTest(DataJuicerTestCaseBase):
         ray_ds = ray.data.from_items(ds_list)
         ds = RayDataset(ray_ds)
         op = LLMRayVLLMEnginePipeline(
-            api_or_hf_model='qwen2.5-72b-instruct',
+            api_or_hf_model='qwen3.6-plus',
             is_hf_model=False,
             sampling_params=dict(
                 temperature=0.0,

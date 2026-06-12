@@ -7,7 +7,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_fro
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen3.6-plus'
+    api_or_hf_model = 'qwen3-max'
 
     def _run_test(self, dataset: Dataset, op):
         if Fields.stats not in dataset.features:
@@ -45,7 +45,10 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
             'text': "This comprehensive study examines the impact of climate change on global ecosystems, providing detailed analysis supported by extensive data collection over a decade. The research methodology includes rigorous statistical analysis and peer reviews from leading experts in environmental science."
         }]
         dataset = Dataset.from_list(ds_list)
-        op = LLMAnalysisFilter(api_or_hf_model=self.api_or_hf_model)
+        op = LLMAnalysisFilter(
+            api_or_hf_model=self.api_or_hf_model,
+            sampling_params={"enable_thinking": False},
+        )
         dataset = self._run_test(dataset, op)
 
     def test_rft_data(self):
@@ -68,6 +71,7 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
             input_keys=['text', 'analysis', 'answer'],
             field_names=['Query', 'Analysis', 'Answer'],
             min_score=0.7,
+            sampling_params={"enable_thinking": False},
         )
         dataset = self._run_test(dataset, op)
 
@@ -82,7 +86,8 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
         dataset = Dataset.from_list(ds_list)
         op = LLMAnalysisFilter(
             api_or_hf_model=self.api_or_hf_model,
-            dim_required_keys=["clarity", "fluency"]
+            dim_required_keys=["clarity", "fluency"],
+            sampling_params={"enable_thinking": False},
         )
         dataset = self._run_test(dataset, op)
 

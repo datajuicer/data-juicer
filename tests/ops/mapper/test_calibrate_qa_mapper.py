@@ -62,12 +62,13 @@ class CalibrateQAMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        op = CalibrateQAMapper(api_model='qwen3.6-plus')
+        op = CalibrateQAMapper(api_model='qwen3-max', sampling_params={'enable_thinking': False})
         self._run_op(op)
 
     def test_args(self):
         op = CalibrateQAMapper(
-            api_model='qwen3.6-plus',
+            api_model='qwen3-max',
+            sampling_params={'enable_thinking': False},
             api_endpoint=
             'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
             response_path='choices.0.message.content')

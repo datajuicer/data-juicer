@@ -55,18 +55,19 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
             "answer": "Fish."
         }, {
             "text": "Why do leaves change color in autumn?",
-            "analysis": "Leaves change color because of the decrease in sunlight and temperature. Chlorophyll breaks down, revealing other pigments like yellow and orange.",
-            "answer": "Due to less sunlight and colder temperatures, chlorophyll breaks down, showing other colors."
+            "analysis": "Leaves change color because of less sunlight.",
+            "answer": "Because it gets colder."
         }, {
             "text": "How does photosynthesis work?",
-            "analysis": "Photosynthesis is the process by which plants convert light energy into chemical energy. Chlorophyll absorbs sunlight, which drives the conversion of carbon dioxide and water into glucose and oxygen.",
-            "answer": "Plants use chlorophyll to absorb sunlight, converting carbon dioxide and water into glucose and oxygen."
+            "analysis": "Photosynthesis is the biochemical process by which green plants convert light energy into chemical energy stored in glucose. Chlorophyll in chloroplasts absorbs photons, driving the light-dependent reactions that produce ATP and NADPH. These then fuel the Calvin cycle, fixing CO2 into glyceraldehyde-3-phosphate, which is subsequently converted to glucose. Oxygen is released as a byproduct from water splitting.",
+            "answer": "Plants use chlorophyll to absorb sunlight, converting carbon dioxide and water into glucose and oxygen through light-dependent reactions and the Calvin cycle."
         }]
         dataset = Dataset.from_list(ds_list)
         op = LLMAnalysisFilter(
             api_or_hf_model=self.api_or_hf_model,
             input_keys=['text', 'analysis', 'answer'],
             field_names=['Query', 'Analysis', 'Answer'],
+            min_score=0.7,
         )
         dataset = self._run_test(dataset, op)
 

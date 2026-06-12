@@ -48,7 +48,7 @@ class MetaTagsAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MetaTagsAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             meta_tag_key=MetaKeys.query_sentiment_label,
         )
@@ -78,7 +78,7 @@ class MetaTagsAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MetaTagsAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             meta_tag_key=MetaKeys.query_sentiment_label,
             target_tags=['开心', '难过', '其他']
@@ -108,7 +108,7 @@ class MetaTagsAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MetaTagsAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             meta_tag_key=MetaKeys.dialog_sentiment_labels,
             target_tags=['开心', '难过', '其他']

@@ -50,10 +50,10 @@ class RelationIdentityMapperTest(DataJuicerTestCaseBase):
             self.assertNotEqual(data[Fields.meta][output_key], '')
 
     def test_default(self):
-        self._run_op('qwen3-max', sampling_params={'enable_thinking': False})
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
 
     def test_rename_key(self):
-        self._run_op('qwen3-max', sampling_params={'enable_thinking': False}, output_key='output')
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False}, output_key='output')
 
 
 if __name__ == '__main__':

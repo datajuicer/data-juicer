@@ -54,7 +54,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen3-max', sampling_params={'enable_thinking': False})
+        op = DialogSentimentDetectionMapper(api_model='qwen3.7-max', sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -80,7 +80,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen3-max',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.7-max',
         sampling_params={'enable_thinking': False},
                                             max_round=1)
         self._run_op(op, samples)
@@ -108,7 +108,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen3-max',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.7-max',
         sampling_params={'enable_thinking': False},
                                             max_round=0)
         self._run_op(op, samples)
@@ -134,7 +134,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen3-max',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.7-max',
         sampling_params={'enable_thinking': False},
                                             max_round=1)
         self._run_op(op, samples)
@@ -162,7 +162,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen3-max',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.7-max',
         sampling_params={'enable_thinking': False},
                                 sentiment_candidates=['认可', '不满', '困惑'])
         self._run_op(op, samples)
@@ -192,7 +192,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
 
         labels_key = 'my_label'
         analysis_key = 'my_analysis'
-        op = DialogSentimentDetectionMapper(api_model='qwen3-max',
+        op = DialogSentimentDetectionMapper(api_model='qwen3.7-max',
         sampling_params={'enable_thinking': False},
                                             labels_key=labels_key,
                                             analysis_key=analysis_key)

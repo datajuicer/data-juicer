@@ -7,7 +7,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_fro
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen3-max'
+    api_or_hf_model = 'qwen3.7-max'
 
     def _run_test(self, dataset: Dataset, op):
         if Fields.stats not in dataset.features:

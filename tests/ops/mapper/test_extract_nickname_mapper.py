@@ -49,7 +49,7 @@ class ExtractNicknameMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
         # export OPENAI_API_KEY=your_key
-        self._run_op('qwen3-max', sampling_params={'enable_thinking': False})
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

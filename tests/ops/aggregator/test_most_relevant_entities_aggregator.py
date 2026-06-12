@@ -42,7 +42,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
         
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物'
@@ -63,7 +63,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
 
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物',
@@ -85,7 +85,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物',

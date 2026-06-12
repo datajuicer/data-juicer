@@ -41,7 +41,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
         )
         self._run_helper(op, samples)
@@ -59,7 +59,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             input_key='sub_docs',
             output_key='text'
@@ -79,7 +79,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             max_token_num=2
         )
@@ -98,7 +98,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             max_token_num=90
         )
@@ -117,7 +117,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3-max',
+            api_model='qwen3.7-max',
             sampling_params={'enable_thinking': False},
             max_token_num=200
         )

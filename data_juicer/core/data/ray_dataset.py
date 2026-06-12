@@ -174,8 +174,6 @@ class RayDataset(DJDataset):
             row_count = 0
 
         if row_count == 0:
-            from loguru import logger
-
             logger.warning("Dataset is empty (0 rows), skipping operator processing")
             return self
 
@@ -184,8 +182,6 @@ class RayDataset(DJDataset):
         columns_result = self.data.columns()
         # Handle empty dataset case where columns() returns None
         if columns_result is None:
-            from loguru import logger
-
             logger.warning("Dataset has unknown schema (likely empty), skipping operator processing")
             return self
         cached_columns = set(columns_result)
@@ -342,11 +338,8 @@ class RayDataset(DJDataset):
                 logger.error("Ray executor only support Filter, Mapper, Deduplicator and Pipeline OPs for now")
                 raise NotImplementedError
         except:  # noqa: E722
-            logger.error(f"An error occurred during Op [{op._name}].")
-            import traceback
-
-            traceback.print_exc()
-            exit(1)
+            logger.exception(f"An error occurred during Op [{op._name}].")
+            raise
 
         return cached_columns
 
@@ -354,11 +347,11 @@ class RayDataset(DJDataset):
         return self.data.count()
 
     @classmethod
-    def read(cls, data_format: str, paths: Union[str, List[str]]) -> RayDataset:
+    def read(cls, data_format: str, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
-            return RayDataset.read_json(paths)
+            return RayDataset.read_json(paths, **kwargs)
         elif data_format == "webdataset":
-            return RayDataset.read_webdataset(paths)
+            return RayDataset.read_webdataset(paths, **kwargs)
         elif data_format in {
             "parquet",
             "images",
@@ -372,27 +365,26 @@ class RayDataset(DJDataset):
             "lance",
         }:
             if data_format == "lance":
-                # use lazy loader to check pylance installation
                 from data_juicer.utils.lazy_loader import LazyLoader
 
                 LazyLoader.check_packages(["pylance"])
-            return getattr(ray.data, f"read_{data_format}")(paths)
+            return getattr(ray.data, f"read_{data_format}")(paths, **kwargs)
 
     @classmethod
-    def read_json(cls, paths: Union[str, List[str]]) -> RayDataset:
+    def read_json(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         # Note: a temp solution for reading json stream
         # TODO: replace with ray.data.read_json_stream once it is available
         import pyarrow.json as js
 
         try:
             js.open_json
-            return read_json_stream(paths)
+            return read_json_stream(paths, **kwargs)
         except AttributeError:
-            return ray.data.read_json(paths)
+            return ray.data.read_json(paths, **kwargs)
 
     @classmethod
-    def read_webdataset(cls, paths: Union[str, List[str]]) -> RayDataset:
-        return ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"))
+    def read_webdataset(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
+        return ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"), **kwargs)
 
     def to_list(self) -> list:
         return self.data.to_pandas().to_dict(orient="records")

@@ -81,6 +81,7 @@ eoc_special_token: '<|__dj__eoc|>'                          # the special token 
 # for distributed processing
 executor_type: default                                      # type of executor, support "default" or "ray" for now.
 ray_address: auto                                           # the address of the Ray cluster.
+override_num_blocks: null                                   # override the number of output blocks for Ray Data read operations. Useful for controlling parallelism when reading large datasets. Default is null (no override).
 
 # partition configuration (for ray_partitioned executor)
 partition:
@@ -765,6 +766,11 @@ process:
       if_save_visualization: False                            # Whether to save visualization results.
       save_visualization_dir: None                            # The path for saving visualization results.
   - whitespace_normalization_mapper:                        # normalize different kinds of whitespaces to English whitespace.
+
+  # Pipeline ops
+  - ray_repartition_pipeline:                               # repartition a Ray Dataset into a target number of blocks.
+      num_blocks: 1                                           # Target number of Ray Dataset blocks.
+      shuffle: False                                          # Whether to shuffle records during repartition.
 
   # Filter ops
   - alphanumeric_filter:                                    # filter text with alphabet/numeric ratio out of specific range.

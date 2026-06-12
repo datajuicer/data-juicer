@@ -3,9 +3,9 @@ import unittest
 from loguru import logger
 
 from data_juicer.ops.mapper.pair_preference_mapper import PairPreferenceMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class PairPreferenceMapperTest(DataJuicerTestCaseBase):
 
     def _run_op(self, op, samples):

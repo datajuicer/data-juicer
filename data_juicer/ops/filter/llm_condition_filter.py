@@ -73,7 +73,9 @@ class LLMConditionFilter(Filter):
         self.is_hf_model = is_hf_model
         self.enable_vllm = enable_vllm
         model_params = model_params or {}
-        sampling_params = update_sampling_params(sampling_params or {}, api_or_hf_model, enable_vllm)
+        sampling_params = dict(sampling_params) if sampling_params else {}
+        if enable_vllm or is_hf_model:
+            sampling_params = update_sampling_params(sampling_params, api_or_hf_model, enable_vllm)
         self.sampling_params = sampling_params
 
         if enable_vllm:

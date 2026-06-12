@@ -87,6 +87,16 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
+<summary>[2026-05-29] Release v1.5.2: <b>Semantic LLM OPs, Cross-doc Line Dedup & Leaner Dependencies</b></summary>
+
+* 🧹 *New Deduplicator* — Added `DocumentLineDeduplicator` for cross-document line-level dedup, removing boilerplate lines (templates, copyright notices, navigation bars) by global document frequency.
+* 🤖 *Agent Data Quality Toolkit* — Shipped interaction-quality OPs & recipe, a bad-case HTML report, and more robust JSONL / HuggingFace meta loading.
+* 📦 *Leaner & Faster Install* — Slimmed the default dependency set (Ray, audio, spaCy, av, etc. moved to on-demand extras) to speed up installation.
+* 🐳 *Stability & Robustness Fixes* — Library-safe error handling (raise over `exit(1)`), Ray init/temp-dir fixes, valid API params (drop invalid `max_new_tokens`), PyArrow 20+ batch JSON reading, local-path aesthetics model support, and more performance/bug fixes.
+* 🧠 *Semantic LLM Operators* — Introduced `llm_extract_mapper`, `llm_condition_filter`, and `llm_structured_ops` with unified `llm_*` naming and configurable inference strategies (join/agg/top-k planned).
+</details>
+
+<details open>
 <summary>[2026-03-17] Release v1.5.1: <b>LaTeX OPs; Compressed Format Support; Operator Robustness Fixes</b></summary>
 
 * 📄 Two new LaTeX-focused mapper OPs shipped, extending data-juicer's document processing capabilities to handle `.tex` archives and figure contexts.
@@ -95,7 +105,7 @@ for s in res_ds:
 * 🤖 Major refactor and upgrade of data-juicer-agents completed: The project architecture and CLI/session capabilities were comprehensively redesigned for better maintainability and extensibility. See [date-juicer-agents](https://github.com/datajuicer/data-juicer-agents) for more details.
 </details>
 
-<details open>
+<details>
 <summary>[2026-02-12] Release v1.5.0: <b>Partitioned Ray Executor, OP-level Env Management, and More Embodied-AI OPs</b></summary>
 
 - 🚀 *Enhanced Distributed Execution Framework* -- Introduced partitioned Ray executor and OP-level isolated environments to improve fault tolerance, scalability, and dependency conflict resolution.
@@ -235,9 +245,9 @@ If you find Data-Juicer useful in your work, please cite:
 
 - (NeurIPS'25) [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499)
 
-- (Benchmark Data) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
+- (CVPR'26) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
  
-- (Benchmark Data) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
+- (ICML'26) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
 
 - (Data Scaling) [BiMix: A Bivariate Data Mixing Law for Language Model Pretraining](https://arxiv.org/abs/2405.14908)
 

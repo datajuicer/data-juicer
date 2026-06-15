@@ -53,13 +53,13 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
 
     def test_rft_data(self):
         ds_list = [{
-            "text": "What is the fastest animal?",
-            "analysis": "The fastest animal is fish because they swim very fast in water.",
+            "text": "What is the fastest land animal?",
+            "analysis": "Fish is the fastest land animal because it swims in the ocean, flies above trees, and every animal is the same speed.",
             "answer": "Fish."
         }, {
             "text": "Why do leaves change color in autumn?",
-            "analysis": "Leaves change color because of less sunlight.",
-            "answer": "Because it gets colder."
+            "analysis": "As days get shorter, trees stop replacing chlorophyll. The green color fades and yellow or orange pigments that were already in the leaves become visible, though this skips some details such as red pigments.",
+            "answer": "Shorter daylight reduces chlorophyll, revealing other pigments in the leaves."
         }, {
             "text": "How does photosynthesis work?",
             "analysis": "Photosynthesis is the biochemical process by which green plants convert light energy into chemical energy stored in glucose. Chlorophyll in chloroplasts absorbs photons, driving the light-dependent reactions that produce ATP and NADPH. These then fuel the Calvin cycle, fixing CO2 into glyceraldehyde-3-phosphate, which is subsequently converted to glucose. Oxygen is released as a byproduct from water splitting.",

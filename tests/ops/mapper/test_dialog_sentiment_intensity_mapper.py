@@ -79,9 +79,10 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen3.7-max',
-        sampling_params={'enable_thinking': False},
-                                            max_round=1)
+        op = DialogSentimentIntensityMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_max_round_zero(self):
@@ -107,9 +108,10 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen3.7-max',
-        sampling_params={'enable_thinking': False},
-                                            max_round=0)
+        op = DialogSentimentIntensityMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            max_round=0)
         self._run_op(op, samples)
 
     def test_query(self):
@@ -133,9 +135,10 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen3.7-max',
-        sampling_params={'enable_thinking': False},
-                                            max_round=1)
+        op = DialogSentimentIntensityMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_rename_keys(self):
@@ -163,10 +166,11 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
 
         intensities_key = 'my_intensity'
         analysis_key = 'my_analysis'
-        op = DialogSentimentIntensityMapper(api_model='qwen3.7-max',
-        sampling_params={'enable_thinking': False},
-                                            intensities_key=intensities_key,
-                                            analysis_key=analysis_key)
+        op = DialogSentimentIntensityMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            intensities_key=intensities_key,
+            analysis_key=analysis_key)
         self._run_op(op, samples, intensities_key=intensities_key, analysis_key=analysis_key)
 
 

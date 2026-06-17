@@ -39,7 +39,9 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
     def tearDown(self) -> None:
         super().tearDown()
         if os.path.exists(self.tmp_dir):
-            import shutil; shutil.rmtree(self.tmp_dir)
+            import shutil
+
+            shutil.rmtree(self.tmp_dir)
 
     def _touch_a_file(self, path):
         """Create a file at the given path"""
@@ -157,8 +159,35 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
         read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(jsonl_path, override_num_blocks=1, read_options=read_options)
+        result = dataset.take_all()
+        self.assertEqual(len(result), 31)
+        self.assertEqual(result[-1]["id"], 999)
+        self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_schema_evolution_with_filesystem(self):
+        """Regression test: schema evolution fallback works with filesystem abstraction."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+        import pyarrow.fs as pafs
+
+        jsonl_path = os.path.join(self.tmp_dir, "schema_evolution_fs.jsonl")
+        rows = [{"id": i, "meta": {"url": None}} for i in range(30)]
+        rows.append({"id": 999, "meta": {"url": "https://example.com"}})
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        fs = pafs.SubTreeFileSystem(self.tmp_dir, pafs.LocalFileSystem())
+        relative_path = "schema_evolution_fs.jsonl"
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
         dataset = read_json_stream(
-            jsonl_path, override_num_blocks=1, read_options=read_options
+            relative_path,
+            filesystem=fs,
+            override_num_blocks=1,
+            read_options=read_options,
         )
         result = dataset.take_all()
         self.assertEqual(len(result), 31)

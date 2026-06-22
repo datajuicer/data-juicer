@@ -456,15 +456,18 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                 except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
                     yield from self._read_stream_with_schema_unify(path)
                     return
-                if unified.equals(schema):
-                    buffered_batches.append(pyarrow.RecordBatch.from_arrays(batch.columns(), schema=schema))
-                else:
+                try:
+                    casted = pyarrow.RecordBatch.from_arrays(batch.columns(), schema=batch.schema)
+                    casted = casted.cast(unified)
+                    buffered_batches = [b.cast(unified) for b in buffered_batches]
+                    schema = unified
+                    buffered_batches.append(casted)
+                except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
                     yield from self._read_stream_with_schema_unify(path)
                     return
 
     def _read_stream_with_schema_unify(self, path: str):
-        """Fallback: buffer all batches and unify schemas for schema evolution cases."""
-        import pyarrow.json as paj
+        import json as json_mod
 
         fs = getattr(self, "_filesystem", None)
         if fs is None:
@@ -472,34 +475,14 @@ class JSONStreamDatasource(_JSONDatasourceBase):
 
         try:
             with fs.open_input_stream(path) as f:
-                reader = paj.open_json(
-                    f,
-                    read_options=self.read_options,
-                    **self.arrow_json_args,
-                )
-                schema = None
-                batches = []
-                while True:
-                    try:
-                        batch = reader.read_next_batch()
-                        batches.append(batch)
-                        if schema is None:
-                            schema = batch.schema
-                        elif not schema.equals(batch.schema):
-                            try:
-                                schema = pyarrow.unify_schemas([schema, batch.schema])
-                            except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError) as e:
-                                raise ValueError(
-                                    f"Schema incompatibility in {path}: {e}. "
-                                    f"Cannot unify {schema} with {batch.schema}"
-                                ) from e
-                    except StopIteration:
-                        break
-
-                for batch in batches:
-                    yield pyarrow.Table.from_batches([batch]).cast(schema)
-        except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError) as e:
-            raise ValueError(f"Failed to read JSON file: {path}. Underlying PyArrow Error: {e}") from e
+                content = f.read()
+            if isinstance(content, bytes):
+                content = content.decode("utf-8")
+            rows = [json_mod.loads(line) for line in content.strip().split("\n") if line.strip()]
+            if rows:
+                yield pyarrow.Table.from_pylist(rows)
+        except Exception as e:
+            raise ValueError(f"Failed to read JSON file: {path}. Error: {e}") from e
 
 
 def read_json_stream(

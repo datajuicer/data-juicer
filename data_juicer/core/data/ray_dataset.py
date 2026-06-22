@@ -400,12 +400,6 @@ if _JSONDatasourceBase is None:
     )
 
 
-class _SchemaEvolutionDetected(Exception):
-    """Internal exception to trigger fallback to buffered schema unification."""
-
-    pass
-
-
 class JSONStreamDatasource(_JSONDatasourceBase):
     """
     A temp Datasource for reading json stream.
@@ -433,27 +427,40 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                 raise ValueError(f"Failed to read JSON file: {path}. Error: {e}") from e
             return
 
-        try:
-            reader = open_json(
-                f,
-                read_options=self.read_options,
-                **self.arrow_json_args,
-            )
-            schema = None
-            while True:
+        reader = open_json(
+            f,
+            read_options=self.read_options,
+            **self.arrow_json_args,
+        )
+        schema = None
+        buffered_batches = []
+        while True:
+            try:
+                batch = reader.read_next_batch()
+            except pyarrow.lib.ArrowInvalid:
+                yield from self._read_stream_with_schema_unify(path)
+                return
+            except StopIteration:
+                for b in buffered_batches:
+                    yield pyarrow.Table.from_batches([b])
+                return
+
+            if schema is None:
+                schema = batch.schema
+                buffered_batches.append(batch)
+            elif schema.equals(batch.schema):
+                buffered_batches.append(batch)
+            else:
                 try:
-                    batch = reader.read_next_batch()
-                    if schema is None:
-                        schema = batch.schema
-                        yield pyarrow.Table.from_batches([batch])
-                    elif schema.equals(batch.schema):
-                        yield pyarrow.Table.from_batches([batch])
-                    else:
-                        raise _SchemaEvolutionDetected()
-                except StopIteration:
+                    unified = pyarrow.unify_schemas([schema, batch.schema])
+                except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
+                    yield from self._read_stream_with_schema_unify(path)
                     return
-        except (pyarrow.lib.ArrowInvalid, _SchemaEvolutionDetected):
-            yield from self._read_stream_with_schema_unify(path)
+                if unified.equals(schema):
+                    buffered_batches.append(pyarrow.RecordBatch.from_arrays(batch.columns(), schema=schema))
+                else:
+                    yield from self._read_stream_with_schema_unify(path)
+                    return
 
     def _read_stream_with_schema_unify(self, path: str):
         """Fallback: buffer all batches and unify schemas for schema evolution cases."""

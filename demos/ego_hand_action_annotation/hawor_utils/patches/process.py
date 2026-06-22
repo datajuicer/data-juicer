@@ -97,7 +97,7 @@ def run_mano(trans, root_orient, hand_pose, is_right=None, betas=None, use_cuda=
     faces_right = np.concatenate([faces_right, faces_new], axis=0)
     faces_n = len(faces_right)
     faces_left = faces_right[:,[0,2,1]]
-    
+
     outputs = {
         "joints": mano_output.joints.reshape(B, T, -1, 3),
         "vertices": mano_output.vertices.reshape(B, T, -1, 3),
@@ -108,8 +108,8 @@ def run_mano(trans, root_orient, hand_pose, is_right=None, betas=None, use_cuda=
         # outputs["joints"][..., 0] = (2*is_right-1)*outputs["joints"][..., 0]
         is_right = (is_right[:, :, 0].cpu().numpy() > 0)
         faces_result = np.zeros((B, T, faces_n, 3))
-        faces_right_expanded = np.expand_dims(np.expand_dims(faces_right, axis=0), axis=0) 
-        faces_left_expanded = np.expand_dims(np.expand_dims(faces_left, axis=0), axis=0) 
+        faces_right_expanded = np.expand_dims(np.expand_dims(faces_right, axis=0), axis=0)
+        faces_left_expanded = np.expand_dims(np.expand_dims(faces_left, axis=0), axis=0)
         faces_result = np.where(is_right[..., np.newaxis, np.newaxis], faces_right_expanded, faces_left_expanded)
         outputs["faces"] = torch.from_numpy(faces_result.astype(np.int32))
 
@@ -143,7 +143,7 @@ def run_mano_left(trans, root_orient, hand_pose, is_right=None, betas=None, use_
     mano = MANO(**mano_cfg)
     if use_cuda:
         mano = mano.cuda()
-    
+
     # fix MANO shapedirs of the left hand bug (https://github.com/vchoutas/smplx/issues/48)
     if fix_shapedirs:
         mano.shapedirs[:, 0, :] *= -1
@@ -183,7 +183,7 @@ def run_mano_left(trans, root_orient, hand_pose, is_right=None, betas=None, use_
     faces_right = np.concatenate([faces_right, faces_new], axis=0)
     faces_n = len(faces_right)
     faces_left = faces_right[:,[0,2,1]]
-    
+
     outputs = {
         "joints": mano_output.joints.reshape(B, T, -1, 3),
         "vertices": mano_output.vertices.reshape(B, T, -1, 3),
@@ -194,8 +194,8 @@ def run_mano_left(trans, root_orient, hand_pose, is_right=None, betas=None, use_
         # outputs["joints"][..., 0] = (2*is_right-1)*outputs["joints"][..., 0]
         is_right = (is_right[:, :, 0].cpu().numpy() > 0)
         faces_result = np.zeros((B, T, faces_n, 3))
-        faces_right_expanded = np.expand_dims(np.expand_dims(faces_right, axis=0), axis=0) 
-        faces_left_expanded = np.expand_dims(np.expand_dims(faces_left, axis=0), axis=0) 
+        faces_right_expanded = np.expand_dims(np.expand_dims(faces_right, axis=0), axis=0)
+        faces_left_expanded = np.expand_dims(np.expand_dims(faces_left, axis=0), axis=0)
         faces_result = np.where(is_right[..., np.newaxis, np.newaxis], faces_right_expanded, faces_left_expanded)
         outputs["faces"] = torch.from_numpy(faces_result.astype(np.int32))
 

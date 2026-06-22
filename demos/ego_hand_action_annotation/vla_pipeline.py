@@ -121,7 +121,7 @@ class VideoHaWorMegaSaMCombinedMapper(Mapper):
 
 
 if __name__ == '__main__':
-    
+
     from ray.data import DataContext
     DataContext.get_current().enable_fallback_to_arrow_object_ext_type = True
 
@@ -148,7 +148,7 @@ if __name__ == '__main__':
             Fields.meta: {}
         } for video in video_paths
     ]
-    
+
     ds = ray.data.from_items(samples)
 
     ds = ds.map_batches(

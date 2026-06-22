@@ -71,7 +71,7 @@ def export_atomic_segments_as_videos(
     fps: float = 30.0,
 ):
     """Save each atomic action segment as an independent video.
-    
+
     Output directory structure:
         output_dir/
             left/

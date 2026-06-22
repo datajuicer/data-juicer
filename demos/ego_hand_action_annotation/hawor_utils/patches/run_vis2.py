@@ -12,7 +12,7 @@ import lib.vis.viewer as viewer_utils
 
 
 def run_vis2_on_video_cam(res_dict, res_dict2, output_pth, focal_length, image_names, R_w2c=None, t_w2c=None, interactive=True):
-    
+
     img0 = cv2.imread(image_names[0])
     height, width, _ = img0.shape
 
@@ -40,7 +40,7 @@ def run_vis2_on_video_cam(res_dict, res_dict2, output_pth, focal_length, image_n
         }
         vis_dict[f"hand_{_id}"] = body_meshes
         color_idx += 1
-    
+
     world_mano2['vertices'] = world_mano2['vertices']
     for _id, _verts in enumerate(world_mano2['vertices']):
         verts = _verts.cpu().numpy() # T, N, 3

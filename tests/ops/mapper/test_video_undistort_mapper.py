@@ -19,7 +19,7 @@ class VideoUndistortMapperTest(DataJuicerTestCaseBase):
 
     def tearDown(self) -> None:
         super().tearDown()
-        
+
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 

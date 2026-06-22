@@ -41,12 +41,12 @@ def load_image(image_input):
         else:
             nparr = np.frombuffer(image_input, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
+
         if img is None:
             raise ValueError("Failed to decode image.")
 
         return img
-    
+
     else:
         raise TypeError("Input must be a file path (str) or image bytes (bytes).")
 

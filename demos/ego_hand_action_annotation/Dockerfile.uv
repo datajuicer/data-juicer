@@ -8,7 +8,7 @@ FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 LABEL maintainer="data-juicer"
 LABEL description="Data-Juicer VLA Pipeline"
 
-ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8 LANG=C.UTF-8 
+ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8 LANG=C.UTF-8
 
 # public
 # ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ PIP_TRUSTED_HOST=mirrors.aliyun.com UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/

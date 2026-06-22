@@ -42,7 +42,7 @@ class VideoCameraCalibrationDeepcalibMapperTest(DataJuicerTestCaseBase):
             "xi_list_shape": [1],
             "hfov_list_shape": [1],
             "vfov_list_shape": [1]}]
-        
+
         # Step 1: Extract frames from videos
         extract_op = VideoExtractFramesMapper(
             frame_sampling_method='all_keyframes',

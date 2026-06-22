@@ -11,10 +11,11 @@ from data_juicer.utils.constant import Fields, MetaKeys
 class ExtractEventMapperTest(DataJuicerTestCaseBase):
 
 
-    def _run_op(self, api_model, response_path=None):
+    def _run_op(self, api_model, response_path=None, sampling_params=None):
 
         op = ExtractEventMapper(api_model=api_model,
                                response_path=response_path,
+                               sampling_params=sampling_params,
                                index_key='chunk_id')
 
         raw_text = """△芩婆走到中间，看着众人。
@@ -69,7 +70,7 @@ class ExtractEventMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

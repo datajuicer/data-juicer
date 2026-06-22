@@ -10,7 +10,7 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_fro
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMTaskRelevanceFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen2.5-72b-instruct'
+    api_or_hf_model = 'qwen3.7-max'
 
     def _run_test(self, dataset: Dataset, op, tgt_list):
         if Fields.stats not in dataset.features:
@@ -46,6 +46,7 @@ class LLMTaskRelevanceFilterTest(DataJuicerTestCaseBase):
         task_desc = "To solve high school-level math problems."
         op = LLMTaskRelevanceFilter(
             api_or_hf_model=self.api_or_hf_model,
+            sampling_params={'enable_thinking': False},
         )
         op.prepare_valid_feature(valid_dataset, task_desc)
         self._run_test(dataset, op, tgt_list)

@@ -11,7 +11,7 @@ from data_juicer.utils.constant import Fields, MetaKeys
 class ExtractEntityAttributeMapperTest(DataJuicerTestCaseBase):
 
 
-    def _run_op(self, api_model, response_path=None):
+    def _run_op(self, api_model, response_path=None, sampling_params=None):
 
         query_entities = ["李莲花", "方多病"]
         query_attributes = ["语言风格", "角色性格"]
@@ -20,7 +20,8 @@ class ExtractEntityAttributeMapperTest(DataJuicerTestCaseBase):
             api_model=api_model, 
             query_entities=query_entities,
             query_attributes=query_attributes,                 
-            response_path=response_path)
+            response_path=response_path,
+            sampling_params=sampling_params)
 
         raw_text = """△笛飞声独自坐在莲花楼屋顶上。李莲花边走边悠闲地给马喂草。方多病则走在一侧，却总不时带着怀疑地盯向楼顶的笛飞声。
 方多病走到李莲花身侧：我昨日分明看到阿飞神神秘秘地见了一人，我肯定他有什么瞒着我们。阿飞的来历我必须去查清楚！
@@ -62,7 +63,7 @@ class ExtractEntityAttributeMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

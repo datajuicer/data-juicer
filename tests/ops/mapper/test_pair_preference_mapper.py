@@ -26,7 +26,7 @@ class PairPreferenceMapperTest(DataJuicerTestCaseBase):
             'query': '李莲花，你认识方多病吗?',
             'response': '方多病啊，那可是我的好友。'
         }]
-        op = PairPreferenceMapper(api_model='qwen2.5-72b-instruct')
+        op = PairPreferenceMapper(api_model='qwen3.7-max', sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
 
     def test_no_reference(self):
@@ -43,7 +43,8 @@ class PairPreferenceMapperTest(DataJuicerTestCaseBase):
                           '【回答】\n'
                           '{response}')
 
-        op = PairPreferenceMapper(api_model='qwen2.5-72b-instruct',
+        op = PairPreferenceMapper(api_model='qwen3.7-max',
+        sampling_params={'enable_thinking': False},
                                   system_prompt=system_prompt,
                                   input_template=input_template)
         self._run_op(op, samples)

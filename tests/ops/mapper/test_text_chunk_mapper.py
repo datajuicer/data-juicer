@@ -310,7 +310,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             max_len=10,
             overlap_len=1,
             split_pattern=None,
-            tokenizer='qwen2.5-72b-instruct',
+            tokenizer='qwen3.7-max',
             trust_remote_code=True
         )
         self._run_helper(op, ds_list, tgt_list)

@@ -40,7 +40,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='主要经历'
         )
@@ -59,7 +60,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='身份背景',
             input_key='sub_docs',
@@ -80,7 +82,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='身份背景',
             max_token_num=200
@@ -100,7 +103,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='身份背景',
             word_limit=20
@@ -128,7 +132,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             '孙行者、齐天大圣、美猴王\n'
         )
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='另外身份',
             example_prompt=example_prompt,

@@ -9,10 +9,11 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class CalibrateResponseMapperTest(DataJuicerTestCaseBase):
 
-    def _run_op(self, api_model, response_path=None):
+    def _run_op(self, api_model, response_path=None, sampling_params=None):
 
         op = CalibrateResponseMapper(api_model=api_model,
-                                     response_path=response_path)
+                                     response_path=response_path,
+                                     sampling_params=sampling_params)
 
         reference = """# 角色语言风格
 1. 下面是李莲花的问答样例，你必须贴合他的语言风格：
@@ -68,7 +69,7 @@ class CalibrateResponseMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
         # export OPENAI_API_KEY=your_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

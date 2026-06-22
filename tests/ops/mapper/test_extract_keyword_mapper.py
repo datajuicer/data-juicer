@@ -11,10 +11,11 @@ from data_juicer.utils.constant import Fields, MetaKeys
 class ExtractKeywordMapperTest(DataJuicerTestCaseBase):
 
 
-    def _run_op(self, api_model, response_path=None):
+    def _run_op(self, api_model, response_path=None, sampling_params=None):
 
         op = ExtractKeywordMapper(api_model=api_model,
-                               response_path=response_path)
+                               response_path=response_path,
+                               sampling_params=sampling_params)
 
         raw_text = """△芩婆走到中间，看着众人。
 芩婆：当年，我那老鬼漆木山与李相夷之父乃是挚交。原本李家隐世而居，一日为了救人，得罪附近山匪，夜里便遭了山匪所袭，唯有二子生还，流落街头。
@@ -63,7 +64,7 @@ class ExtractKeywordMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

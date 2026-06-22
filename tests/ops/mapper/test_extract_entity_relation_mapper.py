@@ -62,19 +62,21 @@ class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        op = ExtractEntityRelationMapper(api_model='qwen2.5-72b-instruct')
+        op = ExtractEntityRelationMapper(api_model='qwen3.7-max', sampling_params={'enable_thinking': False})
         self._run_op(op)
     
     def test_entity_types(self):
         op = ExtractEntityRelationMapper(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
             entity_types=['人物', '组织', '地点', '物件', '武器', '武功'],
         )
         self._run_op(op)
     
     def test_max_gleaning(self):
         op = ExtractEntityRelationMapper(
-            api_model='qwen2.5-72b-instruct',
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
             entity_types=['人物', '组织', '地点', '物件', '武器', '武功'],
             max_gleaning=5,
         )

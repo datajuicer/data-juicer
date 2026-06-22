@@ -14,12 +14,13 @@ class RelationIdentityMapperTest(DataJuicerTestCaseBase):
     # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
     # export OPENAI_API_KEY=your_key
 
-    def _run_op(self, api_model, output_key=MetaKeys.role_relation):
+    def _run_op(self, api_model, output_key=MetaKeys.role_relation, sampling_params=None):
 
         op = RelationIdentityMapper(api_model=api_model,
                                     source_entity="李莲花",
                                     target_entity="方多病",
-                                    output_key=output_key)
+                                    output_key=output_key,
+                                    sampling_params=sampling_params)
 
         raw_text = """李莲花原名李相夷，十五岁战胜西域天魔，十七岁建立四顾门，二十岁问鼎武林盟主，成为传奇人物。
 在与金鸳盟盟主笛飞声的对决中，李相夷中毒重伤，沉入大海，十年后在莲花楼醒来，过起了市井生活。他帮助肉铺掌柜解决家庭矛盾，表现出敏锐的洞察力。
@@ -49,10 +50,10 @@ class RelationIdentityMapperTest(DataJuicerTestCaseBase):
             self.assertNotEqual(data[Fields.meta][output_key], '')
 
     def test_default(self):
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
 
     def test_rename_key(self):
-        self._run_op('qwen2.5-72b-instruct', output_key='output')
+        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False}, output_key='output')
 
 
 if __name__ == '__main__':

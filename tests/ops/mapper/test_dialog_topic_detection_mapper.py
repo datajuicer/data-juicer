@@ -55,7 +55,7 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct')
+        op = DialogTopicDetectionMapper(api_model='qwen3.7-max', sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -81,8 +81,10 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogTopicDetectionMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_max_round_zero(self):
@@ -108,8 +110,10 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=0)
+        op = DialogTopicDetectionMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            max_round=0)
         self._run_op(op, samples)
 
     def test_query(self):
@@ -133,8 +137,10 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogTopicDetectionMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_topic_candidates(self):
@@ -160,8 +166,10 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                topic_candidates=['评价', '沟通', '闲聊', '其他'])
+        op = DialogTopicDetectionMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            topic_candidates=['评价', '沟通', '闲聊', '其他'])
         self._run_op(op, samples)
 
     def test_rename_keys(self):
@@ -189,9 +197,11 @@ class TestDialogTopicDetectionMapper(DataJuicerTestCaseBase):
 
         labels_key = 'my_label'
         analysis_key = 'my_analysis'
-        op = DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                        labels_key=labels_key,
-                                        analysis_key=analysis_key)
+        op = DialogTopicDetectionMapper(
+            api_model='qwen3.7-max',
+            sampling_params={'enable_thinking': False},
+            labels_key=labels_key,
+            analysis_key=analysis_key)
         self._run_op(op, samples, labels_key=labels_key, analysis_key=analysis_key)
 
 

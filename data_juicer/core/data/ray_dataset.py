@@ -491,7 +491,7 @@ class JSONStreamDatasource(_JSONDatasourceBase):
 
                 for batch in batches:
                     yield pyarrow.Table.from_batches([batch]).cast(schema)
-        except pyarrow.lib.ArrowInvalid as e:
+        except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError) as e:
             raise ValueError(f"Failed to read JSON file: {path}. Underlying PyArrow Error: {e}") from e
 
 

@@ -194,6 +194,25 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
         self.assertEqual(result[-1]["id"], 999)
         self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
 
+    @TEST_TAG("ray")
+    def test_read_json_stream_stable_schema_no_fallback(self):
+        """Verify stable-schema files stream without buffering (no fallback)."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+
+        jsonl_path = os.path.join(self.tmp_dir, "stable_schema.jsonl")
+        rows = [{"id": i, "meta": {"url": f"https://example.com/{i}"}} for i in range(100)]
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(jsonl_path, override_num_blocks=1, read_options=read_options)
+        result = dataset.take_all()
+        self.assertEqual(len(result), 100)
+        self.assertEqual(result[0]["id"], 0)
+        self.assertEqual(result[99]["meta"]["url"], "https://example.com/99")
+
 
 class TestRayDataset(DataJuicerTestCaseBase):
     def setUp(self):

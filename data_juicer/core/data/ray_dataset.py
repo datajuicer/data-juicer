@@ -427,62 +427,58 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                 raise ValueError(f"Failed to read JSON file: {path}. Error: {e}") from e
             return
 
-        reader = open_json(
-            f,
-            read_options=self.read_options,
-            **self.arrow_json_args,
-        )
-        schema = None
-        buffered_batches = []
-        while True:
-            try:
-                batch = reader.read_next_batch()
-            except pyarrow.lib.ArrowInvalid:
-                yield from self._read_stream_with_schema_unify(path)
-                return
-            except StopIteration:
-                for b in buffered_batches:
-                    yield pyarrow.Table.from_batches([b])
-                return
+        import pyarrow.json as paj
 
-            if schema is None:
-                schema = batch.schema
-                buffered_batches.append(batch)
-            elif schema.equals(batch.schema):
-                buffered_batches.append(batch)
-            else:
-                try:
-                    unified = pyarrow.unify_schemas([schema, batch.schema])
-                except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
-                    yield from self._read_stream_with_schema_unify(path)
-                    return
-                try:
-                    casted = pyarrow.RecordBatch.from_arrays(batch.columns(), schema=batch.schema)
-                    casted = casted.cast(unified)
-                    buffered_batches = [b.cast(unified) for b in buffered_batches]
-                    schema = unified
-                    buffered_batches.append(casted)
-                except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
-                    yield from self._read_stream_with_schema_unify(path)
-                    return
-
-    def _read_stream_with_schema_unify(self, path: str):
-        import json as json_mod
-
-        fs = getattr(self, "_filesystem", None)
-        if fs is None:
-            fs = pyarrow.fs.LocalFileSystem()
+        def _full_file_fallback():
+            """Re-read the entire file with paj.read_json which handles
+            schema inference across all rows in a single pass."""
+            fs = getattr(self, "_filesystem", None)
+            if fs is not None:
+                with fs.open_input_file(path) as f2:
+                    return paj.read_json(
+                        f2,
+                        read_options=self.read_options,
+                        **self.arrow_json_args,
+                    )
+            return paj.read_json(
+                path,
+                read_options=self.read_options,
+                **self.arrow_json_args,
+            )
 
         try:
-            with fs.open_input_stream(path) as f:
-                content = f.read()
-            if isinstance(content, bytes):
-                content = content.decode("utf-8")
-            rows = [json_mod.loads(line) for line in content.strip().split("\n") if line.strip()]
-            if rows:
-                yield pyarrow.Table.from_pylist(rows)
-        except Exception as e:
-            raise ValueError(f"Failed to read JSON file: {path}. Error: {e}") from e
+            reader = open_json(
+                f,
+                read_options=self.read_options,
+                **self.arrow_json_args,
+            )
+            schema = None
+            batches = []
+            schema_evolved = False
+            while True:
+                try:
+                    batch = reader.read_next_batch()
+                except StopIteration:
+                    break
+                batches.append(batch)
+                if schema is None:
+                    schema = batch.schema
+                elif not schema.equals(batch.schema):
+                    schema = pyarrow.unify_schemas([schema, batch.schema])
+                    schema_evolved = True
+            # Yield all batches with consistent schema.
+            # Use .cast() when schema evolved (from_batches does NOT cast).
+            if schema_evolved:
+                for batch in batches:
+                    yield pyarrow.Table.from_batches([batch]).cast(schema)
+            else:
+                for batch in batches:
+                    yield pyarrow.Table.from_batches([batch])
+        except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
+            # PyArrow's streaming reader cannot handle schema evolution
+            # across block boundaries (e.g. null -> string). Fall back to
+            # paj.read_json() which infers schema across the entire file.
+            yield _full_file_fallback()
 
 
 def read_json_stream(

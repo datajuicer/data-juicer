@@ -109,6 +109,7 @@ class VideoHandReconstructionHaworMapper(Mapper):
                 ],
                 check=True,
             )
+            self.hawor_detector_path = hawor_detector_path
 
         self.det_model_key = prepare_model(model_type="yolo", model_path=self.hawor_detector_path)
 

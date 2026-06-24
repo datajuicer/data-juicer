@@ -11,7 +11,7 @@ from data_juicer.utils.constant import BatchMetaKeys, Fields, MetaKeys
 from data_juicer.core.data import NestedDataset as Dataset
 
 
-api_model = 'qwen2.5-72b-instruct'
+api_model = 'qwen3.7-max'
 
 main_entity ="孙悟空"
 query_attributes = ["语言风格", "角色性格", "角色武艺和能力"]

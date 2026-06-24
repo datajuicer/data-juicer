@@ -72,7 +72,7 @@ class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
         }]
 
         op = ImageTaggingVLMMapper(
-            api_or_hf_model='qwen2.5-vl-3b-instruct',
+            api_or_hf_model='qwen3-vl-8b-instruct',
             is_api_model=True,
             sampling_params={}
         )

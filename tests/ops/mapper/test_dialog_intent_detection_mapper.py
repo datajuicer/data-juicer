@@ -5,7 +5,7 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.dialog_intent_detection_mapper import DialogIntentDetectionMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
@@ -54,7 +54,7 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogIntentDetectionMapper(api_model='qwen3.7-max', sampling_params={'enable_thinking': False})
+        op = DialogIntentDetectionMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -81,7 +81,7 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogIntentDetectionMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_round=1)
         self._run_op(op, samples)
@@ -110,7 +110,7 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogIntentDetectionMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_round=0)
         self._run_op(op, samples)
@@ -137,7 +137,7 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogIntentDetectionMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_round=1)
         self._run_op(op, samples)
@@ -166,7 +166,7 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogIntentDetectionMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             intent_candidates=['评价', '讽刺', '表达困惑']
             )
@@ -198,7 +198,7 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
         labels_key = 'my_label'
         analysis_key = 'my_analysis'
         op = DialogIntentDetectionMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             labels_key=labels_key,
             analysis_key=analysis_key)

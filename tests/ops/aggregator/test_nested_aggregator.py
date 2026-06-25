@@ -6,7 +6,7 @@ from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.aggregator import NestedAggregator
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class NestedAggregatorTest(DataJuicerTestCaseBase):
@@ -41,7 +41,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
         )
         self._run_helper(op, samples)
@@ -59,7 +59,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             input_key='sub_docs',
             output_key='text'
@@ -79,7 +79,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_token_num=2
         )
@@ -98,7 +98,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_token_num=90
         )
@@ -117,7 +117,7 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_token_num=200
         )

@@ -4,7 +4,7 @@ import unittest
 from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.ops.pipeline.llm_inference_with_ray_vllm_pipeline import LLMRayVLLMEnginePipeline
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.constant import RAY_JOB_ENV_VAR
+from data_juicer.utils.constant import DEFAULT_API_MODEL, RAY_JOB_ENV_VAR
 from data_juicer.utils.unittest_utils import TEST_TAG, skip_if_from_fork
 
 
@@ -52,7 +52,7 @@ class LLMRayVLLMEnginePipelineTest(DataJuicerTestCaseBase):
         ray_ds = ray.data.from_items(ds_list)
         ds = RayDataset(ray_ds)
         op = LLMRayVLLMEnginePipeline(
-            api_or_hf_model='qwen3.7-max',
+            api_or_hf_model=DEFAULT_API_MODEL,
             is_hf_model=False,
             sampling_params=dict(
                 temperature=0.0,

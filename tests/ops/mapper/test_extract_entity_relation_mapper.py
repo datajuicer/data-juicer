@@ -5,7 +5,7 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_entity_relation_mapper import ExtractEntityRelationMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
 class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
 
@@ -62,12 +62,12 @@ class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        op = ExtractEntityRelationMapper(api_model='qwen3.7-max', sampling_params={'enable_thinking': False})
+        op = ExtractEntityRelationMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op)
     
     def test_entity_types(self):
         op = ExtractEntityRelationMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             entity_types=['人物', '组织', '地点', '物件', '武器', '武功'],
         )
@@ -75,7 +75,7 @@ class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
     
     def test_max_gleaning(self):
         op = ExtractEntityRelationMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             entity_types=['人物', '组织', '地点', '物件', '武器', '武功'],
             max_gleaning=5,

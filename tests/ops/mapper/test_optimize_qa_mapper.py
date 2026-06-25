@@ -4,6 +4,7 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.optimize_qa_mapper import OptimizeQAMapper
+from data_juicer.utils.constant import DEFAULT_API_MODEL
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
 # @unittest.skip('unknown vllm connection error')
@@ -41,7 +42,7 @@ class OptimizeQAMapperTest(DataJuicerTestCaseBase):
 
     def test_api(self):
         sampling_params = {'max_new_tokens': 200, 'enable_thinking': False}
-        self._run_op(model="qwen3.7-max", is_hf_model=False, sampling_params=sampling_params)
+        self._run_op(model=DEFAULT_API_MODEL, is_hf_model=False, sampling_params=sampling_params)
 
     # def test_multi_process(self):
     #     sampling_params = {'max_new_tokens': 200}

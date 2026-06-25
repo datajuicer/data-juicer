@@ -5,7 +5,7 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_support_text_mapper import ExtractSupportTextMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
 class ExtractSupportTextMapperTest(DataJuicerTestCaseBase):
 
@@ -65,7 +65,7 @@ class ExtractSupportTextMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

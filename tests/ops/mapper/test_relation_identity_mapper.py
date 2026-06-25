@@ -5,7 +5,7 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.relation_identity_mapper import RelationIdentityMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class RelationIdentityMapperTest(DataJuicerTestCaseBase):
@@ -50,10 +50,10 @@ class RelationIdentityMapperTest(DataJuicerTestCaseBase):
             self.assertNotEqual(data[Fields.meta][output_key], '')
 
     def test_default(self):
-        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
 
     def test_rename_key(self):
-        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False}, output_key='output')
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False}, output_key='output')
 
 
 if __name__ == '__main__':

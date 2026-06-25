@@ -36,7 +36,7 @@ Tags 标签: gpu, vllm, hf, api
 ## 📊 Effect demonstration 效果演示
 ### test_default_case
 ```python
-LLMDifficultyScoreFilter(api_or_hf_model='qwen2.5-72b-instruct')
+LLMDifficultyScoreFilter(api_or_hf_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据
@@ -51,7 +51,7 @@ This test uses the LLMDifficultyScoreFilter to filter out text samples based on 
 
 ### test_rft_data
 ```python
-LLMDifficultyScoreFilter(api_or_hf_model='qwen2.5-72b-instruct', input_keys=['text', 'analysis', 'answer'], field_names=['Query', 'Analysis', 'Answer'])
+LLMDifficultyScoreFilter(api_or_hf_model='qwen3.7-max', input_keys=['text', 'analysis', 'answer'], field_names=['Query', 'Analysis', 'Answer'])
 ```
 
 #### 📥 input data 输入数据

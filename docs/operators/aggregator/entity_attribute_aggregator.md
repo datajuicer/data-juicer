@@ -36,7 +36,7 @@ Tags 标签: cpu, api
 ## 📊 Effect demonstration 效果演示
 ### test_default_aggregator
 ```python
-EntityAttributeAggregator(api_model='qwen2.5-72b-instruct', entity='李莲花', attribute='主要经历')
+EntityAttributeAggregator(api_model='qwen3.7-max', entity='李莲花', attribute='主要经历')
 ```
 
 #### 📥 input data 输入数据
@@ -51,7 +51,7 @@ This example demonstrates the default behavior of the operator, which summarizes
 
 ### test_word_limit_num
 ```python
-EntityAttributeAggregator(api_model='qwen2.5-72b-instruct', entity='李莲花', attribute='身份背景', word_limit=20)
+EntityAttributeAggregator(api_model='qwen3.7-max', entity='李莲花', attribute='身份背景', word_limit=20)
 ```
 
 #### 📥 input data 输入数据

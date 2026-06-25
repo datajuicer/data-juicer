@@ -2,6 +2,7 @@ import unittest
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.text_chunk_mapper import TextChunkMapper
+from data_juicer.utils.constant import DEFAULT_API_MODEL
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -310,7 +311,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             max_len=10,
             overlap_len=1,
             split_pattern=None,
-            tokenizer='qwen3.7-max',
+            tokenizer=DEFAULT_API_MODEL,
             trust_remote_code=True
         )
         self._run_helper(op, ds_list, tgt_list)

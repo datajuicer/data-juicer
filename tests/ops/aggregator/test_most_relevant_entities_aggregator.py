@@ -6,7 +6,7 @@ from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.aggregator import MostRelevantEntitiesAggregator
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-from data_juicer.utils.constant import Fields, BatchMetaKeys, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, BatchMetaKeys, MetaKeys
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
@@ -42,7 +42,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
         
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物'
@@ -63,7 +63,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
 
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物',
@@ -85,7 +85,7 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物',

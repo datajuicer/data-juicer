@@ -32,7 +32,7 @@ Tags 标签: cpu, api, text
 ## 📊 Effect demonstration 效果演示
 ### test
 ```python
-ExtractEventMapper(api_model='qwen2.5-72b-instruct', response_path=None, index_key='chunk_id')
+ExtractEventMapper(api_model='qwen3.7-max', response_path=None, index_key='chunk_id')
 ```
 
 #### 📥 input data 输入数据

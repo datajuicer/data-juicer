@@ -5,12 +5,12 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.llm_difficulty_score_filter import LLMDifficultyScoreFilter
-from data_juicer.utils.constant import Fields, StatsKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, StatsKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMDifficultyScoreFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen3.7-max'
+    api_or_hf_model = DEFAULT_API_MODEL
 
     def _run_test(self, dataset: Dataset, op):
         if Fields.stats not in dataset.features:

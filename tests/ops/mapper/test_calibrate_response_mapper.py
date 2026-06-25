@@ -4,6 +4,7 @@ from loguru import logger
 
 from data_juicer.ops.mapper.calibrate_response_mapper import \
     CalibrateResponseMapper
+from data_juicer.utils.constant import DEFAULT_API_MODEL
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -69,7 +70,7 @@ class CalibrateResponseMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
         # export OPENAI_API_KEY=your_key
-        self._run_op('qwen3.7-max', sampling_params={'enable_thinking': False})
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

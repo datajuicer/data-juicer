@@ -5,7 +5,7 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.dialog_sentiment_intensity_mapper import DialogSentimentIntensityMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
@@ -53,7 +53,7 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen3.7-max', sampling_params={'enable_thinking': False})
+        op = DialogSentimentIntensityMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -80,7 +80,7 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogSentimentIntensityMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_round=1)
         self._run_op(op, samples)
@@ -109,7 +109,7 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogSentimentIntensityMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_round=0)
         self._run_op(op, samples)
@@ -136,7 +136,7 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogSentimentIntensityMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             max_round=1)
         self._run_op(op, samples)
@@ -167,7 +167,7 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
         intensities_key = 'my_intensity'
         analysis_key = 'my_analysis'
         op = DialogSentimentIntensityMapper(
-            api_model='qwen3.7-max',
+            api_model=DEFAULT_API_MODEL,
             sampling_params={'enable_thinking': False},
             intensities_key=intensities_key,
             analysis_key=analysis_key)

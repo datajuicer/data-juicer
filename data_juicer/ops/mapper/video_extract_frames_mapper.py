@@ -54,6 +54,7 @@ class VideoExtractFramesMapper(Mapper):
 
     - **Frame Sampling Methods**:
     - "all_keyframes": Extracts all keyframes from the video.
+    - "all_frames": Extracts all frames from the video.
     - "uniform": Extracts a specified number of frames uniformly from the video.
     - If `duration` is set, the video is segmented into multiple segments based on the
       duration, and frames are extracted from each segment.
@@ -81,10 +82,12 @@ class VideoExtractFramesMapper(Mapper):
         Initialization method.
         :param frame_sampling_method: sampling method of extracting frame
             videos from the videos. Should be one of
-            ["all_keyframes", "uniform"].
-            The former one extracts all key frames (the number
-            of which depends on the duration of the video) and the latter
-            one extract specified number of frames uniformly from the video.
+            ["all_keyframes", "all_frames", "uniform"].
+            "all_keyframes" extracts all key frames (the number
+            of which depends on the duration of the video).
+            "all_frames" extracts every frame of the video.
+            "uniform" extracts a specified number of frames uniformly
+            from the video.
             If "duration" > 0, frame_sampling_method acts on every segment.
             Default: "all_keyframes".
         :param output_format: The output format of the frame videos.
@@ -133,11 +136,11 @@ class VideoExtractFramesMapper(Mapper):
             "bytes",
         ], f"output_format '{output_format}' is not supported. Can only be one of ['path', 'bytes']."
 
-        if frame_sampling_method not in ["all_keyframes", "uniform"]:
+        if frame_sampling_method not in ["all_keyframes", "all_frames", "uniform"]:
             raise ValueError(
                 f"Frame sampling method "
                 f"[{frame_sampling_method}] is not supported. "
-                f'Can only be one of ["all_keyframes", "uniform"].'
+                f'Can only be one of ["all_keyframes", "all_frames", "uniform"].'
             )
 
         self.frame_dir = frame_dir
@@ -167,10 +170,16 @@ class VideoExtractFramesMapper(Mapper):
         self.video_backend = video_backend
         assert self.video_backend in ["ffmpeg", "av"]
 
-        if self.frame_sampling_method == "uniform":
-            assert self.video_backend == "av", "Only 'av' backend is supported for 'uniform' frame sampling method."
+        if self.frame_sampling_method in ["uniform"]:
+            assert self.video_backend in [
+                "av",
+                "ffmpeg",
+            ], f"Only 'av' and 'ffmpeg' backends are supported for '{self.frame_sampling_method}' frame sampling method."
         if self.duration > 0:
-            assert self.video_backend == "av", "Only 'av' backend is supported when duration > 0."
+            assert self.video_backend in [
+                "av",
+                "ffmpeg",
+            ], f"Only 'av' and 'ffmpeg' backends are supported when duration > 0."
 
     def _get_default_frame_dir(self, original_filepath):
         original_dir = os.path.dirname(original_filepath)
@@ -187,21 +196,42 @@ class VideoExtractFramesMapper(Mapper):
         # extract frame videos
         if self.frame_sampling_method == "all_keyframes":
             if self.duration:
-                # only support av backend when duration > 0
-                frames = extract_key_frames_by_seconds(video.container, self.duration)
-                frames = [frame.to_image() for frame in frames]
+                if self.video_backend == "av":
+                    frames = extract_key_frames_by_seconds(video.container, self.duration)
+                    frames = [frame.to_image() for frame in frames]
+                else:
+                    # For non-av backends, extract keyframes from each segment
+                    video_duration = video.metadata.duration
+                    import numpy as _np
+
+                    timestamps = _np.arange(0, video_duration, self.duration).tolist()
+                    timestamps.append(video_duration)
+                    frames = []
+                    for i in range(len(timestamps) - 1):
+                        kf = video.extract_keyframes(start_time=timestamps[i], end_time=timestamps[i + 1])
+                        frames.extend([Image.fromarray(img) for img in kf.frames])
             else:
                 frames = video.extract_keyframes().frames
                 frames = [Image.fromarray(img) for img in frames]
+        elif self.frame_sampling_method == "all_frames":
+            frames = [Image.fromarray(img) for img in video.extract_frames()]
         elif self.frame_sampling_method == "uniform":
-            # only support av backend if using uniform sampling
-            if self.duration:
-                frames = extract_video_frames_uniformly_by_seconds(
-                    video.container, self.frame_num, duration=self.duration
-                )
+            if self.video_backend == "av":
+                # Use legacy av-specific functions
+                if self.duration:
+                    frames = extract_video_frames_uniformly_by_seconds(
+                        video.container, self.frame_num, duration=self.duration
+                    )
+                else:
+                    frames = extract_video_frames_uniformly(video.container, self.frame_num)
+                frames = [frame.to_image() for frame in frames]
             else:
-                frames = extract_video_frames_uniformly(video.container, self.frame_num)
-            frames = [frame.to_image() for frame in frames]
+                # Use VideoReader interface (works for ffmpeg and other backends)
+                if self.duration:
+                    frames = video.extract_frames_uniformly_by_seconds(self.frame_num, duration=self.duration)
+                else:
+                    frames = video.extract_frames_uniformly(self.frame_num)
+                frames = [Image.fromarray(img) for img in frames]
         else:
             raise ValueError(
                 f"Not support sampling method \
@@ -234,7 +264,7 @@ class VideoExtractFramesMapper(Mapper):
 
     def process_single(self, sample, context=False):
         # check if it's generated already
-        if self.frame_field in sample:
+        if self.frame_field in sample and sample[self.frame_field]:
             return sample
 
         # there is no videos in this sample

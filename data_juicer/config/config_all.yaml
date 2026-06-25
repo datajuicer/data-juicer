@@ -562,24 +562,90 @@ process:
       if_output_point_maps_from_projection: True              # Determines whether to output point maps directly inferred by VGGT.
       if_output_point_maps_from_unprojection: True            # Determines whether to output point maps constructed from depth maps and camera parameters.
       if_output_point_tracks: True                            # Determines whether to output point tracks.
-  - video_camera_calibration_static_deepcalib_mapper:   # Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib.
+  - video_camera_calibration_deepcalib_mapper:   # Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib.
       model_path: "weights_10_0.02.h5"                        # The path to the DeepCalib Regression model.
-      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
-      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
-      tag_field_name: 'static_camera_calibration_deepcalib_tags'   # the field name to store the tags. It's "static_camera_calibration_deepcalib_tags" in default.
-      frame_dir: None                                         # Output directory to save extracted frames.
-      output_info_dir: None                                   # Output directory for saving camera parameters.
-  - video_camera_calibration_static_moge_mapper:        # Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib).
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      tag_field_name: 'camera_calibration_deepcalib_tags'     # The field name to store the tags. It's "camera_calibration_deepcalib_tags" in default.
+      frame_batch_size: 8                                     # Number of frames to batch together for GPU inference. Larger values improve throughput but require more VRAM.
+  - video_camera_calibration_moge_mapper:        # Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib).
       model_path: "Ruicheng/moge-2-vitl"                      # The path to the Moge-2 model.
-      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
-      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
-      tag_field_name: 'static_camera_calibration_moge_tags'   # the field name to store the tags. It's "static_camera_calibration_moge_tags" in default.
-      frame_dir: None                                         # Output directory to save extracted frames.
-      if_output_info: True                                    # Whether to save the camera parameters results to an JSON file.
-      output_info_dir: None                                   # Output directory for saving camera parameters.
-      if_output_points_info: True                             # Determines whether to output point map in OpenCV camera coordinate system (x right, y down, z forward).
-      if_output_depth_info: True                              # Determines whether to output depth maps.
-      if_output_mask_info: True                               # Determines whether to output a binary mask for valid pixels.
+      tag_field_name: 'camera_calibration_moge_tags'          # The field name to store the tags. It's "camera_calibration_moge_tags" in default.
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      output_intrinsics: true                                 # Determines whether to output camera intrinsics.
+      output_hfov: true                                       # Determines whether to output horizontal field of view.
+      output_vfov: true                                       # Determines whether to output vertical field of view.
+      output_points: true                                     # Determines whether to output point map in OpenCV camera coordinate system (x right, y down, z forward).
+      output_depth: true                                      # Determines whether to output depth maps.
+      output_mask: true                                       # Determines whether to output a binary mask for valid pixels.
+      frame_batch_size: 8                                     # Number of frames to batch together for GPU inference. Larger values improve throughput but require more VRAM.
+      save_dir: null                                          # Directory to save large numpy arrays (depth, mask, points) as .npy files instead of storing them inline.
+  - video_camera_calibration_droidcalib_mapper:  # Extract camera intrinsics from videos using DroidCalib.
+      weights_path: null                                      # Path to the model weights.
+      image_size: [384, 512]                                  # Target image size [height, width].
+      stride: 2                                               # Frame stride.
+      max_frames: 300                                         # Maximum number of frames to process.
+      buffer: 1024                                            # Buffer size for Droid.
+      beta: 0.3                                               # Weight for translation / rotation components of flow.
+      filter_thresh: 2.4                                      # Motion threshold before considering new keyframe.
+      warmup: 8                                               # Number of warmup frames.
+      keyframe_thresh: 4.0                                    # Threshold to create a new keyframe.
+      frontend_thresh: 16.0                                   # Add edges between frames within this distance.
+      frontend_window: 25                                     # Frontend optimization window.
+      frontend_radius: 2                                      # Force edges between frames within radius.
+      frontend_nms: 1                                         # Non-maximal suppression of edges.
+      backend_thresh: 22.0                                    # Backend threshold.
+      backend_radius: 2                                       # Backend radius.
+      backend_nms: 3                                          # Backend NMS.
+      upsample: false                                         # Whether to upsample.
+      disable_vis: true                                       # Whether to disable visualization.
+      verbose: false                                          # Whether to print verbose logs.
+      tag_field_name: 'camera_calibration_droidcalib_tags'    # The field name to store the tags.
+  - video_camera_pose_megasam_mapper:            # Extract camera poses by leveraging MegaSaM and MoGe-2.
+      tag_field_name: 'video_camera_pose_tags'                # The field name to store the tags. It's "video_camera_pose_tags" in default.
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      camera_calibration_field: 'camera_calibration'          # The field name where the camera calibration info is stored.
+      max_frames: 1000                                        # Maximum number of frames to save.
+      droid_buffer: 1024                                      # DROID SLAM pre-allocated frame buffer size. Controls GPU memory usage.
+      save_dir: null                                          # Directory to save large numpy arrays (depth, cam_c2w) as .npy files instead of storing them inline.
+      use_prepare_env: false                                  # Whether to prepare the environment.
+  - video_hand_reconstruction_hawor_mapper:      # Use HaWoR and MoGe-2 for hand reconstruction.
+      hawor_model_path: 'hawor.ckpt'                          # The path to 'hawor.ckpt' for the HaWoR model.
+      hawor_config_path: 'model_config.yaml'                  # The path to 'model_config.yaml' for the HaWoR model.
+      hawor_detector_path: 'detector.pt'                      # The path to 'detector.pt' for the HaWoR model.
+      mano_right_path: 'path_to_mano_right_pkl'               # The path to 'MANO_RIGHT.pkl'. Users need to download this file from https://mano.is.tue.mpg.de/
+      mano_left_path: 'path_to_mano_left_pkl'                 # The path to 'MANO_LEFT.pkl'. Users need to download this file from https://mano.is.tue.mpg.de/
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      camera_calibration_field: 'camera_calibration'          # The field name where the camera calibration info is stored.
+      tag_field_name: 'hand_reconstruction_hawor_tags'        # The field name to store the tags. It's "hand_reconstruction_hawor_tags" in default.
+      thresh: 0.2                                             # The confidence threshold for hand detection.
+  - video_hand_action_compute_mapper:            # Compute 7-DoF actions and 8-dim states from hand reconstruction and camera pose results.
+      hand_reconstruction_field: 'hand_reconstruction_hawor_tags'  # Meta field storing HaWoR hand reconstruction results.
+      camera_pose_field: 'video_camera_pose_tags'             # Meta field storing camera pose (cam_c2w) results.
+      tag_field_name: 'hand_action_tags'                      # Output field name in Fields.meta.
+      hand_type: 'both'                                       # Which hand to compute actions for. 'right', 'left', or 'both'.
+  - video_hand_motion_smooth_mapper:             # Apply smoothing to world-space hand motions and remove outliers.
+      hand_action_field: 'hand_action_tags'                   # Meta field storing hand action results (output of VideoHandActionComputeMapper).
+      savgol_window: 11                                       # Window length for Savitzky-Golay filter. Must be odd. Larger = smoother but may lose fast motions.
+      savgol_polyorder: 3                                     # Polynomial order for Savitzky-Golay filter. Must be less than savgol_window.
+      outlier_velocity_threshold: 5.0                         # Frames whose wrist speed exceeds median + threshold * MAD are replaced by interpolation.
+      min_frames_for_smoothing: 5                             # Minimum number of valid frames required to apply smoothing.
+      smooth_joints: true                                     # Whether to also smooth joints_world (21-joint MANO skeleton in world space).
+  - video_atomic_action_segment_mapper:          # Segment a unified hand trajectory into atomic action clips.
+      hand_action_field: 'hand_action_tags'                   # Meta field storing merged hand action results (output of VideoClipReassemblyMapper).
+      segment_field: 'atomic_action_segments'                 # Output meta field for atomic segments.
+      speed_smooth_window: 5                                  # Window size for Savitzky-Golay smoothing of the speed signal before minima detection. Must be odd.
+      min_window: 15                                          # Half-window size for local minima detection. Larger values → fewer, longer segments.
+      min_segment_frames: 8                                   # Minimum frames per segment. Segments shorter than this are merged with neighbors.
+      max_segment_frames: 300                                 # Maximum frames per segment. Segments longer than this are forcibly split at the deepest speed minimum.
+      hand_type: 'both'                                       # Which hand(s) to segment: 'left', 'right', or 'both'.
+  - export_to_lerobot_mapper:                    # Export processed video data to LeRobot v2.0 dataset format (LIBERO-style).
+      output_dir: './lerobot_output'                          # Root directory for the LeRobot dataset output.
+      hand_action_field: 'hand_action_tags'                   # Meta field with action/state data. Used in whole-video mode (segment_field=None).
+      fps: 10                                                 # Frames per second for the dataset.
+      robot_type: 'egodex_hand'                               # Robot type identifier for info.json.
+      chunks_size: 1000                                       # Max episodes per chunk directory.
+      segment_field: null                                     # Meta field storing atomic action segments. When set, each segment becomes a separate episode.
+      frame_field: 'video_frames'                             # Sample field with extracted frame image paths. Used in segment mode to create per-segment videos.
   - video_captioning_from_audio_mapper:                     # caption a video according to its audio streams based on Qwen-Audio model
       keep_original_sample: true                              # whether to keep the original sample. If it's set to False, there will be only captioned sample in the final datasets and the original sample will be removed. It's True in default.
       memory: '30GB'                                    # This operation (Op) utilizes deep neural network models that consume a significant amount of memory for computation, hence the system's available memory might constrain the maximum number of processes that can be launched
@@ -685,8 +751,9 @@ process:
       tag_field_name: 'video_frame_tags'                    # the key name in the meta field to store the tags. It's "video_frame_tags" in default.
       memory: '9GB'
   - video_undistort_mapper:                             # Undistort raw videos with corresponding camera intrinsics and distortion coefficients.
-      output_video_dir: None                                # Output directory to save undistorted videos.
-      tag_field_name: 'video_undistortion_tags'             # The field name to store the tags. It's "video_undistortion_tags" in default.
+      output_video_dir: null                                # Output directory to save undistorted videos. (must be specified)
+      undistorted_video_field: 'undistorted_video'          # The field name to store the undistorted videos.
+      camera_calibration_field: 'camera_calibration'        # The field name where the camera calibration info is stored.
       batch_size_each_video: 1000                           # Number of frames to process and save per temporary TS file batch.
       crf: 22                                               # Constant Rate Factor (CRF) for FFmpeg encoding quality.
   - video_whole_body_pose_estimation_mapper:            # Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation.
@@ -979,6 +1046,7 @@ process:
       min_score: 0.25                                         # the minimum motion score to keep samples
       max_score: 10000.0                                      # the maximum motion score to keep samples
       sampling_fps: 2                                         # the samplig rate of frames_per_second to compute optical flow
+      original_fps: null                                      # the original FPS of the video from which the frames were extracted, only used when frame_field is specified
       size: null                                              # resize frames along the smaller edge before computing optical flow, or a sequence like (h, w)
       max_size: null                                          # maximum allowed for the longer edge of resized frames
       divisible: 1                                            # The number that the dimensions must be divisible by.
@@ -988,6 +1056,7 @@ process:
       min_score: 1.0                                          # the minimum motion score to keep samples
       max_score: 10000.0                                      # the maximum motion score to keep samples
       sampling_fps: 2                                         # the samplig rate of frames_per_second to compute optical flow
+      original_fps: null                                      # the original FPS of the video from which the frames were extracted, only used when frame_field is specified
       size: null                                              # resize frames along the smaller edge before computing optical flow, or a sequence like (h, w)
       max_size: null                                          # maximum allowed for the longer edge of resized frames
       divisible: 8                                            # The number that the dimensions must be divisible by.

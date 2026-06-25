@@ -46,7 +46,7 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | [filter](#filter) | 57 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 123 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 130 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 3 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 5 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -215,6 +215,7 @@ All the specific operators are listed below, each featured with several capabili
 | dialog_topic_shift_mapper | 💻CPU 🔴Alpha | Focus on new topic vs clinging to an obsolete thread. 专注于新主题vs坚持一个过时的线程。 | - | [OpenJudge multi-turn](https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/) |
 | download_file_mapper | 💻CPU 🟡Beta | Mapper to download URL files to local files or load them into memory. 映射器将URL文件下载到本地文件或将其加载到内存中。 | [info](operators/mapper/download_file_mapper.md) | - |
 | expand_macro_mapper | 🔤Text 💻CPU 🟢Stable | Expands macro definitions in the document body of LaTeX samples. 展开LaTeX示例文档主体中的宏定义。 | [info](operators/mapper/expand_macro_mapper.md) | - |
+| export_to_lerobot_mapper | 🔮Multimodal 💻CPU 🟡Beta | Export processed video data to LeRobot v2.0 dataset format (LIBERO-style). 将处理后的视频数据导出为LeRobot v2.0数据集格式 (LIBERO风格)。 | - | - |
 | extract_entity_attribute_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts attributes for given entities from the text and stores them in the sample's metadata. 从文本中提取给定实体的属性，并将其存储在示例的元数据中。 | [info](operators/mapper/extract_entity_attribute_mapper.md) | - |
 | extract_entity_relation_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts entities and relations from text to build a knowledge graph. 从文本中提取实体和关系以构建知识图谱。 | [info](operators/mapper/extract_entity_relation_mapper.md) | - |
 | extract_event_mapper | 🔤Text 💻CPU 🔗API 🟢Stable | Extracts events and relevant characters from the text. 从文本中提取事件和相关字符。 | [info](operators/mapper/extract_event_mapper.md) | - |
@@ -278,20 +279,25 @@ All the specific operators are listed below, each featured with several capabili
 | tool_success_tagger_mapper | 💻CPU 🔴Alpha | Set meta tool_success_count, tool_fail_count, tool_success_ratio. 设置meta tool_success_count、tool_fail_count、tool_success_ratio。 | - | - |
 | usage_counter_mapper | 💻CPU 🟡Beta | Write token usage to meta from choices/usage (OpenAI/Anthropic-style). 从选择/用法 (OpenAI/Anthropic风格) 将令牌用法写入meta。 | - | - |
 | vggt_mapper | 🎬Video 🚀GPU 🟡Beta | Input a video of a single scene, and use VGGT to extract information including Camera Pose, Depth Maps, Point Maps, and 3D Point Tracks. 输入单个场景的视频，并使用VGGT提取包括相机姿态、深度图、点图和3D点轨迹的信息。 | [info](operators/mapper/vggt_mapper.md) | - |
-| video_camera_calibration_static_deepcalib_mapper | 🎬Video 🚀GPU 🟡Beta | Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib. 使用DeepCalib计算静态摄像机的摄像机内部和视场 (FOV)。 | [info](operators/mapper/video_camera_calibration_static_deepcalib_mapper.md) | - |
-| video_camera_calibration_static_moge_mapper | 🎬Video 🚀GPU 🟡Beta | Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib). 使用Moge-2 (比DeepCalib更准确) 计算静态摄像机的摄像机内部函数和视场 (FOV)。 | [info](operators/mapper/video_camera_calibration_static_moge_mapper.md) | - |
-| video_camera_pose_mapper | 🎬Video 🚀GPU 🟡Beta | Extract camera poses by leveraging MegaSaM and MoGe-2. 通过利用MegaSaM和MoGe-2提取相机姿势。 | - | - |
+| video_atomic_action_segment_mapper | 🎬Video 💻CPU 🟡Beta | Segment a unified hand trajectory into atomic action clips. 将统一的手轨迹分割成原子动作片段。 | - | - |
+| video_camera_calibration_deepcalib_mapper | 🎬Video 🚀GPU 🟡Beta | Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib. 使用DeepCalib计算静态摄像机的摄像机内部和视场 (FOV)。 | [info](operators/mapper/video_camera_calibration_deepcalib_mapper.md) | - |
+| video_camera_calibration_droidcalib_mapper | 🎬Video 🚀GPU 🟡Beta | Extract camera intrinsics from videos using DroidCalib. 使用DroidCalib从视频中提取相机内部函数。 | - | - |
+| video_camera_calibration_moge_mapper | 🎬Video 🚀GPU 🟡Beta | Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib). 使用Moge-2 (比DeepCalib更准确) 计算静态摄像机的摄像机内部函数和视场 (FOV)。 | [info](operators/mapper/video_camera_calibration_moge_mapper.md) | - |
+| video_camera_pose_megasam_mapper | 🎬Video 🚀GPU 🟡Beta | Extract camera poses by leveraging MegaSaM and MoGe-2. 通过利用MegaSaM和MoGe-2提取相机姿势。 | - | - |
 | video_captioning_from_audio_mapper | 🔮Multimodal 🚀GPU 🧩HF 🟢Stable | Mapper to caption a video according to its audio streams based on Qwen-Audio model. 映射器根据基于qwen-audio模型的音频流为视频添加字幕。 | [info](operators/mapper/video_captioning_from_audio_mapper.md) | - |
 | video_captioning_from_frames_mapper | 🔮Multimodal 🚀GPU 🧩HF 🟢Stable | Generates video captions from sampled frames using an image-to-text model. 使用图像到文本模型从采样帧生成视频字幕。 | [info](operators/mapper/video_captioning_from_frames_mapper.md) | - |
 | video_captioning_from_summarizer_mapper | 🔮Multimodal 🚀GPU 🧩HF 🟢Stable | Mapper to generate video captions by summarizing several kinds of generated texts (captions from video/audio/frames, tags from audio/frames, ...). 映射器通过总结几种生成的文本 (来自视频/音频/帧的字幕，来自音频/帧的标签，...) 来生成视频字幕。 | [info](operators/mapper/video_captioning_from_summarizer_mapper.md) | - |
 | video_captioning_from_video_mapper | 🔮Multimodal 🚀GPU 🧩HF 🟢Stable | Generates video captions using a Hugging Face video-to-text model and sampled video frames. 使用拥抱面部视频到文本模型和采样视频帧生成视频字幕。 | [info](operators/mapper/video_captioning_from_video_mapper.md) | - |
 | video_captioning_from_vlm_mapper | 🔮Multimodal 🚀GPU 🌊vLLM 🧩HF 🟡Beta | Generates video captions using a VLM that accepts videos as inputs. 使用接受视频作为输入的VLM生成视频字幕。 | [info](operators/mapper/video_captioning_from_vlm_mapper.md) | - |
+| video_clip_reassembly_mapper | 🎬Video 💻CPU 🟡Beta | Reassemble hand-action results from overlapping video clips. 重新组合-重叠视频剪辑的手部动作结果。 | - | - |
 | video_depth_estimation_mapper | 🎬Video 🚀GPU 🟡Beta | Perform depth estimation on the video. 对视频进行深度估计。 | [info](operators/mapper/video_depth_estimation_mapper.md) | - |
 | video_extract_frames_mapper | 🔮Multimodal 💻CPU 🟢Stable | Mapper to extract frames from video files according to specified methods. 映射器根据指定的方法从视频文件中提取帧。 | [info](operators/mapper/video_extract_frames_mapper.md) | - |
 | video_face_blur_mapper | 🎬Video 💻CPU 🟢Stable | Mapper to blur faces detected in videos. 映射器模糊在视频中检测到的人脸。 | [info](operators/mapper/video_face_blur_mapper.md) | - |
 | video_ffmpeg_wrapped_mapper | 🎬Video 💻CPU 🟢Stable | Wraps FFmpeg video filters for processing video files in a dataset. 包装FFmpeg视频过滤器，用于处理数据集中的视频文件。 | [info](operators/mapper/video_ffmpeg_wrapped_mapper.md) | - |
+| video_hand_action_compute_mapper | 🎬Video 💻CPU 🟡Beta | Compute 7-DoF actions and 8-dim states from hand reconstruction and camera pose results. 根据手重建和相机姿态结果计算7自由度动作和8-dim状态。 | - | - |
+| video_hand_motion_smooth_mapper | 🎬Video 💻CPU 🟡Beta | Apply smoothing to world-space hand motions and remove outliers. 对世界空间手部运动应用平滑并移除异常值。 | - | - |
 | video_hand_reconstruction_hawor_mapper | 🎬Video 🚀GPU 🟡Beta | Use HaWoR and MoGe-2 for hand reconstruction. 使用HaWoR和MoGe-2进行手部重建。 | - | - |
-| video_hand_reconstruction_mapper | 🎬Video 🚀GPU 🟡Beta | Use the WiLoR model for hand localization and reconstruction. 使用WiLoR模型进行手部定位和重建。 | [info](operators/mapper/video_hand_reconstruction_mapper.md) | - |
+| video_hand_reconstruction_mapper | 🎬Video 🚀GPU 🔴Alpha | Use the WiLoR model for hand localization and reconstruction. 使用WiLoR模型进行手部定位和重建。 | [info](operators/mapper/video_hand_reconstruction_mapper.md) | - |
 | video_object_segmenting_mapper | 🎬Video 🚀GPU 🧩HF 🟡Beta | Text-guided semantic segmentation of valid objects throughout the video (YOLOE + SAM2). 在整个视频中对有效对象进行文本引导的语义分割 (YOLOE SAM2)。 | [info](operators/mapper/video_object_segmenting_mapper.md) | - |
 | video_remove_watermark_mapper | 🎬Video 💻CPU 🟢Stable | Remove watermarks from videos based on specified regions. 根据指定区域从视频中删除水印。 | [info](operators/mapper/video_remove_watermark_mapper.md) | - |
 | video_resize_aspect_ratio_mapper | 🎬Video 💻CPU 🟢Stable | Resizes videos to fit within a specified aspect ratio range. 调整视频大小以适应指定的宽高比范围。 | [info](operators/mapper/video_resize_aspect_ratio_mapper.md) | - |
@@ -301,6 +307,7 @@ All the specific operators are listed below, each featured with several capabili
 | video_split_by_scene_mapper | 🔮Multimodal 💻CPU 🟢Stable | Splits videos into scene clips based on detected scene changes. 根据检测到的场景变化将视频拆分为场景剪辑。 | [info](operators/mapper/video_split_by_scene_mapper.md) | - |
 | video_tagging_from_audio_mapper | 🎬Video 🚀GPU 🧩HF 🟢Stable | Generates video tags from audio streams using the Audio Spectrogram Transformer. 使用音频频谱图转换器从音频流生成视频标签。 | [info](operators/mapper/video_tagging_from_audio_mapper.md) | - |
 | video_tagging_from_frames_mapper | 🎬Video 🚀GPU 🟢Stable | Generates video tags from frames extracted from videos. 从视频中提取的帧生成视频标签。 | [info](operators/mapper/video_tagging_from_frames_mapper.md) | - |
+| video_trajectory_overlay_mapper | 🎬Video 💻CPU 🟡Beta | Prepare VLM-ready frames by sampling and overlaying hand trajectories. 通过采样和覆盖手部轨迹来准备VLM就绪帧。 | - | - |
 | video_undistort_mapper | 🎬Video 💻CPU 🟡Beta | Undistort raw videos with corresponding camera intrinsics and distortion coefficients. 使用相应的相机固有特性和失真系数对原始视频进行失真。 | [info](operators/mapper/video_undistort_mapper.md) | - |
 | video_whole_body_pose_estimation_mapper | 🎬Video 🚀GPU 🟡Beta | Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation. 输入包含人的视频，并使用DWPose模型来提取视频中人类主体的身体、手、脚和面部关键点，即2D全身姿态估计。 | [info](operators/mapper/video_whole_body_pose_estimation_mapper.md) | - |
 | whitespace_normalization_mapper | 🔤Text 💻CPU 🟢Stable | Normalizes various types of whitespace characters to standard spaces in text samples. 将文本样本中各种类型的空白字符规范化为标准空格。 | [info](operators/mapper/whitespace_normalization_mapper.md) | - |

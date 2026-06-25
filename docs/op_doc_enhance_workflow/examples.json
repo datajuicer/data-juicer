@@ -5010,29 +5010,29 @@
             "samples": null
         }
     },
-    "video_camera_calibration_static_deepcalib_mapper": {
+    "video_camera_calibration_deepcalib_mapper": {
         "test": {
-            "op_code": "VideoCameraCalibrationStaticDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)",
+            "op_code": "VideoCameraCalibrationDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)",
             "ds": "[{'videos': ['{PROJECT_ROOT}/tests/ops/data/video3.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video4.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video12.mp4']}]",
             "tgt": "[{'frame_names_shape': [49], 'intrinsics_list_shape': [49, 3, 3], 'xi_list_shape': [49], 'hfov_list_shape': [49], 'vfov_list_shape': [49]}, {'frame_names_shape': [22], 'intrinsics_list_shape': [22, 3, 3], 'xi_list_shape': [22], 'hfov_list_shape': [22], 'vfov_list_shape': [22]}, {'frame_names_shape': [3], 'intrinsics_list_shape': [3, 3, 3], 'xi_list_shape': [3], 'hfov_list_shape': [3], 'vfov_list_shape': [3]}]",
             "samples": null
         },
         "test_mul_proc": {
-            "op_code": "VideoCameraCalibrationStaticDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)",
+            "op_code": "VideoCameraCalibrationDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)",
             "ds": "[{'videos': ['{PROJECT_ROOT}/tests/ops/data/video3.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video4.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video12.mp4']}]",
             "tgt": "[{'frame_names_shape': [49], 'intrinsics_list_shape': [49, 3, 3], 'xi_list_shape': [49], 'hfov_list_shape': [49], 'vfov_list_shape': [49]}, {'frame_names_shape': [22], 'intrinsics_list_shape': [22, 3, 3], 'xi_list_shape': [22], 'hfov_list_shape': [22], 'vfov_list_shape': [22]}, {'frame_names_shape': [3], 'intrinsics_list_shape': [3, 3, 3], 'xi_list_shape': [3], 'hfov_list_shape': [3], 'vfov_list_shape': [3]}]",
             "samples": null
         }
     },
-    "video_camera_calibration_static_moge_mapper": {
+    "video_camera_calibration_moge_mapper": {
         "test": {
-            "op_code": "VideoCameraCalibrationStaticMogeMapper(model_path='Ruicheng/moge-2-vitl', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE, if_output_points_info=True, if_output_depth_info=True, if_output_mask_info=True)",
+            "op_code": "VideoCameraCalibrationMogeMapper(model_path='Ruicheng/moge-2-vitl', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE, if_output_points_info=True, if_output_depth_info=True, if_output_mask_info=True)",
             "ds": "[{'videos': ['{PROJECT_ROOT}/tests/ops/data/video3.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video4.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video12.mp4']}]",
             "tgt": "[{'frame_names_shape': [49], 'intrinsics_list_shape': [49, 3, 3], 'hfov_list_shape': [49], 'vfov_list_shape': [49], 'points_list_shape': [49, 640, 362, 3], 'depth_list_shape': [49, 640, 362], 'mask_list_shape': [49, 640, 362]}, {'frame_names_shape': [22], 'intrinsics_list_shape': [22, 3, 3], 'hfov_list_shape': [22], 'vfov_list_shape': [22], 'points_list_shape': [22, 360, 480, 3], 'depth_list_shape': [22, 360, 480], 'mask_list_shape': [22, 360, 480]}, {'frame_names_shape': [3], 'intrinsics_list_shape': [3, 3, 3], 'hfov_list_shape': [3], 'vfov_list_shape': [3], 'points_list_shape': [3, 1080, 1920, 3], 'depth_list_shape': [3, 1080, 1920], 'mask_list_shape': [3, 1080, 1920]}]",
             "samples": null
         },
         "test_mul_proc": {
-            "op_code": "VideoCameraCalibrationStaticMogeMapper(model_path='Ruicheng/moge-2-vitl', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE, if_output_points_info=True, if_output_depth_info=True, if_output_mask_info=True)",
+            "op_code": "VideoCameraCalibrationMogeMapper(model_path='Ruicheng/moge-2-vitl', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE, if_output_points_info=True, if_output_depth_info=True, if_output_mask_info=True)",
             "ds": "[{'videos': ['{PROJECT_ROOT}/tests/ops/data/video3.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video4.mp4']}, {'videos': ['{PROJECT_ROOT}/tests/ops/data/video12.mp4']}]",
             "tgt": "[{'frame_names_shape': [49], 'intrinsics_list_shape': [49, 3, 3], 'hfov_list_shape': [49], 'vfov_list_shape': [49], 'points_list_shape': [49, 640, 362, 3], 'depth_list_shape': [49, 640, 362], 'mask_list_shape': [49, 640, 362]}, {'frame_names_shape': [22], 'intrinsics_list_shape': [22, 3, 3], 'hfov_list_shape': [22], 'vfov_list_shape': [22], 'points_list_shape': [22, 360, 480, 3], 'depth_list_shape': [22, 360, 480], 'mask_list_shape': [22, 360, 480]}, {'frame_names_shape': [3], 'intrinsics_list_shape': [3, 3, 3], 'hfov_list_shape': [3], 'vfov_list_shape': [3], 'points_list_shape': [3, 1080, 1920, 3], 'depth_list_shape': [3, 1080, 1920], 'mask_list_shape': [3, 1080, 1920]}]",
             "samples": null

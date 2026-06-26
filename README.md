@@ -87,6 +87,16 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
+<summary>[2026-06-26] Release v1.5.3: <b>VLA Ops Overhaul; Ray Repartition Pipeline; Scalability & Robustness</b></summary>
+
+* 🤖 *VLA Ops Overhaul* — Expanded embodied-AI processing with 10+ new/renamed VLA operators (camera calibration via DeepCalib/DroidCalib/MoGe, atomic action segmentation, hand action computation & motion smoothing, clip reassembly, trajectory overlay, LeRobot export) and a complete VLA pipeline demo.
+* 🔄 *Ray Repartition Pipeline* — New `repartition_pipeline` for dataset-level block repartitioning in Ray mode.
+* ⚡ *Scalable Ray Data Reads* — Wired `override_num_blocks` through the full call chain for controlling block parallelism on PB-scale datasets.
+* 🧪 *Test Coverage Expansion* — Added 409 new test cases across 18 test files.
+* 🐳 *Stability & Robustness Fixes* — JSONStreamDatasource schema unification, OP env version resolution, FUSE-safe rmtree for PartitionedRayExecutor, deprecated model name updates, and num_proc handling fixes.
+</details>
+
+<details open>
 <summary>[2026-05-29] Release v1.5.2: <b>Semantic LLM OPs, Cross-doc Line Dedup & Leaner Dependencies</b></summary>
 
 * 🧹 *New Deduplicator* — Added `DocumentLineDeduplicator` for cross-document line-level dedup, removing boilerplate lines (templates, copyright notices, navigation bars) by global document frequency.
@@ -96,7 +106,7 @@ for s in res_ds:
 * 🧠 *Semantic LLM Operators* — Introduced `llm_extract_mapper`, `llm_condition_filter`, and `llm_structured_ops` with unified `llm_*` naming and configurable inference strategies (join/agg/top-k planned).
 </details>
 
-<details open>
+<details>
 <summary>[2026-03-17] Release v1.5.1: <b>LaTeX OPs; Compressed Format Support; Operator Robustness Fixes</b></summary>
 
 * 📄 Two new LaTeX-focused mapper OPs shipped, extending data-juicer's document processing capabilities to handle `.tex` archives and figure contexts.

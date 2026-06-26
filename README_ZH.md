@@ -85,6 +85,16 @@ for s in res_ds:
 
 ## 📰 动态
 <details open>
+<summary>[2026-06-26] Release v1.5.3: <b>VLA 算子升级；Ray 重分区管道；可扩展性与健壮性</b></summary>
+
+* 🤖 VLA 算子升级 — 新增/重命名 10+ 个 VLA 算子（DeepCalib/DroidCalib/MoGe 相机标定、原子动作分割、手部动作计算与运动平滑、片段重组、轨迹叠加、LeRobot 导出），并提供完整的 VLA pipeline 示例。
+* 🔄 Ray 重分区管道 — 新增 `repartition_pipeline`，支持 Ray 模式下的数据集级块重分区。
+* ⚡ 可扩展的 Ray Data 读取 — 将 `override_num_blocks` 贯通整个调用链，支持通过 CLI 控制 PB 级数据集的块并行度。
+* 🧪 测试覆盖扩展 — 新增 409 个测试用例，覆盖 18 个测试文件。
+* 🐳 稳定性与健壮性修复 — JSONStreamDatasource 跨批次 schema 统一、OP 环境版本解析、PartitionedRayExecutor FUSE 安全 rmtree、废弃模型名更新、num_proc 处理修复等。
+</details>
+
+<details open>
 <summary>[2026-05-29] Release v1.5.2: <b>语义化 LLM 算子；跨文档行级去重；更轻量的依赖</b></summary>
 
 - 🧹 新增去重算子：DocumentLineDeduplicator 支持跨文档的行级去重，依据全局文档频率识别并移除模板文本、版权声明、导航栏等样板行。
@@ -94,7 +104,7 @@ for s in res_ds:
 - 🧠 新增语义化 LLM 算子：引入 llm_extract_mapper、llm_condition_filter 和 llm_structured_ops，统一 llm_* 命名规范，并支持可配置的推理策略（join/agg/top-k 等能力规划中）。
 </details>
 
-<details open>
+<details>
 <summary>[2026-03-17] Release v1.5.1: <b>LaTeX 算子上线；压缩格式支持；算子健壮性修复</b></summary>
 
 - 📄 新增两个面向 LaTeX 的 Mapper 算子，将 data-juicer 的文档处理能力延伸至 .tex 压缩包和图片上下文的提取与处理。

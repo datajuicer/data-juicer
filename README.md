@@ -90,7 +90,7 @@ for s in res_ds:
 <summary>[2026-06-26] Release v1.5.3: <b>VLA Ops Overhaul; Ray Repartition Pipeline; Scalability & Robustness</b></summary>
 
 * 🤖 *VLA Ops Overhaul* — Expanded embodied-AI processing with 10+ new/renamed VLA operators (camera calibration via DeepCalib/DroidCalib/MoGe, atomic action segmentation, hand action computation & motion smoothing, clip reassembly, trajectory overlay, LeRobot export) and a complete VLA pipeline demo.
-* 🔄 *Ray Repartition Pipeline* — New `repartition_pipeline` for dataset-level block repartitioning in Ray mode.
+* 🔄 *Ray Repartition Pipeline* — New 'ray_repartition_pipeline' for dataset-level block repartitioning in Ray mode.
 * ⚡ *Scalable Ray Data Reads* — Wired `override_num_blocks` through the full call chain for controlling block parallelism on PB-scale datasets.
 * 🧪 *Test Coverage Expansion* — Added 409 new test cases across 18 test files.
 * 🐳 *Stability & Robustness Fixes* — JSONStreamDatasource schema unification, OP env version resolution, FUSE-safe rmtree for PartitionedRayExecutor, deprecated model name updates, and num_proc handling fixes.

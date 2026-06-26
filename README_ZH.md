@@ -88,7 +88,7 @@ for s in res_ds:
 <summary>[2026-06-26] Release v1.5.3: <b>VLA 算子升级；Ray 重分区管道；可扩展性与健壮性</b></summary>
 
 * 🤖 VLA 算子升级 — 新增/重命名 10+ 个 VLA 算子（DeepCalib/DroidCalib/MoGe 相机标定、原子动作分割、手部动作计算与运动平滑、片段重组、轨迹叠加、LeRobot 导出），并提供完整的 VLA pipeline 示例。
-* 🔄 Ray 重分区管道 — 新增 `repartition_pipeline`，支持 Ray 模式下的数据集级块重分区。
+* 🔄 Ray 重分区管道 — 新增 'ray_repartition_pipeline'，支持 Ray 模式下的数据集级块重分区。
 * ⚡ 可扩展的 Ray Data 读取 — 将 `override_num_blocks` 贯通整个调用链，支持通过 CLI 控制 PB 级数据集的块并行度。
 * 🧪 测试覆盖扩展 — 新增 409 个测试用例，覆盖 18 个测试文件。
 * 🐳 稳定性与健壮性修复 — JSONStreamDatasource 跨批次 schema 统一、OP 环境版本解析、PartitionedRayExecutor FUSE 安全 rmtree、废弃模型名更新、num_proc 处理修复等。

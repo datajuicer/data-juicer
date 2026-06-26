@@ -1,14 +1,16 @@
 import os
 
-import cv2
 import numpy as np
 from loguru import logger
 
 from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import OPERATORS, Mapper
 
 OP_NAME = "video_trajectory_overlay_mapper"
+
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 
 @OPERATORS.register_module(OP_NAME)

@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import uuid
 
-import cv2
 import numpy as np
 from loguru import logger
 
@@ -15,6 +14,7 @@ from ..base_op import OPERATORS, Mapper
 
 OP_NAME = "export_to_lerobot_mapper"
 
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 pa = LazyLoader("pyarrow", "pyarrow")
 pd = LazyLoader("pandas", "pandas")
 
@@ -471,8 +471,6 @@ class ExportToLeRobotMapper(Mapper):
         }
 
         try:
-            import cv2
-
             cap = cv2.VideoCapture(video_path)
             if cap.isOpened():
                 defaults["width"] = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))

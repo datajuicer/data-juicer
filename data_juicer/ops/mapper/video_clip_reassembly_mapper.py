@@ -1,15 +1,17 @@
 import hashlib
 
-import cv2
 import numpy as np
 from loguru import logger
 
 from data_juicer.utils.constant import CameraCalibrationKeys, Fields, MetaKeys
 from data_juicer.utils.file_utils import load_numpy
+from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import OPERATORS, Mapper
 
 OP_NAME = "video_clip_reassembly_mapper"
+
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 
 @OPERATORS.register_module(OP_NAME)

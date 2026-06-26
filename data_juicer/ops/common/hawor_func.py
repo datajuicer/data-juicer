@@ -8,7 +8,6 @@ import sys
 from inspect import isfunction
 from typing import Callable, Dict, List, Optional, Tuple
 
-import cv2
 import numpy as np
 from tqdm import tqdm
 
@@ -16,6 +15,7 @@ from data_juicer.ops.common import hawor_constants as constants
 from data_juicer.ops.common.hawor_func_vit import vit
 from data_juicer.utils.lazy_loader import LazyLoader
 
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 torch = LazyLoader("torch")
 F = LazyLoader("torch.nn.functional")
 smplx = LazyLoader("smplx")

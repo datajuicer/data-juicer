@@ -125,6 +125,15 @@ class CleanHtmlMapperTest(DataJuicerTestCaseBase):
         ]
         self._run_helper(samples)
 
+    def test_null_text(self):
+        samples = [
+            {
+                'text': None,
+                'target': ''
+            },
+        ]
+        self._run_helper(samples)
+
     def test_fake_html_text(self):
 
         samples = [

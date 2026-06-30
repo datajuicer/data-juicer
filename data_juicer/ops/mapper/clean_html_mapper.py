@@ -34,6 +34,8 @@ class CleanHtmlMapper(Mapper):
 
     def process_batched(self, samples):
         def _clean_html(raw_html):
+            if raw_html is None:
+                return ""
             raw_html = raw_html.replace("<li>", "\n*")
             raw_html = raw_html.replace("</li>", "")
             raw_html = raw_html.replace("<ol>", "\n*")

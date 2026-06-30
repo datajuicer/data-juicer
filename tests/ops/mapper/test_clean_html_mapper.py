@@ -134,6 +134,19 @@ class CleanHtmlMapperTest(DataJuicerTestCaseBase):
         ]
         self._run_helper(samples)
 
+    def test_non_string_text(self):
+        samples = [
+            {
+                'text': float('nan'),
+                'target': ''
+            },
+            {
+                'text': 12345,
+                'target': ''
+            },
+        ]
+        self._run_helper(samples)
+
     def test_fake_html_text(self):
 
         samples = [

@@ -85,7 +85,18 @@ class GeneralFieldFilterTest(DataJuicerTestCaseBase):
         op = GeneralFieldFilter(filter_condition="tag in allowed_tags and 'bad' not in text")
         self._run_general_field_filter(dataset, op, target_list)
 
-    def test_membership_missing_operand_is_false(self):
+    def test_membership_with_set_literal(self):
+        ds_list = [
+            {'text': 'sample1', 'lang': 'en'},
+            {'text': 'sample2', 'lang': 'fr'},
+            {'text': 'sample3', 'lang': 'zh'},
+        ]
+        target_list = [{'text': 'sample1'}, {'text': 'sample3'}]
+        dataset = Dataset.from_list(ds_list)
+        op = GeneralFieldFilter(filter_condition="lang in {'en', 'zh'}")
+        self._run_general_field_filter(dataset, op, target_list)
+
+    def test_membership_missing_operand(self):
         ds_list = [
             {'text': 'sample1', 'tag': 'news', 'allowed_tags': ['news']},
             {'text': 'sample2', 'tag': 'qa', 'allowed_tags': None},
@@ -94,6 +105,16 @@ class GeneralFieldFilterTest(DataJuicerTestCaseBase):
         target_list = [{'text': 'sample1'}]
         dataset = Dataset.from_list(ds_list)
         op = GeneralFieldFilter(filter_condition="tag in allowed_tags")
+        self._run_general_field_filter(dataset, op, target_list)
+
+    def test_notin_missing_operand(self):
+        ds_list = [
+            {'text': 'sample1', 'tag': 'news', 'allowed_tags': ['news']},
+            {'text': 'sample2', 'tag': None, 'allowed_tags': ['news']},
+        ]
+        target_list = [{'text': 'sample2'}]
+        dataset = Dataset.from_list(ds_list)
+        op = GeneralFieldFilter(filter_condition="tag not in allowed_tags")
         self._run_general_field_filter(dataset, op, target_list)
 
     def test_nested_field(self):

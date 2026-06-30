@@ -85,6 +85,10 @@ class ExpressionTransformer(ast.NodeVisitor):
             op = ops[i]
             right = comparators[i]
             if left is None or right is None:
+                if isinstance(op, ast.In):
+                    return False
+                if isinstance(op, ast.NotIn):
+                    return True
                 return False
             if not self._apply_op(op, left, right):
                 result = False

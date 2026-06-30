@@ -48,6 +48,26 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
         ]
         op = TextChunkMapper(split_pattern='\n')
         self._run_helper(op, ds_list, tgt_list)
+
+    def test_split_pattern_drops_visible_delimiters(self):
+        ds_list = [
+            {
+                'text': 'a_@@@_b_@@@_c'
+            },
+        ]
+        tgt_list = [
+            {
+                'text': 'a'
+            },
+            {
+                'text': 'b'
+            },
+            {
+                'text': 'c'
+            },
+        ]
+        op = TextChunkMapper(split_pattern='_@@@_')
+        self._run_helper(op, ds_list, tgt_list)
     
     def test_max_len_text_chunk(self):
         ds_list = [

@@ -60,6 +60,8 @@ class ExpressionTransformer(ast.NodeVisitor):
         ast.NotEq: lambda left_operand, right_operand: left_operand != right_operand,
         ast.GtE: lambda left_operand, right_operand: left_operand >= right_operand,
         ast.LtE: lambda left_operand, right_operand: left_operand <= right_operand,
+        ast.In: lambda left_operand, right_operand: left_operand in right_operand,
+        ast.NotIn: lambda left_operand, right_operand: left_operand not in right_operand,
     }
 
     def __init__(self, sample: Dict):
@@ -116,6 +118,15 @@ class ExpressionTransformer(ast.NodeVisitor):
 
     def visit_Constant(self, node: ast.Constant) -> Any:
         return node.value
+
+    def visit_List(self, node: ast.List) -> list:
+        return [self.visit(element) for element in node.elts]
+
+    def visit_Tuple(self, node: ast.Tuple) -> tuple:
+        return tuple(self.visit(element) for element in node.elts)
+
+    def visit_Set(self, node: ast.Set) -> set:
+        return {self.visit(element) for element in node.elts}
 
     def generic_visit(self, node: ast.AST) -> None:
         raise ValueError(f"Unsupported node type: {type(node).__name__}, details: {ast.dump(node)}")

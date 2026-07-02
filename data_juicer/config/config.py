@@ -209,6 +209,14 @@ def build_base_parser() -> ArgumentParser:
         "especially useful when reading large JSON files.",
     )
     parser.add_argument(
+        "--override_num_blocks",
+        type=Optional[int],
+        default=None,
+        help="Override the number of output blocks for Ray Data read "
+        "operations. Useful for controlling parallelism when reading "
+        "large datasets.",
+    )
+    parser.add_argument(
         "--work_dir",
         type=str,
         default=None,

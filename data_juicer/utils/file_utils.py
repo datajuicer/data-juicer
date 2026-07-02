@@ -18,6 +18,32 @@ from data_juicer.utils.common_utils import dict_to_hash
 from data_juicer.utils.constant import DEFAULT_PREFIX, Fields
 
 
+def load_numpy(value):
+    """Load a numpy array that may be stored inline or as a .npy file path.
+
+    :param value: Either a numpy ndarray (returned as-is) or a string
+        path to a ``.npy`` file.
+    :returns: numpy ndarray
+    """
+    import numpy as np
+
+    if isinstance(value, np.ndarray):
+        return value
+    if isinstance(value, str):
+        return np.load(value)
+    # Fallback: convert lists / other array-like to ndarray
+    return np.asarray(value)
+
+
+def load_numpy_list(values):
+    """Load a list of numpy fields (each may be an array or a path).
+
+    :param values: list of numpy arrays or string paths to .npy files.
+    :returns: list of numpy ndarrays
+    """
+    return [load_numpy(v) for v in values]
+
+
 class Sizes:
     KiB = 2**10  # 1024
     MiB = 2**20  # 1024*1024

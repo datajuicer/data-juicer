@@ -5,9 +5,10 @@ import unittest
 from datasets import load_dataset
 from data_juicer.core.data import NestedDataset
 from data_juicer.ops.mapper.optimize_prompt_mapper import OptimizePromptMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.constant import DEFAULT_API_MODEL
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class OptimizePromptMapperTest(DataJuicerTestCaseBase):
     prompt_key = 'prompt'
     root_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..')
@@ -37,8 +38,8 @@ class OptimizePromptMapperTest(DataJuicerTestCaseBase):
         self._run_op(sampling_params=sampling_params)
 
     def test_api_model(self):
-        sampling_params = {'max_new_tokens': 200}
-        self._run_op(model="qwen2.5-72b-instruct", is_hf_model=False, sampling_params=sampling_params)
+        sampling_params = {'max_new_tokens': 200, 'enable_thinking': False}
+        self._run_op(model=DEFAULT_API_MODEL, is_hf_model=False, sampling_params=sampling_params)
 
 
 if __name__ == '__main__':

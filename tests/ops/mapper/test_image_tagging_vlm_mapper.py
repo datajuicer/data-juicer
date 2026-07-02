@@ -3,7 +3,7 @@ import os
 import unittest
 
 from data_juicer.core.data import NestedDataset as Dataset
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_VL_API_MODEL, Fields, MetaKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.ops.mapper.image_tagging_vlm_mapper import ImageTaggingVLMMapper
 
@@ -72,7 +72,7 @@ class ImageTaggingVLMMapperTest(DataJuicerTestCaseBase):
         }]
 
         op = ImageTaggingVLMMapper(
-            api_or_hf_model='qwen2.5-vl-3b-instruct',
+            api_or_hf_model=DEFAULT_VL_API_MODEL,
             is_api_model=True,
             sampling_params={}
         )

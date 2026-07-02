@@ -130,6 +130,80 @@ class VideoReader(abc.ABC):
         """
         raise NotImplementedError
 
+    def extract_frames_uniformly(self, frame_num: int) -> List[np.ndarray]:
+        """Extract a number of frames uniformly distributed across the video.
+
+        :param frame_num: Number of frames to extract. If 1, the middle frame
+            is extracted. If 2, the first and last frames. If >2, frames are
+            spaced uniformly including the first and last.
+        :return: A list of numpy arrays (RGB frames).
+        """
+        from loguru import logger
+
+        duration = self.metadata.duration
+        total_frames = self.metadata.num_frames
+
+        if total_frames < frame_num:
+            logger.warning(
+                "Number of frames to be extracted is larger than the "
+                "total number of frames in this video. Set it to the "
+                "total number of frames."
+            )
+            frame_num = total_frames
+
+        if frame_num == 1:
+            extract_seconds = [duration / 2]
+        else:
+            step = duration / (frame_num - 1)
+            extract_seconds = [step * i for i in range(frame_num)]
+
+        frames = []
+        for ts in extract_seconds:
+            for frame in self.extract_frames(start_time=ts):
+                frames.append(frame)
+                break
+        return frames
+
+    def extract_frames_uniformly_by_seconds(self, frame_num: int, duration: float) -> List[np.ndarray]:
+        """Extract frames uniformly from each segment of given duration.
+
+        The video is split into segments of the specified duration, and
+        ``frame_num`` frames are extracted uniformly from each segment.
+        Only full-length segments are processed (matching AV behavior);
+        a trailing partial segment shorter than ``duration`` is skipped.
+
+        :param frame_num: Number of frames per segment.
+        :param duration: Duration of each segment in seconds.
+        :return: A list of numpy arrays (RGB frames).
+        """
+        video_duration = self.metadata.duration
+        # np.arange excludes the endpoint, so partial trailing segments
+        # shorter than `duration` are naturally skipped.
+        timestamps = np.arange(0, video_duration, duration).tolist()
+
+        all_frames = []
+        for i in range(1, len(timestamps)):
+            seg_start = timestamps[i - 1]
+            seg_end = timestamps[i]
+            seg_duration = seg_end - seg_start
+
+            if seg_duration <= 0:
+                continue
+
+            # Calculate uniform timestamps within this segment
+            if frame_num == 1:
+                seg_seconds = [seg_start + seg_duration / 2]
+            else:
+                seg_step = seg_duration / (frame_num - 1)
+                seg_seconds = [seg_start + seg_step * j for j in range(frame_num)]
+
+            for ts in seg_seconds:
+                for frame in self.extract_frames(start_time=ts):
+                    all_frames.append(frame)
+                    break
+
+        return all_frames
+
     def check_time_span(
         self,
         start_time: Optional[float] = 0.0,
@@ -659,6 +733,77 @@ class FFmpegReader(VideoReader):
             return Frames(frames=[], indices=list(frame_indices), pts_time=list(pts_time))
 
         return Frames(frames=key_frames, indices=list(frame_indices), pts_time=list(pts_time))
+
+    def extract_frames_uniformly(self, frame_num: int) -> List[np.ndarray]:
+        """Extract frames uniformly using ffmpeg select filter (single pass).
+
+        Overrides the base class to use a single ffmpeg process with the
+        ``select`` filter, which is much more efficient than seeking for each
+        frame individually.
+        """
+        from loguru import logger
+
+        total_frames = self.metadata.num_frames
+        duration = self.metadata.duration
+        fps = self.metadata.fps
+
+        if total_frames < frame_num:
+            logger.warning(
+                "Number of frames to be extracted is larger than the "
+                "total number of frames in this video. Set it to the "
+                "total number of frames."
+            )
+            frame_num = total_frames
+
+        if frame_num == 1:
+            extract_seconds = [duration / 2]
+        else:
+            step = duration / (frame_num - 1)
+            extract_seconds = [step * i for i in range(frame_num)]
+
+        # Convert timestamps to frame indices
+        frame_indices = []
+        for ts in extract_seconds:
+            idx = min(int(ts * fps), max(total_frames - 1, 0))
+            frame_indices.append(idx)
+
+        # Build select filter expression
+        select_expr = "+".join(f"eq(n\\,{idx})" for idx in frame_indices)
+
+        cmd = [
+            "ffmpeg",
+            "-v",
+            "quiet",
+            "-i",
+            self.video_path,
+            "-vf",
+            f"select='{select_expr}'",
+            "-vsync",
+            "vfr",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            self.frame_format,
+            "-",
+        ]
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        w, h = self.metadata.width, self.metadata.height
+        frame_size = w * h * 3
+        frames = []
+
+        try:
+            while len(frames) < frame_num:
+                raw = process.stdout.read(frame_size)
+                if len(raw) < frame_size:
+                    break
+                frame = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
+                frames.append(frame)
+        finally:
+            self._kill_process(process)
+
+        return frames
 
     def extract_clip(self, start_time, end_time, output_path: str = None, to_numpy=True, **kwargs):
         """

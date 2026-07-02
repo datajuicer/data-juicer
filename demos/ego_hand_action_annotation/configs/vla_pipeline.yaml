@@ -1,0 +1,54 @@
+# VLA Hand Action Pipeline
+
+project_name: 'vla-hand-action-pipeline'
+executor_type: 'ray'
+dataset_path: './demos/ego_hand_action_annotation/data/demo-dataset.jsonl'
+export_path: './demos/ego_hand_action_annotation/output/processed'
+ray_address: 'auto'
+
+process:
+  - video_extract_frames_mapper:
+      frame_sampling_method: 'all_keyframes'
+      output_format: 'path'
+      frame_dir: './demos/ego_hand_action_annotation/output/frames'
+      frame_field: 'video_frames'
+      legacy_split_by_text_token: false
+      video_backend: 'ffmpeg'
+      batch_mode: true
+  - video_camera_calibration_moge_mapper:
+      model_path: 'moge-2-vitl-normal/model.pt'
+      tag_field_name: 'camera_calibration_moge_tags'
+      frame_field: 'video_frames'
+      output_depth: true
+      output_points: false
+      output_mask: false
+      batch_mode: true
+  - video_hand_reconstruction_hawor_mapper:
+      hawor_model_path: 'hawor.ckpt'
+      hawor_config_path: 'model_config.yaml'
+      hawor_detector_path: 'detector.pt'
+      camera_calibration_field: 'camera_calibration_moge_tags'
+      tag_field_name: 'hand_reconstruction_hawor_tags'
+      mano_right_path: '/path/to/MANO_RIGHT.pkl'
+      mano_left_path: '/path/to/MANO_LEFT.pkl'
+      frame_field: 'video_frames'
+      batch_mode: true
+  # ⚠️ the operator requires a separate conda environment "mega-sam"
+  - video_camera_pose_megasam_mapper:
+      tag_field_name: 'video_camera_pose_tags'
+      camera_calibration_field: 'camera_calibration_moge_tags'
+      batch_mode: true
+      runtime_env: {'conda': 'mega-sam'}
+  - video_hand_action_compute_mapper:
+      hand_reconstruction_field: 'hand_reconstruction_hawor_tags'
+      camera_pose_field: 'video_camera_pose_tags'
+      tag_field_name: 'hand_action_tags'
+      hand_type: 'both'
+      batch_mode: true
+  - export_to_lerobot_mapper:
+      output_dir: './demos/ego_hand_action_annotation/output/lerobot_dataset'
+      hand_action_field: 'hand_action_tags'
+      frame_field: 'video_frames'
+      fps: 10
+      robot_type: 'egodex_hand'
+      batch_mode: true

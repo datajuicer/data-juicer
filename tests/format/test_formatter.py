@@ -352,26 +352,6 @@ class UnifyFormatTest(DataJuicerTestCaseBase):
         file_path = os.path.join(cur_dir, 'demo-dataset.jsonl')
         ds = load_dataset('json', data_files=file_path, split='train')
         ds = unify_format(ds)
-        # import datetime
-
-        # the 'None' fields are missing fields after merging
-        # sample = [{
-        #     'text': "Today is Sunday and it's a happy day!",
-        #     'meta': {
-        #         'src': 'Arxiv',
-        #         'date': datetime.datetime(2023, 4, 27, 0, 0),
-        #         'version': '1.0',
-        #         'author': None
-        #     }
-        # }, {
-        #     'text': 'Do you need a cup of coffee?',
-        #     'meta': {
-        #         'src': 'code',
-        #         'date': None,
-        #         'version': None,
-        #         'author': 'xxx'
-        #     }
-        # }]
         # test nested and missing field for the following cases:
         # Fields present in a row are always accessible; fields absent in the raw
         # data may be filled with None (datasets <=4.4 struct merge) OR simply
@@ -577,3 +557,305 @@ class LocalFormatterDecryptTest(DataJuicerTestCaseBase):
                 os.path.exists(p),
                 f"Temporary file {p} was not cleaned up after load_dataset",
             )
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage tests for unify_format edge cases and add_suffixes
+# ---------------------------------------------------------------------------
+
+from datasets import Dataset as HFDataset, DatasetDict
+from jsonargparse import Namespace as JANamespace
+from data_juicer.format.formatter import add_suffixes
+
+
+class UnifyFormatNoneFilterTest(DataJuicerTestCaseBase):
+    """Test that unify_format filters out samples with None text."""
+
+    def test_filters_none_text(self):
+        ds = HFDataset.from_dict({
+            "text": ["hello", None, "world", None],
+        })
+        result = unify_format(ds, text_keys=["text"])
+        self.assertEqual(len(result), 2)
+        self.assertEqual(list(result["text"]), ["hello", "world"])
+
+    def test_keeps_all_non_none(self):
+        ds = HFDataset.from_dict({"text": ["a", "b", "c"]})
+        result = unify_format(ds, text_keys=["text"])
+        self.assertEqual(len(result), 3)
+
+    def test_filters_all_none(self):
+        ds = HFDataset.from_dict({"text": [None, None]})
+        result = unify_format(ds, text_keys=["text"])
+        self.assertEqual(len(result), 0)
+
+    def test_empty_dataset(self):
+        ds = HFDataset.from_dict({"text": []})
+        result = unify_format(ds, text_keys=["text"])
+        self.assertEqual(len(result), 0)
+
+
+class UnifyFormatTextKeysTest(DataJuicerTestCaseBase):
+
+    def test_missing_text_key_raises(self):
+        ds = HFDataset.from_dict({"content": ["hello"]})
+        with self.assertRaises(ValueError) as ctx:
+            unify_format(ds, text_keys=["text"])
+        self.assertIn("no key [text]", str(ctx.exception).lower())
+
+    def test_string_text_key_converted_to_list(self):
+        ds = HFDataset.from_dict({"text": ["hello"]})
+        result = unify_format(ds, text_keys="text")
+        self.assertEqual(len(result), 1)
+
+    def test_none_text_keys_skips_filtering(self):
+        ds = HFDataset.from_dict({"text": ["hello", None]})
+        result = unify_format(ds, text_keys=None)
+        self.assertEqual(len(result), 2)
+
+    def test_empty_text_keys_skips_filtering(self):
+        ds = HFDataset.from_dict({"text": ["hello", None]})
+        result = unify_format(ds, text_keys=[])
+        self.assertEqual(len(result), 2)
+
+
+class UnifyFormatDatasetDictTest(DataJuicerTestCaseBase):
+
+    def test_unwraps_single_split_datasetdict(self):
+        ds = HFDataset.from_dict({"text": ["hello", "world"]})
+        dd = DatasetDict({"train": ds})
+        result = unify_format(dd, text_keys=["text"])
+        self.assertEqual(len(result), 2)
+
+    def test_multiple_splits_raises(self):
+        ds1 = HFDataset.from_dict({"text": ["a"]})
+        ds2 = HFDataset.from_dict({"text": ["b"]})
+        dd = DatasetDict({"train": ds1, "test": ds2})
+        with self.assertRaises(AssertionError):
+            unify_format(dd, text_keys=["text"])
+
+
+class UnifyFormatPathConversionTest(DataJuicerTestCaseBase):
+    """Test relative-to-absolute path conversion in unify_format."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp()
+        self.ds_dir = os.path.join(self.tmp_dir, "dataset")
+        os.makedirs(self.ds_dir)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        super().tearDown()
+
+    def test_converts_relative_image_paths(self):
+        ds = HFDataset.from_dict({
+            "text": ["sample1", "sample2"],
+            "images": [["img1.jpg"], ["img2.jpg"]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            image_key="images",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        for row in result:
+            for path in row["images"]:
+                self.assertTrue(os.path.isabs(path))
+                self.assertTrue(path.startswith(self.ds_dir))
+
+    def test_preserves_absolute_paths(self):
+        abs_path = "/absolute/path/img.jpg"
+        ds = HFDataset.from_dict({
+            "text": ["sample"],
+            "images": [[abs_path]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            image_key="images",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertEqual(result[0]["images"][0], abs_path)
+
+    def test_no_media_keys_returns_unchanged(self):
+        ds = HFDataset.from_dict({"text": ["sample"]})
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            image_key="images",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertEqual(len(result), 1)
+
+    def test_no_global_cfg_warns(self):
+        ds = HFDataset.from_dict({"text": ["sample"]})
+        result = unify_format(ds, text_keys=["text"], global_cfg=None)
+        self.assertEqual(len(result), 1)
+
+    def test_empty_ds_dir_skips_conversion(self):
+        ds = HFDataset.from_dict({
+            "text": ["sample"],
+            "images": [["relative/img.jpg"]],
+        })
+        cfg = JANamespace(
+            dataset_path="/nonexistent/path",
+            image_key="images",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertEqual(result[0]["images"][0], "relative/img.jpg")
+
+    def test_dict_global_cfg(self):
+        ds = HFDataset.from_dict({
+            "text": ["sample"],
+            "images": [["img.jpg"]],
+        })
+        cfg = {
+            "dataset_path": self.ds_dir,
+            "image_key": "images",
+        }
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertTrue(os.path.isabs(result[0]["images"][0]))
+
+    def test_dataset_path_is_file(self):
+        ds_file = os.path.join(self.ds_dir, "data.jsonl")
+        with open(ds_file, "w") as f:
+            f.write('{"text": "hello"}\n')
+
+        ds = HFDataset.from_dict({
+            "text": ["sample"],
+            "images": [["img.jpg"]],
+        })
+        cfg = JANamespace(
+            dataset_path=ds_file,
+            image_key="images",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertTrue(result[0]["images"][0].startswith(self.ds_dir))
+
+
+class AddSuffixesTest(DataJuicerTestCaseBase):
+
+    def test_adds_suffix_column(self):
+        ds1 = HFDataset.from_dict({"text": ["a", "b"]})
+        ds2 = HFDataset.from_dict({"text": ["c"]})
+        dd = DatasetDict({"json": ds1, "csv": ds2})
+
+        result = add_suffixes(dd)
+        self.assertIn("__dj__suffix__", result.column_names)
+        suffixes = result["__dj__suffix__"]
+        self.assertIn(".json", suffixes)
+        self.assertIn(".csv", suffixes)
+        self.assertEqual(len(result), 3)
+
+
+class UnifyFormatAudioVideoPathTest(DataJuicerTestCaseBase):
+    """Cover audio_key / video_key relative-to-absolute path conversion
+    (lines 226-232, 244, 253, 261, 272-302 in formatter.py)."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp()
+        self.ds_dir = os.path.join(self.tmp_dir, "dataset")
+        os.makedirs(self.ds_dir)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        super().tearDown()
+
+    def test_converts_relative_audio_paths(self):
+        ds = HFDataset.from_dict({
+            "text": ["s1"],
+            "audios": [["clip.wav"]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            audio_key="audios",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        audio_path = result[0]["audios"][0]
+        self.assertTrue(os.path.isabs(audio_path))
+        self.assertTrue(audio_path.startswith(self.ds_dir))
+
+    def test_converts_relative_video_paths(self):
+        ds = HFDataset.from_dict({
+            "text": ["s1"],
+            "videos": [["clip.mp4"]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            video_key="videos",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        video_path = result[0]["videos"][0]
+        self.assertTrue(os.path.isabs(video_path))
+        self.assertTrue(video_path.startswith(self.ds_dir))
+
+    def test_mixed_media_keys(self):
+        """All three media keys (image/audio/video) converted in one call."""
+        ds = HFDataset.from_dict({
+            "text": ["s1"],
+            "images": [["img.jpg"]],
+            "audios": [["clip.wav"]],
+            "videos": [["clip.mp4"]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            image_key="images",
+            audio_key="audios",
+            video_key="videos",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        row = result[0]
+        for key in ("images", "audios", "videos"):
+            self.assertTrue(os.path.isabs(row[key][0]),
+                            f"{key} path not absolute: {row[key][0]}")
+
+    def test_custom_audio_key_name(self):
+        ds = HFDataset.from_dict({
+            "text": ["s1"],
+            "my_audio": [["clip.wav"]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            audio_key="my_audio",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertTrue(os.path.isabs(result[0]["my_audio"][0]))
+
+    def test_custom_video_key_name(self):
+        ds = HFDataset.from_dict({
+            "text": ["s1"],
+            "my_video": [["clip.mp4"]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            video_key="my_video",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertTrue(os.path.isabs(result[0]["my_video"][0]))
+
+    def test_preserves_absolute_audio_path(self):
+        abs_path = "/abs/audio.wav"
+        ds = HFDataset.from_dict({
+            "text": ["s1"],
+            "audios": [[abs_path]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            audio_key="audios",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertEqual(result[0]["audios"][0], abs_path)
+
+    def test_empty_media_list_unchanged(self):
+        ds = HFDataset.from_dict({
+            "text": ["s1"],
+            "audios": [[]],
+        })
+        cfg = JANamespace(
+            dataset_path=self.ds_dir,
+            audio_key="audios",
+        )
+        result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
+        self.assertEqual(result[0]["audios"], [])
+

@@ -4,10 +4,10 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.dialog_sentiment_detection_mapper import DialogSentimentDetectionMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
     # before running this test, set below environment variables:
     # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
@@ -54,7 +54,7 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct')
+        op = DialogSentimentDetectionMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -80,8 +80,10 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogSentimentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_max_round_zero(self):
@@ -107,8 +109,10 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=0)
+        op = DialogSentimentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=0)
         self._run_op(op, samples)
 
     def test_query(self):
@@ -132,8 +136,10 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogSentimentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_sentiment_candidates(self):
@@ -159,8 +165,10 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                sentiment_candidates=['认可', '不满', '困惑'])
+        op = DialogSentimentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            sentiment_candidates=['认可', '不满', '困惑'])
         self._run_op(op, samples)
 
     def test_rename_keys(self):
@@ -188,9 +196,11 @@ class TestDialogSentimentDetectionMapper(DataJuicerTestCaseBase):
 
         labels_key = 'my_label'
         analysis_key = 'my_analysis'
-        op = DialogSentimentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            labels_key=labels_key,
-                                            analysis_key=analysis_key)
+        op = DialogSentimentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            labels_key=labels_key,
+            analysis_key=analysis_key)
         self._run_op(op, samples, labels_key=labels_key, analysis_key=analysis_key)
 
 

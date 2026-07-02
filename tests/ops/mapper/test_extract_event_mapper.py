@@ -4,17 +4,18 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_event_mapper import ExtractEventMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class ExtractEventMapperTest(DataJuicerTestCaseBase):
 
 
-    def _run_op(self, api_model, response_path=None):
+    def _run_op(self, api_model, response_path=None, sampling_params=None):
 
         op = ExtractEventMapper(api_model=api_model,
                                response_path=response_path,
+                               sampling_params=sampling_params,
                                index_key='chunk_id')
 
         raw_text = """△芩婆走到中间，看着众人。
@@ -69,7 +70,7 @@ class ExtractEventMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
 
 
 if __name__ == '__main__':

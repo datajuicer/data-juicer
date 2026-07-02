@@ -3,7 +3,7 @@ from data_juicer.utils.model_utils import (
     prepare_model,
 )
 
-API_MODEL = "qwen3-max"
+API_MODEL = "qwen3.7-max"
 
 
 def chat(messages: list[dict]):

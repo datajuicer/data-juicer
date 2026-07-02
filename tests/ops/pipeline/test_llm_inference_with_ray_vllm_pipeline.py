@@ -4,8 +4,8 @@ import unittest
 from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.ops.pipeline.llm_inference_with_ray_vllm_pipeline import LLMRayVLLMEnginePipeline
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.constant import RAY_JOB_ENV_VAR
-from data_juicer.utils.unittest_utils import TEST_TAG, FROM_FORK
+from data_juicer.utils.constant import DEFAULT_API_MODEL, RAY_JOB_ENV_VAR
+from data_juicer.utils.unittest_utils import TEST_TAG, skip_if_from_fork
 
 
 class LLMRayVLLMEnginePipelineTest(DataJuicerTestCaseBase):
@@ -39,7 +39,7 @@ class LLMRayVLLMEnginePipelineTest(DataJuicerTestCaseBase):
         for item in res:
             self.assertTrue(len(item['response']) > 0)
 
-    @unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+    @skip_if_from_fork("Skipping API-based test because running from a fork repo")
     @TEST_TAG('ray')
     def test_api_model(self):
         import ray
@@ -52,11 +52,12 @@ class LLMRayVLLMEnginePipelineTest(DataJuicerTestCaseBase):
         ray_ds = ray.data.from_items(ds_list)
         ds = RayDataset(ray_ds)
         op = LLMRayVLLMEnginePipeline(
-            api_or_hf_model='qwen2.5-72b-instruct',
+            api_or_hf_model=DEFAULT_API_MODEL,
             is_hf_model=False,
             sampling_params=dict(
                 temperature=0.0,
                 max_tokens=150,
+                enable_thinking=False,
             ),
             num_proc=1)
         ds = ds.process([op])

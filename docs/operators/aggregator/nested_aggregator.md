@@ -32,7 +32,7 @@ Tags 标签: cpu, api, text
 ## 📊 Effect demonstration 效果演示
 ### test_default_aggregator
 ```python
-NestedAggregator(api_model='qwen2.5-72b-instruct')
+NestedAggregator(api_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据
@@ -47,7 +47,7 @@ This example demonstrates the default behavior of the NestedAggregator operator.
 
 ### test_max_token_num_1
 ```python
-NestedAggregator(api_model='qwen2.5-72b-instruct', max_token_num=2)
+NestedAggregator(api_model='qwen3.7-max', max_token_num=2)
 ```
 
 #### 📥 input data 输入数据

@@ -514,8 +514,9 @@ def prepare_api_model(
 def prepare_deepcalib_model(model_path, **model_params):
 
     device = model_params.pop("device", None)
-    if device is None:
-        raise ValueError("video_camera_calibration_static_deepcalib_mapper currently supports GPU usage only.")
+    if device is None or device == "cpu":
+        raise ValueError("CUDA device must be specified for deepcalib model.")
+
     device = device.replace("cuda", "/gpu")
 
     if not os.path.exists(model_path):
@@ -718,7 +719,7 @@ def prepare_huggingface_model(
     return (model, processor) if return_model else processor
 
 
-def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **model_params):
+def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, mano_left_path=None, **model_params):
 
     device = model_params.pop("device", "cpu")
 
@@ -729,8 +730,7 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
 
     sys.path.append(hawor_repo_path)
 
-    from hawor.configs import get_config
-    from lib.models.hawor import HAWOR
+    from data_juicer.ops.common.hawor_func import HAWOR, get_config
 
     if not os.path.exists(mano_right_path):
         raise ValueError(
@@ -741,13 +741,13 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
         hawor_model_dir = os.path.join(DJMC, "HaWor")
         os.makedirs(hawor_model_dir, exist_ok=True)
         hawor_model_path = os.path.join(hawor_model_dir, "hawor.ckpt")
-        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], hawor_model_path], check=True)
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], "-O", hawor_model_path], check=True)
 
     if not os.path.exists(hawor_config_path):
         hawor_model_dir = os.path.join(DJMC, "HaWor")
         os.makedirs(hawor_model_dir, exist_ok=True)
         hawor_config_path = os.path.join(hawor_model_dir, "model_config.yaml")
-        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], hawor_config_path], check=True)
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], "-O", hawor_config_path], check=True)
 
     model_cfg = get_config(hawor_config_path, update_cachedir=True)
 
@@ -772,9 +772,13 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
 
     from data_juicer.ops.common.mano_func import MANO
 
-    mano_model = MANO(model_path=mano_right_path).to(device)
+    mano_right_model = MANO(model_path=mano_right_path).to(device)
 
-    return hawor_model, model_cfg, mano_model
+    mano_left_model = None
+    if mano_left_path and os.path.exists(mano_left_path):
+        mano_left_model = MANO.build_left(model_path=mano_left_path).to(device)
+
+    return hawor_model, model_cfg, mano_right_model, mano_left_model
 
 
 def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):

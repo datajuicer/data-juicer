@@ -101,7 +101,11 @@ jobs:
     - name: Run unittest ray
       working-directory: dj-${{ github.run_id }}/.github/workflows/docker
       run: |
-        docker compose exec -e OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }} -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} ray-head bash -c 'python tests/run.py --tag ray --mode partial'
+        if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+          docker compose exec -e OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }} -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} ray-head bash -c 'python tests/run.py --tag ray --mode partial --from-fork True'
+        else
+          docker compose exec -e OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }} -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} ray-head bash -c 'python tests/run.py --tag ray --mode partial'
+        fi
         docker compose exec ray-head bash -c 'coverage combine'
         docker compose exec ray-head bash -c 'mv .coverage .coverage.ray'
 

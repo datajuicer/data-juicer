@@ -1,4 +1,4 @@
-# video_camera_calibration_static_deepcalib_mapper
+# video_camera_calibration_deepcalib_mapper
 
 Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib.
 
@@ -14,7 +14,7 @@ Tags 标签: gpu, video
 | `model_path` | <class 'str'> | `'weights_10_0.02.h5'` | The path to the DeepCalib Regression model. |
 | `frame_num` | typing.Annotated[int, Gt(gt=0)] | `3` | The number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration. If "duration" > 0, frame_num is the number of frames per segment. |
 | `duration` | <class 'float'> | `0` | The duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment. |
-| `tag_field_name` | <class 'str'> | `'static_camera_calibration_deepcalib_tags'` | The field name to store the tags. It's "static_camera_calibration_deepcalib_tags" in default. |
+| `tag_field_name` | <class 'str'> | `'camera_calibration_deepcalib_tags'` | The field name to store the tags. It's "camera_calibration_deepcalib_tags" in default. |
 | `frame_dir` | <class 'str'> | `DATA_JUICER_ASSETS_CACHE` | Output directory to save extracted frames. |
 | `if_output_info` | <class 'bool'> | `True` | Whether to save the camera parameters results to an JSON file. |
 | `output_info_dir` | <class 'str'> | `DATA_JUICER_ASSETS_CACHE` | Output directory for saving camera parameters. |
@@ -24,7 +24,7 @@ Tags 标签: gpu, video
 ## 📊 Effect demonstration 效果演示
 ### test
 ```python
-VideoCameraCalibrationStaticDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)
+VideoCameraCalibrationDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)
 ```
 
 #### 📥 input data 输入数据
@@ -36,7 +36,7 @@ VideoCameraCalibrationStaticDeepcalibMapper(model_path='weights_10_0.02.h5', fra
 
 ### test_mul_proc
 ```python
-VideoCameraCalibrationStaticDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)
+VideoCameraCalibrationDeepcalibMapper(model_path='weights_10_0.02.h5', frame_num=1, duration=1, frame_dir=DATA_JUICER_ASSETS_CACHE, if_output_info=True, output_info_dir=DATA_JUICER_ASSETS_CACHE)
 ```
 
 #### 📥 input data 输入数据
@@ -48,6 +48,6 @@ VideoCameraCalibrationStaticDeepcalibMapper(model_path='weights_10_0.02.h5', fra
 
 
 ## 🔗 related links 相关链接
-- [source code 源代码](../../../data_juicer/ops/mapper/video_camera_calibration_static_deepcalib_mapper.py)
-- [unit test 单元测试](../../../tests/ops/mapper/test_video_camera_calibration_static_deepcalib_mapper.py)
+- [source code 源代码](../../../data_juicer/ops/mapper/video_camera_calibration_deepcalib_mapper.py)
+- [unit test 单元测试](../../../tests/ops/mapper/test_video_camera_calibration_deepcalib_mapper.py)
 - [Return operator list 返回算子列表](../../Operators.md)

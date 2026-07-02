@@ -347,11 +347,11 @@ class RayDataset(DJDataset):
         return self.data.count()
 
     @classmethod
-    def read(cls, data_format: str, paths: Union[str, List[str]]) -> RayDataset:
+    def read(cls, data_format: str, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
-            return RayDataset.read_json(paths)
+            return RayDataset.read_json(paths, **kwargs)
         elif data_format == "webdataset":
-            return RayDataset.read_webdataset(paths)
+            return RayDataset.read_webdataset(paths, **kwargs)
         elif data_format in {
             "parquet",
             "images",
@@ -365,27 +365,26 @@ class RayDataset(DJDataset):
             "lance",
         }:
             if data_format == "lance":
-                # use lazy loader to check pylance installation
                 from data_juicer.utils.lazy_loader import LazyLoader
 
                 LazyLoader.check_packages(["pylance"])
-            return getattr(ray.data, f"read_{data_format}")(paths)
+            return getattr(ray.data, f"read_{data_format}")(paths, **kwargs)
 
     @classmethod
-    def read_json(cls, paths: Union[str, List[str]]) -> RayDataset:
+    def read_json(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         # Note: a temp solution for reading json stream
         # TODO: replace with ray.data.read_json_stream once it is available
         import pyarrow.json as js
 
         try:
             js.open_json
-            return read_json_stream(paths)
+            return read_json_stream(paths, **kwargs)
         except AttributeError:
-            return ray.data.read_json(paths)
+            return ray.data.read_json(paths, **kwargs)
 
     @classmethod
-    def read_webdataset(cls, paths: Union[str, List[str]]) -> RayDataset:
-        return ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"))
+    def read_webdataset(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
+        return ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"), **kwargs)
 
     def to_list(self) -> list:
         return self.data.to_pandas().to_dict(orient="records")
@@ -428,6 +427,25 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                 raise ValueError(f"Failed to read JSON file: {path}. Error: {e}") from e
             return
 
+        import pyarrow.json as paj
+
+        def _full_file_fallback():
+            """Re-read the entire file with paj.read_json which handles
+            schema inference across all rows in a single pass."""
+            fs = getattr(self, "_filesystem", None)
+            if fs is not None:
+                with fs.open_input_file(path) as f2:
+                    return paj.read_json(
+                        f2,
+                        read_options=self.read_options,
+                        **self.arrow_json_args,
+                    )
+            return paj.read_json(
+                path,
+                read_options=self.read_options,
+                **self.arrow_json_args,
+            )
+
         try:
             reader = open_json(
                 f,
@@ -435,17 +453,32 @@ class JSONStreamDatasource(_JSONDatasourceBase):
                 **self.arrow_json_args,
             )
             schema = None
+            batches = []
+            schema_evolved = False
             while True:
                 try:
                     batch = reader.read_next_batch()
-                    table = pyarrow.Table.from_batches([batch], schema=schema)
-                    if schema is None:
-                        schema = table.schema
-                    yield table
                 except StopIteration:
-                    return
-        except pyarrow.lib.ArrowInvalid as e:
-            raise ValueError(f"Failed to read JSON file: {path}. Underlying PyArrow Error: {e}") from e
+                    break
+                batches.append(batch)
+                if schema is None:
+                    schema = batch.schema
+                elif not schema.equals(batch.schema):
+                    schema = pyarrow.unify_schemas([schema, batch.schema])
+                    schema_evolved = True
+            # Yield all batches with consistent schema.
+            # Use .cast() when schema evolved (from_batches does NOT cast).
+            if schema_evolved:
+                for batch in batches:
+                    yield pyarrow.Table.from_batches([batch]).cast(schema)
+            else:
+                for batch in batches:
+                    yield pyarrow.Table.from_batches([batch])
+        except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
+            # PyArrow's streaming reader cannot handle schema evolution
+            # across block boundaries (e.g. null -> string). Fall back to
+            # paj.read_json() which infers schema across the entire file.
+            yield _full_file_fallback()
 
 
 def read_json_stream(

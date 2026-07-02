@@ -2,6 +2,7 @@ import unittest
 from loguru import logger
 
 from data_juicer.ops.mapper.calibrate_qa_mapper import CalibrateQAMapper
+from data_juicer.utils.constant import DEFAULT_API_MODEL
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -62,12 +63,13 @@ class CalibrateQAMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        op = CalibrateQAMapper(api_model='qwen2.5-72b-instruct')
+        op = CalibrateQAMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op)
 
     def test_args(self):
         op = CalibrateQAMapper(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             api_endpoint=
             'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
             response_path='choices.0.message.content')

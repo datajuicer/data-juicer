@@ -1,6 +1,13 @@
 import gc
+import os
+import pickle
+import shutil
+import tempfile
 
+import cv2
 import numpy as np
+import torch
+import transformers  # noqa: F401
 
 from data_juicer.utils.ASD_mapper_utils import get_video_array_cv2
 from data_juicer.utils.constant import Fields, MetaKeys
@@ -11,25 +18,17 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_captioning_face_attribute_emotion_mapper"
 
-import copy
-import os
-import pickle
-import shutil
-
-# avoid hanging when calling clip in multiprocessing
-# torch.set_num_threads(1)
-import sys
-import tempfile
-from shutil import rmtree
-
-import cv2
-import torch
-import transformers  # noqa: F401
-
 
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
+    """
+    Generate facial attribute and emotion descriptions for each person
+    tracked in a video using a video-to-text model.
+
+    Source: This operator is a part of HumanVBench (CVPR 2026).
+    """
+
     _accelerator = "cuda"
     _batched_op = True
 
@@ -77,7 +76,7 @@ class VideoCaptioningFaceAttributeEmotionMapper(Mapper):
 
     def process_batched(self, samples, rank=None):
 
-        if not MetaKeys.human_track_data_path in samples[Fields.meta]:
+        if MetaKeys.human_track_data_path not in samples[Fields.meta]:
             raise ValueError(
                 "video_captioning_face_attribute_emotion_mapper must be operated after video_human_tracks_extraction_mapper."
             )

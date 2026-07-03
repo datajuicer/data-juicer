@@ -1,6 +1,14 @@
 import gc
+import glob
 import os
+import pickle
+import shutil
+import subprocess
+import sys
+import tempfile
 
+import torch
+import tqdm
 from loguru import logger
 
 from data_juicer.utils.ASD_mapper_utils import (
@@ -9,45 +17,29 @@ from data_juicer.utils.ASD_mapper_utils import (
     get_video_array_cv2,
     longest_continuous_actives,
 )
+from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
-OP_NAME = "video_active_speaker_detect_mapper"
-
-import sys
-
-import torch
-
 sys.path.append("./thirdparty/humanvbench_models/Light-ASD")
-import glob
-import os
-import pickle
-import shutil
-import subprocess
-import tempfile
-from shutil import rmtree
 
-import tqdm
-
-from data_juicer.utils.constant import Fields, MetaKeys
-
-# from model.faceDetector.s3fd import S3FD
+OP_NAME = "video_active_speaker_detect_mapper"
 
 
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoActiveSpeakerDetectMapper(Mapper):
-    _accelerator = "cuda"
-    _batched_op = True
-
     """
     Detect active speakers in a video by analyzing visual face tracks and
     audio signals, including consistency checks for gender and age.
 
     Source: This operator is a part of HumanVBench (CVPR 2026).
     """
+
+    _accelerator = "cuda"
+    _batched_op = True
 
     _default_kwargs = {"upsample_num_times": 0}
 
@@ -220,7 +212,7 @@ class VideoActiveSpeakerDetectMapper(Mapper):
                 files.sort()
                 try:
                     scores = evaluate_network(files, asd_detection_model, pycropPath)
-                except:
+                except Exception:
                     scores = [[-10000]] * len(allTracks)
 
             else:
@@ -250,7 +242,7 @@ class VideoActiveSpeakerDetectMapper(Mapper):
                         flag = self.active_speaker_detection_revise(
                             active_count, is_child_descrip, audio_attri, face_gender
                         )
-                    except:
+                    except Exception:
                         if active_count > self.active_threshold:
                             flag = True
                         else:

@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from loguru import logger
 from pydantic import PositiveInt
 
@@ -146,25 +144,30 @@ class NlpaugEnMapper(Mapper):
             else:
                 return {key: [] for key in samples}
 
-        texts_to_aug = samples[self.text_key][0]  # batch_size = 1
-        res_samples = deepcopy(samples)
+        res_samples = {key: [] for key in samples}
+        # process each sample in the batch
+        for idx, text_to_aug in enumerate(samples[self.text_key]):
+            # get augmented texts for this sample
+            if self.sequential:
+                aug_texts = self.aug.augment(text_to_aug, n=self.aug_num)
+            else:
+                aug_texts = []
+                for aug_method in self.aug:
+                    aug_texts += aug_method.augment(text_to_aug, n=self.aug_num)
 
-        # get augmented texts
-        if self.sequential:
-            aug_texts = self.aug.augment(texts_to_aug, n=self.aug_num)
-        else:
-            # apply each aug method to generate several augmented texts
-            aug_texts = []
-            for aug_method in self.aug:
-                aug_texts += aug_method.augment(texts_to_aug, n=self.aug_num)
+            if not isinstance(aug_texts, list):
+                aug_texts = [aug_texts]
 
-        # add augmented samples to the batch with other replicate fields
-        if self.keep_original_sample:
-            res_samples[self.text_key] += aug_texts
-        else:
-            res_samples[self.text_key] = aug_texts
-        # add other replicate fields
-        for key in res_samples:
-            if key != self.text_key:
-                res_samples[key] = res_samples[key] * len(res_samples[self.text_key])
+            # collect texts for this sample
+            if self.keep_original_sample:
+                sample_texts = [text_to_aug] + aug_texts
+            else:
+                sample_texts = aug_texts
+            res_samples[self.text_key] += sample_texts
+
+            # replicate other fields to match
+            for key in samples:
+                if key != self.text_key:
+                    res_samples[key] += [samples[key][idx]] * len(sample_texts)
+
         return res_samples

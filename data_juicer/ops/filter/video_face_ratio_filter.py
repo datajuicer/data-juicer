@@ -1,36 +1,38 @@
+import gc
+import os
+
 import av
+import cv2
+import dlib
 import numpy as np
-from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.mm_utils import (load_data_with_context, load_video,
-                                        pil_to_opencv, pil_to_opencv, process_each_frame)
-from ..base_op import OPERATORS, Filter
-from ..op_fusion import LOADED_VIDEOS
-from ..op_fusion import INTER_SAMPLED_FRAMES
-
 import psutil
-import gc,os
-
-
-import cv2,dlib
 from PIL import ImageFilter
 
-OP_NAME = 'video_face_ratio_filter'
+from data_juicer.utils.constant import Fields, StatsKeys
+from data_juicer.utils.mm_utils import (
+    load_data_with_context,
+    load_video,
+    pil_to_opencv,
+    process_each_frame,
+)
+
+from ..base_op import OPERATORS, Filter
+from ..op_fusion import INTER_SAMPLED_FRAMES, LOADED_VIDEOS
+
+OP_NAME = "video_face_ratio_filter"
+
+
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
-
 class VideoFaceRatioFilter(Filter):
     """
-    Keep data samples whose videos' durations are within a specified range.
-    
+    Keep data samples whose videos' face-to-frame ratios are within a
+    specified range.
+
     Source: This operator is a part of HumanVBench (CVPR 2026).
     """
 
-    def __init__(self,
-                 threshold: float = 0.8,
-                 detect_interval: int = 1,
-                 any_or_all: str = 'all',
-                 *args,
-                 **kwargs):
+    def __init__(self, threshold: float = 0.8, detect_interval: int = 1, any_or_all: str = "all", *args, **kwargs):
         """
         Initialization method.
 
@@ -44,40 +46,36 @@ class VideoFaceRatioFilter(Filter):
         super().__init__(*args, **kwargs)
         self.threshold = threshold
 
-        if any_or_all not in ['any', 'all']:
-            raise ValueError(f'Keep strategy [{any_or_all}] is not supported. '
-                             f'Can only be one of ["any", "all"].')
-        self.any = (any_or_all == 'any')
+        if any_or_all not in ["any", "all"]:
+            raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
+        self.any = any_or_all == "any"
 
         # Initialize face detector
         self.detector = dlib.get_frontal_face_detector()
 
-
         self.detect_interval = detect_interval
-
 
     def compute_stats_single(self, sample, rank=None, context=False):
         # check if it's computed already
         if StatsKeys.video_face_exist in sample[Fields.stats]:
             return sample
-        
+
         # load videos
         loaded_video_keys = sample[self.video_key]
         video_faces_ratio = {}
-        
+
         # face_detect_S3FD = get_model(self.detector_key, rank=rank)
 
         process = psutil.Process(os.getpid())
         # memory_before = process.memory_info().rss / 1024 ** 2  # MB
 
-
         for video_key in loaded_video_keys:
             try:
                 with av.open(video_key) as container:
                     # getting video stream
-                    video_stream = next(s for s in container.streams if s.type == 'video')
+                    video_stream = next(s for s in container.streams if s.type == "video")
                     # iterate over the video frame and detect faces
-                    frame_counter = 0  
+                    frame_counter = 0
                     total_frames = 0
                     frames_with_face = 0
                     detect_num = 0
@@ -85,7 +83,7 @@ class VideoFaceRatioFilter(Filter):
                         try:
                             for frame in packet.decode():
                                 total_frames += 1
-                                frame_counter += 1  
+                                frame_counter += 1
 
                                 if frame_counter % self.detect_interval == 0:
                                     detect_num = detect_num + 1
@@ -120,7 +118,7 @@ class VideoFaceRatioFilter(Filter):
             video_faces_ratio[video_key] for video_key in sample[self.video_key]
         ]
 
-        memory_after = process.memory_info().rss / 1024 ** 2  # MB
+        memory_after = process.memory_info().rss / 1024**2  # MB
         print(f"Memory Usage: {memory_after:.2f} MB")
 
         gc.collect()
@@ -129,10 +127,7 @@ class VideoFaceRatioFilter(Filter):
 
     def process_single(self, sample):
         video_faces_ratio = sample[Fields.stats][StatsKeys.video_face_exist]
-        keep_bools = np.array([
-            duration >= self.threshold
-            for duration in video_faces_ratio
-        ])
+        keep_bools = np.array([face_ratio >= self.threshold for face_ratio in video_faces_ratio])
         if len(keep_bools) <= 0:
             return True
 

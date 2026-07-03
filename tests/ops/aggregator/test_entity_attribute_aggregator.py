@@ -4,10 +4,10 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.aggregator import EntityAttributeAggregator
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, BatchMetaKeys, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, BatchMetaKeys, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
 
     def _run_helper(self, op, samples, output_key=BatchMetaKeys.entity_attribute):
@@ -40,7 +40,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='主要经历'
         )
@@ -59,7 +60,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='身份背景',
             input_key='sub_docs',
@@ -80,7 +82,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='身份背景',
             max_token_num=200
@@ -100,7 +103,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='身份背景',
             word_limit=20
@@ -128,7 +132,8 @@ class EntityAttributeAggregatorTest(DataJuicerTestCaseBase):
             '孙行者、齐天大圣、美猴王\n'
         )
         op = EntityAttributeAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             attribute='另外身份',
             example_prompt=example_prompt,

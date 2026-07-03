@@ -55,7 +55,7 @@ class TextChunkMapper(Mapper):
             The text length will be calculate as the token num if it is
             offered. Otherwise, the text length equals to string length.
             Support tiktoken tokenizer (such as gpt-4o), dashscope tokenizer (
-            such as qwen2.5-72b-instruct) and huggingface tokenizer.
+            such as qwen3.7-max) and huggingface tokenizer.
         :param trust_remote_code: whether to trust the remote code of HF models.
         :param args: extra args
         :param kwargs: extra args

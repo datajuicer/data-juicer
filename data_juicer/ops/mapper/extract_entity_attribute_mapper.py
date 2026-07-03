@@ -68,6 +68,7 @@ class ExtractEntityAttributeMapper(Mapper):
         attr_pattern_template: Optional[str] = None,
         demo_pattern: Optional[str] = None,
         try_num: PositiveInt = 3,
+        require_support_demos: bool = True,
         drop_text: bool = False,
         model_params: Dict = {},
         sampling_params: Dict = {},
@@ -103,6 +104,10 @@ class ExtractEntityAttributeMapper(Mapper):
             output to support the attribute.
         :param try_num: The number of retry attempts when there is an API
             call error or output parsing error.
+        :param require_support_demos: If True (default), a call succeeds only
+            when both a non-empty attribute description and at least one demo
+            excerpt are parsed. Set False for agent/noisy logs where models
+            often skip the ``` code blocks.
         :param drop_text: If drop the text in the output.
         :param model_params: Parameters for initializing the API model.
         :param sampling_params: Extra parameters passed to the API call.
@@ -130,6 +135,7 @@ class ExtractEntityAttributeMapper(Mapper):
         )
 
         self.try_num = try_num
+        self.require_support_demos = bool(require_support_demos)
         self.drop_text = drop_text
 
     def parse_output(self, raw_output, attribute_name):
@@ -162,7 +168,12 @@ class ExtractEntityAttributeMapper(Mapper):
                     try:
                         output = client(messages, **self.sampling_params)
                         cur_desc, cur_demos = self.parse_output(output, attribute)
-                        if cur_desc and len(cur_demos) > 0:
+                        ok_demos = len(cur_demos) > 0
+                        if self.require_support_demos:
+                            ok = bool(cur_desc) and ok_demos
+                        else:
+                            ok = bool(cur_desc)
+                        if ok:
                             desc = cur_desc
                             demos = cur_demos
                             break

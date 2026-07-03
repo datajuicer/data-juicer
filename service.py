@@ -7,13 +7,14 @@ import os
 from typing import Dict
 from urllib.parse import parse_qs
 
-from fastapi import FastAPI, HTTPException, Request
-from jsonargparse import Namespace
 from pydantic import validate_call
 
-from data_juicer.config.config import get_default_cfg
+from data_juicer.config.config import get_default_cfg, get_init_configs
 from data_juicer.core.data.dataset_builder import DatasetBuilder
 from data_juicer.core.exporter import Exporter
+from data_juicer.utils.lazy_loader import LazyLoader
+
+fastapi = LazyLoader("fastapi")
 
 DJ_OUTPUT = "outputs"
 
@@ -31,7 +32,7 @@ allowed_methods = {
 }
 
 logger = logging.getLogger("uvicorn.error")
-app = FastAPI()
+app = fastapi.FastAPI()
 
 
 def register_objects_from_init(directory: str):
@@ -57,7 +58,7 @@ def register_class(module, cls):
     """Register class and its methods as endpoints."""
 
     def create_class_call(cls, method_name: str):
-        async def class_call(request: Request):
+        async def class_call(request: "fastapi.Request"):
             try:
                 # wrap init method
                 cls.__init__ = validate_call(cls.__init__, config=dict(arbitrary_types_allowed=True))
@@ -75,7 +76,7 @@ def register_class(module, cls):
                 result = _invoke(method, request)
                 return {"status": "success", "result": result}
             except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                raise fastapi.HTTPException(status_code=500, detail=str(e))
 
         return class_call
 
@@ -92,14 +93,14 @@ def register_function(module, func):
     """Register a function as an endpoint."""
 
     def create_func_call(func):
-        async def func_call(request: Request):
+        async def func_call(request: "fastapi.Request"):
             try:
                 nonlocal func
                 func = validate_call(func, config=dict(arbitrary_types_allowed=True))
                 result = _invoke(func, request)
                 return {"status": "success", "result": result}
             except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                raise fastapi.HTTPException(status_code=500, detail=str(e))
 
         return func_call
 
@@ -141,13 +142,12 @@ def _parse_json_dumps(params: Dict, prefix="<json_dumps>"):
 
 
 def _setup_cfg(params: Dict):
-    """convert string `cfg` to Namespace"""
-    # TODO: Traverse method's signature and convert any arguments \
-    #  that should be Namespace but are passed as str
-    if cfg_str := params.get("cfg"):
-        if isinstance(cfg_str, str):
-            cfg = Namespace(**json.loads(cfg_str))
-            params["cfg"] = cfg
+    """convert string or dict `cfg` to a fully initialized Namespace"""
+    cfg_val = params.get("cfg")
+    if cfg_val is not None and isinstance(cfg_val, (str, dict)):
+        if isinstance(cfg_val, str):
+            cfg_val = json.loads(cfg_val)
+        params["cfg"] = get_init_configs(cfg_val, load_configs_only=True)
     return params
 
 

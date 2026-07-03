@@ -1,13 +1,15 @@
 import sys
 
-import librosa
 import numpy as np
 
 from data_juicer.utils.constant import Fields, StatsKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import load_audio, load_data_with_context
 
 from ..base_op import OPERATORS, Filter
 from ..op_fusion import LOADED_AUDIOS
+
+librosa = LazyLoader("librosa")
 
 OP_NAME = "audio_duration_filter"
 
@@ -43,6 +45,9 @@ class AudioDurationFilter(Filter):
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
+
+        LazyLoader.check_packages(["resampy", "samplerate", "torchcodec"])
+
         self.min_duration = min_duration
         self.max_duration = max_duration
         if any_or_all not in ["any", "all"]:

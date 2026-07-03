@@ -6,6 +6,7 @@ from typing import Dict
 from loguru import logger
 
 from data_juicer.config import get_init_configs
+from data_juicer.core.analyzer import Analyzer
 from data_juicer.core.executor import DefaultExecutor
 
 DEFAULT_OUTPUT_DIR = "./outputs"
@@ -42,3 +43,19 @@ def execute_op(dj_cfg: Dict):
     except Exception:
         error_msg = traceback.format_exc()
         return f"Occur error when executing Data-Juicer: {error_msg}"
+
+
+def execute_analyze(dj_cfg: Dict):
+
+    try:
+
+        dj_cfg = add_extra_cfg(dj_cfg)
+        logger.info(f"DJ analyzer config in MCP server: {str(dj_cfg)}")
+        dj_cfg = get_init_configs(dj_cfg, load_configs_only=False)
+        analyzer = Analyzer(dj_cfg)
+        analyzer.run()
+        analysis_path = os.path.join(dj_cfg["work_dir"], "analysis")
+        return f"Analysis complete. " f"Analysis results (stats, figures) are saved in: {analysis_path}"
+    except Exception:
+        error_msg = traceback.format_exc()
+        return f"Occur error when executing Data-Juicer Analyzer: {error_msg}"

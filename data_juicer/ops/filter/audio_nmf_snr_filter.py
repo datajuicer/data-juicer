@@ -1,15 +1,17 @@
 import sys
 
-import librosa
 import numpy as np
-from librosa.decompose import decompose
 from pydantic import PositiveInt
 
 from data_juicer.utils.constant import Fields, StatsKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import load_audio, load_data_with_context
 
 from ..base_op import OPERATORS, Filter
 from ..op_fusion import LOADED_AUDIOS
+
+librosa = LazyLoader("librosa")
+decompose = LazyLoader("librosa.decompose")
 
 OP_NAME = "audio_nmf_snr_filter"
 
@@ -20,7 +22,7 @@ def separate_signal_noise(audio, n_components=2, nmf_iter=500):
     S = np.abs(librosa.stft(audio))
 
     # run NMF to decompose the audio
-    W, H = decompose(S, n_components=n_components, init="random", random_state=0, max_iter=nmf_iter)
+    W, H = decompose.decompose(S, n_components=n_components, init="random", random_state=0, max_iter=nmf_iter)
 
     # get signal and noise
     signal = np.dot(W[:, 0:1], H[0:1, :])
@@ -92,6 +94,9 @@ class AudioNMFSNRFilter(Filter):
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
+
+        LazyLoader.check_packages(["resampy", "samplerate==0.1.0", "torchcodec==0.7"])
+
         self.min_snr = min_snr
         self.max_snr = max_snr
         self.nmf_iter_num = nmf_iter_num

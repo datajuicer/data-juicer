@@ -229,6 +229,96 @@ class VideoMotionScoreFilterTest(DataJuicerTestCaseBase):
         op = VideoMotionScoreFilter(min_score=0, max_score=3.0, frame_field='frames', num_proc=2)
         self._run_helper(op, ds_list, tgt_list, select_field=['frames'])
 
+    def test_frame_field_without_original_fps(self):
+        """When original_fps is not specified, all frames are processed
+        (backward compatible behavior)."""
+        ds_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path]],
+        }]
+        tgt_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }]
+        op = VideoMotionScoreFilter(
+            min_score=0, max_score=3.0,
+            frame_field='frames', sampling_fps=2,
+        )
+        self._run_helper(op, ds_list, tgt_list, select_field=['frames'])
+
+    def test_frame_field_with_original_fps(self):
+        """When original_fps is specified, frames are sampled at sampling_fps
+        rate. With original_fps=30 and sampling_fps=2, sampling_step=15.
+        For 3 identical frames (idx 0,1,2), only idx 0 is selected
+        (0 % 15 == 0), resulting in no optical flow pairs -> score=-1."""
+        ds_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path]],
+        }]
+        # With original_fps=30 and sampling_fps=2, step=15,
+        # only frame 0 is selected from each video -> only 1 frame ->
+        # no optical flow -> score=-1, which is < min_score=0 -> filtered out
+        tgt_list = []
+        op = VideoMotionScoreFilter(
+            min_score=0, max_score=3.0,
+            frame_field='frames', sampling_fps=2, original_fps=30,
+        )
+        self._run_helper(op, ds_list, tgt_list, select_field=['frames'])
+
+    def test_frame_field_with_original_fps_small_step(self):
+        """When original_fps is close to sampling_fps, sampling_step is small.
+        With original_fps=4 and sampling_fps=2, sampling_step=2.
+        For 3 identical frames (idx 0,1,2), frames 0 and 2 are selected
+        (0%2==0, 2%2==0), resulting in 1 optical flow pair. Since frames
+        are identical, motion score is 0, which is within [0, 3.0]."""
+        ds_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path]],
+        }]
+        # step=2: for 3 frames, idx 0,2 selected -> 1 flow pair -> score=0
+        # for 2 frames, idx 0 selected -> no flow pair -> score=-1
+        # for 1 frame, idx 0 selected -> no flow pair -> score=-1
+        # score=0 is in [0, 3.0] -> kept; score=-1 is not -> filtered
+        tgt_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }]
+        op = VideoMotionScoreFilter(
+            min_score=0, max_score=3.0,
+            frame_field='frames', sampling_fps=2, original_fps=4,
+        )
+        self._run_helper(op, ds_list, tgt_list, select_field=['frames'])
+
+    def test_frame_field_with_original_fps_equal_sampling_fps(self):
+        """When original_fps equals sampling_fps, sampling_step=1, all frames
+        are processed (same as not specifying original_fps)."""
+        ds_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path]],
+        }]
+        tgt_list = [{
+            'frames': [[self.img1_path, self.img1_path, self.img1_path]],
+        }, {
+            'frames': [[self.img1_path, self.img1_path]],
+        }]
+        op = VideoMotionScoreFilter(
+            min_score=0, max_score=3.0,
+            frame_field='frames', sampling_fps=2, original_fps=2,
+        )
+        self._run_helper(op, ds_list, tgt_list, select_field=['frames'])
+
 
 if __name__ == '__main__':
     unittest.main()

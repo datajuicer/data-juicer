@@ -1,9 +1,9 @@
 import os
 
 import pandas as pd
-import spacy
 from loguru import logger
 
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 
@@ -116,6 +116,7 @@ class DiversityAnalysis:
         :return: the analysis result.
         """
         # load diversity model
+        spacy = LazyLoader("spacy")
         lang_or_model = lang_or_model if lang_or_model else self.lang_or_model
         if isinstance(lang_or_model, str):
             model_key = prepare_model("spacy", lang=lang_or_model)

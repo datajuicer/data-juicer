@@ -2,9 +2,11 @@ import os
 from collections import defaultdict
 
 import pandas as pd
-import ray
 
 from data_juicer.ops import OPERATORS
+from data_juicer.utils.lazy_loader import LazyLoader
+
+ray = LazyLoader("ray")
 
 
 @ray.remote

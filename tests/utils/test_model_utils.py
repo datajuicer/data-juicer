@@ -85,7 +85,9 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         mock_processor = MagicMock()
         mock_tiktoken.encoding_for_model.return_value = mock_processor
 
-        model = prepare_api_model('test_model')
+        # Pass explicit base_url to avoid environment variable (e.g. OPENAI_BASE_URL)
+        # from CI being merged and triggering DashScope model remapping.
+        model = prepare_api_model('test_model', base_url='https://api.openai.com/v1')
         self.assertEqual(model._client, mock_client)
         self.assertEqual(model.model, 'test_model')
         self.assertEqual(model.endpoint, '/chat/completions')
@@ -93,7 +95,7 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         # Test with processor for chat model
         mock_openai.OpenAI.reset_mock()
         mock_tiktoken.encoding_for_model.reset_mock()
-        model, processor = prepare_api_model('test_model', return_processor=True)
+        model, processor = prepare_api_model('test_model', base_url='https://api.openai.com/v1', return_processor=True)
         self.assertEqual(model._client, mock_client)
         self.assertEqual(processor, mock_processor)
         mock_tiktoken.encoding_for_model.assert_called_once()
@@ -395,6 +397,47 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         get_model(model_key)
         free_models()
         # No assertion needed, just checking it doesn't raise an exception
+
+
+class DashScopeOpenAICompatTest(DataJuicerTestCaseBase):
+    """Env merge + model remap for DashScope OpenAI-compatible REST."""
+
+    def test_merge_env_from_openai_and_dashscope_aliases(self):
+        from data_juicer.utils.model_utils import _merge_openai_compatible_env_into_model_params
+
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "",
+                "DASHSCOPE_API_KEY": "ds-key",
+                "OPENAI_API_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1/",
+            },
+            clear=False,
+        ):
+            m = _merge_openai_compatible_env_into_model_params({})
+        self.assertEqual(m.get("api_key"), "ds-key")
+        self.assertTrue(m["base_url"].endswith("/v1"))
+
+    def test_remap_gpt4o_on_dashscope_chat_only(self):
+        from data_juicer.utils.model_utils import _maybe_remap_model_for_dashscope
+
+        base = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        overrides = {"DASHSCOPE_DEFAULT_MODEL": "", "OPENAI_DEFAULT_MODEL": ""}
+        with patch.dict(os.environ, overrides, clear=False):
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope("gpt-4o", base, "/chat/completions"),
+                "qwen-plus",
+            )
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope("gpt-4o", base, "/embeddings"),
+                "gpt-4o",
+            )
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope(
+                    "qwen-turbo", base, "/chat/completions"
+                ),
+                "qwen-turbo",
+            )
 
 
 if __name__ == '__main__':

@@ -114,7 +114,6 @@ class TextTaggingByPromptMapper(Mapper):
         """  # noqa
 
         super().__init__(*args, **kwargs)
-        self.num_proc = 1
 
         self.prompt = prompt
         self.tag_list = tag_list

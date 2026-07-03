@@ -49,7 +49,14 @@ class TempDirManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if os.path.exists(self.tmp_dir):
             logger.info(f"Removing tmp dir {self.tmp_dir} ...")
-            shutil.rmtree(self.tmp_dir)
+            # in some cases, such as we mount OSS bucket with fuse device
+            # using Fluid, cleaning up temporary directories via
+            # shutil.rmtree() fails, but os.rmdir() succeeds.
+            try:
+                shutil.rmtree(self.tmp_dir)
+            except OSError as e:
+                logger.warning(f"Remove tmp dir with shutil.rmtree() failed: {e}, " "will try os.rmdir()")
+                os.rmdir(self.tmp_dir)
 
 
 # Note: Using Ray Data's built-in map_batches for parallel processing instead of custom remote functions
@@ -244,6 +251,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             getattr(self.cfg, "export_shard_size", 0),
             keep_stats_in_res_ds=getattr(self.cfg, "keep_stats_in_res_ds", True),
             keep_hashes_in_res_ds=getattr(self.cfg, "keep_hashes_in_res_ds", False),
+            encrypt_before_export=getattr(self.cfg, "encrypt_before_export", False),
+            encryption_key_path=getattr(self.cfg, "encryption_key_path", None),
             **export_extra_args,
         )
 
@@ -412,7 +421,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Load the full dataset using a single DatasetBuilder
         logger.info("Loading dataset with single DatasetBuilder...")
 
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
+        override_num_blocks = getattr(self.cfg, "override_num_blocks", None)
+        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np, override_num_blocks=override_num_blocks)
         columns = dataset.schema().columns
 
         # Prepare operations
@@ -477,8 +487,12 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         tmp_base_dir = os.path.join(self.work_dir, ".tmp")
         if os.path.exists(tmp_base_dir):
             logger.info(f"Cleaning up temporary files in {tmp_base_dir}")
-            shutil.rmtree(tmp_base_dir)
-            logger.info("✅ Temporary files cleaned up successfully")
+            try:
+                shutil.rmtree(tmp_base_dir)
+            except OSError as e:
+                logger.warning(f"Remove tmp dir with shutil.rmtree() failed: {e}, " "will try os.rmdir()")
+                os.rmdir(tmp_base_dir)
+            logger.info("Temporary files cleaned up successfully")
         else:
             logger.info("No temporary files found to clean up")
 
@@ -1000,5 +1014,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         """Clear checkpoints when partition validation fails."""
         if os.path.exists(self.ckpt_manager.ckpt_dir):
             logger.warning(f"Clearing invalid checkpoints in {self.ckpt_manager.ckpt_dir}")
-            shutil.rmtree(self.ckpt_manager.ckpt_dir)
+            try:
+                shutil.rmtree(self.ckpt_manager.ckpt_dir)
+            except OSError as e:
+                logger.warning(f"Remove ckpt dir with shutil.rmtree() failed: {e}, " "will try os.rmdir()")
+                os.rmdir(self.ckpt_manager.ckpt_dir)
             os.makedirs(self.ckpt_manager.ckpt_dir, exist_ok=True)

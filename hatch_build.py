@@ -1,5 +1,8 @@
 """Hatchling build hook for compiling C++ extensions."""
 
+import subprocess
+import sys
+
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 
@@ -11,8 +14,8 @@ class CustomBuildHook(BuildHookInterface):
         if self.target_name not in ("wheel", "sdist"):
             return
 
-        # Only compile for wheel builds
-        if self.target_name == "wheel":
+        # Only compile for wheel builds; skip on macOS (C++/OpenMP toolchain issues)
+        if self.target_name == "wheel" and sys.platform != "darwin":
             self._build_extensions()
 
     def _build_extensions(self):
@@ -32,6 +35,20 @@ class CustomBuildHook(BuildHookInterface):
                 if ct == "unix":
                     opts.append("-std=c++11")
                     opts.append("-fvisibility=hidden")
+                    # On macOS, ensure clang finds C++ stdlib (fixes 'cstddef' not found)
+                    if sys.platform == "darwin":
+                        try:
+                            sdk = subprocess.run(
+                                ["xcrun", "--show-sdk-path"],
+                                capture_output=True,
+                                text=True,
+                                check=True,
+                            )
+                            if sdk.stdout.strip():
+                                opts.append("-isysroot")
+                                opts.append(sdk.stdout.strip())
+                        except (subprocess.CalledProcessError, FileNotFoundError):
+                            pass
                 elif ct == "msvc":
                     opts.append("/std:c++11")
 

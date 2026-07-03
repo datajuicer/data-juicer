@@ -2,12 +2,12 @@ import unittest
 from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.filter.llm_analysis_filter import LLMAnalysisFilter
-from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, StatsKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen2.5-72b-instruct'
+    api_or_hf_model = DEFAULT_API_MODEL
 
     def _run_test(self, dataset: Dataset, op):
         if Fields.stats not in dataset.features:
@@ -26,14 +26,9 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
 
         for d in dataset:
             stats = d[Fields.stats]
-            if 'topic' in stats:
-                self.assertTrue(isinstance(stats['topic'], (str, list)))
-                if isinstance(stats['topic'], list):
-                    self.assertTrue(all(isinstance(item, str) for item in stats['topic']))
-            if 'style' in stats:
-                self.assertTrue(isinstance(stats['style'], (str, list)))
-                if isinstance(stats['style'], list):
-                    self.assertTrue(all(isinstance(item, str) for item in stats['style']))
+            # Tags are now stored under a single fixed key as JSON string
+            tags_str = stats.get(StatsKeys.llm_analysis_tags, "")
+            self.assertIsInstance(tags_str, str)
         
         dataset = dataset.filter(op.process, batch_size=op.batch_size)
         dataset_test = dataset.select_columns(column_names=['text'])
@@ -50,28 +45,33 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
             'text': "This comprehensive study examines the impact of climate change on global ecosystems, providing detailed analysis supported by extensive data collection over a decade. The research methodology includes rigorous statistical analysis and peer reviews from leading experts in environmental science."
         }]
         dataset = Dataset.from_list(ds_list)
-        op = LLMAnalysisFilter(api_or_hf_model=self.api_or_hf_model)
+        op = LLMAnalysisFilter(
+            api_or_hf_model=self.api_or_hf_model,
+            sampling_params={"enable_thinking": False},
+        )
         dataset = self._run_test(dataset, op)
 
     def test_rft_data(self):
         ds_list = [{
-            "text": "What is the fastest animal?",
-            "analysis": "The fastest animal is fish because they swim very fast in water.",
+            "text": "What is the fastest land animal?",
+            "analysis": "Fish is the fastest land animal because it swims in the ocean, flies above trees, and every animal is the same speed.",
             "answer": "Fish."
         }, {
             "text": "Why do leaves change color in autumn?",
-            "analysis": "Leaves change color because of the decrease in sunlight and temperature. Chlorophyll breaks down, revealing other pigments like yellow and orange.",
-            "answer": "Due to less sunlight and colder temperatures, chlorophyll breaks down, showing other colors."
+            "analysis": "As days get shorter, trees stop replacing chlorophyll. The green color fades and yellow or orange pigments that were already in the leaves become visible, though this skips some details such as red pigments.",
+            "answer": "Shorter daylight reduces chlorophyll, revealing other pigments in the leaves."
         }, {
             "text": "How does photosynthesis work?",
-            "analysis": "Photosynthesis is the process by which plants convert light energy into chemical energy. Chlorophyll absorbs sunlight, which drives the conversion of carbon dioxide and water into glucose and oxygen.",
-            "answer": "Plants use chlorophyll to absorb sunlight, converting carbon dioxide and water into glucose and oxygen."
+            "analysis": "Photosynthesis is the biochemical process by which green plants convert light energy into chemical energy stored in glucose. Chlorophyll in chloroplasts absorbs photons, driving the light-dependent reactions that produce ATP and NADPH. These then fuel the Calvin cycle, fixing CO2 into glyceraldehyde-3-phosphate, which is subsequently converted to glucose. Oxygen is released as a byproduct from water splitting.",
+            "answer": "Plants use chlorophyll to absorb sunlight, converting carbon dioxide and water into glucose and oxygen through light-dependent reactions and the Calvin cycle."
         }]
         dataset = Dataset.from_list(ds_list)
         op = LLMAnalysisFilter(
             api_or_hf_model=self.api_or_hf_model,
             input_keys=['text', 'analysis', 'answer'],
             field_names=['Query', 'Analysis', 'Answer'],
+            min_score=0.7,
+            sampling_params={"enable_thinking": False},
         )
         dataset = self._run_test(dataset, op)
 
@@ -86,7 +86,8 @@ class LLMAnalysisFilterTest(DataJuicerTestCaseBase):
         dataset = Dataset.from_list(ds_list)
         op = LLMAnalysisFilter(
             api_or_hf_model=self.api_or_hf_model,
-            dim_required_keys=["clarity", "fluency"]
+            dim_required_keys=["clarity", "fluency"],
+            sampling_params={"enable_thinking": False},
         )
         dataset = self._run_test(dataset, op)
 

@@ -1,0 +1,135 @@
+# ============================================================
+# Environment:
+#   /opt/venv/          - main environment, install all shared dependencies (excluding modified droid_backends)
+#   /opt/megasam-ext/   - MegaSaM modified droid_backends + lietorch
+# ============================================================
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+
+LABEL maintainer="data-juicer"
+LABEL description="Data-Juicer VLA Pipeline"
+
+ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8 LANG=C.UTF-8
+
+# public
+# ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ PIP_TRUSTED_HOST=mirrors.aliyun.com UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+# internal
+ENV PIP_INDEX_URL=http://mirrors.cloud.aliyuncs.com/pypi/simple/ PIP_TRUSTED_HOST=mirrors.cloud.aliyuncs.com UV_INDEX_URL=http://mirrors.cloud.aliyuncs.com/pypi/simple/
+
+ENV PIP_DEFAULT_TIMEOUT=1800 HTTP_TIMEOUT=1800 UV_HTTP_TIMEOUT=1800
+ENV TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0"
+ENV FORCE_CUDA=1
+
+# ------------------------------------------------------------------
+# System packages + Python 3.11
+# ------------------------------------------------------------------
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak \
+    && cat > /etc/apt/sources.list << 'EOF'
+deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy main restricted universe multiverse
+deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-updates main restricted universe multiverse
+deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-backports main restricted universe multiverse
+deb http://mirrors.cloud.aliyuncs.com/ubuntu/ jammy-security main restricted universe multiverse
+EOF
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-venv \
+        python3.11-dev \
+        git \
+        wget \
+        curl \
+        ffmpeg \
+        libgl1-mesa-glx \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+        build-essential \
+        ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install uv
+
+# Create base virtual environment
+RUN uv venv /opt/venv --python python3.11
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+RUN uv pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+
+# TF 2.20.0 was compiled with cuDNN 9.3.0, but the environment has cuDNN 9.1.0 bundled with PyTorch.
+# This version mismatch causes a "DNN library initialization failed" error.
+RUN uv pip install "nvidia-cudnn-cu12>=9.3.0"
+
+RUN uv pip install "py-data-juicer @ git+https://github.com/datajuicer/data-juicer.git@vla"
+RUN uv pip install -U "ray[default]"
+
+# torch-scatter (needs matching PyTorch/CUDA wheels)
+RUN uv pip install torch-scatter -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
+
+# MoGe-2 camera calibration
+RUN uv pip install "moge @ git+https://github.com/microsoft/MoGe.git"
+
+# HaWoR hand reconstruction
+RUN git clone --depth 1 https://github.com/ThunderVVV/HaWoR.git /root/.cache/data_juicer/assets/HaWoR
+
+# Patch requirements.txt:
+#   - remove chumpy (needs --no-build-isolation, install separately)
+#   - remove aitviewer / moderngl-window / pyrender (OpenGL, headless not needed)
+#   - relax torch-scatter version lock
+#   - relax numpy version lock
+RUN cd /root/.cache/data_juicer/assets/HaWoR \
+    && sed -i '/^chumpy/d' requirements.txt \
+    && sed -i '/^aitviewer/d' requirements.txt \
+    && sed -i '/^moderngl-window/d' requirements.txt \
+    && sed -i '/^pyrender/d' requirements.txt \
+    && sed -i '/pytorch3d/s/^/# /' requirements.txt \
+    && sed -i 's/^mmcv==.*/# &/' requirements.txt \
+    && sed -i 's/^torch-scatter==.*/# &/' requirements.txt \
+    && sed -i 's/^numpy==.*/numpy/' requirements.txt
+
+RUN pip install --no-build-isolation mmcv==1.3.9
+RUN uv pip install --no-build-isolation "pytorch3d @ git+https://github.com/facebookresearch/pytorch3d.git"
+RUN uv pip install -r /root/.cache/data_juicer/assets/HaWoR/requirements.txt
+RUN uv pip install pip && uv pip install --no-build-isolation "chumpy @ git+https://github.com/mattloper/chumpy"
+RUN uv pip install pytorch-lightning==2.6.1
+
+# DroidCalib
+RUN git clone --recursive https://github.com/1van2ha0/DroidCalib.git /root/.cache/data_juicer/assets/DroidCalib
+RUN cd /root/.cache/data_juicer/assets/DroidCalib && python setup.py install
+
+# compile MegaSaM into /opt/megasam-ext (conflict with DroidCalib), load at runtime via PYTHONPATH
+# ------------------------------------------------------------------
+RUN git clone --recursive https://github.com/mega-sam/mega-sam.git /root/.cache/data_juicer/assets/mega-sam \
+    && cd /root/.cache/data_juicer/assets/mega-sam \
+    # patch .type() -> .scalar_type() for PyTorch 2.6 compatibility
+    && sed -i 's/\.type()/\.scalar_type()/g' \
+        base/src/altcorr_kernel.cu \
+        base/src/correlation_kernels.cu \
+        base/src/droid_kernels.cu \
+        base/thirdparty/lietorch/lietorch/src/lietorch_gpu.cu \
+        base/thirdparty/lietorch/lietorch/src/lietorch_cpu.cpp \
+    # add L20 (8.9) and H20 (9.0) CUDA arch support
+    && sed -i "/compute_86,code=sm_86/a\                    '-gencode=arch=compute_89,code=sm_89',\n                    '-gencode=arch=compute_90,code=sm_90',"  base/setup.py
+
+# Build droid_backends + lietorch into /opt/megasam-ext (isolated)
+RUN cd /root/.cache/data_juicer/assets/mega-sam/base \
+    && python setup.py build_ext --inplace \
+    && python setup.py install --install-lib=/opt/megasam-ext --no-compile
+# ------------------------------------------------------------------
+
+# Pin shared dependencies to compatible versions
+RUN uv pip install scipy pyarrow av Pillow openai
+RUN uv pip install numpy==1.26.4
+RUN uv pip install opencv-python==4.10.0.84 opencv-contrib-python==4.10.0.84
+RUN uv pip install --force-reinstall pydantic pydantic-core typing-extensions
+RUN uv pip install --upgrade --force-reinstall click
+RUN uv pip install "pandas>=2.0,<2.2"
+
+RUN uv cache clean 2>/dev/null || true && rm -rf /tmp/* /root/.cache/pip
+
+WORKDIR /workspace
+
+ENTRYPOINT ["python"]

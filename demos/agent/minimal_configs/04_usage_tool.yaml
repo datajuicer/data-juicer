@@ -1,0 +1,24 @@
+# Minimal: normalize + usage + tool_success + agent_tool_type（无 LLM）
+project_name: agent-minimal-04
+dataset_path: demos/local/demo-agent-data-content.jsonl
+np: 2
+export_path: ./outputs/agent_minimal/04_usage_tool.jsonl
+text_keys: "id"
+
+process:
+  - agent_dialog_normalize_mapper:
+      messages_key: "messages"
+      choices_key: "response_choices"
+      text_key: "text"
+      history_key: "dialog_history"
+      query_key: "query"
+      response_key: "response"
+      extract_tool_skill_tags: true
+  - usage_counter_mapper:
+      choices_key: "response_choices"
+      usage_key: "response_usage"
+  - tool_success_tagger_mapper:
+      messages_key: "messages"
+      store_per_tool_results: true
+  - agent_tool_type_mapper:
+      top_k_dominant: 5

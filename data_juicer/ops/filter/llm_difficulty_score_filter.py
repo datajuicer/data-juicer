@@ -86,11 +86,11 @@ json
         score, record, tags = self.generate_llm_analysis(sample, rank)
 
         sample[Fields.stats][StatsKeys.llm_difficulty_score] = score
-        sample[Fields.stats][StatsKeys.llm_difficulty_record] = record
+        # Normalize record to ensure stable Arrow schema (handles nested None values)
+        sample[Fields.stats][StatsKeys.llm_difficulty_record] = self._normalize_record(record)
 
-        if tags and isinstance(tags, dict):
-            for key, value in tags.items():
-                sample[Fields.stats][key] = value
+        # Store all tags under a single fixed key to avoid dynamic key schema conflicts.
+        sample[Fields.stats][StatsKeys.llm_difficulty_tags] = self._normalize_tags_to_str(tags)
 
         return sample
 

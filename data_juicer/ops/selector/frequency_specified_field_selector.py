@@ -1,4 +1,5 @@
 import numbers
+from itertools import chain
 from typing import Optional
 
 from pydantic import Field, PositiveInt
@@ -87,7 +88,7 @@ class FrequencySpecifiedFieldSelector(Selector):
             if self.topk and self.topk < select_num:
                 select_num = self.topk
 
-        select_index = sum(
-            sorted(field_value_dict.values(), key=lambda x: len(x), reverse=self.reverse)[: int(select_num)], []
+        select_index = list(
+            chain.from_iterable(sorted(field_value_dict.values(), key=len, reverse=self.reverse)[: int(select_num)])
         )
         return dataset.select(select_index)

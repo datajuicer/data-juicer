@@ -1,3 +1,4 @@
+import functools
 import gc
 import os
 import shutil
@@ -17,6 +18,14 @@ transformers = LazyLoader("transformers")
 
 CLEAR_MODEL = False
 FROM_FORK = False
+
+
+class _SkipIfFromFork:
+    def __bool__(self):
+        return FROM_FORK
+
+
+_SKIP_IF_FROM_FORK = _SkipIfFromFork()
 
 
 def TEST_TAG(*tags):
@@ -47,6 +56,29 @@ def set_from_fork_flag(flag):
         logger.info("This unit test is activated from a forked repo.")
     else:
         logger.info("This unit test is activated from a dev branch.")
+
+
+def skip_if_from_fork(reason):
+    """Decorator that skips test if running from a fork, evaluated at runtime."""
+
+    def decorator(func):
+        if isinstance(func, type) and issubclass(func, unittest.TestCase):
+            func.__unittest_skip__ = _SKIP_IF_FROM_FORK
+            func.__unittest_skip_why__ = reason
+            return func
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if FROM_FORK:
+                raise unittest.SkipTest(reason)
+            return func(*args, **kwargs)
+
+        # 保留 __test_tags__ 属性
+        if hasattr(func, "__test_tags__"):
+            wrapper.__test_tags__ = func.__test_tags__
+        return wrapper
+
+    return decorator
 
 
 class DataJuicerTestCaseBase(unittest.TestCase):
@@ -204,7 +236,7 @@ def get_diff_files(prefix_filter=["data_juicer/", "tests/"]):
     """Get git diff files in target dirs except the __init__.py files"""
     changed_files = (
         subprocess.check_output(
-            ["git", "diff", "--name-only", "--diff-filter=ACMRT", "origin/main"],
+            ["git", "diff", "--name-only", "--diff-filter=ACMRT", "origin/main...HEAD"],
             universal_newlines=True,
         )
         .strip()

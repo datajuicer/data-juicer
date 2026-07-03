@@ -22,237 +22,249 @@ BATCH_SIZE = 2048
 MAX_DATA_NUM = 2**63
 
 
-@ray.remote
-class IdGenerator:
-    def __init__(self, start_id=0):
-        self.next_id = start_id
+def define_id_generator():
+    @ray.remote
+    class IdGenerator:
+        def __init__(self, start_id=0):
+            self.next_id = start_id
 
-    @ray.method(num_returns=2)
-    def get_next_id(self, count):
-        current_id = self.next_id
-        self.next_id += count
-        return (current_id, self.next_id)
+        @ray.method(num_returns=2)
+        def get_next_id(self, count):
+            current_id = self.next_id
+            self.next_id += count
+            return (current_id, self.next_id)
 
-
-@ray.remote
-class HashAggregator:
-    def __init__(self, parallel_num):
-        self.hash_table = [{} for _ in range(parallel_num)]
-
-    def set_hash_pairs(self, pairs):
-        for hash_table_id, hash_value, uid in pairs:
-            self.hash_table[hash_table_id].setdefault(hash_value, []).append(uid)
-
-    def get_hash_table(self, hash_table_id):
-        result = self.hash_table[hash_table_id]
-        self.hash_table[hash_table_id] = {}
-        return result
+    return IdGenerator
 
 
-@ray.remote
-class EdgeBuffer:
-    def __init__(self):
-        self.edge_buffer = []
+def define_hash_aggregator():
+    @ray.remote
+    class HashAggregator:
+        def __init__(self, parallel_num):
+            self.hash_table = [{} for _ in range(parallel_num)]
 
-    def set_edges(self, edge_buffer):
-        self.edge_buffer = edge_buffer
+        def set_hash_pairs(self, pairs):
+            for hash_table_id, hash_value, uid in pairs:
+                self.hash_table[hash_table_id].setdefault(hash_value, []).append(uid)
 
-    def get_edges(self, parallel_id):
-        result = self.edge_buffer[parallel_id]
-        self.edge_buffer[parallel_id] = []
-        return result
+        def get_hash_table(self, hash_table_id):
+            result = self.hash_table[hash_table_id]
+            self.hash_table[hash_table_id] = {}
+            return result
+
+    return HashAggregator
 
 
-@ray.remote
-class BTSUnionFind:
-    def __init__(
-        self,
-        union_threshold,
-        parallel_num,
-        parallel_id,
-        max_pending_edge_buffer_task,
-        num_edge_buffer_task_returns,
-        worker_node_ids,
-        num_hash_aggregators,
-        remote_edge_buffers_ref,
-    ):
-        self.union_threshold = union_threshold
-        self.parallel_num = parallel_num
-        self.parallel_id = parallel_id
-        self.hash_table = {}
-        self.parent = {}
-        self.old_parent = {}
-        self.remote_edge_buffers = remote_edge_buffers_ref
-        self.remote_buffer = None
-        self.edge_buffer = []
-        self.remote_edges = [[] for _ in range(parallel_num)]
-        self.max_pending_edge_buffer_task = max_pending_edge_buffer_task
-        self.num_edge_buffer_task_returns = num_edge_buffer_task_returns
-        self.worker_node_ids = worker_node_ids
-        self.num_nodes = len(worker_node_ids)
-        self.num_hash_aggregators = num_hash_aggregators
+def define_edge_buffer():
+    @ray.remote
+    class EdgeBuffer:
+        def __init__(self):
+            self.edge_buffer = []
 
-    def get_hash_table(self, hash_aggregators):
-        result_refs = []
-        for hash_aggregator in hash_aggregators:
-            if len(result_refs) > self.max_pending_edge_buffer_task:
-                ready_refs, result_refs = ray.wait(result_refs, num_returns=self.num_edge_buffer_task_returns)
-                hash_table_list = ray.get(ready_refs)
-                for hash_table in hash_table_list:
-                    for key, value in hash_table.items():
-                        self.hash_table.setdefault(key, []).extend(value)
-                del ready_refs
-            result_refs.append(hash_aggregator.get_hash_table.remote(self.parallel_id))
-        hash_table_list = ray.get(result_refs)
-        for hash_table in hash_table_list:
-            for key, value in hash_table.items():
-                self.hash_table.setdefault(key, []).extend(value)
-        key_cnt = len(self.hash_table)
-        value_cnt = 0
-        for value in self.hash_table.values():
-            value_cnt += len(value)
-            if len(value) > 1:
-                self.union_list(value)
-        del self.hash_table
-        return key_cnt, value_cnt
+        def set_edges(self, edge_buffer):
+            self.edge_buffer = edge_buffer
 
-    def balanced_union_find(self):
-        for x, y in self.edge_buffer:
-            self.union(x, y)
-        self.edge_buffer = []
+        def get_edges(self, parallel_id):
+            result = self.edge_buffer[parallel_id]
+            self.edge_buffer[parallel_id] = []
+            return result
 
-        result_refs = []
-        for i, remote_edge_buffer in enumerate(self.remote_edge_buffers):
-            if i == self.parallel_id:
-                continue
-            if len(result_refs) > self.max_pending_edge_buffer_task:
-                ready_refs, result_refs = ray.wait(result_refs, num_returns=self.num_edge_buffer_task_returns)
-                edge_list = ray.get(ready_refs)
-                for edges in edge_list:
-                    for x, y in edges:
-                        self.union(x, y)
-                del ready_refs
-            result_refs.append(remote_edge_buffer.get_edges.remote(self.parallel_id))
-        edge_list = ray.get(result_refs)
-        for edges in edge_list:
-            for x, y in edges:
+    return EdgeBuffer
+
+
+def define_bts_union_find():
+    @ray.remote
+    class BTSUnionFind:
+        def __init__(
+            self,
+            union_threshold,
+            parallel_num,
+            parallel_id,
+            max_pending_edge_buffer_task,
+            num_edge_buffer_task_returns,
+            worker_node_ids,
+            num_hash_aggregators,
+            remote_edge_buffers_ref,
+        ):
+            self.union_threshold = union_threshold
+            self.parallel_num = parallel_num
+            self.parallel_id = parallel_id
+            self.hash_table = {}
+            self.parent = {}
+            self.old_parent = {}
+            self.remote_edge_buffers = remote_edge_buffers_ref
+            self.remote_buffer = None
+            self.edge_buffer = []
+            self.remote_edges = [[] for _ in range(parallel_num)]
+            self.max_pending_edge_buffer_task = max_pending_edge_buffer_task
+            self.num_edge_buffer_task_returns = num_edge_buffer_task_returns
+            self.worker_node_ids = worker_node_ids
+            self.num_nodes = len(worker_node_ids)
+            self.num_hash_aggregators = num_hash_aggregators
+
+        def get_hash_table(self, hash_aggregators):
+            result_refs = []
+            for hash_aggregator in hash_aggregators:
+                if len(result_refs) > self.max_pending_edge_buffer_task:
+                    ready_refs, result_refs = ray.wait(result_refs, num_returns=self.num_edge_buffer_task_returns)
+                    hash_table_list = ray.get(ready_refs)
+                    for hash_table in hash_table_list:
+                        for key, value in hash_table.items():
+                            self.hash_table.setdefault(key, []).extend(value)
+                    del ready_refs
+                result_refs.append(hash_aggregator.get_hash_table.remote(self.parallel_id))
+            hash_table_list = ray.get(result_refs)
+            for hash_table in hash_table_list:
+                for key, value in hash_table.items():
+                    self.hash_table.setdefault(key, []).extend(value)
+            key_cnt = len(self.hash_table)
+            value_cnt = 0
+            for value in self.hash_table.values():
+                value_cnt += len(value)
+                if len(value) > 1:
+                    self.union_list(value)
+            del self.hash_table
+            return key_cnt, value_cnt
+
+        def balanced_union_find(self):
+            for x, y in self.edge_buffer:
                 self.union(x, y)
-        del edge_list, result_refs
-        self.rebalancing()
-        return self.old_parent != self.parent
+            self.edge_buffer = []
 
-    def distribute_edge(self, u, v):
-        hash_u = u // BATCH_SIZE % self.parallel_num
-        hash_v = v // BATCH_SIZE % self.parallel_num
-        self.remote_edges[hash_u].append((u, v))
-        if hash_u != hash_v:
-            self.remote_edges[hash_v].append((u, v))
+            result_refs = []
+            for i, remote_edge_buffer in enumerate(self.remote_edge_buffers):
+                if i == self.parallel_id:
+                    continue
+                if len(result_refs) > self.max_pending_edge_buffer_task:
+                    ready_refs, result_refs = ray.wait(result_refs, num_returns=self.num_edge_buffer_task_returns)
+                    edge_list = ray.get(ready_refs)
+                    for edges in edge_list:
+                        for x, y in edges:
+                            self.union(x, y)
+                    del ready_refs
+                result_refs.append(remote_edge_buffer.get_edges.remote(self.parallel_id))
+            edge_list = ray.get(result_refs)
+            for edges in edge_list:
+                for x, y in edges:
+                    self.union(x, y)
+            del edge_list, result_refs
+            self.rebalancing()
+            return self.old_parent != self.parent
 
-    def set_edge_buffer(self):
-        self.edge_buffer = self.remote_edges[self.parallel_id]
-        self.remote_edges[self.parallel_id] = []
-        ray.get(self.remote_edge_buffers[self.parallel_id].set_edges.remote(self.remote_edges))
-        self.remote_edges = [[] for _ in range(self.parallel_num)]
-
-    def edge_redistribution(self, hash_aggregators):
-        key_cnt, value_cnt = self.get_hash_table(hash_aggregators)
-        self.rebalancing()
-        for u, v in self.parent.items():
-            self.distribute_edge(u, v)
-        self.parent = {}
-        self.set_edge_buffer()
-        return key_cnt, value_cnt
-
-    def communication(self):
-        del_list = []
-        for u, v in self.parent.items():
+        def distribute_edge(self, u, v):
             hash_u = u // BATCH_SIZE % self.parallel_num
-            if self.parent[u] != self.old_parent.get(u, u) or (hash_u != self.parallel_id and v not in self.parent):
+            hash_v = v // BATCH_SIZE % self.parallel_num
+            self.remote_edges[hash_u].append((u, v))
+            if hash_u != hash_v:
+                self.remote_edges[hash_v].append((u, v))
+
+        def set_edge_buffer(self):
+            self.edge_buffer = self.remote_edges[self.parallel_id]
+            self.remote_edges[self.parallel_id] = []
+            ray.get(self.remote_edge_buffers[self.parallel_id].set_edges.remote(self.remote_edges))
+            self.remote_edges = [[] for _ in range(self.parallel_num)]
+
+        def edge_redistribution(self, hash_aggregators):
+            key_cnt, value_cnt = self.get_hash_table(hash_aggregators)
+            self.rebalancing()
+            for u, v in self.parent.items():
                 self.distribute_edge(u, v)
-            if hash_u != self.parallel_id:
-                del_list.append(u)
-        self.old_parent = self.parent.copy()
-        for u in del_list:
-            del self.parent[u]
-        self.set_edge_buffer()
+            self.parent = {}
+            self.set_edge_buffer()
+            return key_cnt, value_cnt
 
-    def find(self, x):
-        if x not in self.parent:
-            return x
-        else:
-            self.parent[x] = self.find(self.parent[x])
-            return self.parent[x]
+        def communication(self):
+            del_list = []
+            for u, v in self.parent.items():
+                hash_u = u // BATCH_SIZE % self.parallel_num
+                if self.parent[u] != self.old_parent.get(u, u) or (hash_u != self.parallel_id and v not in self.parent):
+                    self.distribute_edge(u, v)
+                if hash_u != self.parallel_id:
+                    del_list.append(u)
+            self.old_parent = self.parent.copy()
+            for u in del_list:
+                del self.parent[u]
+            self.set_edge_buffer()
 
-    def union(self, x, y):
-        px = self.find(x)
-        py = self.find(y)
-        if px == py:
-            return
-        if px > py:
-            px, py = py, px
-        self.parent[py] = px
-
-    def union_list(self, x_list):
-        px_list = [self.find(x) for x in x_list]
-        p = min(px_list)
-        for px in px_list:
-            if p != px:
-                self.parent[px] = p
-        return p
-
-    def rebalancing(self):
-        new_px_dict = {}
-        for x in self.parent:
-            hash_x = x // BATCH_SIZE % self.parallel_num
-            px = self.find(x)
-            key = (px, hash_x)
-            if key not in new_px_dict:
-                new_px_dict[key] = x
+        def find(self, x):
+            if x not in self.parent:
+                return x
             else:
-                new_px_dict[key] = min(new_px_dict[key], x)
-        px_set = set(px for px, _ in new_px_dict)
-        for px in px_set:
-            hash_px = px // BATCH_SIZE % self.parallel_num
-            key = (px, hash_px)
-            if key not in new_px_dict:
-                new_px_dict[key] = px
-            else:
-                new_px_dict[key] = min(new_px_dict[key], px)
+                self.parent[x] = self.find(self.parent[x])
+                return self.parent[x]
 
-        for x in self.parent:
-            hash_x = x // BATCH_SIZE % self.parallel_num
+        def union(self, x, y):
             px = self.find(x)
-            key = (px, hash_x)
-            if x == new_px_dict[key]:
-                continue
-            self.parent[x] = new_px_dict[key]
+            py = self.find(y)
+            if px == py:
+                return
+            if px > py:
+                px, py = py, px
+            self.parent[py] = px
 
-    def squeeze(self):
-        self.dup_uids = {}
-        for x in self.parent:
-            x_div = x // BATCH_SIZE
-            if x_div % self.parallel_num != self.parallel_id:
-                continue
-            if x_div not in self.dup_uids:
-                self.dup_uids[x_div] = np.ones(BATCH_SIZE, dtype=np.bool_)
-            self.dup_uids[x_div][x % BATCH_SIZE] = 0
-        self.parent.clear()
-        self.old_parent.clear()
-        self.edge_buffer.clear()
+        def union_list(self, x_list):
+            px_list = [self.find(x) for x in x_list]
+            p = min(px_list)
+            for px in px_list:
+                if p != px:
+                    self.parent[px] = p
+            return p
 
-    def remain_mask(self, uid_div, cmp_uid_mods):
-        from bitarray import bitarray
+        def rebalancing(self):
+            new_px_dict = {}
+            for x in self.parent:
+                hash_x = x // BATCH_SIZE % self.parallel_num
+                px = self.find(x)
+                key = (px, hash_x)
+                if key not in new_px_dict:
+                    new_px_dict[key] = x
+                else:
+                    new_px_dict[key] = min(new_px_dict[key], x)
+            px_set = set(px for px, _ in new_px_dict)
+            for px in px_set:
+                hash_px = px // BATCH_SIZE % self.parallel_num
+                key = (px, hash_px)
+                if key not in new_px_dict:
+                    new_px_dict[key] = px
+                else:
+                    new_px_dict[key] = min(new_px_dict[key], px)
 
-        if uid_div in self.dup_uids:
-            mask = self.dup_uids[uid_div][np.array(cmp_uid_mods.tolist(), dtype=np.bool_)]
-            cmp_mask = bitarray()
-            cmp_mask.extend(mask.tolist())
-            return cmp_mask
-        else:
-            # return np.ones(uid_mods.sum(), dtype=np.bool_)
-            cmp_mask = bitarray()
-            cmp_mask.extend([1] * cmp_uid_mods.count(1))
-            return cmp_mask
+            for x in self.parent:
+                hash_x = x // BATCH_SIZE % self.parallel_num
+                px = self.find(x)
+                key = (px, hash_x)
+                if x == new_px_dict[key]:
+                    continue
+                self.parent[x] = new_px_dict[key]
+
+        def squeeze(self):
+            self.dup_uids = {}
+            for x in self.parent:
+                x_div = x // BATCH_SIZE
+                if x_div % self.parallel_num != self.parallel_id:
+                    continue
+                if x_div not in self.dup_uids:
+                    self.dup_uids[x_div] = np.ones(BATCH_SIZE, dtype=np.bool_)
+                self.dup_uids[x_div][x % BATCH_SIZE] = 0
+            self.parent.clear()
+            self.old_parent.clear()
+            self.edge_buffer.clear()
+
+        def remain_mask(self, uid_div, cmp_uid_mods):
+            from bitarray import bitarray
+
+            if uid_div in self.dup_uids:
+                mask = self.dup_uids[uid_div][np.array(cmp_uid_mods.tolist(), dtype=np.bool_)]
+                cmp_mask = bitarray()
+                cmp_mask.extend(mask.tolist())
+                return cmp_mask
+            else:
+                # return np.ones(uid_mods.sum(), dtype=np.bool_)
+                cmp_mask = bitarray()
+                cmp_mask.extend([1] * cmp_uid_mods.count(1))
+                return cmp_mask
+
+    return BTSUnionFind
 
 
 class MinhashCalculator:
@@ -519,13 +531,15 @@ class RayBTSMinhashCppDeduplicator(Deduplicator):
 
         num_ids_per_node = MAX_DATA_NUM // num_nodes
         self.id_generators = [
-            IdGenerator.options(
+            define_id_generator()
+            .options(
                 name=f"id_generators_{worker_node_ids[i]}",
                 scheduling_strategy=NodeAffinitySchedulingStrategy(
                     node_id=worker_node_ids[i],
                     soft=False,
                 ),
-            ).remote(num_ids_per_node * i)
+            )
+            .remote(num_ids_per_node * i)
             for i in range(num_nodes)
         ]
 
@@ -533,13 +547,15 @@ class RayBTSMinhashCppDeduplicator(Deduplicator):
         self.num_hash_aggregators_per_node = int(np.ceil(cpu_num / num_nodes * 0.2))
         num_hash_aggregators = self.num_hash_aggregators_per_node * num_nodes
         self.hash_aggregators = [
-            HashAggregator.options(
+            define_hash_aggregator()
+            .options(
                 name=f"hash_aggregator_{worker_node_ids[i % num_nodes]}_{i // num_nodes}",
                 scheduling_strategy=NodeAffinitySchedulingStrategy(
                     node_id=worker_node_ids[i % num_nodes],
                     soft=False,
                 ),
-            ).remote(parallel_num=union_find_parallel_num)
+            )
+            .remote(parallel_num=union_find_parallel_num)
             for i in range(num_hash_aggregators)
         ]
 
@@ -555,24 +571,28 @@ class RayBTSMinhashCppDeduplicator(Deduplicator):
         self.union_find_parallel_num = union_find_parallel_num
         self.union_threshold = union_threshold
         self.remote_edge_buffers = [
-            EdgeBuffer.options(
+            define_edge_buffer()
+            .options(
                 name=f"edge_buffer_{i}",
                 scheduling_strategy=NodeAffinitySchedulingStrategy(
                     node_id=worker_node_ids[i % num_nodes],
                     soft=False,
                 ),
-            ).remote()
+            )
+            .remote()
             for i in range(self.union_find_parallel_num)
         ]
         remote_edge_buffers_ref = ray.put(self.remote_edge_buffers)
         self.union_find_list = [
-            BTSUnionFind.options(
+            define_bts_union_find()
+            .options(
                 name=f"union_find_{i}",
                 scheduling_strategy=NodeAffinitySchedulingStrategy(
                     node_id=worker_node_ids[i % num_nodes],
                     soft=False,
                 ),
-            ).remote(
+            )
+            .remote(
                 self.union_threshold,
                 self.union_find_parallel_num,
                 i,

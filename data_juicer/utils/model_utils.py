@@ -39,7 +39,7 @@ aes_pred = LazyLoader("aesthetics_predictor", "simple-aesthetics-predictor")
 vllm = LazyLoader("vllm")
 diffusers = LazyLoader("diffusers")
 ram = LazyLoader("ram", "git+https://github.com/datajuicer/recognize-anything.git")
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 openai = LazyLoader("openai")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
@@ -204,8 +204,11 @@ class ChatAPIModel:
         self.model = model
         self.endpoint = endpoint or "/chat/completions"
         self.response_path = response_path or "choices.0.message.content"
+        self.last_response = None  # last chat completion JSON (for usage / debugging)
 
         client_args = filter_arguments(openai.OpenAI, kwargs)
+        if "base_url" not in client_args and os.environ.get("OPENAI_BASE_URL"):
+            client_args["base_url"] = os.environ.get("OPENAI_BASE_URL").rstrip("/")
         self._client = openai.OpenAI(**client_args)
         if self.model is None:
             logger.warning("No model specified. Using the first available model from the server.")
@@ -239,9 +242,11 @@ class ChatAPIModel:
                 self.endpoint, body=body, cast_to=httpx.Response, stream=stream, stream_cls=stream_cls
             )
             result = response.json()
+            self.last_response = result
             return nested_access(result, self.response_path) or ""
         except Exception as e:
             logger.exception(e)
+            self.last_response = None
             return ""
 
 
@@ -262,6 +267,8 @@ class EmbeddingAPIModel:
         self.response_path = response_path or "data.0.embedding"
 
         client_args = filter_arguments(openai.OpenAI, kwargs)
+        if "base_url" not in client_args and os.environ.get("OPENAI_BASE_URL"):
+            client_args["base_url"] = os.environ.get("OPENAI_BASE_URL").rstrip("/")
         self._client = openai.OpenAI(**client_args)
         if self.model is None:
             logger.warning("No model specified. Using the first available model from the server.")
@@ -309,6 +316,8 @@ class ResponsesAPIModel:
         self.response_path = response_path or "output.0.content.0.text"
 
         client_args = filter_arguments(openai.OpenAI, kwargs)
+        if "base_url" not in client_args and os.environ.get("OPENAI_BASE_URL"):
+            client_args["base_url"] = os.environ.get("OPENAI_BASE_URL").rstrip("/")
         self._client = openai.OpenAI(**client_args)
         if self.model is None:
             logger.warning("No model specified. Using the first available model from the server.")
@@ -341,6 +350,81 @@ class ResponsesAPIModel:
             return ""
 
 
+def _merge_openai_compatible_env_into_model_params(model_params):
+    """Fill OpenAI client kwargs from environment (DashScope REST / OpenAI-compatible).
+
+    Supported env vars:
+    - ``OPENAI_API_KEY``, ``DASHSCOPE_API_KEY``, or ``SK`` -> ``api_key``
+    - ``OPENAI_BASE_URL``, ``OPENAI_API_URL``, or ``DASHSCOPE_BASE_URL`` -> ``base_url``
+      (trailing slash stripped)
+
+    Explicit keys in ``model_params`` take precedence.
+    """
+    out = dict(model_params) if model_params else {}
+    if not out.get("api_key"):
+        key = os.environ.get("OPENAI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("SK")
+        if key:
+            out["api_key"] = key
+    if not out.get("base_url"):
+        base = (
+            os.environ.get("OPENAI_BASE_URL")
+            or os.environ.get("OPENAI_API_URL")
+            or os.environ.get("DASHSCOPE_BASE_URL")
+        )
+        if base:
+            out["base_url"] = base.rstrip("/")
+    return out
+
+
+def _is_dashscope_openai_compatible_base(base_url: Optional[str]) -> bool:
+    if not base_url:
+        return False
+    u = base_url.lower()
+    if "dashscope" in u:
+        return True
+    if "compatible-mode" in u and "aliyun" in u:
+        return True
+    return False
+
+
+def _maybe_remap_model_for_dashscope(
+    model: Optional[str], base_url: Optional[str], endpoint: Optional[str]
+) -> Optional[str]:
+    """DashScope compatible-mode does not serve OpenAI model ids (e.g. gpt-4o).
+
+    If the base URL looks like DashScope compatible API and the model id is not a
+    typical Qwen/DeepSeek id, remap using ``DASHSCOPE_DEFAULT_MODEL`` or
+    ``OPENAI_DEFAULT_MODEL``, else ``qwen-plus``.
+
+    Skipped for non-chat endpoints (e.g. ``/embeddings``).
+    """
+    ep = (endpoint or "").lower()
+    if "embedd" in ep:
+        return model
+    if not model or not _is_dashscope_openai_compatible_base(base_url):
+        return model
+    m = model.lower()
+    if m.startswith("qwen") or m.startswith("deepseek"):
+        return model
+    remapped = os.environ.get("DASHSCOPE_DEFAULT_MODEL") or os.environ.get("OPENAI_DEFAULT_MODEL")
+    if remapped:
+        if remapped != model:
+            logger.info(
+                "Remapping API model [{}] -> [{}] for DashScope compatible endpoint",
+                model,
+                remapped,
+            )
+        return remapped
+    fallback = "qwen-plus"
+    logger.info(
+        "API model [{}] is not a DashScope model id; using [{}]. "
+        "Set DASHSCOPE_DEFAULT_MODEL or pass api_or_hf_model explicitly.",
+        model,
+        fallback,
+    )
+    return fallback
+
+
 def prepare_api_model(
     model, *, endpoint=None, response_path=None, return_processor=False, processor_config=None, **model_params
 ):
@@ -368,10 +452,15 @@ def prepare_api_model(
         for initializing a Hugging Face processor. It is only relevant if
         `return_processor` is set to True.
     :param model_params: Additional parameters for configuring the API model.
+        Environment variables ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and
+        ``OPENAI_API_KEY`` / ``DASHSCOPE_API_KEY`` are merged when not set here
+        (OpenAI-compatible / DashScope REST).
     :return: A callable APIModel instance, and optionally a processor
         if `return_processor` is True.
     """
+    model_params = _merge_openai_compatible_env_into_model_params(model_params)
     endpoint = endpoint or "/chat/completions"
+    model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)
 
     ENDPOINT_CLASS_MAP = {
         "chat": ChatAPIModel,
@@ -425,8 +514,9 @@ def prepare_api_model(
 def prepare_deepcalib_model(model_path, **model_params):
 
     device = model_params.pop("device", None)
-    if device is None:
-        raise ValueError("video_camera_calibration_static_deepcalib_mapper currently supports GPU usage only.")
+    if device is None or device == "cpu":
+        raise ValueError("CUDA device must be specified for deepcalib model.")
+
     device = device.replace("cuda", "/gpu")
 
     if not os.path.exists(model_path):
@@ -449,7 +539,7 @@ def prepare_deepcalib_model(model_path, **model_params):
 
         model_path = deepcalib_model_path
 
-    LazyLoader.check_packages(["tensorflow"])
+    LazyLoader.check_packages(["tensorflow==2.20.0"])
     import tensorflow as tf
     from keras.applications.inception_v3 import InceptionV3
     from keras.layers import Dense, Flatten, Input
@@ -629,7 +719,7 @@ def prepare_huggingface_model(
     return (model, processor) if return_model else processor
 
 
-def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **model_params):
+def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, mano_left_path=None, **model_params):
 
     device = model_params.pop("device", "cpu")
 
@@ -640,8 +730,7 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
 
     sys.path.append(hawor_repo_path)
 
-    from hawor.configs import get_config
-    from lib.models.hawor import HAWOR
+    from data_juicer.ops.common.hawor_func import HAWOR, get_config
 
     if not os.path.exists(mano_right_path):
         raise ValueError(
@@ -652,13 +741,13 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
         hawor_model_dir = os.path.join(DJMC, "HaWor")
         os.makedirs(hawor_model_dir, exist_ok=True)
         hawor_model_path = os.path.join(hawor_model_dir, "hawor.ckpt")
-        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], hawor_model_path], check=True)
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], "-O", hawor_model_path], check=True)
 
     if not os.path.exists(hawor_config_path):
         hawor_model_dir = os.path.join(DJMC, "HaWor")
         os.makedirs(hawor_model_dir, exist_ok=True)
         hawor_config_path = os.path.join(hawor_model_dir, "model_config.yaml")
-        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], hawor_config_path], check=True)
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], "-O", hawor_config_path], check=True)
 
     model_cfg = get_config(hawor_config_path, update_cachedir=True)
 
@@ -683,9 +772,13 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
 
     from data_juicer.ops.common.mano_func import MANO
 
-    mano_model = MANO(model_path=mano_right_path).to(device)
+    mano_right_model = MANO(model_path=mano_right_path).to(device)
 
-    return hawor_model, model_cfg, mano_model
+    mano_left_model = None
+    if mano_left_path and os.path.exists(mano_left_path):
+        mano_left_model = MANO.build_left(model_path=mano_left_path).to(device)
+
+    return hawor_model, model_cfg, mano_right_model, mano_left_model
 
 
 def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):
@@ -922,7 +1015,7 @@ def prepare_spacy_model(lang, name_pattern="{}_core_web_md-3.7.0", **model_param
         "en"]
     :return: corresponding spacy model
     """
-    import spacy
+    spacy = LazyLoader("spacy")
 
     assert lang in ["zh", "en"], "Diversity only support zh and en"
     model_name = name_pattern.format(lang)
@@ -1356,7 +1449,26 @@ def prepare_embedding_model(model_path, **model_params):
     return type("EmbeddingModel", (), {"encode": encode})()
 
 
-def update_sampling_params(sampling_params, pretrained_model_name_or_path, enable_vllm=False):
+def update_sampling_params(
+    sampling_params,
+    pretrained_model_name_or_path,
+    enable_vllm=False,
+    fetch_generation_config_from_hf=None,
+):
+    """Update sampling_params with max_tokens/max_new_tokens from model or defaults.
+
+    For vLLM: ensures `max_tokens` is set (vLLM default 16 is too small).
+    For HF local: ensures `max_new_tokens` is set (transformers default 20 is too small).
+
+    This function should NOT be called for API models — API providers have
+    their own defaults, and injecting params like `max_new_tokens` would be
+    invalid for OpenAI-compatible endpoints.
+
+    When fetch_generation_config_from_hf is False (e.g. API-only models like
+    gemini-2.5-flash via DashScope), skip HuggingFace GenerationConfig fetch to
+    avoid connection errors. Default None means: fetch when enable_vllm or when
+    pretrained_model_name_or_path looks like an HF path (contains /).
+    """
     if enable_vllm:
         update_keys = {"max_tokens"}
     else:
@@ -1370,15 +1482,20 @@ def update_sampling_params(sampling_params, pretrained_model_name_or_path, enabl
         "max_new_tokens": (max, 512),
     }
 
-    # try to get the generation configs
-    from transformers import GenerationConfig
+    if fetch_generation_config_from_hf is None:
+        fetch_generation_config_from_hf = enable_vllm or ("/" in str(pretrained_model_name_or_path))
 
-    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
-    try:
-        model_generation_config = GenerationConfig.from_pretrained(pretrained_model_name_or_path).to_dict()
-    except:  # noqa: E722
-        logger.warning(f"No generation config found for the model " f"[{pretrained_model_name_or_path}]")
-        model_generation_config = {}
+    model_generation_config = {}
+    if fetch_generation_config_from_hf:
+        pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
+        try:
+            model_generation_config = transformers.GenerationConfig.from_pretrained(
+                pretrained_model_name_or_path
+            ).to_dict()
+        except Exception as e:
+            logger.warning(
+                f"No generation config found for the model " f"[{pretrained_model_name_or_path}]. Error: {e}"
+            )
 
     for key in update_keys:
         # if there is this param in the sampling_prams, compare it with the

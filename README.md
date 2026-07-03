@@ -87,6 +87,35 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
+<summary>[2026-06-26] Release v1.5.3: <b>VLA Ops Enhancements; Ray Repartition Pipeline; Scalability & Robustness</b></summary>
+
+* 🤖 *VLA Ops Enhancements* — Expanded embodied-AI processing with 10+ new/renamed VLA operators (camera calibration via DeepCalib/DroidCalib/MoGe, atomic action segmentation, hand action computation & motion smoothing, clip reassembly, trajectory overlay, LeRobot export) and a complete VLA pipeline demo.
+* 🔄 *Ray Repartition Pipeline* — New `ray_repartition_pipeline` for dataset-level block repartitioning in Ray mode.
+* ⚡ *Scalable Ray Data Reads* — Wired `override_num_blocks` through the full call chain for controlling block parallelism on PB-scale datasets.
+* 🧪 *Test Coverage Expansion* — Added 409 new test cases across 18 test files.
+* 🐳 *Stability & Robustness Fixes* — JSONStreamDatasource schema unification, OP env version resolution, FUSE-safe rmtree for PartitionedRayExecutor, deprecated model name updates, and num_proc handling fixes.
+</details>
+
+<details open>
+<summary>[2026-05-29] Release v1.5.2: <b>Semantic LLM OPs, Cross-doc Line Dedup & Leaner Dependencies</b></summary>
+
+* 🧹 *New Deduplicator* — Added `DocumentLineDeduplicator` for cross-document line-level dedup, removing boilerplate lines (templates, copyright notices, navigation bars) by global document frequency.
+* 🤖 *Agent Data Quality Toolkit* — Shipped interaction-quality OPs & recipe, a bad-case HTML report, and more robust JSONL / HuggingFace meta loading.
+* 📦 *Leaner & Faster Install* — Slimmed the default dependency set (Ray, audio, spaCy, av, etc. moved to on-demand extras) to speed up installation.
+* 🐳 *Stability & Robustness Fixes* — Library-safe error handling (raise over `exit(1)`), Ray init/temp-dir fixes, valid API params (drop invalid `max_new_tokens`), PyArrow 20+ batch JSON reading, local-path aesthetics model support, and more performance/bug fixes.
+* 🧠 *Semantic LLM Operators* — Introduced `llm_extract_mapper`, `llm_condition_filter`, and `llm_structured_ops` with unified `llm_*` naming and configurable inference strategies (join/agg/top-k planned).
+</details>
+
+<details>
+<summary>[2026-03-17] Release v1.5.1: <b>LaTeX OPs; Compressed Format Support; Operator Robustness Fixes</b></summary>
+
+* 📄 Two new LaTeX-focused mapper OPs shipped, extending data-juicer's document processing capabilities to handle `.tex` archives and figure contexts.
+* 🗜️ Compressed dataset format support: `json[l].gz` files can now be loaded directly, and Ray datasets gain proper support for reading compressed JSON files.
+* 📚 New documentation added covering cache, export, and tracing workflows to help users better understand and debug data processing pipelines.
+* 🤖 Major refactor and upgrade of data-juicer-agents completed: The project architecture and CLI/session capabilities were comprehensively redesigned for better maintainability and extensibility. See [date-juicer-agents](https://github.com/datajuicer/data-juicer-agents) for more details.
+</details>
+
+<details>
 <summary>[2026-02-12] Release v1.5.0: <b>Partitioned Ray Executor, OP-level Env Management, and More Embodied-AI OPs</b></summary>
 
 - 🚀 *Enhanced Distributed Execution Framework* -- Introduced partitioned Ray executor and OP-level isolated environments to improve fault tolerance, scalability, and dependency conflict resolution.
@@ -95,7 +124,7 @@ for s in res_ds:
 - 🐳 *Critical Bug Fixes & Stability Improvements* -- Resolved duplicate tracking, parameter conflicts, homepage rendering issues, and outdated docs for higher reliability.
 </details>
 
-<details open>
+<details>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot, Video Bytes I/O & Ray Tracing </b></summary>
 
 - 🤖 *Q&A Copilot* —  Now live on our [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK). Feel free to ask anything related to Data-Juicer ecosystem!  
@@ -178,6 +207,7 @@ For detailed documentation, please see [here](https://datajuicer.github.io/data-
 
 **Quick Links:**
 - **[operator zoo](https://datajuicer.github.io/data-juicer/en/main/docs/Operators.html)** — Browse 200+ operators with examples
+- **[Agent interaction quality & bad-case](demos/agent/README.md)** — In-repo recipe, JSONL pipeline, HTML report (`demos/agent/`; operators such as `agent_bad_case_signal_mapper` are also listed in [docs/Operators.md](docs/Operators.md))
 - **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — Community-driven recipes and best practices
 - **[developer guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.html)** — Build your own code and contribute to DJ 
 - **[data-juicer-cookbook](https://datajuicer.github.io/data-juicer/en/main/docs/tutorial/DJ-Cookbook.html)** — resource archive
@@ -225,9 +255,9 @@ If you find Data-Juicer useful in your work, please cite:
 
 - (NeurIPS'25) [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499)
 
-- (Benchmark Data) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
+- (CVPR'26) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
  
-- (Benchmark Data) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
+- (ICML'26) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
 
 - (Data Scaling) [BiMix: A Bivariate Data Mixing Law for Language Model Pretraining](https://arxiv.org/abs/2405.14908)
 

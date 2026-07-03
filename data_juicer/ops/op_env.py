@@ -523,28 +523,43 @@ class OPEnvManager:
             # use union to combine them to find the latest version
             combined = p1 | p2
             if isinstance(combined, UnionSpecifier):
-                max_str = []
-                for r in combined.ranges:
-                    if r.max:
+                has_unbounded = any(r.max is None for r in combined.ranges)
+                if has_unbounded:
+                    # Some ranges extend to +inf. Use the highest lower bound
+                    # from unbounded ranges as the LATEST constraint.
+                    max_min = None
+                    include_max_min = False
+                    for r in combined.ranges:
+                        if r.max is None and r.min is not None:
+                            if max_min is None or r.min > max_min:
+                                max_min = r.min
+                                include_max_min = r.include_min
+                    if max_min is not None:
+                        latest_version = (
+                            SpecifierSet(f">={max_min}") if include_max_min else SpecifierSet(f">{max_min}")
+                        )
+                    # else: fully unbounded (no min), fall through to warning
+                else:
+                    # All ranges have upper bounds, find the maximum upper bound
+                    max_str = []
+                    for r in combined.ranges:
                         if r.include_max:
                             max_str.append(f"<={r.max}")
                         else:
                             max_str.append(f"<{r.max}")
-                    else:
-                        max_str = []
-                        break
-                if len(max_str) > 0:
-                    max_spec = parse_version_specifier("||".join(max_str))
-                    include_latest = max_spec.include_max
-                    latest_version = max_spec.max
+                    if len(max_str) > 0:
+                        max_spec = parse_version_specifier("||".join(max_str))
+                        include_latest = max_spec.include_max
+                        latest_version = max_spec.max
             else:
                 include_latest = combined.include_max
                 latest_version = combined.max
-            if latest_version:
+            # Convert raw version to SpecifierSet (skip if already set above)
+            if latest_version is not None and not isinstance(latest_version, SpecifierSet):
                 latest_version = (
                     SpecifierSet(f"=={latest_version}") if include_latest else SpecifierSet(f"<{latest_version}")
                 )
-            elif latest_version is None:
+            if latest_version is None:
                 logger.warning(
                     f"Dependency conflict for {first_req.name or second_req.name}, "
                     f"fallback to unpinned version under LATEST strategy: "

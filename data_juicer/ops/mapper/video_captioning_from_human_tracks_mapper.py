@@ -1,25 +1,23 @@
 import gc
-import sys
+import os
+import pickle
+import shutil
+import tempfile
 
 import numpy as np
 
 from data_juicer.utils.ASD_mapper_utils import get_video_array_cv2
 from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
+torch = LazyLoader("torch")
+
 OP_NAME = "video_captioning_from_human_tracks_mapper"
-
-import os
-import pickle
-import shutil
-import tempfile
-from shutil import rmtree
-
-import cv2
-import torch
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -73,20 +71,19 @@ class VideoCaptioningFromHumanTracksMapper(Mapper):
         self.tag_field_name_track_video_caption = tag_field_name_track_video_caption
         self.tag_field_name_video_track_is_child = tag_field_name_video_track_is_child
 
-    def process_batched(self, samples, rank=None, context=False):
+    def process_single(self, sample, rank=None):
+        if Fields.meta not in sample:
+            sample[Fields.meta] = {}
 
-        if not MetaKeys.human_track_data_path in samples[Fields.meta]:
+        if MetaKeys.human_track_data_path not in sample[Fields.meta]:
             raise ValueError(
                 "video_captioning_from_human_tracks_mapper must be operated after video_human_tracks_extraction_mapper."
             )
 
-        if Fields.meta not in samples:
-            samples[Fields.meta] = {}
-
         Total_information = []
         Is_child = []
-        video_samples = samples[Fields.meta][MetaKeys.human_track_data_path]
-        loaded_video_keys = samples[self.video_key]
+        video_samples = sample[Fields.meta][MetaKeys.human_track_data_path]
+        loaded_video_keys = sample[self.video_key]
 
         cropping_face_video_temp_path = tempfile.mkdtemp(dir=self.temp_video_path)
 
@@ -222,8 +219,8 @@ class VideoCaptioningFromHumanTracksMapper(Mapper):
             Is_child.append(is_child_for_each_track)
 
         shutil.rmtree(cropping_face_video_temp_path)
-        samples[Fields.meta][self.tag_field_name_track_video_caption] = [Total_information]
-        samples[Fields.meta][self.tag_field_name_video_track_is_child] = [Is_child]
+        sample[Fields.meta][self.tag_field_name_track_video_caption] = Total_information
+        sample[Fields.meta][self.tag_field_name_video_track_is_child] = Is_child
         gc.collect()
         torch.cuda.empty_cache()
-        return samples
+        return sample

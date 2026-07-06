@@ -1,23 +1,19 @@
 import gc
 import os
 
-import av
-import cv2
-import dlib
 import numpy as np
 import psutil
-from PIL import ImageFilter
 
 from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.mm_utils import (
-    load_data_with_context,
-    load_video,
-    pil_to_opencv,
-    process_each_frame,
-)
+from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.mm_utils import pil_to_opencv
+from data_juicer.utils.video_utils import setup_av
 
 from ..base_op import OPERATORS, Filter
-from ..op_fusion import INTER_SAMPLED_FRAMES, LOADED_VIDEOS
+from ..op_fusion import LOADED_VIDEOS
+
+av = LazyLoader("av", post_import=setup_av)
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "video_face_ratio_filter"
 
@@ -51,6 +47,8 @@ class VideoFaceRatioFilter(Filter):
         self.any = any_or_all == "any"
 
         # Initialize face detector
+        import dlib
+
         self.detector = dlib.get_frontal_face_detector()
 
         self.detect_interval = detect_interval
@@ -108,10 +106,6 @@ class VideoFaceRatioFilter(Filter):
             except av.AVError as e:
                 print(f"Error opening video {video_key}: {e}")
                 video_faces_ratio[video_key] = 0.0
-            finally:
-                container.close()
-
-            video_faces_ratio[video_key] = face_ratio
 
         # get video faces ratio
         sample[Fields.stats][StatsKeys.video_face_exist] = [

@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from transformers import Wav2Vec2Processor
 from transformers.models.wav2vec2.modeling_wav2vec2 import (
     Wav2Vec2Model,
     Wav2Vec2PreTrainedModel,
@@ -45,8 +44,8 @@ class AgeGenderModel(Wav2Vec2PreTrainedModel):
         self.init_weights()
 
     def forward(
-            self,
-            input_values,
+        self,
+        input_values,
     ):
 
         outputs = self.wav2vec2(input_values)
@@ -56,7 +55,6 @@ class AgeGenderModel(Wav2Vec2PreTrainedModel):
         logits_gender = torch.softmax(self.gender(hidden_states), dim=1)
 
         return hidden_states, logits_age, logits_gender
-
 
 
 # load model from hub
@@ -84,7 +82,7 @@ def process_func(
     # always returns a batch, so we just get the first entry
     # then we put it on the device
     y = processor(x, sampling_rate=sampling_rate)
-    y = y['input_values'][0]
+    y = y["input_values"][0]
     y = y.reshape(1, -1)
     y = torch.from_numpy(y).to(device)
 

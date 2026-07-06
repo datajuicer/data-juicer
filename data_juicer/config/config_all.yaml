@@ -211,6 +211,19 @@ process:
       model_params: {}                                        # Parameters for initializing the API model.
       sampling_params: {}                                     # Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95}
   - expand_macro_mapper:                                    # expand macro definitions in Latex text.
+  - latex_figure_context_extractor_mapper:                  # Extract figures and their citing context from LaTeX source.
+      citation_commands: ['\ref', '\cref', '\Cref', '\autoref']  # LaTeX reference commands to search for citing paragraphs.
+      paragraph_separator: '\n\n'                               # Pattern for splitting LaTeX text into paragraphs.
+      caption_key: 'caption'                                  # Output field name for the figure caption.
+      label_key: 'label'                                      # Output field name for the LaTeX label.
+      context_key: 'citing_paragraphs'                        # Output field name for citing paragraphs.
+      parent_caption_key: 'parent_caption'                    # Output field name for the parent figure's caption (subfigures only).
+      parent_label_key: 'parent_label'                        # Output field name for the parent figure's label (for grouping subfigures).
+  - latex_merge_tex_mapper:                                 # Extract and concatenate all .tex files from a compressed LaTeX project archive.
+      compressed_file_key: 'compressed_file'                   # Field storing the archive path.
+      separator: '\n\n'                                       # Separator between concatenated .tex files.
+      max_file_size: 52428800                                 # 50 MB; skip .tex entries larger than this (zip bomb protection).
+      max_total_size: 104857600                                 # 100 MB; cumulative limit for all extracted .tex content.
   - extract_entity_attribute_mapper:                        # Extract attributes for given entities from the text.
       api_model: 'gpt-4o'                                     # API model name.
       query_entities: ["孙悟空", "猪八戒"]                      # Entity list to be queried.
@@ -769,14 +782,14 @@ process:
   # video_audio_detect_age_gender_mapper should be operated after video_tagging_from_audio_mapper.
   - video_audio_detect_age_gender_mapper:                   # If the audio is speech, classify the gender and age of the speech
       hf_audio_mapper: 'audeering/wav2vec2-large-robust-24-ft-age-gender'   # Huggingface model name for speech age and gender classification
-      mem_required: '7GB' 
+      mem_required: '7GB'
 
   # video_captioning_from_human_tracks_mapper should be operated after video_human_tracks_extraction_mapper.
   - video_captioning_from_human_tracks_mapper:              # Based on the results of video_human_tracks_extraction_mapper, focus on the single person in the video for captioning
       video_describe_model_path: DAMO-NLP-SG/VideoLLaMA3-7B     # model path to VideoLLaMA3-7B
       trust_remote_code: true
       temp_video_path: ./temp_video_path                        # Used to store temporary videos that will be removed finally.
-      mem_required: '25GB'     
+      mem_required: '25GB'
 
   # video_captioning_face_attribute_emotion_mapper should be operated after video_human_tracks_extraction_mapper.
   - video_captioning_face_attribute_emotion_mapper:         # Based on the results of video_human_tracks_extraction_mapper, focus on judging the gender, age, and race of a single person in the video
@@ -784,21 +797,21 @@ process:
       trust_remote_code: true
       cropping_face_video_temp_path: ./temp_video_path          # Used to store temporary videos
       video_describe_model_path: DAMO-NLP-SG/VideoLLaMA3-7B     # Huggingface model DAMO-NLP-SG/VideoLLaMA3-7B
-      mem_required: '25GB' 
+      mem_required: '25GB'
 
   # video_active_speaker_detect_mapper must be operated after video_tagging_from_audio_mapper and video_human_tracks_extraction_mapper.
   - video_active_speaker_detect_mapper:                     # Based on the results of video_human_tracks_extraction_mapper, determine whether each person is an active speaker
       temp_save_path: ./temp_path                               # Used to store temporary videos
       active_threshold: 15                                      # Higher values are stricter, reducing false positives from noise but potentially increasing missed detections
-      mem_required: '10GB' 
+      mem_required: '10GB'
 
   - video_audio_ASR_mapper:                                 # Automatic speech recognition from video speech
       model_dir_ASR: 'FunAudioLLM/SenseVoiceSmall'              # Huggingface model FunAudioLLM/SenseVoiceSmall
-      mem_required: '20GB' 
+      mem_required: '20GB'
 
   - video_audio_speech_emotion_mapper:                      # Speech emotion recognition from video speech
       model_dir_emo: 'FunAudioLLM/SenseVoiceSmall'              # Huggingface model FunAudioLLM/SenseVoiceSmall
-      mem_required: '20GB' 
+      mem_required: '20GB'
 
   # Pipeline ops
   - ray_repartition_pipeline:                               # repartition a Ray Dataset into a target number of blocks.
@@ -809,7 +822,7 @@ process:
   - video_face_ratio_filter:                                # Filter to retain human-centric videos
       threshold: 0.65                                           # The lower limit of the ratio of frames with faces to the total number of video frames
       detect_interval: 4
-      any_or_all: any 
+      any_or_all: any
 
   - alphanumeric_filter:                                    # filter text with alphabet/numeric ratio out of specific range.
       tokenization: false                                     # whether to count the ratio of alphanumeric to the total number of tokens.

@@ -7,7 +7,6 @@ import subprocess
 import sys
 import tempfile
 
-import torch
 import tqdm
 from loguru import logger
 
@@ -18,10 +17,13 @@ from data_juicer.utils.ASD_mapper_utils import (
     longest_continuous_actives,
 )
 from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
+
+torch = LazyLoader("torch")
 
 sys.path.append("./thirdparty/humanvbench_models/Light-ASD")
 
@@ -111,7 +113,9 @@ class VideoActiveSpeakerDetectMapper(Mapper):
     def process_single(self, sample, rank=None):
         # there is no video in this sample
         if self.video_key not in sample or not sample[self.video_key]:
-            sample[Fields.source_file] = []
+            if Fields.meta not in sample:
+                sample[Fields.meta] = {}
+            sample[Fields.meta][self.active_speaker_flag] = []
             return sample
 
         if Fields.meta not in sample:

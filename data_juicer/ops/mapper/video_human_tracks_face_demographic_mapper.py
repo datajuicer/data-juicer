@@ -1,23 +1,19 @@
 import gc
+import os
+import pickle
 
 import numpy as np
-from deepface import DeepFace
 
 from data_juicer.utils.ASD_mapper_utils import get_video_array_cv2
 from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
+torch = LazyLoader("torch")
+
 OP_NAME = "video_human_tracks_face_demographic_mapper"
-
-import os
-import pickle
-
-import torch
-
-# avoid hanging when calling clip in multiprocessing
-torch.set_num_threads(1)
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -29,6 +25,8 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
 
     Source: This operator is a part of HumanVBench (CVPR 2026).
     """
+
+    _batched_op = True
 
     def __init__(
         self,
@@ -45,23 +43,33 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
             to generate caption
         """
         super().__init__(*args, **kwargs)
+        # avoid hanging when calling clip in multiprocessing
+        torch.set_num_threads(1)
 
         self.interval = detect_interval
         self.original_data_save_path = original_data_save_path
         self.tag_field_name = tag_field_name
+        self._deepface = None
 
-    def process_batched(self, samples, rank=None, context=False):
-        if not MetaKeys.human_track_data_path in samples[Fields.meta]:
+    def _get_deepface(self):
+        if self._deepface is None:
+            from deepface import DeepFace
+
+            self._deepface = DeepFace
+        return self._deepface
+
+    def process_single(self, sample, rank=None):
+        if Fields.meta not in sample:
+            sample[Fields.meta] = {}
+
+        if MetaKeys.human_track_data_path not in sample[Fields.meta]:
             raise ValueError(
                 "video_human_tracks_face_demographic_mapper must be operated after video_human_tracks_extraction_mapper."
             )
 
-        if Fields.meta not in samples:
-            samples[Fields.meta] = {}
-
         Total_information = []
-        video_samples = samples[Fields.meta][MetaKeys.human_track_data_path]
-        loaded_video_keys = samples[self.video_key]
+        video_samples = sample[Fields.meta][MetaKeys.human_track_data_path]
+        loaded_video_keys = sample[self.video_key]
 
         for vedio_id, ASD_attribute_all_tracks_for_one_video in enumerate(video_samples):
             if len(ASD_attribute_all_tracks_for_one_video) == 0:
@@ -102,7 +110,7 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
                         int(my - bs) : int(my + bs * (1 + 2 * cs)), int(mx - bs * (1 + cs)) : int(mx + bs * (1 + cs))
                     ]
 
-                    face_message = DeepFace.analyze(
+                    face_message = self._get_deepface().analyze(
                         img_path=face,
                         actions=["age", "gender", "race"],
                         enforce_detection=False,
@@ -151,10 +159,10 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
 
             Total_information.append(save_track_infor)
 
-        samples[Fields.meta][self.tag_field_name] = [Total_information]
+        sample[Fields.meta][self.tag_field_name] = Total_information
 
         gc.collect()
-        return samples
+        return sample
 
     def find_median(self, int_list):
         """

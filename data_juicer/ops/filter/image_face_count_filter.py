@@ -68,9 +68,7 @@ class ImageFaceCountFilter(Filter):
         self.max_face_count = max_face_count
 
         self.extra_kwargs = self._default_kwargs.copy()
-        for key in kwargs:
-            if key in self.extra_kwargs:
-                self.extra_kwargs[key] = kwargs[key]
+        self.extra_kwargs.update((k, v) for k, v in kwargs.items() if k in self.extra_kwargs)
 
         if any_or_all not in ["any", "all"]:
             raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
@@ -98,13 +96,10 @@ class ImageFaceCountFilter(Filter):
 
         # count the number of detected faces in each image
         face_counts = {}
-        try:
-            for key, image in images.items():
-                dets = detect_faces(image, model, **self.extra_kwargs)
-                face_counts[key] = len(dets)
-            logger.debug(f"face counts: {face_counts}")
-        except Exception as e:
-            logger.exception(e)
+        for key, image in images.items():
+            dets = detect_faces(image, model, **self.extra_kwargs)
+            face_counts[key] = len(dets)
+        logger.debug(f"face counts: {face_counts}")
 
         sample[Fields.stats][StatsKeys.face_counts] = [face_counts[key] for key in loaded_image_keys]
         return sample

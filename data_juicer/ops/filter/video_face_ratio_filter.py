@@ -14,6 +14,7 @@ from ..op_fusion import LOADED_VIDEOS
 
 av = LazyLoader("av", post_import=setup_av)
 cv2 = LazyLoader("cv2", "opencv-contrib-python")
+dlib = LazyLoader("dlib")
 
 OP_NAME = "video_face_ratio_filter"
 
@@ -46,16 +47,16 @@ class VideoFaceRatioFilter(Filter):
             raise ValueError(f"Keep strategy [{any_or_all}] is not supported. " f'Can only be one of ["any", "all"].')
         self.any = any_or_all == "any"
 
-        # Initialize face detector
-        import dlib
-
-        self.detector = dlib.get_frontal_face_detector()
-
         self.detect_interval = detect_interval
 
     def compute_stats_single(self, sample, rank=None, context=False):
         # check if it's computed already
         if StatsKeys.video_face_exist in sample[Fields.stats]:
+            return sample
+
+        # there is no video in this sample
+        if self.video_key not in sample or not sample[self.video_key]:
+            sample[Fields.stats][StatsKeys.video_face_exist] = np.array([], dtype=np.float64)
             return sample
 
         # load videos
@@ -66,6 +67,8 @@ class VideoFaceRatioFilter(Filter):
 
         process = psutil.Process(os.getpid())
         # memory_before = process.memory_info().rss / 1024 ** 2  # MB
+
+        detector = dlib.get_frontal_face_detector()
 
         for video_key in loaded_video_keys:
             try:
@@ -89,7 +92,7 @@ class VideoFaceRatioFilter(Filter):
                                     image = pil_to_opencv(img)
                                     # imageNumpy = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                                     # faces = face_detect_S3FD.detect_faces(imageNumpy, conf_th=0.9, scales=[0.25])
-                                    faces = self.detector(image)
+                                    faces = detector(image)
                                     if len(faces) > 0:
                                         frames_with_face += 1
                         except Exception as e:

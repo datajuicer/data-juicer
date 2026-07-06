@@ -2012,7 +2012,7 @@ def prepare_wav2vec2_age_gender_model(
             return hidden_states, logits_age, logits_gender
 
     processor = Wav2Vec2Processor.from_pretrained(pretrained_model_name_or_path)
-    model = AgeGenderModel.from_pretrained(pretrained_model_name_or_path)
+    model = AgeGenderModel.from_pretrained(pretrained_model_name_or_path, use_safetensors=False)
     return model, processor
 
 

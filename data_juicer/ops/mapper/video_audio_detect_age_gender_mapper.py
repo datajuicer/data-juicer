@@ -105,7 +105,7 @@ class VideoAudioDetectAgeGenderMapper(Mapper):
                 Age_female_male_child_dict["female"] = [Age_female_male_child[1]]
                 Age_female_male_child_dict["male"] = [Age_female_male_child[2]]
                 Age_female_male_child_dict["child"] = [Age_female_male_child[3]]
-                Total_result.append([Age_female_male_child_dict])
+                Total_result.append(Age_female_male_child_dict)
 
         sample[Fields.meta][self.tag_field_name] = Total_result
         return sample

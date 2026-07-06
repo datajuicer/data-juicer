@@ -12,6 +12,7 @@ from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 torch = LazyLoader("torch")
+deepface = LazyLoader("deepface")
 
 OP_NAME = "video_human_tracks_face_demographic_mapper"
 
@@ -49,14 +50,6 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
         self.interval = detect_interval
         self.original_data_save_path = original_data_save_path
         self.tag_field_name = tag_field_name
-        self._deepface = None
-
-    def _get_deepface(self):
-        if self._deepface is None:
-            from deepface import DeepFace
-
-            self._deepface = DeepFace
-        return self._deepface
 
     def process_single(self, sample, rank=None):
         if Fields.meta not in sample:
@@ -93,11 +86,9 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
                     interval = self.interval
 
                 start_frame_id_in = 0
-                start_frame_id_out = track_frame[start_frame_id_in]  # tag
                 cs = 0.5
-                while start_frame_id_in + interval < len(track_frame):
-                    start_frame_id_in = start_frame_id_in + interval
-                    start_frame_id_out = track_frame[start_frame_id_in]
+                while start_frame_id_in < len(track_frame):
+                    start_frame_id_out = track_frame[start_frame_id_in]  # tag
                     frame_before_crop = video_array[start_frame_id_out]
                     bs = xys_bbox["s"][start_frame_id_in]  #
                     bsi = int(bs * (1 + 2 * cs))  #
@@ -110,13 +101,15 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
                         int(my - bs) : int(my + bs * (1 + 2 * cs)), int(mx - bs * (1 + cs)) : int(mx + bs * (1 + cs))
                     ]
 
-                    face_message = self._get_deepface().analyze(
+                    face_message = deepface.DeepFace.analyze(
                         img_path=face,
                         actions=["age", "gender", "race"],
                         enforce_detection=False,
                         detector_backend="skip",
                     )
                     face_attribute_dict_with_framestamp[start_frame_id_out] = face_message
+
+                    start_frame_id_in = start_frame_id_in + interval
 
                 mini_dict = {}
                 mini_dict["data"] = face_attribute_dict_with_framestamp
@@ -151,9 +144,13 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
                 ]
                 # emotion_list = [track_attri_data[key][0]['emotion'] for key in track_attri_data if track_attri_data[key] != []]
 
-                new_track_data["age"] = self.find_median(age_list)
-                new_track_data["gender"] = self.most_frequent_element_ratio(dominant_gender_list)
-                new_track_data["race"] = self.most_frequent_element_ratio(dominant_race_list)
+                new_track_data["age"] = self.find_median(age_list) if age_list else None
+                new_track_data["gender"] = (
+                    self.most_frequent_element_ratio(dominant_gender_list) if dominant_gender_list else (None, "0")
+                )
+                new_track_data["race"] = (
+                    self.most_frequent_element_ratio(dominant_race_list) if dominant_race_list else (None, "0")
+                )
 
                 save_track_infor.append(new_track_data)
 

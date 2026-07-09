@@ -29,6 +29,7 @@ with timing_context('Importing operator modules'):
         Pipeline,
         Selector,
     )
+    from .fused_shared_context_op import FusedSharedContextOp  # noqa: F401
     from .load import load_ops
     from .op_env import (
         OPEnvManager,
@@ -51,6 +52,7 @@ __all__ = [
     'OPERATORS',
     'TAGGING_OPS',
     'Pipeline',
+    'FusedSharedContextOp',
     'OPEnvSpec',
     'op_requirements_to_op_env_spec',
     'OPEnvManager',

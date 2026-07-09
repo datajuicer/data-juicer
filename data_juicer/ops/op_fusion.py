@@ -31,7 +31,6 @@ ALL_INTER_VARS = [INTER_LINES, INTER_WORDS, LOADED_AUDIOS, LOADED_IMAGES, LOADED
 # supported fusion strategies
 FUSION_STRATEGIES = {"greedy", "probe"}
 MAPPER_FUSION_SAFE_ATTR = "_fused_sequential_batch_op_safe"
-LEGACY_MAPPER_FUSION_SAFE_ATTR = "_fused_parallel_mapper_safe"
 
 
 def fuse_operators(ops, probe_res=None, mapper_fusion=True, mapper_fusion_vram_limit=0.9):
@@ -309,9 +308,7 @@ def _is_gpu_mapper(op) -> bool:
 
 def _is_fusible_gpu_mapper(op) -> bool:
     """Check whether a GPU Mapper explicitly opts into stage fusion."""
-    return _is_gpu_mapper(op) and (
-        bool(getattr(op, MAPPER_FUSION_SAFE_ATTR, False)) or bool(getattr(op, LEGACY_MAPPER_FUSION_SAFE_ATTR, False))
-    )
+    return _is_gpu_mapper(op) and bool(getattr(op, MAPPER_FUSION_SAFE_ATTR, False))
 
 
 def _are_ops_independent(ops: list) -> bool:
@@ -385,7 +382,6 @@ def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
     fused = FusedSequentialBatchOp(
         fused_ops=mapper_group,
         group_name=group_name,
-        parallel_model_loading=True,
     )
     fused.accelerator = "cuda"
     fused.num_gpus = 1.0

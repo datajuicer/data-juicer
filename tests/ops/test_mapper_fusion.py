@@ -10,8 +10,7 @@ Covers:
 
 import unittest
 
-from data_juicer.ops.base_op import Mapper
-from data_juicer.ops.fused_parallel_mapper import FusedParallelMapper as LegacyFusedParallelMapper
+from data_juicer.ops.base_op import OPERATORS, Filter, Mapper
 from data_juicer.ops.fused_sequential_batch_op import FusedSequentialBatchOp
 from data_juicer.ops.op_fusion import (
     _are_ops_independent,
@@ -63,6 +62,36 @@ class _MockGPUMapper(_MockMapper):
         self.num_proc = kwargs.get("num_proc", 1)
 
 
+class _MockLengthFilter(Filter):
+    """Mock batched filter that keeps rows by text length."""
+
+    _batched_op = True
+
+    def __init__(self, min_len=0, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.min_len = min_len
+
+    def compute_stats_batched(self, samples):
+        for text, stat in zip(samples["text"], samples[Fields.stats]):
+            stat["mock_text_len"] = len(text)
+        return samples
+
+    def process_batched(self, samples):
+        return [stat["mock_text_len"] >= self.min_len for stat in samples[Fields.stats]]
+
+
+class _RegisteredMockMapper(_MockMapper):
+    pass
+
+
+class _RegisteredMockLengthFilter(_MockLengthFilter):
+    pass
+
+
+OPERATORS.register_module("test_fused_seq_mock_mapper", _RegisteredMockMapper, force=True)
+OPERATORS.register_module("test_fused_seq_mock_length_filter", _RegisteredMockLengthFilter, force=True)
+
+
 class _MockCPUFilter:
     """Minimal non-Mapper stub to break GPU mapper groups."""
 
@@ -101,12 +130,6 @@ class TestIsFusibleGpuMapper(DataJuicerTestCaseBase):
         op = _MockGPUMapper(num_gpus=1.0, name="gpu_op")
         op._fused_sequential_batch_op_safe = False
         self.assertFalse(_is_fusible_gpu_mapper(op))
-
-    def test_gpu_mapper_with_legacy_opt_in(self):
-        op = _MockGPUMapper(num_gpus=1.0, name="gpu_op")
-        op._fused_sequential_batch_op_safe = False
-        op._fused_parallel_mapper_safe = True
-        self.assertTrue(_is_fusible_gpu_mapper(op))
 
 
 class TestAreOpsIndependent(DataJuicerTestCaseBase):
@@ -315,6 +338,47 @@ class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
             self.assertEqual(meta["op1"], "v1")
             self.assertEqual(meta["op2"], "v2")
 
+    def test_filter_sub_op_drops_rows(self):
+        """Filter sub-ops should compute stats and drop rows in sequence."""
+        fused = self._make_fused([_MockLengthFilter(min_len=8), _MockMapper(name="after")])
+
+        samples = {
+            "text": ["short", "long_enough", "tiny", "also_long"],
+        }
+        result = fused.process_batched(samples)
+
+        self.assertEqual(result["text"], ["long_enough", "also_long"])
+        self.assertEqual(len(result[Fields.stats]), 2)
+        self.assertEqual([stat["mock_text_len"] for stat in result[Fields.stats]], [11, 9])
+        self.assertEqual([meta["after"] for meta in result[Fields.meta]], ["v", "v"])
+
+    def test_op_specs_constructs_sub_ops(self):
+        """op_specs should construct ops and strip Ray scheduling kwargs."""
+        fused = FusedSequentialBatchOp(
+            op_specs=[
+                {
+                    "class_name": "test_fused_seq_mock_mapper",
+                    "kwargs": {"name": "from_spec", "num_gpus": 0.5},
+                },
+                {
+                    "class_name": "test_fused_seq_mock_length_filter",
+                    "kwargs": {"min_len": 8, "num_proc": 4},
+                },
+            ],
+            accelerator="cpu",
+        )
+
+        result = fused.process_batched(
+            {
+                "text": ["small", "big_enough"],
+            }
+        )
+
+        self.assertEqual(result["text"], ["big_enough"])
+        self.assertIsNone(fused._ops[0].num_gpus)
+        self.assertEqual(fused._ops[1].num_proc, -1)
+        self.assertEqual(result[Fields.meta][0]["from_spec"], "v")
+
     def test_profiling_stats_collected(self):
         """Profiling state should be updated after process_batched."""
         ops = [_MockMapper(name=f"p{i}", value="x") for i in range(2)]
@@ -384,11 +448,6 @@ class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
         self.assertEqual(result["text"], ["sample_0_copied", "sample_1_copied", "sample_2_copied", "sample_3_copied"])
         for meta in result[Fields.meta]:
             self.assertEqual(meta["after"], "v")
-
-    def test_legacy_parallel_mapper_alias(self):
-        """The old class name remains available for compatibility."""
-        fused = LegacyFusedParallelMapper(fused_ops=[_MockMapper(name="legacy")])
-        self.assertIsInstance(fused, FusedSequentialBatchOp)
 
 
 if __name__ == "__main__":

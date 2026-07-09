@@ -4,23 +4,24 @@ FusedSequentialBatchOp - run multiple batch-local ops in one stage.
 This fused op reduces scheduler/stage overhead by executing a list of
 batch-local sub-operators sequentially inside one dataset map stage. Each
 sub-op receives the batch returned by the previous sub-op, so normal mapper
-chains and dependency chains remain possible.
-
-The legacy FusedParallelMapper name is kept as a compatibility alias, but its
-runtime semantics are now sequential.
+and filter chains remain possible, including filters that drop rows.
 """
 
 import os
 import time as _time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional
 
-from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
+from data_juicer.ops.base_op import (
+    NON_STATS_FILTERS,
+    OPERATORS,
+    TAGGING_OPS,
+    Filter,
+    Mapper,
+)
 from data_juicer.utils.constant import Fields
 
 OP_NAME = "fused_sequential_batch_op"
-LEGACY_OP_NAME = "fused_parallel_mapper"
 
 
 # Inner-op kwargs that belong to Ray scheduling, not to the model. These must
@@ -41,29 +42,25 @@ _RAY_SCHED_KWARGS = (
 
 @OPERATORS.register_module(OP_NAME)
 class FusedSequentialBatchOp(Mapper):
-    """Run multiple batch-local mappers sequentially in one map stage.
+    """Run multiple batch-local mapper/filter ops sequentially in one stage.
 
     Supports two initialization modes:
       1. op_specs mode: list of {"class_name": str, "kwargs": dict}.
-      2. fused_ops mode: list of pre-built Mapper instances.
+      2. fused_ops mode: list of pre-built op instances.
 
     This class intentionally does not fan out work across threads. Its primary
     purpose is reducing stage overhead while preserving normal sequential
     semantics.
     """
 
-    _accelerator = "cuda"
     _batched_op = True
 
     def __init__(
         self,
         op_specs: Optional[List[Dict[str, Any]]] = None,
-        fused_ops: Optional[List[Mapper]] = None,
-        max_workers: Optional[int] = None,
+        fused_ops: Optional[List[Any]] = None,
         group_name: str = "",
         cleanup_columns: Optional[List[str]] = None,
-        use_per_op_streams: bool = False,
-        parallel_model_loading: bool = False,
         *args,
         **kwargs,
     ):
@@ -71,16 +68,10 @@ class FusedSequentialBatchOp(Mapper):
         Args:
             op_specs: sub-op specs. Ray scheduling kwargs are stripped before
                 constructing sub-ops.
-            fused_ops: already-instantiated Mapper objects.
-            max_workers: retained for backward compatibility; only used as an
-                upper bound for optional parallel model loading.
+            fused_ops: already-instantiated batch-local ops.
             group_name: human-readable label used in logs.
             cleanup_columns: top-level columns to remove after all sub-ops
                 finish.
-            use_per_op_streams: retained for backward compatibility; ignored by
-                sequential execution.
-            parallel_model_loading: if True, load sub-op models in parallel
-                when they expose _ensure_model().
         """
         super().__init__(*args, **kwargs)
 
@@ -89,18 +80,11 @@ class FusedSequentialBatchOp(Mapper):
 
         self._fused_ops_input = list(fused_ops) if fused_ops else None
         self.op_specs = list(op_specs or [])
-        self.max_workers = (
-            int(max_workers)
-            if max_workers
-            else max(1, len(self._fused_ops_input) if self._fused_ops_input else len(self.op_specs))
-        )
         self.group_name = group_name or "fused"
         self.cleanup_columns = list(cleanup_columns) if cleanup_columns else []
-        self.use_per_op_streams = use_per_op_streams
-        self.parallel_model_loading = parallel_model_loading
 
         # Lazy-init in worker process; avoids loading models on the driver.
-        self._ops: Optional[List[Mapper]] = None
+        self._ops: Optional[List[Any]] = None
 
     def _ensure_ops(self):
         if self._ops is not None:
@@ -118,7 +102,7 @@ class FusedSequentialBatchOp(Mapper):
             self._init_profiling_state()
             return
 
-        ops: List[Mapper] = []
+        ops: List[Any] = []
         for spec in self.op_specs:
             cls_name = spec.get("class_name") or spec.get("name")
             if not cls_name:
@@ -149,36 +133,6 @@ class FusedSequentialBatchOp(Mapper):
         ]
         if not loadable:
             return
-
-        if self.parallel_model_loading and len(loadable) > 1:
-            start = _time.monotonic()
-            max_workers = min(len(loadable), max(1, self.max_workers))
-            logger.info(f"[FusedSequentialBatchOp:{self.group_name}] parallel-loading {len(loadable)} models...")
-
-            def _load_one(idx_op):
-                idx, op = idx_op
-                logger.info(
-                    f"[FusedSequentialBatchOp:{self.group_name}] "
-                    f"  loading model {idx + 1}/{len(self._ops)}: {op._name}"
-                )
-                op._ensure_model()
-
-            try:
-                with ThreadPoolExecutor(
-                    max_workers=max_workers, thread_name_prefix=f"model-load-{self.group_name}"
-                ) as load_pool:
-                    futures = [load_pool.submit(_load_one, item) for item in loadable]
-                    for future in futures:
-                        future.result()
-                elapsed = _time.monotonic() - start
-                logger.info(f"[FusedSequentialBatchOp:{self.group_name}] parallel model loading done in {elapsed:.1f}s")
-                return
-            except Exception as exc:
-                logger.warning(
-                    f"[FusedSequentialBatchOp:{self.group_name}] "
-                    f"parallel loading hit error ({type(exc).__name__}: {exc}); "
-                    f"falling back to sequential"
-                )
 
         for idx, op in loadable:
             logger.info(
@@ -216,10 +170,15 @@ class FusedSequentialBatchOp(Mapper):
         op_timings: Dict[str, float] = {}
 
         for op in self._ops:
-            samples = self._ensure_meta_if_needed(samples, op)
             op_t0 = _time.perf_counter()
-            samples = self._run_sub_op(op, samples, rank=rank)
+            if isinstance(op, Filter):
+                samples = self._run_filter_op(op, samples, rank=rank)
+            else:
+                samples = self._ensure_meta_if_needed(samples, op)
+                samples = self._run_sub_op(op, samples, rank=rank)
             op_timings[op._name] = (_time.perf_counter() - op_t0) * 1000.0
+            if self._batch_size(samples) == 0:
+                break
 
         batch_wall_ms = (_time.perf_counter() - batch_t0) * 1000.0
         final_num_samples = self._batch_size(samples)
@@ -239,7 +198,7 @@ class FusedSequentialBatchOp(Mapper):
         return samples
 
     def _run_sub_op(self, op, samples, rank=None):
-        process_args = {"rank": rank} if op.accelerator == "cuda" else {}
+        process_args = {"rank": rank} if op.use_cuda() else {}
         result = op.process(samples, **process_args)
         if result is None:
             raise ValueError(f"Sub-op [{op._name}] returned None inside FusedSequentialBatchOp.")
@@ -249,6 +208,33 @@ class FusedSequentialBatchOp(Mapper):
                 f"[{type(result).__name__}] inside FusedSequentialBatchOp."
             )
         return result
+
+    def _run_filter_op(self, op, samples, rank=None):
+        samples = self._ensure_meta_if_needed(samples, op)
+        samples = self._ensure_stats_if_needed(samples, op)
+        compute_args = {"rank": rank} if op.use_cuda() else {}
+        result = op.compute_stats(samples, **compute_args)
+        if result is None:
+            raise ValueError(f"Filter sub-op [{op._name}] returned None from compute_stats.")
+        if not isinstance(result, dict):
+            raise ValueError(
+                f"Filter sub-op [{op._name}] returned unsupported stats batch type "
+                f"[{type(result).__name__}] inside FusedSequentialBatchOp."
+            )
+
+        keep_mask = list(op.process(result))
+        return self._filter_batch(result, keep_mask, op)
+
+    def _filter_batch(self, samples, keep_mask, op):
+        num_samples = self._batch_size(samples)
+        if len(keep_mask) != num_samples:
+            raise ValueError(
+                f"Filter sub-op [{op._name}] returned keep mask length "
+                f"[{len(keep_mask)}], expected [{num_samples}] inside "
+                f"FusedSequentialBatchOp."
+            )
+        kept_indices = [idx for idx, keep in enumerate(keep_mask) if keep]
+        return {key: [values[idx] for idx in kept_indices] for key, values in samples.items()}
 
     def _batch_size(self, samples):
         if not samples:
@@ -274,6 +260,24 @@ class FusedSequentialBatchOp(Mapper):
                     samples[Fields.meta][idx] = {}
         return samples
 
+    def _ensure_stats_if_needed(self, samples, op):
+        if not self._needs_stats(samples, op):
+            return samples
+        num_samples = self._batch_size(samples)
+        if Fields.stats not in samples or samples[Fields.stats] is None or len(samples[Fields.stats]) == 0:
+            samples[Fields.stats] = [{} for _ in range(num_samples)]
+        elif len(samples[Fields.stats]) != num_samples:
+            raise ValueError(
+                f"Fields.stats length [{len(samples[Fields.stats])}] does not "
+                f"match batch size [{num_samples}] before sub-op [{op._name}] "
+                f"inside FusedSequentialBatchOp."
+            )
+        else:
+            for idx in range(num_samples):
+                if samples[Fields.stats][idx] is None:
+                    samples[Fields.stats][idx] = {}
+        return samples
+
     def _needs_meta(self, samples, op):
         if Fields.meta in samples:
             return True
@@ -283,6 +287,14 @@ class FusedSequentialBatchOp(Mapper):
             return True
         output_columns = getattr(op, "_output_columns", []) or []
         return any(str(col).startswith(Fields.meta) for col in output_columns)
+
+    def _needs_stats(self, samples, op):
+        if Fields.stats in samples:
+            return True
+        if isinstance(op, Filter) and op._name not in NON_STATS_FILTERS.modules:
+            return True
+        output_columns = getattr(op, "_output_columns", []) or []
+        return any(str(col).startswith(Fields.stats) for col in output_columns)
 
     def _log_profiling_stats(self, last_batch_ms: float, last_batch_size: int):
         from loguru import logger
@@ -310,10 +322,3 @@ class FusedSequentialBatchOp(Mapper):
 
         lines.append(f"  {'TOTAL (sequential wall)':<32} {last_batch_ms:>9.1f}")
         logger.info("\n".join(lines))
-
-
-@OPERATORS.register_module(LEGACY_OP_NAME)
-class FusedParallelMapper(FusedSequentialBatchOp):
-    """Backward-compatible alias for FusedSequentialBatchOp."""
-
-    pass

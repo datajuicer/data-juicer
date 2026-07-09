@@ -233,7 +233,8 @@ class RayDataset(DJDataset):
 
                 try:
                     if op.use_ray_actor():
-                        compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                        # Use concurrency= directly for better GPU utilization
+                        # (get_compute_strategy may limit parallelism)
                         self.data = self.data.map_batches(
                             op.__class__,
                             fn_args=None,
@@ -243,7 +244,7 @@ class RayDataset(DJDataset):
                             batch_size=batch_size,
                             num_cpus=op.num_cpus,
                             num_gpus=op.num_gpus,
-                            compute=compute,
+                            concurrency=op.num_proc,
                             batch_format="pyarrow",
                             runtime_env=op.runtime_env,
                         )
@@ -276,7 +277,7 @@ class RayDataset(DJDataset):
                     )
                     cached_columns.add(Fields.stats)
                 if op.use_ray_actor():
-                    compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                    # Use concurrency= directly for better GPU utilization
                     self.data = self.data.map_batches(
                         op.__class__,
                         fn_args=None,
@@ -286,7 +287,7 @@ class RayDataset(DJDataset):
                         batch_size=batch_size,
                         num_cpus=op.num_cpus,
                         num_gpus=op.num_gpus,
-                        compute=compute,
+                        concurrency=op.num_proc,
                         batch_format="pyarrow",
                         runtime_env=op.runtime_env,
                     )

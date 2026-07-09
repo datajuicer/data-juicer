@@ -237,6 +237,7 @@ filterwarnings = [
 ]
 
 [tool.uv]
+constraint-dependencies = ["kaleido==0.2.1"]
 override-dependencies = [
     "opencv-python; sys_platform == 'never'",
     "opencv-python-headless; sys_platform == 'never'",

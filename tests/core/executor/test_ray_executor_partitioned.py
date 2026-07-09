@@ -679,5 +679,221 @@ class PartitionedRayExecutorEdgeCasesTest(DataJuicerTestCaseBase):
             self.assertEqual(executor.pipeline_dag.nodes[node_id]["status"], "completed")
 
 
+class ConcurrencyScopingTest(DataJuicerTestCaseBase):
+    """Unit tests for scope_op_concurrency utility."""
+
+    def test_gpu_op_scoping(self):
+        """GPU op concurrency is divided by max_concurrent_partitions."""
+        from unittest.mock import MagicMock
+        from data_juicer.core.executor.concurrency_scoping import scope_op_concurrency
+
+        op = MagicMock()
+        op.use_ray_actor.return_value = True
+        op.num_proc = 4
+        self.assertEqual(scope_op_concurrency(op, 4), 1)
+        self.assertEqual(scope_op_concurrency(op, 2), 2)
+        self.assertEqual(scope_op_concurrency(op, 1), 4)
+
+    def test_gpu_op_scoping_floor_min_one(self):
+        """Scoped concurrency never goes below 1."""
+        from unittest.mock import MagicMock
+        from data_juicer.core.executor.concurrency_scoping import scope_op_concurrency
+
+        op = MagicMock()
+        op.use_ray_actor.return_value = True
+        op.num_proc = 2
+        self.assertEqual(scope_op_concurrency(op, 8), 1)
+
+    def test_cpu_op_unchanged(self):
+        """CPU ops (use_ray_actor=False) are not scoped."""
+        from unittest.mock import MagicMock
+        from data_juicer.core.executor.concurrency_scoping import scope_op_concurrency
+
+        op = MagicMock()
+        op.use_ray_actor.return_value = False
+        op.num_proc = 4
+        self.assertEqual(scope_op_concurrency(op, 4), 4)
+
+    def test_auto_mode_unchanged(self):
+        """Auto-mode (num_proc <= 0) is not scoped."""
+        from unittest.mock import MagicMock
+        from data_juicer.core.executor.concurrency_scoping import scope_op_concurrency
+
+        op = MagicMock()
+        op.use_ray_actor.return_value = True
+        op.num_proc = -1
+        self.assertEqual(scope_op_concurrency(op, 4), -1)
+
+    def test_none_num_proc_unchanged(self):
+        """None num_proc is not scoped."""
+        from unittest.mock import MagicMock
+        from data_juicer.core.executor.concurrency_scoping import scope_op_concurrency
+
+        op = MagicMock()
+        op.use_ray_actor.return_value = True
+        op.num_proc = None
+        self.assertIsNone(scope_op_concurrency(op, 4))
+
+    def test_resolve_max_concurrent_explicit_int(self):
+        """Explicit int values are passed through."""
+        from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
+        self.assertEqual(PartitionedRayExecutor._resolve_max_concurrent(4), 4)
+        self.assertEqual(PartitionedRayExecutor._resolve_max_concurrent(1), 1)
+        # Minimum clamp to 1
+        self.assertEqual(PartitionedRayExecutor._resolve_max_concurrent(0), 1)
+
+    def test_resolve_max_concurrent_auto(self):
+        """'auto' resolves to GPU count or 1."""
+        from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
+        result = PartitionedRayExecutor._resolve_max_concurrent("auto")
+        self.assertIsInstance(result, int)
+        self.assertGreaterEqual(result, 1)
+
+
+class ConcurrentPartitionConfigTest(DataJuicerTestCaseBase):
+    """Tests for max_concurrent_partitions config parsing."""
+
+    root_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..')
+
+    def setUp(self) -> None:
+        super().setUp()
+        unique_name = f'test_concurrent_cfg_{uuid.uuid4().hex[:8]}'
+        self.tmp_dir = os.path.join(self.root_path, 'tmp', unique_name)
+        os.makedirs(self.tmp_dir, exist_ok=True)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+
+    @TEST_TAG('ray')
+    def test_default_max_concurrent_partitions_auto(self):
+        """Default max_concurrent_partitions is 'auto', resolved from GPU count."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '4'
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_default_conc', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_default_conc')
+
+        executor = PartitionedRayExecutor(cfg)
+        # Auto-resolved: matches GPU count, or 1 if no GPUs
+        import ray as _ray
+        num_gpus = int(_ray.cluster_resources().get("GPU", 0))
+        if num_gpus > 1:
+            self.assertEqual(executor.max_concurrent_partitions, num_gpus)
+        else:
+            self.assertEqual(executor.max_concurrent_partitions, 1)
+
+    @TEST_TAG('ray')
+    def test_explicit_max_concurrent_partitions(self):
+        """Explicit max_concurrent_partitions is parsed correctly."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '8',
+            '--partition.max_concurrent_partitions', '4'
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_explicit_conc', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_explicit_conc')
+
+        executor = PartitionedRayExecutor(cfg)
+        self.assertEqual(executor.max_concurrent_partitions, 4)
+
+    @TEST_TAG('ray')
+    def test_num_partitions_inferred_from_max_concurrent(self):
+        """num_of_partitions is raised to max_concurrent_partitions when too low."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '2',
+            '--partition.max_concurrent_partitions', '8'
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_infer_partitions', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_infer_partitions')
+
+        executor = PartitionedRayExecutor(cfg)
+        # num_partitions should be raised to 8
+        self.assertEqual(executor.num_partitions, 8)
+        self.assertEqual(executor.max_concurrent_partitions, 8)
+
+    @TEST_TAG('ray')
+    def test_num_partitions_not_lowered(self):
+        """num_of_partitions is NOT lowered when already >= max_concurrent."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '16',
+            '--partition.max_concurrent_partitions', '8'
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_no_lower', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_no_lower')
+
+        executor = PartitionedRayExecutor(cfg)
+        self.assertEqual(executor.num_partitions, 16)
+        self.assertEqual(executor.max_concurrent_partitions, 8)
+
+    @TEST_TAG('ray')
+    def test_concurrent_execution_end2end(self):
+        """End-to-end test: concurrent partitions produce output."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '2',
+            '--partition.max_concurrent_partitions', '2'
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_conc_e2e', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_conc_e2e')
+
+        executor = PartitionedRayExecutor(cfg)
+        executor.run()
+
+        self.assertTrue(os.path.exists(cfg.export_path))
+
+    @TEST_TAG('ray')
+    def test_concurrent_with_checkpointing(self):
+        """Concurrent execution with checkpointing enabled."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '2',
+            '--partition.max_concurrent_partitions', '2',
+            '--checkpoint.enabled', 'true',
+            '--checkpoint.strategy', 'every_op'
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_conc_ckpt', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_conc_ckpt')
+
+        executor = PartitionedRayExecutor(cfg)
+        executor.run()
+
+        self.assertTrue(os.path.exists(cfg.export_path))
+
+        # Verify checkpoint files were created
+        checkpoint_dir = cfg.checkpoint_dir
+        if os.path.exists(checkpoint_dir):
+            checkpoint_files = [f for f in os.listdir(checkpoint_dir) if f.endswith('.parquet')]
+            self.assertGreater(len(checkpoint_files), 0, "No checkpoint files were created")
+
+    @TEST_TAG('ray')
+    def test_backward_compat_sequential(self):
+        """max_concurrent_partitions=1 uses sequential path (same as before)."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '2',
+            '--partition.max_concurrent_partitions', '1'
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_seq_compat', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_seq_compat')
+
+        executor = PartitionedRayExecutor(cfg)
+        self.assertEqual(executor.max_concurrent_partitions, 1)
+        executor.run()
+
+        self.assertTrue(os.path.exists(cfg.export_path))
+
+
 if __name__ == '__main__':
     unittest.main()

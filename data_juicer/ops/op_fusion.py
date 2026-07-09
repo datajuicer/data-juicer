@@ -30,7 +30,8 @@ ALL_INTER_VARS = [INTER_LINES, INTER_WORDS, LOADED_AUDIOS, LOADED_IMAGES, LOADED
 
 # supported fusion strategies
 FUSION_STRATEGIES = {"greedy", "probe"}
-MAPPER_FUSION_SAFE_ATTR = "_fused_parallel_mapper_safe"
+MAPPER_FUSION_SAFE_ATTR = "_fused_sequential_batch_op_safe"
+LEGACY_MAPPER_FUSION_SAFE_ATTR = "_fused_parallel_mapper_safe"
 
 
 def fuse_operators(ops, probe_res=None, mapper_fusion=True, mapper_fusion_vram_limit=0.9):
@@ -40,7 +41,7 @@ def fuse_operators(ops, probe_res=None, mapper_fusion=True, mapper_fusion_vram_l
     :param ops: the corresponding list of op objects.
     :param probe_res: the probed speed for each OP from Monitor.
     :param mapper_fusion: whether to fuse consecutive independent GPU Mappers
-        into FusedParallelMapper for parallel execution. Only effective when
+        into FusedSequentialBatchOp for single-stage execution. Only effective when
         op_fusion is true.
     :param mapper_fusion_vram_limit: max aggregate GPU memory budget (fraction
         of one GPU) for a fused mapper group. Default 0.9.
@@ -307,8 +308,10 @@ def _is_gpu_mapper(op) -> bool:
 
 
 def _is_fusible_gpu_mapper(op) -> bool:
-    """Check whether a GPU Mapper explicitly opts into parallel fusion."""
-    return _is_gpu_mapper(op) and bool(getattr(op, MAPPER_FUSION_SAFE_ATTR, False))
+    """Check whether a GPU Mapper explicitly opts into stage fusion."""
+    return _is_gpu_mapper(op) and (
+        bool(getattr(op, MAPPER_FUSION_SAFE_ATTR, False)) or bool(getattr(op, LEGACY_MAPPER_FUSION_SAFE_ATTR, False))
+    )
 
 
 def _are_ops_independent(ops: list) -> bool:
@@ -319,9 +322,7 @@ def _are_ops_independent(ops: list) -> bool:
         op_writes = set(getattr(op, "_output_columns", []) or [])
 
         if not op_writes:
-            logger.debug(
-                f"Mapper fusion: op [{op._name}] does not define " f"_output_columns; skipping parallel fusion"
-            )
+            logger.debug(f"Mapper fusion: op [{op._name}] does not define " f"_output_columns; skipping stage fusion")
             return False
         if op_writes & produced_cols:
             logger.debug(
@@ -340,18 +341,18 @@ def _are_ops_independent(ops: list) -> bool:
 
 
 def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
-    """Fuse consecutive independent GPU Mappers into FusedParallelMapper.
+    """Fuse consecutive independent GPU Mappers into FusedSequentialBatchOp.
 
     Safety rules:
     - All ops must be Mapper instances with num_gpus > 0
-    - All ops must explicitly opt in with _fused_parallel_mapper_safe = True
+    - All ops must explicitly opt in with _fused_sequential_batch_op_safe = True
     - Ops must be independent (disjoint declared output columns)
     - Aggregate VRAM should not exceed vram_limit
 
     Returns a list with either the original ops (if not fuseable)
-    or a single FusedParallelMapper wrapping the group.
+    or a single FusedSequentialBatchOp wrapping the group.
     """
-    from data_juicer.ops.fused_parallel_mapper import FusedParallelMapper
+    from data_juicer.ops.fused_sequential_batch_op import FusedSequentialBatchOp
 
     if not mapper_group:
         return []
@@ -360,7 +361,7 @@ def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
         logger.info(
             f"Mapper fusion: skipping group {[op._name for op in mapper_group]} "
             f"because at least one op has not explicitly opted into "
-            f"parallel mapper fusion"
+            f"sequential batch fusion"
         )
         return list(mapper_group)
 
@@ -381,19 +382,19 @@ def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
         return list(mapper_group)
 
     group_name = "fused:" + ",".join(op._name for op in mapper_group)
-    fused = FusedParallelMapper(
+    fused = FusedSequentialBatchOp(
         fused_ops=mapper_group,
         group_name=group_name,
-        use_per_op_streams=True,
         parallel_model_loading=True,
     )
+    fused.accelerator = "cuda"
     fused.num_gpus = 1.0
     fused.num_proc = min(op.runtime_np() for op in mapper_group)
     fused.batch_size = min(getattr(op, "batch_size", 1) or 1 for op in mapper_group)
     fused._op_cfg = {group_name: [getattr(op, "_op_cfg", {op._name: {}}) for op in mapper_group]}
 
     logger.info(
-        f"Ops are fused into FusedParallelMapper '{group_name}' "
+        f"Ops are fused into FusedSequentialBatchOp '{group_name}' "
         f"({len(mapper_group)} ops, num_gpus={fused.num_gpus}, "
         f"num_proc={fused.num_proc}, batch_size={fused.batch_size})"
     )
@@ -405,7 +406,7 @@ def fuse_consecutive_mappers(ops: list, vram_limit: float = 0.9) -> list:
 
     Groups are delimited by non-Mapper ops or CPU ops.
     Each group of >= 2 consecutive GPU Mappers is fused
-    into a FusedParallelMapper. Single GPU Mappers pass through.
+    into a FusedSequentialBatchOp. Single GPU Mappers pass through.
     """
     result = []
     mapper_group = []

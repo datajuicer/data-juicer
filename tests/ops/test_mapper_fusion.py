@@ -1,16 +1,18 @@
 """
-Tests for FusedParallelMapper and mapper fusion logic.
+Tests for FusedSequentialBatchOp and mapper fusion logic.
 
 Covers:
 - _is_gpu_mapper / _are_ops_independent / fuse_mapper_group / fuse_consecutive_mappers
 - fuse_operators() mapper_fusion parameter
-- FusedParallelMapper: single-op fast path, multi-op parallel, profiling, cleanup
+- FusedSequentialBatchOp: single-op fast path, multi-op sequential execution,
+  profiling, cleanup
 """
 
 import unittest
 
 from data_juicer.ops.base_op import Mapper
-from data_juicer.ops.fused_parallel_mapper import FusedParallelMapper
+from data_juicer.ops.fused_parallel_mapper import FusedParallelMapper as LegacyFusedParallelMapper
+from data_juicer.ops.fused_sequential_batch_op import FusedSequentialBatchOp
 from data_juicer.ops.op_fusion import (
     _are_ops_independent,
     _is_fusible_gpu_mapper,
@@ -30,6 +32,7 @@ class _MockMapper(Mapper):
     """Base mock mapper that writes a value to Fields.meta."""
 
     _batched_op = True
+    _requires_meta = True
 
     def __init__(self, name="mock_mapper", value="v", *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,7 +50,7 @@ class _MockGPUMapper(_MockMapper):
     """Mock mapper that declares num_gpus > 0."""
 
     _accelerator = "cuda"
-    _fused_parallel_mapper_safe = True
+    _fused_sequential_batch_op_safe = True
 
     def __init__(self, num_gpus=0.3, **kwargs):
         super().__init__(**kwargs)
@@ -96,8 +99,14 @@ class TestIsFusibleGpuMapper(DataJuicerTestCaseBase):
 
     def test_gpu_mapper_without_opt_in(self):
         op = _MockGPUMapper(num_gpus=1.0, name="gpu_op")
-        op._fused_parallel_mapper_safe = False
+        op._fused_sequential_batch_op_safe = False
         self.assertFalse(_is_fusible_gpu_mapper(op))
+
+    def test_gpu_mapper_with_legacy_opt_in(self):
+        op = _MockGPUMapper(num_gpus=1.0, name="gpu_op")
+        op._fused_sequential_batch_op_safe = False
+        op._fused_parallel_mapper_safe = True
+        self.assertTrue(_is_fusible_gpu_mapper(op))
 
 
 class TestAreOpsIndependent(DataJuicerTestCaseBase):
@@ -144,7 +153,7 @@ class TestFuseMapperGroup(DataJuicerTestCaseBase):
         op = _MockGPUMapper(name="single")
         result = fuse_mapper_group([op])
         self.assertEqual(len(result), 1)
-        self.assertIsInstance(result[0], FusedParallelMapper)
+        self.assertIsInstance(result[0], FusedSequentialBatchOp)
 
     def test_vram_exceeds_limit(self):
         ops = [_MockGPUMapper(num_gpus=0.6, name=f"op{i}") for i in range(2)]
@@ -154,7 +163,7 @@ class TestFuseMapperGroup(DataJuicerTestCaseBase):
 
     def test_mapper_without_opt_in_is_not_fused(self):
         ops = [_MockGPUMapper(num_gpus=0.2, name=f"op{i}") for i in range(2)]
-        ops[0]._fused_parallel_mapper_safe = False
+        ops[0]._fused_sequential_batch_op_safe = False
         result = fuse_mapper_group(ops, vram_limit=0.9)
         self.assertEqual(result, ops)
 
@@ -164,7 +173,7 @@ class TestFuseMapperGroup(DataJuicerTestCaseBase):
             op._op_cfg = {op._name: {"num_gpus": op.num_gpus}}
         result = fuse_mapper_group(ops, vram_limit=0.9)
         self.assertEqual(len(result), 1)
-        self.assertIsInstance(result[0], FusedParallelMapper)
+        self.assertIsInstance(result[0], FusedSequentialBatchOp)
         self.assertEqual(result[0].num_gpus, 1.0)
         self.assertEqual(
             result[0]._op_cfg,
@@ -204,7 +213,7 @@ class TestFuseConsecutiveMappers(DataJuicerTestCaseBase):
         ops = [_MockGPUMapper(num_gpus=0.2, name=f"g{i}") for i in range(3)]
         result = fuse_consecutive_mappers(ops, vram_limit=0.9)
         self.assertEqual(len(result), 1)
-        self.assertIsInstance(result[0], FusedParallelMapper)
+        self.assertIsInstance(result[0], FusedSequentialBatchOp)
 
     def test_non_mapper_breaks_group(self):
         ops = [
@@ -215,11 +224,11 @@ class TestFuseConsecutiveMappers(DataJuicerTestCaseBase):
             _MockGPUMapper(num_gpus=0.2, name="g3"),
         ]
         result = fuse_consecutive_mappers(ops, vram_limit=0.9)
-        # [FusedParallelMapper(g0,g1), MockCPUFilter, FusedParallelMapper(g2,g3)]
+        # [FusedSequentialBatchOp(g0,g1), MockCPUFilter, FusedSequentialBatchOp(g2,g3)]
         self.assertEqual(len(result), 3)
-        self.assertIsInstance(result[0], FusedParallelMapper)
+        self.assertIsInstance(result[0], FusedSequentialBatchOp)
         self.assertIsInstance(result[1], _MockCPUFilter)
-        self.assertIsInstance(result[2], FusedParallelMapper)
+        self.assertIsInstance(result[2], FusedSequentialBatchOp)
 
     def test_single_gpu_mapper_passthrough(self):
         ops = [_MockCPUFilter(), _MockGPUMapper(num_gpus=0.2, name="lone")]
@@ -234,12 +243,12 @@ class TestFuseConsecutiveMappers(DataJuicerTestCaseBase):
             _MockGPUMapper(num_gpus=0.2, name="g1"),
             _MockGPUMapper(num_gpus=0.2, name="g2"),
         ]
-        ops[1]._fused_parallel_mapper_safe = False
+        ops[1]._fused_sequential_batch_op_safe = False
         result = fuse_consecutive_mappers(ops, vram_limit=0.9)
         self.assertEqual(len(result), 3)
         self.assertIs(result[0], ops[0])
         self.assertIs(result[1], ops[1])
-        self.assertIsInstance(result[2], FusedParallelMapper)
+        self.assertIsInstance(result[2], FusedSequentialBatchOp)
 
     def test_cpu_mappers_not_fused(self):
         ops = [_MockMapper(name=f"c{i}") for i in range(3)]
@@ -261,13 +270,13 @@ class TestFuseOperatorsWithMapperFusion(DataJuicerTestCaseBase):
         ops = [_MockGPUMapper(num_gpus=0.2, name=f"m{i}") for i in range(2)]
         result = fuse_operators(ops, mapper_fusion=True, mapper_fusion_vram_limit=0.9)
         self.assertEqual(len(result), 1)
-        self.assertIsInstance(result[0], FusedParallelMapper)
+        self.assertIsInstance(result[0], FusedSequentialBatchOp)
 
 
 # ===========================================================================
-# Tests for FusedParallelMapper execution
+# Tests for FusedSequentialBatchOp execution
 # ===========================================================================
-class TestFusedParallelMapperExecution(DataJuicerTestCaseBase):
+class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
 
     def _make_samples(self, n=4):
         return {
@@ -276,8 +285,8 @@ class TestFusedParallelMapperExecution(DataJuicerTestCaseBase):
         }
 
     def _make_fused(self, ops, **kwargs):
-        """Create a FusedParallelMapper with pre-built ops (CPU mode)."""
-        fused = FusedParallelMapper(fused_ops=ops, **kwargs)
+        """Create a FusedSequentialBatchOp with pre-built ops (CPU mode)."""
+        fused = FusedSequentialBatchOp(fused_ops=ops, **kwargs)
         # Override accelerator to cpu so tests run without GPU
         fused.accelerator = "cpu"
         return fused
@@ -293,8 +302,8 @@ class TestFusedParallelMapperExecution(DataJuicerTestCaseBase):
         for meta in result[Fields.meta]:
             self.assertEqual(meta["solo"], "done")
 
-    def test_multi_op_parallel_execution(self):
-        """Multiple ops should all execute and write disjoint meta keys."""
+    def test_multi_op_sequential_execution(self):
+        """Multiple ops should execute sequentially in one batch stage."""
         ops = [_MockMapper(name=f"op{i}", value=f"v{i}") for i in range(3)]
         fused = self._make_fused(ops)
 
@@ -355,21 +364,31 @@ class TestFusedParallelMapperExecution(DataJuicerTestCaseBase):
     def test_dual_init_modes_error(self):
         """Providing both op_specs and fused_ops should raise ValueError."""
         with self.assertRaises(ValueError):
-            FusedParallelMapper(
+            FusedSequentialBatchOp(
                 op_specs=[{"class_name": "fix_unicode_mapper"}],
                 fused_ops=[_MockMapper(name="m")],
             )
 
-    def test_sub_op_returning_new_batch_raises(self):
-        """Sub-ops must mutate the shared batch in place."""
+    def test_sub_op_returning_new_batch_is_chained(self):
+        """Sequential fusion passes a returned batch to downstream ops."""
 
         class _ReturnNewBatchMapper(_MockMapper):
             def process_batched(self, samples, rank=None, **kwargs):
-                return {key: list(value) for key, value in samples.items()}
+                new_samples = {key: list(value) for key, value in samples.items()}
+                new_samples["text"] = [f"{text}_copied" for text in new_samples["text"]]
+                return new_samples
 
-        fused = self._make_fused([_ReturnNewBatchMapper(name="copying")])
-        with self.assertRaisesRegex(ValueError, "returned a different batch object"):
-            fused.process_batched(self._make_samples())
+        fused = self._make_fused([_ReturnNewBatchMapper(name="copying"), _MockMapper(name="after")])
+        result = fused.process_batched(self._make_samples())
+
+        self.assertEqual(result["text"], ["sample_0_copied", "sample_1_copied", "sample_2_copied", "sample_3_copied"])
+        for meta in result[Fields.meta]:
+            self.assertEqual(meta["after"], "v")
+
+    def test_legacy_parallel_mapper_alias(self):
+        """The old class name remains available for compatibility."""
+        fused = LegacyFusedParallelMapper(fused_ops=[_MockMapper(name="legacy")])
+        self.assertIsInstance(fused, FusedSequentialBatchOp)
 
 
 if __name__ == "__main__":

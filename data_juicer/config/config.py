@@ -626,7 +626,7 @@ def build_base_parser() -> ArgumentParser:
         type=bool,
         default=True,
         help="Whether to fuse consecutive independent GPU Mappers into "
-        "FusedParallelMapper for parallel execution. Only effective when "
+        "FusedSequentialBatchOp for single-stage execution. Only effective when "
         "op_fusion is True.",
     )
     parser.add_argument(

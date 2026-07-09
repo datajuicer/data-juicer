@@ -4,6 +4,7 @@ from .audio_nmf_snr_filter import AudioNMFSNRFilter
 from .audio_size_filter import AudioSizeFilter
 from .average_line_length_filter import AverageLineLengthFilter
 from .character_repetition_filter import CharacterRepetitionFilter
+from .combined_logical_filter import CombinedLogicalFilter
 from .flagged_words_filter import FlaggedWordFilter
 from .general_field_filter import GeneralFieldFilter
 from .image_aesthetics_filter import ImageAestheticsFilter
@@ -79,6 +80,7 @@ __all__ = [
     "ImageTextSimilarityFilter",
     "ImageWatermarkFilter",
     "LanguageIDScoreFilter",
+    "CombinedLogicalFilter",
     "InContextInfluenceFilter",
     "InstructionFollowingDifficultyFilter",
     "LLMAnalysisFilter",

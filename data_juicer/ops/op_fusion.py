@@ -26,7 +26,14 @@ LOADED_VIDEOS = Registry(InterVars.loaded_videos)
 INTER_SAMPLED_FRAMES = Registry(InterVars.sampled_frames)
 
 # all
-ALL_INTER_VARS = [INTER_LINES, INTER_WORDS, LOADED_AUDIOS, LOADED_IMAGES, LOADED_VIDEOS, INTER_SAMPLED_FRAMES]
+ALL_INTER_VARS = [
+    INTER_LINES,
+    INTER_WORDS,
+    LOADED_AUDIOS,
+    LOADED_IMAGES,
+    LOADED_VIDEOS,
+    INTER_SAMPLED_FRAMES,
+]
 
 # supported fusion strategies
 FUSION_STRATEGIES = {"greedy", "probe"}
@@ -81,10 +88,11 @@ def fuse_filter_group(original_filter_group):
                 all_fused_filters[inter_vars].append((op, probe_res))
                 break
         else:
-            # first apply other filters to decrease the number of samples, so
-            # we add them into the fused_group list directly
+            # first apply other filters to decrease the number of samples,
+            # so we add them into the fused_group list directly
             fused_group.append(op)
-            group_speed.append(probe_res["speed"] if probe_res else 0)
+            speed = probe_res["speed"] if probe_res else 0
+            group_speed.append(speed)
 
     # try to fuse ops for each type of intermediate vars
     for inter_vars in all_intermediate_vars:
@@ -93,18 +101,18 @@ def fuse_filter_group(original_filter_group):
             # no ops include this type of intermediate var
             pass
         elif len(inter_vars_filter) > 1:
-            # more than 1 ops share the same intermediate var, try to fuse them
+            # more than 1 ops share the same intermediate var, try to fuse
             ops, probe_res_list = zip(*inter_vars_filter)
             # new definition: new name and a definition list of fused op list
-            fused_filter_name = "OpFusion:(%s)" % ",".join([op._name for op in ops])
+            op_names = [op._name for op in ops]
+            fused_filter_name = "OpFusion:(%s)" % ",".join(op_names)
             logger.info(f"Ops are fused into one op " f"{fused_filter_name}.")
             # use these ops to create a FusedFilter object, and add the fused
             # definition and op into the fused group
             fused_filter = FusedFilter(fused_filter_name, ops)
             fused_filter._op_cfg = {fused_filter_name: [op._op_cfg for op in ops]}
-            fused_filter_speed = sum([1.0 / probe_res["speed"] for probe_res in probe_res_list if probe_res])
-            if fused_filter_speed > 0:
-                fused_filter_speed = 1.0 / fused_filter_speed
+            speed_sum = sum([1.0 / probe_res["speed"] for probe_res in probe_res_list if probe_res])
+            fused_filter_speed = 1.0 / speed_sum if speed_sum > 0 else 0
             fused_group.append(fused_filter)
             group_speed.append(fused_filter_speed)
         else:
@@ -115,37 +123,55 @@ def fuse_filter_group(original_filter_group):
             group_speed.append(probe_res["speed"] if probe_res else 0)
 
     # reorder according to the probed speed results in group_speed
-    # 'greedy': all speed data in group_speed will be 0, which will keep the
-    #   current order of fused group
-    # 'probe': OPs in fused group will be reordered according to the speed data
-    #   in group_speed in descending order
-    fused_group = [op for op, _ in sorted(zip(fused_group, group_speed), key=lambda it: it[1], reverse=True)]
+    # 'greedy': all speed data in group_speed will be 0, which will keep
+    #   the current order of fused group
+    # 'probe': OPs in fused group will be reordered according to the speed
+    #   data in group_speed in descending order
+    sorted_pairs = sorted(zip(fused_group, group_speed), key=lambda it: it[1], reverse=True)
+    fused_group = [op for op, _ in sorted_pairs]
 
     return fused_group
 
 
 class FusedFilter(Filter):
-    """A fused operator for filters."""
+    """A fused operator for filters.
+
+    This is automatically created by the framework when op_fusion is enabled.
+    It fuses multiple filters that share the same intermediate variables for
+    performance optimization. By default, it uses AND logic (all filters must
+    pass). For OR logic or explicit control, use combined_logical_filter
+    instead.
+    """
 
     _batched_op = True
 
-    def __init__(self, name: str, fused_filters: List):
+    def __init__(self, name: str, fused_filters: List, logical_op: str = "and"):
         """
         Initialization method.
 
+        :param name: Name of the fused filter.
         :param fused_filters: a list of filters to be fused.
+        :param logical_op: The logical operator to combine filter results.
+            Can be "and" or "or". Default is "and" for automatic fusion.
+            Note: Automatic fusion always uses AND. OR is only available
+            when explicitly creating FusedFilter instances.
         """
         self._name = name
         super().__init__()
         self.fused_filters = fused_filters
-        # set accelerator to 'cuda' if there exists any ops whose accelerator
-        # is 'cuda'
+        if logical_op.lower() not in ["and", "or"]:
+            raise ValueError(f"logical_op must be 'and' or 'or', " f"got '{logical_op}'")
+        self.logical_op = logical_op.lower()
+
+        # set accelerator to 'cuda' if there exists any ops whose
+        # accelerator is 'cuda'
         accelerator_methods = set([op.accelerator for op in self.fused_filters])
         if "cuda" in accelerator_methods:
             self.accelerator = "cuda"
 
         # update num_proc with the min num_proc of all fusible filters
-        self.num_proc = min([op.runtime_np() for op in self.fused_filters])
+        runtime_nps = [op.runtime_np() for op in self.fused_filters]
+        self.num_proc = min(runtime_nps)
 
     def compute_stats_batched(self, samples, rank=None):
         from data_juicer.utils.video_utils import setup_av
@@ -172,12 +198,19 @@ class FusedFilter(Filter):
         return samples
 
     def process_batched(self, samples):
-        # Only return True when all filters return True
+        """Process samples by combining results from all fused filters.
+
+        :param samples: Batch of samples in dict-of-lists format
+        :return: Boolean array indicating which samples to keep
+        """
         res = None
         for op in self.fused_filters:
             this_res = np.array(list(op.process_batched(samples)))
             if res is not None:
-                res = np.logical_and(res, this_res)
+                if self.logical_op == "and":
+                    res = np.logical_and(res, this_res)
+                else:  # or
+                    res = np.logical_or(res, this_res)
             else:
                 res = this_res
         return res
@@ -185,22 +218,31 @@ class FusedFilter(Filter):
 
 @OPERATORS.register_module("general_fused_op")
 class GeneralFusedOP(Mapper):
-    """An explicitly fused operator designed to execute multiple sequential operations (OPs) on
-    the same batch, enabling fine-grained control over data processing.
+    """An explicitly fused operator designed to execute multiple sequential
+    operations (OPs) on the same batch, enabling fine-grained control over
+    data processing.
 
-    This operator allows for the chaining of multiple data processing steps, such as mappers
-    and filters, into a single pass. It processes each batch of samples sequentially through
-    the defined operations, ensuring that all specified transformations are applied in
-    order. The operator supports both mappers, which transform data, and filters, which
-    remove or keep samples based on computed statistics. Context variables can be passed
-    between operations if needed. The accelerator is set to 'cuda' if any of the fused
-    operations use it. The number of processes is determined by the minimum value among all
-    fused operations. After processing, any temporary context variables, such as those used
-    for video containers, are cleaned up."""
+    This operator allows for the chaining of multiple data processing steps,
+    such as mappers and filters, into a single pass. It processes each batch
+    of samples sequentially through the defined operations, ensuring that all
+    specified transformations are applied in order. The operator supports
+    both mappers, which transform data, and filters, which remove or keep
+    samples based on computed statistics. Context variables can be passed
+    between operations if needed. The accelerator is set to 'cuda' if any
+    of the fused operations use it. The number of processes is determined
+    by the minimum value among all fused operations. After processing, any
+    temporary context variables, such as those used for video containers,
+    are cleaned up."""
 
     _batched_op = True
 
-    def __init__(self, batch_size: int = 1, fused_op_list: Optional[List] = None, *args, **kwargs):
+    def __init__(
+        self,
+        batch_size: int = 1,
+        fused_op_list: Optional[List] = None,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization.
 
@@ -212,15 +254,21 @@ class GeneralFusedOP(Mapper):
         if fused_op_list is None:
             fused_op_list = []
         self.fused_ops = load_ops(fused_op_list)
-        self._name = "GeneralFusedOP:(%s)" % ",".join([op._name for op in self.fused_ops])
-        # set accelerator to 'cuda' if there exists any ops whose accelerator
-        # is 'cuda'
+        op_names = [op._name for op in self.fused_ops]
+        name_str = ",".join(op_names)
+        self._name = f"GeneralFusedOP:({name_str})"
+        # set accelerator to 'cuda' if there exists any ops whose
+        # accelerator is 'cuda'
         accelerator_methods = set([op.accelerator for op in self.fused_ops])
         if "cuda" in accelerator_methods:
             self.accelerator = "cuda"
 
         # update num_proc with the min num_proc of all fusible filters
-        self.num_proc = min([op.runtime_np() for op in self.fused_ops]) if self.fused_ops else 1
+        if self.fused_ops:
+            runtime_nps = [op.runtime_np() for op in self.fused_ops]
+            self.num_proc = min(runtime_nps)
+        else:
+            self.num_proc = 1
 
     def process_batched(self, samples, rank=None):
         from copy import deepcopy
@@ -240,12 +288,14 @@ class GeneralFusedOP(Mapper):
             process_args = {"rank": rank} if op.accelerator == "cuda" else {}
             if isinstance(op, Mapper):
                 if check_op_method_param(op.process, "context"):
-                    # add context param only when the core process method of this OP contains this param
+                    # add context param only when the core process method
+                    # of this OP contains this param
                     process_args["context"] = True
                 tmp_samples = op.process_batched(tmp_samples, **process_args)
             elif isinstance(op, Filter):
                 if check_op_method_param(op.compute_stats, "context"):
-                    # add context param only when the core process method of this OP contains this param
+                    # add context param only when the core process method
+                    # of this OP contains this param
                     process_args["context"] = True
                 tmp_samples = op.compute_stats_batched(tmp_samples, **process_args)
                 indicators = list(op.process_batched(tmp_samples))
@@ -262,7 +312,10 @@ class GeneralFusedOP(Mapper):
         # check if there are containers that need to be closed
         for ctx in tmp_samples[Fields.context]:
             for context_key in ctx:
-                if isinstance(ctx[context_key], av.container.InputContainer):
+                if isinstance(
+                    ctx[context_key],
+                    av.container.InputContainer,
+                ):
                     ctx[context_key].streams.video[0].close()
                     ctx[context_key].close()
         _ = tmp_samples.pop(Fields.context)

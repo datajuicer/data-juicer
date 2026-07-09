@@ -8,13 +8,12 @@ Covers:
 """
 
 import unittest
-from unittest.mock import patch
 
-from data_juicer.ops.base_op import OPERATORS, Mapper
+from data_juicer.ops.base_op import Mapper
 from data_juicer.ops.fused_parallel_mapper import FusedParallelMapper
-from data_juicer.ops.load import load_ops
 from data_juicer.ops.op_fusion import (
     _are_ops_independent,
+    _is_fusible_gpu_mapper,
     _is_gpu_mapper,
     fuse_consecutive_mappers,
     fuse_mapper_group,
@@ -48,10 +47,13 @@ class _MockGPUMapper(_MockMapper):
     """Mock mapper that declares num_gpus > 0."""
 
     _accelerator = "cuda"
+    _fused_parallel_mapper_safe = True
 
     def __init__(self, num_gpus=0.3, **kwargs):
         super().__init__(**kwargs)
         self.num_gpus = num_gpus
+        self._input_columns = ["text"]
+        self._output_columns = [f"{Fields.meta}.{self._name}"]
         # Disable auto parallelism so runtime_np() returns num_proc
         # directly, avoiding calculate_np() which requires a real GPU.
         self.auto_op_parallelism = False
@@ -86,12 +88,24 @@ class TestIsGpuMapper(DataJuicerTestCaseBase):
         self.assertFalse(_is_gpu_mapper(op))
 
 
+class TestIsFusibleGpuMapper(DataJuicerTestCaseBase):
+
+    def test_gpu_mapper_with_opt_in(self):
+        op = _MockGPUMapper(num_gpus=1.0, name="gpu_op")
+        self.assertTrue(_is_fusible_gpu_mapper(op))
+
+    def test_gpu_mapper_without_opt_in(self):
+        op = _MockGPUMapper(num_gpus=1.0, name="gpu_op")
+        op._fused_parallel_mapper_safe = False
+        self.assertFalse(_is_fusible_gpu_mapper(op))
+
+
 class TestAreOpsIndependent(DataJuicerTestCaseBase):
 
     def test_independent_no_attrs(self):
-        """Ops without _input/_output_columns are assumed independent."""
+        """Ops without declared output columns are not assumed independent."""
         ops = [_MockMapper(name="a"), _MockMapper(name="b")]
-        self.assertTrue(_are_ops_independent(ops))
+        self.assertFalse(_are_ops_independent(ops))
 
     def test_dependent_via_column_overlap(self):
         """Op B reads a column produced by Op A → dependent."""
@@ -109,6 +123,14 @@ class TestAreOpsIndependent(DataJuicerTestCaseBase):
         b._input_columns = ["col_b"]
         b._output_columns = ["col_b_out"]
         self.assertTrue(_are_ops_independent([a, b]))
+
+    def test_dependent_via_write_overlap(self):
+        """Two ops writing the same column are dependent."""
+        a = _MockMapper(name="a")
+        a._output_columns = ["col_x"]
+        b = _MockMapper(name="b")
+        b._output_columns = ["col_x"]
+        self.assertFalse(_are_ops_independent([a, b]))
 
 
 class TestFuseMapperGroup(DataJuicerTestCaseBase):
@@ -130,12 +152,24 @@ class TestFuseMapperGroup(DataJuicerTestCaseBase):
         # 0.6 + 0.6 = 1.2 > 0.9 → not fused
         self.assertEqual(len(result), 2)
 
+    def test_mapper_without_opt_in_is_not_fused(self):
+        ops = [_MockGPUMapper(num_gpus=0.2, name=f"op{i}") for i in range(2)]
+        ops[0]._fused_parallel_mapper_safe = False
+        result = fuse_mapper_group(ops, vram_limit=0.9)
+        self.assertEqual(result, ops)
+
     def test_successful_fusion(self):
         ops = [_MockGPUMapper(num_gpus=0.3, name=f"op{i}") for i in range(3)]
+        for op in ops:
+            op._op_cfg = {op._name: {"num_gpus": op.num_gpus}}
         result = fuse_mapper_group(ops, vram_limit=0.9)
         self.assertEqual(len(result), 1)
         self.assertIsInstance(result[0], FusedParallelMapper)
         self.assertEqual(result[0].num_gpus, 1.0)
+        self.assertEqual(
+            result[0]._op_cfg,
+            {"fused:op0,op1,op2": [{op._name: {"num_gpus": op.num_gpus}} for op in ops]},
+        )
 
     def test_batch_size_uses_min(self):
         """Verify the fix: batch_size should use min, not max."""
@@ -192,6 +226,20 @@ class TestFuseConsecutiveMappers(DataJuicerTestCaseBase):
         result = fuse_consecutive_mappers(ops, vram_limit=0.9)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[1], _MockMapper)
+
+    def test_unsafe_gpu_mapper_breaks_group(self):
+        ops = [
+            _MockGPUMapper(num_gpus=0.2, name="g0"),
+            _MockGPUMapper(num_gpus=0.2, name="unsafe"),
+            _MockGPUMapper(num_gpus=0.2, name="g1"),
+            _MockGPUMapper(num_gpus=0.2, name="g2"),
+        ]
+        ops[1]._fused_parallel_mapper_safe = False
+        result = fuse_consecutive_mappers(ops, vram_limit=0.9)
+        self.assertEqual(len(result), 3)
+        self.assertIs(result[0], ops[0])
+        self.assertIs(result[1], ops[1])
+        self.assertIsInstance(result[2], FusedParallelMapper)
 
     def test_cpu_mappers_not_fused(self):
         ops = [_MockMapper(name=f"c{i}") for i in range(3)]
@@ -311,6 +359,17 @@ class TestFusedParallelMapperExecution(DataJuicerTestCaseBase):
                 op_specs=[{"class_name": "fix_unicode_mapper"}],
                 fused_ops=[_MockMapper(name="m")],
             )
+
+    def test_sub_op_returning_new_batch_raises(self):
+        """Sub-ops must mutate the shared batch in place."""
+
+        class _ReturnNewBatchMapper(_MockMapper):
+            def process_batched(self, samples, rank=None, **kwargs):
+                return {key: list(value) for key, value in samples.items()}
+
+        fused = self._make_fused([_ReturnNewBatchMapper(name="copying")])
+        with self.assertRaisesRegex(ValueError, "returned a different batch object"):
+            fused.process_batched(self._make_samples())
 
 
 if __name__ == "__main__":

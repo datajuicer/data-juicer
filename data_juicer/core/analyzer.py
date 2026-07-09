@@ -113,7 +113,12 @@ class Analyzer:
                 probe_res, _ = adapter.probe_small_batch(dataset, ops)
 
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops, probe_res)
+            ops = fuse_operators(
+                ops,
+                probe_res,
+                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
 
         # 2. stats precompute only for filter or tagging ops
         logger.info("Computing the stats of dataset...")

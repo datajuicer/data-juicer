@@ -50,12 +50,12 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional
 
-import torch
-
 from data_juicer.ops.base_op import OPERATORS, Mapper
 from data_juicer.utils.constant import Fields
+from data_juicer.utils.lazy_loader import LazyLoader
 
 OP_NAME = "fused_parallel_mapper"
+torch = LazyLoader("torch")
 
 
 # Inner-op kwargs that belong to Ray scheduling, not to the model. These must
@@ -145,7 +145,7 @@ class FusedParallelMapper(Mapper):
         # Lazy-init in worker process — avoids loading models on the driver.
         self._ops: Optional[List[Mapper]] = None
         self._pool: Optional[ThreadPoolExecutor] = None
-        self._streams: Optional[List[torch.cuda.Stream]] = None
+        self._streams: Optional[List[Any]] = None
 
     # ------------------------------------------------------------------
     # Lazy initialization (runs once per Ray worker actor)
@@ -302,7 +302,7 @@ class FusedParallelMapper(Mapper):
 
         # Single-op fast path — skip thread overhead.
         if len(self._ops) == 1:
-            self._ops[0].process(samples, rank=rank)
+            self._run_sub_op(self._ops[0], samples, rank=rank)
             return samples
 
         # Per-op profiling: wall-clock timing per thread
@@ -316,7 +316,7 @@ class FusedParallelMapper(Mapper):
             def _run_on_stream_timed(op, stream):
                 t0 = _time.perf_counter()
                 with torch.cuda.stream(stream):
-                    op.process(samples, rank=rank)
+                    self._run_sub_op(op, samples, rank=rank)
                 stream.synchronize()
                 elapsed_ms = (_time.perf_counter() - t0) * 1000.0
                 return op._name, elapsed_ms
@@ -328,7 +328,7 @@ class FusedParallelMapper(Mapper):
 
             def _run_timed(op):
                 t0 = _time.perf_counter()
-                op.process(samples, rank=rank)
+                self._run_sub_op(op, samples, rank=rank)
                 if torch.cuda.is_available():
                     torch.cuda.synchronize()
                 elapsed_ms = (_time.perf_counter() - t0) * 1000.0
@@ -362,6 +362,17 @@ class FusedParallelMapper(Mapper):
                 del samples[col]
 
         return samples
+
+    def _run_sub_op(self, op, samples, rank=None):
+        """Run a sub-op and enforce the in-place fusion contract."""
+        result = op.process(samples, rank=rank)
+        if result is not samples:
+            raise ValueError(
+                f"FusedParallelMapper only supports in-place sub-ops that "
+                f"return the input batch unchanged by identity. Sub-op "
+                f"[{op._name}] returned a different batch object."
+            )
+        return result
 
     def _log_profiling_stats(self, last_batch_ms: float, last_batch_size: int):
         """Log per-op timing summary for the last N batches."""

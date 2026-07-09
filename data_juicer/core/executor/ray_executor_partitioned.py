@@ -821,7 +821,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Check for op_fusion configuration with safe attribute access
         if hasattr(self.cfg, "op_fusion") and self.cfg.op_fusion:
             logger.info(f"Start OP fusion and reordering with strategy [{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops)
+            ops = fuse_operators(
+                ops,
+                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
 
         return ops
 

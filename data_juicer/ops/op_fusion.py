@@ -32,12 +32,17 @@ ALL_INTER_VARS = [INTER_LINES, INTER_WORDS, LOADED_AUDIOS, LOADED_IMAGES, LOADED
 FUSION_STRATEGIES = {"greedy", "probe"}
 
 
-def fuse_operators(ops, probe_res=None):
+def fuse_operators(ops, probe_res=None, mapper_fusion=True, mapper_fusion_vram_limit=0.9):
     """
     Fuse the input ops list and return the fused ops list.
 
     :param ops: the corresponding list of op objects.
     :param probe_res: the probed speed for each OP from Monitor.
+    :param mapper_fusion: whether to fuse consecutive independent GPU Mappers
+        into FusedParallelMapper for parallel execution. Only effective when
+        op_fusion is true.
+    :param mapper_fusion_vram_limit: max aggregate GPU memory budget (fraction
+        of one GPU) for a fused mapper group. Default 0.9.
     :return: a list of fused op objects.
     """
     if probe_res is None:
@@ -58,6 +63,11 @@ def fuse_operators(ops, probe_res=None):
     # the final filter group, try to fuse them
     if filter_group:
         fused_ops.extend(fuse_filter_group(filter_group))
+
+    # Phase 2: fuse consecutive GPU Mappers
+    if mapper_fusion:
+        fused_ops = fuse_consecutive_mappers(fused_ops, vram_limit=mapper_fusion_vram_limit)
+
     return fused_ops
 
 
@@ -288,3 +298,123 @@ class GeneralFusedOP(Mapper):
             desc=self._name + "_process",
         )
         return new_dataset
+
+
+def _is_gpu_mapper(op) -> bool:
+    """Check if an op is a Mapper that requires GPU."""
+    return isinstance(op, Mapper) and (getattr(op, "num_gpus", 0) or 0) > 0
+
+
+def _are_ops_independent(ops: list) -> bool:
+    """Check if ops write to disjoint output keys.
+
+    Heuristic: GPU Mappers in DJ convention write to
+    Fields.meta[i][op._name] which are disjoint by design.
+
+    Exception: ops that read columns produced by ops IN THE SAME
+    group are dependent.
+
+    Note: _input_columns / _output_columns are optional attributes.
+    When absent, we assume the op is independent (safe default for
+    standard DJ GPU mappers that write to disjoint meta keys).
+    """
+    produced_cols = set()
+    has_column_info = False
+    for op in ops:
+        op_reads = set(getattr(op, "_input_columns", []) or [])
+        op_writes = set(getattr(op, "_output_columns", []) or [])
+        if op_reads or op_writes:
+            has_column_info = True
+        if op_reads & produced_cols:
+            return False
+        produced_cols.update(op_writes)
+    if not has_column_info:
+        logger.debug(
+            f"Mapper fusion: ops {[op._name for op in ops]} do not define "
+            f"_input_columns/_output_columns; assuming independence "
+            f"(standard for DJ GPU mappers writing to disjoint meta keys)"
+        )
+    return True
+
+
+def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
+    """Fuse consecutive independent GPU Mappers into FusedParallelMapper.
+
+    Safety rules:
+    - All ops must be Mapper instances with num_gpus > 0
+    - Ops must be independent (disjoint Fields.meta writes)
+    - Aggregate VRAM should not exceed vram_limit
+
+    Returns a list with either the original ops (if not fuseable)
+    or a single FusedParallelMapper wrapping the group.
+    """
+    from data_juicer.ops.fused_parallel_mapper import FusedParallelMapper
+
+    if not mapper_group:
+        return []
+
+    if not all(_is_gpu_mapper(op) for op in mapper_group):
+        return list(mapper_group)
+
+    if not _are_ops_independent(mapper_group):
+        logger.info(
+            f"Mapper fusion: skipping group {[op._name for op in mapper_group]} "
+            f"because ops are not independent (shared column dependencies)"
+        )
+        return list(mapper_group)
+
+    total_gpu_budget = sum(getattr(op, "num_gpus", 0) or 0 for op in mapper_group)
+    if total_gpu_budget > vram_limit:
+        logger.info(
+            f"Mapper fusion: skipping group {[op._name for op in mapper_group]} "
+            f"because aggregate VRAM ({total_gpu_budget:.2f}) exceeds "
+            f"limit ({vram_limit:.2f})"
+        )
+        return list(mapper_group)
+
+    group_name = "fused:" + ",".join(op._name for op in mapper_group)
+    fused = FusedParallelMapper(
+        fused_ops=mapper_group,
+        group_name=group_name,
+        use_per_op_streams=True,
+        parallel_model_loading=True,
+    )
+    fused.num_gpus = 1.0
+    fused.num_proc = min(op.runtime_np() for op in mapper_group)
+    fused.batch_size = min(getattr(op, "batch_size", 1) or 1 for op in mapper_group)
+
+    logger.info(
+        f"Ops are fused into FusedParallelMapper '{group_name}' "
+        f"({len(mapper_group)} ops, num_gpus={fused.num_gpus}, "
+        f"num_proc={fused.num_proc}, batch_size={fused.batch_size})"
+    )
+    return [fused]
+
+
+def fuse_consecutive_mappers(ops: list, vram_limit: float = 0.9) -> list:
+    """Scan op list and fuse consecutive GPU Mapper groups.
+
+    Groups are delimited by non-Mapper ops or CPU ops.
+    Each group of >= 2 consecutive GPU Mappers is fused
+    into a FusedParallelMapper. Single GPU Mappers pass through.
+    """
+    result = []
+    mapper_group = []
+
+    for op in ops:
+        if _is_gpu_mapper(op):
+            mapper_group.append(op)
+        else:
+            if len(mapper_group) >= 2:
+                result.extend(fuse_mapper_group(mapper_group, vram_limit=vram_limit))
+            else:
+                result.extend(mapper_group)
+            mapper_group = []
+            result.append(op)
+
+    if len(mapper_group) >= 2:
+        result.extend(fuse_mapper_group(mapper_group, vram_limit=vram_limit))
+    else:
+        result.extend(mapper_group)
+
+    return result

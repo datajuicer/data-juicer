@@ -191,7 +191,11 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
         if self.cfg.op_fusion:
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops)
+            ops = fuse_operators(
+                ops,
+                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
 
         with TempDirManager(self.tmp_dir):
             # 3. data process with DAG monitoring

@@ -10,7 +10,7 @@ Covers:
 
 import unittest
 
-from data_juicer.ops.base_op import OPERATORS, Filter, Mapper
+from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Filter, Mapper
 from data_juicer.ops.fused_sequential_batch_op import FusedSequentialBatchOp
 from data_juicer.ops.op_fusion import (
     _are_ops_independent,
@@ -51,9 +51,10 @@ class _MockGPUMapper(_MockMapper):
     _accelerator = "cuda"
     _fused_sequential_batch_op_safe = True
 
-    def __init__(self, num_gpus=0.3, **kwargs):
+    def __init__(self, num_gpus=0.3, estimated_vram_fraction=None, **kwargs):
         super().__init__(**kwargs)
         self.num_gpus = num_gpus
+        self.estimated_vram_fraction = num_gpus if estimated_vram_fraction is None else estimated_vram_fraction
         self._input_columns = ["text"]
         self._output_columns = [f"{Fields.meta}.{self._name}"]
         # Disable auto parallelism so runtime_np() returns num_proc
@@ -88,8 +89,14 @@ class _RegisteredMockLengthFilter(_MockLengthFilter):
     pass
 
 
+class _RegisteredMockTaggingMapper(_MockMapper):
+    pass
+
+
 OPERATORS.register_module("test_fused_seq_mock_mapper", _RegisteredMockMapper, force=True)
 OPERATORS.register_module("test_fused_seq_mock_length_filter", _RegisteredMockLengthFilter, force=True)
+OPERATORS.register_module("test_fused_seq_mock_tagging_mapper", _RegisteredMockTaggingMapper, force=True)
+TAGGING_OPS.register_module("test_fused_seq_mock_tagging_mapper", _RegisteredMockTaggingMapper, force=True)
 
 
 class _MockCPUFilter:
@@ -184,6 +191,24 @@ class TestFuseMapperGroup(DataJuicerTestCaseBase):
         # 0.6 + 0.6 = 1.2 > 0.9 → not fused
         self.assertEqual(len(result), 2)
 
+    def test_missing_vram_estimate_is_not_fused(self):
+        ops = [_MockGPUMapper(num_gpus=0.2, name=f"op{i}") for i in range(2)]
+        for op in ops:
+            op.estimated_vram_fraction = None
+
+        result = fuse_mapper_group(ops, vram_limit=0.9)
+
+        self.assertEqual(result, ops)
+
+    def test_different_runtime_envs_are_not_fused(self):
+        ops = [_MockGPUMapper(num_gpus=0.2, name=f"op{i}") for i in range(2)]
+        ops[0].runtime_env = {"pip": ["package-a"]}
+        ops[1].runtime_env = {"pip": ["package-b"]}
+
+        result = fuse_mapper_group(ops, vram_limit=0.9)
+
+        self.assertEqual(result, ops)
+
     def test_mapper_without_opt_in_is_not_fused(self):
         ops = [_MockGPUMapper(num_gpus=0.2, name=f"op{i}") for i in range(2)]
         ops[0]._fused_sequential_batch_op_safe = False
@@ -202,6 +227,22 @@ class TestFuseMapperGroup(DataJuicerTestCaseBase):
             result[0]._op_cfg,
             {"fused:op0,op1,op2": [{op._name: {"num_gpus": op.num_gpus}} for op in ops]},
         )
+
+    def test_runtime_env_and_actor_constructor_config_are_preserved(self):
+        runtime_env = {"pip": ["shared-package"]}
+        ops = [
+            _MockGPUMapper(num_gpus=0.2, name="op_a", runtime_env=runtime_env),
+            _MockGPUMapper(num_gpus=0.2, name="op_b", runtime_env=runtime_env),
+        ]
+
+        fused = fuse_mapper_group(ops, vram_limit=0.9)[0]
+        reconstructed = fused.__class__(*fused._init_args, **fused._init_kwargs)
+
+        self.assertEqual(reconstructed.accelerator, "cuda")
+        self.assertEqual(reconstructed.num_gpus, 1.0)
+        self.assertEqual(reconstructed.num_proc, fused.num_proc)
+        self.assertEqual(reconstructed.batch_size, fused.batch_size)
+        self.assertEqual(reconstructed.runtime_env, runtime_env)
 
     def test_batch_size_uses_min(self):
         """Verify the fix: batch_size should use min, not max."""
@@ -277,6 +318,15 @@ class TestFuseConsecutiveMappers(DataJuicerTestCaseBase):
         ops = [_MockMapper(name=f"c{i}") for i in range(3)]
         result = fuse_consecutive_mappers(ops, vram_limit=0.9)
         self.assertEqual(len(result), 3)
+
+    def test_large_group_is_split_into_maximal_fused_groups(self):
+        ops = [_MockGPUMapper(num_gpus=0.3, name=f"g{i}") for i in range(5)]
+
+        result = fuse_consecutive_mappers(ops, vram_limit=0.9)
+
+        self.assertEqual(len(result), 2)
+        self.assertTrue(all(isinstance(op, FusedSequentialBatchOp) for op in result))
+        self.assertEqual([len(op._fused_ops_input) for op in result], [3, 2])
 
 
 class TestFuseOperatorsWithMapperFusion(DataJuicerTestCaseBase):
@@ -378,6 +428,14 @@ class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
         self.assertIsNone(fused._ops[0].num_gpus)
         self.assertEqual(fused._ops[1].num_proc, -1)
         self.assertEqual(result[Fields.meta][0]["from_spec"], "v")
+
+    def test_tagging_capability_is_preserved_for_analyzer(self):
+        fused = FusedSequentialBatchOp(
+            op_specs=[{"class_name": "test_fused_seq_mock_tagging_mapper", "kwargs": {}}],
+            accelerator="cpu",
+        )
+
+        self.assertTrue(fused._contains_tagging_ops)
 
     def test_profiling_stats_collected(self):
         """Profiling state should be updated after process_batched."""

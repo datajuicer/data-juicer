@@ -82,9 +82,18 @@ class FusedSequentialBatchOp(Mapper):
         self.op_specs = list(op_specs or [])
         self.group_name = group_name or "fused"
         self.cleanup_columns = list(cleanup_columns) if cleanup_columns else []
+        self._contains_tagging_ops = self._detect_tagging_ops()
 
         # Lazy-init in worker process; avoids loading models on the driver.
         self._ops: Optional[List[Any]] = None
+
+    def _detect_tagging_ops(self) -> bool:
+        if self._fused_ops_input:
+            return any(
+                op._name in TAGGING_OPS.modules or getattr(op, "_contains_tagging_ops", False)
+                for op in self._fused_ops_input
+            )
+        return any((spec.get("class_name") or spec.get("name")) in TAGGING_OPS.modules for spec in self.op_specs)
 
     def _ensure_ops(self):
         if self._ops is not None:

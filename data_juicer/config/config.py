@@ -633,7 +633,8 @@ def build_base_parser() -> ArgumentParser:
         "--mapper_fusion_vram_limit",
         type=float,
         default=0.9,
-        help="Max aggregate GPU memory budget (fraction of one GPU) for a " "fused mapper group. Default 0.9.",
+        help="Max aggregate estimated VRAM fraction for a fused mapper group. "
+        "Each mapper class must declare estimated_vram_fraction. Default 0.9.",
     )
     parser.add_argument(
         "--adaptive_batch_size",

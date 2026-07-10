@@ -311,6 +311,26 @@ def _is_fusible_gpu_mapper(op) -> bool:
     return _is_gpu_mapper(op) and bool(getattr(op, MAPPER_FUSION_SAFE_ATTR, False))
 
 
+def _estimated_vram_fraction(op) -> Optional[float]:
+    value = getattr(op, "estimated_vram_fraction", None)
+    if value is None:
+        return None
+    try:
+        value = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Mapper [{op._name}] has invalid estimated_vram_fraction [{value}].") from exc
+    if not 0 < value <= 1:
+        raise ValueError(f"Mapper [{op._name}] estimated_vram_fraction must be in (0, 1], " f"but got [{value}].")
+    return value
+
+
+def _runtime_envs_compatible(ops: list) -> bool:
+    if not ops:
+        return True
+    first_runtime_env = getattr(ops[0], "runtime_env", None)
+    return all(getattr(op, "runtime_env", None) == first_runtime_env for op in ops[1:])
+
+
 def _are_ops_independent(ops: list) -> bool:
     """Check if ops write to disjoint output keys and have no local dependencies."""
     produced_cols = set()
@@ -337,6 +357,27 @@ def _are_ops_independent(ops: list) -> bool:
     return True
 
 
+def _mapper_group_blocker(mapper_group: list, vram_limit: float) -> Optional[str]:
+    if not 0 < vram_limit <= 1:
+        raise ValueError(f"mapper_fusion_vram_limit must be in (0, 1], but got [{vram_limit}].")
+    if not all(_is_fusible_gpu_mapper(op) for op in mapper_group):
+        return "at least one op has not explicitly opted into sequential batch fusion"
+    if not _are_ops_independent(mapper_group):
+        return "ops are not independent (shared column dependencies)"
+    if not _runtime_envs_compatible(mapper_group):
+        return "ops require different Ray runtime environments"
+
+    vram_fractions = [_estimated_vram_fraction(op) for op in mapper_group]
+    missing_estimates = [op._name for op, fraction in zip(mapper_group, vram_fractions) if fraction is None]
+    if missing_estimates:
+        return "ops do not declare estimated_vram_fraction: " f"{missing_estimates}"
+
+    total_vram_fraction = sum(vram_fractions)
+    if total_vram_fraction > vram_limit:
+        return f"aggregate estimated VRAM ({total_vram_fraction:.2f}) exceeds " f"limit ({vram_limit:.2f})"
+    return None
+
+
 def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
     """Fuse consecutive independent GPU Mappers into FusedSequentialBatchOp.
 
@@ -344,7 +385,9 @@ def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
     - All ops must be Mapper instances with num_gpus > 0
     - All ops must explicitly opt in with _fused_sequential_batch_op_safe = True
     - Ops must be independent (disjoint declared output columns)
-    - Aggregate VRAM should not exceed vram_limit
+    - All ops must declare estimated_vram_fraction
+    - Aggregate estimated VRAM should not exceed vram_limit
+    - All ops must use the same Ray runtime environment
 
     Returns a list with either the original ops (if not fuseable)
     or a single FusedSequentialBatchOp wrapping the group.
@@ -354,39 +397,28 @@ def fuse_mapper_group(mapper_group: list, vram_limit: float = 0.9) -> list:
     if not mapper_group:
         return []
 
-    if not all(_is_fusible_gpu_mapper(op) for op in mapper_group):
-        logger.info(
-            f"Mapper fusion: skipping group {[op._name for op in mapper_group]} "
-            f"because at least one op has not explicitly opted into "
-            f"sequential batch fusion"
-        )
-        return list(mapper_group)
-
-    if not _are_ops_independent(mapper_group):
-        logger.info(
-            f"Mapper fusion: skipping group {[op._name for op in mapper_group]} "
-            f"because ops are not independent (shared column dependencies)"
-        )
-        return list(mapper_group)
-
-    total_gpu_budget = sum(getattr(op, "num_gpus", 0) or 0 for op in mapper_group)
-    if total_gpu_budget > vram_limit:
-        logger.info(
-            f"Mapper fusion: skipping group {[op._name for op in mapper_group]} "
-            f"because aggregate VRAM ({total_gpu_budget:.2f}) exceeds "
-            f"limit ({vram_limit:.2f})"
-        )
+    blocker = _mapper_group_blocker(mapper_group, vram_limit)
+    if blocker:
+        logger.info(f"Mapper fusion: skipping group {[op._name for op in mapper_group]} " f"because {blocker}")
         return list(mapper_group)
 
     group_name = "fused:" + ",".join(op._name for op in mapper_group)
+    num_proc = min(op.runtime_np() for op in mapper_group)
+    batch_size = min(getattr(op, "batch_size", 1) or 1 for op in mapper_group)
+    num_cpus_values = [getattr(op, "num_cpus", None) for op in mapper_group]
+    num_cpus_values = [value for value in num_cpus_values if value is not None]
+    num_cpus = max(num_cpus_values) if num_cpus_values else None
     fused = FusedSequentialBatchOp(
         fused_ops=mapper_group,
         group_name=group_name,
+        accelerator="cuda",
+        num_gpus=1.0,
+        num_cpus=num_cpus,
+        num_proc=num_proc,
+        batch_size=batch_size,
+        auto_op_parallelism=False,
+        runtime_env=getattr(mapper_group[0], "runtime_env", None),
     )
-    fused.accelerator = "cuda"
-    fused.num_gpus = 1.0
-    fused.num_proc = min(op.runtime_np() for op in mapper_group)
-    fused.batch_size = min(getattr(op, "batch_size", 1) or 1 for op in mapper_group)
     fused._op_cfg = {group_name: [getattr(op, "_op_cfg", {op._name: {}}) for op in mapper_group]}
 
     logger.info(
@@ -404,23 +436,30 @@ def fuse_consecutive_mappers(ops: list, vram_limit: float = 0.9) -> list:
     Each group of >= 2 consecutive GPU Mappers is fused
     into a FusedSequentialBatchOp. Single GPU Mappers pass through.
     """
+    if not 0 < vram_limit <= 1:
+        raise ValueError(f"mapper_fusion_vram_limit must be in (0, 1], but got [{vram_limit}].")
+
     result = []
     mapper_group = []
 
+    def flush_group():
+        nonlocal mapper_group
+        if len(mapper_group) >= 2:
+            result.extend(fuse_mapper_group(mapper_group, vram_limit=vram_limit))
+        else:
+            result.extend(mapper_group)
+        mapper_group = []
+
     for op in ops:
         if _is_fusible_gpu_mapper(op):
+            candidate_group = mapper_group + [op]
+            if mapper_group and _mapper_group_blocker(candidate_group, vram_limit):
+                flush_group()
             mapper_group.append(op)
         else:
-            if len(mapper_group) >= 2:
-                result.extend(fuse_mapper_group(mapper_group, vram_limit=vram_limit))
-            else:
-                result.extend(mapper_group)
-            mapper_group = []
+            flush_group()
             result.append(op)
 
-    if len(mapper_group) >= 2:
-        result.extend(fuse_mapper_group(mapper_group, vram_limit=vram_limit))
-    else:
-        result.extend(mapper_group)
+    flush_group()
 
     return result

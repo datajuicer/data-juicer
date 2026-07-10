@@ -116,7 +116,9 @@ class Analyzer:
             ops = fuse_operators(
                 ops,
                 probe_res,
-                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                # Analyzer intentionally executes only stats/tagging ops. Auto
+                # mapper fusion could mix them with mappers Analyzer should skip.
+                mapper_fusion=False,
                 mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
             )
 
@@ -130,7 +132,7 @@ class Analyzer:
                 dataset = dataset.process(op, work_dir=self.work_dir, open_monitor=self.cfg.open_monitor)
                 op.process = original_process
                 stats_collected = True
-            elif op._name in TAGGING_OPS.modules:
+            elif op._name in TAGGING_OPS.modules or getattr(op, "_contains_tagging_ops", False):
                 dataset = dataset.process(op, work_dir=self.work_dir, open_monitor=self.cfg.open_monitor)
                 stats_collected = True
         if not stats_collected:

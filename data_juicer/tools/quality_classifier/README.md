@@ -6,7 +6,7 @@ English | [中文](README_ZH.md)
 Data-Juicer provides a set of data scoring capabilities to help you evaluate your datasets.
 
 - All [Filter Operators](../../../docs/Operators.md) include a sub-process called `compute_stats`, which calculates statistical measurements based on a pre-defined functional goal of the operator. These measurements are typically derived using simple rules, auxiliary models, or advanced algorithms, such as for perplexity, length, modality matching scores, etc. The `Analyzer` will automatically aggregate these statistics and report them in the resulting dataset.
-  
+
 - Prompt-based LLM scoring operators are also available, such as `llm_difficulty_score_filter` and `llm_quality_score_filter`. These operators come with default prompts for general use cases but also offer flexibility for users to customize their own models or specific requirements.
 
 - Additionally, we provide a toolkit to reproduce the GPT-3 quality classifier, as described in the following section.

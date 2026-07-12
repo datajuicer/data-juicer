@@ -10,7 +10,7 @@
 - 目标：基于交互数据，为模型和Agent（e.g.`meta.agent_request_model`）」产出*分层可溯源*线索及洞察
 
 - **LLM 输出语言**：各算子支持 kwargs `preferred_output_lang: zh | en`（实现见 `data_juicer/utils/agent_output_locale.py`）。全量菜谱默认 `zh` 以统一中文理由/说明；改英文流水线时在各 LLM 块改为 `en` 即可。第 10 步 insight 会将语言写入 `meta.agent_pipeline_output_lang`，供 `generate_bad_case_report.py --report-lang auto` 推断页面分档展示语言。
-- **第 9 步** `agent_bad_case_signal_mapper`：多源**确定性**信号 + 保守分层。  
+- **第 9 步** `agent_bad_case_signal_mapper`：多源**确定性**信号 + 保守分层。
 - **第 10 步** `agent_insight_llm_mapper`（可选）：把数值 stats 与各类 LLM 评估文本**二次综合**成可解释 JSON（便于看板与人工质检）。
 
 - 覆盖隐私、agent能力、环境/工具交互、模型回复质量、任务成功率、用户满意度等信号，近40个DataJuicer算子
@@ -73,8 +73,8 @@
 
 分层：
 
-- `**meta.agent_bad_case_signals`**：`{code, detail, weight}`。  
-- `**meta.agent_bad_case_tier`**（机器枚举，jq 仍用英文）：`high_precision` | `watchlist` | `none`。  
+- `**meta.agent_bad_case_signals`**：`{code, detail, weight}`。
+- `**meta.agent_bad_case_tier`**（机器枚举，jq 仍用英文）：`high_precision` | `watchlist` | `none`。
   - 报告中译为 **强怀疑（主证据）** / **待观察（弱证据）** / **未标记**；`**high_precision` 不是「模型精度高」**，而是「强怀疑、建议优先复核」。
   - 长 agent 轨迹易出现 **多次 tool 返回含 error 模式**：若 `**high_precision_on_tool_fail_alone: false`**（全量菜谱默认），仅凭 tool 计数**不会**单独升强怀疑档；可调 `**min_tool_fail_count_for_signal`** 控制何时打出 tool 信号。
 
@@ -84,10 +84,10 @@ YAML 中请将 `**llm_analysis_discard_must_be_strict**` / `**llm_text_quality_d
 
 把**一条样本**打包为 JSON（token、工具、意图/主题/情感标签、三路 LLM eval 摘要、`**dialog_quality_llm`**（§5b 各轴 1–5 分与短 reason 摘要）、`agent_bad_case_*`、query/response 截断预览），调用 API 模型输出**严格 JSON**：
 
-- `headline`：一句话中文总览（适合卡片）  
-- `root_causes`：`factor` + `confidence` + `cited_fields`（必须来自输入 JSON 的键路径）+ `rationale_one_line`  
-- `narrative_alignment`：数值与文字 rationales 是否一致  
-- `human_review_priority`：`P0`–`P3`  
+- `headline`：一句话中文总览（适合卡片）
+- `root_causes`：`factor` + `confidence` + `cited_fields`（必须来自输入 JSON 的键路径）+ `rationale_one_line`
+- `narrative_alignment`：数值与文字 rationales 是否一致
+- `human_review_priority`：`P0`–`P3`
 - `viz_facets`：建议切片维度
 
 写入 `**meta.agent_insight_llm`**；解析失败时仍有占位结构，原文在 `**meta.agent_insight_llm_raw`**。
@@ -102,16 +102,16 @@ YAML 中请将 `**llm_analysis_discard_must_be_strict**` / `**llm_text_quality_d
 
 ## 深挖思路（按 model / pt）
 
-- **跨模型**：同一意图桶、同一工具族，对比 `llm_analysis_score`、`llm_quality_score`、token、tool 失败率。  
-- **跨 `pt`**：同一模型下看 P50/P90 与 `high_precision` 占比漂移。  
+- **跨模型**：同一意图桶、同一工具族，对比 `llm_analysis_score`、`llm_quality_score`、token、tool 失败率。
+- **跨 `pt`**：同一模型下看 P50/P90 与 `high_precision` 占比漂移。
 - **组合**：优先 **AND** 多条独立证据。
 
 ## Pipeline 之后的分析脚本
 
 见 `**demos/agent/scripts/README.md`**：
 
-- `compute_percentile_thresholds.py`：分位数报告；`--write-calibration` → 自动阈值 JSON。  
-- `analyze_bad_case_cohorts.py`：按 model / pt / tier 汇总并可选 CSV。  
+- `compute_percentile_thresholds.py`：分位数报告；`--write-calibration` → 自动阈值 JSON。
+- `analyze_bad_case_cohorts.py`：按 model / pt / tier 汇总并可选 CSV。
 - `slice_export_by_tier.py`：按 tier（及可选 model）导出子集 jsonl。
 
 ## jq 快速筛选
@@ -125,9 +125,9 @@ jq -c '."__dj__meta__".agent_insight_llm.headline, ."__dj__meta__".agent_bad_cas
 
 ## 相关算子
 
-- `tool_success_tagger_mapper`、`usage_counter_mapper`  
-- `llm_analysis_filter`、`llm_quality_score_filter`、`llm_difficulty_score_filter`  
-- `agent_bad_case_signal_mapper`、`agent_insight_llm_mapper`  
+- `tool_success_tagger_mapper`、`usage_counter_mapper`
+- `llm_analysis_filter`、`llm_quality_score_filter`、`llm_difficulty_score_filter`
+- `agent_bad_case_signal_mapper`、`agent_insight_llm_mapper`
 
 若需 **按 session 聚合** 再判坏，请在数据中带 `session_id` 并在分析脚本中 groupby；当前算子为**逐条样本**。
 

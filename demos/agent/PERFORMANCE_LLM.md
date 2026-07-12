@@ -53,10 +53,10 @@
 
 ## 4. 迭代开发时的推荐组合
 
-1. 使用 **`demos/agent/minimal_configs/09_bad_case_smoke.yaml`** 或自剪一版「只保留必要 LLM」的 YAML。  
-2. 顶层 **`np: 8`**（或按配额），必要时 **`turbo: true`** 试跑对比。  
-3. Dialog 一类：**`max_round: 4`**，**`try_num: 1`**。  
-4. **`agent_skill_insight_mapper`**：开发改用 **`qwen-turbo`**。  
+1. 使用 **`demos/agent/minimal_configs/09_bad_case_smoke.yaml`** 或自剪一版「只保留必要 LLM」的 YAML。
+2. 顶层 **`np: 8`**（或按配额），必要时 **`turbo: true`** 试跑对比。
+3. Dialog 一类：**`max_round: 4`**，**`try_num: 1`**。
+4. **`agent_skill_insight_mapper`**：开发改用 **`qwen-turbo`**。
 5. 全量跑稳定后再把 `try_num`、模型、实体列表调回生产值。
 
 ## 5. 与本仓库脚本的衔接

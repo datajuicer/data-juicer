@@ -29,8 +29,8 @@ Whether you're deduplicating web-scale pre-training corpora, curating agent inte
 
 ## 🚀 Quick Start
 
-**Zero-install exploration**: 
-- [JupyterLab Playground with Tutorials](http://8.138.149.181/) 
+**Zero-install exploration**:
+- [JupyterLab Playground with Tutorials](http://8.138.149.181/)
 - [Ask DJ Copilot](https://datajuicer.github.io/data-juicer/en/main/docs_index.html)
 
 **Install & run**:
@@ -127,10 +127,10 @@ for s in res_ds:
 <details>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot, Video Bytes I/O & Ray Tracing </b></summary>
 
-- 🤖 *Q&A Copilot* —  Now live on our [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK). Feel free to ask anything related to Data-Juicer ecosystem!  
+- 🤖 *Q&A Copilot* —  Now live on our [Doc Site](https://datajuicer.github.io/data-juicer/en/main/index.html) | [DingTalk](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK). Feel free to ask anything related to Data-Juicer ecosystem!
     - Check 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [Deploy-ready codes](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[ More demos](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md) for more details.
-- 🎬 *Video Bytes I/O* — Direct bytes processing for video pipelines  
-- 🫆 *Ray Mode Tracer* — Track changed samples in distributed processing  
+- 🎬 *Video Bytes I/O* — Direct bytes processing for video pipelines
+- 🫆 *Ray Mode Tracer* — Track changed samples in distributed processing
 - 🐳 *Enhancements & fixes* — refreshed Docker image, small perf boosts, GitHub Insights traffic workflow, Ray compatibility updates, and bug/doc fixes.
 </details>
 
@@ -140,7 +140,7 @@ for s in res_ds:
 - *Embodied-AI OPs*: added/enhanced mappers for video captioning (VLM), video object segmentation (YOLOE+SAM2), video depth estimation (viz + point cloud), human pose (MMPose), image tagging (VLM), single-image 3D body mesh recovery (SAM 3D Body), plus *S3 upload/download*.
 - *New Pipeline OP*: compose multiple OPs into one pipeline; introduced *Ray + vLLM* pipelines for LLM/VLM inference.
 - *Docs upgrade*: moved to a unified *Sphinx-based* documentation build/deploy workflow with isolated theme/architecture repo.
-- *Enhancements & fixes*: dependency updates, improved Ray deduplication and S3 loading, OpenAI Responses API support, tracer consistency, Docker base updated to CUDA 12.6.3 + Ubuntu 24.04 + Py3.11, and multiple bug fixes. 
+- *Enhancements & fixes*: dependency updates, improved Ray deduplication and S3 loading, OpenAI Responses API support, tracer consistency, Docker base updated to CUDA 12.6.3 + Ubuntu 24.04 + Py3.11, and multiple bug fixes.
 
 </details>
 
@@ -158,15 +158,15 @@ View [All Release](https://github.com/datajuicer/data-juicer/releases) and [News
 ---
 
 ## 🔌 Users & Ecosystems
-> The below list focuses on *developer-facing integration and usages* in *alphabetical order*.  
+> The below list focuses on *developer-facing integration and usages* in *alphabetical order*.
 > Missing your project / name? Feel free to [open a PR](https://github.com/datajuicer/data-juicer/pulls) or [reach out](#contributing--community).
 
 Data-Juicer plugs into your existing stack and evolves with community contributions:
 
 ### Extensions
-- **[data-juicer-agents](https://github.com/datajuicer/data-juicer-agents)** — DJ Copilot and agentic workflows  
-- **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — Community recipes and best practices  
-- **[data-juicer-sandbox](https://github.com/datajuicer/data-juicer-sandbox)** — Data-model co-development with feedback loops  
+- **[data-juicer-agents](https://github.com/datajuicer/data-juicer-agents)** — DJ Copilot and agentic workflows
+- **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — Community recipes and best practices
+- **[data-juicer-sandbox](https://github.com/datajuicer/data-juicer-sandbox)** — Data-model co-development with feedback loops
 
 
 ### Frameworks & Platforms
@@ -182,7 +182,7 @@ CAS, Nanjing University, Peking University, RUC, Tsinghua University, UCAS, Zhej
 ###  Contributing & Community
 We believe in *building together*. Whether you're fixing a typo, crafting a new operator, or sharing a breakthrough recipe, every contribution shapes the future of data processing.
 
-We welcome contributions at all levels: 
+We welcome contributions at all levels:
 - **[Good First Issues](https://github.com/datajuicer/data-juicer/labels/good%20first%20issue)** — Add operators, improve docs, report issues, or fix bugs
 - **[Developer Guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.html)** — Optimize engines, add features, or enhance core infrastructure
 - **[DJ-Hub](https://github.com/datajuicer/data-juicer-hub)** — Share knowledge: recipes, papers, and best practices
@@ -194,7 +194,7 @@ We welcome contributions at all levels:
 
 
 Data-Juicer is made possible by the users and community:
-- **Initiated by**: Alibaba Tongyi Lab  
+- **Initiated by**: Alibaba Tongyi Lab
 - **Co-developed with**: Alibaba Cloud PAI, Anyscale (Ray team), Sun Yat-sen University, NVIDIA (NeMo team), and [contributors worldwide](https://github.com/datajuicer/data-juicer/graphs/contributors)
 - **Inspired by**: Apache Arrow, Ray, Hugging Face Datasets, BLOOM, RedPajama-Data, ...
 
@@ -209,7 +209,7 @@ For detailed documentation, please see [here](https://datajuicer.github.io/data-
 - **[operator zoo](https://datajuicer.github.io/data-juicer/en/main/docs/Operators.html)** — Browse 200+ operators with examples
 - **[Agent interaction quality & bad-case](demos/agent/README.md)** — In-repo recipe, JSONL pipeline, HTML report (`demos/agent/`; operators such as `agent_bad_case_signal_mapper` are also listed in [docs/Operators.md](docs/Operators.md))
 - **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — Community-driven recipes and best practices
-- **[developer guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.html)** — Build your own code and contribute to DJ 
+- **[developer guide](https://datajuicer.github.io/data-juicer/en/main/docs/DeveloperGuide.html)** — Build your own code and contribute to DJ
 - **[data-juicer-cookbook](https://datajuicer.github.io/data-juicer/en/main/docs/tutorial/DJ-Cookbook.html)** — resource archive
 - **[awesome_llm_data](https://datajuicer.github.io/data-juicer/en/main/docs/awesome_llm_data)** —  “Awesome List” for data-model co-development
 
@@ -218,7 +218,7 @@ For detailed documentation, please see [here](https://datajuicer.github.io/data-
 
 ## 📄 License & Attribution
 
-Data-Juicer is released under the [Apache License 2.0](LICENSE).  
+Data-Juicer is released under the [Apache License 2.0](LICENSE).
 Attribution is appreciated: please use our [badge](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/assets/DJ-Org-Logo.jpeg), or text as "This project uses Data-Juicer: https://github.com/datajuicer".
 
 ---
@@ -248,7 +248,7 @@ If you find Data-Juicer useful in your work, please cite:
 - (ICML'25 Spotlight) [Data-Juicer Sandbox: A Feedback-Driven Suite for Multimodal Data-Model Co-development](https://arxiv.org/abs/2407.11784)
 
 - (CVPR'25) [ImgDiff: Contrastive Data Synthesis for Vision Large Language Models](https://arxiv.org/abs/2408.04594)
- 
+
 - (TPAMI'25) [The Synergy between Data and Multi-Modal Large Language Models: A Survey from Co-Development Perspective](https://arxiv.org/abs/2407.08583)
 
 - (NeurIPS'25) [Diversity as a Reward: Fine-Tuning LLMs on a Mixture of Domain-Undetermined Data](https://arxiv.org/abs/2502.04380)
@@ -256,7 +256,7 @@ If you find Data-Juicer useful in your work, please cite:
 - (NeurIPS'25) [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499)
 
 - (CVPR'26) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
- 
+
 - (ICML'26) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
 
 - (Data Scaling) [BiMix: A Bivariate Data Mixing Law for Language Model Pretraining](https://arxiv.org/abs/2405.14908)

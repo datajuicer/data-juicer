@@ -24,9 +24,8 @@ class VideoFaceRatioFilterTest(DataJuicerTestCaseBase):
     """
 
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data')
-    vid1_path = os.path.join(data_path, 'video1.mp4')
-    vid2_path = os.path.join(data_path, 'video2.mp4')
-    vid4_path = os.path.join(data_path, 'video4.mp4')
+    vid1_path = os.path.join(data_path, 'video14.mp4')
+    vid4_path = os.path.join(data_path, 'video15.mp4')
 
     def _run_helper(self, op, source_list, target_list, select_field=None):
         dataset = Dataset.from_list(source_list)
@@ -42,13 +41,13 @@ class VideoFaceRatioFilterTest(DataJuicerTestCaseBase):
         """With threshold=0.0, all videos should be kept."""
         ds_list = [{'videos': [self.vid1_path]}, {'videos': [self.vid4_path]}]
         tgt_list = [{'videos': [self.vid1_path]}, {'videos': [self.vid4_path]}]
-        op = VideoFaceRatioFilter(threshold=0.0, any_or_all='all')
+        op = VideoFaceRatioFilter(threshold=0.0, detect_interval=10, any_or_all='all')
         self._run_helper(op, ds_list, tgt_list)
 
     def test_filter_strict(self):
         """With a high threshold, videos without enough faces are filtered out."""
         ds_list = [{'videos': [self.vid1_path]}, {'videos': [self.vid4_path]}]
-        op = VideoFaceRatioFilter(threshold=0.99, any_or_all='all')
+        op = VideoFaceRatioFilter(threshold=0.99, detect_interval=10, any_or_all='all')
         dataset = Dataset.from_list(ds_list)
         if Fields.stats not in dataset.features:
             dataset = dataset.add_column(name=Fields.stats, column=[{}] * dataset.num_rows)
@@ -62,27 +61,27 @@ class VideoFaceRatioFilterTest(DataJuicerTestCaseBase):
     def test_any_strategy(self):
         """With 'any' strategy, a sample is kept if any video meets the threshold."""
         ds_list = [{'videos': [self.vid1_path, self.vid4_path]}]
-        op = VideoFaceRatioFilter(threshold=0.0, any_or_all='any')
+        op = VideoFaceRatioFilter(threshold=0.0, detect_interval=10, any_or_all='any')
         self._run_helper(op, ds_list, ds_list)
 
     def test_all_strategy(self):
         """With 'all' strategy, a sample is kept only if all videos meet the threshold."""
         ds_list = [{'videos': [self.vid1_path, self.vid4_path]}]
-        op = VideoFaceRatioFilter(threshold=0.0, any_or_all='all')
+        op = VideoFaceRatioFilter(threshold=0.0, detect_interval=10, any_or_all='all')
         self._run_helper(op, ds_list, ds_list)
 
     def test_no_video(self):
         """Samples with empty video lists should be kept (no videos to filter)."""
         ds_list = [{'videos': []}, {'videos': [self.vid4_path]}]
         tgt_list = [{'videos': []}, {'videos': [self.vid4_path]}]
-        op = VideoFaceRatioFilter(threshold=0.0, any_or_all='all')
+        op = VideoFaceRatioFilter(threshold=0.0, detect_interval=10, any_or_all='all')
         self._run_helper(op, ds_list, tgt_list)
 
     def test_detect_interval(self):
         """A larger detect_interval should still produce valid stats."""
         ds_list = [{'videos': [self.vid4_path]}]
         tgt_list = [{'videos': [self.vid4_path]}]
-        op = VideoFaceRatioFilter(threshold=0.0, detect_interval=10, any_or_all='all')
+        op = VideoFaceRatioFilter(threshold=0.0, detect_interval=20, any_or_all='all')
         self._run_helper(op, ds_list, tgt_list)
 
     def test_invalid_strategy(self):
@@ -96,7 +95,7 @@ class VideoFaceRatioFilterTest(DataJuicerTestCaseBase):
         mp.set_start_method('forkserver', force=True)
 
         ds_list = [{'videos': [self.vid1_path]}, {'videos': [self.vid4_path]}]
-        op = VideoFaceRatioFilter(threshold=0.0, any_or_all='all')
+        op = VideoFaceRatioFilter(threshold=0.0, detect_interval=10, any_or_all='all')
         dataset = Dataset.from_list(ds_list)
         if Fields.stats not in dataset.features:
             dataset = dataset.add_column(name=Fields.stats, column=[{}] * dataset.num_rows)

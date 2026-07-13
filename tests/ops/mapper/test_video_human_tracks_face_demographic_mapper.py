@@ -12,9 +12,9 @@ from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 try:
-    import deepface  # noqa: F401
+    from deepface import DeepFace  # noqa: F401
     _DEEPFACE_AVAILABLE = True
-except ImportError:
+except (ImportError, RuntimeError):
     _DEEPFACE_AVAILABLE = False
 
 
@@ -39,7 +39,7 @@ def _make_dummy_track(video_path, temp_dir):
     return {'bbox_path': bbox_path}
 
 
-@unittest.skipUnless(_DEEPFACE_AVAILABLE, 'deepface package not installed.')
+@unittest.skipUnless(_DEEPFACE_AVAILABLE, 'DeepFace runtime dependencies are not available.')
 class VideoHumantrackFaceDemographicMapperTest(DataJuicerTestCaseBase):
     """Test for video_human_tracks_face_demographic_mapper, which detects
     face demographics (age, gender, race) for each tracked person using

@@ -5,8 +5,8 @@
 ## 只想看报告（最少步骤）
 
 1. 跑完 `dj-process`（或 `bash … run_bad_case_pipeline.sh smoke|full`）。
-2. `**bash demos/agent/scripts/run_bad_case_pipeline.sh report ./outputs/.../processed.jsonl`**
-  → 打开生成的 `**processed_bad_case_report.html**`。说明见 `**BAD_CASE_REPORT.md**`。
+2. **`bash demos/agent/scripts/run_bad_case_pipeline.sh report ./outputs/.../processed.jsonl`**
+  → 打开生成的 **`processed_bad_case_report.html`**。说明见 **`BAD_CASE_REPORT.md`**。
 
 ## 前置条件
 
@@ -59,21 +59,20 @@
 
 ## 脚本目录说明
 
-详见 `**demos/agent/scripts/README.md`**（各 Python 脚本参数与示例）。
+详见 **`demos/agent/scripts/README.md`**（各 Python 脚本参数与示例）。
 
 ## LLM 算子慢、想加速？
 
-见 `**demos/agent/PERFORMANCE_LLM.md**`：`np` / `num_proc` / `turbo`、`try_num`、`max_round`、`sampling_params`、换小模型、收窄 `agent_insight_llm_mapper` 等。
+见 **`demos/agent/PERFORMANCE_LLM.md`**：`np` / `num_proc` / `turbo`、`try_num`、`max_round`、`sampling_params`、换小模型、收窄 `agent_insight_llm_mapper` 等。
 
 ## 导出里的 meta 键名
 
-- 主字段为 `**__dj__meta__**`（不是 `meta`），除非设置 `**keep_stats_in_res_ds: true**`，否则默认不会出现在主 `processed.jsonl` 里，而在 `**processed_stats.jsonl**`。
+- 主字段为 **`__dj__meta__`**（不是 `meta`），除非设置 **`keep_stats_in_res_ds: true`**，否则默认不会出现在主 `processed.jsonl` 里，而在 **`processed_stats.jsonl`**。
 - `demos/agent/scripts/` 下分析脚本会**自动**把同目录的 `*_stats.jsonl` 按行合并后再读；菜谱 **09** 与 **agent_interaction_quality_analysis.yaml** 已设 `keep_stats_in_res_ds: true`，便于 `jq` 单文件查看。
 
 ## 常见问题
 
 - **smoke 导出 0 条、verify 报 `got 0`**：若 YAML 里含 `language_id_score_filter` 且 `lang: "zh"`，FastText 标签可能不是字面 `"zh"`，会把 demo 全过滤掉。`09_bad_case_smoke.yaml` 已去掉该算子；全量 `agent_interaction_quality_analysis.yaml` 仍保留，大语料上一般正常。
-- `**lid.176.bin` 下载失败**：全量菜谱里的 `language_id_score_filter` 需要语言模型；可先跑 `01_normalize_only` 或换网络/手动放到 `~/.cache/data_juicer/models/`（见 `minimal_configs/README.md`）。
+- **`lid.176.bin` 下载失败**：全量菜谱里的 `language_id_score_filter` 需要语言模型；可先跑 `01_normalize_only` 或换网络/手动放到 `~/.cache/data_juicer/models/`（见 `minimal_configs/README.md`）。
 - **full 中途 API 失败**：导出可能不完整；可用 `verify_bad_case_export.py`（不加 `--require-insight`）检查 bad-case 字段是否已写出。
 - **分位数为空**：确认 `copy_lineage_fields: true` 与 `usage_counter_mapper` 已跑，`meta.total_tokens` / `meta.agent_request_model` 存在。
-

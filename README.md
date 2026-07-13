@@ -158,7 +158,7 @@ View [All Release](https://github.com/datajuicer/data-juicer/releases) and [News
 ---
 
 ## 🔌 Users & Ecosystems
-> The below list focuses on *developer-facing integration and usages* in *alphabetical order*.
+> The below list focuses on *developer-facing integration and usages* in *alphabetical order*.<br>
 > Missing your project / name? Feel free to [open a PR](https://github.com/datajuicer/data-juicer/pulls) or [reach out](#contributing--community).
 
 Data-Juicer plugs into your existing stack and evolves with community contributions:
@@ -218,7 +218,7 @@ For detailed documentation, please see [here](https://datajuicer.github.io/data-
 
 ## 📄 License & Attribution
 
-Data-Juicer is released under the [Apache License 2.0](LICENSE).
+Data-Juicer is released under the [Apache License 2.0](LICENSE).<br>
 Attribution is appreciated: please use our [badge](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/assets/DJ-Org-Logo.jpeg), or text as "This project uses Data-Juicer: https://github.com/datajuicer".
 
 ---
@@ -262,4 +262,3 @@ If you find Data-Juicer useful in your work, please cite:
 - (Data Scaling) [BiMix: A Bivariate Data Mixing Law for Language Model Pretraining](https://arxiv.org/abs/2405.14908)
 
 </details>
-

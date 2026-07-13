@@ -156,7 +156,7 @@ for s in res_ds:
 ---
 
 ## 🔌 用户与生态系统
-> 以下列表重点关注*面向开发者的集成和使用*，按*字母顺序*排列。
+> 以下列表重点关注*面向开发者的集成和使用*，按*字母顺序*排列。<br>
 > 缺少您的项目/名称？欢迎[提交 PR](https://github.com/datajuicer/data-juicer/pulls) 或[联系我们](#贡献与社区)。
 
 Data-Juicer 可无缝集成到您现有的技术栈，并随着社区贡献而不断发展：
@@ -210,7 +210,7 @@ Data-Juicer 由用户和社区共同打造：
 
 ## 📄 许可证与致谢
 
-Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。
+Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。<br>
 如果您项目中要致谢DataJuicer：请使用我们的[Badge](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/assets/DJ-Org-Logo.jpeg)，或文本譬如 "本项目使用Data-Juicer: https://github.com/datajuicer"。
 
 ---

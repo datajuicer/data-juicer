@@ -139,7 +139,8 @@ from .video_trajectory_overlay_mapper import VideoTrajectoryOverlayMapper
 from .video_undistort_mapper import VideoUndistortMapper
 from .video_whole_body_pose_estimation_mapper import VideoWholeBodyPoseEstimationMapper
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
-
+from .depth_anything_v2_mapper import DepthAnythingV2Mapper
+from .sam_auto_mask_mapper import SAMAutoMaskMapper
 __all__ = [
     "AgentBadCaseSignalMapper",
     "AgentDialogNormalizeMapper",
@@ -272,4 +273,6 @@ __all__ = [
     "VideoUndistortMapper",
     "VideoWholeBodyPoseEstimationMapper",
     "WhitespaceNormalizationMapper",
+    "DepthAnythingV2Mapper",  
+    "SAMAutoMaskMapper",
 ]

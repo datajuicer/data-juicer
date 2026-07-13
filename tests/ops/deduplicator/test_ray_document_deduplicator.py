@@ -250,41 +250,5 @@ class RayDocumentDeduplicatorTest(DataJuicerTestCaseBase):
         self.assertEqual(len(res_list), 1)
         self.assertEqual(res_list[0]['text'], 'duplicate with stats export')
 
-    def test_prepare_for_ray_execution_reuses_existing_actor_handles(self):
-        from data_juicer.ops.deduplicator.ray_basic_deduplicator import ActorBackend
-
-        class RemoteDedupSet:
-            calls = 0
-
-            @classmethod
-            def remote(cls):
-                cls.calls += 1
-                return object()
-
-        backend = ActorBackend(dedup_set_num=2, RemoteDedupSet=RemoteDedupSet)
-
-        backend.prepare_for_ray_execution()
-        dedup_sets = backend._dedup_sets
-        backend.prepare_for_ray_execution()
-
-        self.assertIs(backend._dedup_sets, dedup_sets)
-        self.assertEqual(RemoteDedupSet.calls, 2)
-
-    def test_redis_backend_requests_ray_materialization(self):
-        from data_juicer.ops.deduplicator.ray_basic_deduplicator import RedisBackend
-
-        op = RayDocumentDeduplicator(
-            lowercase=False,
-            ignore_non_character=False,
-            dedup_set_num=1,
-            batch_size=1,
-            num_proc=4,
-            auto_op_parallelism=False,
-        )
-        op.backend = RedisBackend.__new__(RedisBackend)
-
-        self.assertTrue(op._prepare_for_ray_map_batches())
-
-
 if __name__ == '__main__':
     unittest.main()

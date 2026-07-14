@@ -93,12 +93,6 @@ class _RegisteredMockTaggingMapper(_MockMapper):
     pass
 
 
-OPERATORS.register_module("test_fused_seq_mock_mapper", _RegisteredMockMapper, force=True)
-OPERATORS.register_module("test_fused_seq_mock_length_filter", _RegisteredMockLengthFilter, force=True)
-OPERATORS.register_module("test_fused_seq_mock_tagging_mapper", _RegisteredMockTaggingMapper, force=True)
-TAGGING_OPS.register_module("test_fused_seq_mock_tagging_mapper", _RegisteredMockTaggingMapper, force=True)
-
-
 class _MockCPUFilter:
     """Minimal non-Mapper stub to break GPU mapper groups."""
 
@@ -351,6 +345,27 @@ class TestFuseOperatorsWithMapperFusion(DataJuicerTestCaseBase):
 # ===========================================================================
 class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
 
+    def _register_mock_ops(self):
+        registrations = [
+            (OPERATORS, "test_fused_seq_mock_mapper", _RegisteredMockMapper),
+            (OPERATORS, "test_fused_seq_mock_length_filter", _RegisteredMockLengthFilter),
+            (OPERATORS, "test_fused_seq_mock_tagging_mapper", _RegisteredMockTaggingMapper),
+            (TAGGING_OPS, "test_fused_seq_mock_tagging_mapper", _RegisteredMockTaggingMapper),
+        ]
+        previous_modules = [(registry, name, registry.get(name)) for registry, name, _ in registrations]
+
+        for registry, name, module in registrations:
+            registry.register_module(name, module, force=True)
+
+        def restore_registries():
+            for registry, name, previous_module in previous_modules:
+                if previous_module is None:
+                    registry.modules.pop(name, None)
+                else:
+                    registry.register_module(name, previous_module, force=True)
+
+        self.addCleanup(restore_registries)
+
     def _make_samples(self, n=4):
         return {
             "text": [f"sample_{i}" for i in range(n)],
@@ -404,6 +419,7 @@ class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
 
     def test_op_specs_constructs_sub_ops(self):
         """op_specs should construct ops and strip Ray scheduling kwargs."""
+        self._register_mock_ops()
         fused = FusedSequentialBatchOp(
             op_specs=[
                 {
@@ -430,6 +446,7 @@ class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
         self.assertEqual(result[Fields.meta][0]["from_spec"], "v")
 
     def test_tagging_capability_is_preserved_for_analyzer(self):
+        self._register_mock_ops()
         fused = FusedSequentialBatchOp(
             op_specs=[{"class_name": "test_fused_seq_mock_tagging_mapper", "kwargs": {}}],
             accelerator="cpu",

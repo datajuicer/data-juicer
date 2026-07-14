@@ -153,6 +153,41 @@ def test_exception_is_recorded_without_being_suppressed():
     assert sampler.last_snapshot.error_type == "ValueError"
 
 
+def test_sampler_publishes_each_completed_snapshot_to_callback():
+    snapshots = []
+    sampler = ActorResourceSampler(
+        process=FakeProcess([100, 110]),
+        cuda_backend=None,
+        clock=SequenceClock(1.0, 1.1),
+        sample_interval_sec=60.0,
+        snapshot_callback=snapshots.append,
+    )
+
+    with sampler.measure(batch_size=2) as measurement:
+        pass
+
+    assert snapshots == [measurement.snapshot]
+
+
+def test_metrics_callback_failure_does_not_break_batch_execution():
+    def broken_callback(snapshot):
+        raise RuntimeError("sink unavailable")
+
+    sampler = ActorResourceSampler(
+        process=FakeProcess([100, 110]),
+        cuda_backend=None,
+        clock=SequenceClock(1.0, 1.1),
+        sample_interval_sec=60.0,
+        snapshot_callback=broken_callback,
+    )
+
+    with sampler.measure(batch_size=2) as measurement:
+        pass
+
+    assert measurement.snapshot.succeeded is True
+    assert sampler.last_snapshot is measurement.snapshot
+
+
 def test_cuda_metrics_use_current_assigned_device_not_device_zero():
     cuda = FakeCudaBackend(device_index=3)
     sampler = ActorResourceSampler(

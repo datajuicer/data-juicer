@@ -109,6 +109,29 @@ class RayDataset(DJDataset):
 
     def _configure_elastic_juicer(self, cfg) -> None:
         self._elastic_juicer_adaptive_batching = bool(cfg and cfg.get("elastic_juicer_adaptive_batching", False))
+        self._elastic_juicer_job_id = None
+        self._elastic_juicer_metrics_sink = None
+        if not self._elastic_juicer_adaptive_batching:
+            return
+
+        job_id = cfg.get("job_id")
+        if not job_id:
+            raise ValueError("elastic_juicer_adaptive_batching requires a resolved job_id")
+        sink_key = "_elastic_juicer_metrics_sink"
+        metrics_sink = cfg.get(sink_key)
+        if metrics_sink is None:
+            from data_juicer.core.elasticjuicer.async_metrics_sink import create_ray_metrics_sink
+
+            metrics_sink = create_ray_metrics_sink(job_id)
+            cfg[sink_key] = metrics_sink
+        self._elastic_juicer_job_id = job_id
+        self._elastic_juicer_metrics_sink = metrics_sink
+
+    @property
+    def elastic_juicer_metrics_sink(self):
+        """Return the explicit job-scoped sink handle for driver-side polling."""
+
+        return self._elastic_juicer_metrics_sink
 
     def schema(self) -> Schema:
         """Get dataset schema.
@@ -255,6 +278,9 @@ class RayDataset(DJDataset):
                                     "operator_kwargs": op._init_kwargs,
                                     "initial_batch_size": batch_size,
                                     "max_batch_size": batch_size,
+                                    "metrics_sink": self._elastic_juicer_metrics_sink,
+                                    "job_id": self._elastic_juicer_job_id,
+                                    "op_name": getattr(op, "_name", None) or op.__class__.__name__,
                                 },
                                 batch_size=batch_size,
                                 num_cpus=op.num_cpus,

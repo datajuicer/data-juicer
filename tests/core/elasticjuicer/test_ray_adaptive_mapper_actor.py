@@ -1,8 +1,10 @@
 from contextlib import nullcontext
+from types import SimpleNamespace
 
 import pyarrow
 import pytest
 
+from data_juicer.core.elasticjuicer.actor_resource_sampler import ActorResourceSnapshot
 from data_juicer.core.elasticjuicer.ray_adaptive_mapper import RayAdaptiveMapperActor
 from data_juicer.ops.base_op import Mapper
 
@@ -25,6 +27,39 @@ class NoopSampler:
 
     def measure(self, batch_size):
         return nullcontext()
+
+
+class EmittingSampler(NoopSampler):
+    def set_snapshot_callback(self, callback):
+        self.callback = callback
+
+    def measure(self, batch_size):
+        callback = self.callback
+
+        class Measurement:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                callback(
+                    ActorResourceSnapshot(
+                        timestamp=123.0,
+                        process_id=42,
+                        batch_size=batch_size,
+                        rss_start_mb=100.0,
+                        rss_end_mb=110.0,
+                        rss_peak_mb=120.0,
+                        rss_delta_mb=10.0,
+                        latency_ms=250.0,
+                        throughput=16.0,
+                        cuda=None,
+                        succeeded=exc_type is None,
+                        error_type=None if exc_type is None else exc_type.__name__,
+                    )
+                )
+                return False
+
+        return Measurement()
 
 
 class SkippingThresholdMapper(Mapper):
@@ -123,6 +158,38 @@ def test_actor_preserves_skip_op_error_for_non_oom_failures():
     assert result["__dj__stats__"] == []
     assert result["__dj__source_file__"] == []
     assert actor.controller.state.oom_events == 0
+
+
+def test_actor_reports_sampler_snapshots_without_waiting_for_sink():
+    events = []
+
+    class RemoteRecord:
+        def remote(self, event):
+            events.append(event)
+            return object()
+
+    actor = RayAdaptiveMapperActor(
+        ThresholdMapper,
+        operator_args=(8,),
+        initial_batch_size=16,
+        max_batch_size=16,
+        sampler_factory=EmittingSampler,
+        metrics_sink=SimpleNamespace(record=RemoteRecord()),
+        job_id="job-a",
+        op_name="threshold_mapper",
+        actor_id="actor-a",
+    )
+
+    result = actor(pyarrow.table({"value": list(range(20))}))
+
+    assert result["value"].to_pylist() == [value + 1 for value in range(20)]
+    assert len(events) > 1
+    assert events[0].job_id == "job-a"
+    assert events[0].actor_id == "actor-a"
+    assert events[0].op_name == "threshold_mapper"
+    assert events[0].snapshot.batch_size == 16
+    assert events[0].snapshot.succeeded is False
+    assert events[-1].snapshot.succeeded is True
 
 
 def test_real_ray_actor_e2e_when_ray_is_available():

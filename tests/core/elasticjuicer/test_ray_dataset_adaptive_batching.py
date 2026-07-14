@@ -31,6 +31,8 @@ def _dataset(enabled):
     dataset = RayDataset.__new__(RayDataset)
     dataset.data = MagicMock()
     dataset._elastic_juicer_adaptive_batching = enabled
+    dataset._elastic_juicer_job_id = "job-test"
+    dataset._elastic_juicer_metrics_sink = MagicMock(name="metrics_sink")
     return dataset
 
 
@@ -42,6 +44,25 @@ def test_feature_flag_defaults_to_disabled():
     dataset._configure_elastic_juicer({})
 
     assert dataset._elastic_juicer_adaptive_batching is False
+    assert dataset._elastic_juicer_metrics_sink is None
+    assert dataset.elastic_juicer_metrics_sink is None
+
+
+@patch("data_juicer.core.elasticjuicer.async_metrics_sink.create_ray_metrics_sink")
+def test_enabled_datasets_reuse_one_job_scoped_sink_from_shared_config(create_sink):
+    handle = MagicMock(name="metrics_sink")
+    create_sink.return_value = handle
+    cfg = {"elastic_juicer_adaptive_batching": True, "job_id": "job-a"}
+    first = RayDataset.__new__(RayDataset)
+    second = RayDataset.__new__(RayDataset)
+
+    first._configure_elastic_juicer(cfg)
+    second._configure_elastic_juicer(cfg)
+
+    create_sink.assert_called_once_with("job-a")
+    assert first._elastic_juicer_metrics_sink is handle
+    assert second._elastic_juicer_metrics_sink is handle
+    assert first.elastic_juicer_metrics_sink is handle
 
 
 @patch("data_juicer.core.data.ray_dataset.get_compute_strategy")
@@ -91,6 +112,9 @@ def test_enabled_flag_installs_one_actor_local_adaptive_wrapper(get_compute_stra
             "operator_kwargs": operator._init_kwargs,
             "initial_batch_size": 16,
             "max_batch_size": 16,
+            "metrics_sink": dataset._elastic_juicer_metrics_sink,
+            "job_id": "job-test",
+            "op_name": operator.__class__.__name__,
         },
         batch_size=16,
         num_cpus=operator.num_cpus,

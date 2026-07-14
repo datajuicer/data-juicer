@@ -3,11 +3,13 @@
 import traceback
 from collections.abc import Mapping
 from typing import Callable, Optional, Sequence
+from uuid import uuid4
 
 from loguru import logger
 
 from .actor_resource_sampler import ActorResourceSampler
 from .adaptive_mapper import OOMSafeAdaptiveMapper
+from .async_metrics_sink import AsyncMetricsReporter
 from .batch_controller import AdaptiveBatchController
 from .oom import is_oom_error
 
@@ -26,6 +28,10 @@ class RayAdaptiveMapperActor:
         max_retries_per_slice: int = 16,
         sample_interval_sec: float = 0.01,
         sampler_factory: Callable = ActorResourceSampler,
+        metrics_sink=None,
+        job_id: Optional[str] = None,
+        op_name: Optional[str] = None,
+        actor_id: Optional[str] = None,
     ):
         operator_args = tuple(operator_args or ())
         operator_kwargs = dict(operator_kwargs or {})
@@ -38,6 +44,19 @@ class RayAdaptiveMapperActor:
             max_batch_size=max_batch_size,
         )
         self.sampler = sampler_factory(sample_interval_sec=sample_interval_sec)
+        self.metrics_reporter = None
+        if metrics_sink is not None:
+            resolved_op_name = op_name or getattr(self.operator, "_name", None) or operator_class.__name__
+            self.metrics_reporter = AsyncMetricsReporter(
+                sink_handle=metrics_sink,
+                job_id=job_id,
+                actor_id=actor_id or uuid4().hex,
+                op_name=resolved_op_name,
+            )
+            set_callback = getattr(self.sampler, "set_snapshot_callback", None)
+            if not callable(set_callback):
+                raise TypeError("sampler must support set_snapshot_callback when metrics_sink is configured")
+            set_callback(self.metrics_reporter.report)
         self.mapper = OOMSafeAdaptiveMapper(
             mapper=self._process_strict,
             controller=self.controller,

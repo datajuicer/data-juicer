@@ -89,6 +89,7 @@ class ActorResourceSampler:
         sample_interval_sec: float = 0.01,
         clock: Callable[[], float] = time.perf_counter,
         wall_clock: Callable[[], float] = time.time,
+        snapshot_callback: Optional[Callable[[ActorResourceSnapshot], None]] = None,
     ):
         if sample_interval_sec <= 0:
             raise ValueError("sample_interval_sec must be positive")
@@ -99,6 +100,7 @@ class ActorResourceSampler:
         self._wall_clock = wall_clock
         self._snapshot_lock = threading.Lock()
         self.last_snapshot: Optional[ActorResourceSnapshot] = None
+        self._snapshot_callback = snapshot_callback
 
     def measure(self, batch_size: int) -> "BatchResourceMeasurement":
         if batch_size < 1:
@@ -108,6 +110,17 @@ class ActorResourceSampler:
     def _record(self, snapshot: ActorResourceSnapshot):
         with self._snapshot_lock:
             self.last_snapshot = snapshot
+        callback = self._snapshot_callback
+        if callback is not None:
+            try:
+                callback(snapshot)
+            except Exception as error:
+                from loguru import logger
+
+                logger.warning(f"Failed to report ElasticJuicer actor metrics: {error}")
+
+    def set_snapshot_callback(self, callback: Optional[Callable[[ActorResourceSnapshot], None]]) -> None:
+        self._snapshot_callback = callback
 
 
 class BatchResourceMeasurement:

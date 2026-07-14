@@ -18,7 +18,7 @@ classifiers = [
 # Core dependencies
 dependencies = [
     "datasets>=4.7.0", # core data loading
-    "fsspec==2023.5.0", # file system operations
+    "fsspec>=2024.3.1,<2025.0.0", # file system operations
     "pandas", # data manipulation
     "numpy>=1.26.4,<2.0.0", # numerical operations
     "loguru", # logging
@@ -73,7 +73,7 @@ vision = [
     "rembg",  # Background removal
     "decord", # video/audio handling
     "qwen-vl-utils==0.0.14",  # for Qwen-VL
-    "ptlflow==0.4.1",  # optical flow models collection
+    "ptlflow==0.4.2",  # optical flow models collection
     "timm==1.0.22",  # avoid importing issue in the latest v1.0.23
 ]
 
@@ -119,6 +119,8 @@ distributed = [
     "boto3",  # AWS SDK for S3 operations
     "bitarray", # efficient arrays of booleans
     "pylance",  # to support I/O for lance data in ray mode
+    "pyiceberg[pyarrow,sql-sqlite]>=0.6.1",  # Iceberg catalog/table support; sqlite catalog used in local integration tests
+    "pypaimon>=1.4.1",  # Paimon catalog/table support
 ]
 
 # Development & Tools

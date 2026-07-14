@@ -6,7 +6,7 @@ s3fs (default executor) and PyArrow (Ray executor) backends.
 """
 
 import os
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 
 import pyarrow.fs
 from loguru import logger
@@ -117,3 +117,30 @@ def validate_s3_path(path: str) -> None:
     """
     if not path.startswith("s3://"):
         raise ValueError(f"S3 path must start with 's3://', got: {path}")
+
+
+def create_filesystem_from_args(path: str, args: Dict[str, Any]):
+    """
+    Create a PyArrow FileSystem based on the path prefix and parameters.
+    Automatically extract relevant credentials from args and remove them from args (using pop) to avoid polluting subsequent parameters.
+    """
+    fs = None
+    if path.startswith("s3://"):
+        validate_s3_path(path)
+
+        s3_keys = ["aws_access_key_id", "aws_secret_access_key", "aws_session_token", "aws_region", "endpoint_url"]
+        s3_conf = {k: args.pop(k) for k in s3_keys if k in args}
+        fs = create_pyarrow_s3_filesystem(s3_conf)
+        logger.info(f"Detected S3 export path: {path}. S3 filesystem configured.")
+
+    elif path.startswith("hdfs://"):
+        import pyarrow.fs as pa_fs
+
+        hdfs_keys = ["host", "port", "user", "kerb_ticket", "extra_conf"]
+        hdfs_conf = {k: args.pop(k) for k in hdfs_keys if k in args}
+        if "port" in hdfs_conf:
+            hdfs_conf["port"] = int(hdfs_conf["port"])
+        fs = pa_fs.HadoopFileSystem(**hdfs_conf)
+        logger.info(f"Detected HDFS export path: {path}. HDFS filesystem configured.")
+
+    return fs

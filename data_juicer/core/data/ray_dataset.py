@@ -99,12 +99,16 @@ class RayDataset(DJDataset):
         auto_op_parallelism=True,
     ) -> None:
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
+        self._configure_elastic_juicer(cfg)
 
         # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
         if cfg and cfg.get("auto_op_parallelism") is not None:
             self._auto_proc = cfg.get("auto_op_parallelism")
         else:
             self._auto_proc = auto_op_parallelism
+
+    def _configure_elastic_juicer(self, cfg) -> None:
+        self._elastic_juicer_adaptive_batching = bool(cfg and cfg.get("elastic_juicer_adaptive_batching", False))
 
     def schema(self) -> Schema:
         """Get dataset schema.
@@ -237,20 +241,43 @@ class RayDataset(DJDataset):
 
                 try:
                     if op.use_ray_actor():
-                        compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
-                        self.data = self.data.map_batches(
-                            op.__class__,
-                            fn_args=None,
-                            fn_kwargs=None,
-                            fn_constructor_args=op._init_args,
-                            fn_constructor_kwargs=op._init_kwargs,
-                            batch_size=batch_size,
-                            num_cpus=op.num_cpus,
-                            num_gpus=op.num_gpus,
-                            compute=compute,
-                            batch_format="pyarrow",
-                            runtime_env=op.runtime_env,
-                        )
+                        if self._elastic_juicer_adaptive_batching and op.is_batched_op():
+                            from data_juicer.core.elasticjuicer.ray_adaptive_mapper import RayAdaptiveMapperActor
+
+                            compute = get_compute_strategy(RayAdaptiveMapperActor, concurrency=op.num_proc)
+                            self.data = self.data.map_batches(
+                                RayAdaptiveMapperActor,
+                                fn_args=None,
+                                fn_kwargs=None,
+                                fn_constructor_kwargs={
+                                    "operator_class": op.__class__,
+                                    "operator_args": op._init_args,
+                                    "operator_kwargs": op._init_kwargs,
+                                    "initial_batch_size": batch_size,
+                                    "max_batch_size": batch_size,
+                                },
+                                batch_size=batch_size,
+                                num_cpus=op.num_cpus,
+                                num_gpus=op.num_gpus,
+                                compute=compute,
+                                batch_format="pyarrow",
+                                runtime_env=op.runtime_env,
+                            )
+                        else:
+                            compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                            self.data = self.data.map_batches(
+                                op.__class__,
+                                fn_args=None,
+                                fn_kwargs=None,
+                                fn_constructor_args=op._init_args,
+                                fn_constructor_kwargs=op._init_kwargs,
+                                batch_size=batch_size,
+                                num_cpus=op.num_cpus,
+                                num_gpus=op.num_gpus,
+                                compute=compute,
+                                batch_format="pyarrow",
+                                runtime_env=op.runtime_env,
+                            )
                     else:
                         compute = get_compute_strategy(op.process, concurrency=op.num_proc)
                         self.data = self.data.map_batches(

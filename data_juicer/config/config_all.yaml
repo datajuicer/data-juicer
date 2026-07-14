@@ -55,6 +55,7 @@ op_fusion: false                                            # whether to fuse op
 fusion_strategy: 'probe'                                    # OP fusion strategy. Support ['greedy', 'probe'] now. 'greedy' means keep the basic OP order and put the fused OP to the last of each fused OP group. 'probe' means Data-Juicer will probe the running speed for each OP at the beginning and reorder the OPs and fused OPs according to their probed speed (fast to slow). It's 'probe' in default.
 cache_compress: null                                        # the compression method of the cache file, which can be specified in ['gzip', 'zstd', 'lz4']. If this parameter is None, the cache file will not be compressed. We recommend you turn on this argument when your input dataset is larger than tens of GB and your disk space is not enough.
 adaptive_batch_size: false                                  # whether to use adaptive batch sizes for each OP according to the probed results. It's False in default.
+elastic_juicer_adaptive_batching: false                     # whether to enable actor-local OOM-safe adaptive batching for batched Mapper operators in Ray actor mode. It's False in default.
 
 # for multimodal data processing
 image_key: 'images'                                         # key name of field to store the list of sample image paths.

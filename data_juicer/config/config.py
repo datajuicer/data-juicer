@@ -607,6 +607,14 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "the probed results. It's False in default.",
             )
             parser.add_argument(
+                "--elastic_juicer_adaptive_batching",
+                type=bool,
+                default=False,
+                help="Whether to enable actor-local OOM-safe adaptive batching "
+                "for batched Mapper operators in Ray actor mode. It's False "
+                "by default.",
+            )
+            parser.add_argument(
                 "--process",
                 type=List[Dict],
                 default=[],

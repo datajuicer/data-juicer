@@ -12,6 +12,7 @@ from .adaptive_mapper import OOMSafeAdaptiveMapper
 from .async_metrics_sink import AsyncMetricsReporter
 from .batch_controller import AdaptiveBatchController
 from .oom import is_oom_error
+from .quota import ActorQuotaState, BatchSizeQuota, apply_batch_size_quota
 
 
 class RayAdaptiveMapperActor:
@@ -43,14 +44,17 @@ class RayAdaptiveMapperActor:
             min_batch_size=min_batch_size,
             max_batch_size=max_batch_size,
         )
+        self.job_id = job_id
+        self.actor_id = actor_id or uuid4().hex
+        self._last_quota_revision = 0
         self.sampler = sampler_factory(sample_interval_sec=sample_interval_sec)
         self.metrics_reporter = None
         if metrics_sink is not None:
             resolved_op_name = op_name or getattr(self.operator, "_name", None) or operator_class.__name__
             self.metrics_reporter = AsyncMetricsReporter(
                 sink_handle=metrics_sink,
-                job_id=job_id,
-                actor_id=actor_id or uuid4().hex,
+                job_id=self.job_id,
+                actor_id=self.actor_id,
                 op_name=resolved_op_name,
             )
             set_callback = getattr(self.sampler, "set_snapshot_callback", None)
@@ -74,6 +78,38 @@ class RayAdaptiveMapperActor:
                 f"An error occurred in {getattr(self.operator, '_name', '')}: " f"{error} -- {traceback.format_exc()}"
             )
             return self._empty_batch(batch)
+
+    def apply_quota(self, quota: BatchSizeQuota):
+        """Apply a newer driver cap without replacing actor-local learning."""
+
+        if not self.job_id:
+            raise RuntimeError("actor must have a job_id before a quota can be applied")
+        application = apply_batch_size_quota(
+            self.controller,
+            quota,
+            expected_job_id=self.job_id,
+            expected_actor_id=self.actor_id,
+            last_revision=self._last_quota_revision,
+        )
+        if application.applied:
+            self._last_quota_revision = quota.revision
+        return application
+
+    def get_quota_state(self) -> ActorQuotaState:
+        """Return immutable quota and local-bound diagnostics."""
+
+        state = self.controller.state
+        return ActorQuotaState(
+            job_id=self.job_id,
+            actor_id=self.actor_id,
+            last_revision=self._last_quota_revision,
+            min_batch_size=state.min_batch_size,
+            static_max_batch_size=state.max_batch_size,
+            hard_limit=state.hard_limit,
+            current_batch_size=state.current_batch_size,
+            local_success_lower_bound=state.success_lower_bound,
+            local_oom_upper_bound=state.oom_upper_bound,
+        )
 
     def _process_strict(self, batch):
         """Run below Mapper's broad skip wrapper so OOM reaches the controller."""

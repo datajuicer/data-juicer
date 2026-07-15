@@ -1963,6 +1963,8 @@ def prepare_wav2vec2_age_gender_model(
         Wav2Vec2PreTrainedModel,
     )
 
+    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
+
     class ModelHead(nn.Module):
         r"""Classification head."""
 
@@ -2051,7 +2053,16 @@ MODEL_FUNCTION_MAPPING = {
     "wav2vec2_age_gender": prepare_wav2vec2_age_gender_model,
 }
 
-_MODELS_WITHOUT_FILE_LOCK = {"fasttext", "fastsam", "kenlm", "nltk", "recognizeAnything", "sentencepiece", "spacy"}
+_MODELS_WITHOUT_FILE_LOCK = {
+    "fasttext",
+    "fastsam",
+    "kenlm",
+    "nltk",
+    "recognizeAnything",
+    "sentencepiece",
+    "spacy",
+    "wav2vec2_age_gender",
+}
 
 
 def prepare_model(model_type, **model_kwargs):

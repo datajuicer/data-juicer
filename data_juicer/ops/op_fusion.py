@@ -4,8 +4,11 @@ import numpy as np
 from loguru import logger
 
 from data_juicer.ops.base_op import OP, OPERATORS, Filter, Mapper
+from data_juicer.ops.fused_batch_executor import (
+    GENERAL_FUSED_EXECUTION_POLICY,
+    execute_sequential_batch,
+)
 from data_juicer.ops.load import load_ops
-from data_juicer.utils.common_utils import check_op_method_param
 from data_juicer.utils.constant import Fields, InterVars
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.registry import Registry
@@ -234,50 +237,13 @@ class GeneralFusedOP(Mapper):
         self.num_proc = min([op.runtime_np() for op in self.fused_ops]) if self.fused_ops else 1
 
     def process_batched(self, samples, rank=None):
-        from copy import deepcopy
-
-        from data_juicer.utils.video_utils import setup_av
-
-        av = LazyLoader("av", post_import=setup_av)
-
-        tmp_samples = deepcopy(samples)
-
-        # context for the intermediate vars
-        sample_key = list(tmp_samples.keys())[0]
-        num_samples = len(tmp_samples[sample_key])
-        tmp_samples[Fields.context] = [{} for _ in range(num_samples)]
-
-        for op in self.fused_ops:
-            process_args = {"rank": rank} if op.accelerator == "cuda" else {}
-            if isinstance(op, Mapper):
-                if check_op_method_param(op.process, "context"):
-                    # add context param only when the core process method of this OP contains this param
-                    process_args["context"] = True
-                tmp_samples = op.process_batched(tmp_samples, **process_args)
-            elif isinstance(op, Filter):
-                if check_op_method_param(op.compute_stats, "context"):
-                    # add context param only when the core process method of this OP contains this param
-                    process_args["context"] = True
-                tmp_samples = op.compute_stats_batched(tmp_samples, **process_args)
-                indicators = list(op.process_batched(tmp_samples))
-                new_samples = {}
-                for key in tmp_samples:
-                    new_samples[key] = [val for val, indicator in zip(tmp_samples[key], indicators) if indicator]
-                tmp_samples = new_samples
-            else:
-                raise NotImplementedError(
-                    f"FusedOP does not support OP {op._name} of type "
-                    f"{type(op)} and only supports Mapper and Filter now."
-                )
-        # clean up the contexts after processing
-        # check if there are containers that need to be closed
-        for ctx in tmp_samples[Fields.context]:
-            for context_key in ctx:
-                if isinstance(ctx[context_key], av.container.InputContainer):
-                    ctx[context_key].streams.video[0].close()
-                    ctx[context_key].close()
-        _ = tmp_samples.pop(Fields.context)
-        return tmp_samples
+        return execute_sequential_batch(
+            samples,
+            self.fused_ops,
+            rank=rank,
+            owner_name=self._name,
+            policy=GENERAL_FUSED_EXECUTION_POLICY,
+        )
 
     def run(self, dataset, *, exporter=None, tracer=None):
         # prepare the dataset

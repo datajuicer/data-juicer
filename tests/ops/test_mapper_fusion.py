@@ -13,6 +13,7 @@ import unittest
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Filter, Mapper
 from data_juicer.ops.fused_sequential_batch_op import FusedSequentialBatchOp
 from data_juicer.ops.op_fusion import (
+    GeneralFusedOP,
     _are_ops_independent,
     _is_fusible_gpu_mapper,
     _is_gpu_mapper,
@@ -91,6 +92,55 @@ class _RegisteredMockLengthFilter(_MockLengthFilter):
 
 class _RegisteredMockTaggingMapper(_MockMapper):
     pass
+
+
+class _MockContextWriter(Mapper):
+    _batched_op = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._name = "mock_context_writer"
+
+    def process_batched(self, samples, context=False):
+        if not context:
+            raise ValueError("shared context was not enabled")
+        for row_context in samples[Fields.context]:
+            row_context["shared_value"] = "ready"
+        return samples
+
+
+class _MockContextReader(Mapper):
+    _batched_op = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._name = "mock_context_reader"
+
+    def process_batched(self, samples, context=False):
+        if not context:
+            raise ValueError("shared context was not enabled")
+        samples["context_value"] = [row_context["shared_value"] for row_context in samples[Fields.context]]
+        return samples
+
+
+class _MockSingleMapper(Mapper):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._name = "mock_single_mapper"
+
+    def process_single(self, sample):
+        sample["text"] = f"{sample['text']}_done"
+        return sample
+
+
+class _MockInvalidReturnMapper(_MockMapper):
+    def process_batched(self, samples, rank=None, **kwargs):
+        return []
+
+
+class _MockInvalidMaskFilter(_MockLengthFilter):
+    def process_batched(self, samples):
+        return [True]
 
 
 class _MockCPUFilter:
@@ -379,6 +429,14 @@ class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
         fused.accelerator = "cpu"
         return fused
 
+    def _make_general_fused(self, ops):
+        """Create a GeneralFusedOP with pre-built ops for parity tests."""
+        fused = GeneralFusedOP(fused_op_list=[])
+        fused.fused_ops = ops
+        fused._name = "GeneralFusedOP:test"
+        fused.accelerator = "cpu"
+        return fused
+
     def test_single_op_fast_path(self):
         """Single op should execute without thread overhead."""
         op = _MockMapper(name="solo", value="done")
@@ -416,6 +474,50 @@ class TestFusedSequentialBatchOpExecution(DataJuicerTestCaseBase):
         self.assertEqual(len(result[Fields.stats]), 2)
         self.assertEqual([stat["mock_text_len"] for stat in result[Fields.stats]], [11, 9])
         self.assertEqual([meta["after"] for meta in result[Fields.meta]], ["v", "v"])
+
+    def test_general_and_auto_fused_ops_share_execution_semantics(self):
+        general = self._make_general_fused([_MockLengthFilter(min_len=8), _MockMapper(name="after")])
+        auto_fused = self._make_fused([_MockLengthFilter(min_len=8), _MockMapper(name="after")])
+        general_input = {
+            "text": ["short", "long_enough", "also_long"],
+            Fields.meta: [{}, {}, {}],
+            Fields.stats: [{}, {}, {}],
+        }
+        auto_fused_input = {"text": ["short", "long_enough", "also_long"]}
+
+        general_result = general.process_batched(general_input)
+        auto_fused_result = auto_fused.process_batched(auto_fused_input)
+
+        self.assertEqual(general_result, auto_fused_result)
+        self.assertEqual(general_input[Fields.meta], [{}, {}, {}])
+        self.assertEqual(general_input[Fields.stats], [{}, {}, {}])
+
+    def test_general_fused_op_preserves_shared_context_mode(self):
+        general = self._make_general_fused([_MockContextWriter(), _MockContextReader()])
+
+        result = general.process_batched({"text": ["a", "b"]})
+
+        self.assertEqual(result["context_value"], ["ready", "ready"])
+        self.assertNotIn(Fields.context, result)
+
+    def test_general_fused_op_preserves_non_batched_fallback(self):
+        general = self._make_general_fused([_MockSingleMapper()])
+
+        result = general.process_batched({"text": ["a", "b"]})
+
+        self.assertEqual(result["text"], ["a_done", "b_done"])
+
+    def test_auto_fused_op_rejects_non_dict_mapper_result(self):
+        fused = self._make_fused([_MockInvalidReturnMapper(name="invalid")])
+
+        with self.assertRaisesRegex(ValueError, "unsupported batch type"):
+            fused.process_batched(self._make_samples(n=2))
+
+    def test_auto_fused_op_rejects_invalid_filter_mask(self):
+        fused = self._make_fused([_MockInvalidMaskFilter(min_len=0)])
+
+        with self.assertRaisesRegex(ValueError, "keep mask length"):
+            fused.process_batched({"text": ["a", "b"]})
 
     def test_op_specs_constructs_sub_ops(self):
         """op_specs should construct ops and strip Ray scheduling kwargs."""

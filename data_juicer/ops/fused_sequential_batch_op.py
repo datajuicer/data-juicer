@@ -12,14 +12,11 @@ import time as _time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from data_juicer.ops.base_op import (
-    NON_STATS_FILTERS,
-    OPERATORS,
-    TAGGING_OPS,
-    Filter,
-    Mapper,
+from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
+from data_juicer.ops.fused_batch_executor import (
+    execute_sequential_batch,
+    get_batch_size,
 )
-from data_juicer.utils.constant import Fields
 
 OP_NAME = "fused_sequential_batch_op"
 
@@ -171,26 +168,27 @@ class FusedSequentialBatchOp(Mapper):
         if not self._ops:
             return samples
 
-        num_samples = self._batch_size(samples)
+        num_samples = get_batch_size(samples)
         if num_samples == 0:
             return samples
 
         batch_t0 = _time.perf_counter()
         op_timings: Dict[str, float] = {}
 
-        for op in self._ops:
-            op_t0 = _time.perf_counter()
-            if isinstance(op, Filter):
-                samples = self._run_filter_op(op, samples, rank=rank)
-            else:
-                samples = self._ensure_meta_if_needed(samples, op)
-                samples = self._run_sub_op(op, samples, rank=rank)
-            op_timings[op._name] = (_time.perf_counter() - op_t0) * 1000.0
-            if self._batch_size(samples) == 0:
-                break
+        def record_op_timing(op, wall_ms):
+            op_timings[op._name] = wall_ms
+
+        samples = execute_sequential_batch(
+            samples,
+            self._ops,
+            rank=rank,
+            owner_name=f"FusedSequentialBatchOp:{self.group_name}",
+            cleanup_columns=self.cleanup_columns,
+            on_op_complete=record_op_timing,
+        )
 
         batch_wall_ms = (_time.perf_counter() - batch_t0) * 1000.0
-        final_num_samples = self._batch_size(samples)
+        final_num_samples = get_batch_size(samples)
 
         self._prof_batch_count += 1
         self._prof_total_rows += final_num_samples
@@ -200,110 +198,7 @@ class FusedSequentialBatchOp(Mapper):
         if self._prof_batch_count % self._prof_log_interval == 0:
             self._log_profiling_stats(batch_wall_ms, final_num_samples)
 
-        for col in self.cleanup_columns:
-            if col in samples:
-                del samples[col]
-
         return samples
-
-    def _run_sub_op(self, op, samples, rank=None):
-        process_args = {"rank": rank} if op.use_cuda() else {}
-        result = op.process(samples, **process_args)
-        if result is None:
-            raise ValueError(f"Sub-op [{op._name}] returned None inside FusedSequentialBatchOp.")
-        if not isinstance(result, dict):
-            raise ValueError(
-                f"Sub-op [{op._name}] returned unsupported batch type "
-                f"[{type(result).__name__}] inside FusedSequentialBatchOp."
-            )
-        return result
-
-    def _run_filter_op(self, op, samples, rank=None):
-        samples = self._ensure_meta_if_needed(samples, op)
-        samples = self._ensure_stats_if_needed(samples, op)
-        compute_args = {"rank": rank} if op.use_cuda() else {}
-        result = op.compute_stats(samples, **compute_args)
-        if result is None:
-            raise ValueError(f"Filter sub-op [{op._name}] returned None from compute_stats.")
-        if not isinstance(result, dict):
-            raise ValueError(
-                f"Filter sub-op [{op._name}] returned unsupported stats batch type "
-                f"[{type(result).__name__}] inside FusedSequentialBatchOp."
-            )
-
-        keep_mask = list(op.process(result))
-        return self._filter_batch(result, keep_mask, op)
-
-    def _filter_batch(self, samples, keep_mask, op):
-        num_samples = self._batch_size(samples)
-        if len(keep_mask) != num_samples:
-            raise ValueError(
-                f"Filter sub-op [{op._name}] returned keep mask length "
-                f"[{len(keep_mask)}], expected [{num_samples}] inside "
-                f"FusedSequentialBatchOp."
-            )
-        kept_indices = [idx for idx, keep in enumerate(keep_mask) if keep]
-        return {key: [values[idx] for idx in kept_indices] for key, values in samples.items()}
-
-    def _batch_size(self, samples):
-        if not samples:
-            return 0
-        first_key = next(iter(samples.keys()))
-        return len(samples[first_key])
-
-    def _ensure_meta_if_needed(self, samples, op):
-        if not self._needs_meta(samples, op):
-            return samples
-        num_samples = self._batch_size(samples)
-        if Fields.meta not in samples or samples[Fields.meta] is None or len(samples[Fields.meta]) == 0:
-            samples[Fields.meta] = [{} for _ in range(num_samples)]
-        elif len(samples[Fields.meta]) != num_samples:
-            raise ValueError(
-                f"Fields.meta length [{len(samples[Fields.meta])}] does not "
-                f"match batch size [{num_samples}] before sub-op [{op._name}] "
-                f"inside FusedSequentialBatchOp."
-            )
-        else:
-            for idx in range(num_samples):
-                if samples[Fields.meta][idx] is None:
-                    samples[Fields.meta][idx] = {}
-        return samples
-
-    def _ensure_stats_if_needed(self, samples, op):
-        if not self._needs_stats(samples, op):
-            return samples
-        num_samples = self._batch_size(samples)
-        if Fields.stats not in samples or samples[Fields.stats] is None or len(samples[Fields.stats]) == 0:
-            samples[Fields.stats] = [{} for _ in range(num_samples)]
-        elif len(samples[Fields.stats]) != num_samples:
-            raise ValueError(
-                f"Fields.stats length [{len(samples[Fields.stats])}] does not "
-                f"match batch size [{num_samples}] before sub-op [{op._name}] "
-                f"inside FusedSequentialBatchOp."
-            )
-        else:
-            for idx in range(num_samples):
-                if samples[Fields.stats][idx] is None:
-                    samples[Fields.stats][idx] = {}
-        return samples
-
-    def _needs_meta(self, samples, op):
-        if Fields.meta in samples:
-            return True
-        if getattr(op, "_requires_meta", False):
-            return True
-        if op._name in TAGGING_OPS.modules:
-            return True
-        output_columns = getattr(op, "_output_columns", []) or []
-        return any(str(col).startswith(Fields.meta) for col in output_columns)
-
-    def _needs_stats(self, samples, op):
-        if Fields.stats in samples:
-            return True
-        if isinstance(op, Filter) and op._name not in NON_STATS_FILTERS.modules:
-            return True
-        output_columns = getattr(op, "_output_columns", []) or []
-        return any(str(col).startswith(Fields.stats) for col in output_columns)
 
     def _log_profiling_stats(self, last_batch_ms: float, last_batch_size: int):
         from loguru import logger

@@ -63,7 +63,7 @@ def test_sink_history_is_bounded_and_counts_evictions():
     assert snapshot["dropped_events"] == 2
 
 
-def test_reporter_uses_fire_and_forget_remote_without_ray_get():
+def test_reporter_uses_bounded_fire_and_forget_window():
     calls = []
 
     class RemoteRecord:
@@ -76,14 +76,48 @@ def test_reporter_uses_fire_and_forget_remote_without_ray_get():
         job_id="job-a",
         actor_id="actor-a",
         op_name="mapper",
+        max_in_flight=2,
+        wait_fn=lambda refs, **kwargs: ([], refs),
     )
 
-    result = reporter.report(_snapshot())
+    assert reporter.report(_snapshot()) is True
+    assert reporter.report(_snapshot()) is True
+    assert reporter.report(_snapshot()) is False
 
-    assert result is None
-    assert len(calls) == 1
+    assert len(calls) == 2
     assert calls[0].sequence == 1
     assert calls[0].snapshot.batch_size == 4
+    assert reporter.snapshot() == {
+        "submitted_events": 2,
+        "dropped_events": 1,
+        "pending_events": 2,
+        "max_in_flight": 2,
+        "last_sequence": 3,
+    }
+
+
+def test_reporter_reclaims_completed_references_before_submitting():
+    calls = []
+
+    class RemoteRecord:
+        def remote(self, event):
+            reference = object()
+            calls.append(reference)
+            return reference
+
+    reporter = AsyncMetricsReporter(
+        sink_handle=SimpleNamespace(record=RemoteRecord()),
+        job_id="job-a",
+        actor_id="actor-a",
+        op_name="mapper",
+        max_in_flight=1,
+        wait_fn=lambda refs, **kwargs: (refs, []),
+    )
+
+    assert reporter.report(_snapshot()) is True
+    assert reporter.report(_snapshot()) is True
+    assert len(calls) == 2
+    assert reporter.dropped_events == 0
 
 
 def test_reporter_requires_a_remote_sink_handle():

@@ -190,6 +190,30 @@ def test_actor_reports_sampler_snapshots_without_waiting_for_sink():
     assert events[0].snapshot.batch_size == 16
     assert events[0].snapshot.succeeded is False
     assert events[-1].snapshot.succeeded is True
+    metrics_state = actor.get_metrics_state()
+    assert metrics_state["enabled"] is True
+    assert metrics_state["submitted_events"] == len(events)
+    assert metrics_state["pending_events"] == len(events)
+    assert metrics_state["pending_events"] <= metrics_state["max_in_flight"]
+
+
+def test_actor_reports_disabled_metrics_state_without_sink():
+    actor = RayAdaptiveMapperActor(
+        ThresholdMapper,
+        operator_args=(8,),
+        initial_batch_size=8,
+        max_batch_size=8,
+        sampler_factory=NoopSampler,
+    )
+
+    assert actor.get_metrics_state() == {
+        "enabled": False,
+        "submitted_events": 0,
+        "dropped_events": 0,
+        "pending_events": 0,
+        "max_in_flight": 0,
+        "last_sequence": 0,
+    }
 
 
 def test_real_ray_actor_e2e_when_ray_is_available():

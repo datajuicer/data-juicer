@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.core.elasticjuicer.ray_adaptive_mapper import RayAdaptiveMapperActor
 from data_juicer.ops.base_op import Mapper
@@ -45,6 +47,7 @@ def test_feature_flag_defaults_to_disabled():
 
     assert dataset._elastic_juicer_adaptive_batching is False
     assert dataset._elastic_juicer_metrics_sink is None
+    assert dataset._elastic_juicer_metrics_max_in_flight == 64
     assert dataset.elastic_juicer_metrics_sink is None
 
 
@@ -65,17 +68,41 @@ def test_enabled_datasets_reuse_one_job_scoped_sink_from_shared_config(create_si
     assert first.elastic_juicer_metrics_sink is handle
 
 
-@patch("data_juicer.core.data.ray_dataset.get_compute_strategy")
-def test_disabled_flag_preserves_existing_actor_map_batches_call(get_compute_strategy):
+@patch("data_juicer.core.elasticjuicer.async_metrics_sink.create_ray_metrics_sink")
+def test_metrics_in_flight_limit_is_configurable_and_validated(create_sink):
+    dataset = RayDataset.__new__(RayDataset)
+    dataset._configure_elastic_juicer(
+        {
+            "elastic_juicer_adaptive_batching": True,
+            "elastic_juicer_metrics_max_in_flight": 7,
+            "job_id": "job-a",
+        }
+    )
+    assert dataset._elastic_juicer_metrics_max_in_flight == 7
+
+    invalid = RayDataset.__new__(RayDataset)
+    with pytest.raises(ValueError, match="metrics_max_in_flight"):
+        invalid._configure_elastic_juicer(
+            {
+                "elastic_juicer_adaptive_batching": True,
+                "elastic_juicer_metrics_max_in_flight": 0,
+                "job_id": "job-b",
+            }
+        )
+    create_sink.assert_called_once_with("job-a")
+
+
+@patch("data_juicer.core.data.ray_dataset.ActorPoolStrategy")
+def test_disabled_flag_preserves_existing_actor_map_batches_call(actor_pool_strategy):
     dataset = _dataset(enabled=False)
     source = dataset.data
     operator = BatchedActorMapper(marker="disabled", batch_size=16, num_proc=2)
     compute = object()
-    get_compute_strategy.return_value = compute
+    actor_pool_strategy.return_value = compute
 
     dataset._run_single_op(operator, cached_columns=set())
 
-    get_compute_strategy.assert_called_once_with(operator.__class__, concurrency=operator.num_proc)
+    actor_pool_strategy.assert_called_once_with(size=operator.num_proc)
     source.map_batches.assert_called_once_with(
         operator.__class__,
         fn_args=None,
@@ -91,17 +118,17 @@ def test_disabled_flag_preserves_existing_actor_map_batches_call(get_compute_str
     )
 
 
-@patch("data_juicer.core.data.ray_dataset.get_compute_strategy")
-def test_enabled_flag_installs_one_actor_local_adaptive_wrapper(get_compute_strategy):
+@patch("data_juicer.core.data.ray_dataset.ActorPoolStrategy")
+def test_enabled_flag_installs_one_actor_local_adaptive_wrapper(actor_pool_strategy):
     dataset = _dataset(enabled=True)
     source = dataset.data
     operator = BatchedActorMapper(marker="enabled", batch_size=16, num_proc=2)
     compute = object()
-    get_compute_strategy.return_value = compute
+    actor_pool_strategy.return_value = compute
 
     dataset._run_single_op(operator, cached_columns=set())
 
-    get_compute_strategy.assert_called_once_with(RayAdaptiveMapperActor, concurrency=operator.num_proc)
+    actor_pool_strategy.assert_called_once_with(size=operator.num_proc)
     source.map_batches.assert_called_once_with(
         RayAdaptiveMapperActor,
         fn_args=None,
@@ -113,6 +140,7 @@ def test_enabled_flag_installs_one_actor_local_adaptive_wrapper(get_compute_stra
             "initial_batch_size": 16,
             "max_batch_size": 16,
             "metrics_sink": dataset._elastic_juicer_metrics_sink,
+            "metrics_max_in_flight": 64,
             "job_id": "job-test",
             "op_name": operator.__class__.__name__,
         },
@@ -125,15 +153,15 @@ def test_enabled_flag_installs_one_actor_local_adaptive_wrapper(get_compute_stra
     )
 
 
-@patch("data_juicer.core.data.ray_dataset.get_compute_strategy")
-def test_non_batched_mapper_keeps_existing_path_when_flag_is_enabled(get_compute_strategy):
+@patch("data_juicer.core.data.ray_dataset.ActorPoolStrategy")
+def test_non_batched_mapper_keeps_existing_path_when_flag_is_enabled(actor_pool_strategy):
     dataset = _dataset(enabled=True)
     source = dataset.data
     operator = SingleActorMapper(batch_size=16, num_proc=2)
     compute = object()
-    get_compute_strategy.return_value = compute
+    actor_pool_strategy.return_value = compute
 
     dataset._run_single_op(operator, cached_columns=set())
 
-    get_compute_strategy.assert_called_once_with(operator.__class__, concurrency=operator.num_proc)
+    actor_pool_strategy.assert_called_once_with(size=operator.num_proc)
     assert source.map_batches.call_args.args[0] is operator.__class__

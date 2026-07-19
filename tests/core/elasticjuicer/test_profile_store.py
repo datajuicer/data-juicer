@@ -124,6 +124,41 @@ def test_get_safe_batch_size_conservative_for_unknown():
         assert bs == 1
 
 
+def test_safe_batch_size_accounts_for_fixed_memory_intercept():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        store = ProfilingStore(storage_dir=tmpdir)
+        stats = OpExecutionStats(op_name="fixed-memory")
+        for batch_size in [1, 2, 4, 8, 16]:
+            snapshot = _make_snapshots(1, base_batch=batch_size, base_mem=128 + 32 * batch_size)[0]
+            stats.update(snapshot)
+        store.update_execution_stats("fixed-memory", stats)
+
+        assert store.get_safe_batch_size("fixed-memory", available_memory_mb=4096, safety_margin=0.9) == 111
+
+
+def test_piecewise_throughput_curve_interpolates_nonlinear_observations():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        store = ProfilingStore(storage_dir=tmpdir)
+        stats = OpExecutionStats(op_name="saturating")
+        for batch_size, throughput in [(1, 50), (2, 95), (4, 170), (8, 260), (16, 310)]:
+            stats.update(
+                ResourceSnapshot(
+                    timestamp=float(batch_size),
+                    batch_size=batch_size,
+                    cpu_percent=20,
+                    memory_mb=100 + batch_size,
+                    latency_ms=1,
+                    throughput=throughput,
+                    source="unit_test",
+                )
+            )
+        store.update_execution_stats("saturating", stats)
+
+        curve = store.get_throughput_curve("saturating")
+        assert curve.model_type == "piecewise"
+        assert curve.predict_throughput(6, 106) == pytest.approx(215)
+
+
 def test_legacy_pickle_is_never_loaded():
     with tempfile.TemporaryDirectory() as tmpdir:
         stats_file = Path(tmpdir) / "execution_stats.pkl"

@@ -17,6 +17,10 @@ def test_controller_validates_configuration():
         AdaptiveBatchController(initial_batch_size=4, successes_before_growth=0)
     with pytest.raises(ValueError, match="growth_step"):
         AdaptiveBatchController(initial_batch_size=4, growth_step=0)
+    with pytest.raises(ValueError, match="max_probe_ooms"):
+        AdaptiveBatchController(initial_batch_size=4, max_probe_ooms=0)
+    with pytest.raises(ValueError, match="minimum_growth_fraction"):
+        AdaptiveBatchController(initial_batch_size=4, minimum_growth_fraction=0)
 
 
 def test_next_batch_size_respects_remaining_samples_and_hard_limit():
@@ -174,3 +178,59 @@ def test_equal_event_traces_produce_equal_state():
         getattr(right, f"observe_{event}")(batch_size)
 
     assert left.state == right.state
+
+
+def test_probe_oom_budget_freezes_at_best_proven_size():
+    controller = AdaptiveBatchController(
+        initial_batch_size=8,
+        max_batch_size=64,
+        successes_before_growth=1,
+        growth_step=16,
+        cooldown_successes=0,
+        max_probe_ooms=2,
+        max_oom_reprobes=0,
+    )
+
+    for _ in range(20):
+        requested = controller.next_batch_size(100)
+        if requested <= 10:
+            controller.observe_success(requested)
+        else:
+            controller.observe_oom(requested)
+
+    assert controller.probe_oom_events == 2
+    assert controller.current_batch_size == controller.success_lower_bound
+    assert controller.oom_upper_bound == controller.success_lower_bound + 1
+
+
+def test_capacity_recovery_reopens_bound_after_stable_successes():
+    controller = AdaptiveBatchController(
+        initial_batch_size=16,
+        max_batch_size=32,
+        successes_before_growth=1,
+        growth_step=4,
+        cooldown_successes=0,
+        oom_reprobe_successes=4,
+        max_oom_reprobes=3,
+    )
+
+    for _ in range(8):
+        requested = controller.next_batch_size(100)
+        if requested <= 8:
+            controller.observe_success(requested)
+        else:
+            controller.observe_oom(requested)
+    for _ in range(20):
+        controller.observe_success(controller.next_batch_size(100))
+
+    assert controller.current_batch_size == 32
+    assert controller.oom_upper_bound is None
+
+
+def test_explicit_oom_reset_reopens_capacity_without_changing_current_size():
+    controller = AdaptiveBatchController(initial_batch_size=16, max_batch_size=32)
+    controller.observe_oom(16)
+    current = controller.current_batch_size
+
+    assert controller.reset_oom_bound() == current
+    assert controller.oom_upper_bound is None

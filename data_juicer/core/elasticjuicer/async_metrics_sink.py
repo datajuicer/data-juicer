@@ -67,9 +67,17 @@ class AsyncMetricsSink:
 
 
 class AsyncMetricsReporter:
-    """Send metrics to a Ray actor handle without synchronizing on results."""
+    """Send metrics without allowing producer-side Ray tasks to grow unbounded."""
 
-    def __init__(self, sink_handle, job_id: str, actor_id: str, op_name: str):
+    def __init__(
+        self,
+        sink_handle,
+        job_id: str,
+        actor_id: str,
+        op_name: str,
+        max_in_flight: int = 64,
+        wait_fn=None,
+    ):
         if sink_handle is None:
             raise ValueError("sink_handle must not be None")
         if not job_id:
@@ -78,14 +86,27 @@ class AsyncMetricsReporter:
             raise ValueError("actor_id must not be empty")
         if not op_name:
             raise ValueError("op_name must not be empty")
+        if max_in_flight < 1:
+            raise ValueError("max_in_flight must be at least 1")
         self.sink_handle = sink_handle
         self.job_id = job_id
         self.actor_id = actor_id
         self.op_name = op_name
+        self.max_in_flight = max_in_flight
         self._sequence = 0
+        self._in_flight = deque()
+        self._wait_fn = wait_fn
+        self.submitted_events = 0
+        self.dropped_events = 0
 
-    def report(self, snapshot: ActorResourceSnapshot) -> None:
+    def report(self, snapshot: ActorResourceSnapshot) -> bool:
+        """Submit one event, or drop it when the bounded producer window is full."""
+
         self._sequence += 1
+        self._refresh_in_flight()
+        if len(self._in_flight) >= self.max_in_flight:
+            self.dropped_events += 1
+            return False
         event = ActorMetricsEvent(
             job_id=self.job_id,
             actor_id=self.actor_id,
@@ -96,7 +117,43 @@ class AsyncMetricsReporter:
         record_remote = getattr(getattr(self.sink_handle, "record", None), "remote", None)
         if not callable(record_remote):
             raise TypeError("sink_handle.record.remote must be callable")
-        record_remote(event)
+        self._in_flight.append(record_remote(event))
+        self.submitted_events += 1
+        return True
+
+    def snapshot(self):
+        """Return producer pressure counters without waiting for the Sink."""
+
+        self._refresh_in_flight()
+        return {
+            "submitted_events": self.submitted_events,
+            "dropped_events": self.dropped_events,
+            "pending_events": len(self._in_flight),
+            "max_in_flight": self.max_in_flight,
+            "last_sequence": self._sequence,
+        }
+
+    def _refresh_in_flight(self) -> None:
+        if not self._in_flight:
+            return
+        wait_fn = self._wait_fn
+        if wait_fn is None:
+            try:
+                import ray
+
+                if not ray.is_initialized():
+                    return
+                wait_fn = ray.wait
+            except (ImportError, AttributeError):
+                return
+        references = list(self._in_flight)
+        try:
+            _, pending = wait_fn(references, num_returns=len(references), timeout=0)
+        except (TypeError, ValueError):
+            # Non-Ray test doubles cannot be polled. Retaining them is the safe
+            # behavior because the producer window will still remain bounded.
+            return
+        self._in_flight = deque(pending)
 
 
 def create_ray_metrics_sink(job_id: str, max_events: int = 2048, ray_module=None):

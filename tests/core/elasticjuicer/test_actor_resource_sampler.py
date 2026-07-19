@@ -134,6 +134,26 @@ def test_background_polling_captures_rss_peak_inside_batch():
     assert measurement.snapshot.rss_start_mb == 100.0
     assert measurement.snapshot.rss_peak_mb == 180.0
     assert measurement.snapshot.rss_end_mb == 120.0
+    sampler.close()
+
+
+def test_sampler_reuses_one_polling_thread_across_batches():
+    sampler = ActorResourceSampler(
+        process=FakeProcess([100, 100, 100, 100]),
+        cuda_backend=None,
+        sample_interval_sec=60.0,
+    )
+
+    with sampler.measure(batch_size=1):
+        pass
+    first_thread = sampler._poll_thread
+    with sampler.measure(batch_size=1):
+        pass
+
+    assert sampler._poll_thread is first_thread
+    assert first_thread.is_alive()
+    sampler.close()
+    assert not first_thread.is_alive()
 
 
 def test_exception_is_recorded_without_being_suppressed():

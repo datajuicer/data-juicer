@@ -101,6 +101,10 @@ class ActorResourceSampler:
         self._snapshot_lock = threading.Lock()
         self.last_snapshot: Optional[ActorResourceSnapshot] = None
         self._snapshot_callback = snapshot_callback
+        self._active_lock = threading.Lock()
+        self._active_measurement: Optional[BatchResourceMeasurement] = None
+        self._poll_stop_event = threading.Event()
+        self._poll_thread: Optional[threading.Thread] = None
 
     def measure(self, batch_size: int) -> "BatchResourceMeasurement":
         if batch_size < 1:
@@ -122,6 +126,40 @@ class ActorResourceSampler:
     def set_snapshot_callback(self, callback: Optional[Callable[[ActorResourceSnapshot], None]]) -> None:
         self._snapshot_callback = callback
 
+    def close(self) -> None:
+        """Stop the actor-lifetime polling thread, if it was started."""
+
+        self._poll_stop_event.set()
+        thread = self._poll_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=max(1.0, self.sample_interval_sec * 2))
+
+    def _activate(self, measurement: "BatchResourceMeasurement") -> None:
+        with self._active_lock:
+            if self._active_measurement is not None:
+                raise RuntimeError("only one batch measurement may be active per sampler")
+            self._active_measurement = measurement
+            if self._poll_thread is None or not self._poll_thread.is_alive():
+                self._poll_stop_event.clear()
+                self._poll_thread = threading.Thread(
+                    target=self._poll_rss,
+                    name="elasticjuicer-rss-sampler",
+                    daemon=True,
+                )
+                self._poll_thread.start()
+
+    def _deactivate(self, measurement: "BatchResourceMeasurement") -> None:
+        with self._active_lock:
+            if self._active_measurement is measurement:
+                self._active_measurement = None
+
+    def _poll_rss(self) -> None:
+        while not self._poll_stop_event.wait(self.sample_interval_sec):
+            with self._active_lock:
+                measurement = self._active_measurement
+                if measurement is not None:
+                    measurement.sample_now()
+
 
 class BatchResourceMeasurement:
     """Context manager that owns the polling lifecycle for one batch."""
@@ -131,8 +169,6 @@ class BatchResourceMeasurement:
         self.batch_size = batch_size
         self.snapshot: Optional[ActorResourceSnapshot] = None
         self._rss_lock = threading.Lock()
-        self._stop_event = threading.Event()
-        self._thread: Optional[threading.Thread] = None
         self._start_rss_bytes = 0
         self._end_rss_bytes = 0
         self._peak_rss_bytes = 0
@@ -147,12 +183,7 @@ class BatchResourceMeasurement:
         self._start_rss_bytes = self._read_rss_bytes()
         self._peak_rss_bytes = self._start_rss_bytes
         self._prepare_cuda_peak()
-        self._thread = threading.Thread(
-            target=self._poll_rss,
-            name="elasticjuicer-rss-sampler",
-            daemon=True,
-        )
-        self._thread.start()
+        self.sampler._activate(self)
         # Exclude sampler setup from the operator latency measurement.
         self._start_time = self.sampler._clock()
         return self
@@ -160,11 +191,9 @@ class BatchResourceMeasurement:
     def __exit__(self, exc_type, exc_value, traceback):
         # Capture the operator boundary before sampler teardown.
         end_time = self.sampler._clock()
-        self._stop_event.set()
+        self.sampler._deactivate(self)
         self._end_rss_bytes = self._read_rss_bytes()
         self._record_peak(self._end_rss_bytes)
-        if self._thread is not None:
-            self._thread.join()
 
         latency_seconds = max(0.0, end_time - self._start_time)
         latency_ms = latency_seconds * 1000.0
@@ -194,10 +223,6 @@ class BatchResourceMeasurement:
         rss_bytes = self._read_rss_bytes()
         self._record_peak(rss_bytes)
         return self._to_mb(rss_bytes)
-
-    def _poll_rss(self):
-        while not self._stop_event.wait(self.sampler.sample_interval_sec):
-            self.sample_now()
 
     def _read_rss_bytes(self) -> int:
         return int(self.sampler.process.memory_info().rss)

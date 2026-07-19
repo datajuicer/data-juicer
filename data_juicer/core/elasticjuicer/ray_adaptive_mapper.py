@@ -30,6 +30,7 @@ class RayAdaptiveMapperActor:
         sample_interval_sec: float = 0.01,
         sampler_factory: Callable = ActorResourceSampler,
         metrics_sink=None,
+        metrics_max_in_flight: int = 64,
         job_id: Optional[str] = None,
         op_name: Optional[str] = None,
         actor_id: Optional[str] = None,
@@ -56,6 +57,7 @@ class RayAdaptiveMapperActor:
                 job_id=self.job_id,
                 actor_id=self.actor_id,
                 op_name=resolved_op_name,
+                max_in_flight=metrics_max_in_flight,
             )
             set_callback = getattr(self.sampler, "set_snapshot_callback", None)
             if not callable(set_callback):
@@ -110,6 +112,26 @@ class RayAdaptiveMapperActor:
             local_success_lower_bound=state.success_lower_bound,
             local_oom_upper_bound=state.oom_upper_bound,
         )
+
+    def reset_oom_bound(self):
+        """Allow a coordinator to explicitly reopen local capacity probing."""
+
+        self.controller.reset_oom_bound()
+        return self.get_quota_state()
+
+    def get_metrics_state(self):
+        """Return actor-local producer pressure diagnostics."""
+
+        if self.metrics_reporter is None:
+            return {
+                "enabled": False,
+                "submitted_events": 0,
+                "dropped_events": 0,
+                "pending_events": 0,
+                "max_in_flight": 0,
+                "last_sequence": 0,
+            }
+        return {"enabled": True, **self.metrics_reporter.snapshot()}
 
     def _process_strict(self, batch):
         """Run below Mapper's broad skip wrapper so OOM reaches the controller."""

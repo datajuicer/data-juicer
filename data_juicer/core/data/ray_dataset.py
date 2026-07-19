@@ -8,7 +8,7 @@ import pyarrow
 import ray
 from jsonargparse import Namespace
 from loguru import logger
-from ray.data._internal.util import get_compute_strategy
+from ray.data import ActorPoolStrategy, TaskPoolStrategy
 
 from data_juicer.core.data import DJDataset
 from data_juicer.core.data.schema import Schema
@@ -111,21 +111,28 @@ class RayDataset(DJDataset):
         self._elastic_juicer_adaptive_batching = bool(cfg and cfg.get("elastic_juicer_adaptive_batching", False))
         self._elastic_juicer_job_id = None
         self._elastic_juicer_metrics_sink = None
+        self._elastic_juicer_metrics_max_in_flight = 64
         if not self._elastic_juicer_adaptive_batching:
             return
 
         job_id = cfg.get("job_id")
         if not job_id:
             raise ValueError("elastic_juicer_adaptive_batching requires a resolved job_id")
+        metrics_max_in_flight = int(cfg.get("elastic_juicer_metrics_max_in_flight", 64))
+        if metrics_max_in_flight < 1:
+            raise ValueError("elastic_juicer_metrics_max_in_flight must be at least 1")
         sink_key = "_elastic_juicer_metrics_sink"
         metrics_sink = cfg.get(sink_key)
         if metrics_sink is None:
-            from data_juicer.core.elasticjuicer.async_metrics_sink import create_ray_metrics_sink
+            from data_juicer.core.elasticjuicer.async_metrics_sink import (
+                create_ray_metrics_sink,
+            )
 
             metrics_sink = create_ray_metrics_sink(job_id)
             cfg[sink_key] = metrics_sink
         self._elastic_juicer_job_id = job_id
         self._elastic_juicer_metrics_sink = metrics_sink
+        self._elastic_juicer_metrics_max_in_flight = metrics_max_in_flight
 
     @property
     def elastic_juicer_metrics_sink(self):
@@ -265,9 +272,11 @@ class RayDataset(DJDataset):
                 try:
                     if op.use_ray_actor():
                         if self._elastic_juicer_adaptive_batching and op.is_batched_op():
-                            from data_juicer.core.elasticjuicer.ray_adaptive_mapper import RayAdaptiveMapperActor
+                            from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
+                                RayAdaptiveMapperActor,
+                            )
 
-                            compute = get_compute_strategy(RayAdaptiveMapperActor, concurrency=op.num_proc)
+                            compute = ActorPoolStrategy(size=op.num_proc)
                             self.data = self.data.map_batches(
                                 RayAdaptiveMapperActor,
                                 fn_args=None,
@@ -279,6 +288,7 @@ class RayDataset(DJDataset):
                                     "initial_batch_size": batch_size,
                                     "max_batch_size": batch_size,
                                     "metrics_sink": self._elastic_juicer_metrics_sink,
+                                    "metrics_max_in_flight": getattr(self, "_elastic_juicer_metrics_max_in_flight", 64),
                                     "job_id": self._elastic_juicer_job_id,
                                     "op_name": getattr(op, "_name", None) or op.__class__.__name__,
                                 },
@@ -290,7 +300,7 @@ class RayDataset(DJDataset):
                                 runtime_env=op.runtime_env,
                             )
                         else:
-                            compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                            compute = ActorPoolStrategy(size=op.num_proc)
                             self.data = self.data.map_batches(
                                 op.__class__,
                                 fn_args=None,
@@ -305,7 +315,7 @@ class RayDataset(DJDataset):
                                 runtime_env=op.runtime_env,
                             )
                     else:
-                        compute = get_compute_strategy(op.process, concurrency=op.num_proc)
+                        compute = TaskPoolStrategy(size=op.num_proc)
                         self.data = self.data.map_batches(
                             op.process,
                             batch_size=batch_size,
@@ -333,7 +343,7 @@ class RayDataset(DJDataset):
                     )
                     cached_columns.add(Fields.stats)
                 if op.use_ray_actor():
-                    compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                    compute = ActorPoolStrategy(size=op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
                         fn_args=None,
@@ -348,7 +358,7 @@ class RayDataset(DJDataset):
                         runtime_env=op.runtime_env,
                     )
                 else:
-                    compute = get_compute_strategy(op.compute_stats, concurrency=op.num_proc)
+                    compute = TaskPoolStrategy(size=op.num_proc)
                     self.data = self.data.map_batches(
                         op.compute_stats,
                         batch_size=batch_size,

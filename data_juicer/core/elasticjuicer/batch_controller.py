@@ -6,6 +6,7 @@ success/OOM state. The module deliberately has no runtime, Ray, GPU, or memory
 sampler dependency.
 """
 
+import math
 from dataclasses import dataclass
 from typing import Optional
 
@@ -28,6 +29,9 @@ class BatchControllerState:
     cooldown_remaining: int
     success_events: int
     oom_events: int
+    probe_oom_events: int
+    oom_reprobe_events: int
+    successes_since_oom: int
 
 
 class AdaptiveBatchController:
@@ -41,6 +45,10 @@ class AdaptiveBatchController:
         successes_before_growth: int = 3,
         growth_step: int = 1,
         cooldown_successes: int = 2,
+        max_probe_ooms: int = 3,
+        minimum_growth_fraction: float = 0.125,
+        oom_reprobe_successes: int = 32,
+        max_oom_reprobes: int = 0,
     ):
         if min_batch_size < 1:
             raise ValueError("min_batch_size must be at least 1")
@@ -54,12 +62,24 @@ class AdaptiveBatchController:
             raise ValueError("growth_step must be at least 1")
         if cooldown_successes < 0:
             raise ValueError("cooldown_successes must be non-negative")
+        if max_probe_ooms < 1:
+            raise ValueError("max_probe_ooms must be at least 1")
+        if not 0 < minimum_growth_fraction <= 1:
+            raise ValueError("minimum_growth_fraction must be in (0, 1]")
+        if oom_reprobe_successes < 1:
+            raise ValueError("oom_reprobe_successes must be at least 1")
+        if max_oom_reprobes < 0:
+            raise ValueError("max_oom_reprobes must be non-negative")
 
         self.min_batch_size = min_batch_size
         self.max_batch_size = max_batch_size
         self.successes_before_growth = successes_before_growth
         self.growth_step = growth_step
         self.cooldown_successes = cooldown_successes
+        self.max_probe_ooms = max_probe_ooms
+        self.minimum_growth_fraction = minimum_growth_fraction
+        self.oom_reprobe_successes = oom_reprobe_successes
+        self.max_oom_reprobes = max_oom_reprobes
 
         self.current_batch_size = initial_batch_size
         self.hard_limit = max_batch_size
@@ -69,6 +89,12 @@ class AdaptiveBatchController:
         self.cooldown_remaining = 0
         self.success_events = 0
         self.oom_events = 0
+        self.probe_oom_events = 0
+        self.oom_reprobe_events = 0
+        self.successes_since_oom = 0
+        self._probe_ooms_for_bound = 0
+        self._next_reprobe_successes = oom_reprobe_successes
+        self._reprobe_origin: Optional[int] = None
 
     @property
     def state(self) -> BatchControllerState:
@@ -83,6 +109,9 @@ class AdaptiveBatchController:
             cooldown_remaining=self.cooldown_remaining,
             success_events=self.success_events,
             oom_events=self.oom_events,
+            probe_oom_events=self.probe_oom_events,
+            oom_reprobe_events=self.oom_reprobe_events,
+            successes_since_oom=self.successes_since_oom,
         )
 
     def next_batch_size(self, remaining_samples: int) -> int:
@@ -103,6 +132,21 @@ class AdaptiveBatchController:
         self.current_batch_size = self._clamp(self.current_batch_size)
         return self.current_batch_size
 
+    def reset_oom_bound(self) -> int:
+        """Forget local OOM evidence so a coordinator can signal recovery.
+
+        The reset is intentionally explicit: raising a quota alone is not proof
+        that the actor's actual memory capacity has increased.
+        """
+
+        previous_upper_bound = self.oom_upper_bound
+        self.oom_upper_bound = None
+        self.successes_since_oom = 0
+        self._probe_ooms_for_bound = 0
+        self._next_reprobe_successes = self.oom_reprobe_successes
+        self._reprobe_origin = previous_upper_bound
+        return self.current_batch_size
+
     def observe_success(self, batch_size: int) -> int:
         """Record a successful batch and cautiously probe after a stable streak."""
 
@@ -114,6 +158,25 @@ class AdaptiveBatchController:
         # size is safe and therefore must not advance cooldown or growth.
         if batch_size < self.current_batch_size:
             return self.current_batch_size
+
+        if self.oom_upper_bound is not None:
+            self.successes_since_oom += 1
+            if (
+                self.oom_reprobe_events < self.max_oom_reprobes
+                and self.successes_since_oom >= self._next_reprobe_successes
+            ):
+                previous_upper_bound = self.oom_upper_bound
+                self.oom_upper_bound = None
+                self.successes_since_oom = 0
+                self._reprobe_origin = previous_upper_bound
+
+        if self._reprobe_origin is not None and batch_size >= self._reprobe_origin:
+            # A previously failing size now succeeds, so capacity recovery is
+            # proven and future recovery checks may use the base interval again.
+            self._reprobe_origin = None
+            self.oom_reprobe_events = 0
+            self._next_reprobe_successes = self.oom_reprobe_successes
+            self._probe_ooms_for_bound = 0
 
         if self.oom_upper_bound is None or batch_size < self.oom_upper_bound:
             if self.success_lower_bound is None:
@@ -140,6 +203,13 @@ class AdaptiveBatchController:
 
         self._validate_observation(batch_size)
         self.oom_events += 1
+        if self.success_lower_bound is not None and batch_size > self.success_lower_bound:
+            self.probe_oom_events += 1
+            self._probe_ooms_for_bound += 1
+        if self._reprobe_origin is not None:
+            self.oom_reprobe_events += 1
+            self._next_reprobe_successes *= 2
+            self._reprobe_origin = None
         if self.oom_upper_bound is None:
             self.oom_upper_bound = batch_size
         else:
@@ -147,6 +217,7 @@ class AdaptiveBatchController:
 
         self.consecutive_successes = 0
         self.cooldown_remaining = self.cooldown_successes
+        self.successes_since_oom = 0
 
         if batch_size <= self.min_batch_size:
             self.current_batch_size = self.min_batch_size
@@ -154,6 +225,12 @@ class AdaptiveBatchController:
 
         if self.success_lower_bound is not None and self.success_lower_bound >= self.oom_upper_bound:
             self.success_lower_bound = None
+            self._probe_ooms_for_bound = 0
+
+        if self.success_lower_bound is not None and self._probe_ooms_for_bound >= self.max_probe_ooms:
+            # Once the probe budget is exhausted, freeze at the best proven
+            # size. A later bounded re-probe or explicit reset can reopen it.
+            self.oom_upper_bound = self.success_lower_bound + 1
 
         backed_off = max(self.min_batch_size, batch_size // 2)
         if self.success_lower_bound is not None:
@@ -166,7 +243,11 @@ class AdaptiveBatchController:
         if self.oom_upper_bound is not None and self.success_lower_bound is not None:
             midpoint = (self.success_lower_bound + self.oom_upper_bound) // 2
             return self._clamp(max(self.success_lower_bound, midpoint))
-        return self._clamp(min(effective_maximum, self.current_batch_size + self.growth_step))
+        growth_increment = max(
+            self.growth_step,
+            int(math.ceil(self.current_batch_size * self.minimum_growth_fraction)),
+        )
+        return self._clamp(min(effective_maximum, self.current_batch_size + growth_increment))
 
     def _effective_maximum(self) -> int:
         maximum = min(self.max_batch_size, self.hard_limit)

@@ -55,6 +55,11 @@ def test_quota_contract_rejects_invalid_fields(kwargs, message):
         BatchSizeQuota(**kwargs)
 
 
+def test_quota_contract_requires_boolean_reset_flag():
+    with pytest.raises(TypeError, match="reset_oom_bound"):
+        BatchSizeQuota("job-a", "actor-a", revision=1, max_batch_size=8, reset_oom_bound=1)
+
+
 def test_actor_applies_quota_as_an_exact_hard_upper_bound():
     actor = _actor()
 
@@ -131,6 +136,25 @@ def test_relaxed_quota_does_not_erase_actor_local_oom_state():
     assert state.local_oom_upper_bound == oom_state.oom_upper_bound == 16
     assert state.hard_limit == 32
     assert actor.controller.next_batch_size(100) < 16
+
+
+def test_quota_can_explicitly_reset_actor_local_oom_state():
+    actor = _actor()
+    actor.controller.observe_oom(16)
+
+    application = actor.apply_quota(
+        BatchSizeQuota(
+            "job-a",
+            "actor-a",
+            revision=1,
+            max_batch_size=32,
+            reset_oom_bound=True,
+        )
+    )
+
+    assert application.oom_bound_reset is True
+    assert application.reason == "applied_and_reset_oom_bound"
+    assert actor.get_quota_state().local_oom_upper_bound is None
 
 
 def test_quota_path_contains_no_magic_blending_or_ray_dependency():

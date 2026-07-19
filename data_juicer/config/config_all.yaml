@@ -56,6 +56,7 @@ fusion_strategy: 'probe'                                    # OP fusion strategy
 cache_compress: null                                        # the compression method of the cache file, which can be specified in ['gzip', 'zstd', 'lz4']. If this parameter is None, the cache file will not be compressed. We recommend you turn on this argument when your input dataset is larger than tens of GB and your disk space is not enough.
 adaptive_batch_size: false                                  # whether to use adaptive batch sizes for each OP according to the probed results. It's False in default.
 elastic_juicer_adaptive_batching: false                     # whether to enable actor-local OOM-safe adaptive batching for batched Mapper operators in Ray actor mode. It's False in default.
+elastic_juicer_metrics_max_in_flight: 64                    # maximum pending metrics submissions per adaptive Ray actor; newer observations are dropped while this bounded window is full.
 
 # for multimodal data processing
 image_key: 'images'                                         # key name of field to store the list of sample image paths.

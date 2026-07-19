@@ -15,7 +15,7 @@ import tempfile
 import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -24,6 +24,22 @@ from .ocs_annotator import OpCostSignature
 
 PROFILE_SCHEMA_VERSION = 1
 PROFILE_FILENAME = "profiles.json"
+
+
+def _fit_robust_line(x_values, y_values):
+    """Return a Theil-Sen style slope/intercept robust to sparse outliers."""
+
+    slopes = []
+    for left in range(len(x_values)):
+        for right in range(left + 1, len(x_values)):
+            span = x_values[right] - x_values[left]
+            if span != 0:
+                slopes.append((y_values[right] - y_values[left]) / span)
+    if not slopes:
+        raise ValueError("at least two distinct x values are required")
+    slope = float(np.median(slopes))
+    intercept = float(np.median(y_values - slope * x_values))
+    return slope, intercept
 
 
 @dataclass
@@ -39,7 +55,7 @@ class ResourceThroughputCurve:
 
     op_name: str
     # Curve parameters (fitted from data)
-    coefficients: Dict[str, float]
+    coefficients: Dict[str, Any]
     # Model type: 'linear', 'polynomial', 'power'
     model_type: str = "linear"
     # Goodness of fit
@@ -61,6 +77,24 @@ class ResourceThroughputCurve:
             a = self.coefficients.get("scale", 1)
             b = self.coefficients.get("power", 1)
             return a * (batch_size**b)
+
+        elif self.model_type == "piecewise":
+            batch_sizes = np.asarray(self.coefficients.get("batch_sizes", []), dtype=float)
+            throughputs = np.asarray(self.coefficients.get("throughputs", []), dtype=float)
+            if len(batch_sizes) < 2 or len(batch_sizes) != len(throughputs):
+                return 0.0
+            if batch_size <= batch_sizes[0]:
+                left, right = 0, 1
+            elif batch_size >= batch_sizes[-1]:
+                # The empirical model represents a saturating throughput
+                # curve. Avoid unstable upward extrapolation past evidence.
+                return max(0.0, float(throughputs[-1]))
+            else:
+                return max(0.0, float(np.interp(batch_size, batch_sizes, throughputs)))
+            span = batch_sizes[right] - batch_sizes[left]
+            slope = 0.0 if span == 0 else (throughputs[right] - throughputs[left]) / span
+            predicted = throughputs[left] + slope * (batch_size - batch_sizes[left])
+            return max(0.0, float(predicted))
 
         return 0.0
 
@@ -258,17 +292,34 @@ class ProfilingStore:
             ss_tot = np.sum((throughputs - np.mean(throughputs)) ** 2)
             r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
-            curve = ResourceThroughputCurve(
-                op_name=op_name,
-                coefficients={
-                    "batch_coef": float(coeffs[0]),
-                    "memory_coef": float(coeffs[1]),
-                    "intercept": float(coeffs[2]),
-                },
-                model_type="linear",
-                r_squared=float(r_squared),
-                n_samples=len(batch_sizes),
-            )
+            if r_squared >= 0.98 or len(np.unique(batch_sizes)) < 3:
+                curve = ResourceThroughputCurve(
+                    op_name=op_name,
+                    coefficients={
+                        "batch_coef": float(coeffs[0]),
+                        "memory_coef": float(coeffs[1]),
+                        "intercept": float(coeffs[2]),
+                    },
+                    model_type="linear",
+                    r_squared=float(r_squared),
+                    n_samples=len(batch_sizes),
+                )
+            else:
+                unique_batches = sorted(set(int(value) for value in batch_sizes))
+                median_throughputs = [float(np.median(throughputs[batch_sizes == value])) for value in unique_batches]
+                fitted = np.interp(batch_sizes, unique_batches, median_throughputs)
+                piecewise_residual = np.sum((throughputs - fitted) ** 2)
+                piecewise_r_squared = 1 - (piecewise_residual / ss_tot) if ss_tot > 0 else 0
+                curve = ResourceThroughputCurve(
+                    op_name=op_name,
+                    coefficients={
+                        "batch_sizes": unique_batches,
+                        "throughputs": median_throughputs,
+                    },
+                    model_type="piecewise",
+                    r_squared=float(piecewise_r_squared),
+                    n_samples=len(batch_sizes),
+                )
 
             self.throughput_curves[op_name] = curve
 
@@ -295,9 +346,8 @@ class ProfilingStore:
         memories = np.array([s.memory_mb for s in valid_snapshots])
 
         try:
-            # Fit linear model
-            coeffs = np.polyfit(batch_sizes, memories, deg=1)
-            predicted = coeffs[0] * batch_size + coeffs[1]
+            slope, intercept = _fit_robust_line(batch_sizes, memories)
+            predicted = slope * batch_size + intercept
             return float(predicted)
         except (ValueError, np.linalg.LinAlgError, FloatingPointError):
             # Fall back to average
@@ -319,20 +369,25 @@ class ProfilingStore:
         if not stats or len(stats.snapshots) < 3:
             return 1  # Conservative default
 
-        # Find batch sizes and their memory usage
+        # Fit memory = slope * batch + intercept so fixed operator/context
+        # memory is not incorrectly charged once per sample.
         valid = [snapshot for snapshot in stats.snapshots if snapshot.batch_size > 0 and snapshot.memory_mb > 0]
         if len(valid) < 3:
             return 1
         batch_sizes = np.array([s.batch_size for s in valid])
         memories = np.array([s.memory_mb for s in valid])
 
-        # Calculate memory per sample
-        mem_per_sample = memories / batch_sizes
-        avg_mem_per_sample = np.median(mem_per_sample)  # Use median for robustness
-
-        # Calculate safe batch size
         target_memory = available_memory_mb * safety_margin
-        safe_batch = int(target_memory / avg_mem_per_sample)
+        try:
+            slope, intercept = _fit_robust_line(batch_sizes, memories)
+        except (ValueError, np.linalg.LinAlgError, FloatingPointError):
+            return 1
+        if not np.isfinite(slope) or not np.isfinite(intercept):
+            return 1
+        if slope <= 0:
+            safe_observations = batch_sizes[memories <= target_memory]
+            return max(1, int(np.max(safe_observations))) if len(safe_observations) else 1
+        safe_batch = int((target_memory - intercept) / slope)
 
         return max(1, safe_batch)
 

@@ -22,12 +22,15 @@ class BatchSizeQuota:
     actor_id: str
     revision: int
     max_batch_size: int
+    reset_oom_bound: bool = False
 
     def __post_init__(self):
         _require_nonempty_string("job_id", self.job_id)
         _require_nonempty_string("actor_id", self.actor_id)
         _require_positive_int("revision", self.revision)
         _require_positive_int("max_batch_size", self.max_batch_size)
+        if not isinstance(self.reset_oom_bound, bool):
+            raise TypeError("reset_oom_bound must be a boolean")
 
 
 @dataclass(frozen=True)
@@ -41,6 +44,7 @@ class QuotaApplication:
     previous_hard_limit: int
     current_batch_size: int
     reason: str
+    oom_bound_reset: bool = False
 
 
 @dataclass(frozen=True)
@@ -85,6 +89,7 @@ def apply_batch_size_quota(
             previous_hard_limit=before.hard_limit,
             current_batch_size=before.current_batch_size,
             reason="stale_revision",
+            oom_bound_reset=False,
         )
 
     effective_limit = min(quota.max_batch_size, before.max_batch_size)
@@ -92,6 +97,8 @@ def apply_batch_size_quota(
         raise ValueError(f"quota max_batch_size {quota.max_batch_size} is below actor minimum {before.min_batch_size}")
 
     current_batch_size = controller.set_hard_limit(effective_limit)
+    if quota.reset_oom_bound:
+        current_batch_size = controller.reset_oom_bound()
     return QuotaApplication(
         applied=True,
         revision=quota.revision,
@@ -99,5 +106,6 @@ def apply_batch_size_quota(
         effective_max_batch_size=effective_limit,
         previous_hard_limit=before.hard_limit,
         current_batch_size=current_batch_size,
-        reason="applied",
+        reason="applied_and_reset_oom_bound" if quota.reset_oom_bound else "applied",
+        oom_bound_reset=quota.reset_oom_bound,
     )

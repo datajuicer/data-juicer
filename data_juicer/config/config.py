@@ -615,6 +615,14 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                 "by default.",
             )
             parser.add_argument(
+                "--elastic_juicer_metrics_max_in_flight",
+                type=int,
+                default=64,
+                help="Maximum pending metrics submissions per adaptive Ray "
+                "actor. New observations are dropped while the bounded "
+                "window is full.",
+            )
+            parser.add_argument(
                 "--process",
                 type=List[Dict],
                 default=[],

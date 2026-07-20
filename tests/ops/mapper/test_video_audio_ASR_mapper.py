@@ -16,6 +16,17 @@ except ImportError:
     _MODEL_AVAILABLE = False
 
 
+# TODO: unskip once the patched SenseVoice code ships inside the installed
+# package. In CI, data-juicer is installed as a wheel (not from source), so the
+# thirdparty SenseVoice code is the upstream one that misses super().__init__()
+# in SinusoidalPositionEncoder. That crashes with
+# "'SinusoidalPositionEncoder' object has no attribute '_state_dict_pre_hooks'"
+# whenever state_dict() runs (e.g. multi-process map). Our SenseVoice_changes.diff
+# fixes it, but the diff is only applied when cloning from source at runtime.
+@unittest.skip(
+    "SenseVoice ops require the patched thirdparty code (SenseVoice_changes.diff); "
+    "CI installs the package without it. Re-enable after the fix ships in the package."
+)
 @unittest.skipUnless(_MODEL_AVAILABLE, 'funasr package not installed. '
                      'Install with: pip install funasr')
 class VideoAudioASRMapperTest(DataJuicerTestCaseBase):

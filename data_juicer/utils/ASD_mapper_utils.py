@@ -42,10 +42,10 @@ def scene_detect(videoFilePath):
     # The whole video is treated as a single shot: (start, end) where
     # start.frame_num == 0 and end.frame_num == total number of frames.
     _open_video = _ensure_scenedetect()
-    video = _open_video(videoFilePath)
-    base_timecode = video.base_timecode
-    duration = base_timecode + video.duration.frame_num
-    sceneList = [(base_timecode, duration)]
+    with _open_video(videoFilePath) as video:
+        base_timecode = video.base_timecode
+        duration = base_timecode + video.duration
+        sceneList = [(base_timecode, duration)]
     return sceneList
 
 

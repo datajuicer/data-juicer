@@ -16,7 +16,7 @@ mp = LazyLoader("moviepy")
 python_speech_features = LazyLoader("python_speech_features")
 torch = LazyLoader("torch")
 DeepFace = None  # lazy loaded below
-VideoManager = None  # lazy loaded below
+open_video = None  # lazy loaded below
 
 
 def _ensure_deepface():
@@ -29,19 +29,23 @@ def _ensure_deepface():
 
 
 def _ensure_scenedetect():
-    global VideoManager
-    if VideoManager is None:
-        from scenedetect.video_manager import VideoManager as _VM
+    global open_video
+    if open_video is None:
+        from scenedetect import open_video as _open_video
 
-        VideoManager = _VM
-    return VideoManager
+        open_video = _open_video
+    return open_video
 
 
 def scene_detect(videoFilePath):
-    # CPU: Scene detection, output is the list of each shot's time duration
-    _VideoManager = _ensure_scenedetect()
-    videoManager = _VideoManager([videoFilePath])
-    sceneList = [(videoManager.base_timecode, videoManager.duration)]
+    # CPU: Scene detection, output is the list of each shot's time duration.
+    # The whole video is treated as a single shot: (start, end) where
+    # start.frame_num == 0 and end.frame_num == total number of frames.
+    _open_video = _ensure_scenedetect()
+    video = _open_video(videoFilePath)
+    base_timecode = video.base_timecode
+    duration = base_timecode + video.duration.frame_num
+    sceneList = [(base_timecode, duration)]
     return sceneList
 
 

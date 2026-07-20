@@ -65,6 +65,7 @@ class VideoActiveSpeakerDetectMapper(Mapper):
         self.active_threshold = active_threshold
 
         self.temp_save_path = temp_save_path
+        os.makedirs(self.temp_save_path, exist_ok=True)
 
         # Initialize ASD model
         self.ASD_model_key = prepare_model(model_type="Light_ASD", pretrained_model_name_or_path=Light_ASD_model_path)

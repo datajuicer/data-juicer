@@ -806,11 +806,11 @@ process:
       mem_required: '10GB'
 
   - video_audio_ASR_mapper:                                 # Automatic speech recognition from video speech
-      model_dir_ASR: 'FunAudioLLM/SenseVoiceSmall'              # Huggingface model FunAudioLLM/SenseVoiceSmall
+      model_dir_ASR: 'iic/SenseVoiceSmall'                     # ModelScope model iic/SenseVoiceSmall (funasr downloads from ModelScope by default)
       mem_required: '20GB'
 
   - video_audio_speech_emotion_mapper:                      # Speech emotion recognition from video speech
-      model_dir_emo: 'FunAudioLLM/SenseVoiceSmall'              # Huggingface model FunAudioLLM/SenseVoiceSmall
+      model_dir_emo: 'iic/SenseVoiceSmall'                     # ModelScope model iic/SenseVoiceSmall (funasr downloads from ModelScope by default)
       mem_required: '20GB'
 
   # Pipeline ops

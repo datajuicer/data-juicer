@@ -66,6 +66,7 @@ class VideoHumanTracksExtractionMapper(Mapper):
         self._init_parameters = self.remove_extra_parameters(locals())
 
         self.face_track_bbox_path = face_track_bbox_path
+        os.makedirs(self.face_track_bbox_path, exist_ok=True)
 
         self.human_detection_model_key = prepare_model(
             model_type="YOLOv8_human", pretrained_model_name_or_path=YOLOv8_human_model_path  # 240MB

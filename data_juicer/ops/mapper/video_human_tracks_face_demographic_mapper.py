@@ -31,7 +31,7 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
 
     def __init__(
         self,
-        original_data_save_path="",
+        original_data_save_path="./outputs/demographic",
         detect_interval: int = 5,
         tag_field_name: str = MetaKeys.video_facetrack_attribute_demographic,
         *args,
@@ -50,6 +50,7 @@ class VideoHumantrackFaceDemographicMapper(Mapper):
         self.interval = detect_interval
         self.original_data_save_path = original_data_save_path
         self.tag_field_name = tag_field_name
+        os.makedirs(self.original_data_save_path, exist_ok=True)
 
     def process_single(self, sample, rank=None):
         if Fields.meta not in sample:

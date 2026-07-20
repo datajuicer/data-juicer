@@ -23,7 +23,9 @@ class VideoAudioASRMapper(Mapper):
     _accelerator = "cuda"
     _batched_op = True
 
-    def __init__(self, model_dir_ASR="iic/SenseVoiceSmall", speech_ASR: str = MetaKeys.speech_ASR, *args, **kwargs):
+    def __init__(
+        self, model_dir_ASR="FunAudioLLM/SenseVoiceSmall", speech_ASR: str = MetaKeys.speech_ASR, *args, **kwargs
+    ):
         """
         Initialization method.
 

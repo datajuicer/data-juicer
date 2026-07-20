@@ -24,7 +24,9 @@ class VideoAudioSpeechEmotionMapper(Mapper):
     _accelerator = "cuda"
     _batched_op = True
 
-    def __init__(self, model_dir_emo="iic/SenseVoiceSmall", speech_Emo: str = MetaKeys.speech_emotion, *args, **kwargs):
+    def __init__(
+        self, model_dir_emo="FunAudioLLM/SenseVoiceSmall", speech_Emo: str = MetaKeys.speech_emotion, *args, **kwargs
+    ):
         """
         Initialization method.
 

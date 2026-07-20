@@ -1798,7 +1798,18 @@ def prepare_SenseVoiceSmall_model(pretrained_model_name_or_path, **model_params)
     from thirdparty.humanvbench_models.SenseVoice.model import SenseVoiceSmall
 
     logger.info("Loading ASR_model model...")
-    ASR_Emo_model, kwargs1 = SenseVoiceSmall.from_pretrained(model=pretrained_model_name_or_path)
+    # funasr downloads from ModelScope by default (hub="ms"). Prefer Hugging
+    # Face first (faster for overseas machines), and fall back to ModelScope
+    # if the HF download fails (e.g. network blocked or model missing there).
+    try:
+        ASR_Emo_model, kwargs1 = SenseVoiceSmall.from_pretrained(model=pretrained_model_name_or_path, hub="hf")
+    except Exception as e:
+        logger.warning(
+            f"Loading SenseVoiceSmall from Hugging Face "
+            f"('{pretrained_model_name_or_path}') failed: {e}. "
+            f"Falling back to ModelScope ('iic/SenseVoiceSmall')."
+        )
+        ASR_Emo_model, kwargs1 = SenseVoiceSmall.from_pretrained(model="iic/SenseVoiceSmall", hub="ms")
 
     ASR_Emo_model.eval()
     return ASR_Emo_model, kwargs1

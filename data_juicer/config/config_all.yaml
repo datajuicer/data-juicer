@@ -806,11 +806,11 @@ process:
       mem_required: '10GB'
 
   - video_audio_ASR_mapper:                                 # Automatic speech recognition from video speech
-      model_dir_ASR: 'iic/SenseVoiceSmall'                     # ModelScope model iic/SenseVoiceSmall (funasr downloads from ModelScope by default)
+      model_dir_ASR: 'FunAudioLLM/SenseVoiceSmall'            # HF model; loading falls back to ModelScope 'iic/SenseVoiceSmall' if HF download fails
       mem_required: '20GB'
 
   - video_audio_speech_emotion_mapper:                      # Speech emotion recognition from video speech
-      model_dir_emo: 'iic/SenseVoiceSmall'                     # ModelScope model iic/SenseVoiceSmall (funasr downloads from ModelScope by default)
+      model_dir_emo: 'FunAudioLLM/SenseVoiceSmall'           # HF model; loading falls back to ModelScope 'iic/SenseVoiceSmall' if HF download fails
       mem_required: '20GB'
 
   # Pipeline ops

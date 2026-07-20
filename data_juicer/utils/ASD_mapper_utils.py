@@ -41,11 +41,13 @@ def scene_detect(videoFilePath):
     # CPU: Scene detection, output is the list of each shot's time duration.
     # The whole video is treated as a single shot: (start, end) where
     # start.frame_num == 0 and end.frame_num == total number of frames.
+    # Note: open_video() returns a VideoStream that is not a context manager
+    # in scenedetect (e.g. VideoStreamCv2 in 0.7), so we must not use `with`.
     _open_video = _ensure_scenedetect()
-    with _open_video(videoFilePath) as video:
-        base_timecode = video.base_timecode
-        duration = base_timecode + video.duration
-        sceneList = [(base_timecode, duration)]
+    video = _open_video(videoFilePath)
+    base_timecode = video.base_timecode
+    duration = base_timecode + video.duration
+    sceneList = [(base_timecode, duration)]
     return sceneList
 
 

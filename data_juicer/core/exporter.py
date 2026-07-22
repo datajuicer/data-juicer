@@ -47,8 +47,8 @@ class Exporter:
         :param encrypt_before_export: whether to encrypt each exported file
             in-place immediately after writing. Requires a valid Fernet key
             accessible via ``encryption_key_path`` or the environment
-            variable ``DJ_ENCRYPTION_KEY``. S3 paths are skipped (use S3
-            SSE instead). Default: False.
+            variable ``DJ_ENCRYPTION_KEY``. Remote paths (s3://, hdfs://)
+            are skipped. Default: False.
         :param encryption_key_path: path to a file containing the Fernet key.
             Falls back to the ``DJ_ENCRYPTION_KEY`` environment variable when
             ``None``. Only used when ``encrypt_before_export`` is True.
@@ -74,11 +74,11 @@ class Exporter:
         self.encrypt_before_export = encrypt_before_export
         self._fernet = None
         if encrypt_before_export:
-            if export_path.startswith("s3://"):
+            if export_path.startswith("s3://") or export_path.startswith("hdfs://"):
                 logger.warning(
-                    "encrypt_before_export is True but export_path is an S3 "
-                    "path. Local-file encryption is skipped for S3 exports. "
-                    "Use S3 server-side encryption (SSE) to protect data at rest."
+                    "encrypt_before_export is True but export_path is a remote "
+                    f"path ({export_path}). Local-file encryption is skipped. "
+                    "Use server-side encryption to protect data at rest."
                 )
                 self.encrypt_before_export = False
             else:
@@ -135,6 +135,24 @@ class Exporter:
 
             self.storage_options = storage_options
             logger.info(f"Detected S3 export path: {export_path}. S3 storage_options configured.")
+
+        # Check if export_path is HDFS. Wrap PyArrow HadoopFileSystem via
+        # fsspec ArrowFSWrapper so that dataset.to_json/parquet(path)
+        # routes through fsspec → Arrow, unifying HDFS with the same
+        # storage_options path that S3 already uses.
+        if export_path.startswith("hdfs://"):
+            from fsspec.implementations.arrow import ArrowFSWrapper
+
+            from data_juicer.utils.hdfs_utils import create_pyarrow_hdfs_filesystem
+
+            hdfs_config = {"path": export_path}
+            for field in ("hdfs_host", "hdfs_port", "hdfs_user", "hdfs_kerb_ticket", "hdfs_extra_conf"):
+                if field in kwargs:
+                    hdfs_config[field] = kwargs.pop(field)
+            hdfs_pyarrow_fs = create_pyarrow_hdfs_filesystem(hdfs_config)
+            wrapped = ArrowFSWrapper(hdfs_pyarrow_fs)
+            self.storage_options = {"filesystem": wrapped}
+            logger.info(f"Detected HDFS export path: {export_path}. " f"ArrowFSWrapper storage_options configured.")
 
         # get the string format of shard size
         self.max_shard_size_str = byte_size_to_size_str(self.export_shard_size)
@@ -226,7 +244,7 @@ class Exporter:
                 ds_stats = Exporter._ensure_meta_stats_dicts_for_export(ds_stats)
                 stats_file = export_path.replace("." + suffix, "_stats.jsonl")
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
-                # Add storage_options if available (for S3 export)
+                # Add storage_options if available (for S3/HDFS export)
                 if self.storage_options is not None:
                     export_kwargs["storage_options"] = self.storage_options
                 Exporter.to_jsonl(ds_stats, stats_file, **export_kwargs)
@@ -255,7 +273,7 @@ class Exporter:
                 # export the whole dataset into one single file.
                 logger.info("Export dataset into a single file...")
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
-                # Add storage_options if available (for S3 export)
+                # Add storage_options if available (for S3/HDFS export)
                 if self.storage_options is not None:
                     export_kwargs["storage_options"] = self.storage_options
                 export_method(dataset, export_path, **export_kwargs)
@@ -297,6 +315,21 @@ class Exporter:
                         f"s3://{bucket}/{prefix_base}-{num_fmt % index}-of-{num_fmt % num_shards}.{self.suffix}"
                         for index in range(num_shards)
                     ]
+                elif self.export_path.startswith("hdfs://"):
+                    # For HDFS paths, construct HDFS URIs for each shard
+                    # (same pattern as S3)
+                    hdfs_path_parts = self.export_path.replace("hdfs://", "").split("/", 1)
+                    authority = hdfs_path_parts[0]
+                    prefix = hdfs_path_parts[1] if len(hdfs_path_parts) > 1 else ""
+                    # Remove extension from prefix
+                    if "." in prefix:
+                        prefix_base = ".".join(prefix.split(".")[:-1])
+                    else:
+                        prefix_base = prefix
+                    filenames = [
+                        f"hdfs://{authority}/{prefix_base}-{num_fmt % index}-of-{num_fmt % num_shards}.{self.suffix}"
+                        for index in range(num_shards)
+                    ]
                 else:
                     # For local paths, use standard directory structure
                     dirname = os.path.dirname(os.path.abspath(self.export_path))
@@ -314,7 +347,7 @@ class Exporter:
                 pool = Pool(self.num_proc)
                 for i in range(num_shards):
                     export_kwargs = {"num_proc": 1}  # Each shard export uses single process
-                    # Add storage_options if available (for S3 export)
+                    # Add storage_options if available (for S3/HDFS export)
                     if self.storage_options is not None:
                         export_kwargs["storage_options"] = self.storage_options
                     pool.apply_async(

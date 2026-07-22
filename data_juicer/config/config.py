@@ -949,15 +949,16 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     :param cfg: an updated cfg
     """
 
-    # Handle S3 paths differently from local paths
-    if cfg.export_path.startswith("s3://"):
-        # For S3 paths, keep as-is (don't use os.path.abspath)
+    # Handle remote paths (S3/HDFS) differently from local paths
+    _is_remote = cfg.export_path.startswith("s3://") or cfg.export_path.startswith("hdfs://")
+    if _is_remote:
+        # For remote paths, keep as-is (don't use os.path.abspath)
         # If work_dir is not provided, use a default local directory for logs/checkpoints
         if cfg.work_dir is None:
-            # Use a default local work directory for S3 exports
+            # Use a default local work directory for remote exports
             # This is where logs, checkpoints, and other local artifacts will be stored
             cfg.work_dir = os.path.abspath("./outputs")
-            logger.info(f"Using default work_dir [{cfg.work_dir}] for S3 export_path [{cfg.export_path}]")
+            logger.info(f"Using default work_dir [{cfg.work_dir}] for remote export_path [{cfg.export_path}]")
     else:
         # For local paths, convert to absolute path
         cfg.export_path = os.path.abspath(cfg.export_path)
@@ -970,11 +971,12 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
 
     timestamp = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
     if not load_configs_only:
-        # For S3 paths, use a simplified export path for log filename
-        if cfg.export_path.startswith("s3://"):
-            # Extract bucket and key from S3 path for log filename
-            s3_path_parts = cfg.export_path.replace("s3://", "").split("/", 1)
-            export_rel_path = s3_path_parts[1] if len(s3_path_parts) > 1 else s3_path_parts[0]
+        # For remote paths, use a simplified export path for log filename
+        if _is_remote:
+            # Extract path after scheme prefix for log filename
+            scheme = "s3://" if cfg.export_path.startswith("s3://") else "hdfs://"
+            remote_parts = cfg.export_path.replace(scheme, "").split("/", 1)
+            export_rel_path = remote_parts[1] if len(remote_parts) > 1 else remote_parts[0]
         else:
             export_rel_path = os.path.relpath(cfg.export_path, start=cfg.work_dir)
 

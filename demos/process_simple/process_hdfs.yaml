@@ -1,0 +1,22 @@
+# Process config example for dataset
+
+# global parameters
+project_name: 'demo-process'
+
+dataset:
+  configs:
+    - type: remote
+      source: hdfs
+      format: jsonl
+      path: 'hdfs://****/user/**/data-juicer/demos/data/demo-dataset.jsonl'
+
+np: 4  # number of subprocess to process your dataset
+
+export_path: 'hdfs://****/user/**/data-juicer/outputs/demo-process/demo-processed.jsonl'
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  - language_id_score_filter:
+      lang: 'zh'
+      min_score: 0.8

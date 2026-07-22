@@ -386,6 +386,54 @@ class RayExporterEncryptTest(DataJuicerTestCaseBase):
                 for w in warnings_seen),
             'Expected warning about S3 + encrypt_before_export not found',
         )
+    def test_hdfs_path_disables_encryption_with_warning(self):
+        """HDFS export path silently disables local-file encryption."""
+        warnings_seen = []
+        from loguru import logger as _logger
+        handler_id = _logger.add(
+            lambda msg: warnings_seen.append(msg),
+            level='WARNING',
+            format='{message}',
+        )
+        try:
+            exporter = RayExporter(
+                export_path='hdfs://namenode:8020/user/data/out.jsonl',
+                encrypt_before_export=True,
+                encryption_key_path=self._key_file,
+            )
+        finally:
+            _logger.remove(handler_id)
+        self.assertFalse(exporter.encrypt_before_export)
+        self.assertTrue(
+            any('encrypt_before_export' in str(w) for w in warnings_seen),
+            'Expected warning about HDFS + encrypt_before_export not found',
+        )
+
+    @patch("data_juicer.core.ray_exporter.is_remote_path")
+    def test_hdfs_path_skips_local_makedirs(self, mock_is_remote):
+        """HDFS export_path should skip local os.makedirs via is_remote_path."""
+        mock_is_remote.return_value = True
+
+        exporter = RayExporter(
+            export_path='hdfs://namenode:8020/user/data',
+            export_type='jsonl',
+        )
+
+        mock_dataset = MagicMock()
+        mock_dataset.columns.return_value = ['text']
+        mock_dataset.count.return_value = 1
+        mock_dataset.size_bytes.return_value = 50
+        mock_dataset.drop_columns.return_value = mock_dataset
+
+        with patch.object(RayExporter, '_router') as mock_router:
+            mock_write = MagicMock(return_value=None)
+            mock_router.return_value = {'jsonl': mock_write}
+            with patch("data_juicer.core.ray_exporter.os.makedirs") as mock_makedirs:
+                exporter._export_impl(mock_dataset, 'hdfs://namenode:8020/user/data')
+
+        # os.makedirs should NOT be called because is_remote_path returned True
+        mock_makedirs.assert_not_called()
+
 
     # ------------------------------------------------------------------
     # _export_impl – encrypt_file called for each file in the output dir

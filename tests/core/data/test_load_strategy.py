@@ -23,6 +23,8 @@ from data_juicer.core.data.load_strategy import (
     RayLocalJsonDataLoadStrategy,
     RayS3DataLoadStrategy,
     StrategyKey,
+    DefaultHdfsDataLoadStrategy,
+    RayHdfsDataLoadStrategy,
 )
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
@@ -780,6 +782,134 @@ class LocalAndS3PathValidationTest(DataJuicerTestCaseBase):
             )
             with self.assertRaises(ValueError):
                 ray_s3.load_data()
+
+
+class TestDefaultHdfsDataLoadStrategy(DataJuicerTestCaseBase):
+    """Test cases for DefaultHdfsDataLoadStrategy"""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = get_default_cfg()
+        self.cfg.text_keys = ["text"]
+
+    def test_strategy_registration(self):
+        """Test that DefaultHdfsDataLoadStrategy is registered correctly"""
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="default", data_type="remote", data_source="hdfs"
+        )
+        self.assertIsNotNone(strategy_class)
+        self.assertEqual(strategy_class, DefaultHdfsDataLoadStrategy)
+
+    def test_config_validation_valid_path(self):
+        """Test config validation with valid HDFS path"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl"
+        }
+        strategy = DefaultHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["path"], "hdfs://namenode:8020/user/data/file.jsonl")
+
+    def test_config_validation_invalid_path(self):
+        """Test config validation with invalid HDFS path"""
+        from data_juicer.utils.hdfs_utils import validate_hdfs_path
+
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "s3://bucket/file.jsonl"  # Not hdfs://
+        }
+
+        with self.assertRaises(ValueError) as ctx:
+            validate_hdfs_path(ds_config["path"])
+        self.assertIn("hdfs://", str(ctx.exception))
+
+    def test_config_validation_optional_fields(self):
+        """Test config validation with optional HDFS fields"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl",
+            "hdfs_host": "namenode",
+            "hdfs_port": 8020,
+            "hdfs_user": "data_juicer",
+            "hdfs_kerb_ticket": "/tmp/krb5cc",
+            "hdfs_extra_conf": {"dfs.replication": "3"},
+        }
+        strategy = DefaultHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["hdfs_host"], "namenode")
+        self.assertEqual(strategy.ds_config["hdfs_port"], 8020)
+        self.assertEqual(strategy.ds_config["hdfs_user"], "data_juicer")
+        self.assertEqual(strategy.ds_config["hdfs_kerb_ticket"], "/tmp/krb5cc")
+        self.assertEqual(strategy.ds_config["hdfs_extra_conf"], {"dfs.replication": "3"})
+
+    def test_config_validation_missing_required_path(self):
+        """Test that missing required path field raises error"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+        }
+        with self.assertRaises((ValueError, KeyError)):
+            DefaultHdfsDataLoadStrategy(ds_config, self.cfg)
+
+
+class TestRayHdfsDataLoadStrategy(DataJuicerTestCaseBase):
+    """Test cases for RayHdfsDataLoadStrategy"""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = get_default_cfg()
+        self.cfg.text_keys = ["text"]
+
+    def test_strategy_registration(self):
+        """Test that RayHdfsDataLoadStrategy is registered correctly"""
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="ray", data_type="remote", data_source="hdfs"
+        )
+        self.assertIsNotNone(strategy_class)
+        self.assertEqual(strategy_class, RayHdfsDataLoadStrategy)
+
+    def test_config_validation_valid_path(self):
+        """Test config validation with valid HDFS path"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl"
+        }
+        strategy = RayHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["path"], "hdfs://namenode:8020/user/data/file.jsonl")
+
+    def test_config_validation_invalid_path(self):
+        """Test config validation with invalid HDFS path"""
+        from data_juicer.utils.hdfs_utils import validate_hdfs_path
+
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "/local/path/file.jsonl"
+        }
+
+        with self.assertRaises(ValueError) as ctx:
+            validate_hdfs_path(ds_config["path"])
+        self.assertIn("hdfs://", str(ctx.exception))
+
+    def test_config_validation_optional_fields(self):
+        """Test config validation with optional HDFS fields"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl",
+            "format": "jsonl",
+            "hdfs_host": "namenode",
+            "hdfs_port": 8020,
+            "hdfs_user": "data_juicer",
+        }
+        strategy = RayHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["hdfs_host"], "namenode")
+        self.assertEqual(strategy.ds_config["hdfs_port"], 8020)
+        self.assertEqual(strategy.ds_config["format"], "jsonl")
+
+
 
 
 if __name__ == '__main__':

@@ -87,7 +87,7 @@ for s in res_ds:
 <details open>
 <summary>[2026-07-17] Release v1.5.4: <b>HumanVBench 视频算子；批内阶段算子融合；健壮性修复</b></summary>
 
-* 🧑‍🤝‍🧑 HumanVBench 以人为中心的视频算子 — 新增 9 个以人为中心的视频理解算子（人物轨迹提取、活跃说话人检测、音频 ASR、语音情绪与年龄/性别检测、人脸人口统计与属性/情绪描述、人脸占比过滤），用于构建 HumanVBench 风格的处理流水线（目前需源码安装，安装方式详见 demo README）。
+* 🧑‍🤝‍🧑 新算子 — 新增 9 个以人为中心的视频理解算子（人物轨迹提取、活跃说话人检测、音频 ASR、语音情绪与年龄/性别检测、人脸人口统计与属性/情绪描述、人脸占比过滤），用于构建 HumanVBench (CVPR'26) 风格的处理流水线。
 * ⚡ 批内阶段算子融合 — 新增 `FusedSequentialBatchOp`，在一个 batch 内融合连续算子，减少算子间开销，加速顺序处理。
 * 🔧 健壮性与安装修复 — 修复 Ray 去重算子的共享状态处理；修复 Ray checkpoint writer 的相对路径问题；使 `clean_html_mapper` 对 null 文本值更健壮；`ColumnWiseAnalysis` 支持处理布尔型统计列；并通过为 `decord`/`torchcodec` 添加精确的平台标记解锁 ARM64 (aarch64) 平台的安装。
 * 🧪 测试覆盖与清理 — 扩展工具函数与模型处理相关的测试，并进行若干代码清理。

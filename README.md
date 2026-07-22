@@ -89,7 +89,7 @@ for s in res_ds:
 <details open>
 <summary>[2026-07-17] Release v1.5.4: <b>HumanVBench Video OPs; Batch-local Stage Fusion; Robustness Fixes</b></summary>
 
-* 🧑‍🤝‍🧑 *HumanVBench Human-centric Video OPs* — Added 9 human-centric video understanding operators (human track extraction, active-speaker detection, audio ASR, speech emotion & age/gender detection, face demographic & attribute/emotion captioning, face-ratio filtering) for building HumanVBench-style pipelines (source install required for now; see the demo README for setup).
+* 🧑‍🤝‍🧑 *New OPs* — Added 9 human-centric video understanding operators (human track extraction, active-speaker detection, audio ASR, speech emotion & age/gender detection, face demographic & attribute/emotion captioning, face-ratio filtering) for building HumanVBench (CVPR'26)-style pipelines.
 * ⚡ *Batch-local Stage Fusion* — New `FusedSequentialBatchOp` fuses consecutive OPs within a batch to cut inter-op overhead and speed up sequential processing.
 * 🔧 *Robustness & Install Fixes* — Fixed Ray deduplicator shared-state handling, resolved a relative-path issue in the Ray checkpoint writer, made `clean_html_mapper` robust to null text values, handled boolean stat columns in `ColumnWiseAnalysis`, and unblocked ARM64 (aarch64) installation via precise `decord`/`torchcodec` platform markers.
 * 🧪 *Test Coverage & Cleanup* — Expanded tests for utility functions and model handling, plus assorted code cleanup.

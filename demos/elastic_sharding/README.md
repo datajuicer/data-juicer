@@ -1,181 +1,756 @@
 # Elastic Multi-Node Sharding on Shared Storage
 
-This demo pre-splits a large JSONL dataset into a fixed number of shards and
-lets independent machines dynamically claim them through a shared POSIX/NAS
-directory. After claiming a shard, each machine processes it with the
-Data-Juicer `ray` executor. The default `ray_address=local` creates independent
-node-local Ray instances.
+## Overview
 
-Unlike `tools/data_resplit.py`, this demo also provides claims, stale-lock
-recovery, retries, status, and ordered merge. Unlike `ray_partitioned`, there
-is no single Ray driver coordinating all machines: the shared filesystem
-coordinates machines, while Ray schedules work within each machine.
+This demo adds a "shard across nodes, use Ray inside each node" execution mode
+for large JSONL datasets:
 
-## Requirements and scope
+1. Pre-split the complete input into a fixed, deterministic set of JSONL
+   shards.
+2. Let independent Workers dynamically claim shards through a shared
+   POSIX/NAS/CPFS directory.
+3. Process each claimed shard with Data-Juicer's `ray` executor on the claiming
+   node.
+4. Publish validated completion metadata and let an idle Worker claim another
+   shard.
+5. Validate and merge all successful shard outputs in their original order.
 
-- The job directory must be on a POSIX filesystem with atomic create/rename
-  semantics and `fcntl` advisory locks, such as a normally configured NAS/NFS.
-- Inputs are local JSONL files or directories containing JSONL files.
-- Only shard-independent Mapper and Filter operators are accepted. Global or
-  dataset-level operators are rejected during preparation.
-- Every machine must have Data-Juicer's Ray dependencies installed. With the
-  default `local` mode, run one worker per machine to avoid resource contention
-  between multiple node-local Ray instances.
-- Claims use a static timeout without heartbeats. Set the timeout longer than
-  the longest expected shard runtime.
-- All workers must access the same data and job directory and run the same
-  Data-Juicer commit.
+This design does not require a cross-node Ray cluster. The shared filesystem
+coordinates nodes, while every node has its own independent Ray runtime. On
+PAI-DLC, users configure one startup command and DLC starts the same entry
+point on all Worker instances.
 
-## Low-level commands (manual, non-DLC)
-
-Run all commands from the Data-Juicer repository root:
-
-DLC users can skip this section and use the single startup command in the next
-section.
-
-```bash
-python demos/elastic_sharding/shard_job.py prepare \
-  --config demos/elastic_sharding/configs/demo.yaml \
-  --job-dir /shared/data-juicer-jobs/demo \
-  --num-shards 4 \
-  --ray-address local
-
-# Run this same command on every machine.
-python demos/elastic_sharding/shard_job.py worker \
-  --job-dir /shared/data-juicer-jobs/demo
-
-python demos/elastic_sharding/shard_job.py status \
-  --job-dir /shared/data-juicer-jobs/demo --all
-
-python demos/elastic_sharding/shard_job.py retry \
-  --job-dir /shared/data-juicer-jobs/demo --all-failed
-
-python demos/elastic_sharding/shard_job.py merge \
-  --job-dir /shared/data-juicer-jobs/demo \
-  --output /shared/data-juicer-results/demo.jsonl
+```text
+                        One DLC job submission
+                                  |
+             +--------------------+--------------------+
+             |                    |                    |
+       DLC Worker 0         DLC Worker 1         DLC Worker N
+       claim shard A        claim shard B        claim shard C
+       node-local Ray       node-local Ray       node-local Ray
+             |                    |                    |
+             +--------------------+--------------------+
+                                  |
+                        shared NAS/CPFS job-dir
+                manifest / shards / locks / done / attempts
+                                  |
+                       validate and ordered merge
 ```
 
-`prepare` performs two streaming passes and creates the exact requested number
-of non-empty, contiguous shards, approximately balanced by normalized byte
-size. Relative paths in configured image, audio, and video fields are rewritten
-against the original dataset root. Fields requested through an operator's
-`index_key` are populated with the global input index when absent; existing
-values are preserved.
+## Key advantages
 
-## One-command DLC two-node smoke test
+- **One submission for multiple nodes**: configure one DLC startup command
+  instead of logging in to every machine.
+- **Dynamic load balancing**: a Worker claims another shard after finishing its
+  current one, so faster nodes naturally process more work.
+- **Ray remains available inside every node**: every shard is processed by the
+  Data-Juicer Ray executor using that node's CPU/GPU resources.
+- **No rank dependency**: coordination does not require `RANK`, `WORLD_SIZE`,
+  or a static hostname-to-file mapping.
+- **Auditable and reproducible**: the manifest records input fingerprints,
+  recipe hash, Data-Juicer commit, Ray configuration, and shard order.
+- **Exclusive claims**: POSIX `O_CREAT|O_EXCL` prevents two active Workers from
+  normally owning the same shard.
+- **Failure handling**: failed attempts can retry, and expired claims can be
+  reclaimed by another Worker.
+- **Integrity validation**: row counts, byte counts, and SHA256 values are
+  checked before a result is accepted and merged.
+- **Deterministic order**: directory inputs are sorted, shards are contiguous,
+  and merge follows manifest order.
+- **Low integration risk**: the implementation lives under `demos` and does
+  not modify existing executors or operators.
 
-`two_node_test.py` is a thin integration-test wrapper. It uses the included
-recipe and Data-Juicer's existing `demos/data/demo-dataset.jsonl` by default,
-creates four shards, and caps each worker at two shards so both machines must
-participate.
+## Comparison with existing approaches
 
-Create one DLC job with the following settings:
+| Approach | Splitting | Dynamic claims | Recovery | Ray inside node | Cross-node Ray |
+| --- | --- | --- | --- | --- | --- |
+| `tools/data_resplit.py` | Pre-split | No | No | User-managed | No |
+| `ray_partitioned` | Runtime | Ray scheduling | Ray job | Yes | Yes |
+| This demo | Pre-split | Shared filesystem | Timeout/retry | Yes | No |
 
-- Select the `PyTorch` framework and configure two Worker nodes. `torchrun` is
-  not used; this choice makes DLC execute the startup command on each Worker.
-  Do not select DLC's `Ray` framework for this test: it would create a
-  cross-node Ray cluster, while this demo intentionally uses shared-storage
-  coordination between nodes and an independent Ray runtime inside each node.
-- Start one script process per Worker.
-- Mount the same Data-Juicer code path on both Workers, for example
+This demo is useful when:
+
+- the input is large and fixed, inspectable shards are desirable;
+- DLC Workers share NAS/CPFS but should not form one Ray cluster;
+- nodes have different speeds or may be restarted;
+- per-shard logs, attempts, ownership, and verifiable outputs are required.
+
+## Files
+
+```text
+demos/elastic_sharding/
+├── shard_job.py             # Generic prepare/worker/status/retry/merge CLI
+├── dlc_job.py               # Generic one-command DLC launcher for N Workers
+├── two_node_test.py         # Backward-compatible strict two-node wrapper
+├── configs/
+│   └── demo.yaml            # Existing Mapper/Filter recipe used by the demo
+├── README.md
+└── README_ZH.md
+```
+
+`shard_job.py` contains the shared-storage shard state machine. `dlc_job.py`
+coordinates one-time preparation and finalization around any number of DLC
+Workers. `two_node_test.py` keeps the original strict two-node defaults for
+backward compatibility; new jobs should use `dlc_job.py`.
+
+## Important path concepts
+
+Do not confuse these three paths:
+
+- `--config`: the Data-Juicer YAML recipe.
+- `--dataset-path`: the JSONL file or directory to pre-split. When specified,
+  it overrides `dataset_path` in the recipe.
+- `--job-dir`: the shared working directory containing shards, locks, attempts,
+  logs, states, and results. It is not the original dataset directory.
+
+Example:
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config /mnt/shared/recipes/my_process.yaml \
+  --dataset-path /mnt/shared/input/my_dataset.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --nodes 4 \
+  --num-shards 16
+```
+
+## Requirements and current scope
+
+- All Workers must run the same Data-Juicer version and dependencies.
+- The job directory must be on a shared POSIX filesystem supporting atomic
+  create, atomic rename, hard links, and `fcntl` advisory locks, such as a
+  normally configured NAS/NFS/CPFS.
+- Every Worker must see the job directory, input JSONL, and local media at
+  identical paths.
+- Inputs are local `.jsonl` files or local directories recursively containing
+  `.jsonl` files.
+- Every line must be a UTF-8 JSON object. Blank lines, JSON arrays as rows, and
+  malformed JSON are rejected.
+- Only shard-independent Mapper and Filter operators are currently accepted.
+- Deduplicators, Selectors, Groupers, Aggregators, Pipelines, and other
+  whole-dataset operations are rejected during `prepare`.
+- Claims use a static timeout without a heartbeat. The timeout must be longer
+  than the longest expected shard runtime.
+- The job directory stores normalized shards and attempt results, so reserve
+  enough capacity. Media files are referenced by path and are not copied.
+
+## PAI-DLC multi-node quick start
+
+### 1. Configure the DLC job
+
+Create one DLC job with:
+
+- Framework: `PyTorch`, without `torchrun`.
+- Worker count: any positive number, for example `4`, with one script process
+  per Worker.
+- Do not select DLC's `Ray` framework for this demo. DLC Ray creates a
+  cross-node Ray cluster, while this design intentionally uses independent
+  node-local Ray runtimes.
+- Mount the same Data-Juicer code at the same path on all Workers, for example
   `/mnt/data/data-juicer`.
-- Mount one read-write NAS/CPFS directory at the same path, such as
-  `/mnt/shared`, on both Workers.
-- Use the same image with Data-Juicer's Ray dependencies on both Workers.
+- Mount the same read-write NAS/CPFS at the same path, for example
+  `/mnt/shared`.
+- Use the same image with Data-Juicer's Ray dependencies on all Workers.
 
-PAI-DLC requires only one startup-command configuration and a Worker count;
-see the official
+Only one startup command and a Worker count are configured on the PAI-DLC job
+page. See the official
 [Create a training job](https://help.aliyun.com/zh/pai/create-a-training-task)
 guide.
 
-Enter this startup command once in the DLC job configuration:
+### 2. Enter one startup command
+
+Enter this command once in the DLC job configuration:
 
 ```bash
 cd /mnt/data/data-juicer && \
-python demos/elastic_sharding/two_node_test.py dlc \
-  --job-dir /mnt/shared/data-juicer-jobs/two-node-test-001 \
-  --nodes 2 \
-  --num-shards 4 \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --job-dir /mnt/shared/data-juicer-jobs/multi-node-job-001 \
+  --nodes 4 \
+  --num-shards 16 \
   --ray-address local
 ```
 
-DLC starts that entry point on both Workers. The instances elect exactly one
-prepare coordinator through the shared directory, process at most two shards
-each with independent node-local Ray executors, wait for all four shards, and
-elect exactly one finalizer. The finalizer checks that two distinct hostnames
-participated and merges the output. Rank environment variables are not needed.
+The defaults are:
+
+- recipe: `demos/elastic_sharding/configs/demo.yaml`;
+- input: `demos/data/demo-dataset.jsonl` from that recipe;
+- shard count: 4 unless explicitly set;
+- expected DLC Workers: not enforced in the default elastic mode;
+- Ray: independent `local` mode on every node;
+- merged result: `<job-dir>/merged.jsonl`.
+
+### 3. Automatic workflow
+
+The same `dlc` entry point runs on every Worker:
+
+1. Atomically elect one prepare coordinator through shared storage.
+2. Validate the input and recipe, then pre-split exactly once.
+3. Let every live Worker claim shards without a per-Worker cap.
+4. Process each shard through `tools/process_data.py` with
+   `--executor_type ray --ray_address local`.
+5. Wait for all shards to complete or reach terminal failure.
+6. Atomically elect one finalize coordinator.
+7. Report participating hostnames, validate outputs, and merge.
+8. Let every other instance read the same final result and exit with the same
+   code.
 
 Useful successful log messages include:
 
 ```text
 elected as DLC prepare coordinator
-Starting test worker on hostname=...
+Starting DLC worker on hostname=...
 elected as DLC finalize coordinator
-PASS: 4 shards were completed by 2 node(s)
+PASS: 16 shards were completed by 4 node(s)
 ```
 
-The default merged result is
-`/mnt/shared/data-juicer-jobs/two-node-test-001/two-node-merged.jsonl`.
-Both Workers in one DLC job must use the exact same `--job-dir`. Re-running an
-already successful job is idempotent; use a new job directory after changing
-the input or recipe, or when starting an independent test. `--nodes` must equal
-the DLC Worker count. The command rejects shard/node combinations that cannot
-force every expected node to process at least one shard.
+Inspect status from any environment that mounts the job directory:
 
-Use `dlc --config <recipe> --dataset-path <jsonl>` to test another existing
-Mapper/Filter recipe and input. The explicit `prepare`, `worker`, and `verify`
-subcommands remain available for manual use or other schedulers.
+```bash
+python demos/elastic_sharding/dlc_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/multi-node-job-001
+```
 
-Before submitting the DLC job, verify that:
+The merged output is:
 
-- The job directory, input JSONL, and referenced local media paths are visible
-  at identical paths on both Workers.
-- The shard count does not exceed the input row count. Four shards is the
-  recommended two-node smoke-test setting.
-- `--ray-address local` is present. It starts Ray inside the node processing
-  the claimed shard and never connects that node to the other Worker's Ray.
-- A nonzero exit from either Worker fails the DLC job. Inspect
-  `<job-dir>/attempts/*/*/process.log` and the sibling hidden coordination
-  directory's `abort.json`.
-- The default coordination wait is 35 hours. If a coordinator is forcibly
-  terminated before publishing its phase result, the remaining Worker
-  eventually exits with code 2; submit a new job directory for the next run.
+```text
+/mnt/shared/data-juicer-jobs/multi-node-job-001/merged.jsonl
+```
 
-Workers claim one shard at a time with atomic `O_CREAT|O_EXCL`, process it in
-an isolated attempt directory, and then claim another shard. The defaults are
-a 126000-second (35-hour) lock timeout and three retries after the initial
-attempt. Use `--max-shards` to cap one worker invocation. Explicit Hugging Face
-or XDG cache environment variables are honored; otherwise workers reuse the
-cache inside the shared job directory.
+### Elastic mode and strict participation mode
 
-The worker always overrides the processing command to `executor_type=ray`,
-regardless of whether the source recipe says `default` or `ray`. The default
-Ray address, `local`, starts an isolated Ray instance for every shard attempt.
-If each machine already runs its own persistent Ray head, use
-`--ray-address auto` during preparation or on the worker to reuse it and avoid
-per-shard startup. Do not point every machine at one shared Ray address if the
-intended topology is filesystem coordination between machines and Ray only
-within each machine.
+The default is **elastic mode**:
 
-For persistent mode, run the following separately on every machine:
+- `--nodes` is optional and informational;
+- Workers have no claim cap;
+- if fewer Workers start than requested, the live Workers can still claim all
+  remaining shards;
+- finalization requires completed shards, not a specific Worker count.
+
+This is the recommended production behavior:
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --job-dir /mnt/shared/data-juicer-jobs/elastic-job-001 \
+  --num-shards 32 \
+  --ray-address local
+```
+
+Use **strict participation mode** only when testing that every configured DLC
+Worker actually processed at least one shard:
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --job-dir /mnt/shared/data-juicer-jobs/strict-job-001 \
+  --nodes 4 \
+  --num-shards 16 \
+  --require-all-nodes \
+  --ray-address local
+```
+
+Strict mode sets a per-Worker claim cap and verifies at least `--nodes`
+distinct completion hostnames. A missing Worker therefore causes the strict
+job to wait and eventually fail. Use a shard count that is a multiple of the
+node count.
+
+## Important: use an existing Mapper/Filter recipe and your own JSONL
+
+The demo is not limited to the bundled recipe. The intended real-world usage is
+to reuse an existing Data-Juicer Mapper/Filter recipe and point
+`--dataset-path` at a large user-owned JSONL dataset.
+
+### Recipe compatibility rules
+
+1. `executor_type` may be `default` or `ray`; Workers always override it with
+   `ray`.
+2. The recipe must contain an explicit `process` list.
+3. Every operator must resolve to a Mapper or Filter and must not be a global
+   operation.
+4. Operators must not set `stats_export_path`, because different shards would
+   collide on the same statistics file.
+5. A fixed `save_dir` is allowed with a warning; users must ensure generated
+   filenames cannot collide across shards.
+6. `custom_operator_paths` is supported. Relative paths resolve from the
+   Data-Juicer repository root, and custom operators must still inherit Mapper
+   or Filter.
+7. When an operator declares `index_key`, preparation fills missing values
+   with the global input row index. Existing values remain unchanged.
+
+Generally suitable operations include:
+
+- per-sample text cleanup Mappers;
+- per-sample text, image, audio, or video property Mappers;
+- Filters based only on the current sample and its computed statistics;
+- custom Mappers/Filters with no cross-sample state or shared fixed outputs.
+
+Operations that are not directly shard-safe include:
+
+- global deduplication;
+- Selectors requiring global ordering or sampling;
+- Groupers, Aggregators, and Pipelines;
+- operators with cross-sample state or one global output.
+
+Example recipe:
+
+```yaml
+project_name: my-elastic-job
+dataset_path: /mnt/shared/input/default.jsonl
+export_path: /mnt/shared/output/ignored-by-shard-worker.jsonl
+executor_type: ray
+ray_address: local
+
+text_key: text
+image_key: images
+audio_key: audios
+video_key: videos
+
+process:
+  - whitespace_normalization_mapper:
+      text_key: text
+  - text_length_filter:
+      text_key: text
+      min_len: 10
+      max_len: 10000
+```
+
+For every claim, the Worker overrides the recipe's `dataset_path` with the
+current shard and overrides `export_path` with the isolated attempt output.
+The same recipe can therefore be safely reused for all shards.
+
+### Requirements for your JSONL
+
+Single-file input:
+
+```text
+/mnt/shared/input/my_dataset.jsonl
+```
+
+Directory input:
+
+```text
+/mnt/shared/input/my_dataset/
+├── 000.jsonl
+├── 001.jsonl
+└── nested/
+    └── 002.jsonl
+```
+
+Directories are scanned recursively and sorted by relative path. Each line
+must be an object:
+
+```json
+{"id": 1, "text": "example", "images": ["media/1.jpg"]}
+```
+
+Media path behavior:
+
+- absolute paths are preserved;
+- `http://`, `https://`, `s3://`, `gs://`, and `hdfs://` values are preserved;
+- relative paths become absolute:
+  - relative to the JSONL's parent for single-file input;
+  - relative to the dataset root for directory input;
+- `images`, `audios`, and `videos` must be string lists or `null`. Change their
+  names through `image_key`, `audio_key`, and `video_key` in the recipe.
+
+### Run your recipe and input on any number of DLC Workers
+
+The DLC job still contains only one startup command:
+
+```bash
+cd /mnt/data/data-juicer && \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config /mnt/shared/recipes/my_process.yaml \
+  --dataset-path /mnt/shared/input/my_dataset.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/my-dataset-001 \
+  --nodes 4 \
+  --num-shards 16 \
+  --ray-address local \
+  --output /mnt/shared/output/my_dataset.processed.jsonl
+```
+
+In this command:
+
+- `--config` reuses the existing Mapper/Filter recipe;
+- `--dataset-path` overrides the recipe's original input;
+- `--job-dir` stores all state and intermediate results for this run;
+- `--output` selects the final merged JSONL;
+- any live Workers dynamically claim sixteen shards and use Ray inside each
+  node.
+
+Start with a small sample and at least a few shards per node, then scale the
+input and shard count after the smoke test succeeds.
+
+### Choosing the shard count
+
+- `1 <= num_shards <= total JSONL rows` must hold.
+- More shards than nodes improve work stealing and reduce skew.
+- Start with `2 × node_count` or `4 × node_count`.
+- A shard should complete well before `lock_timeout_secs`.
+- Too few shards reduce load balancing; too many increase Ray startup,
+  metadata, and small-file overhead.
+- Default elastic mode has no per-Worker cap, so the shard count does not need
+  to be a multiple of the Worker count.
+- With `--require-all-nodes`, a multiple of `--nodes` is the simplest choice
+  and guarantees a clean equal upper bound.
+
+### When the recipe or input changes
+
+Preparation records the recipe SHA256, input file SHA256 values, sizes, mtimes,
+row counts, normalized-content SHA256, and Data-Juicer commit.
+
+- Repeating an identical request is an idempotent no-op.
+- Do not reuse an old job directory after changing the recipe, input, shard
+  count, or Ray address.
+- Use a new directory for each independent run, such as `my-dataset-001` and
+  `my-dataset-002`.
+
+## `dlc_job.py` parameter reference
+
+### `dlc`
+
+Runs the complete one-command DLC workflow.
+
+| Option | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `--job-dir` | Yes | None | Shared job directory used by every Worker |
+| `--config` | No | `configs/demo.yaml` | Existing shard-safe Data-Juicer recipe |
+| `--dataset-path` | No | Recipe value | Override with a JSONL file or directory |
+| `--nodes` | No | Not enforced | Informational in elastic mode; required in strict mode |
+| `--num-shards` | No | `4` | Exact number of non-empty shards |
+| `--require-all-nodes` | No | false | Cap claims and require all `--nodes` hostnames |
+| `--ray-address` | No | `local` | Ray address used independently in each node |
+| `--output` | No | `<job-dir>/merged.jsonl` | Final merged JSONL |
+| `--wait-timeout-secs` | No | `126000` (35h) | Maximum prepare/completion/finalize wait |
+| `--poll-interval-secs` | No | `2` | DLC coordination polling interval |
+
+`--wait-timeout-secs` controls cross-instance DLC coordination. It is different
+from the per-shard claim timeout.
+
+### Other wrapper subcommands
+
+| Command | Option | Default and meaning |
+| --- | --- | --- |
+| `prepare` | `--job-dir` | Required shared directory |
+|  | `--config` | Bundled demo recipe |
+|  | `--dataset-path` | Optional recipe input override |
+|  | `--num-shards` | `4` |
+|  | `--ray-address` | `local` |
+| `worker` | `--job-dir` | Required |
+|  | `--max-shards` | Unlimited unless explicitly set |
+|  | `--ray-address` | Optional manifest override |
+| `status` | `--job-dir` | Required; prints all shards |
+| `verify` | `--job-dir` | Required |
+|  | `--output` | Defaults inside the job directory |
+|  | `--expect-nodes` | `1`; minimum distinct completion hostnames |
+
+## Complete `shard_job.py` parameter reference
+
+### `prepare`
+
+Validate the recipe, scan the input, and atomically publish a prepared job.
+
+| Option | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `--config` | Yes | None | Data-Juicer YAML recipe |
+| `--dataset-path` | No | Recipe value | Override input JSONL file/directory |
+| `--job-dir` | Yes | None | New shared POSIX job directory |
+| `--num-shards` | Yes | None | Exact number of non-empty shards |
+| `--lock-timeout-secs` | No | `126000` | Per-shard claim timeout stored in manifest |
+| `--max-retries` | No | `3` | Retries after the first failure; four total failures |
+| `--poll-interval-secs` | No | `20` | Worker wait when no claim is available |
+| `--ray-address` | No | `local` | Ray address stored for Workers |
+
+### `worker`
+
+Continuously claim and process shards.
+
+| Option | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `--job-dir` | Yes | None | Shared directory created by prepare |
+| `--max-shards` | No | Unlimited | Maximum claims; failed attempts also count |
+| `--lock-timeout-secs` | No | Manifest value | Override claim timeout for this Worker |
+| `--max-retries` | No | Manifest value | Override failure retries for this Worker |
+| `--poll-interval-secs` | No | Manifest value | Override no-claim polling interval |
+| `--ray-address` | No | Manifest value | Override Ray address for this Worker |
+| `--allow-version-mismatch` | No | false | Allow a Worker commit mismatch intentionally |
+
+Without `--max-shards`, a Worker keeps claiming until all shards complete or
+the job reaches terminal failure.
+
+### `status`
+
+Read job state without changing it.
+
+| Option | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `--job-dir` | Yes | None | Job directory |
+| `--lock-timeout-secs` | No | Manifest value | Only affects whether locks display as stale |
+| `--json` | No | false | Print machine-readable JSON |
+| `--all` | No | false | Print every shard and owner in text mode |
+
+### `retry`
+
+Archive terminal failure state and requeue shards. Select exactly one mode:
+`--all-failed` or one or more `--shard-id` options.
+
+| Option | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `--job-dir` | Yes | None | Job directory |
+| `--all-failed` | Conditional | false | Requeue every failed shard |
+| `--shard-id` | Conditional | None | Requeue this ID; may be repeated |
+
+Old failure metadata and attempts move into `state/history`; retry does not
+overwrite history.
+
+### `merge`
+
+Revalidate and merge all completed results in manifest order.
+
+| Option | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `--job-dir` | Yes | None | Fully completed job |
+| `--output` | Yes | None | Final JSONL path |
+| `--lock-timeout-secs` | No | Manifest value | Used while calculating pre-merge status |
+| `--overwrite` | No | false | Replace an existing output |
+
+## Generic manual or scheduler workflow
+
+Use the lower-level CLI when a scheduler other than DLC launches the Workers.
+
+### 1. Prepare
+
+```bash
+python demos/elastic_sharding/shard_job.py prepare \
+  --config /mnt/shared/recipes/my_process.yaml \
+  --dataset-path /mnt/shared/input/my_dataset.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --num-shards 16 \
+  --lock-timeout-secs 126000 \
+  --max-retries 3 \
+  --poll-interval-secs 20 \
+  --ray-address local
+```
+
+Preparation uses two streaming passes:
+
+- pass one validates JSONL, fingerprints inputs, normalizes media paths, and
+  assigns missing global `index_key` values;
+- pass two writes contiguous, non-empty shards approximately balanced by
+  normalized bytes;
+- input changes between passes are detected;
+- the complete stage directory is atomically renamed to `job-dir`.
+
+### 2. Start a Worker on each node
+
+Have the scheduler start this on every node:
+
+```bash
+python demos/elastic_sharding/shard_job.py worker \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001
+```
+
+### 3. Inspect status
+
+```bash
+python demos/elastic_sharding/shard_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 --all
+
+python demos/elastic_sharding/shard_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 --json
+```
+
+States are:
+
+- `pending`: not claimed;
+- `running`: has a non-expired claim;
+- `stale`: claim age exceeds the timeout and the next claimant may reclaim it;
+- `done`: validated completion metadata is published;
+- `failed`: terminal failure after the retry limit.
+
+### 4. Requeue failures
+
+After fixing the root cause:
+
+```bash
+python demos/elastic_sharding/shard_job.py retry \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --all-failed
+```
+
+Or select shards:
+
+```bash
+python demos/elastic_sharding/shard_job.py retry \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --shard-id part-00003-of-00016 \
+  --shard-id part-00007-of-00016
+```
+
+Then start Workers again.
+
+### 5. Merge
+
+```bash
+python demos/elastic_sharding/shard_job.py merge \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --output /mnt/shared/output/my_dataset.processed.jsonl
+```
+
+Merge parses every JSONL row again and checks the row count and SHA256 from
+completion metadata. It refuses an existing output unless `--overwrite` is
+explicit.
+
+## Ray execution modes
+
+### Default: local Ray per attempt
+
+```bash
+--ray-address local
+```
+
+Every shard attempt starts an independent Ray instance, which is cleaned up
+when the Data-Juicer process exits. This is simple and isolated, but adds a Ray
+startup cost per attempt.
+
+### Optional: persistent Ray head on each node
+
+If the scheduler guarantees one Worker per node, run separately on each node:
 
 ```bash
 ray start --head
 python demos/elastic_sharding/shard_job.py worker \
-  --job-dir /shared/data-juicer-jobs/demo \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
   --ray-address auto
-# After this machine no longer processes shards:
 ray stop
 ```
 
-Ray writes a directory of output files for each shard. The worker validates
-these files and materializes one canonical `processed.jsonl` before publishing
-the shard's done record. Manifest schema version 2 records the Ray execution
-settings; jobs prepared with schema version 1 must be prepared again.
+Do not let every node's `auto` resolve to one shared Ray cluster; that changes
+the intended topology.
 
-`merge` is allowed only after every shard succeeds. It validates each output's
-JSONL content, row count, and SHA256 before atomically publishing the ordered
-result. Existing output is preserved unless `--overwrite` is explicit.
+## Job directory layout
 
-See [README_ZH.md](README_ZH.md) for the complete Chinese guide, state layout,
-and exit-code reference.
+```text
+my-job-001/
+├── manifest.json
+├── recipe.yaml
+├── shards/
+│   └── part-xxxxx-of-xxxxx.jsonl
+├── cache/
+├── attempts/<shard-id>/<attempt-id>/
+│   ├── attempt.json
+│   ├── process.log
+│   ├── logs/
+│   ├── checkpoints/
+│   ├── partitions/
+│   ├── ray-output.jsonl/
+│   └── processed.jsonl
+├── state/
+│   ├── locks/
+│   ├── stale_locks/
+│   ├── done/
+│   ├── failed/
+│   └── history/
+└── merge.json
+```
+
+The one-command DLC entry point also creates a sibling directory:
+
+```text
+.<job-dir-name>.dlc-coordination/
+├── prepare.lock
+├── prepare-result.json
+├── abort.lock
+├── abort.json
+├── finalize.lock
+└── finalize-result.json
+```
+
+If `XDG_CACHE_HOME` or `HF_HOME` is not explicitly set, Workers use
+`<job-dir>/cache`.
+
+## Failure semantics
+
+- A shard has one visible claim, although stale takeover can briefly overlap
+  an old attempt and a new attempt.
+- Every attempt has an isolated directory and cannot overwrite another result.
+- Only the first successful atomic done publication is accepted.
+- `max_retries=3` means three retries after the initial failure, allowing four
+  failed attempts before terminal state.
+- A shard reaching the retry limit publishes `state/failed`, and the job exits
+  with code 2.
+- Run `retry` only after confirming there is no active claim and fixing the
+  root cause.
+- Input or recipe changes require a new job directory, not `retry`.
+- If a DLC prepare/finalize coordinator is killed before publishing its phase
+  result, other instances wait until `wait_timeout_secs` and then fail. Use a
+  new directory for the next submission.
+
+## Exit codes
+
+- `0`: success; for a Worker, it may also mean `--max-shards` was reached.
+- `1`: `status` found an incomplete job without terminal failure.
+- `2`: parameter, input, recipe, version, or runtime error, or terminal shard
+  failure.
+
+Any nonzero Worker exit should fail the DLC job.
+
+## Troubleshooting
+
+### Preparation fails
+
+Check:
+
+- JSONL is UTF-8, contains one object per line, and has no blank lines;
+- `num_shards` does not exceed the row count;
+- the recipe has no global operator or `stats_export_path`;
+- recipe and data relative paths resolve from the Data-Juicer repository root;
+- a mismatched request is not reusing an old job directory.
+
+### Worker or Ray fails
+
+Inspect:
+
+```text
+<job-dir>/attempts/<shard-id>/<attempt-id>/process.log
+<job-dir>/attempts/<shard-id>/<attempt-id>/attempt.json
+```
+
+Also check:
+
+- Ray dependencies in the image;
+- node CPU, GPU, shared memory, and temporary storage;
+- the intended `local` or node-local `auto` Ray address;
+- whether `lock_timeout_secs` is shorter than real shard runtime;
+- whether every Worker uses the same Data-Juicer commit.
+
+### DLC keeps waiting
+
+Check:
+
+- in strict mode, DLC Worker count equals `--nodes`; in elastic mode,
+  `--nodes` may be omitted;
+- every Worker started the same command;
+- `job-dir` is one shared mount, not separate local directories with the same
+  path string;
+- sibling coordination files `prepare-result.json`, `abort.json`, and
+  `finalize-result.json`;
+- with `--require-all-nodes`, failed attempts did not consume the strict
+  mode's per-Worker claim cap.
+
+## Tests
+
+```bash
+python -m pytest -q tests/demos/test_elastic_sharding.py
+```
+
+Coverage includes:
+
+- deterministic splitting, input ordering, and media path normalization;
+- recipe safety validation and default-to-Ray override;
+- concurrent exclusive claims and stale-lock takeover;
+- isolated attempts, Ray command construction, and multi-file output
+  materialization;
+- retry limits, selected retry, and ordered merge;
+- distinct two-host ownership verification;
+- DLC prepare/finalize election and failure propagation.
+
+See [README_ZH.md](README_ZH.md) for the Chinese guide.

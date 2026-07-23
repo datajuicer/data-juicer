@@ -18,14 +18,23 @@ elastic_shard_job = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = elastic_shard_job
 SPEC.loader.exec_module(elastic_shard_job)
 
-TWO_NODE_SCRIPT_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "two_node_test.py"
-TWO_NODE_SPEC = importlib.util.spec_from_file_location(
-    "elastic_two_node_test",
-    TWO_NODE_SCRIPT_PATH,
+DLC_JOB_SCRIPT_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "dlc_job.py"
+DLC_JOB_SPEC = importlib.util.spec_from_file_location(
+    "elastic_dlc_job",
+    DLC_JOB_SCRIPT_PATH,
 )
-elastic_two_node_test = importlib.util.module_from_spec(TWO_NODE_SPEC)
-sys.modules[TWO_NODE_SPEC.name] = elastic_two_node_test
-TWO_NODE_SPEC.loader.exec_module(elastic_two_node_test)
+elastic_dlc_job = importlib.util.module_from_spec(DLC_JOB_SPEC)
+sys.modules[DLC_JOB_SPEC.name] = elastic_dlc_job
+DLC_JOB_SPEC.loader.exec_module(elastic_dlc_job)
+
+TWO_NODE_COMPAT_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "two_node_test.py"
+TWO_NODE_COMPAT_SPEC = importlib.util.spec_from_file_location(
+    "elastic_two_node_compat",
+    TWO_NODE_COMPAT_PATH,
+)
+elastic_two_node_compat = importlib.util.module_from_spec(TWO_NODE_COMPAT_SPEC)
+sys.modules[TWO_NODE_COMPAT_SPEC.name] = elastic_two_node_compat
+TWO_NODE_COMPAT_SPEC.loader.exec_module(elastic_two_node_compat)
 
 
 def _write_jsonl(path, records):
@@ -402,19 +411,17 @@ def test_retry_and_ordered_merge(tmp_path, monkeypatch):
     assert merge_metadata["sha256"] == hashlib.sha256(expected).hexdigest()
 
 
-def test_two_node_wrapper_verifies_distinct_owners_and_merges(tmp_path, monkeypatch):
+def test_dlc_job_verifies_distinct_owners_and_merges(tmp_path, monkeypatch):
     job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=4)
     expected = _publish_done_results(job_dir, owners=["node-a", "node-b"])
-    output_path = tmp_path / "two-node-output.jsonl"
+    output_path = job_dir / "merged.jsonl"
 
     assert (
-        elastic_two_node_test.main(
+        elastic_dlc_job.main(
             [
                 "verify",
                 "--job-dir",
                 str(job_dir),
-                "--output",
-                str(output_path),
                 "--expect-nodes",
                 "2",
             ]
@@ -424,8 +431,20 @@ def test_two_node_wrapper_verifies_distinct_owners_and_merges(tmp_path, monkeypa
     assert output_path.read_bytes() == expected
 
 
-def test_dlc_entrypoint_coordinates_two_instances_with_one_command(tmp_path, monkeypatch):
-    job_dir = tmp_path / "dlc-job"
+def test_two_node_compatibility_wrapper_injects_strict_defaults():
+    arguments = elastic_two_node_compat._compat_arguments(["dlc", "--job-dir", "/shared/job"])
+    assert arguments[:3] == ["dlc", "--job-dir", "/shared/job"]
+    assert arguments[arguments.index("--nodes") + 1] == "2"
+    assert "--require-all-nodes" in arguments
+    assert arguments[arguments.index("--output") + 1] == ("/shared/job/two-node-merged.jsonl")
+    assert elastic_two_node_compat._compat_arguments(["worker", "--job-dir", "/shared/job"])[-2:] == [
+        "--max-shards",
+        "2",
+    ]
+
+
+def test_dlc_strict_mode_coordinates_three_instances(tmp_path, monkeypatch):
+    job_dir = tmp_path / "strict-dlc-job"
     counters = {"prepare": 0, "worker": 0, "verify": 0, "next_shard": 0}
     counter_lock = threading.Lock()
 
@@ -434,11 +453,11 @@ def test_dlc_entrypoint_coordinates_two_instances_with_one_command(tmp_path, mon
             counters["prepare"] += 1
         time.sleep(0.02)
         (job_dir / "state" / "done").mkdir(parents=True)
-        elastic_two_node_test._atomic_write_json(
+        elastic_dlc_job._atomic_write_json(
             job_dir / "manifest.json",
             {
-                "num_shards": 4,
-                "shards": [{"id": f"shard-{index:05d}"} for index in range(4)],
+                "num_shards": 6,
+                "shards": [{"id": f"shard-{index:05d}"} for index in range(6)],
             },
         )
         return 0
@@ -450,7 +469,7 @@ def test_dlc_entrypoint_coordinates_two_instances_with_one_command(tmp_path, mon
             first_shard = counters["next_shard"]
             counters["next_shard"] += args.max_shards
         for shard_index in range(first_shard, first_shard + args.max_shards):
-            elastic_two_node_test._atomic_write_json(
+            elastic_dlc_job._atomic_write_json(
                 job_dir / "state" / "done" / f"shard-{shard_index:05d}.json",
                 {"hostname": owner, "status": "done"},
             )
@@ -459,43 +478,112 @@ def test_dlc_entrypoint_coordinates_two_instances_with_one_command(tmp_path, mon
     def fake_verify(args):
         with counter_lock:
             counters["verify"] += 1
-        owners = {
-            elastic_two_node_test._read_json(path)["hostname"] for path in (job_dir / "state" / "done").glob("*.json")
-        }
-        assert len(owners) == 2
-        assert args.expect_nodes == 2
+        owners = {elastic_dlc_job._read_json(path)["hostname"] for path in (job_dir / "state" / "done").glob("*.json")}
+        assert len(owners) == 3
+        assert args.expect_nodes == 3
         return 0
 
-    monkeypatch.setattr(elastic_two_node_test, "prepare", fake_prepare)
-    monkeypatch.setattr(elastic_two_node_test, "worker", fake_worker)
-    monkeypatch.setattr(elastic_two_node_test, "verify", fake_verify)
+    monkeypatch.setattr(elastic_dlc_job, "prepare", fake_prepare)
+    monkeypatch.setattr(elastic_dlc_job, "worker", fake_worker)
+    monkeypatch.setattr(elastic_dlc_job, "verify", fake_verify)
     command = [
         "dlc",
         "--job-dir",
         str(job_dir),
         "--nodes",
-        "2",
+        "3",
         "--num-shards",
-        "4",
+        "6",
+        "--require-all-nodes",
         "--wait-timeout-secs",
         "2",
         "--poll-interval-secs",
         "0.001",
     ]
 
-    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="dlc-node") as pool:
-        return_codes = list(pool.map(lambda _: elastic_two_node_test.main(command), range(2)))
+    with ThreadPoolExecutor(max_workers=3, thread_name_prefix="dlc-node") as pool:
+        return_codes = list(pool.map(lambda _: elastic_dlc_job.main(command), range(3)))
+
+    assert return_codes == [0, 0, 0]
+    assert counters == {
+        "prepare": 1,
+        "worker": 3,
+        "verify": 1,
+        "next_shard": 6,
+    }
+    coordination_dir = elastic_dlc_job._coordination_dir(job_dir)
+    assert elastic_dlc_job._result_code(coordination_dir / "prepare-result.json") == 0
+    assert elastic_dlc_job._result_code(coordination_dir / "finalize-result.json") == 0
+
+
+def test_dlc_elastic_mode_allows_live_workers_to_finish_all_shards(tmp_path, monkeypatch):
+    job_dir = tmp_path / "elastic-dlc-job"
+    counters = {"prepare": 0, "worker": 0, "verify": 0, "next_shard": 0}
+    counter_lock = threading.Lock()
+
+    def fake_prepare(args):
+        with counter_lock:
+            counters["prepare"] += 1
+        time.sleep(0.02)
+        (job_dir / "state" / "done").mkdir(parents=True)
+        elastic_dlc_job._atomic_write_json(
+            job_dir / "manifest.json",
+            {
+                "num_shards": 8,
+                "shards": [{"id": f"shard-{index:05d}"} for index in range(8)],
+            },
+        )
+        return 0
+
+    def fake_worker(args):
+        assert args.max_shards is None
+        owner = threading.current_thread().name
+        with counter_lock:
+            counters["worker"] += 1
+            first_shard = counters["next_shard"]
+            counters["next_shard"] += 4
+        for shard_index in range(first_shard, first_shard + 4):
+            elastic_dlc_job._atomic_write_json(
+                job_dir / "state" / "done" / f"shard-{shard_index:05d}.json",
+                {"hostname": owner, "status": "done"},
+            )
+        return 0
+
+    def fake_verify(args):
+        with counter_lock:
+            counters["verify"] += 1
+        assert args.expect_nodes == 1
+        return 0
+
+    monkeypatch.setattr(elastic_dlc_job, "prepare", fake_prepare)
+    monkeypatch.setattr(elastic_dlc_job, "worker", fake_worker)
+    monkeypatch.setattr(elastic_dlc_job, "verify", fake_verify)
+    command = [
+        "dlc",
+        "--job-dir",
+        str(job_dir),
+        "--nodes",
+        "4",
+        "--num-shards",
+        "8",
+        "--wait-timeout-secs",
+        "2",
+        "--poll-interval-secs",
+        "0.001",
+    ]
+
+    # Only two of the four configured Workers are represented. Elastic mode
+    # has no per-Worker cap, so the live Workers can still finish every shard.
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="live-node") as pool:
+        return_codes = list(pool.map(lambda _: elastic_dlc_job.main(command), range(2)))
 
     assert return_codes == [0, 0]
     assert counters == {
         "prepare": 1,
         "worker": 2,
         "verify": 1,
-        "next_shard": 4,
+        "next_shard": 8,
     }
-    coordination_dir = elastic_two_node_test._coordination_dir(job_dir)
-    assert elastic_two_node_test._result_code(coordination_dir / "prepare-result.json") == 0
-    assert elastic_two_node_test._result_code(coordination_dir / "finalize-result.json") == 0
 
 
 def test_dlc_entrypoint_propagates_prepare_failure(tmp_path, monkeypatch):
@@ -512,14 +600,12 @@ def test_dlc_entrypoint_propagates_prepare_failure(tmp_path, monkeypatch):
     def unexpected_worker(args):
         raise AssertionError("worker must not run after preparation fails")
 
-    monkeypatch.setattr(elastic_two_node_test, "prepare", fake_prepare)
-    monkeypatch.setattr(elastic_two_node_test, "worker", unexpected_worker)
+    monkeypatch.setattr(elastic_dlc_job, "prepare", fake_prepare)
+    monkeypatch.setattr(elastic_dlc_job, "worker", unexpected_worker)
     command = [
         "dlc",
         "--job-dir",
         str(job_dir),
-        "--nodes",
-        "2",
         "--num-shards",
         "4",
         "--wait-timeout-secs",
@@ -529,7 +615,7 @@ def test_dlc_entrypoint_propagates_prepare_failure(tmp_path, monkeypatch):
     ]
 
     with ThreadPoolExecutor(max_workers=2) as pool:
-        return_codes = list(pool.map(lambda _: elastic_two_node_test.main(command), range(2)))
+        return_codes = list(pool.map(lambda _: elastic_dlc_job.main(command), range(2)))
 
     assert return_codes == [2, 2]
     assert calls["prepare"] == 1
@@ -542,7 +628,7 @@ def test_dlc_entrypoint_propagates_worker_failure(tmp_path, monkeypatch):
 
     def fake_prepare(args):
         (job_dir / "state" / "done").mkdir(parents=True)
-        elastic_two_node_test._atomic_write_json(
+        elastic_dlc_job._atomic_write_json(
             job_dir / "manifest.json",
             {
                 "num_shards": 4,
@@ -564,15 +650,13 @@ def test_dlc_entrypoint_propagates_worker_failure(tmp_path, monkeypatch):
     def unexpected_verify(args):
         raise AssertionError("verify must not run after a worker fails")
 
-    monkeypatch.setattr(elastic_two_node_test, "prepare", fake_prepare)
-    monkeypatch.setattr(elastic_two_node_test, "worker", fake_worker)
-    monkeypatch.setattr(elastic_two_node_test, "verify", unexpected_verify)
+    monkeypatch.setattr(elastic_dlc_job, "prepare", fake_prepare)
+    monkeypatch.setattr(elastic_dlc_job, "worker", fake_worker)
+    monkeypatch.setattr(elastic_dlc_job, "verify", unexpected_verify)
     command = [
         "dlc",
         "--job-dir",
         str(job_dir),
-        "--nodes",
-        "2",
         "--num-shards",
         "4",
         "--wait-timeout-secs",
@@ -582,9 +666,9 @@ def test_dlc_entrypoint_propagates_worker_failure(tmp_path, monkeypatch):
     ]
 
     with ThreadPoolExecutor(max_workers=2) as pool:
-        return_codes = list(pool.map(lambda _: elastic_two_node_test.main(command), range(2)))
+        return_codes = list(pool.map(lambda _: elastic_dlc_job.main(command), range(2)))
 
     assert return_codes == [7, 7]
     assert worker_calls == 2
-    abort = elastic_two_node_test._read_json(elastic_two_node_test._coordination_dir(job_dir) / "abort.json")
+    abort = elastic_dlc_job._read_json(elastic_dlc_job._coordination_dir(job_dir) / "abort.json")
     assert abort["return_code"] == 7

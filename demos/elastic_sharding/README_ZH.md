@@ -1,255 +1,698 @@
 # 基于共享存储的多机弹性分片
 
-这个示例先把大型 JSONL 数据集切成固定数量的分片，再让多台机器通过共享
-POSIX/NAS 目录动态认领分片。节点认领分片后，使用 Data-Juicer `ray`
-executor 在该节点内部并行处理；默认 `ray_address=local`，各节点的 Ray
-实例互相独立。
+## 项目简介
 
-它与已有能力的区别：
+这个示例为大规模 JSONL 数据处理提供一种“节点间分片、节点内 Ray”的执行模式：
 
-- `tools/data_resplit.py` 只负责拆文件，不管理认领、失败恢复和结果合并。
-- `ray_partitioned` 在一个跨节点 Ray 作业内切分数据并由一个 driver 调度。
-- 本示例允许多台互不隶属的机器运行相同 worker 命令，处理完一片后继续认领下一片。
-  节点之间由共享文件系统协调，节点内部由 Ray 调度。
+1. 先把完整输入预切成固定数量、顺序稳定的 JSONL 分片。
+2. 多个独立 Worker 通过共享 POSIX/NAS/CPFS 目录动态认领分片。
+3. Worker 认领一片后，在当前节点使用 Data-Juicer `ray` executor 并行处理。
+4. 分片完成后发布可校验的完成记录；空闲 Worker 继续认领下一片。
+5. 全部分片成功后，按原始分片顺序验证并合并结果。
 
-## 限制
+它不要求维护一个跨节点 Ray 集群。共享文件系统只负责节点间协调，每个节点的 Ray
+运行时相互独立。对于 PAI-DLC，可以只提交一次启动命令，由 DLC 在所有 Worker
+实例上启动同一个入口。
 
-- 共享目录必须是支持原子创建、原子重命名和 `fcntl` 建议锁的 POSIX 文件系统，
-  例如正常配置的 NAS/NFS。
-- 输入仅支持本地 `.jsonl` 文件或包含 `.jsonl` 的目录。
-- 首版只接受可以逐分片独立运行的 Mapper 和 Filter。去重、Selector、Grouper、
-  Aggregator 和 Pipeline 会在 `prepare` 阶段被拒绝。
-- 所有节点都必须安装带 Ray 依赖的 Data-Juicer。使用默认 `local` 模式时建议
-  每个节点只运行一个 worker，避免多个本地 Ray 实例争抢同一节点资源。
-- 锁采用静态超时，不发送心跳。`lock_timeout_secs` 必须大于最长单片处理时间。
-- 所有节点需要能访问相同的输入数据、媒体文件和任务目录，并使用相同的
-  Data-Juicer commit。
-
-## 底层命令（非 DLC 手工模式）
-
-以下命令都从 Data-Juicer 仓库根目录运行。任务目录必须位于所有节点都能访问的
-共享存储上。DLC 用户可以跳过这一节，直接使用下一节的一条启动命令。
-
-```bash
-python demos/elastic_sharding/shard_job.py prepare \
-  --config demos/elastic_sharding/configs/demo.yaml \
-  --job-dir /shared/data-juicer-jobs/demo \
-  --num-shards 4 \
-  --ray-address local
+```text
+                        一次 DLC 作业提交
+                                  │
+             ┌────────────────────┼────────────────────┐
+             │                    │                    │
+       DLC Worker 0         DLC Worker 1         DLC Worker N
+       认领 shard A          认领 shard B          认领 shard C
+       本节点 Ray 处理        本节点 Ray 处理        本节点 Ray 处理
+             │                    │                    │
+             └────────────────────┼────────────────────┘
+                                  │
+                        共享 NAS/CPFS job-dir
+                manifest / shards / locks / done / attempts
+                                  │
+                          校验并按顺序合并
 ```
 
-`prepare` 会严格解析 JSONL，通过两遍顺序扫描生成 4 个连续、非空且按字节数近似
-均衡的分片。目录输入按相对路径排序。图片、音频和视频字段中的相对路径会相对于
-原数据根目录转为绝对路径。算子通过 `index_key` 请求的字段会在完整输入范围内
-按全局输入序号补齐；输入中已有的值会保留。
+## 主要优势
 
-## DLC 两节点冒烟测试（一条启动命令）
+- **一次提交，多节点自动工作**：DLC 中只配置一条启动命令，不需要逐台登录机器。
+- **动态负载均衡**：节点处理完一片后继续认领下一片，快节点自然承担更多工作。
+- **节点内继续使用 Ray**：每个分片仍由 Data-Juicer Ray executor 利用当前节点的
+  CPU/GPU 并行能力。
+- **不依赖 rank**：分片协调不需要 `RANK`、`WORLD_SIZE` 或固定 hostname 到文件的
+  静态映射。
+- **任务可审计、可恢复**：manifest 固定输入、recipe、Data-Juicer commit、Ray
+  配置和分片顺序；每次 attempt 都保留元数据与日志。
+- **避免重复认领**：`O_CREAT|O_EXCL` 原子创建锁，同一时刻只有一个 Worker 能持有
+  一个分片。
+- **支持失败与过期接管**：失败可自动重试；超过锁超时的认领会被其他 Worker 接管。
+- **结果完整性校验**：完成记录包含行数、字节数和 SHA256；合并前会重新校验。
+- **顺序确定**：目录输入按相对路径排序，分片连续，最终结果按 manifest 顺序合并。
+- **低侵入**：实现位于 `demos/elastic_sharding`，不修改现有 executor 或算子行为。
 
-仓库提供了一个很薄的测试入口 `two_node_test.py`。它默认使用现有的
-`configs/demo.yaml` 和 Data-Juicer 自带的 `demos/data/demo-dataset.jsonl`，
-切成 4 片，并限制每个节点最多处理 2 片，从而保证两台节点都需要参与。
+## 与现有方式的区别
 
-在 DLC 控制台创建一个任务：
+| 方式 | 负责切分 | 动态认领 | 失败恢复 | 节点内 Ray | 跨节点 Ray 集群 |
+| --- | --- | --- | --- | --- | --- |
+| `tools/data_resplit.py` | 是 | 否 | 否 | 由用户决定 | 否 |
+| `ray_partitioned` | 运行时切分 | 由 Ray 调度 | 由 Ray 作业管理 | 是 | 是 |
+| 本示例 | 预切分 | 共享文件系统 | 锁超时、重试、retry | 是 | 否 |
 
-- 框架选择 `PyTorch`，不需要使用 `torchrun`。这里借助的是 DLC 在每个 Worker
-  上执行同一条启动命令的能力；节点内部的计算仍由 Ray 完成。不要选择 DLC 的
-  `Ray` 框架，否则 DLC 会建立跨节点 Ray 集群，与本示例“共享存储协调节点、
-  每个节点独立运行 Ray”的拓扑不同。
-- Worker 节点数量设置为 `2`，每个 Worker 只启动一个本脚本进程。
-- 将 Data-Juicer 代码挂载到两台 Worker 的相同路径，例如
+本示例适合：
+
+- 输入很大，希望先生成可检查、可复用的固定分片；
+- 多个 DLC Worker 共享 NAS/CPFS，但不希望组成一个跨节点 Ray 集群；
+- 希望节点增减、速度差异或部分失败时仍由空闲节点继续认领；
+- 希望保留每个分片的运行日志、状态和可验证结果。
+
+## 文件说明
+
+```text
+demos/elastic_sharding/
+├── shard_job.py             # 通用分片任务：prepare/worker/status/retry/merge
+├── dlc_job.py               # 面向任意 Worker 数的一键 DLC 编排器
+├── two_node_test.py         # 向后兼容的严格两节点包装器
+├── configs/
+│   └── demo.yaml            # 使用现有 Mapper/Filter 的示例 recipe
+├── README.md
+└── README_ZH.md
+```
+
+`shard_job.py` 实现共享存储分片状态机；`dlc_job.py` 为任意数量的 DLC Worker
+协调一次性 prepare 和 finalize。`two_node_test.py` 保留原来的严格两节点默认值，
+仅用于向后兼容；新任务应直接使用 `dlc_job.py`。
+
+## 核心路径概念
+
+这三个路径不要混淆：
+
+- `--config`：Data-Juicer YAML recipe。
+- `--dataset-path`：要预切分的 JSONL 文件或目录；指定后覆盖 recipe 中的
+  `dataset_path`。
+- `--job-dir`：所有 Worker 共享的任务工作目录，保存分片、锁、attempt、日志、
+  状态和结果；它不是原始数据目录。
+
+例如：
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config /mnt/shared/recipes/my_process.yaml \
+  --dataset-path /mnt/shared/input/my_dataset.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --nodes 4 \
+  --num-shards 16
+```
+
+## 前置条件与限制
+
+- 所有 Worker 必须使用相同 Data-Juicer 代码版本和依赖环境。
+- `job-dir` 必须是支持原子创建、原子重命名、硬链接和 `fcntl` 建议锁的共享 POSIX
+  文件系统，例如正常配置的 NAS/NFS/CPFS。
+- 所有 Worker 必须以相同路径访问 `job-dir`、输入 JSONL 和本地媒体文件。
+- 输入仅支持本地 `.jsonl` 文件，或递归包含 `.jsonl` 文件的本地目录。
+- 每行必须是 UTF-8 JSON object；不允许空行、数组行或损坏 JSON。
+- 当前只接受可逐分片独立执行的 Mapper 和 Filter。
+- Deduplicator、Selector、Grouper、Aggregator、Pipeline 和其他全数据集语义算子会在
+  `prepare` 阶段被拒绝。
+- 锁采用静态超时，不发送心跳；锁超时必须大于最长单片处理时间。
+- `prepare` 会保存完整分片，attempt 会保存处理结果，需为 `job-dir` 预留足够空间。
+  媒体文件只改写路径，不会复制到 `job-dir`。
+
+## PAI-DLC 多节点快速开始
+
+### 1. DLC 任务配置
+
+在 DLC 控制台创建任务：
+
+- 框架选择 `PyTorch`，但不使用 `torchrun`。
+- Worker 数量可以是任意正整数，例如 `4`；每个 Worker 启动一个脚本进程。
+- 不要选择 DLC 的 `Ray` 框架；它会建立跨节点 Ray 集群，与本示例的节点内独立 Ray
+  拓扑不同。
+- 将同一份 Data-Juicer 代码挂载到所有 Worker 的相同路径，例如
   `/mnt/data/data-juicer`。
-- 将同一个 NAS/CPFS 目录以读写方式挂载到两台 Worker，例如 `/mnt/shared`。
-  不要把任务目录放在各节点本地盘或不支持 POSIX 原子操作的对象存储挂载上。
-- 两台 Worker 应使用相同镜像，且镜像已安装 Data-Juicer 的 Ray 依赖。
+- 将同一个可读写 NAS/CPFS 挂载到相同路径，例如 `/mnt/shared`。
+- 所有 Worker 使用相同镜像，镜像已安装 Data-Juicer 的 Ray 依赖。
 
-PAI-DLC 的创建任务页面只需配置一份启动命令和 Worker 节点数量，参考
+PAI-DLC 的任务页面只需配置一份启动命令和 Worker 数量，参考
 [创建训练任务](https://help.aliyun.com/zh/pai/create-a-training-task)。
 
-在 DLC 的“启动命令”中只填写一次下面的命令。DLC 会在两个 Worker 实例上分别
-启动它，不需要手工登录节点，也不依赖 `RANK`、`WORLD_SIZE` 等环境变量：
+### 2. 配置一条启动命令
+
+在 DLC 的“启动命令”中只填写一次：
 
 ```bash
 cd /mnt/data/data-juicer && \
-python demos/elastic_sharding/two_node_test.py dlc \
-  --job-dir /mnt/shared/data-juicer-jobs/two-node-test-001 \
-  --nodes 2 \
-  --num-shards 4 \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --job-dir /mnt/shared/data-juicer-jobs/multi-node-job-001 \
+  --nodes 4 \
+  --num-shards 16 \
   --ray-address local
 ```
 
-`dlc` 子命令会自动完成整个流程：
+默认使用：
 
-1. 两个实例通过共享目录原子竞选，只由一个实例执行 JSONL 分片。
-2. 两个实例各自动态认领分片；认领后使用本节点独立的
-   `executor_type=ray, ray_address=local` 处理。
-3. 每个实例在本测试中最多处理 2 片，所以 4 片必须由两个实例共同完成。
-4. 全部分片完成后只由一个实例验证至少有两个不同 hostname，并合并结果；另一个
-   实例读取相同的最终状态并以相同退出码结束。
+- recipe：`demos/elastic_sharding/configs/demo.yaml`
+- 输入：recipe 中的 `demos/data/demo-dataset.jsonl`
+- 分片数：未指定时为 4
+- DLC Worker 数：默认弹性模式不强制检查
+- Ray：每个节点独立 `local`
+- 合并结果：`<job-dir>/merged.jsonl`
 
-两个 DLC Worker 的日志中会分别出现自己的 hostname。成功时还能看到类似下面的
-关键日志：
+### 3. 自动执行流程
+
+`dlc` 子命令会在两个实例上执行相同逻辑：
+
+1. 通过共享目录原子竞选 prepare coordinator。
+2. coordinator 验证 recipe 和输入，只执行一次预切分。
+3. 每个存活 Worker 不设单节点上限，持续动态认领分片。
+4. 每片通过 `tools/process_data.py` 强制使用
+   `--executor_type ray --ray_address local`。
+5. Worker 达到上限后等待整个任务完成或失败。
+6. 全部成功后原子竞选 finalize coordinator。
+7. finalizer 汇总实际参与的 hostname，然后验证并合并。
+8. 其他实例读取相同 finalize 结果，以相同退出码结束。
+
+成功时可以看到：
 
 ```text
 elected as DLC prepare coordinator
-Starting test worker on hostname=...
+Starting DLC worker on hostname=...
 elected as DLC finalize coordinator
-PASS: 4 shards were completed by 2 node(s)
-```
-
-中途可以从任意能挂载该共享目录的环境查看状态：
-
-```bash
-python demos/elastic_sharding/two_node_test.py status \
-  --job-dir /mnt/shared/data-juicer-jobs/two-node-test-001
-```
-
-默认合并结果为
-`/mnt/shared/data-juicer-jobs/two-node-test-001/two-node-merged.jsonl`。
-同一次 DLC 作业中的两个 Worker 必须使用完全相同的 `--job-dir`。重复执行一个
-已经成功的任务是幂等的；更换输入、recipe 或重新进行一次独立测试时，应换一个
-全新的 `--job-dir`。任务目录及同级的隐藏协调目录会保留已发布的阶段状态。
-
-也可以换成其他现有 Mapper/Filter recipe 和自己的 JSONL：
-
-```bash
-python demos/elastic_sharding/two_node_test.py dlc \
-  --job-dir /shared/data-juicer-jobs/my-test \
-  --nodes 2 \
-  --num-shards 4 \
-  --config demos/process_simple/process.yaml \
-  --dataset-path /shared/input/my-data.jsonl
-```
-
-`--nodes` 应与 DLC Worker 数量一致。脚本会根据节点数限制单实例最多处理的分片数，
-并拒绝无法保证每个节点都参与的分片/节点组合。生产任务如果不要求强制每个节点都
-处理到分片，可直接使用后文的 `shard_job.py worker`，不设置 `--max-shards`。
-
-### DLC 运行前检查
-
-- `--job-dir`、输入 JSONL 及其中引用的本地媒体文件必须能被两个 Worker 以相同路径
-  访问。
-- `--num-shards` 不能超过输入记录数；两节点冒烟测试建议保持为 `4`。
-- `--ray-address local` 表示每个分片 attempt 启动本节点 Ray，不会连接另一个节点。
-- 默认等待超时为 35 小时。协调节点在写出阶段结果前被强制终止时，其他实例最终会
-  以退出码 `2` 失败；重新提交时使用新的任务目录。
-- DLC 任一 Worker 返回非零退出码时，任务应视为失败。检查
-  `<job-dir>/attempts/*/*/process.log` 和同级隐藏协调目录中的 `abort.json`。
-
-### 手工或其他调度器运行
-
-如果不是 DLC，也可以分别执行显式的 `prepare`、`worker` 和 `verify` 子命令：
-
-```bash
-python demos/elastic_sharding/two_node_test.py prepare \
-  --job-dir /shared/data-juicer-jobs/manual-test
-
-# 由调度器在每个节点启动一次：
-python demos/elastic_sharding/two_node_test.py worker \
-  --job-dir /shared/data-juicer-jobs/manual-test
-
-python demos/elastic_sharding/two_node_test.py verify \
-  --job-dir /shared/data-juicer-jobs/manual-test
-```
-
-在每台机器上运行相同的 worker 命令：
-
-```bash
-python demos/elastic_sharding/shard_job.py worker \
-  --job-dir /shared/data-juicer-jobs/demo
-```
-
-Worker 使用原子锁一次认领一片，处理完成后继续认领，直到所有分片完成。可以用
-`--max-shards 1` 限制本次调用最多处理一个分片。默认锁超时为 126000 秒
-（35 小时），首次处理失败后最多自动重试 3 次；这些默认值可以在 `prepare` 或
-`worker` 命令中覆盖。若环境中没有显式设置 Hugging Face 或 XDG 缓存目录，
-worker 会复用共享任务目录中的 `cache/`。
-
-Worker 无论 recipe 原来写的是 `default` 还是 `ray`，实际处理命令都会显式覆盖为
-`--executor_type ray`。默认的 `--ray-address local` 会为每个分片 attempt 启动
-节点本地 Ray 实例并在处理进程退出时清理。如果已经在每个节点分别启动了持久化
-Ray head，可以在 prepare 或 worker 时传入 `--ray-address auto` 来复用它，降低
-逐分片启动 Ray 的开销。不要把所有节点指向同一个 Ray 地址，否则会变成共享 Ray
-集群，而不再是“节点间分片、节点内 Ray”的模型。
-
-持久化模式需要在每个节点分别执行：
-
-```bash
-ray start --head
-python demos/elastic_sharding/shard_job.py worker \
-  --job-dir /shared/data-juicer-jobs/demo \
-  --ray-address auto
-# 本节点不再处理任务后：
-ray stop
+PASS: 16 shards were completed by 4 node(s)
 ```
 
 查看状态：
 
 ```bash
-python demos/elastic_sharding/shard_job.py status \
-  --job-dir /shared/data-juicer-jobs/demo --all
-
-python demos/elastic_sharding/shard_job.py status \
-  --job-dir /shared/data-juicer-jobs/demo --json
+python demos/elastic_sharding/dlc_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/multi-node-job-001
 ```
 
-失败分片达到重试上限后不会自动重跑。修复运行环境后，可以归档失败历史并重新
-入队；若需要修改 recipe，则应使用新的任务目录重新执行 `prepare`：
+最终结果：
+
+```text
+/mnt/shared/data-juicer-jobs/multi-node-job-001/merged.jsonl
+```
+
+### 弹性模式与严格参与模式
+
+默认是**弹性模式**：
+
+- `--nodes` 可省略，只用于日志提示；
+- 不限制单个 Worker 最多处理多少分片；
+- 即使实际启动的 Worker 少于预期，存活 Worker 仍可接管所有剩余分片；
+- finalize 只要求所有分片完成，不强制特定节点数。
+
+这是推荐的生产运行方式：
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --job-dir /mnt/shared/data-juicer-jobs/elastic-job-001 \
+  --num-shards 32 \
+  --ray-address local
+```
+
+只有在需要验证所有 DLC Worker 都实际处理过至少一个分片时，才使用
+**严格参与模式**：
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --job-dir /mnt/shared/data-juicer-jobs/strict-job-001 \
+  --nodes 4 \
+  --num-shards 16 \
+  --require-all-nodes \
+  --ray-address local
+```
+
+严格模式会限制每个 Worker 的 claim 数，并检查至少有 `--nodes` 个不同 hostname
+完成过分片。因此缺少任一 Worker 都会让严格任务等待并最终失败。建议让分片数是
+节点数的整数倍。
+
+## 重点：使用现有 Mapper/Filter recipe 和自己的 JSONL
+
+这个功能不是只能运行 demo recipe。推荐的真实使用方式就是复用已有的 Data-Juicer
+Mapper/Filter recipe，通过 `--dataset-path` 指向自己的大规模 JSONL。
+
+### Recipe 必须满足的条件
+
+1. `executor_type` 可以是 `default` 或 `ray`。Worker 最终都会显式覆盖成 `ray`。
+2. 必须有明确的 `process` 列表。
+3. 每个算子必须能被识别为 Mapper 或 Filter，并且不是全局操作。
+4. 算子不能设置 `stats_export_path`，否则多个分片会写入相同统计文件。
+5. 算子使用固定 `save_dir` 时可以运行，但必须确保不同分片生成的文件名不会冲突。
+6. `custom_operator_paths` 支持加载自定义算子；相对路径按 Data-Juicer 仓库根目录
+   解析。自定义算子也必须继承 Mapper 或 Filter。
+7. 算子配置了 `index_key` 时，预切分会为缺失值填入完整输入范围内的全局行号；
+   已有值保持不变。
+
+以下类型通常适合：
+
+- 文本清洗 Mapper；
+- 文本、图像、音频或视频属性 Mapper；
+- 基于单条样本统计值的 Filter；
+- 不依赖其他样本、不写共享固定文件的自定义 Mapper/Filter。
+
+以下类型不适合直接逐分片运行：
+
+- 全局去重；
+- 需要全局排序或全局采样的 Selector；
+- Grouper、Aggregator、Pipeline；
+- 需要跨样本共享状态或生成唯一全局输出的算子。
+
+示例 recipe：
+
+```yaml
+project_name: my-elastic-job
+dataset_path: /mnt/shared/input/default.jsonl
+export_path: /mnt/shared/output/ignored-by-shard-worker.jsonl
+executor_type: ray
+ray_address: local
+
+text_key: text
+image_key: images
+audio_key: audios
+video_key: videos
+
+process:
+  - whitespace_normalization_mapper:
+      text_key: text
+  - text_length_filter:
+      text_key: text
+      min_len: 10
+      max_len: 10000
+```
+
+Worker 会用当前分片覆盖 recipe 的 `dataset_path`，并把 `export_path` 覆盖为当前
+attempt 的隔离输出目录。因此同一份 recipe 可以安全地重复用于多个分片。
+
+### 自有 JSONL 的要求
+
+单文件输入：
+
+```text
+/mnt/shared/input/my_dataset.jsonl
+```
+
+目录输入：
+
+```text
+/mnt/shared/input/my_dataset/
+├── 000.jsonl
+├── 001.jsonl
+└── nested/
+    └── 002.jsonl
+```
+
+目录会被递归扫描，并按相对路径排序。每行必须是 object：
+
+```json
+{"id": 1, "text": "example", "images": ["media/1.jpg"]}
+```
+
+媒体路径处理：
+
+- 绝对路径保持不变。
+- `http://`、`https://`、`s3://`、`gs://`、`hdfs://` 保持不变。
+- 相对路径会转换成绝对路径：
+  - 单 JSONL 文件：相对于 JSONL 所在目录；
+  - JSONL 目录：相对于传入的数据集根目录。
+- `images`、`audios`、`videos` 字段必须是字符串列表或 `null`。字段名可以通过
+  recipe 的 `image_key`、`audio_key`、`video_key` 修改。
+
+### 使用任意数量的 DLC Worker 运行自己的 recipe 和数据
+
+在 DLC 中仍然只配置这一条命令：
+
+```bash
+cd /mnt/data/data-juicer && \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config /mnt/shared/recipes/my_process.yaml \
+  --dataset-path /mnt/shared/input/my_dataset.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/my-dataset-001 \
+  --nodes 4 \
+  --num-shards 16 \
+  --ray-address local \
+  --output /mnt/shared/output/my_dataset.processed.jsonl
+```
+
+这里：
+
+- `--config` 复用现有 Mapper/Filter recipe；
+- `--dataset-path` 覆盖 recipe 原来的 `dataset_path`；
+- `--job-dir` 保存这一次任务的所有状态和中间结果；
+- `--output` 指定最终合并文件；
+- 16 个分片由所有存活 Worker 动态认领，每个 Worker 内部使用 Ray。
+
+建议先用少量数据、每节点至少几个分片完成冒烟测试，再扩大输入和分片数。
+
+### 如何选择分片数
+
+- 必须满足 `1 <= num_shards <= JSONL 总记录数`。
+- 分片数多于节点数，才能让空闲节点持续认领并缓解单片耗时差异。
+- 一般可以从 `节点数 × 2` 或 `节点数 × 4` 开始。
+- 单片处理时间应明显小于 `lock_timeout_secs`。
+- 分片太少会降低负载均衡效果；分片太多会增加 Ray 启动、元数据和小文件开销。
+- 默认弹性模式不限制单节点 claim 数，所以分片数不必是 Worker 数的整数倍。
+- 使用 `--require-all-nodes` 时，选择 `--nodes` 的整数倍最简单，也能得到清晰的
+  单节点处理上限。
+
+### Recipe 或输入变化时
+
+`prepare` 会记录 recipe SHA256、输入文件 SHA256、大小、mtime、行数、规范化内容
+SHA256 和 Data-Juicer commit。
+
+- 完全相同的请求重复执行是幂等 no-op。
+- 修改 recipe、输入内容、分片数或 Ray 地址后，不要复用旧 `job-dir`。
+- 推荐每次独立任务使用新目录，例如 `my-dataset-001`、`my-dataset-002`。
+
+## `dlc_job.py` 参数参考
+
+### `dlc`
+
+完整的一键 DLC 流程。
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--job-dir` | 是 | 无 | 所有 Worker 共享的任务目录 |
+| `--config` | 否 | `configs/demo.yaml` | 现有的 shard-safe Data-Juicer recipe |
+| `--dataset-path` | 否 | recipe 中的值 | 覆盖 recipe 的 JSONL 文件或目录 |
+| `--nodes` | 否 | 不强制 | 弹性模式仅用于日志；严格模式必填 |
+| `--num-shards` | 否 | `4` | 精确的非空分片数 |
+| `--require-all-nodes` | 否 | false | 限制 claim，并要求所有 `--nodes` hostname 参与 |
+| `--ray-address` | 否 | `local` | 每个节点内部使用的 Ray 地址 |
+| `--output` | 否 | `<job-dir>/merged.jsonl` | 最终合并 JSONL |
+| `--wait-timeout-secs` | 否 | `126000`（35 小时） | 等待 prepare、全分片完成或 finalize 的最长时间 |
+| `--poll-interval-secs` | 否 | `2` | DLC 协调状态轮询间隔 |
+
+`--wait-timeout-secs` 是 DLC 包装器等待其他实例的超时，不是分片锁超时。
+
+### 其他包装器子命令
+
+| 子命令 | 参数 | 默认值与说明 |
+| --- | --- | --- |
+| `prepare` | `--job-dir` | 必填；共享任务目录 |
+|  | `--config` | demo recipe |
+|  | `--dataset-path` | 可选；覆盖 recipe 输入 |
+|  | `--num-shards` | `4` |
+|  | `--ray-address` | `local` |
+| `worker` | `--job-dir` | 必填 |
+|  | `--max-shards` | 默认不限制；可显式设置本次 claim 上限 |
+|  | `--ray-address` | 可选；覆盖 manifest 的 Ray 地址 |
+| `status` | `--job-dir` | 必填；显示全部分片状态 |
+| `verify` | `--job-dir` | 必填 |
+|  | `--output` | 默认写到 job-dir |
+|  | `--expect-nodes` | `1`；完成记录中要求的最少不同 hostname 数 |
+
+## `shard_job.py` 完整参数参考
+
+### `prepare`
+
+验证 recipe、扫描输入并原子发布任务目录。
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--config` | 是 | 无 | Data-Juicer YAML recipe |
+| `--dataset-path` | 否 | recipe 中的值 | 覆盖输入 JSONL 文件或目录 |
+| `--job-dir` | 是 | 无 | 新的共享 POSIX 任务目录 |
+| `--num-shards` | 是 | 无 | 精确的非空分片数 |
+| `--lock-timeout-secs` | 否 | `126000` | 保存到 manifest 的分片锁超时 |
+| `--max-retries` | 否 | `3` | 首次失败后的重试次数；默认最多 4 次失败 attempt |
+| `--poll-interval-secs` | 否 | `20` | Worker 无可认领分片时的等待间隔 |
+| `--ray-address` | 否 | `local` | 保存给 Worker 的 Ray 地址 |
+
+### `worker`
+
+循环认领和处理分片。
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--job-dir` | 是 | 无 | prepare 创建的共享任务目录 |
+| `--max-shards` | 否 | 不限制 | 本次进程最多处理的 claim 数；失败 attempt 也计数 |
+| `--lock-timeout-secs` | 否 | manifest 值 | 覆盖本次 Worker 的锁超时 |
+| `--max-retries` | 否 | manifest 值 | 覆盖本次 Worker 的失败重试次数 |
+| `--poll-interval-secs` | 否 | manifest 值 | 无 claim 可用时的轮询间隔 |
+| `--ray-address` | 否 | manifest 值 | 覆盖本次 Worker 的 Ray 地址 |
+| `--allow-version-mismatch` | 否 | false | 允许 Worker commit 与 manifest 不同，仅应有意使用 |
+
+不设置 `--max-shards` 时，Worker 会持续认领，直到全部成功或任务进入终态失败。
+
+### `status`
+
+只读查看任务状态。
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--job-dir` | 是 | 无 | 任务目录 |
+| `--lock-timeout-secs` | 否 | manifest 值 | 仅用于判断现有锁是否显示为 stale |
+| `--json` | 否 | false | 输出机器可读 JSON |
+| `--all` | 否 | false | 文本模式下逐片显示状态和 owner |
+
+### `retry`
+
+归档终态失败并重新入队。必须在 `--all-failed` 与一个或多个 `--shard-id` 中选择一种。
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--job-dir` | 是 | 无 | 任务目录 |
+| `--all-failed` | 条件必填 | false | 重新入队所有失败分片 |
+| `--shard-id` | 条件必填 | 无 | 指定分片 ID，可重复传入 |
+
+retry 会把旧 failed 元数据和 attempts 移到 `state/history`，不会覆盖历史记录。
+
+### `merge`
+
+重新验证并按 manifest 顺序合并所有完成结果。
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--job-dir` | 是 | 无 | 已全部成功的任务目录 |
+| `--output` | 是 | 无 | 最终 JSONL 路径 |
+| `--lock-timeout-secs` | 否 | manifest 值 | 计算合并前状态时使用 |
+| `--overwrite` | 否 | false | 允许替换已存在的输出 |
+
+## 通用手工/调度器流程
+
+如果不使用 DLC 一键包装器，可以直接调用底层命令。
+
+### 1. 预切分
+
+```bash
+python demos/elastic_sharding/shard_job.py prepare \
+  --config /mnt/shared/recipes/my_process.yaml \
+  --dataset-path /mnt/shared/input/my_dataset.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --num-shards 16 \
+  --lock-timeout-secs 126000 \
+  --max-retries 3 \
+  --poll-interval-secs 20 \
+  --ray-address local
+```
+
+`prepare` 两遍顺序扫描输入：
+
+- 第一遍校验 JSONL、计算指纹、规范化媒体路径和全局 `index_key`；
+- 第二遍按规范化字节数生成连续、近似均衡、非空分片；
+- 输入在两遍之间变化会报错；
+- 完整 stage 目录准备好后才原子重命名为 `job-dir`。
+
+### 2. 每个节点启动 Worker
+
+由调度器在每个节点启动：
+
+```bash
+python demos/elastic_sharding/shard_job.py worker \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001
+```
+
+### 3. 查看状态
+
+```bash
+python demos/elastic_sharding/shard_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 --all
+
+python demos/elastic_sharding/shard_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 --json
+```
+
+状态包括：
+
+- `pending`：尚未认领；
+- `running`：存在未超时锁；
+- `stale`：锁年龄超过超时，下一次认领会尝试接管；
+- `done`：完成记录已发布；
+- `failed`：超过重试上限的终态失败。
+
+### 4. 重新入队失败分片
+
+修复环境问题后：
 
 ```bash
 python demos/elastic_sharding/shard_job.py retry \
-  --job-dir /shared/data-juicer-jobs/demo --all-failed
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --all-failed
 ```
 
-全部分片完成后按原分片顺序合并：
+或只重试指定分片：
+
+```bash
+python demos/elastic_sharding/shard_job.py retry \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --shard-id part-00003-of-00016 \
+  --shard-id part-00007-of-00016
+```
+
+然后重新启动 Worker。
+
+### 5. 合并
 
 ```bash
 python demos/elastic_sharding/shard_job.py merge \
-  --job-dir /shared/data-juicer-jobs/demo \
-  --output /shared/data-juicer-results/demo.jsonl
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --output /mnt/shared/output/my_dataset.processed.jsonl
 ```
 
-合并会重新验证每个结果的 JSONL、行数和 SHA256，并通过临时文件原子发布。
-目标文件已存在时默认拒绝覆盖；确需替换时显式传入 `--overwrite`。
+合并会逐片重新解析 JSONL，并验证完成记录里的行数和 SHA256。目标已存在时默认拒绝
+覆盖；确需替换时使用 `--overwrite`。
 
-## 任务目录
+## Ray 运行模式
+
+### 默认：每个 attempt 使用本节点 local Ray
+
+```bash
+--ray-address local
+```
+
+每个分片 attempt 启动独立 Ray 实例，Data-Juicer 进程退出后清理。优点是配置简单、
+节点相互隔离；代价是每片有 Ray 启动开销。
+
+### 可选：每个节点预启动持久 Ray head
+
+如果调度系统能保证每个节点只运行一个 Worker，可以在每个节点分别执行：
+
+```bash
+ray start --head
+python demos/elastic_sharding/shard_job.py worker \
+  --job-dir /mnt/shared/data-juicer-jobs/my-job-001 \
+  --ray-address auto
+ray stop
+```
+
+不要让所有节点的 `auto` 指向同一个 Ray 集群，否则拓扑会变成跨节点共享 Ray。
+
+## `job-dir` 结构
 
 ```text
-demo/
+my-job-001/
 ├── manifest.json
 ├── recipe.yaml
 ├── shards/
+│   └── part-xxxxx-of-xxxxx.jsonl
 ├── cache/
 ├── attempts/<shard-id>/<attempt-id>/
 │   ├── attempt.json
 │   ├── process.log
+│   ├── logs/
+│   ├── checkpoints/
+│   ├── partitions/
 │   ├── ray-output.jsonl/
 │   └── processed.jsonl
-└── state/
-    ├── locks/
-    ├── stale_locks/
-    ├── done/
-    ├── failed/
-    └── history/
+├── state/
+│   ├── locks/
+│   ├── stale_locks/
+│   ├── done/
+│   ├── failed/
+│   └── history/
+└── merge.json
 ```
 
-`manifest.json` 固定输入文件指纹、recipe 哈希、Data-Juicer commit、Ray 地址和
-分片顺序。Ray 会把一个分片输出为包含若干文件的 `ray-output.jsonl/` 目录；
-worker 校验并按文件名顺序物化成单一 `processed.jsonl`，供状态记录和最终合并。
-每个 attempt 都有独立的输出、日志和 Data-Juicer 工作目录。
+DLC 一键入口还会在 `job-dir` 同级创建：
 
-manifest schema 已升级到版本 2；旧版本任务目录需要重新执行 `prepare`。
+```text
+.<job-dir-name>.dlc-coordination/
+├── prepare.lock
+├── prepare-result.json
+├── abort.lock
+├── abort.json
+├── finalize.lock
+└── finalize-result.json
+```
 
-DLC 一键入口还会在任务目录同级创建
-`.two-node-test-001.dlc-coordination/`，其中的 `prepare.lock`、
-`prepare-result.json`、`abort.json` 和 `finalize-result.json` 用于跨实例选主和
-传播统一退出状态。若协调实例在写出阶段结果前被强制终止，其他实例会等待
-`--wait-timeout-secs`（默认 35 小时）后失败；重新提交时建议使用新的任务目录。
+如果环境没有显式设置 `XDG_CACHE_HOME` 或 `HF_HOME`，Worker 会使用
+`<job-dir>/cache`。
+
+## 故障语义
+
+- 同一分片只允许一个可见 claim，但超时接管可能造成旧 attempt 与新 attempt 短暂
+  重叠。
+- 每个 attempt 使用独立目录，不会互相覆盖结果。
+- 只有第一个成功原子发布 done 元数据的结果会被接受。
+- `max_retries=3` 表示首次失败后再重试 3 次，共允许 4 次失败 attempt。
+- 分片达到失败上限后写入 `state/failed`，任务退出码为 `2`。
+- `retry` 只应在确认没有活动锁并修复根因后执行。
+- 修改 recipe 或输入不是 retry 场景，应新建 `job-dir` 并重新 prepare。
+- DLC prepare/finalize coordinator 在写出阶段结果前被强制终止时，其他实例会等待
+  `wait_timeout_secs` 后失败；下一次提交建议使用新目录。
 
 ## 退出码
 
-- `0`：命令完成；worker 已完成全部任务或达到 `--max-shards`。
-- `1`：`status` 检测到任务仍在运行或等待处理。
-- `2`：参数/数据错误，或任务存在终态失败。
+- `0`：操作成功；Worker 也可能表示已达到 `--max-shards`。
+- `1`：`status` 检测到任务尚未完成且没有终态失败。
+- `2`：参数、数据、recipe、版本或运行错误，或存在终态失败。
 
-静态超时可能让超长任务被另一节点接管。每个 attempt 使用不同结果路径，只有第一
-个成功发布 `.done` 元数据的结果会被 `merge` 接受，因此不会互相覆盖。
+DLC 中任一 Worker 非零退出都应视为整个任务失败。
+
+## 排障
+
+### prepare 阶段失败
+
+检查：
+
+- JSONL 是否为 UTF-8、每行 object 且无空行；
+- `num_shards` 是否超过记录数；
+- recipe 是否包含全局算子或 `stats_export_path`；
+- recipe/数据相对路径是否从 Data-Juicer 仓库根目录正确解析；
+- 新请求是否错误复用了不匹配的 `job-dir`。
+
+### Worker 或 Ray 失败
+
+查看：
+
+```text
+<job-dir>/attempts/<shard-id>/<attempt-id>/process.log
+<job-dir>/attempts/<shard-id>/<attempt-id>/attempt.json
+```
+
+同时检查：
+
+- 镜像是否安装 Ray 依赖；
+- 当前节点 CPU、GPU、共享内存和临时空间；
+- `ray_address` 是否为预期的 `local` 或本节点 `auto`；
+- `lock_timeout_secs` 是否短于实际单片耗时；
+- 所有 Worker 是否使用同一 Data-Juicer commit。
+
+### DLC 一直等待
+
+检查：
+
+- 严格模式下 DLC Worker 数是否等于 `--nodes`；弹性模式可以省略
+  `--nodes`；
+- 所有 Worker 是否真的启动了同一命令；
+- `job-dir` 是否是同一个共享挂载，而不是各节点本地同名目录；
+- 同级隐藏协调目录中的 `prepare-result.json`、`abort.json` 和
+  `finalize-result.json`；
+- 使用 `--require-all-nodes` 时，失败 attempt 是否消耗了严格模式的单 Worker
+  claim 上限。
+
+## 测试
+
+```bash
+python -m pytest -q tests/demos/test_elastic_sharding.py
+```
+
+测试覆盖：
+
+- 确定性分片、输入顺序和媒体路径规范化；
+- recipe 安全校验和 default-to-Ray 覆盖；
+- 并发原子认领与 stale lock 接管；
+- attempt 隔离、Ray 命令和 Ray 多文件输出物化；
+- 重试上限、指定 retry 和顺序合并；
+- 两个不同 hostname 的结果验证；
+- DLC prepare/finalize 选主与失败传播。

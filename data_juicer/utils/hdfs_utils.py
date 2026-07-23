@@ -13,10 +13,13 @@ before use:
     export ARROW_LIBHDFS_DIR=$HADOOP_HOME/lib/native   # depends on env
 """
 
-from typing import Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    import pyarrow.fs
 
 
 def parse_hdfs_path(path: str) -> Tuple[Optional[str], Optional[int]]:

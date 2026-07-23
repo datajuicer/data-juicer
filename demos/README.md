@@ -51,3 +51,6 @@ streamlit run app.py
 
 - Partition and checkpoint (`partition_and_checkpoint`)
   - This demo showcases distributed processing with partitioning, checkpointing, and event logging. It demonstrates the new job management features including resource-aware partitioning, comprehensive event logging, and the processing snapshot utility for monitoring job progress.
+
+- Elastic sharding (`elastic_sharding`)
+  - This demo pre-splits a JSONL dataset, lets workers on multiple machines dynamically claim shards through a shared POSIX filesystem, and processes each claimed shard with node-local Ray.

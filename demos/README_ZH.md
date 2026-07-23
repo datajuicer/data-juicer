@@ -51,3 +51,6 @@ streamlit run app.py
 
 - 分区和检查点 (`partition_and_checkpoint`)
   - 该演示展示了带分区、检查点和事件日志的分布式处理。它演示了新的作业管理功能，包括资源感知分区、全面的事件日志记录和处理快照工具，用于监控作业进度。
+
+- 弹性分片 (`elastic_sharding`)
+  - 该演示预先切分 JSONL 数据集，让多台机器上的 worker 通过共享 POSIX 文件系统动态认领分片，并在各节点内部使用 Ray 处理。

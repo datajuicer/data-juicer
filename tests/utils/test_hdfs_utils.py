@@ -102,7 +102,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
 
     # ── create_pyarrow_hdfs_filesystem ──────────────────────────────
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_with_host_port_in_path(self, mock_hdfs_fs):
         """Test filesystem creation when host/port come from the path field"""
         ds_config = {"path": "hdfs://namenode:8020/user/data"}
@@ -113,7 +113,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         self.assertEqual(call_kwargs["host"], "namenode")
         self.assertEqual(call_kwargs["port"], 8020)
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_with_explicit_host_port(self, mock_hdfs_fs):
         """Test that explicit hdfs_host/hdfs_port override path-parsed values"""
         ds_config = {
@@ -128,7 +128,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         self.assertEqual(call_kwargs["host"], "new-nn")
         self.assertEqual(call_kwargs["port"], 9000)
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_default(self, mock_hdfs_fs):
         """Test filesystem creation falls back to 'default' when no host is provided"""
         ds_config = {"path": "hdfs:///user/data"}
@@ -138,7 +138,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         call_kwargs = mock_hdfs_fs.call_args[1]
         self.assertEqual(call_kwargs["host"], "default")
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_with_user(self, mock_hdfs_fs):
         """Test filesystem creation includes user when specified"""
         ds_config = {
@@ -151,7 +151,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         call_kwargs = mock_hdfs_fs.call_args[1]
         self.assertEqual(call_kwargs["user"], "data_juicer")
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_with_kerb_ticket(self, mock_hdfs_fs):
         """Test filesystem creation includes Kerberos ticket when specified"""
         ds_config = {
@@ -164,7 +164,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         call_kwargs = mock_hdfs_fs.call_args[1]
         self.assertEqual(call_kwargs["kerb_ticket"], "/tmp/krb5cc_1000")
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_with_extra_conf(self, mock_hdfs_fs):
         """Test filesystem creation includes extra Hadoop configurations"""
         extra_conf = {"dfs.replication": "3", "dfs.block.size": "134217728"}
@@ -178,7 +178,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         call_kwargs = mock_hdfs_fs.call_args[1]
         self.assertEqual(call_kwargs["extra_conf"], extra_conf)
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_host_default_when_empty_string(self, mock_hdfs_fs):
         """Test that an empty hdfs_host string falls back to 'default'"""
         ds_config = {
@@ -191,7 +191,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         call_kwargs = mock_hdfs_fs.call_args[1]
         self.assertEqual(call_kwargs["host"], "default")
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_explicit_port_overrides_path_port(self, mock_hdfs_fs):
         """Test that explicit hdfs_port overrides the port parsed from path"""
         ds_config = {
@@ -204,7 +204,7 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
         call_kwargs = mock_hdfs_fs.call_args[1]
         self.assertEqual(call_kwargs["port"], 9999)
 
-    @patch("data_juicer.utils.hdfs_utils.pyarrow.fs.HadoopFileSystem")
+    @patch("pyarrow.fs.HadoopFileSystem")
     def test_create_hdfs_fs_no_path_field(self, mock_hdfs_fs):
         """Test filesystem creation with empty config (no path field)"""
         create_pyarrow_hdfs_filesystem({})

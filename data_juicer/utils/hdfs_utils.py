@@ -16,7 +16,6 @@ before use:
 from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
-import pyarrow.fs
 from loguru import logger
 
 
@@ -59,7 +58,9 @@ def strip_hdfs_scheme(path: str) -> str:
     return parsed.path or path
 
 
-def create_pyarrow_hdfs_filesystem(ds_config: Dict = {}) -> "pyarrow.fs.HadoopFileSystem":
+def create_pyarrow_hdfs_filesystem(
+    ds_config: Optional[Dict] = None,
+) -> "pyarrow.fs.HadoopFileSystem":
     """
     Create a PyArrow HadoopFileSystem for reading/writing HDFS.
 
@@ -81,6 +82,13 @@ def create_pyarrow_hdfs_filesystem(ds_config: Dict = {}) -> "pyarrow.fs.HadoopFi
     Returns:
         A configured pyarrow.fs.HadoopFileSystem instance.
     """
+    # Avoid the mutable-default-argument pitfall: default to None and create
+    # a fresh dict per call so callers never share state.
+    if ds_config is None:
+        ds_config = {}
+
+    import pyarrow.fs
+
     host = ds_config.get("hdfs_host")
     port = ds_config.get("hdfs_port")
 

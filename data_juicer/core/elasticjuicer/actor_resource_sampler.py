@@ -3,6 +3,7 @@
 import threading
 import time
 from dataclasses import dataclass
+from math import isfinite
 from typing import Callable, Optional
 
 import psutil
@@ -11,6 +12,7 @@ from .profiler.metrics import MetricScope
 
 _BYTES_PER_MB = 1024 * 1024
 _DEFAULT_CUDA_BACKEND = object()
+ACTOR_RESOURCE_SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -22,6 +24,13 @@ class CudaDeviceMemory:
     reserved_mb: float
     peak_allocated_mb: float
     scope: MetricScope = MetricScope.DEVICE
+    confidence: float = 1.0
+
+    def __post_init__(self):
+        if self.scope != MetricScope.DEVICE:
+            raise ValueError("CUDA memory scope must be device")
+        if not isfinite(self.confidence) or not 0 <= self.confidence <= 1:
+            raise ValueError("CUDA confidence must be in [0, 1]")
 
 
 @dataclass(frozen=True)
@@ -42,6 +51,23 @@ class ActorResourceSnapshot:
     error_type: Optional[str]
     source: str = "actor_resource_sampler"
     process_scope: MetricScope = MetricScope.PROCESS
+    process_confidence: float = 1.0
+    rss_peak_confidence: float = 1.0
+    schema_version: int = ACTOR_RESOURCE_SCHEMA_VERSION
+
+    def __post_init__(self):
+        if self.schema_version != ACTOR_RESOURCE_SCHEMA_VERSION:
+            raise ValueError(f"unsupported actor resource schema_version: {self.schema_version}")
+        if self.process_scope != MetricScope.PROCESS:
+            raise ValueError("actor RSS scope must be process")
+        if not self.source:
+            raise ValueError("source must not be empty")
+        if not isfinite(self.timestamp) or self.timestamp < 0:
+            raise ValueError("timestamp must be a finite non-negative value")
+        if not isfinite(self.process_confidence) or not 0 <= self.process_confidence <= 1:
+            raise ValueError("process_confidence must be in [0, 1]")
+        if not isfinite(self.rss_peak_confidence) or not 0 <= self.rss_peak_confidence <= 1:
+            raise ValueError("rss_peak_confidence must be in [0, 1]")
 
 
 class TorchCudaBackend:
@@ -175,6 +201,7 @@ class BatchResourceMeasurement:
         self._start_time = 0.0
         self._cuda_device: Optional[int] = None
         self._entered = False
+        self._rss_samples = 0
 
     def __enter__(self) -> "BatchResourceMeasurement":
         if self._entered:
@@ -211,6 +238,7 @@ class BatchResourceMeasurement:
             cuda=self._read_cuda_memory(),
             succeeded=exc_type is None,
             error_type=None if exc_type is None else exc_type.__name__,
+            rss_peak_confidence=self._rss_peak_confidence(latency_seconds),
         )
         self.sampler._record(self.snapshot)
         return False
@@ -221,15 +249,25 @@ class BatchResourceMeasurement:
         if not self._entered:
             raise RuntimeError("measurement has not started")
         rss_bytes = self._read_rss_bytes()
-        self._record_peak(rss_bytes)
+        self._record_peak(rss_bytes, sampled=True)
         return self._to_mb(rss_bytes)
+
+    def _rss_peak_confidence(self, latency_seconds: float) -> float:
+        if latency_seconds <= 0:
+            return 0.25
+        with self._rss_lock:
+            sample_count = self._rss_samples
+        coverage = sample_count * self.sampler.sample_interval_sec / latency_seconds
+        return max(0.25, min(0.99, coverage))
 
     def _read_rss_bytes(self) -> int:
         return int(self.sampler.process.memory_info().rss)
 
-    def _record_peak(self, rss_bytes: int):
+    def _record_peak(self, rss_bytes: int, sampled: bool = False):
         with self._rss_lock:
             self._peak_rss_bytes = max(self._peak_rss_bytes, rss_bytes)
+            if sampled:
+                self._rss_samples += 1
 
     def _prepare_cuda_peak(self):
         backend = self.sampler.cuda_backend

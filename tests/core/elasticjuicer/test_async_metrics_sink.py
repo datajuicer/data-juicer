@@ -32,8 +32,13 @@ def _event(job_id, sequence, actor_id="actor-a"):
     return ActorMetricsEvent(
         job_id=job_id,
         actor_id=actor_id,
+        actor_incarnation_id="incarnation-a",
+        stage_id="stage-a",
         op_name="mapper",
         sequence=sequence,
+        observed_at_ms=123_000,
+        emitted_at_ms=123_001,
+        source="actor_resource_sampler",
         snapshot=_snapshot(),
     )
 
@@ -75,6 +80,8 @@ def test_reporter_uses_bounded_fire_and_forget_window():
         sink_handle=SimpleNamespace(record=RemoteRecord()),
         job_id="job-a",
         actor_id="actor-a",
+        actor_incarnation_id="incarnation-a",
+        stage_id="stage-a",
         op_name="mapper",
         max_in_flight=2,
         wait_fn=lambda refs, **kwargs: ([], refs),
@@ -109,6 +116,8 @@ def test_reporter_reclaims_completed_references_before_submitting():
         sink_handle=SimpleNamespace(record=RemoteRecord()),
         job_id="job-a",
         actor_id="actor-a",
+        actor_incarnation_id="incarnation-a",
+        stage_id="stage-a",
         op_name="mapper",
         max_in_flight=1,
         wait_fn=lambda refs, **kwargs: (refs, []),
@@ -125,6 +134,8 @@ def test_reporter_requires_a_remote_sink_handle():
         sink_handle=SimpleNamespace(record=lambda event: None),
         job_id="job-a",
         actor_id="actor-a",
+        actor_incarnation_id="incarnation-a",
+        stage_id="stage-a",
         op_name="mapper",
     )
 
@@ -171,6 +182,8 @@ def test_real_ray_sink_e2e_when_ray_is_available():
             sink_handle=sink,
             job_id="job-a",
             actor_id="actor-a",
+            actor_incarnation_id="incarnation-a",
+            stage_id="stage-a",
             op_name="mapper",
         )
         reporter.report(_snapshot())

@@ -177,6 +177,73 @@ def test_empty_batch_is_forwarded_once():
     assert calls == [[]]
 
 
+def test_before_slice_hook_can_lower_cap_during_one_outer_batch():
+    controller = AdaptiveBatchController(
+        initial_batch_size=8,
+        min_batch_size=1,
+        max_batch_size=8,
+        successes_before_growth=1,
+        cooldown_successes=0,
+    )
+    calls = []
+    boundaries = []
+
+    def before_slice():
+        boundaries.append(len(calls))
+        if len(calls) == 1:
+            controller.set_hard_limit(3)
+
+    def mapper(batch):
+        calls.append(list(batch))
+        return batch
+
+    wrapper = OOMSafeAdaptiveMapper(mapper, controller=controller, before_slice=before_slice)
+
+    assert wrapper(list(range(20))) == list(range(20))
+    assert [len(batch) for batch in calls] == [8, 3, 3, 3, 3]
+    assert boundaries == [0, 1, 2, 3, 4]
+
+
+def test_snapshot_callback_runs_after_oom_and_success_controller_transitions():
+    class Measurement:
+        def __init__(self, batch_size):
+            self.snapshot = None
+            self.batch_size = batch_size
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.snapshot = (self.batch_size, exc_type is None)
+            return False
+
+    class SnapshotSampler:
+        def measure(self, batch_size):
+            return Measurement(batch_size)
+
+    controller = _fast_probe_controller(initial_batch_size=8)
+    observed = []
+
+    def mapper(batch):
+        if len(batch) > 4:
+            raise FakeCudaOutOfMemoryError("too large")
+        return batch
+
+    wrapper = OOMSafeAdaptiveMapper(
+        mapper,
+        controller=controller,
+        sampler=SnapshotSampler(),
+        snapshot_callback=lambda snapshot: observed.append((snapshot, controller.state)),
+    )
+
+    assert wrapper(list(range(8))) == list(range(8))
+    assert observed[0][0] == (8, False)
+    assert observed[0][1].oom_upper_bound == 8
+    assert observed[0][1].current_batch_size == 4
+    assert observed[1][0] == (4, True)
+    assert observed[1][1].success_lower_bound == 4
+
+
 @pytest.mark.parametrize(
     ("error", "expected"),
     [

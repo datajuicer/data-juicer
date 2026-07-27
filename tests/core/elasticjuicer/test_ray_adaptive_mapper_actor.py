@@ -5,6 +5,11 @@ import pyarrow
 import pytest
 
 from data_juicer.core.elasticjuicer.actor_resource_sampler import ActorResourceSnapshot
+from data_juicer.core.elasticjuicer.control_service import (
+    ActorControlPoller,
+    ControlService,
+)
+from data_juicer.core.elasticjuicer.quota import QuotaEnvelope, current_time_ms
 from data_juicer.core.elasticjuicer.ray_adaptive_mapper import RayAdaptiveMapperActor
 from data_juicer.ops.base_op import Mapper
 
@@ -30,36 +35,45 @@ class NoopSampler:
 
 
 class EmittingSampler(NoopSampler):
-    def set_snapshot_callback(self, callback):
-        self.callback = callback
-
     def measure(self, batch_size):
-        callback = self.callback
-
         class Measurement:
+            snapshot = None
+
             def __enter__(self):
                 return self
 
             def __exit__(self, exc_type, exc_value, traceback):
-                callback(
-                    ActorResourceSnapshot(
-                        timestamp=123.0,
-                        process_id=42,
-                        batch_size=batch_size,
-                        rss_start_mb=100.0,
-                        rss_end_mb=110.0,
-                        rss_peak_mb=120.0,
-                        rss_delta_mb=10.0,
-                        latency_ms=250.0,
-                        throughput=16.0,
-                        cuda=None,
-                        succeeded=exc_type is None,
-                        error_type=None if exc_type is None else exc_type.__name__,
-                    )
+                self.snapshot = ActorResourceSnapshot(
+                    timestamp=123.0,
+                    process_id=42,
+                    batch_size=batch_size,
+                    rss_start_mb=100.0,
+                    rss_end_mb=110.0,
+                    rss_peak_mb=120.0,
+                    rss_delta_mb=10.0,
+                    latency_ms=250.0,
+                    throughput=16.0,
+                    cuda=None,
+                    succeeded=exc_type is None,
+                    error_type=None if exc_type is None else exc_type.__name__,
                 )
                 return False
 
         return Measurement()
+
+
+class RemoteMethod:
+    def __init__(self, function):
+        self.function = function
+
+    def remote(self, *args):
+        return self.function(*args)
+
+
+class DirectControlHandle:
+    def __init__(self, service):
+        self.register = RemoteMethod(service.register)
+        self.get_latest = RemoteMethod(service.get_latest)
 
 
 class SkippingThresholdMapper(Mapper):
@@ -186,10 +200,17 @@ def test_actor_reports_sampler_snapshots_without_waiting_for_sink():
     assert len(events) > 1
     assert events[0].job_id == "job-a"
     assert events[0].actor_id == "actor-a"
+    assert events[0].actor_incarnation_id == actor.actor_incarnation_id
+    assert events[0].schema_version == 1
+    assert events[0].source == "actor_resource_sampler"
+    assert events[0].minimum_confidence == 1.0
     assert events[0].op_name == "threshold_mapper"
     assert events[0].snapshot.batch_size == 16
     assert events[0].snapshot.succeeded is False
+    assert events[0].control.local_oom_upper_bound == 16
+    assert events[0].control.current_batch_size == 8
     assert events[-1].snapshot.succeeded is True
+    assert events[-1].control.local_success_lower_bound is not None
     metrics_state = actor.get_metrics_state()
     assert metrics_state["enabled"] is True
     assert metrics_state["submitted_events"] == len(events)
@@ -214,6 +235,148 @@ def test_actor_reports_disabled_metrics_state_without_sink():
         "max_in_flight": 0,
         "last_sequence": 0,
     }
+
+
+def test_actor_receives_service_quota_through_background_cache():
+    import time
+
+    service = ControlService("job-a")
+    actor = RayAdaptiveMapperActor(
+        ThresholdMapper,
+        operator_args=(32,),
+        initial_batch_size=32,
+        max_batch_size=32,
+        sampler_factory=NoopSampler,
+        job_id="job-a",
+        actor_id="actor-a",
+        actor_incarnation_id="inc-a",
+        control_service=DirectControlHandle(service),
+        control_poll_interval_sec=0.001,
+        control_poller_factory=lambda **kwargs: ActorControlPoller(
+            get_fn=lambda value: value,
+            wait_fn=lambda refs, **wait_kwargs: (refs, []),
+            **kwargs,
+        ),
+    )
+    try:
+        now_ms = current_time_ms()
+        service.publish_quota(
+            QuotaEnvelope(
+                "job-a",
+                "actor-a",
+                "inc-a",
+                revision=1,
+                issued_at_ms=now_ms,
+                expires_at_ms=now_ms + 10_000,
+                max_batch_size=7,
+                reason="test",
+            )
+        )
+        actor(pyarrow.table({"value": [0]}))
+        time.sleep(0.002)
+        result = actor(pyarrow.table({"value": list(range(20))}))
+        assert result["value"].to_pylist() == [value + 1 for value in range(20)]
+        assert actor.get_quota_state().hard_limit == 7
+        assert actor.get_quota_state().last_revision == 1
+    finally:
+        actor.close()
+
+
+def test_actor_applies_lower_quota_at_next_micro_slice_within_one_outer_batch():
+    seen_batch_sizes = []
+
+    class RecordingMapper:
+        def process(self, table):
+            seen_batch_sizes.append(table.num_rows)
+            return table
+
+    class SliceBoundaryPoller:
+        def __init__(self, registration):
+            now_ms = current_time_ms()
+            self.quota = QuotaEnvelope(
+                job_id=registration.job_id,
+                actor_id=registration.actor_id,
+                actor_incarnation_id=registration.actor_incarnation_id,
+                revision=1,
+                issued_at_ms=now_ms,
+                expires_at_ms=now_ms + 60_000,
+                max_batch_size=3,
+                reason="mid_outer_batch_test",
+            )
+            self.boundaries = 0
+            self.delivered = False
+
+        def start(self):
+            return None
+
+        def poll_once(self):
+            self.boundaries += 1
+
+        def take_pending(self):
+            if self.boundaries >= 2 and not self.delivered:
+                self.delivered = True
+                return self.quota
+            return None
+
+        def snapshot(self):
+            return {"boundaries": self.boundaries}
+
+        def close(self):
+            return None
+
+    pollers = []
+
+    def create_poller(control_handle, registration, poll_interval_sec):
+        poller = SliceBoundaryPoller(registration)
+        pollers.append(poller)
+        return poller
+
+    actor = RayAdaptiveMapperActor(
+        RecordingMapper,
+        initial_batch_size=8,
+        max_batch_size=8,
+        sampler_factory=NoopSampler,
+        job_id="job-a",
+        actor_id="actor-a",
+        actor_incarnation_id="inc-a",
+        control_service=object(),
+        control_poller_factory=create_poller,
+    )
+
+    result = actor(pyarrow.table({"value": list(range(20))}))
+
+    assert result["value"].to_pylist() == list(range(20))
+    assert seen_batch_sizes == [8, 3, 3, 3, 3]
+    assert pollers[0].boundaries == 5
+    assert actor.get_quota_state().hard_limit == 3
+
+
+def test_control_service_failure_does_not_interrupt_actor_data_path():
+    class BrokenMethod:
+        def remote(self, *args):
+            raise RuntimeError("service unavailable")
+
+    broken = type("BrokenHandle", (), {"register": BrokenMethod(), "get_latest": BrokenMethod()})()
+    actor = RayAdaptiveMapperActor(
+        ThresholdMapper,
+        operator_args=(8,),
+        initial_batch_size=16,
+        max_batch_size=16,
+        sampler_factory=NoopSampler,
+        job_id="job-a",
+        control_service=broken,
+        control_poll_interval_sec=0.001,
+        control_poller_factory=lambda **kwargs: ActorControlPoller(
+            get_fn=lambda value: value,
+            wait_fn=lambda refs, **wait_kwargs: (refs, []),
+            **kwargs,
+        ),
+    )
+    try:
+        result = actor(pyarrow.table({"value": list(range(20))}))
+        assert result["value"].to_pylist() == [value + 1 for value in range(20)]
+    finally:
+        actor.close()
 
 
 def test_real_ray_actor_e2e_when_ray_is_available():

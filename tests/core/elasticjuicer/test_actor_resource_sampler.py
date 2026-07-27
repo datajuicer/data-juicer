@@ -108,6 +108,7 @@ def test_cpu_batch_snapshot_uses_process_rss_peak_delta_latency_and_throughput()
     assert snapshot.succeeded is True
     assert snapshot.error_type is None
     assert snapshot.timestamp == 123.0
+    assert snapshot.rss_peak_confidence == 0.99
 
 
 def test_default_sampler_binds_to_current_process():
@@ -171,6 +172,7 @@ def test_exception_is_recorded_without_being_suppressed():
     assert sampler.last_snapshot is not None
     assert sampler.last_snapshot.succeeded is False
     assert sampler.last_snapshot.error_type == "ValueError"
+    assert sampler.last_snapshot.rss_peak_confidence == 0.25
 
 
 def test_sampler_publishes_each_completed_snapshot_to_callback():

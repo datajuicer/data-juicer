@@ -234,3 +234,61 @@ def test_explicit_oom_reset_reopens_capacity_without_changing_current_size():
 
     assert controller.reset_oom_bound() == current
     assert controller.oom_upper_bound is None
+
+
+def test_recovery_hint_expires_without_erasing_local_oom_bound():
+    now_ms = [100]
+    controller = AdaptiveBatchController(
+        initial_batch_size=16,
+        max_batch_size=32,
+        successes_before_growth=1,
+        cooldown_successes=0,
+        oom_reprobe_successes=1,
+        max_oom_reprobes=1,
+        recovery_requires_hint=True,
+        clock_ms=lambda: now_ms[0],
+    )
+    controller.observe_oom(16)
+
+    assert controller.record_capacity_recovery_hint(expires_at_ms=110) is True
+    now_ms[0] = 110
+    controller.observe_success(controller.next_batch_size(100))
+
+    assert controller.oom_upper_bound == 16
+    assert controller.state.capacity_recovery_hint_pending is False
+    assert controller.state.capacity_recovery_hint_expires_at_ms is None
+
+
+def test_seed_bounds_adopts_prior_learning_before_any_observation():
+    controller = AdaptiveBatchController(initial_batch_size=32, max_batch_size=32)
+
+    assert controller.seed_bounds(safe_batch_size=8, oom_upper_bound=16) == 8
+    assert controller.current_batch_size == 8
+    assert controller.oom_upper_bound == 16
+    # The seed is a prior, not an observation: no events are recorded.
+    assert controller.success_events == 0
+    assert controller.oom_events == 0
+
+
+def test_seed_bounds_never_relaxes_static_bounds_and_ignores_bricking_oom_bound():
+    controller = AdaptiveBatchController(initial_batch_size=16, min_batch_size=4, max_batch_size=16)
+
+    # An advisory OOM bound at/below the minimum or above the maximum is
+    # ignored instead of bricking the incarnation; the safe size is clamped.
+    assert controller.seed_bounds(safe_batch_size=1, oom_upper_bound=4) == 4
+    assert controller.oom_upper_bound is None
+    assert controller.seed_bounds(safe_batch_size=64, oom_upper_bound=64) == 16
+    assert controller.oom_upper_bound is None
+
+
+def test_seed_bounds_is_rejected_after_first_observation_and_validates_types():
+    controller = AdaptiveBatchController(initial_batch_size=8, max_batch_size=16)
+
+    with pytest.raises(TypeError, match="safe_batch_size"):
+        controller.seed_bounds(safe_batch_size=True)
+    with pytest.raises(TypeError, match="oom_upper_bound"):
+        controller.seed_bounds(oom_upper_bound=2.5)
+
+    controller.observe_success(8)
+    with pytest.raises(RuntimeError, match="before the first observation"):
+        controller.seed_bounds(safe_batch_size=4)

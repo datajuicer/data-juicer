@@ -1,10 +1,38 @@
 """Job-scoped, fire-and-forget runtime metrics transport for Ray actors."""
 
+import time
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque
+from typing import Callable, Deque, Optional
 
 from .actor_resource_sampler import ActorResourceSnapshot
+
+METRICS_EVENT_SCHEMA_VERSION = 1
+
+
+@dataclass(frozen=True)
+class ActorControlMetrics:
+    """Actor-local control state observed with a resource snapshot."""
+
+    quota_revision: int
+    current_batch_size: int
+    hard_limit: int
+    static_min_batch_size: int
+    static_max_batch_size: int
+    local_success_lower_bound: Optional[int]
+    local_oom_upper_bound: Optional[int]
+
+    def __post_init__(self):
+        if self.quota_revision < 0:
+            raise ValueError("quota_revision must be non-negative")
+        if self.static_min_batch_size < 1:
+            raise ValueError("static_min_batch_size must be positive")
+        if self.static_max_batch_size < self.static_min_batch_size:
+            raise ValueError("static_max_batch_size must be >= static_min_batch_size")
+        if not self.static_min_batch_size <= self.current_batch_size <= self.static_max_batch_size:
+            raise ValueError("current_batch_size must be within static bounds")
+        if not self.static_min_batch_size <= self.hard_limit <= self.static_max_batch_size:
+            raise ValueError("hard_limit must be within static bounds")
 
 
 @dataclass(frozen=True)
@@ -13,21 +41,62 @@ class ActorMetricsEvent:
 
     job_id: str
     actor_id: str
+    actor_incarnation_id: str
+    stage_id: str
     op_name: str
     sequence: int
+    observed_at_ms: int
+    emitted_at_ms: int
+    source: str
     snapshot: ActorResourceSnapshot
+    control: Optional[ActorControlMetrics] = None
+    partition_id: Optional[int] = None
+    schema_version: int = METRICS_EVENT_SCHEMA_VERSION
 
     def __post_init__(self):
         if not self.job_id:
             raise ValueError("job_id must not be empty")
         if not self.actor_id:
             raise ValueError("actor_id must not be empty")
+        if not self.actor_incarnation_id:
+            raise ValueError("actor_incarnation_id must not be empty")
+        if not self.stage_id:
+            raise ValueError("stage_id must not be empty")
         if not self.op_name:
             raise ValueError("op_name must not be empty")
         if self.sequence < 1:
             raise ValueError("sequence must be at least 1")
+        if self.observed_at_ms < 0:
+            raise ValueError("observed_at_ms must be non-negative")
+        if self.emitted_at_ms < 0:
+            raise ValueError("emitted_at_ms must be non-negative")
+        if not self.source:
+            raise ValueError("source must not be empty")
         if not isinstance(self.snapshot, ActorResourceSnapshot):
             raise TypeError("snapshot must be an ActorResourceSnapshot")
+        if self.control is not None and not isinstance(self.control, ActorControlMetrics):
+            raise TypeError("control must be ActorControlMetrics or None")
+        if self.partition_id is not None and (
+            isinstance(self.partition_id, bool) or not isinstance(self.partition_id, int) or self.partition_id < 0
+        ):
+            raise ValueError("partition_id must be a non-negative integer or None")
+        if self.schema_version != METRICS_EVENT_SCHEMA_VERSION:
+            raise ValueError(f"unsupported metrics schema_version: {self.schema_version}")
+
+    def is_fresh(self, now_ms: int, ttl_ms: int) -> bool:
+        if now_ms < 0:
+            raise ValueError("now_ms must be non-negative")
+        if ttl_ms < 1:
+            raise ValueError("ttl_ms must be positive")
+        age_ms = now_ms - self.observed_at_ms
+        return 0 <= age_ms <= ttl_ms
+
+    @property
+    def minimum_confidence(self) -> float:
+        confidences = [self.snapshot.process_confidence, self.snapshot.rss_peak_confidence]
+        if self.snapshot.cuda is not None:
+            confidences.append(self.snapshot.cuda.confidence)
+        return min(confidences)
 
 
 class AsyncMetricsSink:
@@ -74,9 +143,13 @@ class AsyncMetricsReporter:
         sink_handle,
         job_id: str,
         actor_id: str,
+        actor_incarnation_id: str,
+        stage_id: str,
         op_name: str,
         max_in_flight: int = 64,
         wait_fn=None,
+        control_state_provider: Optional[Callable[[], ActorControlMetrics]] = None,
+        partition_id: Optional[int] = None,
     ):
         if sink_handle is None:
             raise ValueError("sink_handle must not be None")
@@ -91,11 +164,23 @@ class AsyncMetricsReporter:
         self.sink_handle = sink_handle
         self.job_id = job_id
         self.actor_id = actor_id
+        if not actor_incarnation_id:
+            raise ValueError("actor_incarnation_id must not be empty")
+        self.actor_incarnation_id = actor_incarnation_id
+        if not stage_id:
+            raise ValueError("stage_id must not be empty")
+        self.stage_id = stage_id
         self.op_name = op_name
         self.max_in_flight = max_in_flight
+        if partition_id is not None and (
+            isinstance(partition_id, bool) or not isinstance(partition_id, int) or partition_id < 0
+        ):
+            raise ValueError("partition_id must be a non-negative integer or None")
+        self.partition_id = partition_id
         self._sequence = 0
         self._in_flight = deque()
         self._wait_fn = wait_fn
+        self._control_state_provider = control_state_provider
         self.submitted_events = 0
         self.dropped_events = 0
 
@@ -110,9 +195,16 @@ class AsyncMetricsReporter:
         event = ActorMetricsEvent(
             job_id=self.job_id,
             actor_id=self.actor_id,
+            actor_incarnation_id=self.actor_incarnation_id,
+            stage_id=self.stage_id,
             op_name=self.op_name,
             sequence=self._sequence,
+            observed_at_ms=int(snapshot.timestamp * 1000),
+            emitted_at_ms=time.time_ns() // 1_000_000,
+            source=snapshot.source,
             snapshot=snapshot,
+            control=None if self._control_state_provider is None else self._control_state_provider(),
+            partition_id=self.partition_id,
         )
         record_remote = getattr(getattr(self.sink_handle, "record", None), "remote", None)
         if not callable(record_remote):

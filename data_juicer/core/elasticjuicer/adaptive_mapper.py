@@ -107,6 +107,8 @@ class OOMSafeAdaptiveMapper:
         max_retries_per_slice: int = 16,
         oom_cleanup: Optional[Callable[[], None]] = None,
         validate_output_rows: bool = True,
+        before_slice: Optional[Callable[[], None]] = None,
+        snapshot_callback: Optional[Callable] = None,
     ):
         if max_retries_per_slice < 0:
             raise ValueError("max_retries_per_slice must be non-negative")
@@ -116,6 +118,8 @@ class OOMSafeAdaptiveMapper:
         self.max_retries_per_slice = max_retries_per_slice
         self.oom_cleanup = oom_cleanup
         self.validate_output_rows = validate_output_rows
+        self.before_slice = before_slice
+        self.snapshot_callback = snapshot_callback
         self.oom_retries = 0
         self.successful_slices = 0
 
@@ -129,6 +133,8 @@ class OOMSafeAdaptiveMapper:
         while offset < total_rows:
             retries = 0
             while True:
+                if self.before_slice is not None:
+                    self.before_slice()
                 batch_size = self.controller.next_batch_size(total_rows - offset)
                 microbatch = _slice_batch(batch, offset, offset + batch_size, total_rows)
                 measurement = self.sampler.measure(batch_size) if self.sampler is not None else nullcontext()
@@ -137,13 +143,16 @@ class OOMSafeAdaptiveMapper:
                         output = self.mapper(microbatch, *args, **kwargs)
                 except BaseException as error:
                     if not is_oom_error(error):
+                        self._emit_snapshot(measurement)
                         raise
                     self.oom_retries += 1
                     retries += 1
                     try:
                         self.controller.observe_oom(batch_size)
                     except MinimumBatchSizeOOM:
+                        self._emit_snapshot(measurement)
                         raise error
+                    self._emit_snapshot(measurement)
                     if retries > self.max_retries_per_slice:
                         raise
                     if self.oom_cleanup is not None:
@@ -153,13 +162,30 @@ class OOMSafeAdaptiveMapper:
                 if self.validate_output_rows:
                     output_rows = _batch_length(output)
                     if output_rows != batch_size:
+                        self._emit_snapshot(measurement)
                         raise ValueError(
                             f"mapper returned {output_rows} rows for an {batch_size}-row input micro-batch"
                         )
                 self.controller.observe_success(batch_size)
+                self._emit_snapshot(measurement)
                 outputs.append(output)
                 offset += batch_size
                 self.successful_slices += 1
                 break
 
         return _merge_outputs(outputs)
+
+    def _emit_snapshot(self, measurement) -> None:
+        """Report a completed measurement after the controller transition."""
+
+        if self.snapshot_callback is None:
+            return
+        snapshot = getattr(measurement, "snapshot", None)
+        if snapshot is None:
+            return
+        try:
+            self.snapshot_callback(snapshot)
+        except Exception as error:
+            from loguru import logger
+
+            logger.warning(f"Failed to report ElasticJuicer actor metrics: {error}")

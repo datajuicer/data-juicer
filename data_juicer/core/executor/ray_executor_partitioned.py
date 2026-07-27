@@ -449,16 +449,28 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Detect convergence points for global operations
         convergence_points = self._detect_convergence_points(self.cfg)
 
-        if convergence_points:
-            logger.info(f"Found convergence points at operations: {convergence_points}")
-            final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
-        else:
-            logger.info("No convergence points found, processing with simple partitioning")
-            final_dataset = self._process_with_simple_partitioning(dataset, ops)
+        # Own the job-scoped ElasticJuicer Captain here so its lifetime covers
+        # every controlled stage (simple partitioning, convergence, and the
+        # post-convergence global segment), and release it on any exit path.
+        captain_lifecycle = None
+        start_captain = getattr(dataset, "start_elastic_juicer_captain", None)
+        if callable(start_captain):
+            captain_lifecycle = start_captain(self.cfg)
 
-        # Export final dataset
-        logger.info("Exporting final dataset...")
-        self.exporter.export(final_dataset.data, columns=columns)
+        try:
+            if convergence_points:
+                logger.info(f"Found convergence points at operations: {convergence_points}")
+                final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
+            else:
+                logger.info("No convergence points found, processing with simple partitioning")
+                final_dataset = self._process_with_simple_partitioning(dataset, ops)
+
+            # Export final dataset
+            logger.info("Exporting final dataset...")
+            self.exporter.export(final_dataset.data, columns=columns)
+        finally:
+            if captain_lifecycle is not None:
+                captain_lifecycle.close()
 
         job_duration = time.time() - job_start_time
         logger.info(f"✅ Job completed successfully in {job_duration:.2f}s")
@@ -514,6 +526,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
             # Create a RayDataset wrapper for this partition
             partition_dataset = RayDataset(partition, cfg=self.cfg)
+            partition_dataset.set_elastic_juicer_partition_id(i)
 
             # Apply operations with checkpointing support and DAG monitoring
             processed_partition = self._process_with_checkpointing(partition_dataset, i, ops)
@@ -808,6 +821,21 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         if hasattr(self.cfg, "op_fusion") and self.cfg.op_fusion:
             logger.info(f"Start OP fusion and reordering with strategy [{self.cfg.fusion_strategy}]...")
             ops = fuse_operators(ops)
+
+        # Assign restart-stable ElasticJuicer stage identities on the complete
+        # prepared list, before any checkpoint grouping or resume slicing, and
+        # persist the manifest next to checkpoints for resumed jobs.
+        if self.cfg.get("elastic_juicer_adaptive_batching", False):
+            from data_juicer.core.elasticjuicer.stage_identity import assign_stage_identities
+
+            manifest = assign_stage_identities(ops)
+            try:
+                manifest_path = os.path.join(self.work_dir, "elastic_juicer_stage_identities.json")
+                with open(manifest_path, "w") as f:
+                    json.dump(manifest, f, indent=2)
+                logger.info(f"ElasticJuicer stage identities written to {manifest_path}")
+            except OSError as e:
+                logger.warning(f"Could not persist ElasticJuicer stage identity manifest: {e}")
 
         return ops
 

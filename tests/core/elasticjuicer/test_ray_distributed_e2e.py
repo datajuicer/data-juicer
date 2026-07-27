@@ -69,7 +69,7 @@ class ElasticJuicerRayDistributedE2ETest(DataJuicerTestCaseBase):
             f"job_id={job_id}, alive_nodes={alive_nodes}, rows={len(rows)}, elapsed_seconds={elapsed_seconds:.4f}, "
             f"throughput={throughput:.2f} rows/s"
         )
-        return rows, dataset.elastic_juicer_metrics_sink
+        return rows, dataset.elastic_juicer_metrics_sink, dataset.elastic_juicer_control_service
 
     def _wait_for_complete_metrics(self, sink_handle, timeout_seconds=10.0):
         import ray
@@ -92,8 +92,9 @@ class ElasticJuicerRayDistributedE2ETest(DataJuicerTestCaseBase):
 
         values = list(range(100))
         sink = None
+        control = None
         try:
-            rows, sink = self._run_job("ej-dist-lossless", values)
+            rows, sink, control = self._run_job("ej-dist-lossless", values)
             metrics = self._wait_for_complete_metrics(sink)
 
             self.assertEqual([row["value"] for row in rows], [value + 3 for value in values])
@@ -104,6 +105,8 @@ class ElasticJuicerRayDistributedE2ETest(DataJuicerTestCaseBase):
         finally:
             if sink is not None:
                 ray.kill(sink, no_restart=True)
+            if control is not None:
+                ray.kill(control, no_restart=True)
 
     @TEST_TAG("ray")
     def test_metrics_sink_isolated_between_distributed_jobs(self):
@@ -111,9 +114,11 @@ class ElasticJuicerRayDistributedE2ETest(DataJuicerTestCaseBase):
 
         first_sink = None
         second_sink = None
+        first_control = None
+        second_control = None
         try:
-            first_rows, first_sink = self._run_job("ej-dist-job-a", list(range(40)))
-            second_rows, second_sink = self._run_job("ej-dist-job-b", list(range(40, 80)))
+            first_rows, first_sink, first_control = self._run_job("ej-dist-job-a", list(range(40)))
+            second_rows, second_sink, second_control = self._run_job("ej-dist-job-b", list(range(40, 80)))
             first_metrics = self._wait_for_complete_metrics(first_sink)
             second_metrics = self._wait_for_complete_metrics(second_sink)
 
@@ -127,3 +132,7 @@ class ElasticJuicerRayDistributedE2ETest(DataJuicerTestCaseBase):
                 ray.kill(first_sink, no_restart=True)
             if second_sink is not None:
                 ray.kill(second_sink, no_restart=True)
+            if first_control is not None:
+                ray.kill(first_control, no_restart=True)
+            if second_control is not None:
+                ray.kill(second_control, no_restart=True)

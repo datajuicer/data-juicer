@@ -1,0 +1,4 @@
+{"sample_id":0,"text":"A   lovely cat sits on a sofa.","target_text":"A lovely cat sits on a sofa."}
+{"sample_id":1,"text":"A cup of coffee is on the table.","target_text":"A cup of coffee is on the table."}
+{"sample_id":2,"text":"Ray schedules this operator on a GPU.","target_text":"Ray schedules this operator on a GPU."}
+{"sample_id":3,"text":"Data-Juicer processes each claimed shard.","target_text":"Data-Juicer processes each claimed shard."}

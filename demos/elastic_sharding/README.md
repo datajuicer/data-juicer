@@ -16,12 +16,16 @@ for large JSONL datasets:
 5. Validate and merge all successful shard outputs in their original order.
 
 This design does not require a cross-node Ray cluster. The shared filesystem
-coordinates nodes, while every node has its own independent Ray runtime. On
-PAI-DLC, users configure one startup command and DLC starts the same entry
-point on all Worker instances.
+coordinates nodes, while every node has its own independent Ray runtime.
+
+> **DLC launch topology matters.** `dlc_job.py dlc` requires a job type that
+> broadcasts the configured startup command to every Worker. A PAI-DLC MPIJob
+> does not do that: its command runs on the Launcher, which must use `mpirun`
+> and DLC's `/etc/mpi/hostfile` to start one process on every GPU Worker. In
+> both cases each GPU Worker still uses its own node-local Ray runtime.
 
 ```text
-                        One DLC job submission
+                 Worker-broadcast DLC job submission
                                   |
              +--------------------+--------------------+
              |                    |                    |
@@ -39,8 +43,8 @@ point on all Worker instances.
 
 ## Key advantages
 
-- **One submission for multiple nodes**: configure one DLC startup command
-  instead of logging in to every machine.
+- **One submission for multiple nodes**: use either Worker broadcast or an
+  MPIJob Launcher with `mpirun`; neither requires logging in to every machine.
 - **Dynamic load balancing**: a Worker claims another shard after finishing its
   current one, so faster nodes naturally process more work.
 - **Ray remains available inside every node**: every shard is processed by the
@@ -80,18 +84,24 @@ This demo is useful when:
 ```text
 demos/elastic_sharding/
 ├── shard_job.py             # Generic prepare/worker/status/retry/merge CLI
-├── dlc_job.py               # Generic one-command DLC launcher for N Workers
+├── dlc_job.py               # Launcher for DLC job types that broadcast to Workers
 ├── two_node_test.py         # Backward-compatible strict two-node wrapper
 ├── configs/
-│   └── demo.yaml            # Existing Mapper/Filter recipe used by the demo
+│   ├── demo.yaml            # CPU-only Mapper/Filter recipe
+│   ├── gpu_demo.yaml        # One-GPU-per-node CPU + GPU smoke test
+│   └── gpu_demo_4gpu.yaml   # Single-node, four-GPU smoke test
+├── data/
+│   └── gpu-demo-dataset.jsonl
 ├── README.md
 └── README_ZH.md
 ```
 
-`shard_job.py` contains the shared-storage shard state machine. `dlc_job.py`
-coordinates one-time preparation and finalization around any number of DLC
-Workers. `two_node_test.py` keeps the original strict two-node defaults for
-backward compatibility; new jobs should use `dlc_job.py`.
+`shard_job.py` contains the shared-storage shard state machine. For
+Worker-broadcast job types, `dlc_job.py` coordinates one-time preparation and
+finalization around any number of DLC Workers. `two_node_test.py` keeps the
+original strict two-node defaults for backward compatibility. An MPIJob
+Launcher should instead call the lower-level `prepare`, `worker`, and `merge`
+commands around an `mpirun -np N -npernode 1` worker launch.
 
 ## Important path concepts
 
@@ -134,13 +144,19 @@ python demos/elastic_sharding/dlc_job.py dlc \
 - The job directory stores normalized shards and attempt results, so reserve
   enough capacity. Media files are referenced by path and are not copied.
 
-## PAI-DLC multi-node quick start
+## PAI-DLC Worker-broadcast quick start
+
+This section is **not** the MPIJob launch procedure. Use it only after
+confirming that the selected DLC job type runs the startup command on every
+Worker. For MPIJob, configure the command once on the Launcher and have that
+command run preparation, `mpirun` one process per Worker, and merge.
 
 ### 1. Configure the DLC job
 
 Create one DLC job with:
 
-- Framework: `PyTorch`, without `torchrun`.
+- Framework: a `PyTorch`-style job that starts the user command on every
+  Worker, without `torchrun`.
 - Worker count: any positive number, for example `4`, with one script process
   per Worker.
 - Do not select DLC's `Ray` framework for this demo. DLC Ray creates a
@@ -153,7 +169,7 @@ Create one DLC job with:
 - Use the same image with Data-Juicer's Ray dependencies on all Workers.
 
 Only one startup command and a Worker count are configured on the PAI-DLC job
-page. See the official
+page; the selected job type must dispatch that command to every Worker. See the official
 [Create a training job](https://help.aliyun.com/zh/pai/create-a-training-task)
 guide.
 
@@ -181,7 +197,8 @@ The defaults are:
 
 ### 3. Automatic workflow
 
-The same `dlc` entry point runs on every Worker:
+The selected Worker-broadcast job type runs the same `dlc` entry point on
+every Worker:
 
 1. Atomically elect one prepare coordinator through shared storage.
 2. Validate the input and recipe, then pre-split exactly once.
@@ -251,6 +268,129 @@ Strict mode sets a per-Worker claim cap and verifies at least `--nodes`
 distinct completion hostnames. A missing Worker therefore causes the strict
 job to wait and eventually fail. Use a shard count that is a multiple of the
 node count.
+
+## GPU smoke test: one recipe with CPU and GPU operators
+
+`configs/gpu_demo.yaml` verifies that a claimed shard can move through both
+CPU and GPU operators inside the node-local Ray executor:
+
+| Order | Operator | Resource requested from Ray |
+| --- | --- | --- |
+| 1 | `whitespace_normalization_mapper` | 1 CPU |
+| 2 | `query_sentiment_detection_mapper` | 1 CPU + 1 GPU |
+| 3 | `query_topic_detection_mapper` | 1 CPU + 1 GPU |
+| 4 | `text_pair_similarity_filter` | 1 CPU + 1 GPU |
+| 5 | `text_length_filter` | 1 CPU |
+
+The two GPU Mappers write sentiment and topic labels into `meta`. The GPU
+Filter uses `openai/clip-vit-base-patch32` and writes
+`text_pair_similarity` into `__dj__stats__`. All three GPU operators set
+`num_gpus: 1`, so Ray must schedule their tasks on a real GPU; this is not a
+CPU-fallback test.
+
+Before submitting the job:
+
+- give every DLC Worker at least one visible NVIDIA GPU;
+- install the CUDA-enabled PyTorch, Ray, Transformers, and Data-Juicer
+  dependencies in the image;
+- make these three models available to every Worker:
+  `mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis`,
+  `dstefa/roberta-base_topic_classification_nyt_news`, and
+  `openai/clip-vit-base-patch32`;
+- the first run downloads the models from Hugging Face unless the corresponding
+  recipe fields are changed to pre-downloaded paths;
+- prefer models baked into the image or a pre-populated cache for a
+  multi-node test, rather than making all Workers download them concurrently.
+
+Check one Worker image first:
+
+```bash
+python -c "import torch; assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))"
+```
+
+### Single-node, four-GPU command
+
+Use `gpu_demo_4gpu.yaml` when one machine has four visible GPUs:
+
+```bash
+cd /mnt/data/data-juicer && \
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config demos/elastic_sharding/configs/gpu_demo_4gpu.yaml \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-4card-smoke-001 \
+  --nodes 1 \
+  --num-shards 1 \
+  --ray-address local \
+  --output /mnt/shared/data-juicer-jobs/gpu-4card-smoke-001/merged.jsonl
+```
+
+The four-GPU recipe uses `override_num_blocks: 4`, `batch_size: 1`,
+`num_proc: 4`, and `num_gpus: 1` for each GPU operator. One node-local Ray
+runtime can therefore schedule four one-GPU tasks concurrently.
+
+Keep `--num-shards 1` for this four-row smoke test. A single DLC Worker claims
+shards sequentially, so `--num-shards 4` would create four one-row Ray jobs and
+would normally exercise only one GPU at a time. For a larger input, keep each
+shard large enough to contain at least four Ray blocks.
+
+You can observe placement in another terminal:
+
+```bash
+watch -n 1 nvidia-smi
+```
+
+Because the bundled input is tiny, GPU utilization may be brief. A larger
+`--dataset-path` is better for sustained utilization and throughput
+measurements.
+
+### Multi-node, one-GPU-per-node command
+
+For a strict two-GPU-node DLC smoke test, configure two Workers and enter this
+single startup command once:
+
+```bash
+cd /mnt/data/data-juicer && \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config demos/elastic_sharding/configs/gpu_demo.yaml \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-smoke-001 \
+  --nodes 2 \
+  --num-shards 4 \
+  --require-all-nodes \
+  --ray-address local \
+  --output /mnt/shared/data-juicer-jobs/gpu-smoke-001/merged.jsonl
+```
+
+The bundled dataset has four rows, so it supports at most four non-empty
+shards. To test more nodes or realistic throughput, pass a larger JSONL with
+both `text` and `target_text` fields:
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config demos/elastic_sharding/configs/gpu_demo.yaml \
+  --dataset-path /mnt/shared/input/text-pairs.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-large-smoke-001 \
+  --nodes 8 \
+  --num-shards 32 \
+  --require-all-nodes \
+  --ray-address local
+```
+
+After completion, verify ownership and the GPU-generated metadata/statistics:
+
+```bash
+python demos/elastic_sharding/dlc_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-smoke-001
+
+rg -n 'query_(sentiment|topic)_label|text_pair_similarity' \
+  /mnt/shared/data-juicer-jobs/gpu-smoke-001/merged.jsonl
+```
+
+Each Worker handles one shard attempt at a time. The bundled recipe deliberately
+sets `ray_execution_mode: task`, `num_proc: 1`, and `num_gpus: 1` for every GPU
+operator. Their Ray tasks can therefore reuse a single GPU on each node instead
+of requiring three GPUs concurrently. For a production recipe, tune operator
+concurrency, GPU fractions, batch size, model size, and shard size for the
+hardware.
 
 ## Important: use an existing Mapper/Filter recipe and your own JSONL
 
@@ -351,9 +491,10 @@ Media path behavior:
 - `images`, `audios`, and `videos` must be string lists or `null`. Change their
   names through `image_key`, `audio_key`, and `video_key` in the recipe.
 
-### Run your recipe and input on any number of DLC Workers
+### Run your recipe and input on any number of broadcast-started DLC Workers
 
-The DLC job still contains only one startup command:
+The Worker-broadcast DLC job still contains only one configured startup
+command:
 
 ```bash
 cd /mnt/data/data-juicer && \
@@ -407,7 +548,7 @@ row counts, normalized-content SHA256, and Data-Juicer commit.
 
 ### `dlc`
 
-Runs the complete one-command DLC workflow.
+Runs the complete Worker-broadcast DLC workflow.
 
 | Option | Required | Default | Meaning |
 | --- | --- | --- | --- |
@@ -726,6 +867,8 @@ Also check:
 
 Check:
 
+- this is a Worker-broadcast job type, not an MPIJob whose command ran only on
+  the Launcher;
 - in strict mode, DLC Worker count equals `--nodes`; in elastic mode,
   `--nodes` may be omitted;
 - every Worker started the same command;

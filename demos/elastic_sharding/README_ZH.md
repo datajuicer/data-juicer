@@ -11,11 +11,15 @@
 5. 全部分片成功后，按原始分片顺序验证并合并结果。
 
 它不要求维护一个跨节点 Ray 集群。共享文件系统只负责节点间协调，每个节点的 Ray
-运行时相互独立。对于 PAI-DLC，可以只提交一次启动命令，由 DLC 在所有 Worker
-实例上启动同一个入口。
+运行时相互独立。
+
+> **必须区分 DLC 启动拓扑。** `dlc_job.py dlc` 要求所选作业类型把启动命令广播到
+> 每个 Worker。PAI-DLC MPIJob 并不会这样做：启动命令只在 Launcher 上运行，
+> Launcher 必须通过 `mpirun` 和 DLC 生成的 `/etc/mpi/hostfile` 在每个 GPU
+> Worker 上各拉起一个进程。两种拓扑中的 GPU Worker 都继续使用节点内独立 Ray。
 
 ```text
-                        一次 DLC 作业提交
+                 Worker 广播型 DLC 作业提交
                                   │
              ┌────────────────────┼────────────────────┐
              │                    │                    │
@@ -33,7 +37,8 @@
 
 ## 主要优势
 
-- **一次提交，多节点自动工作**：DLC 中只配置一条启动命令，不需要逐台登录机器。
+- **一次提交，多节点自动工作**：使用 Worker 广播，或由 MPIJob Launcher 调用
+  `mpirun`，都不需要逐台登录机器。
 - **动态负载均衡**：节点处理完一片后继续认领下一片，快节点自然承担更多工作。
 - **节点内继续使用 Ray**：每个分片仍由 Data-Juicer Ray executor 利用当前节点的
   CPU/GPU 并行能力。
@@ -68,17 +73,23 @@
 ```text
 demos/elastic_sharding/
 ├── shard_job.py             # 通用分片任务：prepare/worker/status/retry/merge
-├── dlc_job.py               # 面向任意 Worker 数的一键 DLC 编排器
+├── dlc_job.py               # 适用于命令广播到每个 Worker 的 DLC 编排器
 ├── two_node_test.py         # 向后兼容的严格两节点包装器
 ├── configs/
-│   └── demo.yaml            # 使用现有 Mapper/Filter 的示例 recipe
+│   ├── demo.yaml            # 纯 CPU Mapper/Filter recipe
+│   ├── gpu_demo.yaml        # 每节点一张 GPU 的 CPU + GPU 冒烟测试
+│   └── gpu_demo_4gpu.yaml   # 单机四卡冒烟测试
+├── data/
+│   └── gpu-demo-dataset.jsonl
 ├── README.md
 └── README_ZH.md
 ```
 
-`shard_job.py` 实现共享存储分片状态机；`dlc_job.py` 为任意数量的 DLC Worker
-协调一次性 prepare 和 finalize。`two_node_test.py` 保留原来的严格两节点默认值，
-仅用于向后兼容；新任务应直接使用 `dlc_job.py`。
+`shard_job.py` 实现共享存储分片状态机。对于 Worker 广播型作业，
+`dlc_job.py` 为任意数量的 DLC Worker 协调一次性 prepare 和 finalize。
+`two_node_test.py` 保留原来的严格两节点默认值，仅用于向后兼容。MPIJob Launcher
+应改为在 `prepare` 和 `merge` 之间，通过 `mpirun -np N -npernode 1` 拉起
+底层 `worker` 命令。
 
 ## 核心路径概念
 
@@ -116,13 +127,18 @@ python demos/elastic_sharding/dlc_job.py dlc \
 - `prepare` 会保存完整分片，attempt 会保存处理结果，需为 `job-dir` 预留足够空间。
   媒体文件只改写路径，不会复制到 `job-dir`。
 
-## PAI-DLC 多节点快速开始
+## PAI-DLC Worker 广播型作业快速开始
+
+本节**不是** MPIJob 的启动流程。只有确认所选 DLC 作业类型会在每个 Worker
+执行启动命令时才能使用。MPIJob 应只在 Launcher 配置一条命令，并由该命令依次
+执行 prepare、`mpirun` 每 Worker 一个进程、merge。
 
 ### 1. DLC 任务配置
 
 在 DLC 控制台创建任务：
 
-- 框架选择 `PyTorch`，但不使用 `torchrun`。
+- 选择会在每个 Worker 启动用户命令的 `PyTorch` 类型作业，但不使用
+  `torchrun`。
 - Worker 数量可以是任意正整数，例如 `4`；每个 Worker 启动一个脚本进程。
 - 不要选择 DLC 的 `Ray` 框架；它会建立跨节点 Ray 集群，与本示例的节点内独立 Ray
   拓扑不同。
@@ -131,7 +147,8 @@ python demos/elastic_sharding/dlc_job.py dlc \
 - 将同一个可读写 NAS/CPFS 挂载到相同路径，例如 `/mnt/shared`。
 - 所有 Worker 使用相同镜像，镜像已安装 Data-Juicer 的 Ray 依赖。
 
-PAI-DLC 的任务页面只需配置一份启动命令和 Worker 数量，参考
+PAI-DLC 的任务页面只需配置一份启动命令和 Worker 数量，但所选作业类型必须把
+这条命令分发到每个 Worker，参考
 [创建训练任务](https://help.aliyun.com/zh/pai/create-a-training-task)。
 
 ### 2. 配置一条启动命令
@@ -158,7 +175,7 @@ python demos/elastic_sharding/dlc_job.py dlc \
 
 ### 3. 自动执行流程
 
-`dlc` 子命令会在两个实例上执行相同逻辑：
+Worker 广播型作业会让每个实例执行相同的 `dlc` 逻辑：
 
 1. 通过共享目录原子竞选 prepare coordinator。
 2. coordinator 验证 recipe 和输入，只执行一次预切分。
@@ -225,6 +242,120 @@ python demos/elastic_sharding/dlc_job.py dlc \
 严格模式会限制每个 Worker 的 claim 数，并检查至少有 `--nodes` 个不同 hostname
 完成过分片。因此缺少任一 Worker 都会让严格任务等待并最终失败。建议让分片数是
 节点数的整数倍。
+
+## GPU 冒烟测试：一个 recipe 同时运行 CPU 和 GPU 算子
+
+`configs/gpu_demo.yaml` 用来验证节点认领分片后，节点内 Ray 能让同一分片依次经过
+CPU 和 GPU 算子：
+
+| 顺序 | 算子 | 向 Ray 申请的资源 |
+| --- | --- | --- |
+| 1 | `whitespace_normalization_mapper` | 1 CPU |
+| 2 | `query_sentiment_detection_mapper` | 1 CPU + 1 GPU |
+| 3 | `query_topic_detection_mapper` | 1 CPU + 1 GPU |
+| 4 | `text_pair_similarity_filter` | 1 CPU + 1 GPU |
+| 5 | `text_length_filter` | 1 CPU |
+
+两个 GPU Mapper 会在 `meta` 中写入情感和主题标签；GPU Filter 使用
+`openai/clip-vit-base-patch32`，并在输出的 `__dj__stats__` 中写入
+`text_pair_similarity`。三个 GPU 算子都显式设置了 `num_gpus: 1`，所以 Ray
+必须将相应 task 调度到真实 GPU；这不是允许回退到 CPU 的测试。
+
+提交任务前需要：
+
+- 每个 DLC Worker 至少有一张对进程可见的 NVIDIA GPU；
+- 镜像包含支持 CUDA 的 PyTorch、Ray、Transformers 和 Data-Juicer 依赖；
+- 每个 Worker 都能读取三个模型：
+  `mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis`、
+  `dstefa/roberta-base_topic_classification_nyt_news` 和
+  `openai/clip-vit-base-patch32`；
+- 第一次运行默认从 Hugging Face 下载，也可以把 recipe 中对应模型字段改为所有
+  Worker 都能访问的预下载路径；
+- 多节点测试建议把模型直接放进镜像或预热缓存，不要让所有 Worker 同时下载模型。
+
+先在一个 Worker 镜像中检查：
+
+```bash
+python -c "import torch; assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))"
+```
+
+### 单机四卡命令
+
+一台机器有 4 张可见 GPU 时，使用 `gpu_demo_4gpu.yaml`：
+
+```bash
+cd /mnt/data/data-juicer && \
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config demos/elastic_sharding/configs/gpu_demo_4gpu.yaml \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-4card-smoke-001 \
+  --nodes 1 \
+  --num-shards 1 \
+  --ray-address local \
+  --output /mnt/shared/data-juicer-jobs/gpu-4card-smoke-001/merged.jsonl
+```
+
+四卡 recipe 设置了 `override_num_blocks: 4`、`batch_size: 1`、
+`num_proc: 4`，且每个 GPU task 设置 `num_gpus: 1`。这样同一个节点内 Ray
+可以并发调度 4 个各占一张卡的 task。
+
+对于内置 4 行数据，请保持 `--num-shards 1`。单个 DLC Worker 会顺序处理分片，
+如果改成 `--num-shards 4`，会产生 4 个只有一行的 Ray 作业，通常每次仍只使用
+一张 GPU。换成更大输入时，也要让每个分片至少包含 4 个 Ray block。
+
+可以在另一个终端观察 GPU 调度：
+
+```bash
+watch -n 1 nvidia-smi
+```
+
+内置输入很小，GPU 利用率可能只短暂出现；测试持续利用率和吞吐量时，建议通过
+`--dataset-path` 换成更大的数据。
+
+### 多节点、每节点一张 GPU 命令
+
+严格验证两个 GPU 节点时，在 DLC 中配置两个 Worker，并只填写一次下面的启动命令：
+
+```bash
+cd /mnt/data/data-juicer && \
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config demos/elastic_sharding/configs/gpu_demo.yaml \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-smoke-001 \
+  --nodes 2 \
+  --num-shards 4 \
+  --require-all-nodes \
+  --ray-address local \
+  --output /mnt/shared/data-juicer-jobs/gpu-smoke-001/merged.jsonl
+```
+
+内置测试数据只有 4 行，因此最多只能切出 4 个非空分片。测试更多节点或真实吞吐量时，
+通过 `--dataset-path` 换成同时包含 `text` 和 `target_text` 字段的更大 JSONL：
+
+```bash
+python demos/elastic_sharding/dlc_job.py dlc \
+  --config demos/elastic_sharding/configs/gpu_demo.yaml \
+  --dataset-path /mnt/shared/input/text-pairs.jsonl \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-large-smoke-001 \
+  --nodes 8 \
+  --num-shards 32 \
+  --require-all-nodes \
+  --ray-address local
+```
+
+完成后检查节点认领情况以及 GPU 算子生成的元数据和统计字段：
+
+```bash
+python demos/elastic_sharding/dlc_job.py status \
+  --job-dir /mnt/shared/data-juicer-jobs/gpu-smoke-001
+
+rg -n 'query_(sentiment|topic)_label|text_pair_similarity' \
+  /mnt/shared/data-juicer-jobs/gpu-smoke-001/merged.jsonl
+```
+
+每个 Worker 同一时间处理一个分片 attempt。内置 recipe 为每个 GPU 算子设置
+`ray_execution_mode: task`、`num_proc: 1` 和 `num_gpus: 1`，因此三个阶段可以
+依次复用节点上的同一张 GPU，而不要求每个节点同时提供三张 GPU。生产 recipe 应
+根据硬件调整算子并发数、GPU 比例、batch size、模型大小和分片大小。
 
 ## 重点：使用现有 Mapper/Filter recipe 和自己的 JSONL
 
@@ -317,9 +448,9 @@ attempt 的隔离输出目录。因此同一份 recipe 可以安全地重复用�
 - `images`、`audios`、`videos` 字段必须是字符串列表或 `null`。字段名可以通过
   recipe 的 `image_key`、`audio_key`、`video_key` 修改。
 
-### 使用任意数量的 DLC Worker 运行自己的 recipe 和数据
+### 在任意数量的广播启动 DLC Worker 上运行自己的 recipe 和数据
 
-在 DLC 中仍然只配置这一条命令：
+在 Worker 广播型 DLC 作业中仍然只配置这一条命令：
 
 ```bash
 cd /mnt/data/data-juicer && \
@@ -367,7 +498,7 @@ SHA256 和 Data-Juicer commit。
 
 ### `dlc`
 
-完整的一键 DLC 流程。
+完整的 Worker 广播型 DLC 流程。
 
 | 参数 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- |
@@ -672,6 +803,7 @@ DLC 中任一 Worker 非零退出都应视为整个任务失败。
 
 检查：
 
+- 当前是否确实为 Worker 广播型作业，而不是启动命令只落到 Launcher 的 MPIJob；
 - 严格模式下 DLC Worker 数是否等于 `--nodes`；弹性模式可以省略
   `--nodes`；
 - 所有 Worker 是否真的启动了同一命令；

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Generic one-command DLC launcher for the elastic sharding demo.
+"""Worker-broadcast DLC launcher for the elastic sharding demo.
 
-Submit one ``dlc`` command with any number of Worker instances. Every Worker
-runs the same entry point; shared-storage leader election coordinates
+Use this entry point only when the DLC job type starts the configured command
+on every Worker instance. Shared-storage leader election then coordinates
 preparation and finalization without platform-specific rank variables.
+
+For an MPIJob, the configured command runs on its Launcher instead. The
+Launcher must use ``mpirun`` (normally with DLC's generated hostfile) to start
+one ``worker`` process on every GPU Worker; do not invoke the ``dlc`` command
+only on the MPI Launcher.
 
 The explicit ``prepare``, ``worker``, and ``verify`` commands are retained for
 manual or scheduler-driven testing.
@@ -532,7 +537,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     dlc_parser = commands.add_parser(
         "dlc",
-        help="Run a complete elastic job as one multi-Worker DLC command",
+        help="Run a complete job when DLC broadcasts this command to every Worker",
     )
     dlc_parser.add_argument("--job-dir", required=True, help="Shared job directory")
     dlc_parser.add_argument(

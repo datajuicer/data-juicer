@@ -1237,13 +1237,14 @@ def worker_job(args: argparse.Namespace) -> int:
         raise ShardJobError("Recipe snapshot hash does not match manifest")
 
     processed = 0
+    failed = 0
     hostname = socket.gethostname()
     print(f"Worker {hostname}:{os.getpid()} started for {manifest['job_id']}")
 
     while True:
         if args.max_shards is not None and processed >= args.max_shards:
             print(f"Reached --max-shards={args.max_shards}")
-            return 0
+            return 2 if failed else 0
 
         claim: dict[str, Any] | None = None
         selected_shard: dict[str, Any] | None = None
@@ -1262,6 +1263,8 @@ def worker_job(args: argparse.Namespace) -> int:
             print(f"Claimed {selected_shard['id']} (attempt {claim['attempt_number']})")
             result = _process_claim(job_dir, manifest, selected_shard, claim)
             processed += 1
+            if result == "failed":
+                failed += 1
             print(f"Finished {selected_shard['id']}: {result}")
             continue
 

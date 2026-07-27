@@ -19,6 +19,9 @@ sys.modules[SPEC.name] = elastic_shard_job
 SPEC.loader.exec_module(elastic_shard_job)
 
 DLC_JOB_SCRIPT_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "dlc_job.py"
+GPU_DEMO_CONFIG_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "configs" / "gpu_demo.yaml"
+GPU_DEMO_4GPU_CONFIG_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "configs" / "gpu_demo_4gpu.yaml"
+GPU_DEMO_DATASET_PATH = REPO_ROOT / "demos" / "elastic_sharding" / "data" / "gpu-demo-dataset.jsonl"
 DLC_JOB_SPEC = importlib.util.spec_from_file_location(
     "elastic_dlc_job",
     DLC_JOB_SCRIPT_PATH,
@@ -246,6 +249,58 @@ def test_default_recipe_is_accepted_and_overridden_with_ray():
     assert any("overridden with executor_type=ray" in warning for warning in validation["warnings"])
 
 
+def test_bundled_gpu_recipe_mixes_cpu_and_gpu_ray_operators():
+    config = yaml.safe_load(GPU_DEMO_CONFIG_PATH.read_text(encoding="utf-8"))
+    validation = elastic_shard_job._validate_recipe(config)
+
+    from data_juicer.ops import OPERATORS
+
+    operators = [next(iter(op_config.items())) for op_config in config["process"]]
+    assert [OPERATORS.modules[name]._accelerator for name, _ in operators] == [
+        "cpu",
+        "cuda",
+        "cuda",
+        "cuda",
+        "cpu",
+    ]
+    assert [name for name, _ in operators[1:4]] == [
+        "query_sentiment_detection_mapper",
+        "query_topic_detection_mapper",
+        "text_pair_similarity_filter",
+    ]
+    assert all(args["num_gpus"] == 1 for _, args in operators[1:4])
+    assert all(args["num_proc"] == 1 for _, args in operators[1:4])
+    assert all(args["ray_execution_mode"] == "task" for _, args in operators[1:4])
+    assert operators[3][1]["text_key_second"] == "target_text"
+    assert config["executor_type"] == "ray"
+    assert config["ray_address"] == "local"
+    assert elastic_shard_job._resolve_dataset_path(config, None) == GPU_DEMO_DATASET_PATH
+    assert validation["warnings"] == []
+
+
+def test_bundled_four_gpu_recipe_configures_four_ray_tasks():
+    config = yaml.safe_load(GPU_DEMO_4GPU_CONFIG_PATH.read_text(encoding="utf-8"))
+    validation = elastic_shard_job._validate_recipe(config)
+
+    from data_juicer.ops import OPERATORS
+
+    operators = [next(iter(op_config.items())) for op_config in config["process"]]
+    assert [OPERATORS.modules[name]._accelerator for name, _ in operators] == [
+        "cpu",
+        "cuda",
+        "cuda",
+        "cuda",
+        "cpu",
+    ]
+    assert config["override_num_blocks"] == 4
+    assert all(args["num_proc"] == 4 for _, args in operators)
+    assert all(args["batch_size"] == 1 for _, args in operators[1:4])
+    assert all(args["num_gpus"] == 1 for _, args in operators[1:4])
+    assert all(args["ray_execution_mode"] == "task" for _, args in operators[1:4])
+    assert elastic_shard_job._resolve_dataset_path(config, None) == GPU_DEMO_DATASET_PATH
+    assert validation["warnings"] == []
+
+
 def test_claim_is_exclusive_and_stale_lock_is_reclaimed(tmp_path, monkeypatch):
     job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
     shard = elastic_shard_job._load_manifest(job_dir)["shards"][0]
@@ -379,6 +434,28 @@ def test_max_retries_are_in_addition_to_initial_attempt(tmp_path, monkeypatch):
     )
     failed = elastic_shard_job._read_json(elastic_shard_job._failed_path(job_dir, shard["id"]))
     assert failed["failures"] == 4
+
+
+def test_worker_max_shards_propagates_claim_failure(tmp_path, monkeypatch):
+    job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
+    monkeypatch.setattr(
+        elastic_shard_job,
+        "_process_claim",
+        lambda *_args, **_kwargs: "failed",
+    )
+
+    assert (
+        elastic_shard_job.main(
+            [
+                "worker",
+                "--job-dir",
+                str(job_dir),
+                "--max-shards",
+                "1",
+            ]
+        )
+        == 2
+    )
 
 
 def test_retry_and_ordered_merge(tmp_path, monkeypatch):

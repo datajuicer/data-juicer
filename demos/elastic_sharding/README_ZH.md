@@ -510,10 +510,15 @@ SHA256 和 Data-Juicer commit。
 | `--require-all-nodes` | 否 | false | 限制 claim，并要求所有 `--nodes` hostname 参与 |
 | `--ray-address` | 否 | `local` | 每个节点内部使用的 Ray 地址 |
 | `--output` | 否 | `<job-dir>/merged.jsonl` | 最终合并 JSONL |
+| `--run-id` | 否 | DLC Job ID | 同一次提交中所有 Worker 共享的标识 |
 | `--wait-timeout-secs` | 否 | `126000`（35 小时） | 等待 prepare、全分片完成或 finalize 的最长时间 |
 | `--poll-interval-secs` | 否 | `2` | DLC 协调状态轮询间隔 |
 
 `--wait-timeout-secs` 是 DLC 包装器等待其他实例的超时，不是分片锁超时。
+
+启动器会依次从 `PAI_JOB_ID`、`DLC_JOB_ID`、`JOB_ID` 读取 submission 标识。
+在 DLC 之外运行时，应给所有 Worker 传入相同的 `--run-id`，并在每次新提交时
+更换它。这样即使复用同一个 `job-dir`，也不会读取上一次提交留下的终态协调文件。
 
 ### 其他包装器子命令
 
@@ -738,12 +743,13 @@ DLC 一键入口还会在 `job-dir` 同级创建：
 
 ```text
 .<job-dir-name>.dlc-coordination/
-├── prepare.lock
-├── prepare-result.json
-├── abort.lock
-├── abort.json
-├── finalize.lock
-└── finalize-result.json
+└── <submission-id-hash>/
+    ├── prepare.lock
+    ├── prepare-result.json
+    ├── abort.lock
+    ├── abort.json
+    ├── finalize.lock
+    └── finalize-result.json
 ```
 
 如果环境没有显式设置 `XDG_CACHE_HOME` 或 `HF_HOME`，Worker 会使用
@@ -760,7 +766,8 @@ DLC 一键入口还会在 `job-dir` 同级创建：
 - `retry` 只应在确认没有活动锁并修复根因后执行。
 - 修改 recipe 或输入不是 retry 场景，应新建 `job-dir` 并重新 prepare。
 - DLC prepare/finalize coordinator 在写出阶段结果前被强制终止时，其他实例会等待
-  `wait_timeout_secs` 后失败；下一次提交建议使用新目录。
+  `wait_timeout_secs` 后失败；新的 submission 会使用新的协调 generation，因此在
+  recipe 和输入不变时可以安全复用同一个 `job-dir` 重试。
 
 ## 退出码
 
@@ -808,8 +815,9 @@ DLC 中任一 Worker 非零退出都应视为整个任务失败。
   `--nodes`；
 - 所有 Worker 是否真的启动了同一命令；
 - `job-dir` 是否是同一个共享挂载，而不是各节点本地同名目录；
-- 同级隐藏协调目录中的 `prepare-result.json`、`abort.json` 和
-  `finalize-result.json`；
+- 所有 Worker 解析到的 `--run-id` 或 DLC Job ID 是否一致；
+- 同级隐藏协调目录下当前 generation 中的 `prepare-result.json`、`abort.json`
+  和 `finalize-result.json`；
 - 使用 `--require-all-nodes` 时，失败 attempt 是否消耗了严格模式的单 Worker
   claim 上限。
 

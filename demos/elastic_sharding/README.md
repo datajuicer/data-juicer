@@ -560,11 +560,17 @@ Runs the complete Worker-broadcast DLC workflow.
 | `--require-all-nodes` | No | false | Cap claims and require all `--nodes` hostnames |
 | `--ray-address` | No | `local` | Ray address used independently in each node |
 | `--output` | No | `<job-dir>/merged.jsonl` | Final merged JSONL |
+| `--run-id` | No | DLC Job ID | Identifier shared by Workers in one submission |
 | `--wait-timeout-secs` | No | `126000` (35h) | Maximum prepare/completion/finalize wait |
 | `--poll-interval-secs` | No | `2` | DLC coordination polling interval |
 
 `--wait-timeout-secs` controls cross-instance DLC coordination. It is different
 from the per-shard claim timeout.
+
+The launcher reads the submission identity from `PAI_JOB_ID`, `DLC_JOB_ID`, or
+`JOB_ID`. Outside DLC, pass the same `--run-id` to every Worker and use a new
+value for each new submission. This keeps terminal coordination state from one
+submission out of later submissions that reuse the same `job-dir`.
 
 ### Other wrapper subcommands
 
@@ -797,12 +803,13 @@ The one-command DLC entry point also creates a sibling directory:
 
 ```text
 .<job-dir-name>.dlc-coordination/
-├── prepare.lock
-├── prepare-result.json
-├── abort.lock
-├── abort.json
-├── finalize.lock
-└── finalize-result.json
+└── <submission-id-hash>/
+    ├── prepare.lock
+    ├── prepare-result.json
+    ├── abort.lock
+    ├── abort.json
+    ├── finalize.lock
+    └── finalize-result.json
 ```
 
 If `XDG_CACHE_HOME` or `HF_HOME` is not explicitly set, Workers use
@@ -822,8 +829,9 @@ If `XDG_CACHE_HOME` or `HF_HOME` is not explicitly set, Workers use
   root cause.
 - Input or recipe changes require a new job directory, not `retry`.
 - If a DLC prepare/finalize coordinator is killed before publishing its phase
-  result, other instances wait until `wait_timeout_secs` and then fail. Use a
-  new directory for the next submission.
+  result, other instances wait until `wait_timeout_secs` and then fail. A new
+  submission uses a new coordination generation and can safely retry with the
+  same unchanged `job-dir`.
 
 ## Exit codes
 
@@ -874,8 +882,9 @@ Check:
 - every Worker started the same command;
 - `job-dir` is one shared mount, not separate local directories with the same
   path string;
-- sibling coordination files `prepare-result.json`, `abort.json`, and
-  `finalize-result.json`;
+- every Worker resolved the same `--run-id` or DLC Job ID;
+- the current generation's `prepare-result.json`, `abort.json`, and
+  `finalize-result.json` below the sibling coordination directory;
 - with `--require-all-nodes`, failed attempts did not consume the strict
   mode's per-Worker claim cap.
 

@@ -827,6 +827,42 @@ def _publish_failure_and_release(
         os.close(fd)
 
 
+def _publish_done_and_release(
+    job_dir: Path,
+    shard_id: str,
+    token: str,
+    done_metadata: dict[str, Any],
+) -> tuple[bool, bool]:
+    """Publish success only while still owning the current lock.
+
+    Returns ``(owned, published)``. The ownership check, done publication,
+    and lock removal share one advisory-lock critical section so an expired
+    attempt cannot publish after a replacement has claimed the shard.
+    """
+    lock_path = _lock_path(job_dir, shard_id)
+    try:
+        fd = os.open(lock_path, os.O_RDONLY)
+    except FileNotFoundError:
+        return False, False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        if not _lock_fd_still_at_path(fd, lock_path):
+            return False, False
+        if _read_lock_fd(fd).get("token") != token:
+            return False, False
+        published = False
+        if not _failed_path(job_dir, shard_id).exists():
+            published = _exclusive_write_json(
+                _done_path(job_dir, shard_id),
+                done_metadata,
+            )
+        lock_path.unlink()
+        return True, published
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
 def _create_claim(
     job_dir: Path,
     shard: dict[str, Any],
@@ -1097,16 +1133,35 @@ def _process_claim(
             **validation,
             "data_juicer_commit": _git_info().get("commit", "unknown"),
         }
-        published = _exclusive_write_json(_done_path(job_dir, shard_id), done_metadata)
+        owned, published = _publish_done_and_release(
+            job_dir,
+            shard_id,
+            token,
+            done_metadata,
+        )
+        if published:
+            attempt_status = "done"
+        elif owned:
+            attempt_status = "superseded"
+        else:
+            latest_metadata = _read_json(metadata_path)
+            attempt_status = (
+                "stale"
+                if latest_metadata.get("status") == "stale"
+                else "lost"
+            )
+            if latest_metadata.get("stale_at") is not None:
+                metadata["stale_at"] = latest_metadata["stale_at"]
         metadata.update(
             {
-                "status": "done" if published else "superseded",
+                "status": attempt_status,
                 "result": validation,
             }
         )
         _atomic_write_json(metadata_path, metadata)
-        _release_lock(lock_path, token)
-        return "done" if published else "superseded"
+        if published:
+            return "done"
+        return "superseded" if owned else "lost"
 
     metadata.update({"status": "failed", "error": error})
     _atomic_write_json(metadata_path, metadata)

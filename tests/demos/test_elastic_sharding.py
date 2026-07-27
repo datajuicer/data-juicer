@@ -386,6 +386,59 @@ def test_process_claim_uses_isolated_paths_and_publishes_done(tmp_path, monkeypa
     ) == {"executor_type": "ray", "ray_address": "auto"}
 
 
+def test_expired_attempt_cannot_publish_after_replacement_claims(tmp_path, monkeypatch):
+    job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
+    manifest = elastic_shard_job._load_manifest(job_dir)
+    shard = manifest["shards"][0]
+    old_claim = elastic_shard_job._create_claim(
+        job_dir,
+        shard,
+        timeout_secs=3600,
+        max_retries=3,
+    )
+    assert old_claim is not None
+
+    lock_path = elastic_shard_job._lock_path(job_dir, shard["id"])
+    os.utime(lock_path, (1, 1))
+    replacement_claim = elastic_shard_job._create_claim(
+        job_dir,
+        shard,
+        timeout_secs=1,
+        max_retries=3,
+    )
+    assert replacement_claim is not None
+    assert replacement_claim["token"] != old_claim["token"]
+
+    def fake_run(command, **_kwargs):
+        ray_export_path = Path(command[command.index("--export_path") + 1])
+        input_path = Path(command[command.index("--dataset_path") + 1])
+        ray_export_path.mkdir()
+        (ray_export_path / "part-00000.json").write_bytes(input_path.read_bytes())
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(elastic_shard_job.subprocess, "run", fake_run)
+
+    assert elastic_shard_job._process_claim(job_dir, manifest, shard, old_claim) == "lost"
+    assert not elastic_shard_job._done_path(job_dir, shard["id"]).exists()
+    assert elastic_shard_job._read_json(lock_path)["token"] == replacement_claim["token"]
+    old_attempt = elastic_shard_job._read_json(
+        job_dir / old_claim["attempt_dir"] / "attempt.json"
+    )
+    assert old_attempt["status"] == "stale"
+
+    assert elastic_shard_job._process_claim(
+        job_dir,
+        manifest,
+        shard,
+        replacement_claim,
+    ) == "done"
+    done = elastic_shard_job._read_json(
+        elastic_shard_job._done_path(job_dir, shard["id"])
+    )
+    assert done["token"] == replacement_claim["token"]
+    assert not lock_path.exists()
+
+
 def test_max_retries_are_in_addition_to_initial_attempt(tmp_path, monkeypatch):
     job_dir, _, _ = _prepare_job(tmp_path, monkeypatch, num_shards=1)
     shard = elastic_shard_job._load_manifest(job_dir)["shards"][0]
@@ -520,8 +573,53 @@ def test_two_node_compatibility_wrapper_injects_strict_defaults():
     ]
 
 
+def _dlc_submission_args(job_dir, run_id):
+    return SimpleNamespace(
+        job_dir=str(job_dir),
+        config="unused.yaml",
+        dataset_path=None,
+        nodes=None,
+        num_shards=1,
+        require_all_nodes=False,
+        ray_address="local",
+        output=None,
+        wait_timeout_secs=2,
+        poll_interval_secs=0.001,
+        run_id=run_id,
+    )
+
+
+def test_dlc_submission_id_prefers_explicit_value_then_dlc_environment():
+    assert (
+        elastic_dlc_job._resolve_run_id(
+            SimpleNamespace(run_id="manual-run"),
+            {"PAI_JOB_ID": "pai-run"},
+        )
+        == "manual-run"
+    )
+    assert (
+        elastic_dlc_job._resolve_run_id(
+            SimpleNamespace(run_id=None),
+            {"PAI_JOB_ID": "pai-run"},
+        )
+        == "pai-run"
+    )
+
+
+def test_dlc_coordination_directory_is_scoped_to_submission(tmp_path):
+    job_dir = tmp_path / "job"
+    first = elastic_dlc_job._coordination_dir(job_dir, "submission-1")
+    same = elastic_dlc_job._coordination_dir(job_dir, "submission-1")
+    second = elastic_dlc_job._coordination_dir(job_dir, "submission-2")
+
+    assert first == same
+    assert first != second
+    assert first.parent == job_dir.parent / f".{job_dir.name}.dlc-coordination"
+
+
 def test_dlc_strict_mode_coordinates_three_instances(tmp_path, monkeypatch):
     job_dir = tmp_path / "strict-dlc-job"
+    run_id = "strict-submission"
     counters = {"prepare": 0, "worker": 0, "verify": 0, "next_shard": 0}
     counter_lock = threading.Lock()
 
@@ -576,6 +674,8 @@ def test_dlc_strict_mode_coordinates_three_instances(tmp_path, monkeypatch):
         "2",
         "--poll-interval-secs",
         "0.001",
+        "--run-id",
+        run_id,
     ]
 
     with ThreadPoolExecutor(max_workers=3, thread_name_prefix="dlc-node") as pool:
@@ -588,7 +688,7 @@ def test_dlc_strict_mode_coordinates_three_instances(tmp_path, monkeypatch):
         "verify": 1,
         "next_shard": 6,
     }
-    coordination_dir = elastic_dlc_job._coordination_dir(job_dir)
+    coordination_dir = elastic_dlc_job._coordination_dir(job_dir, run_id)
     assert elastic_dlc_job._result_code(coordination_dir / "prepare-result.json") == 0
     assert elastic_dlc_job._result_code(coordination_dir / "finalize-result.json") == 0
 
@@ -647,6 +747,8 @@ def test_dlc_elastic_mode_allows_live_workers_to_finish_all_shards(tmp_path, mon
         "2",
         "--poll-interval-secs",
         "0.001",
+        "--run-id",
+        "elastic-submission",
     ]
 
     # Only two of the four configured Workers are represented. Elastic mode
@@ -689,6 +791,8 @@ def test_dlc_entrypoint_propagates_prepare_failure(tmp_path, monkeypatch):
         "2",
         "--poll-interval-secs",
         "0.001",
+        "--run-id",
+        "failed-prepare-submission",
     ]
 
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -700,6 +804,7 @@ def test_dlc_entrypoint_propagates_prepare_failure(tmp_path, monkeypatch):
 
 def test_dlc_entrypoint_propagates_worker_failure(tmp_path, monkeypatch):
     job_dir = tmp_path / "worker-failed-dlc-job"
+    run_id = "failed-worker-submission"
     worker_calls = 0
     counter_lock = threading.Lock()
 
@@ -740,6 +845,8 @@ def test_dlc_entrypoint_propagates_worker_failure(tmp_path, monkeypatch):
         "2",
         "--poll-interval-secs",
         "0.001",
+        "--run-id",
+        run_id,
     ]
 
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -747,5 +854,131 @@ def test_dlc_entrypoint_propagates_worker_failure(tmp_path, monkeypatch):
 
     assert return_codes == [7, 7]
     assert worker_calls == 2
-    abort = elastic_dlc_job._read_json(elastic_dlc_job._coordination_dir(job_dir) / "abort.json")
+    abort = elastic_dlc_job._read_json(
+        elastic_dlc_job._coordination_dir(job_dir, run_id) / "abort.json"
+    )
     assert abort["return_code"] == 7
+
+
+def test_new_dlc_submission_retries_transient_prepare_failure(tmp_path, monkeypatch):
+    job_dir = tmp_path / "prepare-retry-dlc-job"
+    calls = {"prepare": 0, "worker": 0, "verify": 0}
+
+    def fake_prepare(args):
+        calls["prepare"] += 1
+        if calls["prepare"] == 1:
+            return 2
+        (job_dir / "state" / "done").mkdir(parents=True)
+        elastic_dlc_job._atomic_write_json(
+            job_dir / "manifest.json",
+            {
+                "num_shards": 1,
+                "shards": [{"id": "shard-00000"}],
+            },
+        )
+        return 0
+
+    def fake_worker(args):
+        calls["worker"] += 1
+        elastic_dlc_job._atomic_write_json(
+            job_dir / "state" / "done" / "shard-00000.json",
+            {"hostname": "replacement-worker", "status": "done"},
+        )
+        return 0
+
+    def fake_verify(args):
+        calls["verify"] += 1
+        return 0
+
+    monkeypatch.setattr(elastic_dlc_job, "prepare", fake_prepare)
+    monkeypatch.setattr(elastic_dlc_job, "worker", fake_worker)
+    monkeypatch.setattr(elastic_dlc_job, "verify", fake_verify)
+
+    assert elastic_dlc_job.dlc(_dlc_submission_args(job_dir, "submission-1")) == 2
+    assert elastic_dlc_job.dlc(_dlc_submission_args(job_dir, "submission-2")) == 0
+    assert calls == {"prepare": 2, "worker": 1, "verify": 1}
+
+
+def test_new_dlc_submission_ignores_abort_after_failed_shards_requeued(tmp_path, monkeypatch):
+    job_dir = tmp_path / "requeued-dlc-job"
+    failed_path = job_dir / "state" / "failed" / "shard-00000.json"
+    calls = {"worker": 0, "verify": 0}
+
+    def fake_prepare(args):
+        (job_dir / "state" / "done").mkdir(parents=True, exist_ok=True)
+        (job_dir / "state" / "failed").mkdir(parents=True, exist_ok=True)
+        elastic_dlc_job._atomic_write_json(
+            job_dir / "manifest.json",
+            {
+                "num_shards": 1,
+                "shards": [{"id": "shard-00000"}],
+            },
+        )
+        return 0
+
+    def fake_worker(args):
+        calls["worker"] += 1
+        if calls["worker"] == 1:
+            elastic_dlc_job._atomic_write_json(
+                failed_path,
+                {"hostname": "first-worker", "status": "failed"},
+            )
+        else:
+            elastic_dlc_job._atomic_write_json(
+                job_dir / "state" / "done" / "shard-00000.json",
+                {"hostname": "replacement-worker", "status": "done"},
+            )
+        return 0
+
+    def fake_verify(args):
+        calls["verify"] += 1
+        return 0
+
+    monkeypatch.setattr(elastic_dlc_job, "prepare", fake_prepare)
+    monkeypatch.setattr(elastic_dlc_job, "worker", fake_worker)
+    monkeypatch.setattr(elastic_dlc_job, "verify", fake_verify)
+
+    assert elastic_dlc_job.dlc(_dlc_submission_args(job_dir, "submission-1")) == 2
+    assert failed_path.exists()
+
+    # Simulate `shard_job.py retry` requeuing the terminally failed shard.
+    failed_path.unlink()
+
+    assert elastic_dlc_job.dlc(_dlc_submission_args(job_dir, "submission-2")) == 0
+    assert calls == {"worker": 2, "verify": 1}
+
+
+def test_new_dlc_submission_retries_transient_finalize_failure(tmp_path, monkeypatch):
+    job_dir = tmp_path / "finalize-retry-dlc-job"
+    calls = {"worker": 0, "verify": 0}
+
+    def fake_prepare(args):
+        (job_dir / "state" / "done").mkdir(parents=True, exist_ok=True)
+        elastic_dlc_job._atomic_write_json(
+            job_dir / "manifest.json",
+            {
+                "num_shards": 1,
+                "shards": [{"id": "shard-00000"}],
+            },
+        )
+        return 0
+
+    def fake_worker(args):
+        calls["worker"] += 1
+        elastic_dlc_job._atomic_write_json(
+            job_dir / "state" / "done" / "shard-00000.json",
+            {"hostname": "worker", "status": "done"},
+        )
+        return 0
+
+    def fake_verify(args):
+        calls["verify"] += 1
+        return 2 if calls["verify"] == 1 else 0
+
+    monkeypatch.setattr(elastic_dlc_job, "prepare", fake_prepare)
+    monkeypatch.setattr(elastic_dlc_job, "worker", fake_worker)
+    monkeypatch.setattr(elastic_dlc_job, "verify", fake_verify)
+
+    assert elastic_dlc_job.dlc(_dlc_submission_args(job_dir, "submission-1")) == 2
+    assert elastic_dlc_job.dlc(_dlc_submission_args(job_dir, "submission-2")) == 0
+    assert calls == {"worker": 2, "verify": 2}

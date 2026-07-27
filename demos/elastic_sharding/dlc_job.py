@@ -17,6 +17,7 @@ manual or scheduler-driven testing.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -27,6 +28,7 @@ import sys
 import time
 import uuid
 from collections import Counter
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -36,6 +38,7 @@ SHARD_JOB_SCRIPT = SCRIPT_DIR / "shard_job.py"
 DEFAULT_CONFIG = SCRIPT_DIR / "configs" / "demo.yaml"
 DEFAULT_WAIT_TIMEOUT_SECS = 35 * 60 * 60
 DEFAULT_POLL_INTERVAL_SECS = 2.0
+DLC_RUN_ID_ENV_NAMES = ("PAI_JOB_ID", "DLC_JOB_ID", "JOB_ID")
 
 
 def _run_shard_job(arguments: list[str]) -> int:
@@ -70,8 +73,32 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _coordination_dir(job_dir: Path) -> Path:
-    return job_dir.parent / f".{job_dir.name}.dlc-coordination"
+def _resolve_run_id(
+    args: argparse.Namespace,
+    environ: Mapping[str, str] | None = None,
+) -> str:
+    explicit_run_id = getattr(args, "run_id", None)
+    if explicit_run_id is not None:
+        run_id = str(explicit_run_id).strip()
+        if not run_id:
+            raise ValueError("--run-id must not be empty")
+        return run_id
+
+    values = os.environ if environ is None else environ
+    for name in DLC_RUN_ID_ENV_NAMES:
+        run_id = values.get(name, "").strip()
+        if run_id:
+            return run_id
+    environment_names = ", ".join(DLC_RUN_ID_ENV_NAMES)
+    raise ValueError(
+        "Cannot identify this DLC submission. Pass a --run-id shared by every "
+        f"Worker, or provide one of these environment variables: {environment_names}"
+    )
+
+
+def _coordination_dir(job_dir: Path, run_id: str) -> Path:
+    run_key = hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:20]
+    return job_dir.parent / f".{job_dir.name}.dlc-coordination" / run_key
 
 
 def _try_acquire_phase(lock_path: Path, phase: str) -> bool:
@@ -140,17 +167,17 @@ def _coordinated_prepare(
     manifest_path = job_dir / "manifest.json"
     result_path = coordination_dir / "prepare-result.json"
 
-    # Re-run the idempotency check when a prepared job already exists. This
-    # catches accidental reuse with a different recipe, input, or shard count.
-    if manifest_path.exists():
-        return prepare(args)
     if result_path.exists():
         return _result_code(result_path)
 
+    # A manifest from a previous submission still needs prepare's idempotency
+    # validation, but it must not let peer Workers skip the current
+    # submission's coordinated prepare result.
+    manifest_preexisted = manifest_path.exists()
     lock_path = coordination_dir / "prepare.lock"
     if not _try_acquire_phase(lock_path, "prepare"):
         return _wait_for_phase(
-            success_path=manifest_path,
+            success_path=(None if manifest_preexisted else manifest_path),
             result_path=result_path,
             timeout_secs=args.wait_timeout_secs,
             poll_interval_secs=args.poll_interval_secs,
@@ -359,7 +386,8 @@ def worker(args: argparse.Namespace) -> int:
 def dlc(args: argparse.Namespace) -> int:
     """Run the complete elastic job from every DLC Worker instance."""
     job_dir = Path(args.job_dir).expanduser().resolve()
-    coordination_dir = _coordination_dir(job_dir)
+    run_id = _resolve_run_id(args)
+    coordination_dir = _coordination_dir(job_dir, run_id)
     coordination_dir.mkdir(parents=True, exist_ok=True)
 
     max_shards: int | None = None
@@ -382,7 +410,8 @@ def dlc(args: argparse.Namespace) -> int:
         f"DLC instance hostname={socket.gethostname()} starting; "
         f"nodes={node_description}, shards={args.num_shards}, "
         f"require_all_nodes={args.require_all_nodes}, "
-        f"max_shards_per_worker={shard_limit}.",
+        f"max_shards_per_worker={shard_limit}, "
+        f"coordination_generation={coordination_dir.name}.",
         flush=True,
     )
     prepare_code = _coordinated_prepare(args, job_dir, coordination_dir)
@@ -568,6 +597,14 @@ def build_parser() -> argparse.ArgumentParser:
     dlc_parser.add_argument(
         "--output",
         help="Merged output; defaults to merged.jsonl in the job directory",
+    )
+    dlc_parser.add_argument(
+        "--run-id",
+        help=(
+            "Submission identifier shared by every Worker. Defaults to "
+            "PAI_JOB_ID, DLC_JOB_ID, or JOB_ID. Use a new value for each "
+            "manual submission."
+        ),
     )
     dlc_parser.add_argument(
         "--wait-timeout-secs",

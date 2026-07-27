@@ -13,7 +13,7 @@ from data_juicer.ops.base_op import (
     Selector,
     Grouper,
     Aggregator,
-    Pipeline,
+
     convert_dict_list_to_list_dict,
     convert_list_dict_to_dict_list,
     convert_arrow_to_python,
@@ -632,29 +632,99 @@ class FilterRunOptionsTest(DataJuicerTestCaseBase):
 # Tests for Deduplicator, Selector, Grouper, Aggregator, Pipeline
 # ---------------------------------------------------------------------------
 
-class DeduplicatorInitTest(DataJuicerTestCaseBase):
+class DeduplicatorTest(DataJuicerTestCaseBase):
 
-    def test_init(self):
-        class SimpleDedup(Deduplicator):
+    def _make_dedup(self, **kwargs):
+        import hashlib
+
+        class HashDedup(Deduplicator):
             def compute_hash(self, sample):
+                sample['__dj__hash'] = hashlib.md5(
+                    sample['text'].encode()).hexdigest()
                 return sample
+
+            def process(self, dataset, show_num=0):
+                seen = set()
+                keep = []
+                dups = []
+                for i, h in enumerate(dataset['__dj__hash']):
+                    if h not in seen:
+                        seen.add(h)
+                        keep.append(i)
+                    else:
+                        dups.append((i, h))
+                return dataset.select(keep).remove_columns(
+                    ['__dj__hash']), dups
+
+        return HashDedup(**kwargs)
+
+    def test_run_reduce_true_deduplicates(self):
+        from data_juicer.core.data import NestedDataset
+        ds = NestedDataset.from_list([
+            {'text': 'hello'}, {'text': 'world'}, {'text': 'hello'},
+        ])
+        op = self._make_dedup()
+        result = op.run(ds, reduce=True)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(list(result['text']), ['hello', 'world'])
+
+    def test_run_reduce_false_keeps_all_with_hash(self):
+        from data_juicer.core.data import NestedDataset
+        ds = NestedDataset.from_list([
+            {'text': 'hello'}, {'text': 'world'}, {'text': 'hello'},
+        ])
+        op = self._make_dedup()
+        result = op.run(ds, reduce=False)
+        self.assertEqual(len(result), 3)
+        self.assertIn('__dj__hash', result.features)
+        self.assertEqual(result['__dj__hash'][0], result['__dj__hash'][2])
+        self.assertNotEqual(result['__dj__hash'][0], result['__dj__hash'][1])
+
+    def test_compute_hash_wrapped_skip_op_error(self):
+        from data_juicer.core.data import NestedDataset
+
+        class FailDedup(Deduplicator):
+            def compute_hash(self, sample):
+                raise RuntimeError('hash failed')
             def process(self, dataset, show_num=0):
                 return dataset, []
 
-        op = SimpleDedup()
-        self.assertIsInstance(op, Deduplicator)
-        self.assertIsInstance(op, OP)
+        op = FailDedup(skip_op_error=True)
+        ds = NestedDataset.from_list([{'text': 'a'}])
+        result = op.run(ds, reduce=False)
+        self.assertEqual(len(result), 0)
+
+    def test_compute_hash_wrapped_error_propagates(self):
+        from data_juicer.core.data import NestedDataset
+
+        class FailDedup(Deduplicator):
+            def compute_hash(self, sample):
+                raise RuntimeError('hash failed')
+            def process(self, dataset, show_num=0):
+                return dataset, []
+
+        op = FailDedup(skip_op_error=False)
+        ds = NestedDataset.from_list([{'text': 'a'}])
+        with self.assertRaises(RuntimeError):
+            op.run(ds, reduce=False)
 
 
-class SelectorInitTest(DataJuicerTestCaseBase):
+class SelectorTest(DataJuicerTestCaseBase):
 
-    def test_init(self):
-        class SimpleSelector(Selector):
+    def test_run_selects_at_dataset_level(self):
+        from data_juicer.core.data import NestedDataset
+
+        class TopNSelector(Selector):
             def process(self, dataset):
-                return dataset
+                return dataset.select(range(min(2, len(dataset))))
 
-        op = SimpleSelector()
-        self.assertIsInstance(op, Selector)
+        ds = NestedDataset.from_list([
+            {'text': 'a'}, {'text': 'b'}, {'text': 'c'},
+        ])
+        op = TopNSelector()
+        result = op.run(ds)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(list(result['text']), ['a', 'b'])
 
 
 class GrouperRunTest(DataJuicerTestCaseBase):
@@ -693,17 +763,20 @@ class AggregatorRunTest(DataJuicerTestCaseBase):
         self.assertIn(Fields.batch_meta, result.features)
         self.assertEqual(list(result['summary']), ['done', 'done'])
 
+    def test_run_preserves_existing_batch_meta(self):
+        from data_juicer.core.data import NestedDataset
 
-class PipelineInitTest(DataJuicerTestCaseBase):
+        class SimpleAgg(Aggregator):
+            def process_single(self, sample):
+                sample['summary'] = 'done'
+                return sample
 
-    def test_init(self):
-        class SimplePipeline(Pipeline):
-            def run(self, dataset):
-                return dataset
-
-        op = SimplePipeline()
-        self.assertIsInstance(op, Pipeline)
-        self.assertIsInstance(op, OP)
+        ds = NestedDataset.from_list([
+            {'text': ['a'], Fields.batch_meta: {'existing': True}},
+        ])
+        op = SimpleAgg()
+        result = op.run(ds)
+        self.assertEqual(result[Fields.batch_meta][0], {'existing': True})
 
 
 if __name__ == '__main__':

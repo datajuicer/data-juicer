@@ -603,12 +603,9 @@ class ResolveJobDirectoriesTest(DataJuicerTestCaseBase):
 
 class BuildBaseParserTest(DataJuicerTestCaseBase):
 
-    def test_returns_parser(self):
-        parser = build_base_parser()
-        self.assertIsNotNone(parser)
-
     def test_has_required_args(self):
         parser = build_base_parser()
+        self.assertIsNotNone(parser)
         action_dests = {a.dest for a in parser._actions}
         self.assertIn('project_name', action_dests)
         self.assertIn('executor_type', action_dests)
@@ -708,33 +705,37 @@ class SaveCliArgumentsTest(DataJuicerTestCaseBase):
         with tempfile.TemporaryDirectory() as tmpdir:
             cfg = Namespace(work_dir=tmpdir)
             save_cli_arguments(cfg)
-            # Falls back to sys.argv[1:], which may or may not be empty
-            # depending on how pytest is invoked. Just verify no crash.
             cli_path = os.path.join(tmpdir, 'cli.yaml')
-            if os.path.exists(cli_path):
-                with open(cli_path) as f:
-                    data = yaml.safe_load(f)
-                self.assertIn('arguments', data)
+            self.assertTrue(os.path.exists(cli_path))
+            with open(cli_path) as f:
+                data = yaml.safe_load(f)
+            self.assertIn('arguments', data)
+            self.assertIsInstance(data['arguments'], list)
 
 
 class LoadOpsWithStatsMetaTest(DataJuicerTestCaseBase):
 
-    def test_returns_list(self):
+    def test_returns_known_ops(self):
         result = load_ops_with_stats_meta()
         self.assertIsInstance(result, list)
         self.assertGreater(len(result), 0)
+        names = [list(d.keys())[0] for d in result]
+        for expected in [
+            'alphanumeric_filter',
+            'audio_duration_filter',
+            'text_length_filter',
+        ]:
+            self.assertIn(expected, names,
+                          f'{expected} should be in ops with stats meta')
 
-    def test_items_are_dicts(self):
+    def test_each_item_is_single_key_dict(self):
         result = load_ops_with_stats_meta()
         for item in result:
             self.assertIsInstance(item, dict)
             self.assertEqual(len(item), 1)
-
-    def test_contains_filters(self):
-        result = load_ops_with_stats_meta()
-        names = [list(d.keys())[0] for d in result]
-        filter_names = [n for n in names if 'filter' in n]
-        self.assertGreater(len(filter_names), 0)
+            op_name = list(item.keys())[0]
+            self.assertIsInstance(op_name, str)
+            self.assertGreater(len(op_name), 0)
 
 
 class PrepareCfgsForExportTest(DataJuicerTestCaseBase):

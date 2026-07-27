@@ -742,6 +742,8 @@ class GrouperRunTest(DataJuicerTestCaseBase):
         op = SimpleGrouper()
         result = op.run(ds)
         self.assertEqual(len(result), 2)
+        self.assertEqual(result['text'][0], ['a', 'b'])
+        self.assertEqual(result['text'][1], ['c'])
 
 
 class AggregatorRunTest(DataJuicerTestCaseBase):

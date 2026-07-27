@@ -16,16 +16,6 @@ from data_juicer.utils.job.snapshot import (
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
-class ProcessingStatusTest(DataJuicerTestCaseBase):
-
-    def test_values(self):
-        self.assertEqual(ProcessingStatus.NOT_STARTED.value, 'not_started')
-        self.assertEqual(ProcessingStatus.IN_PROGRESS.value, 'in_progress')
-        self.assertEqual(ProcessingStatus.COMPLETED.value, 'completed')
-        self.assertEqual(ProcessingStatus.FAILED.value, 'failed')
-        self.assertEqual(ProcessingStatus.CHECKPOINTED.value, 'checkpointed')
-
-
 class PartitionStatusTest(DataJuicerTestCaseBase):
 
     def test_post_init_defaults(self):

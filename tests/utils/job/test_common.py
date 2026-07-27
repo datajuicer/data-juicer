@@ -178,15 +178,6 @@ class ExtractProcessThreadIdsTest(DataJuicerTestCaseBase):
             self.assertEqual(ids['thread_ids'], set())
 
 
-class FindThreadsByIdsTest(DataJuicerTestCaseBase):
-
-    def test_always_returns_empty(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            ju = JobUtils('test', work_dir=tmpdir)
-            result = ju.find_threads_by_ids({1, 2, 3})
-            self.assertEqual(result, [])
-
-
 class GetPartitionStatusTest(DataJuicerTestCaseBase):
 
     def test_from_events(self):

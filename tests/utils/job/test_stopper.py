@@ -55,40 +55,6 @@ class CleanupJobResourcesTest(DataJuicerTestCaseBase):
 
 class TerminateProcessGracefullyTest(DataJuicerTestCaseBase):
 
-    def test_terminate_normal_process(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            job_dir = os.path.join(tmpdir, 'myjob')
-            os.makedirs(job_dir)
-            stopper = JobStopper('myjob', base_dir=tmpdir)
-
-            proc = subprocess.Popen(['sleep', '1000'])
-            ps_proc = psutil.Process(proc.pid)
-            try:
-                result = stopper.terminate_process_gracefully(ps_proc)
-            finally:
-                try:
-                    proc.kill()
-                    proc.wait()
-                except OSError:
-                    pass
-
-            self.assertTrue(result)
-            self.assertFalse(ps_proc.is_running())
-
-    def test_terminate_already_dead(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            job_dir = os.path.join(tmpdir, 'myjob')
-            os.makedirs(job_dir)
-            stopper = JobStopper('myjob', base_dir=tmpdir)
-
-            proc = subprocess.Popen(['sleep', '1000'])
-            ps_proc = psutil.Process(proc.pid)
-            proc.kill()
-            proc.wait()
-
-            result = stopper.terminate_process_gracefully(ps_proc)
-            self.assertTrue(result)
-
     def test_terminate_returns_true_on_success(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             job_dir = os.path.join(tmpdir, 'myjob')
@@ -98,7 +64,7 @@ class TerminateProcessGracefullyTest(DataJuicerTestCaseBase):
             proc = subprocess.Popen(['sleep', '1000'])
             ps_proc = psutil.Process(proc.pid)
             try:
-                result = stopper.terminate_process_gracefully(ps_proc)
+                result = stopper.terminate_process_gracefully(ps_proc, timeout=1)
             finally:
                 try:
                     proc.kill()

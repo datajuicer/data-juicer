@@ -679,6 +679,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     logger.info(
                         f"Partition {partition_id}: Successfully loaded checkpoint, resuming from operation {latest_checkpoint[0] + 1}"
                     )
+                    # Restore the executor partition identity on the reloaded
+                    # wrapper so ElasticJuicer metrics from resumed partitions
+                    # stay attributable instead of reporting partition_id=None.
+                    if hasattr(current_dataset, "set_elastic_juicer_partition_id"):
+                        current_dataset.set_elastic_juicer_partition_id(partition_id)
                     group_ops = ops[latest_checkpoint[0] + 1 : end_idx]  # Resume from checkpoint
                     if not group_ops:
                         logger.info(

@@ -363,12 +363,13 @@ class RayExporterEncryptTest(DataJuicerTestCaseBase):
         self.assertTrue(exporter.encrypt_before_export)
         self.assertIsNotNone(exporter._fernet)
 
-    def test_s3_path_disables_encryption_with_warning(self):
+    @patch("data_juicer.utils.s3_utils.create_pyarrow_s3_filesystem")
+    def test_s3_path_disables_encryption_with_warning(self, mock_create_s3_fs):
         """S3 export path silently disables local-file encryption."""
         warnings_seen = []
         from loguru import logger as _logger
         handler_id = _logger.add(
-            lambda msg: warnings_seen.append(msg),
+            lambda msg: warnings_seen.append(str(msg)),
             level='WARNING',
             format='{message}',
         )
@@ -382,16 +383,18 @@ class RayExporterEncryptTest(DataJuicerTestCaseBase):
             _logger.remove(handler_id)
         self.assertFalse(exporter.encrypt_before_export)
         self.assertTrue(
-            any('encrypt_before_export' in str(w) and 'S3' in str(w)
+            any('encrypt_before_export' in str(w) and 's3' in str(w).lower()
                 for w in warnings_seen),
             'Expected warning about S3 + encrypt_before_export not found',
         )
-    def test_hdfs_path_disables_encryption_with_warning(self):
+
+    @patch("data_juicer.utils.hdfs_utils.create_pyarrow_hdfs_filesystem")
+    def test_hdfs_path_disables_encryption_with_warning(self, mock_create_hdfs_fs):
         """HDFS export path silently disables local-file encryption."""
         warnings_seen = []
         from loguru import logger as _logger
         handler_id = _logger.add(
-            lambda msg: warnings_seen.append(msg),
+            lambda msg: warnings_seen.append(str(msg)),
             level='WARNING',
             format='{message}',
         )
@@ -409,8 +412,9 @@ class RayExporterEncryptTest(DataJuicerTestCaseBase):
             'Expected warning about HDFS + encrypt_before_export not found',
         )
 
+    @patch("data_juicer.utils.hdfs_utils.create_pyarrow_hdfs_filesystem")
     @patch("data_juicer.core.ray_exporter.is_remote_path")
-    def test_hdfs_path_skips_local_makedirs(self, mock_is_remote):
+    def test_hdfs_path_skips_local_makedirs(self, mock_is_remote, mock_create_hdfs_fs):
         """HDFS export_path should skip local os.makedirs via is_remote_path."""
         mock_is_remote.return_value = True
 

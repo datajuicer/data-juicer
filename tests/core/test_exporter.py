@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import unittest
 import jsonlines as jl
+from unittest.mock import patch
 
 import numpy as np
 from datasets import Dataset
@@ -258,7 +259,9 @@ class ExporterEncryptTest(DataJuicerTestCaseBase):
             'Expected a loguru WARNING about S3 path skipping encryption',
         )
 
-    def test_hdfs_path_disables_encryption_with_warning(self):
+    @patch("fsspec.implementations.arrow.ArrowFSWrapper")
+    @patch("data_juicer.utils.hdfs_utils.create_pyarrow_hdfs_filesystem")
+    def test_hdfs_path_disables_encryption_with_warning(self, mock_create_hdfs_fs, mock_arrow_wrapper):
         """HDFS export_path should disable local-file encryption with a warning."""
         from loguru import logger
 

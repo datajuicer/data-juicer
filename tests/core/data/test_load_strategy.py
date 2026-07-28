@@ -26,6 +26,7 @@ from data_juicer.core.data.load_strategy import (
     DefaultHdfsDataLoadStrategy,
     RayHdfsDataLoadStrategy,
 )
+from data_juicer.core.data.config_validator import ConfigValidationError
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 
@@ -849,7 +850,7 @@ class TestDefaultHdfsDataLoadStrategy(DataJuicerTestCaseBase):
             "type": "remote",
             "source": "hdfs",
         }
-        with self.assertRaises((ValueError, KeyError)):
+        with self.assertRaises((ConfigValidationError, ValueError, KeyError)):
             DefaultHdfsDataLoadStrategy(ds_config, self.cfg)
 
 

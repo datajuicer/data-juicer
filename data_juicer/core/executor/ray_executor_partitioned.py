@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -531,35 +532,19 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             f"{partitioning_info.total_rows} total rows"
         )
 
-        # Process each partition separately with checkpointing
-        logger.info("Processing partitions with checkpointing support...")
-        processed_partitions = []
+        # Process partitions concurrently. Each worker thread drives one Ray
+        # Dataset execution; the actual data processing still runs on Ray.
+        logger.info(f"Processing {len(partitions)} partitions in parallel with checkpointing support...")
+        processed_partitions = [None] * len(partitions)
 
-        for i, partition in enumerate(partitions):
-            logger.info(f"Processing partition {i+1}/{len(partitions)}")
-
-            # Log partition start event
-            self._log_event(
-                event_type=EventType.PARTITION_START,
-                message=f"Starting processing of partition {i+1}/{len(partitions)}",
-                partition_id=i,
-            )
-
-            # Create a RayDataset wrapper for this partition
-            partition_dataset = RayDataset(partition, cfg=self.cfg)
-
-            # Apply operations with checkpointing support and DAG monitoring
-            processed_partition = self._process_with_checkpointing(partition_dataset, i, ops)
-
-            # Store the processed partition's data
-            processed_partitions.append(processed_partition.data)
-
-            # Log partition completion event
-            self._log_event(
-                event_type=EventType.PARTITION_COMPLETE,
-                message=f"Completed processing of partition {i+1}/{len(partitions)}",
-                partition_id=i,
-            )
+        with ThreadPoolExecutor(max_workers=len(partitions), thread_name_prefix="ray-partition") as executor:
+            futures = {
+                executor.submit(self._process_partition, partition, i, len(partitions), ops): i
+                for i, partition in enumerate(partitions)
+            }
+            for future in as_completed(futures):
+                partition_id, processed_data = future.result()
+                processed_partitions[partition_id] = processed_data
 
         # Merge all processed partitions back into a single dataset
         logger.info("Merging processed partitions...")
@@ -573,6 +558,27 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Return as RayDataset wrapper
         return RayDataset(merged_dataset, cfg=self.cfg)
+
+    def _process_partition(self, partition, partition_id: int, total_partitions: int, ops: List):
+        """Process one partition while preserving its position in the final union."""
+        logger.info(f"Processing partition {partition_id + 1}/{total_partitions}")
+
+        self._log_event(
+            event_type=EventType.PARTITION_START,
+            message=f"Starting processing of partition {partition_id + 1}/{total_partitions}",
+            partition_id=partition_id,
+        )
+
+        partition_dataset = RayDataset(partition, cfg=self.cfg)
+        processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, ops)
+
+        self._log_event(
+            event_type=EventType.PARTITION_COMPLETE,
+            message=f"Completed processing of partition {partition_id + 1}/{total_partitions}",
+            partition_id=partition_id,
+        )
+
+        return partition_id, processed_partition.data
 
     def _process_with_convergence(self, dataset: RayDataset, ops: List, convergence_points: List[int]):
         """

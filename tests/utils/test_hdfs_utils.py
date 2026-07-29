@@ -27,6 +27,9 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
             "hdfs://namenode/user/data",
             "hdfs:///user/data",
             "hdfs://localhost/data",
+            # scheme check is case-insensitive
+            "HDFS://namenode:8020/user/data/file.jsonl",
+            "Hdfs://namenode/user/data",
         ]
 
         for path in valid_paths:
@@ -44,6 +47,9 @@ class TestHdfsUtils(DataJuicerTestCaseBase):
             "file:///tmp/data",
             "",
             "hdfs-without-scheme/path",
+            # single-slash form is rejected regardless of case
+            "hdfs:/user/data/file.jsonl",
+            "HDFS:/user/data/file.jsonl",
         ]
 
         for path in invalid_paths:

@@ -159,6 +159,9 @@ class TestS3Utils(DataJuicerTestCaseBase):
             "s3://bucket/file.jsonl",
             "s3://bucket/path/to/file.jsonl",
             "s3://my-bucket-name/data/file.json",
+            # scheme check is case-insensitive
+            "S3://bucket/file.jsonl",
+            "S3://BUCKET/FILE.JSONL",
         ]
 
         for path in valid_paths:
@@ -176,6 +179,9 @@ class TestS3Utils(DataJuicerTestCaseBase):
             "/local/path/file.jsonl",
             "bucket/file.jsonl",
             "",
+            # single-slash form is rejected regardless of case
+            "s3:/bucket/file.jsonl",
+            "S3:/bucket/file.jsonl",
         ]
 
         for path in invalid_paths:

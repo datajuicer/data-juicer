@@ -109,11 +109,14 @@ def validate_s3_path(path: str) -> None:
     """
     Validate that a path is a valid S3 path.
 
+    The scheme check is case-insensitive ('s3://', 'S3://', ... are all
+    accepted), while single-slash forms like 's3:/bucket' are rejected.
+
     Args:
         path: Path to validate
 
     Raises:
         ValueError: If path doesn't start with 's3://'
     """
-    if not path.startswith("s3://"):
+    if not path.lower().startswith("s3://"):
         raise ValueError(f"S3 path must start with 's3://', got: {path}")

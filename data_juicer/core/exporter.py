@@ -1,12 +1,14 @@
 import json
 import os
 from multiprocessing import Pool
+from urllib.parse import urlparse
 
 from datasets import Dataset as HFDataset
 from loguru import logger
 
 from data_juicer.utils.constant import Fields, HashKeys
 from data_juicer.utils.file_utils import Sizes, byte_size_to_size_str
+from data_juicer.utils.fs_utils import create_filesystem_for_path
 
 
 class Exporter:
@@ -88,7 +90,8 @@ class Exporter:
 
         # Check if export_path is S3 and create storage_options if needed
         self.storage_options = None
-        if export_path.startswith("s3://"):
+        export_scheme = urlparse(export_path).scheme.lower()
+        if export_scheme == "s3":
             # Extract AWS credentials from kwargs (if provided)
             s3_config = {}
             if "aws_access_key_id" in kwargs:
@@ -140,16 +143,10 @@ class Exporter:
         # fsspec ArrowFSWrapper so that dataset.to_json/parquet(path)
         # routes through fsspec → Arrow, unifying HDFS with the same
         # storage_options path that S3 already uses.
-        if export_path.startswith("hdfs://"):
+        if export_scheme == "hdfs":
             from fsspec.implementations.arrow import ArrowFSWrapper
 
-            from data_juicer.utils.hdfs_utils import create_pyarrow_hdfs_filesystem
-
-            hdfs_config = {"path": export_path}
-            for field in ("hdfs_host", "hdfs_port", "hdfs_user", "hdfs_kerb_ticket", "hdfs_extra_conf"):
-                if field in kwargs:
-                    hdfs_config[field] = kwargs.pop(field)
-            hdfs_pyarrow_fs = create_pyarrow_hdfs_filesystem(hdfs_config)
+            hdfs_pyarrow_fs, kwargs = create_filesystem_for_path(export_path, kwargs)
             wrapped = ArrowFSWrapper(hdfs_pyarrow_fs)
             self.storage_options = {"filesystem": wrapped}
             logger.info(f"Detected HDFS export path: {export_path}. " f"ArrowFSWrapper storage_options configured.")

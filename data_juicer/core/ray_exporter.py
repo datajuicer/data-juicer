@@ -1,11 +1,13 @@
 import os
 from functools import partial
 from pathlib import Path
+from urllib.parse import urlparse
 
 from loguru import logger
 
 from data_juicer.utils.constant import Fields, HashKeys
 from data_juicer.utils.file_utils import Sizes, byte_size_to_size_str, is_remote_path
+from data_juicer.utils.fs_utils import create_filesystem_for_path
 from data_juicer.utils.model_utils import filter_arguments
 from data_juicer.utils.webdataset_utils import reconstruct_custom_webdataset_format
 
@@ -85,41 +87,20 @@ class RayExporter:
 
                 self._fernet = load_fernet_key(encryption_key_path)
 
-        # Check if export_path is HDFS and create filesystem if needed.
+        # Create a PyArrow filesystem when export_path points to remote
+        # storage (hdfs:// or s3://), consuming the backend-specific keys
+        # from export_extra_args so they won't be forwarded to write methods.
         # PyArrow's HadoopFileSystem expects paths WITHOUT the hdfs:// scheme,
         # so we also strip the scheme and use the bare path for writing.
         self.hdfs_filesystem = None
-        if export_path.startswith("hdfs://"):
-            from data_juicer.utils.hdfs_utils import create_pyarrow_hdfs_filesystem
-
-            hdfs_config = {"path": export_path}
-            for field in ("hdfs_host", "hdfs_port", "hdfs_user", "hdfs_kerb_ticket", "hdfs_extra_conf"):
-                if field in self.export_extra_args:
-                    hdfs_config[field] = self.export_extra_args.pop(field)
-            self.hdfs_filesystem = create_pyarrow_hdfs_filesystem(hdfs_config)
-            logger.info(f"Detected HDFS export path: {export_path}. HDFS filesystem configured.")
-
-        # Check if export_path is S3 and create filesystem if needed
         self.s3_filesystem = None
-        if export_path.startswith("s3://"):
-            # Extract AWS credentials from export_extra_args (if provided)
-            s3_config = {}
-            if "aws_access_key_id" in self.export_extra_args:
-                s3_config["aws_access_key_id"] = self.export_extra_args.pop("aws_access_key_id")
-            if "aws_secret_access_key" in self.export_extra_args:
-                s3_config["aws_secret_access_key"] = self.export_extra_args.pop("aws_secret_access_key")
-            if "aws_session_token" in self.export_extra_args:
-                s3_config["aws_session_token"] = self.export_extra_args.pop("aws_session_token")
-            if "aws_region" in self.export_extra_args:
-                s3_config["aws_region"] = self.export_extra_args.pop("aws_region")
-            if "endpoint_url" in self.export_extra_args:
-                s3_config["endpoint_url"] = self.export_extra_args.pop("endpoint_url")
-
-            # Create PyArrow S3FileSystem with credentials
-            # This matches the pattern used in RayS3DataLoadStrategy
-            from data_juicer.utils.s3_utils import create_pyarrow_s3_filesystem
-
-            self.s3_filesystem = create_pyarrow_s3_filesystem(s3_config)
+        fs, self.export_extra_args = create_filesystem_for_path(export_path, self.export_extra_args)
+        export_scheme = urlparse(export_path).scheme.lower()
+        if export_scheme == "hdfs":
+            self.hdfs_filesystem = fs
+            logger.info(f"Detected HDFS export path: {export_path}. HDFS filesystem configured.")
+        elif export_scheme == "s3":
+            self.s3_filesystem = fs
             logger.info(f"Detected S3 export path: {export_path}. S3 filesystem configured.")
 
         self.max_shard_size_str = ""

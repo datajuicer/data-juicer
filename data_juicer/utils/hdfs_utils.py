@@ -124,11 +124,14 @@ def validate_hdfs_path(path: str) -> None:
     """
     Validate that a path is a valid HDFS path.
 
+    The scheme check is case-insensitive ('hdfs://', 'HDFS://', ... are all
+    accepted), while single-slash forms like 'hdfs:/user' are rejected.
+
     Args:
         path: Path to validate.
 
     Raises:
         ValueError: If path doesn't start with 'hdfs://'.
     """
-    if not path.startswith("hdfs://"):
+    if not path.lower().startswith("hdfs://"):
         raise ValueError(f"HDFS path must start with 'hdfs://', got: {path}")

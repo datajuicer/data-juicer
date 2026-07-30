@@ -112,10 +112,14 @@ class RayDataset(DJDataset):
         Returns:
             Schema: Dataset schema containing column names and types
         """
-        if self.data is None or self.data.columns() is None:
+        if self.data is None:
             raise ValueError("Dataset is empty or not initialized")
 
-        return Schema.from_ray_schema(self.data.schema())
+        ray_schema = self.data.schema()
+        if ray_schema is None:
+            raise ValueError("Dataset is empty or not initialized")
+
+        return Schema.from_ray_schema(ray_schema)
 
     def get(self, k: int) -> List[Dict[str, Any]]:
         """Get k rows from the dataset."""
@@ -125,8 +129,7 @@ class RayDataset(DJDataset):
         if k == 0:
             return []
 
-        k = min(k, self.data.count())
-        return list(self.data.limit(k).take())
+        return list(self.data.take(k))
 
     def get_column(self, column: str, k: Optional[int] = None) -> List[Any]:
         """Get column values from Ray dataset.
@@ -142,7 +145,11 @@ class RayDataset(DJDataset):
             KeyError: If column doesn't exist
             ValueError: If k is negative
         """
-        if self.data is None or self.data.columns() is None or column not in self.data.columns():
+        if self.data is None:
+            raise KeyError(f"Column '{column}' not found in dataset")
+
+        columns = self.data.columns()
+        if columns is None or column not in columns:
             raise KeyError(f"Column '{column}' not found in dataset")
 
         if k is not None:
@@ -150,10 +157,9 @@ class RayDataset(DJDataset):
                 raise ValueError(f"k must be non-negative, got {k}")
             if k == 0:
                 return []
-            k = min(k, self.data.count())
-            return [row[column] for row in self.data.limit(k).take()]
+            return [row[column] for row in self.data.take(k)]
 
-        return [row[column] for row in self.data.take()]
+        return [row[column] for row in self.data.take_all()]
 
     def process(self, operators, *, exporter=None, checkpointer=None, tracer=None) -> DJDataset:
         if operators is None:
@@ -165,17 +171,6 @@ class RayDataset(DJDataset):
 
         if self._auto_proc:
             calculate_ray_np(operators)
-
-        # Check if dataset is empty - Ray returns None for columns() on empty datasets
-        # with unknown schema. If empty, skip processing as there's nothing to process.
-        try:
-            row_count = self.data.count()
-        except Exception:
-            row_count = 0
-
-        if row_count == 0:
-            logger.warning("Dataset is empty (0 rows), skipping operator processing")
-            return self
 
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming

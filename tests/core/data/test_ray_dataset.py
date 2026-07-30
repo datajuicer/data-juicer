@@ -1,6 +1,8 @@
 import json
 import unittest
 import os
+from unittest.mock import MagicMock
+
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 
@@ -274,6 +276,16 @@ class TestRayDataset(DataJuicerTestCaseBase):
         texts = self.dataset.get_column("text", k=1)
         self.assertEqual(texts, ["Hello"])
 
+        # Ray's take() defaults to 20 rows, so explicitly requesting or
+        # retrieving all rows must not truncate larger datasets.
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get_column("text", k=25), [str(i) for i in range(25)])
+        self.assertEqual(large_dataset.get_column("text"), [str(i) for i in range(25)])
+
     @TEST_TAG("ray")
     def test_get_column_errors(self):
         """Test error handling"""
@@ -371,6 +383,26 @@ class TestRayDataset(DataJuicerTestCaseBase):
         self.assertIsInstance(row, dict)
         self.assertIsInstance(row["text"], str)
         self.assertIsInstance(row["score"], int)
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get(25), large_data)
+
+    @TEST_TAG("ray")
+    def test_process_does_not_count_before_building_plan(self):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.columns.return_value = ["text"]
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+        dataset._auto_proc = False
+        dataset._run_single_op = MagicMock(return_value={"text"})
+
+        result = dataset.process(MagicMock())
+
+        self.assertIs(result, dataset)
+        ray_data.count.assert_not_called()
 
 
 if __name__ == "__main__":

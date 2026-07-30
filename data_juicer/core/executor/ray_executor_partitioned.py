@@ -284,6 +284,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Use ConfigAccessor to handle both dict and object configurations
         mode = ConfigAccessor.get(partition_cfg, "mode", "auto")
         num_of_partitions = ConfigAccessor.get(partition_cfg, "num_of_partitions", 4)
+        max_concurrent_partitions = ConfigAccessor.get(partition_cfg, "max_concurrent_partitions", 32)
         partition_size = ConfigAccessor.get(partition_cfg, "size", 5000)
         max_size_mb = ConfigAccessor.get(partition_cfg, "max_size_mb", 64)
 
@@ -303,6 +304,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         self.partition_mode = mode
         self.num_partitions = num_of_partitions
+        self.max_concurrent_partitions = max_concurrent_partitions
         self.partition_size = partition_size
         self.max_size_mb = max_size_mb
 
@@ -534,10 +536,14 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Process partitions concurrently. Each worker thread drives one Ray
         # Dataset execution; the actual data processing still runs on Ray.
-        logger.info(f"Processing {len(partitions)} partitions in parallel with checkpointing support...")
+        max_workers = min(len(partitions), self.max_concurrent_partitions)
+        logger.info(
+            f"Processing {len(partitions)} partitions with up to {max_workers} concurrent "
+            "driver threads and checkpointing support..."
+        )
         processed_partitions = [None] * len(partitions)
 
-        with ThreadPoolExecutor(max_workers=len(partitions), thread_name_prefix="ray-partition") as executor:
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="ray-partition") as executor:
             futures = {
                 executor.submit(self._process_partition, partition, i, len(partitions), ops): i
                 for i, partition in enumerate(partitions)
@@ -569,8 +575,12 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             partition_id=partition_id,
         )
 
-        partition_dataset = RayDataset(partition, cfg=self.cfg)
-        processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, ops)
+        try:
+            partition_dataset = RayDataset(partition, cfg=self.cfg)
+            processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, ops)
+        except Exception as error:
+            self.log_partition_failed(partition_id, str(error), retry_count=0)
+            raise
 
         self._log_event(
             event_type=EventType.PARTITION_COMPLETE,

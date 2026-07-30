@@ -87,6 +87,7 @@ override_num_blocks: null                                   # override the numbe
 partition:
   mode: auto                                                # partition mode: "auto" (use optimizer) or "manual" (specify count)
   num_of_partitions: 4                                      # number of partitions for manual mode
+  max_concurrent_partitions: 32                             # maximum partition jobs driven concurrently; Ray still controls resource scheduling
   target_size_mb: 256                                       # target partition size in MB for auto mode (128, 256, 512, or 1024). 256MB balances memory safety and efficiency.
 
 # only for data analysis

@@ -709,6 +709,12 @@ def build_base_parser() -> ArgumentParser:
         help="Number of partitions for manual mode (ignored in auto mode)",
     )
     parser.add_argument(
+        "--partition.max_concurrent_partitions",
+        type=PositiveInt,
+        default=32,
+        help="Maximum number of partition jobs submitted concurrently by the driver.",
+    )
+    parser.add_argument(
         "--partition.target_size_mb",
         type=int,
         default=256,

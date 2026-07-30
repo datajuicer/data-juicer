@@ -1,6 +1,8 @@
 import json
 import unittest
 import os
+from unittest.mock import MagicMock
+
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 
@@ -371,6 +373,45 @@ class TestRayDataset(DataJuicerTestCaseBase):
         self.assertIsInstance(row, dict)
         self.assertIsInstance(row["text"], str)
         self.assertIsInstance(row["score"], int)
+
+
+class RayComputeStrategyTest(DataJuicerTestCaseBase):
+    def _get_compute_strategy(self, op):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.map_batches.return_value = ray_data
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+
+        dataset._run_single_op(op, {"text"})
+
+        compute_strategies = [
+            call.kwargs["compute"] for call in ray_data.map_batches.call_args_list if "compute" in call.kwargs
+        ]
+        self.assertEqual(len(compute_strategies), 1)
+        return compute_strategies[0]
+
+    @TEST_TAG("ray")
+    def test_public_compute_strategies(self):
+        from ray.data import ActorPoolStrategy, TaskPoolStrategy
+
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.mapper.python_lambda_mapper import PythonLambdaMapper
+
+        for op_class in [PythonLambdaMapper, TextLengthFilter]:
+            with self.subTest(op=op_class.__name__, mode="task"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="task")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, TaskPoolStrategy)
+                self.assertEqual(compute.size, 2)
+
+            with self.subTest(op=op_class.__name__, mode="actor"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="actor")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, ActorPoolStrategy)
+                self.assertEqual(compute.min_size, 2)
+                self.assertEqual(compute.max_size, 2)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ import pyarrow
 import ray
 from jsonargparse import Namespace
 from loguru import logger
-from ray.data._internal.util import get_compute_strategy
+from ray.data import ActorPoolStrategy, TaskPoolStrategy
 
 from data_juicer.core.data import DJDataset
 from data_juicer.core.data.schema import Schema
@@ -233,7 +233,7 @@ class RayDataset(DJDataset):
 
                 try:
                     if op.use_ray_actor():
-                        compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                        compute = ActorPoolStrategy(size=op.num_proc)
                         self.data = self.data.map_batches(
                             op.__class__,
                             fn_args=None,
@@ -248,7 +248,7 @@ class RayDataset(DJDataset):
                             runtime_env=op.runtime_env,
                         )
                     else:
-                        compute = get_compute_strategy(op.process, concurrency=op.num_proc)
+                        compute = TaskPoolStrategy(size=op.num_proc)
                         self.data = self.data.map_batches(
                             op.process,
                             batch_size=batch_size,
@@ -283,7 +283,7 @@ class RayDataset(DJDataset):
                         f"to preserve shared dedup state across workers"
                     )
                 if op.use_ray_actor() and not use_instance_for_ray_tasks:
-                    compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                    compute = ActorPoolStrategy(size=op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
                         fn_args=None,
@@ -298,7 +298,7 @@ class RayDataset(DJDataset):
                         runtime_env=op.runtime_env,
                     )
                 else:
-                    compute = get_compute_strategy(op.compute_stats, concurrency=op.num_proc)
+                    compute = TaskPoolStrategy(size=op.num_proc)
                     self.data = self.data.map_batches(
                         op.compute_stats,
                         batch_size=batch_size,

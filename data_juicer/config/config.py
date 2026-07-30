@@ -11,7 +11,7 @@ import uuid
 from argparse import ArgumentError
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import yaml
 from jsonargparse import (
@@ -710,9 +710,13 @@ def build_base_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "--partition.max_concurrent_partitions",
-        type=PositiveInt,
-        default=32,
-        help="Maximum number of partition jobs submitted concurrently by the driver.",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Maximum number of partition jobs submitted concurrently by the driver. "
+            "The default 'auto' derives a resource-aware limit from the Ray cluster "
+            "and operator requirements."
+        ),
     )
     parser.add_argument(
         "--partition.target_size_mb",

@@ -36,6 +36,7 @@ executor_type: ray_partitioned
 
 partition:
   mode: "auto"
+  max_concurrent_partitions: "auto"  # Resource-aware driver concurrency
   target_size_mb: 256    # Target partition size (128, 256, 512, or 1024)
   size: 5000             # Fallback if auto-analysis fails
   max_size_mb: 256       # Fallback max size
@@ -47,7 +48,15 @@ partition:
 partition:
   mode: "manual"
   num_of_partitions: 8
+  max_concurrent_partitions: "auto"
 ```
+
+`max_concurrent_partitions: "auto"` is the default. It is resolved after
+operator resource planning: GPU pipelines use the tightest CPU/GPU worker
+capacity reported by the Ray cluster, while CPU-only pipelines use a
+conservative outer-pipeline cap of 4. The actual concurrency is also bounded by
+the partition count and any explicit global actor `num_proc` budget. Set a
+positive integer to override the automatic limit.
 
 ### Checkpointing
 

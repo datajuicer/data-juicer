@@ -25,13 +25,32 @@ class FakeRayDataset:
 
 
 class FakeOp:
-    def __init__(self, name, num_proc, auto=True):
+    def __init__(
+        self,
+        name,
+        num_proc,
+        auto=True,
+        actor=True,
+        num_cpus=None,
+        num_gpus=None,
+        cuda=False,
+    ):
         self._name = name
         self.num_proc = num_proc
         self._auto = auto
+        self._actor = actor
+        self.num_cpus = num_cpus
+        self.num_gpus = num_gpus
+        self._cuda = cuda
 
     def use_auto_proc(self):
         return self._auto
+
+    def use_ray_actor(self):
+        return self._actor
+
+    def use_cuda(self):
+        return self._cuda
 
 
 def test_partitions_are_processed_in_parallel_and_merged_in_order():
@@ -143,12 +162,82 @@ def test_auto_operator_parallelism_is_calculated_once():
         return ops
 
     with patch("data_juicer.utils.process_utils.calculate_ray_np", side_effect=configure) as calculate:
-        executor._configure_auto_operator_parallelism([auto_op, explicit_op])
+        executor._configure_operator_parallelism([auto_op, explicit_op])
 
     calculate.assert_called_once_with([auto_op, explicit_op])
     assert executor._auto_parallel_op_ids == {id(auto_op)}
+    assert executor._explicit_actor_op_ids == {id(explicit_op)}
     assert auto_op.num_proc == (2, 8)
     assert explicit_op.num_proc == 3
+
+
+@pytest.mark.parametrize(
+    ("resources", "ops", "expected"),
+    [
+        (
+            {"CPU": 32, "GPU": 4},
+            [FakeOp("gpu", 4, num_cpus=1, num_gpus=1, cuda=True)],
+            4,
+        ),
+        (
+            {"CPU": 32, "GPU": 4},
+            [FakeOp("two-gpu", 2, num_cpus=1, num_gpus=2, cuda=True)],
+            2,
+        ),
+        (
+            {"CPU": 16},
+            [FakeOp("cpu", None, actor=False, num_cpus=1)],
+            4,
+        ),
+        (
+            {"CPU": 16},
+            [FakeOp("cpu-heavy", None, actor=False, num_cpus=8)],
+            2,
+        ),
+        (
+            {"CPU": 32, "GPU": 4},
+            [
+                FakeOp("gpu", 4, num_cpus=1, num_gpus=1, cuda=True),
+                FakeOp("cpu-heavy", None, actor=False, num_cpus=16),
+            ],
+            2,
+        ),
+    ],
+)
+def test_auto_partition_concurrency_is_resource_aware(resources, ops, expected):
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.max_concurrent_partitions = "auto"
+
+    fake_ray = SimpleNamespace(cluster_resources=Mock(return_value=resources))
+    with patch("data_juicer.core.executor.ray_executor_partitioned.ray", fake_ray):
+        resolved = executor._resolve_max_concurrent_partitions(ops)
+
+    assert resolved == expected
+    assert executor.max_concurrent_partitions == expected
+
+
+def test_explicit_partition_concurrency_overrides_auto_detection():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.max_concurrent_partitions = 3
+    fake_ray = SimpleNamespace(cluster_resources=Mock())
+
+    with patch("data_juicer.core.executor.ray_executor_partitioned.ray", fake_ray):
+        resolved = executor._resolve_max_concurrent_partitions([])
+
+    assert resolved == 3
+    fake_ray.cluster_resources.assert_not_called()
+
+
+def test_auto_partition_concurrency_falls_back_to_one_when_ray_inspection_fails():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.max_concurrent_partitions = "auto"
+    fake_ray = SimpleNamespace(cluster_resources=Mock(side_effect=RuntimeError("Ray unavailable")))
+
+    with patch("data_juicer.core.executor.ray_executor_partitioned.ray", fake_ray):
+        resolved = executor._resolve_max_concurrent_partitions([])
+
+    assert resolved == 1
+    assert executor.max_concurrent_partitions == 1
 
 
 @pytest.mark.parametrize(
@@ -165,7 +254,28 @@ def test_auto_operator_concurrency_is_scaled_per_partition(concurrency, max_work
     assert PartitionedRayExecutor._scale_concurrency_for_partitions(concurrency, max_workers) == expected
 
 
-def test_auto_operator_parallelism_is_restored_after_partition_processing():
+@pytest.mark.parametrize(
+    ("concurrency", "max_workers", "expected"),
+    [
+        (8, 4, 2),
+        (5, 4, 1),
+        ((2, 8), 4, (1, 2)),
+        ([1, 5], 4, (1, 1)),
+        ((2, 8, 6), 4, (1, 2, 1)),
+    ],
+)
+def test_explicit_actor_concurrency_is_safely_scaled_per_partition(concurrency, max_workers, expected):
+    assert (
+        PartitionedRayExecutor._scale_concurrency_for_partitions(
+            concurrency,
+            max_workers,
+            round_up=False,
+        )
+        == expected
+    )
+
+
+def test_operator_parallelism_is_restored_after_partition_processing():
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.cfg = {}
     executor.max_concurrent_partitions = 4
@@ -174,8 +284,9 @@ def test_auto_operator_parallelism_is_restored_after_partition_processing():
     partitioning_info = SimpleNamespace(num_partitions=4, total_rows=4)
     executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
     auto_op = FakeOp("auto", 8)
-    explicit_op = FakeOp("explicit", 3, auto=False)
+    explicit_op = FakeOp("explicit", 4, auto=False)
     executor._auto_parallel_op_ids = {id(auto_op)}
+    executor._explicit_actor_op_ids = {id(explicit_op)}
     observed_concurrency = []
     start_barrier = threading.Barrier(len(partitions), timeout=2)
 
@@ -196,13 +307,13 @@ def test_auto_operator_parallelism_is_restored_after_partition_processing():
             [auto_op, explicit_op],
         )
 
-    assert observed_concurrency == [(2, 3)] * len(partitions)
+    assert observed_concurrency == [(2, 1)] * len(partitions)
     assert auto_op.num_proc == 8
-    assert explicit_op.num_proc == 3
+    assert explicit_op.num_proc == 4
     assert result.data.partition_ids == [0, 1, 2, 3]
 
 
-def test_auto_operator_parallelism_is_restored_after_partition_failure():
+def test_operator_parallelism_is_restored_after_partition_failure():
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.cfg = {}
     executor.max_concurrent_partitions = 2
@@ -225,6 +336,67 @@ def test_auto_operator_parallelism_is_restored_after_partition_failure():
         executor._process_with_simple_partitioning(FakeRayDataset(None), [auto_op])
 
     assert auto_op.num_proc == 4
+
+
+def test_explicit_actor_budget_limits_partition_concurrency():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = {}
+    executor.max_concurrent_partitions = 4
+    executor._log_event = Mock()
+    partitions = [FakeData([i]) for i in range(4)]
+    partitioning_info = SimpleNamespace(num_partitions=4, total_rows=4)
+    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    explicit_op = FakeOp("explicit", 2, auto=False)
+    executor._auto_parallel_op_ids = set()
+    executor._explicit_actor_op_ids = {id(explicit_op)}
+
+    active_partitions = 0
+    max_active_partitions = 0
+    active_lock = threading.Lock()
+    pair_barrier = threading.Barrier(2, timeout=2)
+    observed_concurrency = []
+
+    def process_with_checkpointing(dataset, partition_id, ops):
+        nonlocal active_partitions, max_active_partitions
+        with active_lock:
+            active_partitions += 1
+            max_active_partitions = max(max_active_partitions, active_partitions)
+            observed_concurrency.append(ops[0].num_proc)
+        pair_barrier.wait()
+        with active_lock:
+            active_partitions -= 1
+        return dataset
+
+    executor._process_with_checkpointing = process_with_checkpointing
+
+    with patch(
+        "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
+        FakeRayDataset,
+    ):
+        result = executor._process_with_simple_partitioning(
+            FakeRayDataset(None),
+            [explicit_op],
+        )
+
+    assert max_active_partitions == 2
+    assert observed_concurrency == [1] * len(partitions)
+    assert explicit_op.num_proc == 2
+    assert result.data.partition_ids == [0, 1, 2, 3]
+
+
+def test_explicit_task_concurrency_is_not_partition_scaled():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = {"auto_op_parallelism": False}
+    explicit_actor = FakeOp("actor", 4, auto=False)
+    explicit_task = FakeOp("task", 4, auto=False, actor=False)
+
+    executor._configure_operator_parallelism([explicit_actor, explicit_task])
+
+    assert executor._auto_parallel_op_ids == set()
+    assert executor._explicit_actor_op_ids == {id(explicit_actor)}
+    assert executor._limit_partition_workers_for_explicit_actors([explicit_task], 8) == 8
+    assert executor._scale_operator_parallelism([explicit_task], 8) == []
+    assert explicit_task.num_proc == 4
 
 
 def test_checkpoint_paths_remain_partition_scoped_under_concurrency(tmp_path):

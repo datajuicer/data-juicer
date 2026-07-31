@@ -8,6 +8,7 @@ This module implements a streamlined partitioned execution strategy for Ray mode
 5. Supports convergence points for global operations (like deduplicators)
 """
 
+import copy
 import hashlib
 import json
 import math
@@ -556,24 +557,37 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         original_concurrency = self._scale_operator_parallelism(ops, max_workers)
 
         try:
-            with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="ray-partition") as executor:
-                futures = {
-                    executor.submit(self._process_partition, partition, i, len(partitions), ops): i
-                    for i, partition in enumerate(partitions)
-                }
-                try:
-                    for future in as_completed(futures):
-                        partition_id, processed_data = future.result()
-                        processed_partitions[partition_id] = processed_data
-                except BaseException:
-                    # Running Ray Dataset executions cannot be forcefully
-                    # interrupted here, but queued driver work should not start
-                    # after the job has already failed.
-                    for future in futures:
-                        future.cancel()
-                    raise
+            # Capture the per-partition resource plan in an isolated template.
+            # Restore the original operators before any worker starts so later
+            # convergence stages never depend on thread-pool shutdown timing.
+            isolate_operators = max_workers > 1
+            partition_ops_template = self._clone_partition_operators(ops) if isolate_operators else ops
         finally:
             self._restore_operator_parallelism(original_concurrency)
+
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="ray-partition") as executor:
+            futures = {
+                executor.submit(
+                    self._process_partition,
+                    partition,
+                    i,
+                    len(partitions),
+                    partition_ops_template,
+                    isolate_operators,
+                ): i
+                for i, partition in enumerate(partitions)
+            }
+            try:
+                for future in as_completed(futures):
+                    partition_id, processed_data = future.result()
+                    processed_partitions[partition_id] = processed_data
+            except BaseException:
+                # Running Ray Dataset executions cannot be forcefully
+                # interrupted here, but queued driver work should not start
+                # after the job has already failed.
+                for future in futures:
+                    future.cancel()
+                raise
 
         # Merge all processed partitions back into a single dataset
         logger.info("Merging processed partitions...")
@@ -588,7 +602,14 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Return as RayDataset wrapper
         return RayDataset(merged_dataset, cfg=self.cfg)
 
-    def _process_partition(self, partition, partition_id: int, total_partitions: int, ops: List):
+    def _process_partition(
+        self,
+        partition,
+        partition_id: int,
+        total_partitions: int,
+        ops: List,
+        isolate_operators: bool = True,
+    ):
         """Process one partition while preserving its position in the final union."""
         logger.info(f"Processing partition {partition_id + 1}/{total_partitions}")
 
@@ -599,8 +620,12 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         )
 
         try:
+            # RayDataset may temporarily mutate operator attributes while
+            # building an execution plan (for example runtime_env fallback and
+            # tracing). Give every concurrent partition its own instances.
+            partition_ops = self._clone_partition_operators(ops) if isolate_operators else ops
             partition_dataset = self._wrap_with_precomputed_parallelism(partition)
-            processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, ops)
+            processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, partition_ops)
         except Exception as error:
             self.log_partition_failed(partition_id, str(error), retry_count=0)
             raise
@@ -612,6 +637,17 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         )
 
         return partition_id, processed_partition.data
+
+    @staticmethod
+    def _clone_partition_operators(ops: List) -> List:
+        """Create an isolated operator graph for one partition."""
+        try:
+            return copy.deepcopy(ops)
+        except Exception as error:
+            raise RuntimeError(
+                "Failed to isolate operators for concurrent partition execution. "
+                "All partition operators must support deep copying."
+            ) from error
 
     def _configure_operator_parallelism(self, ops: List) -> None:
         """Plan global actor resources once before partition threads.

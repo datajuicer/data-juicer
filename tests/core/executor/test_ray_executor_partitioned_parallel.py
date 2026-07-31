@@ -1,12 +1,14 @@
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-import threading
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
 
+from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventType
+from data_juicer.core.executor.pipeline_dag import DAGNodeStatus, PipelineDAG
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
 from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
 
@@ -124,6 +126,46 @@ def test_partition_concurrency_is_bounded():
 
     assert max_active_partitions == executor.max_concurrent_partitions
     assert result.data.partition_ids == [0, 1, 2, 3]
+
+
+def test_concurrent_partitions_use_isolated_operator_instances():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = {}
+    executor.max_concurrent_partitions = 3
+    executor._log_event = Mock()
+    partitions = [FakeData([i]) for i in range(3)]
+    partitioning_info = SimpleNamespace(num_partitions=3, total_rows=3)
+    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    original_op = FakeOp("mutable", 1)
+    original_op.partition_marker = None
+
+    start_barrier = threading.Barrier(len(partitions), timeout=2)
+    observations = {}
+    observations_lock = threading.Lock()
+
+    def process_with_checkpointing(dataset, partition_id, ops):
+        partition_op = ops[0]
+        partition_op.partition_marker = partition_id
+        start_barrier.wait()
+        with observations_lock:
+            observations[partition_id] = (id(partition_op), partition_op.partition_marker)
+        return dataset
+
+    executor._process_with_checkpointing = process_with_checkpointing
+
+    with patch(
+        "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
+        FakeRayDataset,
+    ):
+        executor._process_with_simple_partitioning(FakeRayDataset(None), [original_op])
+
+    operator_ids = {operator_id for operator_id, _ in observations.values()}
+    assert len(operator_ids) == len(partitions)
+    assert id(original_op) not in operator_ids
+    assert {partition_id: marker for partition_id, (_, marker) in observations.items()} == {
+        partition_id: partition_id for partition_id in range(len(partitions))
+    }
+    assert original_op.partition_marker is None
 
 
 def test_partition_failure_is_logged_and_propagated():
@@ -338,6 +380,49 @@ def test_operator_parallelism_is_restored_after_partition_failure():
     assert auto_op.num_proc == 4
 
 
+def test_partition_template_stays_scaled_after_sibling_failure():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = {}
+    executor.max_concurrent_partitions = 2
+    executor._log_event = Mock()
+    executor.log_partition_failed = Mock()
+    partitions = [FakeData([0]), FakeData([1])]
+    partitioning_info = SimpleNamespace(num_partitions=2, total_rows=2)
+    executor._split_dataset_deterministic = Mock(return_value=(partitions, partitioning_info))
+    auto_op = FakeOp("auto", 4)
+    executor._auto_parallel_op_ids = {id(auto_op)}
+
+    start_barrier = threading.Barrier(2, timeout=2)
+    failure_announced = threading.Event()
+    sibling_observation = []
+
+    def process_with_checkpointing(dataset, partition_id, ops):
+        start_barrier.wait()
+        if partition_id == 0:
+            failure_announced.set()
+            raise RuntimeError("partition failed")
+
+        assert failure_announced.wait(timeout=2)
+        sibling_observation.append((ops[0].num_proc, auto_op.num_proc))
+        return dataset
+
+    executor._process_with_checkpointing = process_with_checkpointing
+
+    with (
+        patch(
+            "data_juicer.core.executor.ray_executor_partitioned.RayDataset",
+            FakeRayDataset,
+        ),
+        pytest.raises(RuntimeError, match="partition failed"),
+    ):
+        executor._process_with_simple_partitioning(FakeRayDataset(None), [auto_op])
+
+    # The running partition keeps its scaled private plan while the shared
+    # operator has already been restored for later convergence stages.
+    assert sibling_observation == [(2, 4)]
+    assert auto_op.num_proc == 4
+
+
 def test_explicit_actor_budget_limits_partition_concurrency():
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.cfg = {}
@@ -432,3 +517,60 @@ def test_checkpoint_paths_remain_partition_scoped_under_concurrency(tmp_path):
     assert len(set(checkpoint_paths)) == 4
     for partition_id, checkpoint_path in enumerate(checkpoint_paths):
         assert Path(checkpoint_path, "partition.txt").read_text() == str(partition_id)
+
+
+def test_concurrent_dag_monitoring_tracks_current_node_per_partition(tmp_path):
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    DAGExecutionMixin.__init__(executor)
+    executor.pipeline_dag = PipelineDAG(str(tmp_path))
+    executor.log_dag_node_start = Mock()
+    executor.log_dag_node_complete = Mock()
+
+    num_partitions = 4
+    node_ids = [f"op_001_fake_partition_{partition_id}" for partition_id in range(num_partitions)]
+    executor.pipeline_dag.nodes = {
+        node_id: {
+            "node_id": node_id,
+            "operation_name": "fake",
+            "node_type": "partition_operation",
+            "partition_id": partition_id,
+            "execution_order": 1,
+            "dependencies": [],
+            "status": DAGNodeStatus.PENDING.value,
+            "start_time": None,
+            "end_time": None,
+            "actual_duration": None,
+            "error_message": None,
+        }
+        for partition_id, node_id in enumerate(node_ids)
+    }
+
+    started_barrier = threading.Barrier(num_partitions, timeout=2)
+    observed_barrier = threading.Barrier(num_partitions, timeout=2)
+    observed_current_nodes = {}
+    active_snapshot = {}
+
+    def monitor_partition(partition_id):
+        node_id = node_ids[partition_id]
+        executor._mark_dag_node_started(node_id)
+        started_barrier.wait()
+        observed_current_nodes[partition_id] = executor.current_dag_node
+        if partition_id == 0:
+            with executor._dag_state_lock:
+                active_snapshot.update(executor.current_dag_nodes)
+        observed_barrier.wait()
+        executor._mark_dag_node_completed(node_id, duration=partition_id + 0.5)
+
+    with ThreadPoolExecutor(max_workers=num_partitions) as pool:
+        futures = [pool.submit(monitor_partition, partition_id) for partition_id in range(num_partitions)]
+        for future in futures:
+            future.result()
+
+    assert observed_current_nodes == {partition_id: node_id for partition_id, node_id in enumerate(node_ids)}
+    assert active_snapshot == {partition_id: node_id for partition_id, node_id in enumerate(node_ids)}
+    assert executor.current_dag_nodes == {}
+    for partition_id, node_id in enumerate(node_ids):
+        node = executor.pipeline_dag.nodes[node_id]
+        assert node["status"] == DAGNodeStatus.COMPLETED.value
+        assert node["start_time"] is not None
+        assert node["actual_duration"] == partition_id + 0.5

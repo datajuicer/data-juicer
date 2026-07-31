@@ -468,6 +468,17 @@ class PipelineDAGCompletionTest(DataJuicerTestCaseBase):
         node = self.dag.nodes["n1"]
         self.assertGreater(node["actual_duration"], 0)
 
+    def test_repeated_start_does_not_overwrite_start_time(self):
+        import time
+
+        self.dag.nodes["n1"] = _make_node("n1")
+        self.dag.mark_node_started("n1")
+        original_start_time = self.dag.nodes["n1"]["start_time"]
+        time.sleep(0.02)
+        self.dag.mark_node_started("n1")
+
+        self.assertEqual(self.dag.nodes["n1"]["start_time"], original_start_time)
+
     def test_mark_completed_explicit_duration(self):
         self.dag.nodes["n1"] = _make_node("n1")
         self.dag.mark_node_started("n1")
@@ -508,4 +519,4 @@ class PipelineDAGCompletionTest(DataJuicerTestCaseBase):
 
 
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

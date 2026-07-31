@@ -403,6 +403,27 @@ class TestRayDataset(DataJuicerTestCaseBase):
 
         self.assertIs(result, dataset)
         ray_data.count.assert_not_called()
+        ray_data.columns.assert_called_once()
+
+    @TEST_TAG("ray")
+    def test_process_skips_empty_dataset_with_known_schema(self):
+        """Empty datasets with a known schema (columns() returns []) must be
+        skipped instead of running operators on zero rows."""
+        import pyarrow
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+        from data_juicer.ops.mapper.punctuation_normalization_mapper import (
+            PunctuationNormalizationMapper,
+        )
+
+        empty_data = pyarrow.table({"text": []})
+        dataset = RayDataset(ray.data.from_arrow(empty_data))
+        self.assertEqual(dataset.data.columns(), ["text"])
+        self.assertEqual(dataset.data.count(), 0)
+
+        result = dataset.process([PunctuationNormalizationMapper()])
+
+        self.assertIs(result, dataset)
 
 
 if __name__ == "__main__":

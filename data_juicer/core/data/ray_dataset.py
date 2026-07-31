@@ -122,7 +122,13 @@ class RayDataset(DJDataset):
         return Schema.from_ray_schema(ray_schema)
 
     def get(self, k: int) -> List[Dict[str, Any]]:
-        """Get k rows from the dataset."""
+        """Get k rows from the dataset.
+
+        Note:
+            The requested rows are moved to the caller's machine. A ``k``
+            larger than the dataset size returns all rows and may cause an
+            OutOfMemory error on the caller.
+        """
         if k < 0:
             raise ValueError(f"k must be non-negative, got {k}")
 
@@ -144,6 +150,12 @@ class RayDataset(DJDataset):
         Raises:
             KeyError: If column doesn't exist
             ValueError: If k is negative
+
+        Note:
+            The requested rows are moved to the caller's machine. A ``k``
+            larger than the dataset size returns all rows, and ``k=None``
+            returns every row; either may cause an OutOfMemory error on the
+            caller for large datasets.
         """
         if self.data is None:
             raise KeyError(f"Column '{column}' not found in dataset")
@@ -175,9 +187,10 @@ class RayDataset(DJDataset):
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming
         columns_result = self.data.columns()
-        # Handle empty dataset case where columns() returns None
-        if columns_result is None:
-            logger.warning("Dataset has unknown schema (likely empty), skipping operator processing")
+        # Handle empty dataset: columns() returns None when the schema is unknown
+        # (lazy/empty datasets) and [] for datasets with a known schema but 0 rows
+        if not columns_result:
+            logger.warning("Dataset is empty (0 rows or unknown schema), skipping operator processing")
             return self
         cached_columns = set(columns_result)
 

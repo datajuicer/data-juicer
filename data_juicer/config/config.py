@@ -11,7 +11,7 @@ import uuid
 from argparse import ArgumentError
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 from urllib.parse import urlparse
 
 import yaml
@@ -708,6 +708,16 @@ def build_base_parser() -> ArgumentParser:
         type=int,
         default=4,
         help="Number of partitions for manual mode (ignored in auto mode)",
+    )
+    parser.add_argument(
+        "--partition.max_concurrent_partitions",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Maximum number of partition jobs submitted concurrently by the driver. "
+            "The default 'auto' derives a resource-aware limit from the Ray cluster "
+            "and operator requirements."
+        ),
     )
     parser.add_argument(
         "--partition.target_size_mb",

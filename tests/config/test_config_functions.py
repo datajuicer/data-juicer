@@ -7,6 +7,7 @@ namespace_to_arg_list, build_base_parser, namespace_to_arg_list,
 save_cli_arguments, load_ops_with_stats_meta, prepare_cfgs_for_export,
 display_config.
 """
+
 import json
 import os
 import shutil
@@ -152,14 +153,18 @@ class SortOpByTypesAndNamesTest(DataJuicerTestCaseBase):
         ]
         result = sort_op_by_types_and_names(ops)
         names = [name for name, _ in result]
-        self.assertEqual(names, [
-            "a_mapper", "c_mapper",          # mappers first, sorted
-            "z_filter",                       # filters
-            "b_deduplicator",                 # deduplicators
-            "a_selector",                     # selectors
-            "b_grouper",                      # groupers
-            "a_aggregator",                   # aggregators
-        ])
+        self.assertEqual(
+            names,
+            [
+                "a_mapper",
+                "c_mapper",  # mappers first, sorted
+                "z_filter",  # filters
+                "b_deduplicator",  # deduplicators
+                "a_selector",  # selectors
+                "b_grouper",  # groupers
+                "a_aggregator",  # aggregators
+            ],
+        )
 
     def test_empty_list(self):
         result = sort_op_by_types_and_names([])
@@ -226,11 +231,14 @@ class ParseCliToConfigTest(DataJuicerTestCaseBase):
         self.assertEqual(result.get("items"), ["a", "b", "c"])
 
     def test_mixed_args(self):
-        result = _parse_cli_to_config([
-            "--name", "test",
-            "--count=10",
-            "--verbose",
-        ])
+        result = _parse_cli_to_config(
+            [
+                "--name",
+                "test",
+                "--count=10",
+                "--verbose",
+            ]
+        )
         self.assertEqual(result.get("name"), "test")
         self.assertEqual(result.get("count"), 10)
         self.assertEqual(result.get("verbose"), True)
@@ -338,9 +346,7 @@ class ValidateConfigForResumptionTest(DataJuicerTestCaseBase):
 
         cfg = Namespace(config=[cur_cfg])
         # Pass same CLI args as saved in cli.yaml
-        result = validate_config_for_resumption(
-            cfg, self.work_dir, original_args=["--np", "4"]
-        )
+        result = validate_config_for_resumption(cfg, self.work_dir, original_args=["--np", "4"])
         self.assertTrue(result)
         self.assertTrue(cfg._same_yaml_config)
 
@@ -392,9 +398,7 @@ class ValidateConfigForResumptionTest(DataJuicerTestCaseBase):
 
         cfg = Namespace(config=[cur_cfg])
         # Pass different CLI args
-        result = validate_config_for_resumption(
-            cfg, self.work_dir, original_args=["--np", "8"]
-        )
+        result = validate_config_for_resumption(cfg, self.work_dir, original_args=["--np", "8"])
         self.assertFalse(result)
 
 
@@ -511,16 +515,11 @@ class ResolveJobDirectoriesTest(DataJuicerTestCaseBase):
         )
         result = resolve_job_directories(cfg)
         self.assertTrue(result.work_dir.endswith("test_job_123"))
-        self.assertEqual(result.event_log_dir,
-                         os.path.join(result.work_dir, "logs"))
-        self.assertEqual(result.checkpoint_dir,
-                         os.path.join(result.work_dir, "checkpoints"))
-        self.assertEqual(result.partition_dir,
-                         os.path.join(result.work_dir, "partitions"))
-        self.assertEqual(result.metadata_dir,
-                         os.path.join(result.work_dir, "metadata"))
-        self.assertEqual(result.results_dir,
-                         os.path.join(result.work_dir, "results"))
+        self.assertEqual(result.event_log_dir, os.path.join(result.work_dir, "logs"))
+        self.assertEqual(result.checkpoint_dir, os.path.join(result.work_dir, "checkpoints"))
+        self.assertEqual(result.partition_dir, os.path.join(result.work_dir, "partitions"))
+        self.assertEqual(result.metadata_dir, os.path.join(result.work_dir, "metadata"))
+        self.assertEqual(result.results_dir, os.path.join(result.work_dir, "results"))
 
     def test_job_id_placeholder_substitution(self):
         cfg = Namespace(
@@ -607,18 +606,28 @@ class BuildBaseParserTest(DataJuicerTestCaseBase):
         parser = build_base_parser()
         self.assertIsNotNone(parser)
         action_dests = {a.dest for a in parser._actions}
-        self.assertIn('project_name', action_dests)
-        self.assertIn('executor_type', action_dests)
-        self.assertIn('dataset_path', action_dests)
+        self.assertIn("project_name", action_dests)
+        self.assertIn("executor_type", action_dests)
+        self.assertIn("dataset_path", action_dests)
 
     def test_executor_type_choices(self):
         parser = build_base_parser()
         for action in parser._actions:
-            if action.dest == 'executor_type':
-                self.assertIn('default', action.choices)
-                self.assertIn('ray', action.choices)
-                self.assertIn('ray_partitioned', action.choices)
+            if action.dest == "executor_type":
+                self.assertIn("default", action.choices)
+                self.assertIn("ray", action.choices)
+                self.assertIn("ray_partitioned", action.choices)
                 break
+
+    def test_partition_concurrency_defaults_to_auto(self):
+        parser = build_base_parser()
+        action = next(action for action in parser._actions if action.dest == "partition.max_concurrent_partitions")
+        self.assertEqual(action.default, "auto")
+
+    def test_partition_concurrency_accepts_explicit_positive_integer(self):
+        parser = build_base_parser()
+        cfg = parser.parse_args(["--auto", "--partition.max_concurrent_partitions=4"])
+        self.assertEqual(cfg.partition.max_concurrent_partitions, 4)
 
     def test_config_and_auto_mutually_exclusive(self):
         parser = build_base_parser()
@@ -629,56 +638,56 @@ class BuildBaseParserTest(DataJuicerTestCaseBase):
 class NamespaceToArgListTest(DataJuicerTestCaseBase):
 
     def test_flat_namespace(self):
-        ns = Namespace(a=1, b='hello')
+        ns = Namespace(a=1, b="hello")
         result = namespace_to_arg_list(ns)
-        self.assertIn('--a=1', result)
-        self.assertIn('--b=hello', result)
+        self.assertIn("--a=1", result)
+        self.assertIn("--b=hello", result)
 
     def test_skips_none_values(self):
         ns = Namespace(a=1, b=None)
         result = namespace_to_arg_list(ns)
-        self.assertIn('--a=1', result)
-        self.assertNotIn('--b=None', result)
+        self.assertIn("--a=1", result)
+        self.assertNotIn("--b=None", result)
 
     def test_excludes(self):
         ns = Namespace(a=1, b=2, c=3)
-        result = namespace_to_arg_list(ns, excludes=['b'])
-        keys = [r.split('=')[0] for r in result]
-        self.assertNotIn('--b', keys)
+        result = namespace_to_arg_list(ns, excludes=["b"])
+        keys = [r.split("=")[0] for r in result]
+        self.assertNotIn("--b", keys)
 
     def test_includes(self):
         ns = Namespace(a=1, b=2, c=3)
-        result = namespace_to_arg_list(ns, includes=['a', 'c'])
-        keys = [r.split('=')[0] for r in result]
-        self.assertIn('--a', keys)
-        self.assertIn('--c', keys)
-        self.assertNotIn('--b', keys)
+        result = namespace_to_arg_list(ns, includes=["a", "c"])
+        keys = [r.split("=")[0] for r in result]
+        self.assertIn("--a", keys)
+        self.assertIn("--c", keys)
+        self.assertNotIn("--b", keys)
 
     def test_exclude_prefixes(self):
         ns = Namespace(a=1, my_op=Namespace(x=10, y=20))
-        result = namespace_to_arg_list(ns, exclude_prefixes=('my_op',))
-        keys = [r.split('=')[0] for r in result]
-        self.assertIn('--a', keys)
-        self.assertNotIn('--my_op.x', keys)
-        self.assertNotIn('--my_op.y', keys)
+        result = namespace_to_arg_list(ns, exclude_prefixes=("my_op",))
+        keys = [r.split("=")[0] for r in result]
+        self.assertIn("--a", keys)
+        self.assertNotIn("--my_op.x", keys)
+        self.assertNotIn("--my_op.y", keys)
 
     def test_nested_namespace(self):
         ns = Namespace(top=Namespace(inner=42))
         result = namespace_to_arg_list(ns)
-        self.assertIn('--top.inner=42', result)
+        self.assertIn("--top.inner=42", result)
 
     def test_process_key_uses_json(self):
-        ns = Namespace(process=[{'op': {'k': 'v'}}])
+        ns = Namespace(process=[{"op": {"k": "v"}}])
         result = namespace_to_arg_list(ns)
         self.assertEqual(len(result), 1)
-        self.assertTrue(result[0].startswith('--process='))
-        parsed = json.loads(result[0].split('=', 1)[1])
-        self.assertEqual(parsed, [{'op': {'k': 'v'}}])
+        self.assertTrue(result[0].startswith("--process="))
+        parsed = json.loads(result[0].split("=", 1)[1])
+        self.assertEqual(parsed, [{"op": {"k": "v"}}])
 
     def test_prefix(self):
         ns = Namespace(x=5)
-        result = namespace_to_arg_list(ns, prefix='sub.')
-        self.assertIn('--sub.x=5', result)
+        result = namespace_to_arg_list(ns, prefix="sub.")
+        self.assertIn("--sub.x=5", result)
 
 
 class SaveCliArgumentsTest(DataJuicerTestCaseBase):
@@ -687,30 +696,29 @@ class SaveCliArgumentsTest(DataJuicerTestCaseBase):
         with tempfile.TemporaryDirectory() as tmpdir:
             cfg = Namespace(
                 work_dir=tmpdir,
-                _original_args=['--config', 'test.yaml', '--np', '4'],
+                _original_args=["--config", "test.yaml", "--np", "4"],
             )
             save_cli_arguments(cfg)
-            cli_path = os.path.join(tmpdir, 'cli.yaml')
+            cli_path = os.path.join(tmpdir, "cli.yaml")
             self.assertTrue(os.path.exists(cli_path))
             with open(cli_path) as f:
                 data = yaml.safe_load(f)
-            self.assertEqual(data['arguments'],
-                             ['--config', 'test.yaml', '--np', '4'])
+            self.assertEqual(data["arguments"], ["--config", "test.yaml", "--np", "4"])
 
     def test_no_work_dir_does_nothing(self):
-        cfg = Namespace(_original_args=['--x', '1'])
+        cfg = Namespace(_original_args=["--x", "1"])
         save_cli_arguments(cfg)
 
     def test_no_args_saves_sys_argv_fallback(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             cfg = Namespace(work_dir=tmpdir)
             save_cli_arguments(cfg)
-            cli_path = os.path.join(tmpdir, 'cli.yaml')
+            cli_path = os.path.join(tmpdir, "cli.yaml")
             self.assertTrue(os.path.exists(cli_path))
             with open(cli_path) as f:
                 data = yaml.safe_load(f)
-            self.assertIn('arguments', data)
-            self.assertIsInstance(data['arguments'], list)
+            self.assertIn("arguments", data)
+            self.assertIsInstance(data["arguments"], list)
 
 
 class LoadOpsWithStatsMetaTest(DataJuicerTestCaseBase):
@@ -721,12 +729,11 @@ class LoadOpsWithStatsMetaTest(DataJuicerTestCaseBase):
         self.assertGreater(len(result), 0)
         names = [list(d.keys())[0] for d in result]
         for expected in [
-            'alphanumeric_filter',
-            'audio_duration_filter',
-            'text_length_filter',
+            "alphanumeric_filter",
+            "audio_duration_filter",
+            "text_length_filter",
         ]:
-            self.assertIn(expected, names,
-                          f'{expected} should be in ops with stats meta')
+            self.assertIn(expected, names, f"{expected} should be in ops with stats meta")
 
     def test_each_item_is_single_key_dict(self):
         result = load_ops_with_stats_meta()
@@ -742,29 +749,32 @@ class PrepareCfgsForExportTest(DataJuicerTestCaseBase):
 
     def test_converts_config_paths_to_str(self):
         from pathlib import Path
-        cfg = {'config': [Path('/a/b.yaml')], 'process': []}
+
+        cfg = {"config": [Path("/a/b.yaml")], "process": []}
         result = prepare_cfgs_for_export(cfg)
-        self.assertEqual(result['config'], ['/a/b.yaml'])
+        self.assertEqual(result["config"], ["/a/b.yaml"])
 
     def test_removes_op_keys(self):
         from data_juicer.ops.base_op import OPERATORS
+
         some_op = next(iter(OPERATORS.modules.keys()))
         cfg = {
-            'process': [{'some_filter': {}}],
-            some_op: {'param': 'val'},
+            "process": [{"some_filter": {}}],
+            some_op: {"param": "val"},
         }
         result = prepare_cfgs_for_export(cfg)
         self.assertNotIn(some_op, result)
-        self.assertIn('process', result)
+        self.assertIn("process", result)
 
     def test_no_config_key(self):
-        cfg = {'process': [], 'other': 'val'}
+        cfg = {"process": [], "other": "val"}
         result = prepare_cfgs_for_export(cfg)
-        self.assertEqual(result['other'], 'val')
+        self.assertEqual(result["other"], "val")
 
     def test_mutates_in_place(self):
         from pathlib import Path
-        cfg = {'config': [Path('/a/b.yaml')], 'process': []}
+
+        cfg = {"config": [Path("/a/b.yaml")], "process": []}
         result = prepare_cfgs_for_export(cfg)
         self.assertIs(result, cfg)
 
@@ -773,11 +783,12 @@ class DisplayConfigTest(DataJuicerTestCaseBase):
 
     def test_output_contains_config_keys(self):
         cfg = Namespace(
-            project_name='test',
-            dataset_path='./data',
+            project_name="test",
+            dataset_path="./data",
             process=[],
         )
         import io
+
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
@@ -785,8 +796,8 @@ class DisplayConfigTest(DataJuicerTestCaseBase):
             output = sys.stdout.getvalue()
         finally:
             sys.stdout = old_stdout
-        self.assertIn('project_name', output)
-        self.assertIn('dataset_path', output)
+        self.assertIn("project_name", output)
+        self.assertIn("dataset_path", output)
 
 
 if __name__ == "__main__":

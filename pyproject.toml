@@ -124,6 +124,7 @@ audio = [
 # Distributed Computing
 distributed = [
     "ray[default]>=2.51.0",  # distributed computing
+    "pandas<3",  # Ray Data versions supported by Data-Juicer are not compatible with pandas 3
     "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "pyspark==3.5.5",  # distributed data processing
     "s3fs",  # S3 filesystem support for cloud storage

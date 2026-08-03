@@ -8,7 +8,7 @@ import pyarrow
 import ray
 from jsonargparse import Namespace
 from loguru import logger
-from ray.data._internal.util import get_compute_strategy
+from ray.data import ActorPoolStrategy, TaskPoolStrategy
 
 from data_juicer.core.data import DJDataset
 from data_juicer.core.data.schema import Schema
@@ -112,21 +112,30 @@ class RayDataset(DJDataset):
         Returns:
             Schema: Dataset schema containing column names and types
         """
-        if self.data is None or self.data.columns() is None:
+        if self.data is None:
             raise ValueError("Dataset is empty or not initialized")
 
-        return Schema.from_ray_schema(self.data.schema())
+        ray_schema = self.data.schema()
+        if ray_schema is None:
+            raise ValueError("Dataset is empty or not initialized")
+
+        return Schema.from_ray_schema(ray_schema)
 
     def get(self, k: int) -> List[Dict[str, Any]]:
-        """Get k rows from the dataset."""
+        """Get k rows from the dataset.
+
+        Note:
+            The requested rows are moved to the caller's machine. A ``k``
+            larger than the dataset size returns all rows and may cause an
+            OutOfMemory error on the caller.
+        """
         if k < 0:
             raise ValueError(f"k must be non-negative, got {k}")
 
         if k == 0:
             return []
 
-        k = min(k, self.data.count())
-        return list(self.data.limit(k).take())
+        return list(self.data.take(k))
 
     def get_column(self, column: str, k: Optional[int] = None) -> List[Any]:
         """Get column values from Ray dataset.
@@ -141,8 +150,18 @@ class RayDataset(DJDataset):
         Raises:
             KeyError: If column doesn't exist
             ValueError: If k is negative
+
+        Note:
+            The requested rows are moved to the caller's machine. A ``k``
+            larger than the dataset size returns all rows, and ``k=None``
+            returns every row; either may cause an OutOfMemory error on the
+            caller for large datasets.
         """
-        if self.data is None or self.data.columns() is None or column not in self.data.columns():
+        if self.data is None:
+            raise KeyError(f"Column '{column}' not found in dataset")
+
+        columns = self.data.columns()
+        if columns is None or column not in columns:
             raise KeyError(f"Column '{column}' not found in dataset")
 
         if k is not None:
@@ -150,10 +169,9 @@ class RayDataset(DJDataset):
                 raise ValueError(f"k must be non-negative, got {k}")
             if k == 0:
                 return []
-            k = min(k, self.data.count())
-            return [row[column] for row in self.data.limit(k).take()]
+            return [row[column] for row in self.data.take(k)]
 
-        return [row[column] for row in self.data.take()]
+        return [row[column] for row in self.data.take_all()]
 
     def process(self, operators, *, exporter=None, checkpointer=None, tracer=None) -> DJDataset:
         if operators is None:
@@ -166,23 +184,13 @@ class RayDataset(DJDataset):
         if self._auto_proc:
             calculate_ray_np(operators)
 
-        # Check if dataset is empty - Ray returns None for columns() on empty datasets
-        # with unknown schema. If empty, skip processing as there's nothing to process.
-        try:
-            row_count = self.data.count()
-        except Exception:
-            row_count = 0
-
-        if row_count == 0:
-            logger.warning("Dataset is empty (0 rows), skipping operator processing")
-            return self
-
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming
         columns_result = self.data.columns()
-        # Handle empty dataset case where columns() returns None
-        if columns_result is None:
-            logger.warning("Dataset has unknown schema (likely empty), skipping operator processing")
+        # Handle empty dataset: columns() returns None when the schema is unknown
+        # (lazy/empty datasets) and [] for datasets with a known schema but 0 rows
+        if not columns_result:
+            logger.warning("Dataset is empty (0 rows or unknown schema), skipping operator processing")
             return self
         cached_columns = set(columns_result)
 
@@ -233,7 +241,7 @@ class RayDataset(DJDataset):
 
                 try:
                     if op.use_ray_actor():
-                        compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                        compute = ActorPoolStrategy(size=op.num_proc)
                         self.data = self.data.map_batches(
                             op.__class__,
                             fn_args=None,
@@ -248,7 +256,7 @@ class RayDataset(DJDataset):
                             runtime_env=op.runtime_env,
                         )
                     else:
-                        compute = get_compute_strategy(op.process, concurrency=op.num_proc)
+                        compute = TaskPoolStrategy(size=op.num_proc)
                         self.data = self.data.map_batches(
                             op.process,
                             batch_size=batch_size,
@@ -283,7 +291,7 @@ class RayDataset(DJDataset):
                         f"to preserve shared dedup state across workers"
                     )
                 if op.use_ray_actor() and not use_instance_for_ray_tasks:
-                    compute = get_compute_strategy(op.__class__, concurrency=op.num_proc)
+                    compute = ActorPoolStrategy(size=op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
                         fn_args=None,
@@ -298,7 +306,7 @@ class RayDataset(DJDataset):
                         runtime_env=op.runtime_env,
                     )
                 else:
-                    compute = get_compute_strategy(op.compute_stats, concurrency=op.num_proc)
+                    compute = TaskPoolStrategy(size=op.num_proc)
                     self.data = self.data.map_batches(
                         op.compute_stats,
                         batch_size=batch_size,

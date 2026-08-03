@@ -1,6 +1,8 @@
 import json
 import unittest
 import os
+from unittest.mock import MagicMock
+
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 
@@ -274,6 +276,16 @@ class TestRayDataset(DataJuicerTestCaseBase):
         texts = self.dataset.get_column("text", k=1)
         self.assertEqual(texts, ["Hello"])
 
+        # Ray's take() defaults to 20 rows, so explicitly requesting or
+        # retrieving all rows must not truncate larger datasets.
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get_column("text", k=25), [str(i) for i in range(25)])
+        self.assertEqual(large_dataset.get_column("text"), [str(i) for i in range(25)])
+
     @TEST_TAG("ray")
     def test_get_column_errors(self):
         """Test error handling"""
@@ -371,6 +383,86 @@ class TestRayDataset(DataJuicerTestCaseBase):
         self.assertIsInstance(row, dict)
         self.assertIsInstance(row["text"], str)
         self.assertIsInstance(row["score"], int)
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get(25), large_data)
+
+    @TEST_TAG("ray")
+    def test_process_does_not_count_before_building_plan(self):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.columns.return_value = ["text"]
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+        dataset._auto_proc = False
+        dataset._run_single_op = MagicMock(return_value={"text"})
+
+        result = dataset.process(MagicMock())
+
+        self.assertIs(result, dataset)
+        ray_data.count.assert_not_called()
+        ray_data.columns.assert_called_once()
+
+    @TEST_TAG("ray")
+    def test_process_skips_empty_dataset_with_known_schema(self):
+        """Empty datasets with a known schema (columns() returns []) must be
+        skipped instead of running operators on zero rows."""
+        import pyarrow
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+        from data_juicer.ops.mapper.punctuation_normalization_mapper import (
+            PunctuationNormalizationMapper,
+        )
+
+        empty_data = pyarrow.table({"text": []})
+        dataset = RayDataset(ray.data.from_arrow(empty_data))
+        self.assertEqual(dataset.data.columns(), ["text"])
+        self.assertEqual(dataset.data.count(), 0)
+
+        result = dataset.process([PunctuationNormalizationMapper()])
+
+        self.assertIs(result, dataset)
+
+
+class RayComputeStrategyTest(DataJuicerTestCaseBase):
+    def _get_compute_strategy(self, op):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.map_batches.return_value = ray_data
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+
+        dataset._run_single_op(op, {"text"})
+
+        compute_strategies = [
+            call.kwargs["compute"] for call in ray_data.map_batches.call_args_list if "compute" in call.kwargs
+        ]
+        self.assertEqual(len(compute_strategies), 1)
+        return compute_strategies[0]
+
+    @TEST_TAG("ray")
+    def test_public_compute_strategies(self):
+        from ray.data import ActorPoolStrategy, TaskPoolStrategy
+
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.mapper.python_lambda_mapper import PythonLambdaMapper
+
+        for op_class in [PythonLambdaMapper, TextLengthFilter]:
+            with self.subTest(op=op_class.__name__, mode="task"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="task")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, TaskPoolStrategy)
+                self.assertEqual(compute.size, 2)
+
+            with self.subTest(op=op_class.__name__, mode="actor"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="actor")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, ActorPoolStrategy)
+                self.assertEqual(compute.min_size, 2)
+                self.assertEqual(compute.max_size, 2)
 
 
 if __name__ == "__main__":

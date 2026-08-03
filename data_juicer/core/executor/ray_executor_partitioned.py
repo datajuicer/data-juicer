@@ -8,11 +8,14 @@ This module implements a streamlined partitioned execution strategy for Ray mode
 5. Supports convergence points for global operations (like deduplicators)
 """
 
+import copy
 import hashlib
 import json
+import math
 import os
 import shutil
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -36,6 +39,8 @@ from data_juicer.utils.file_utils import is_remote_path
 from data_juicer.utils.lazy_loader import LazyLoader
 
 ray = LazyLoader("ray")
+
+_AUTO_CPU_PARTITION_CAP = 4
 
 
 class TempDirManager:
@@ -284,6 +289,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Use ConfigAccessor to handle both dict and object configurations
         mode = ConfigAccessor.get(partition_cfg, "mode", "auto")
         num_of_partitions = ConfigAccessor.get(partition_cfg, "num_of_partitions", 4)
+        max_concurrent_partitions = ConfigAccessor.get(partition_cfg, "max_concurrent_partitions", "auto")
         partition_size = ConfigAccessor.get(partition_cfg, "size", 5000)
         max_size_mb = ConfigAccessor.get(partition_cfg, "max_size_mb", 64)
 
@@ -303,6 +309,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         self.partition_mode = mode
         self.num_partitions = num_of_partitions
+        self.max_concurrent_partitions = max_concurrent_partitions
         self.partition_size = partition_size
         self.max_size_mb = max_size_mb
 
@@ -454,6 +461,13 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         if self.partition_mode == "auto":
             self._configure_auto_partitioning(dataset, ops)
 
+        # Record explicit actor-pool budgets and calculate automatic Ray
+        # operator parallelism once on the driver. Every partition shares the
+        # same operator objects, so resource planning must finish before the
+        # concurrent partition threads start.
+        self._configure_operator_parallelism(ops)
+        self._resolve_max_concurrent_partitions(ops)
+
         # Initialize DAG execution planning with final partition count
         # Pass ops to avoid redundant loading
         self._initialize_dag_execution(self.cfg, ops=ops)
@@ -532,35 +546,49 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             f"{partitioning_info.total_rows} total rows"
         )
 
-        # Process each partition separately with checkpointing
-        logger.info("Processing partitions with checkpointing support...")
-        processed_partitions = []
+        # Process partitions concurrently. Each worker thread drives one Ray
+        # Dataset execution; the actual data processing still runs on Ray.
+        requested_max_workers = min(len(partitions), self.max_concurrent_partitions)
+        max_workers = self._limit_partition_workers_for_explicit_actors(ops, requested_max_workers)
+        logger.info(
+            f"Processing {len(partitions)} partitions with up to {max_workers} concurrent "
+            "driver threads and checkpointing support..."
+        )
+        processed_partitions = [None] * len(partitions)
+        original_concurrency = self._scale_operator_parallelism(ops, max_workers)
 
-        for i, partition in enumerate(partitions):
-            logger.info(f"Processing partition {i+1}/{len(partitions)}")
+        try:
+            # Capture the per-partition resource plan in an isolated template.
+            # Restore the original operators before any worker starts so later
+            # convergence stages never depend on thread-pool shutdown timing.
+            isolate_operators = max_workers > 1
+            partition_ops_template = self._clone_partition_operators(ops) if isolate_operators else ops
+        finally:
+            self._restore_operator_parallelism(original_concurrency)
 
-            # Log partition start event
-            self._log_event(
-                event_type=EventType.PARTITION_START,
-                message=f"Starting processing of partition {i+1}/{len(partitions)}",
-                partition_id=i,
-            )
-
-            # Create a RayDataset wrapper for this partition
-            partition_dataset = RayDataset(partition, cfg=self.cfg)
-
-            # Apply operations with checkpointing support and DAG monitoring
-            processed_partition = self._process_with_checkpointing(partition_dataset, i, ops)
-
-            # Store the processed partition's data
-            processed_partitions.append(processed_partition.data)
-
-            # Log partition completion event
-            self._log_event(
-                event_type=EventType.PARTITION_COMPLETE,
-                message=f"Completed processing of partition {i+1}/{len(partitions)}",
-                partition_id=i,
-            )
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="ray-partition") as executor:
+            futures = {
+                executor.submit(
+                    self._process_partition,
+                    partition,
+                    i,
+                    len(partitions),
+                    partition_ops_template,
+                    isolate_operators,
+                ): i
+                for i, partition in enumerate(partitions)
+            }
+            try:
+                for future in as_completed(futures):
+                    partition_id, processed_data = future.result()
+                    processed_partitions[partition_id] = processed_data
+            except BaseException:
+                # Running Ray Dataset executions cannot be forcefully
+                # interrupted here, but queued driver work should not start
+                # after the job has already failed.
+                for future in futures:
+                    future.cancel()
+                raise
 
         # Merge all processed partitions back into a single dataset
         logger.info("Merging processed partitions...")
@@ -574,6 +602,273 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Return as RayDataset wrapper
         return RayDataset(merged_dataset, cfg=self.cfg)
+
+    def _process_partition(
+        self,
+        partition,
+        partition_id: int,
+        total_partitions: int,
+        ops: List,
+        isolate_operators: bool = True,
+    ):
+        """Process one partition while preserving its position in the final union."""
+        logger.info(f"Processing partition {partition_id + 1}/{total_partitions}")
+
+        self._log_event(
+            event_type=EventType.PARTITION_START,
+            message=f"Starting processing of partition {partition_id + 1}/{total_partitions}",
+            partition_id=partition_id,
+        )
+
+        try:
+            # RayDataset may temporarily mutate operator attributes while
+            # building an execution plan (for example runtime_env fallback and
+            # tracing). Give every concurrent partition its own instances.
+            partition_ops = self._clone_partition_operators(ops) if isolate_operators else ops
+            partition_dataset = self._wrap_with_precomputed_parallelism(partition)
+            processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, partition_ops)
+        except Exception as error:
+            self.log_partition_failed(partition_id, str(error), retry_count=0)
+            raise
+
+        self._log_event(
+            event_type=EventType.PARTITION_COMPLETE,
+            message=f"Completed processing of partition {partition_id + 1}/{total_partitions}",
+            partition_id=partition_id,
+        )
+
+        return partition_id, processed_partition.data
+
+    @staticmethod
+    def _clone_partition_operators(ops: List) -> List:
+        """Create an isolated operator graph for one partition."""
+        try:
+            return copy.deepcopy(ops)
+        except Exception as error:
+            raise RuntimeError(
+                "Failed to isolate operators for concurrent partition execution. "
+                "All partition operators must support deep copying."
+            ) from error
+
+    def _configure_operator_parallelism(self, ops: List) -> None:
+        """Plan global actor resources once before partition threads.
+
+        A positive explicit actor ``num_proc`` is treated as a global job
+        budget, matching its meaning in the non-partitioned Ray executor. Auto
+        parallelism is also calculated globally here and divided later.
+        """
+        self._auto_parallel_op_ids = set()
+        self._explicit_actor_op_ids = {
+            id(op) for op in ops if op.use_ray_actor() and self._actor_pool_capacity(op.num_proc) is not None
+        }
+
+        if not ConfigAccessor.get(self.cfg, "auto_op_parallelism", True):
+            return
+
+        auto_ops = [op for op in ops if op.use_auto_proc()]
+        if not auto_ops:
+            return
+
+        from data_juicer.utils.process_utils import calculate_ray_np
+
+        self._auto_parallel_op_ids = {id(op) for op in auto_ops}
+        calculate_ray_np(ops)
+
+    def _configure_auto_operator_parallelism(self, ops: List) -> None:
+        """Compatibility wrapper for the former auto-only planner."""
+        self._configure_operator_parallelism(ops)
+
+    def _resolve_max_concurrent_partitions(self, ops: List) -> int:
+        """Resolve automatic driver concurrency after operator planning.
+
+        A GPU pipeline is bounded by the tightest per-worker CPU/GPU
+        requirement. CPU-only pipelines use a small outer-pipeline cap because
+        Ray Data can already parallelize work inside each partition.
+        """
+        raw_value = self.max_concurrent_partitions
+        if not (isinstance(raw_value, str) and raw_value.lower() == "auto"):
+            self.max_concurrent_partitions = max(1, int(raw_value))
+            return self.max_concurrent_partitions
+
+        try:
+            cluster_resources = ray.cluster_resources()
+            total_cpus = float(cluster_resources.get("CPU", 0))
+            total_gpus = float(cluster_resources.get("GPU", 0))
+        except Exception as error:
+            logger.warning(
+                "Could not inspect Ray cluster resources for automatic partition "
+                f"concurrency; falling back to 1. Error: {error}"
+            )
+            self.max_concurrent_partitions = 1
+            return self.max_concurrent_partitions
+
+        if total_cpus <= 0:
+            logger.warning(
+                "Ray cluster reports no CPU resources for automatic partition " "concurrency; falling back to 1."
+            )
+            self.max_concurrent_partitions = 1
+            return self.max_concurrent_partitions
+
+        capacities = []
+        gpu_operator_names = []
+        for op in ops:
+            num_cpus = getattr(op, "num_cpus", None)
+            cpu_per_worker = float(num_cpus) if num_cpus and float(num_cpus) > 0 else 1.0
+            capacity = math.floor(total_cpus / cpu_per_worker + 1e-9)
+
+            num_gpus = getattr(op, "num_gpus", None)
+            gpu_per_worker = float(num_gpus) if num_gpus and float(num_gpus) > 0 else None
+            if gpu_per_worker is None:
+                try:
+                    if op.use_cuda():
+                        gpu_per_worker = 1.0
+                except (AttributeError, RuntimeError):
+                    pass
+
+            if gpu_per_worker is not None:
+                gpu_operator_names.append(getattr(op, "_name", type(op).__name__))
+                gpu_capacity = math.floor(total_gpus / gpu_per_worker + 1e-9)
+                capacity = min(capacity, gpu_capacity)
+
+            capacities.append(capacity)
+
+        resource_capacity = min(capacities) if capacities else math.floor(total_cpus)
+        if resource_capacity < 1:
+            logger.warning(
+                "Ray cluster resources cannot host one worker for every operator "
+                "with the current resource requests; using one partition pipeline "
+                "so Ray can surface the underlying scheduling error."
+            )
+            resource_capacity = 1
+
+        if gpu_operator_names:
+            resolved = resource_capacity
+            workload = f"GPU operators: {', '.join(gpu_operator_names)}"
+        else:
+            resolved = min(resource_capacity, _AUTO_CPU_PARTITION_CAP)
+            workload = f"CPU-only pipeline cap: {_AUTO_CPU_PARTITION_CAP}"
+
+        self.max_concurrent_partitions = max(1, resolved)
+        logger.info(
+            "Auto-configured max_concurrent_partitions="
+            f"{self.max_concurrent_partitions} from Ray resources "
+            f"(CPU={total_cpus:g}, GPU={total_gpus:g}; {workload})"
+        )
+        return self.max_concurrent_partitions
+
+    @staticmethod
+    def _actor_pool_capacity(concurrency) -> Optional[int]:
+        """Return the maximum size represented by an actor concurrency value."""
+        if isinstance(concurrency, bool):
+            return None
+        if isinstance(concurrency, int) and concurrency > 0:
+            return concurrency
+        if isinstance(concurrency, (tuple, list)) and len(concurrency) in (2, 3):
+            max_size = concurrency[1]
+            if isinstance(max_size, int) and not isinstance(max_size, bool) and max_size > 0:
+                return max_size
+        return None
+
+    def _limit_partition_workers_for_explicit_actors(self, ops: List, requested_max_workers: int) -> int:
+        """Keep concurrent partitions within every explicit actor-pool budget."""
+        explicit_actor_op_ids = getattr(self, "_explicit_actor_op_ids", set())
+        actor_budgets = [
+            (op._name, self._actor_pool_capacity(op.num_proc)) for op in ops if id(op) in explicit_actor_op_ids
+        ]
+        actor_budgets = [(name, budget) for name, budget in actor_budgets if budget is not None]
+        if not actor_budgets:
+            return requested_max_workers
+
+        explicit_limit = min(budget for _, budget in actor_budgets)
+        max_workers = max(1, min(requested_max_workers, explicit_limit))
+        if max_workers < requested_max_workers:
+            budget_summary = ", ".join(f"{name}={budget}" for name, budget in actor_budgets)
+            logger.warning(
+                f"Reducing concurrent partition workers from {requested_max_workers} to {max_workers} "
+                f"to honor explicit global actor num_proc budget(s): {budget_summary}"
+            )
+        return max_workers
+
+    @staticmethod
+    def _scale_concurrency_for_partitions(concurrency, max_workers: int, *, round_up: bool = True):
+        """Share a global actor pool size across concurrent partitions."""
+        if max_workers <= 1 or concurrency is None:
+            return concurrency
+
+        def _scale(value):
+            if value is None:
+                return None
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                return value
+            if round_up:
+                return max(1, math.ceil(value / max_workers))
+            return max(1, value // max_workers)
+
+        if isinstance(concurrency, (tuple, list)):
+            scaled = [_scale(value) for value in concurrency]
+            if len(scaled) >= 2 and isinstance(scaled[0], int) and isinstance(scaled[1], int):
+                scaled[0] = min(scaled[0], scaled[1])
+            if (
+                len(scaled) == 3
+                and isinstance(scaled[0], int)
+                and isinstance(scaled[1], int)
+                and isinstance(scaled[2], int)
+            ):
+                scaled[2] = min(max(scaled[2], scaled[0]), scaled[1])
+            return tuple(scaled)
+        if isinstance(concurrency, int) and concurrency > 0:
+            return _scale(concurrency)
+        return concurrency
+
+    def _scale_operator_parallelism(self, ops: List, max_workers: int):
+        """Convert global auto and explicit actor budgets to per-partition values."""
+        original_concurrency = []
+        auto_parallel_op_ids = getattr(self, "_auto_parallel_op_ids", set())
+        explicit_actor_op_ids = getattr(self, "_explicit_actor_op_ids", set())
+        for op in ops:
+            if id(op) in auto_parallel_op_ids:
+                scaling_mode = "automatic"
+                round_up = True
+            elif id(op) in explicit_actor_op_ids:
+                scaling_mode = "explicit"
+                round_up = False
+            else:
+                continue
+
+            original_concurrency.append((op, op.num_proc))
+            op.num_proc = self._scale_concurrency_for_partitions(
+                op.num_proc,
+                max_workers,
+                round_up=round_up,
+            )
+            if op.num_proc != original_concurrency[-1][1]:
+                logger.info(
+                    f"Op[{op._name}] {scaling_mode} global concurrency: "
+                    f"{original_concurrency[-1][1]} -> {op.num_proc} "
+                    f"across {max_workers} concurrent partitions"
+                )
+        return original_concurrency
+
+    def _scale_auto_operator_parallelism(self, ops: List, max_workers: int):
+        """Compatibility wrapper for the former auto-only scaler."""
+        return self._scale_operator_parallelism(ops, max_workers)
+
+    @staticmethod
+    def _restore_operator_parallelism(original_concurrency) -> None:
+        """Restore the global plan for convergence or later execution stages."""
+        for op, concurrency in original_concurrency:
+            op.num_proc = concurrency
+
+    @staticmethod
+    def _restore_auto_operator_parallelism(original_concurrency) -> None:
+        """Compatibility wrapper for the former auto-only restorer."""
+        PartitionedRayExecutor._restore_operator_parallelism(original_concurrency)
+
+    def _wrap_with_precomputed_parallelism(self, dataset) -> RayDataset:
+        """Wrap data without recalculating shared operator resources."""
+        wrapped = RayDataset(dataset, cfg=self.cfg)
+        wrapped._auto_proc = False
+        return wrapped
 
     def _process_with_convergence(self, dataset: RayDataset, ops: List, convergence_points: List[int]):
         """
@@ -607,7 +902,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Process merged dataset with post-convergence operations
         if post_convergence_ops:
             logger.info("Processing merged dataset with global operations...")
-            merged_ray_dataset = RayDataset(merged_dataset, cfg=self.cfg)
+            merged_ray_dataset = self._wrap_with_precomputed_parallelism(merged_dataset)
 
             # Pre-execute DAG monitoring (log operation start events)
             if self.pipeline_dag:
@@ -697,6 +992,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                         f"Partition {partition_id}: Will process {len(group_ops)} operations from beginning of group"
                     )
                 else:
+                    current_dataset._auto_proc = False
                     logger.info(
                         f"Partition {partition_id}: Successfully loaded checkpoint, resuming from operation {latest_checkpoint[0] + 1}"
                     )

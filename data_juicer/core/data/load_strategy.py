@@ -13,6 +13,11 @@ from data_juicer.core.data.config_validator import ConfigValidator
 from data_juicer.download.downloader import validate_snapshot_format
 from data_juicer.format.formatter import unify_format
 from data_juicer.format.load import load_formatter
+from data_juicer.utils.hdfs_utils import (
+    create_pyarrow_hdfs_filesystem,
+    strip_hdfs_scheme,
+    validate_hdfs_path,
+)
 from data_juicer.utils.s3_utils import create_pyarrow_s3_filesystem, validate_s3_path
 
 # based on executor type and data source type, use different
@@ -201,6 +206,8 @@ class RayLocalJsonDataLoadStrategy(RayDataLoadStrategy):
     def load_data(self, **kwargs):
         from data_juicer.core.data.ray_dataset import RayDataset
 
+        override_num_blocks = kwargs.pop("override_num_blocks", None)
+
         path = self.ds_config["path"]
 
         # Convert to absolute path if relative
@@ -281,7 +288,7 @@ class RayLocalJsonDataLoadStrategy(RayDataLoadStrategy):
         else:
             logger.info(f"Loading {data_format} data.")
         try:
-            dataset = RayDataset.read(data_format, path)
+            dataset = RayDataset.read(data_format, path, override_num_blocks=override_num_blocks)
             return RayDataset(dataset, dataset_path=path, cfg=self.cfg)
         except Exception as e:
             if auto_detect:
@@ -543,6 +550,115 @@ class DefaultS3DataLoadStrategy(DefaultDataLoadStrategy):
             )
 
 
+@DataLoadStrategyRegistry.register("default", "remote", "hdfs")
+class DefaultHdfsDataLoadStrategy(DefaultDataLoadStrategy):
+    """
+    data load strategy for HDFS datasets for LocalExecutor (default executor).
+
+    Creates a PyArrow HadoopFileSystem with user-supplied config (host, port,
+    user, kerb_ticket, extra_conf), wraps it via fsspec ArrowFSWrapper, and
+    passes it as ``filesystem`` in storage_options — consistent with how the
+    Exporter handles HDFS export paths.
+    """
+
+    CONFIG_VALIDATION_RULES = {
+        "required_fields": ["path"],
+        "optional_fields": [
+            "format",
+            "hdfs_host",
+            "hdfs_port",
+            "hdfs_user",
+            "hdfs_kerb_ticket",
+            "hdfs_extra_conf",
+        ],
+        "field_types": {"path": str},
+        "custom_validators": {
+            "path": lambda x: x.startswith("hdfs://"),
+        },
+    }
+
+    def load_data(self, **kwargs):
+        import datasets
+        from fsspec.implementations.arrow import ArrowFSWrapper
+
+        from data_juicer.format.formatter import unify_format
+        from data_juicer.utils.hdfs_utils import (
+            create_pyarrow_hdfs_filesystem,
+            validate_hdfs_path,
+        )
+
+        path = self.ds_config["path"]
+        validate_hdfs_path(path)
+
+        load_data_np = kwargs.get("num_proc", 1)
+
+        # Get config values with defaults
+        text_keys = getattr(self.cfg, "text_keys", ["text"])
+
+        logger.info(f"Loading dataset from HDFS: {path}")
+
+        # Determine file format from extension or config
+        file_extension_map = {
+            ".json": "json",
+            ".jsonl": "json",
+            ".txt": "text",
+            ".csv": "csv",
+            ".tsv": "csv",
+            ".parquet": "parquet",
+        }
+        data_format = self.ds_config.get("format", None)
+        valid_formats = set(file_extension_map.values())
+        if data_format is None or data_format not in valid_formats:
+            # try to interpret it as an extension/suffix, else auto-detect from path
+            suffix = None
+            if data_format is not None:
+                suffix = os.path.splitext(data_format)[1] or ("." + data_format)
+            if suffix in file_extension_map:
+                data_format = file_extension_map[suffix]
+            else:
+                file_extension = os.path.splitext(path)[1].lower()
+                data_format = file_extension_map.get(file_extension, "json")
+        logger.info(f"Detected format: {data_format} for HDFS path: {path}")
+
+        # Build storage_options using ArrowFSWrapper, consistent with
+        # Exporter's HDFS handling (exporter.py L139-158).
+        # create_pyarrow_hdfs_filesystem constructs a configured
+        # pyarrow.fs.HadoopFileSystem; ArrowFSWrapper adapts it for fsspec.
+        hdfs_pyarrow_fs = create_pyarrow_hdfs_filesystem(self.ds_config)
+        wrapped_fs = ArrowFSWrapper(hdfs_pyarrow_fs)
+        storage_options = {"filesystem": wrapped_fs}
+
+        logger.info(f"Using HDFS ArrowFSWrapper for path: {path}")
+
+        try:
+            ds = datasets.load_dataset(
+                data_format,
+                data_files=path,
+                storage_options=storage_options,
+                **kwargs,
+            )
+            # Handle DatasetDict (multiple splits) vs Dataset (single)
+            if isinstance(ds, datasets.DatasetDict):
+                from data_juicer.core.data import NestedDataset
+
+                ds = NestedDataset(datasets.concatenate_datasets([d for d in ds.values()]))
+            else:
+                from data_juicer.core.data import NestedDataset
+
+                ds = NestedDataset(ds)
+
+            # Unify format
+            ds = unify_format(ds, text_keys=text_keys, num_proc=load_data_np, global_cfg=self.cfg)
+            return ds
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to load {data_format} data from HDFS path {path}. "
+                f"Ensure your Hadoop environment (HADOOP_HOME, JAVA_HOME, CLASSPATH, "
+                f"ARROW_LIBHDFS_DIR) is configured on the machine running the local executor. "
+                f"Error: {str(e)}"
+            )
+
+
 @DataLoadStrategyRegistry.register("ray", "remote", "s3")
 class RayS3DataLoadStrategy(RayDataLoadStrategy):
     """
@@ -568,6 +684,8 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
 
     def load_data(self, **kwargs):
         from data_juicer.core.data.ray_dataset import RayDataset
+
+        override_num_blocks = kwargs.pop("override_num_blocks", None)
 
         path = self.ds_config["path"]
         validate_s3_path(path)
@@ -635,19 +753,26 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
                 # For JSON, we need to use read_json_stream with filesystem
                 from data_juicer.core.data.ray_dataset import read_json_stream
 
-                dataset = read_json_stream(path, filesystem=s3_fs)
+                read_options = kwargs.get("read_options")
+                dataset = read_json_stream(
+                    path, filesystem=s3_fs, read_options=read_options, override_num_blocks=override_num_blocks
+                )
             elif data_format == "parquet":
-                dataset = ray.data.read_parquet(path, filesystem=s3_fs)
+                dataset = ray.data.read_parquet(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "csv":
-                dataset = ray.data.read_csv(path, filesystem=s3_fs)
+                dataset = ray.data.read_csv(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "text":
-                dataset = ray.data.read_text(path, filesystem=s3_fs)
+                dataset = ray.data.read_text(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "numpy":
-                dataset = ray.data.read_numpy(path, filesystem=s3_fs)
+                dataset = ray.data.read_numpy(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "tfrecords":
-                dataset = ray.data.read_tfrecords(path, filesystem=s3_fs)
+                dataset = ray.data.read_tfrecords(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             elif data_format == "lance":
-                dataset = ray.data.read_lance(path, filesystem=s3_fs)
+                # use lazy loader to check pylance installation
+                from data_juicer.utils.lazy_loader import LazyLoader
+
+                LazyLoader.check_packages(["pylance"])
+                dataset = ray.data.read_lance(path, filesystem=s3_fs, override_num_blocks=override_num_blocks)
             else:
                 raise ValueError(f"Unsupported data format for S3: {data_format}")
 
@@ -656,5 +781,143 @@ class RayS3DataLoadStrategy(RayDataLoadStrategy):
             raise RuntimeError(
                 f"Failed to load {data_format} data from S3 path {path}. "
                 f"Ensure your AWS credentials are configured. "
+                f"Error: {str(e)}"
+            )
+
+
+@DataLoadStrategyRegistry.register("ray", "remote", "hdfs")
+class RayHdfsDataLoadStrategy(RayDataLoadStrategy):
+    """
+    data load strategy for HDFS datasets for RayExecutor.
+    Uses PyArrow's HadoopFileSystem to read from HDFS.
+
+    Requires a working Hadoop/JVM environment on every Ray node
+    (HADOOP_HOME, JAVA_HOME, CLASSPATH, ARROW_LIBHDFS_DIR).
+    """
+
+    CONFIG_VALIDATION_RULES = {
+        "required_fields": ["path"],
+        "optional_fields": [
+            "format",
+            "hdfs_host",
+            "hdfs_port",
+            "hdfs_user",
+            "hdfs_kerb_ticket",
+            "hdfs_extra_conf",
+        ],
+        "field_types": {"path": str},
+        "custom_validators": {
+            "path": lambda x: x.startswith("hdfs://"),
+        },
+    }
+
+    def load_data(self, **kwargs):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        override_num_blocks = kwargs.pop("override_num_blocks", None)
+
+        path = self.ds_config["path"]
+        validate_hdfs_path(path)
+
+        # Create HDFS filesystem using utility function
+        hdfs_fs = create_pyarrow_hdfs_filesystem(self.ds_config)
+
+        logger.info(f"Loading dataset from HDFS: {path}")
+
+        # Determine file format from extension or config
+        file_extension_map = {
+            ".json": "json",
+            ".jsonl": "json",
+            ".txt": "text",
+            ".csv": "csv",
+            ".tsv": "csv",
+            ".parquet": "parquet",
+            ".npy": "numpy",
+            ".tfrecords": "tfrecords",
+            ".lance": "lance",
+        }
+
+        auto_detect = False
+        data_format = self.ds_config.get("format", None)
+        if data_format is None:
+            auto_detect = True
+        else:
+            # First check if it's already a valid format name
+            valid_formats = set(file_extension_map.values())
+            if data_format in valid_formats:
+                pass  # It's a valid format name, use it as is
+            else:
+                # Try to interpret as an extension or filename
+                suffix = os.path.splitext(data_format)[1]
+                if suffix in file_extension_map:
+                    data_format = file_extension_map[suffix]
+                elif "." + data_format in file_extension_map:
+                    data_format = file_extension_map["." + data_format]
+                else:
+                    auto_detect = True
+
+        if auto_detect:
+            # Extract extension from path
+            file_extension = os.path.splitext(path)[1]
+            if file_extension in file_extension_map:
+                data_format = file_extension_map[file_extension]
+                logger.info(f"Auto-detected data format: {data_format} from extension: {file_extension}")
+            else:
+                data_format = "json"
+                logger.warning(
+                    f"Could not determine data format from path '{path}' "
+                    f"(extension: '{file_extension or '(none)'}'), "
+                    f"defaulting to 'json'. "
+                    f"Consider explicitly specifying 'format' field in dataset config."
+                )
+        else:
+            logger.info(f"Using specified data format: {data_format}")
+
+        # PyArrow's HadoopFileSystem expects paths WITHOUT the hdfs:// scheme,
+        # since the host/port is provided when constructing the filesystem.
+        # Strip the scheme+authority, keeping the absolute path.
+        fs_path = strip_hdfs_scheme(path)
+
+        try:
+            import ray.data
+
+            if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
+                from data_juicer.core.data.ray_dataset import read_json_stream
+
+                read_options = kwargs.get("read_options")
+                # PyArrow's open_json/read_json require a pyarrow.json.ReadOptions
+                # object, but read_options is passed in as a dict (its default value
+                # is an empty dict {}). Convert it here so HDFS JSON reading works.
+                if isinstance(read_options, dict):
+                    import pyarrow.json as paj
+
+                    read_options = paj.ReadOptions(**read_options)
+                dataset = read_json_stream(
+                    fs_path, filesystem=hdfs_fs, read_options=read_options, override_num_blocks=override_num_blocks
+                )
+            elif data_format == "parquet":
+                dataset = ray.data.read_parquet(fs_path, filesystem=hdfs_fs, override_num_blocks=override_num_blocks)
+            elif data_format == "csv":
+                dataset = ray.data.read_csv(fs_path, filesystem=hdfs_fs, override_num_blocks=override_num_blocks)
+            elif data_format == "text":
+                dataset = ray.data.read_text(fs_path, filesystem=hdfs_fs, override_num_blocks=override_num_blocks)
+            elif data_format == "numpy":
+                dataset = ray.data.read_numpy(fs_path, filesystem=hdfs_fs, override_num_blocks=override_num_blocks)
+            elif data_format == "tfrecords":
+                dataset = ray.data.read_tfrecords(fs_path, filesystem=hdfs_fs, override_num_blocks=override_num_blocks)
+            elif data_format == "lance":
+                from data_juicer.utils.lazy_loader import LazyLoader
+
+                LazyLoader.check_packages(["pylance"])
+                dataset = ray.data.read_lance(fs_path, filesystem=hdfs_fs, override_num_blocks=override_num_blocks)
+            else:
+                raise ValueError(f"Unsupported data format for HDFS: {data_format}")
+
+            return RayDataset(dataset, dataset_path=path, cfg=self.cfg)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to load {data_format} data from HDFS path {path}. "
+                f"Ensure your Hadoop environment (HADOOP_HOME, JAVA_HOME, CLASSPATH, "
+                f"ARROW_LIBHDFS_DIR) is configured on all Ray nodes. "
                 f"Error: {str(e)}"
             )

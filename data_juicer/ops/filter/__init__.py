@@ -24,6 +24,7 @@ from .instruction_following_difficulty_filter import (
 )
 from .language_id_score_filter import LanguageIDScoreFilter
 from .llm_analysis_filter import LLMAnalysisFilter
+from .llm_condition_filter import LLMConditionFilter
 from .llm_difficulty_score_filter import LLMDifficultyScoreFilter
 from .llm_perplexity_filter import LLMPerplexityFilter
 from .llm_quality_score_filter import LLMQualityScoreFilter
@@ -45,6 +46,7 @@ from .token_num_filter import TokenNumFilter
 from .video_aesthetics_filter import VideoAestheticsFilter
 from .video_aspect_ratio_filter import VideoAspectRatioFilter
 from .video_duration_filter import VideoDurationFilter
+from .video_face_ratio_filter import VideoFaceRatioFilter
 from .video_frames_text_similarity_filter import VideoFramesTextSimilarityFilter
 from .video_motion_score_filter import VideoMotionScoreFilter
 from .video_motion_score_ptlflow_filter import VideoMotionScorePtlflowFilter
@@ -91,6 +93,7 @@ __all__ = [
     "SpecialCharactersFilter",
     "SpecifiedFieldFilter",
     "SpecifiedNumericFieldFilter",
+    "LLMConditionFilter",
     "StopWordsFilter",
     "SuffixFilter",
     "TextActionFilter",
@@ -114,6 +117,7 @@ __all__ = [
     "WordRepetitionFilter",
     "WordsNumFilter",
     "GeneralFieldFilter",
+    "VideoFaceRatioFilter",
 ]
 
 NON_STATS_FILTERS = [

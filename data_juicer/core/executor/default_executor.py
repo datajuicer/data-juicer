@@ -113,6 +113,8 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             self.np,
             keep_stats_in_res_ds=self.cfg.keep_stats_in_res_ds,
             keep_hashes_in_res_ds=self.cfg.keep_hashes_in_res_ds,
+            encrypt_before_export=getattr(self.cfg, "encrypt_before_export", False),
+            encryption_key_path=getattr(self.cfg, "encryption_key_path", None),
             **export_extra_args,
         )
 
@@ -194,7 +196,12 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
                 probe_res, _ = self.adapter.probe_small_batch(dataset, ops)
 
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops, probe_res)
+            ops = fuse_operators(
+                ops,
+                probe_res,
+                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
 
         # adaptive batch size
         if self.cfg.adaptive_batch_size:

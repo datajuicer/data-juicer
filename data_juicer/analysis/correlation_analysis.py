@@ -1,12 +1,13 @@
 import numbers
 import os
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from data_juicer.utils.constant import Fields
+from data_juicer.utils.lazy_loader import LazyLoader
+
+plt = LazyLoader("matplotlib.pyplot")
 
 
 def draw_heatmap(data, row_labels, col_labels, ax=None, cbar_kw=None, cbarlabel="", **kwargs):
@@ -108,6 +109,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}", textcolors=("black", "whit
 
     # Get the formatter in case a string is supplied
     if isinstance(valfmt, str):
+        matplotlib = LazyLoader("matplotlib")
         valfmt = matplotlib.ticker.StrMethodFormatter(valfmt)
 
     # Loop over the data and create a `Text` for each "pixel".

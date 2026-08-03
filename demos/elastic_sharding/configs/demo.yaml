@@ -1,0 +1,14 @@
+# Shard-safe Data-Juicer recipe used by the elastic sharding demo.
+project_name: elastic-sharding-demo
+dataset_path: ./demos/data/demo-dataset.jsonl
+export_path: ./outputs/elastic-sharding-demo/processed.jsonl
+executor_type: ray
+ray_address: local
+
+process:
+  - whitespace_normalization_mapper:
+      text_key: text
+  - text_length_filter:
+      text_key: text
+      min_len: 1
+      max_len: 10000

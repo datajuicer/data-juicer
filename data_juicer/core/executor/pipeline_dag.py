@@ -11,6 +11,7 @@ Refactored to:
 """
 
 import json
+import threading
 import time
 from enum import Enum
 from pathlib import Path
@@ -64,6 +65,7 @@ class PipelineDAG:
         self.edges: List[Any] = []
         self.execution_plan: List[str] = []
         self.parallel_groups: List[List[str]] = []
+        self._state_lock = threading.RLock()
 
     def save_execution_plan(self, filename: str = "dag_execution_plan.json") -> str:
         """Save the execution plan to file.
@@ -150,34 +152,39 @@ class PipelineDAG:
 
     def mark_node_started(self, node_id: str) -> None:
         """Mark a node as started (running)."""
-        if node_id in self.nodes:
-            node = self.nodes[node_id]
-            node["status"] = DAGNodeStatus.RUNNING.value
-            node["start_time"] = time.time()
+        with self._state_lock:
+            if node_id in self.nodes:
+                node = self.nodes[node_id]
+                if node.get("status") == DAGNodeStatus.RUNNING.value:
+                    return
+                node["status"] = DAGNodeStatus.RUNNING.value
+                node["start_time"] = time.time()
 
     def mark_node_completed(self, node_id: str, duration: float = None) -> None:
         """Mark a node as completed."""
-        if node_id in self.nodes:
-            node = self.nodes[node_id]
-            current_time = time.time()
-            node["status"] = DAGNodeStatus.COMPLETED.value
-            node["end_time"] = current_time
-            if duration is not None:
-                node["actual_duration"] = duration
-            else:
-                start = node.get("start_time") or current_time
-                node["actual_duration"] = current_time - start
+        with self._state_lock:
+            if node_id in self.nodes:
+                node = self.nodes[node_id]
+                current_time = time.time()
+                node["status"] = DAGNodeStatus.COMPLETED.value
+                node["end_time"] = current_time
+                if duration is not None:
+                    node["actual_duration"] = duration
+                else:
+                    start = node.get("start_time") or current_time
+                    node["actual_duration"] = current_time - start
 
     def mark_node_failed(self, node_id: str, error_message: str) -> None:
         """Mark a node as failed."""
-        if node_id in self.nodes:
-            node = self.nodes[node_id]
-            current_time = time.time()
-            node["status"] = DAGNodeStatus.FAILED.value
-            node["end_time"] = current_time
-            node["error_message"] = error_message
-            start = node.get("start_time") or current_time
-            node["actual_duration"] = current_time - start
+        with self._state_lock:
+            if node_id in self.nodes:
+                node = self.nodes[node_id]
+                current_time = time.time()
+                node["status"] = DAGNodeStatus.FAILED.value
+                node["end_time"] = current_time
+                node["error_message"] = error_message
+                start = node.get("start_time") or current_time
+                node["actual_duration"] = current_time - start
 
     def get_node_status(self, node_id: str) -> DAGNodeStatus:
         """Get status of a node by ID.
@@ -188,45 +195,50 @@ class PipelineDAG:
         Returns:
             DAGNodeStatus of the node
         """
-        if node_id not in self.nodes:
-            return DAGNodeStatus.PENDING
-        status_str = self.nodes[node_id].get("status", "pending")
-        return DAGNodeStatus(status_str)
+        with self._state_lock:
+            if node_id not in self.nodes:
+                return DAGNodeStatus.PENDING
+            status_str = self.nodes[node_id].get("status", "pending")
+            return DAGNodeStatus(status_str)
 
     def get_ready_nodes(self) -> List[str]:
         """Get list of nodes ready to execute (all dependencies completed)."""
-        ready_nodes = []
-        for node_id, node in self.nodes.items():
-            if node.get("status", "pending") != DAGNodeStatus.PENDING.value:
-                continue
+        with self._state_lock:
+            ready_nodes = []
+            for node_id, node in self.nodes.items():
+                if node.get("status", "pending") != DAGNodeStatus.PENDING.value:
+                    continue
 
-            dependencies = node.get("dependencies", [])
-            all_deps_completed = all(self.get_node_status(dep_id) == DAGNodeStatus.COMPLETED for dep_id in dependencies)
-            if all_deps_completed:
-                ready_nodes.append(node_id)
+                dependencies = node.get("dependencies", [])
+                all_deps_completed = all(
+                    self.get_node_status(dep_id) == DAGNodeStatus.COMPLETED for dep_id in dependencies
+                )
+                if all_deps_completed:
+                    ready_nodes.append(node_id)
 
-        return ready_nodes
+            return ready_nodes
 
     def get_execution_summary(self) -> Dict[str, Any]:
         """Get execution summary statistics."""
-        total_nodes = len(self.nodes)
+        with self._state_lock:
+            total_nodes = len(self.nodes)
 
-        completed = sum(1 for n in self.nodes.values() if n.get("status") == DAGNodeStatus.COMPLETED.value)
-        failed = sum(1 for n in self.nodes.values() if n.get("status") == DAGNodeStatus.FAILED.value)
-        running = sum(1 for n in self.nodes.values() if n.get("status") == DAGNodeStatus.RUNNING.value)
-        pending = sum(1 for n in self.nodes.values() if n.get("status", "pending") == DAGNodeStatus.PENDING.value)
+            completed = sum(1 for n in self.nodes.values() if n.get("status") == DAGNodeStatus.COMPLETED.value)
+            failed = sum(1 for n in self.nodes.values() if n.get("status") == DAGNodeStatus.FAILED.value)
+            running = sum(1 for n in self.nodes.values() if n.get("status") == DAGNodeStatus.RUNNING.value)
+            pending = sum(1 for n in self.nodes.values() if n.get("status", "pending") == DAGNodeStatus.PENDING.value)
 
-        total_duration = sum(n.get("actual_duration") or 0 for n in self.nodes.values())
+            total_duration = sum(n.get("actual_duration") or 0 for n in self.nodes.values())
 
-        return {
-            "total_nodes": total_nodes,
-            "completed_nodes": completed,
-            "failed_nodes": failed,
-            "running_nodes": running,
-            "pending_nodes": pending,
-            "completion_percentage": (completed / total_nodes * 100) if total_nodes > 0 else 0,
-            "total_duration": total_duration,
-        }
+            return {
+                "total_nodes": total_nodes,
+                "completed_nodes": completed,
+                "failed_nodes": failed,
+                "running_nodes": running,
+                "pending_nodes": pending,
+                "completion_percentage": (completed / total_nodes * 100) if total_nodes > 0 else 0,
+                "total_duration": total_duration,
+            }
 
     def visualize(self) -> str:
         """Generate a string representation of the DAG for visualization."""

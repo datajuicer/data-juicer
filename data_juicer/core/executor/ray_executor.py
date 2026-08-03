@@ -31,7 +31,14 @@ class TempDirManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if os.path.exists(self.tmp_dir):
             logger.info(f"Removing tmp dir {self.tmp_dir} ...")
-            shutil.rmtree(self.tmp_dir)
+            # in some cases, such as we mount OSS bucket with fuse device using Fluid,
+            # cleaning up temporary directories via shutil.rmtree() fails,
+            # but os.rmdir() succeeds.
+            try:
+                shutil.rmtree(self.tmp_dir)
+            except OSError as e:
+                logger.warning(f"Remove tmp dir with shutil.rmtree() failed: {e}, will try os.rmdir()")
+                os.rmdir(self.tmp_dir)
 
 
 class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
@@ -107,6 +114,8 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             self.cfg.export_shard_size,
             keep_stats_in_res_ds=self.cfg.keep_stats_in_res_ds,
             keep_hashes_in_res_ds=self.cfg.keep_hashes_in_res_ds,
+            encrypt_before_export=getattr(self.cfg, "encrypt_before_export", False),
+            encryption_key_path=getattr(self.cfg, "encryption_key_path", None),
             **export_extra_args,
         )
 
@@ -140,9 +149,19 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         :param skip_return: skip return for API called.
         :return: processed dataset.
         """
+        # LLM data contains very large single json objects (lines). PyArrow's default block_size
+        # for open_json is only 1MB. We increase it massively (e.g. 256MB) to avoid the
+        # 'straddling object straddles two block boundaries' ArrowInvalid error.
+        #
+
+        read_opts = self.cfg.get("read_options")
+        override_num_blocks = getattr(self.cfg, "override_num_blocks", None)
+
         # 1. load data
         logger.info("Loading dataset with Ray...")
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
+        dataset = self.datasetbuilder.load_dataset(
+            num_proc=load_data_np, read_options=read_opts, override_num_blocks=override_num_blocks
+        )
         columns = dataset.data.columns()
 
         # 2. extract processes
@@ -172,7 +191,11 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
         if self.cfg.op_fusion:
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops)
+            ops = fuse_operators(
+                ops,
+                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
 
         # Stamp deterministic stage identities on the final operator list so
         # adaptive stages keep the same id across restarts of this pipeline.

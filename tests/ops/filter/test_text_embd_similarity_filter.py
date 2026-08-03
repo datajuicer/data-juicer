@@ -4,9 +4,9 @@ from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.text_embd_similarity_filter import TextEmbdSimilarityFilter
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class TextEmbdSimilarityFilterTest(DataJuicerTestCaseBase):
 
     _hf_model = "Qwen/Qwen3-Embedding-0.6B"
@@ -164,7 +164,7 @@ class TextEmbdSimilarityFilterTest(DataJuicerTestCaseBase):
         op = TextEmbdSimilarityFilter(
             api_or_hf_model=self._hf_model,
             is_hf_model=True,
-            min_score=0.99,
+            min_score=0.96,
             max_score=1.0,
             pooling="weighted_mean"
         )

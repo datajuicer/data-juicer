@@ -11,7 +11,7 @@ import uuid
 from argparse import ArgumentError
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import yaml
 from jsonargparse import (
@@ -98,6 +98,865 @@ def load_custom_operators(paths):
             raise ValueError(f"Path '{abs_path}' is neither a file nor a directory")
 
 
+def build_base_parser() -> ArgumentParser:
+    parser = ArgumentParser(default_env=True, default_config_files=None, usage=argparse.SUPPRESS)
+
+    # required but mutually exclusive args group
+    required_group = parser.add_mutually_exclusive_group(required=True)
+    required_group.add_argument("--config", action=ActionConfigFile, help="Path to a dj basic configuration file.")
+    required_group.add_argument(
+        "--auto",
+        action="store_true",
+        help="Whether to use an auto analyzing "
+        "strategy instead of a specific data "
+        "recipe. If a specific config file is "
+        "given by --config arg, this arg is "
+        "disabled. Only available for Analyzer.",
+    )
+
+    parser.add_argument(
+        "--auto_num",
+        type=PositiveInt,
+        default=1000,
+        help="The number of samples to be analyzed " "automatically. It's 1000 in default.",
+    )
+
+    parser.add_argument(
+        "--hpo_config", type=str, help="Path to a configuration file when using auto-HPO tool.", required=False
+    )
+    parser.add_argument(
+        "--data_probe_algo",
+        type=str,
+        default="uniform",
+        help='Sampling algorithm to use. Options are "uniform", '
+        '"frequency_specified_field_selector", or '
+        '"topk_specified_field_selector". Default is "uniform". Only '
+        "used for dataset sampling",
+        required=False,
+    )
+    parser.add_argument(
+        "--data_probe_ratio",
+        type=ClosedUnitInterval,
+        default=1.0,
+        help="The ratio of the sample size to the original dataset size. "  # noqa: E251
+        "Default is 1.0 (no sampling). Only used for dataset sampling",
+        required=False,
+    )
+
+    # basic global paras with extended type hints
+    # e.g., files can be mode include flags
+    # "fr": "path to a file that exists and is readable")
+    # "fc": "path to a file that can be created if it does not exist")
+    # "dw": "path to a directory that exists and is writeable")
+    # "dc": "path to a directory that can be created if it does not exist")
+    # "drw": "path to a directory that exists and is readable and writeable")
+    parser.add_argument("--project_name", type=str, default="hello_world", help="Name of your data process project.")
+    parser.add_argument(
+        "--executor_type",
+        type=str,
+        default="default",
+        choices=["default", "ray", "ray_partitioned"],
+        help='Type of executor, support "default", "ray", or "ray_partitioned".',
+    )
+    parser.add_argument(
+        "--dataset_path",
+        type=str,
+        default="",
+        help="Path to datasets with optional weights(0.0-1.0), 1.0 as "
+        "default. Accepted format:<w1> dataset1-path <w2> dataset2-path "
+        "<w3> dataset3-path ...",
+    )
+    parser.add_argument(
+        "--dataset",
+        type=Union[List[Dict], Dict],
+        default=[],
+        help="Dataset setting to define local/remote datasets; could be a "  # noqa: E251
+        "dict or a list of dicts; refer to "
+        "https://datajuicer.github.io/data-juicer/en/main/docs/DatasetCfg.html for more "
+        "detailed examples",
+    )
+    parser.add_argument(
+        "--generated_dataset_config",
+        type=Dict,
+        default=None,
+        help="Configuration used to create a dataset. "  # noqa: E251
+        "The dataset will be created from this configuration if provided. "
+        "It must contain the `--type` field to specify the dataset name.",
+    )
+    parser.add_argument(
+        "--validators",
+        type=List[Dict],
+        default=[],
+        help="List of validators to apply to the dataset. Each validator "  # noqa: E251
+        "must have a `type` field specifying the validator type.",
+    )
+    parser.add_argument(
+        "--load_dataset_kwargs",
+        type=Dict,
+        default={},
+        help="Extra keyword arguments passed through to the underlying "  # noqa: E251
+        "datasets.load_dataset() call. Useful for format-specific "
+        "options such as chunksize (JSON), columns (Parquet), or "
+        "delimiter (CSV). See the HuggingFace Datasets docs for "
+        "available options.",
+    )
+    parser.add_argument(
+        "--read_options",
+        type=Dict,
+        default={},
+        help="Read options passed through to PyArrow reading functions "
+        "(e.g., block_size for JSON reading). This configuration is "
+        "especially useful when reading large JSON files.",
+    )
+    parser.add_argument(
+        "--override_num_blocks",
+        type=Optional[int],
+        default=None,
+        help="Override the number of output blocks for Ray Data read "
+        "operations. Useful for controlling parallelism when reading "
+        "large datasets.",
+    )
+    parser.add_argument(
+        "--work_dir",
+        type=str,
+        default=None,
+        help="Path to a work directory to store outputs during Data-Juicer "  # noqa: E251
+        "running. It's the directory where export_path is at in default.",
+    )
+    parser.add_argument(
+        "--export_path",
+        type=str,
+        default="./outputs/hello_world/hello_world.jsonl",
+        help="Path to export and save the output processed dataset. The "  # noqa: E251
+        "directory to store the processed dataset will be the work "
+        "directory of this process.",
+    )
+    parser.add_argument(
+        "--export_type",
+        type=str,
+        default=None,
+        help="The export format type. If it's not specified, Data-Juicer will parse from the export_path. The "
+        "supported types can be found in Exporter._router() for standalone mode and "
+        "RayExporter._SUPPORTED_FORMATS for ray mode",
+    )
+    parser.add_argument(
+        "--export_shard_size",
+        type=NonNegativeInt,
+        default=0,
+        help="Shard size of exported dataset in Byte. In default, it's 0, "  # noqa: E251
+        "which means export the whole dataset into only one file. If "
+        "it's set a positive number, the exported dataset will be split "
+        "into several sub-dataset shards, and the max size of each shard "
+        "won't larger than the export_shard_size",
+    )
+    parser.add_argument(
+        "--export_in_parallel",
+        type=bool,
+        default=False,
+        help="Whether to export the result dataset in parallel to a single "  # noqa: E251
+        "file, which usually takes less time. It only works when "
+        "export_shard_size is 0, and its default number of processes is "
+        "the same as the argument np. **Notice**: If it's True, "
+        "sometimes exporting in parallel might require much more time "
+        "due to the IO blocking, especially for very large datasets. "
+        "When this happens, False is a better choice, although it takes "
+        "more time.",
+    )
+    parser.add_argument(
+        "--export_extra_args",
+        type=Dict,
+        default={},
+        help="Other optional arguments for exporting in dict. For example, the key mapping info for exporting "
+        "the WebDataset format.",
+    )
+    parser.add_argument(
+        "--export_aws_credentials",
+        type=Dict,
+        default=None,
+        help="Export-specific AWS credentials for S3 export. If export_path is S3 and this is not provided, "
+        "an error will be raised. Should contain aws_access_key_id, aws_secret_access_key, aws_region, "
+        "and optionally aws_session_token and endpoint_url.",
+    )
+    parser.add_argument(
+        "--decrypt_after_reading",
+        type=bool,
+        default=False,
+        help="Whether to decrypt input dataset files after reading. When True, "
+        "each input file is decrypted in memory using a Fernet key before "
+        "being loaded by HuggingFace datasets. No plaintext file is written "
+        "to disk. HuggingFace cache is automatically disabled to prevent "
+        "plaintext Arrow files from being persisted. Default: False.",
+    )
+    parser.add_argument(
+        "--encrypt_before_export",
+        type=bool,
+        default=False,
+        help="Whether to encrypt output dataset files before writing to disk. "
+        "When True, each exported file is encrypted in-place with a Fernet "
+        "key immediately after being written. Default: False.",
+    )
+    parser.add_argument(
+        "--encryption_key_path",
+        type=Optional[str],
+        default=None,
+        help="Path to a file containing the Fernet encryption key (base64 "
+        "url-safe string). If not provided, the key is read from the "
+        "environment variable DJ_ENCRYPTION_KEY. Required when either "
+        "decrypt_after_reading or encrypt_before_export is True.",
+    )
+    parser.add_argument(
+        "--keep_stats_in_res_ds",
+        type=bool,
+        default=False,
+        help="Whether to keep the computed stats in the result dataset. If "  # noqa: E251
+        "it's False, the intermediate fields to store the stats "
+        "computed by Filters will be removed. Default: False.",
+    )
+    parser.add_argument(
+        "--keep_hashes_in_res_ds",
+        type=bool,
+        default=False,
+        help="Whether to keep the computed hashes in the result dataset. If "  # noqa: E251
+        "it's False, the intermediate fields to store the hashes "
+        "computed by Deduplicators will be removed. Default: False.",
+    )
+    parser.add_argument("--np", type=PositiveInt, default=4, help="Number of processes to process dataset.")
+    parser.add_argument(
+        "--text_keys",
+        type=Union[str, List[str]],
+        default="text",
+        help="Key name of field where the sample texts to be processed, e.g., "  # noqa: E251
+        "`text`, `text.instruction`, `text.output`, ... Note: currently, "
+        "we support specify only ONE key for each op, for cases "
+        "requiring multiple keys, users can specify the op multiple "
+        "times.  We will only use the first key of `text_keys` when you "
+        "set multiple keys.",
+    )
+    parser.add_argument(
+        "--image_key",
+        type=str,
+        default="images",
+        help="Key name of field to store the list of sample image paths.",  # noqa: E251
+    )
+    parser.add_argument(
+        "--image_bytes_key",
+        type=str,
+        default="image_bytes",
+        help="Key name of field to store the list of sample image bytes.",  # noqa: E251
+    )
+    parser.add_argument(
+        "--image_special_token",
+        type=str,
+        default=SpecialTokens.image,
+        help="The special token that represents an image in the text. In "  # noqa: E251
+        'default, it\'s "<__dj__image>". You can specify your own special'
+        " token according to your input dataset.",
+    )
+    parser.add_argument(
+        "--audio_key",
+        type=str,
+        default="audios",
+        help="Key name of field to store the list of sample audio paths.",  # noqa: E251
+    )
+    parser.add_argument(
+        "--audio_special_token",
+        type=str,
+        default=SpecialTokens.audio,
+        help="The special token that represents an audio in the text. In "  # noqa: E251
+        'default, it\'s "<__dj__audio>". You can specify your own special'
+        " token according to your input dataset.",
+    )
+    parser.add_argument(
+        "--video_key",
+        type=str,
+        default="videos",
+        help="Key name of field to store the list of sample video paths.",  # noqa: E251
+    )
+    parser.add_argument(
+        "--video_special_token",
+        type=str,
+        default=SpecialTokens.video,
+        help="The special token that represents a video in the text. In "
+        'default, it\'s "<__dj__video>". You can specify your own special'
+        " token according to your input dataset.",
+    )
+    parser.add_argument(
+        "--eoc_special_token",
+        type=str,
+        default=SpecialTokens.eoc,
+        help="The special token that represents the end of a chunk in the "  # noqa: E251
+        'text. In default, it\'s "<|__dj__eoc|>". You can specify your '
+        "own special token according to your input dataset.",
+    )
+    parser.add_argument(
+        "--suffixes",
+        type=Union[str, List[str]],
+        default=[],
+        help="Suffixes of files that will be found and loaded. If not set, we "  # noqa: E251
+        "will find all suffix files, and select a suitable formatter "
+        "with the most files as default.",
+    )
+    parser.add_argument(
+        "--turbo",
+        type=bool,
+        default=False,
+        help="Enable Turbo mode to maximize processing speed when batch size " "is 1.",  # noqa: E251
+    )
+    parser.add_argument(
+        "--skip_op_error",
+        type=bool,
+        default=True,
+        help="Skip errors in OPs caused by unexpected invalid samples.",  # noqa: E251
+    )
+    parser.add_argument(
+        "--use_cache",
+        type=bool,
+        default=True,
+        help="Whether to use the cache management of huggingface datasets. It "  # noqa: E251
+        "might take up lots of disk space when using cache",
+    )
+    parser.add_argument(
+        "--ds_cache_dir",
+        type=str,
+        default=None,
+        help="Cache dir for HuggingFace datasets. In default it's the same "  # noqa: E251
+        "as the environment variable `HF_DATASETS_CACHE`, whose default "
+        'value is usually "~/.cache/huggingface/datasets". If this '
+        "argument is set to a valid path by users, it will override the "
+        "default cache dir. Modifying this arg might also affect the other two"
+        " paths to store downloaded and extracted datasets that depend on "
+        "`HF_DATASETS_CACHE`",
+    )
+    parser.add_argument(
+        "--cache_compress",
+        type=str,
+        default=None,
+        help="The compression method of the cache file, which can be"
+        'specified in ["gzip", "zstd", "lz4"]. If this parameter is'
+        "None, the cache file will not be compressed.",
+    )
+    parser.add_argument(
+        "--open_monitor",
+        type=bool,
+        default=False,
+        help="Whether to open the monitor to trace resource utilization for "  # noqa: E251
+        "each OP during data processing. It's False in default.",
+    )
+    parser.add_argument(
+        "--use_checkpoint",
+        type=bool,
+        default=False,
+        help="Whether to use the checkpoint management to save the latest "  # noqa: E251
+        "version of dataset to work dir when processing. Rerun the same "
+        "config will reload the checkpoint and skip ops before it. Cache "
+        "will be disabled when it is true . If args of ops before the "
+        "checkpoint are changed, all ops will be rerun from the "
+        "beginning.",
+    )
+    # Enhanced checkpoint configuration for PartitionedRayExecutor
+    parser.add_argument(
+        "--checkpoint.enabled",
+        type=bool,
+        default=True,
+        help="Enable enhanced checkpointing for PartitionedRayExecutor",
+    )
+    parser.add_argument(
+        "--checkpoint.strategy",
+        type=str,
+        default="every_n_ops",
+        choices=["every_op", "every_partition", "every_n_ops", "manual", "disabled"],
+        help="Checkpoint strategy: every_n_ops (default, balanced), every_op (max protection), "
+        "manual (after specific ops), disabled (best performance)",
+    )
+    parser.add_argument(
+        "--checkpoint.n_ops",
+        type=int,
+        default=5,
+        help="Number of operations between checkpoints for every_n_ops strategy. "
+        "Default 5 balances fault tolerance with Ray optimization.",
+    )
+    parser.add_argument(
+        "--checkpoint.op_names",
+        type=List[str],
+        default=[],
+        help="List of operation names to checkpoint for manual strategy",
+    )
+    # Event logging configuration
+    parser.add_argument(
+        "--event_logging.enabled",
+        type=bool,
+        default=True,
+        help="Enable event logging for job tracking and resumption",
+    )
+    # Logging configuration
+    parser.add_argument(
+        "--max_log_size_mb",
+        type=int,
+        default=100,
+        help="Maximum log file size in MB before rotation",
+    )
+    parser.add_argument(
+        "--backup_count",
+        type=int,
+        default=5,
+        help="Number of backup log files to keep",
+    )
+    # Storage configuration
+    parser.add_argument(
+        "--event_log_dir",
+        type=str,
+        default=None,
+        help="Separate directory for event logs (fast storage)",
+    )
+    parser.add_argument(
+        "--checkpoint_dir",
+        type=str,
+        default=None,
+        help="Separate directory for checkpoints (large storage)",
+    )
+    # Job management
+    parser.add_argument(
+        "--job_id",
+        type=str,
+        default=None,
+        help="Custom job ID for resumption and tracking. If not provided, a unique ID will be auto-generated.",
+    )
+    parser.add_argument(
+        "--temp_dir",
+        type=str,
+        default=None,
+        help="Path to the temp directory to store intermediate caches when "  # noqa: E251
+        "cache is disabled. In default it's None, so the temp dir will "
+        "be specified by system. NOTICE: you should be caution when "
+        "setting this argument because it might cause unexpected program "
+        "behaviors when this path is set to an unsafe directory.",
+    )
+    parser.add_argument(
+        "--open_tracer",
+        type=bool,
+        default=False,
+        help="Whether to open the tracer to trace samples changed during "  # noqa: E251
+        "process. It might take more time when opening tracer.",
+    )
+    parser.add_argument(
+        "--op_list_to_trace",
+        type=List[str],
+        default=[],
+        help="Which ops will be traced by tracer. If it's empty, all ops in "  # noqa: E251
+        "cfg.process will be traced. Only available when open_tracer is "
+        "true.",
+    )
+    parser.add_argument(
+        "--trace_num",
+        type=int,
+        default=10,
+        help="Number of samples extracted by tracer to show the dataset "
+        "difference before and after a op. Only available when "
+        "open_tracer is true.",
+    )
+    parser.add_argument(
+        "--trace_keys",
+        type=List[str],
+        default=[],
+        help="List of field names to include in trace output. If set, the "
+        "specified fields' values will be included in each trace entry. "
+        "Only available when open_tracer is true.",
+    )
+    parser.add_argument(
+        "--open_insight_mining",
+        type=bool,
+        default=False,
+        help="Whether to open insight mining to trace the OP-wise stats/tags "  # noqa: E251
+        "changes during process. It might take more time when opening "
+        "insight mining.",
+    )
+    parser.add_argument(
+        "--op_list_to_mine",
+        type=List[str],
+        default=[],
+        help="Which OPs will be applied on the dataset to mine the insights "  # noqa: E251
+        "in their stats changes. Only those OPs that produce stats or "
+        "meta are valid. If it's empty, all OPs that produce stats and "
+        "meta will be involved. Only available when open_insight_mining "
+        "is true.",
+    )
+    parser.add_argument(
+        "--min_common_dep_num_to_combine",
+        type=int,
+        default=-1,
+        help="The minimum number of common dependencies required to determine whether to merge two operation "
+        "environment specifications. If set to -1, it means no combination of operation environments, where "
+        "every OP has its own runtime environment during processing without any merging. If set to >= 0, "
+        "environments of OPs that share at least min_common_dep_num_to_combine common dependencies will be "
+        "merged. It will open the operator environment manager to automatically analyze and merge runtime "
+        "environment for different OPs. It helps different OPs share and reuse the same runtime environment to "
+        "reduce resource utilization. It's -1 in default. Only available in ray mode. ",
+    )
+    parser.add_argument(
+        "--conflict_resolve_strategy",
+        type=str,
+        default="split",
+        choices=["split", "overwrite", "latest"],
+        help="Strategy for resolving dependency conflicts, default is 'split' strategy. 'split': Keep the two "
+        "specs split when there is a conflict. 'overwrite': Overwrite the existing dependency with one "
+        "from the later OP. 'latest': Use the latest version of all specified dependency versions. "
+        "Only available when min_common_dep_num_to_combine >= 0.",
+    )
+    parser.add_argument(
+        "--op_fusion",
+        type=bool,
+        default=False,
+        help="Whether to fuse operators that share the same intermediate "  # noqa: E251
+        "variables automatically. Op fusion might reduce the memory "
+        "requirements slightly but speed up the whole process.",
+    )
+    parser.add_argument(
+        "--fusion_strategy",
+        type=str,
+        default="probe",
+        help='OP fusion strategy. Support ["greedy", "probe"] now. "greedy" '  # noqa: E251
+        "means keep the basic OP order and put the fused OP to the last "
+        'of each fused OP group. "probe" means Data-Juicer will probe '
+        "the running speed for each OP at the beginning and reorder the "
+        "OPs and fused OPs according to their probed speed (fast to "
+        'slow). It\'s "probe" in default.',
+    )
+    parser.add_argument(
+        "--mapper_fusion",
+        type=bool,
+        default=True,
+        help="Whether to fuse consecutive independent GPU Mappers into "
+        "FusedSequentialBatchOp for single-stage execution. Only effective when "
+        "op_fusion is True.",
+    )
+    parser.add_argument(
+        "--mapper_fusion_vram_limit",
+        type=float,
+        default=0.9,
+        help="Max aggregate estimated VRAM fraction for a fused mapper group. "
+        "Each mapper class must declare estimated_vram_fraction. Default 0.9.",
+    )
+    parser.add_argument(
+        "--adaptive_batch_size",
+        type=bool,
+        default=False,
+        help="Whether to use adaptive batch sizes for each OP according to "  # noqa: E251
+        "the probed results. It's False in default.",
+    )
+    parser.add_argument(
+        "--process",
+        type=List[Dict],
+        default=[],
+        help="List of several operators with their arguments, these ops will "  # noqa: E251
+        "be applied to dataset in order",
+    )
+    parser.add_argument(
+        "--percentiles",
+        type=List[float],
+        default=[],
+        help="Percentiles to analyze the dataset distribution. Only used in " "Analysis.",  # noqa: E251
+    )
+    parser.add_argument(
+        "--export_original_dataset",
+        type=bool,
+        default=False,
+        help="whether to export the original dataset with stats. If you only "  # noqa: E251
+        "need the stats of the dataset, setting it to false could speed "
+        "up the exporting.",
+    )
+    parser.add_argument(
+        "--save_stats_in_one_file",
+        type=bool,
+        default=False,
+        help="Whether to save all stats to only one file. Only used in " "Analysis.",
+    )
+    parser.add_argument("--ray_address", type=str, default="auto", help="The address of the Ray cluster.")
+
+    # Partitioning configuration for PartitionedRayExecutor
+    # Support both flat and nested partition configuration
+    parser.add_argument(
+        "--partition_size",
+        type=int,
+        default=10000,
+        help="Number of samples per partition for PartitionedRayExecutor (legacy flat config)",
+    )
+    parser.add_argument(
+        "--max_partition_size_mb",
+        type=int,
+        default=128,
+        help="Maximum partition size in MB for PartitionedRayExecutor (legacy flat config)",
+    )
+
+    parser.add_argument(
+        "--preserve_intermediate_data",
+        type=bool,
+        default=False,
+        help="Preserve intermediate data for debugging (legacy flat config)",
+    )
+
+    # partition configuration
+    parser.add_argument(
+        "--partition.mode",
+        type=str,
+        default="auto",
+        choices=["manual", "auto"],
+        help="Partition mode: manual (specify num_of_partitions) or auto (use partition size optimizer)",
+    )
+    parser.add_argument(
+        "--partition.num_of_partitions",
+        type=int,
+        default=4,
+        help="Number of partitions for manual mode (ignored in auto mode)",
+    )
+    parser.add_argument(
+        "--partition.max_concurrent_partitions",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Maximum number of partition jobs submitted concurrently by the driver. "
+            "The default 'auto' derives a resource-aware limit from the Ray cluster "
+            "and operator requirements."
+        ),
+    )
+    parser.add_argument(
+        "--partition.target_size_mb",
+        type=int,
+        default=256,
+        help="Target partition size in MB for auto mode (128, 256, 512, or 1024). "
+        "Controls how large each partition should be. Smaller = more checkpoints & better recovery, "
+        "larger = less overhead. Default 256MB balances memory safety and efficiency.",
+    )
+
+    # Resource optimization configuration
+    parser.add_argument(
+        "--resource_optimization.auto_configure",
+        type=bool,
+        default=False,
+        help="Enable automatic optimization of partition size, worker count, and other resource-dependent settings (nested resource_optimization config)",
+    )
+
+    # Intermediate storage configuration
+    parser.add_argument(
+        "--intermediate_storage.preserve_intermediate_data",
+        type=bool,
+        default=False,
+        help="Preserve intermediate data for debugging (nested intermediate_storage config)",
+    )
+    parser.add_argument(
+        "--intermediate_storage.cleanup_temp_files",
+        type=bool,
+        default=True,
+        help="Clean up temporary files after processing (nested intermediate_storage config)",
+    )
+    parser.add_argument(
+        "--intermediate_storage.cleanup_on_success",
+        type=bool,
+        default=False,
+        help="Clean up intermediate files even on successful completion (nested intermediate_storage config)",
+    )
+    parser.add_argument(
+        "--intermediate_storage.retention_policy",
+        type=str,
+        default="keep_all",
+        choices=["keep_all", "keep_failed_only", "cleanup_all"],
+        help="File retention policy (nested intermediate_storage config)",
+    )
+    parser.add_argument(
+        "--intermediate_storage.max_retention_days",
+        type=int,
+        default=7,
+        help="Maximum retention days for files (nested intermediate_storage config)",
+    )
+
+    # Intermediate storage format configuration
+    parser.add_argument(
+        "--intermediate_storage.format",
+        type=str,
+        default="parquet",
+        choices=["parquet", "arrow", "jsonl"],
+        help="Storage format for checkpoints and intermediate data (nested intermediate_storage config)",
+    )
+    parser.add_argument(
+        "--intermediate_storage.compression",
+        type=str,
+        default="snappy",
+        choices=["snappy", "gzip", "none"],
+        help="Compression format for storage files (nested intermediate_storage config)",
+    )
+
+    parser.add_argument(
+        "--intermediate_storage.write_partitions",
+        type=bool,
+        default=True,
+        help="Whether to write intermediate partition files to disk (nested intermediate_storage config). Set to false for better performance when intermediate files aren't needed.",
+    )
+
+    parser.add_argument(
+        "--partition_dir",
+        type=str,
+        default=None,
+        help="Directory to store partition files. Supports {work_dir} placeholder. If not set, defaults to {work_dir}/partitions.",
+    )
+
+    parser.add_argument("--custom-operator-paths", nargs="+", help="Paths to custom operator scripts or directories.")
+    parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode.")
+    parser.add_argument(
+        "--auto_op_parallelism",
+        type=bool,
+        default=True,
+        help="Whether to automatically set operator parallelism.",
+    )
+
+    parser.add_argument(
+        "--elastic_juicer_adaptive_batching",
+        type=bool,
+        default=False,
+        help="Whether to enable actor-local OOM-safe adaptive batching "
+        "for batched Mapper operators in Ray actor mode. It's False "
+        "by default.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_metrics_max_in_flight",
+        type=int,
+        default=64,
+        help="Maximum pending metrics submissions per adaptive Ray "
+        "actor. New observations are dropped while the bounded "
+        "window is full.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_control_poll_interval_sec",
+        type=float,
+        default=0.1,
+        help="Non-blocking interval for adaptive Ray actors to poll the "
+        "job-scoped quota service at micro-slice boundaries. The "
+        "business path never waits for this request.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_sample_interval_sec",
+        type=float,
+        default=0.01,
+        help="Actor-process RSS sampling interval for adaptive batch metrics.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_enabled",
+        type=bool,
+        default=False,
+        help="Enable the job-scoped stage Captain lifecycle. Requires "
+        "elastic_juicer_adaptive_batching and a complete process or "
+        "CUDA memory watermark pair.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_poll_interval_sec",
+        type=float,
+        default=0.5,
+        help="Driver Captain decision-loop interval.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_rpc_timeout_sec",
+        type=float,
+        default=5.0,
+        help="Finite timeout for each Captain metrics/control Ray RPC.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_retry_backoff_sec",
+        type=float,
+        default=0.1,
+        help="Captain retry backoff after a timed-out or failed RPC.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_metrics_ttl_ms",
+        type=int,
+        default=5000,
+        help="Maximum observation age accepted by Captain.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_quota_ttl_ms",
+        type=int,
+        default=10000,
+        help="Validity window for Captain quota delivery envelopes.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_min_confidence",
+        type=float,
+        default=0.8,
+        help="Minimum resource-observation confidence for Captain decisions.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_min_decision_interval_ms",
+        type=int,
+        default=1000,
+        help="Per-actor Captain decision rate limit.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_recovery_observations",
+        type=int,
+        default=3,
+        help="Complete low-pressure stage windows required before recovery.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_process_memory_high_mb",
+        type=float,
+        default=None,
+        help="Optional actor-process RSS high watermark for Captain shrink.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_process_memory_low_mb",
+        type=float,
+        default=None,
+        help="Optional actor-process RSS low watermark for stage recovery.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_cuda_memory_high_mb",
+        type=float,
+        default=None,
+        help="Optional actor CUDA allocator high watermark for Captain shrink.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_cuda_memory_low_mb",
+        type=float,
+        default=None,
+        help="Optional actor CUDA allocator low watermark for stage recovery.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_profile_seed",
+        type=bool,
+        default=False,
+        help="Whether new adaptive actor incarnations seed their initial "
+        "batch bounds from a prior incarnation's stage profile. It's "
+        "False by default until the benefit is demonstrated end to end.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_profile_seed_timeout_sec",
+        type=float,
+        default=2.0,
+        help="Bounded wait for the one-shot stage-profile seed fetch and "
+        "for profile report acknowledgements.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_profile_ttl_ms",
+        type=int,
+        default=1800000,
+        help="Maximum stage-profile age served to a new incarnation; "
+        "older profiles are discarded on read.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_lease_ttl_ms",
+        type=int,
+        default=60000,
+        help="Control-service registration lease TTL. Actors renew on "
+        "every quota poll; expired leases leave stage coordination.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_metrics_sink_max_events",
+        type=int,
+        default=2048,
+        help="Bounded capacity of the job-scoped async metrics sink; the "
+        "oldest events are dropped and counted when it is full.",
+    )
+
+    return parser
+
+
 def init_configs(args: Optional[List[str]] = None, which_entry: object = None, load_configs_only=False):
     """
     initialize the jsonargparse parser and parse configs from one of:
@@ -112,801 +971,18 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         setting up logger.
     :return: a global cfg object used by the DefaultExecutor or Analyzer
     """
+    # Optional: stdlib json for HF datasets JSONL (avoids ujson "Value is too big!")
+    from data_juicer.utils.datasets_json_compat import (
+        apply_stdlib_json_patch_for_datasets,
+    )
+
+    apply_stdlib_json_patch_for_datasets()
+
     if args is None:
         args = sys.argv[1:]
     with timing_context("Total config initialization time"):
         with timing_context("Initializing parser"):
-            parser = ArgumentParser(default_env=True, default_config_files=None, usage=argparse.SUPPRESS)
-
-            # required but mutually exclusive args group
-            required_group = parser.add_mutually_exclusive_group(required=True)
-            required_group.add_argument(
-                "--config", action=ActionConfigFile, help="Path to a dj basic configuration file."
-            )
-            required_group.add_argument(
-                "--auto",
-                action="store_true",
-                help="Weather to use an auto analyzing "
-                "strategy instead of a specific data "
-                "recipe. If a specific config file is "
-                "given by --config arg, this arg is "
-                "disabled. Only available for Analyzer.",
-            )
-
-            parser.add_argument(
-                "--auto_num",
-                type=PositiveInt,
-                default=1000,
-                help="The number of samples to be analyzed " "automatically. It's 1000 in default.",
-            )
-
-            parser.add_argument(
-                "--hpo_config", type=str, help="Path to a configuration file when using auto-HPO tool.", required=False
-            )
-            parser.add_argument(
-                "--data_probe_algo",
-                type=str,
-                default="uniform",
-                help='Sampling algorithm to use. Options are "uniform", '
-                '"frequency_specified_field_selector", or '
-                '"topk_specified_field_selector". Default is "uniform". Only '
-                "used for dataset sampling",
-                required=False,
-            )
-            parser.add_argument(
-                "--data_probe_ratio",
-                type=ClosedUnitInterval,
-                default=1.0,
-                help="The ratio of the sample size to the original dataset size. "  # noqa: E251
-                "Default is 1.0 (no sampling). Only used for dataset sampling",
-                required=False,
-            )
-
-            # basic global paras with extended type hints
-            # e.g., files can be mode include flags
-            # "fr": "path to a file that exists and is readable")
-            # "fc": "path to a file that can be created if it does not exist")
-            # "dw": "path to a directory that exists and is writeable")
-            # "dc": "path to a directory that can be created if it does not exist")
-            # "drw": "path to a directory that exists and is readable and writeable")
-            parser.add_argument(
-                "--project_name", type=str, default="hello_world", help="Name of your data process project."
-            )
-            parser.add_argument(
-                "--executor_type",
-                type=str,
-                default="default",
-                choices=["default", "ray", "ray_partitioned"],
-                help='Type of executor, support "default", "ray", or "ray_partitioned".',
-            )
-            parser.add_argument(
-                "--dataset_path",
-                type=str,
-                default="",
-                help="Path to datasets with optional weights(0.0-1.0), 1.0 as "
-                "default. Accepted format:<w1> dataset1-path <w2> dataset2-path "
-                "<w3> dataset3-path ...",
-            )
-            parser.add_argument(
-                "--dataset",
-                type=Union[List[Dict], Dict],
-                default=[],
-                help="Dataset setting to define local/remote datasets; could be a "  # noqa: E251
-                "dict or a list of dicts; refer to "
-                "https://datajuicer.github.io/data-juicer/en/main/docs/DatasetCfg.html for more "
-                "detailed examples",
-            )
-            parser.add_argument(
-                "--generated_dataset_config",
-                type=Dict,
-                default=None,
-                help="Configuration used to create a dataset. "  # noqa: E251
-                "The dataset will be created from this configuration if provided. "
-                "It must contain the `type` field to specify the dataset name.",
-            )
-            parser.add_argument(
-                "--validators",
-                type=List[Dict],
-                default=[],
-                help="List of validators to apply to the dataset. Each validator "  # noqa: E251
-                "must have a `type` field specifying the validator type.",
-            )
-            parser.add_argument(
-                "--load_dataset_kwargs",
-                type=Dict,
-                default={},
-                help="Extra keyword arguments passed through to the underlying "  # noqa: E251
-                "datasets.load_dataset() call. Useful for format-specific "
-                "options such as chunksize (JSON), columns (Parquet), or "
-                "delimiter (CSV). See the HuggingFace Datasets docs for "
-                "available options.",
-            )
-            parser.add_argument(
-                "--work_dir",
-                type=str,
-                default=None,
-                help="Path to a work directory to store outputs during Data-Juicer "  # noqa: E251
-                "running. It's the directory where export_path is at in default.",
-            )
-            parser.add_argument(
-                "--export_path",
-                type=str,
-                default="./outputs/hello_world/hello_world.jsonl",
-                help="Path to export and save the output processed dataset. The "  # noqa: E251
-                "directory to store the processed dataset will be the work "
-                "directory of this process.",
-            )
-            parser.add_argument(
-                "--export_type",
-                type=str,
-                default=None,
-                help="The export format type. If it's not specified, Data-Juicer will parse from the export_path. The "
-                "supported types can be found in Exporter._router() for standalone mode and "
-                "RayExporter._SUPPORTED_FORMATS for ray mode",
-            )
-            parser.add_argument(
-                "--export_shard_size",
-                type=NonNegativeInt,
-                default=0,
-                help="Shard size of exported dataset in Byte. In default, it's 0, "  # noqa: E251
-                "which means export the whole dataset into only one file. If "
-                "it's set a positive number, the exported dataset will be split "
-                "into several sub-dataset shards, and the max size of each shard "
-                "won't larger than the export_shard_size",
-            )
-            parser.add_argument(
-                "--export_in_parallel",
-                type=bool,
-                default=False,
-                help="Whether to export the result dataset in parallel to a single "  # noqa: E251
-                "file, which usually takes less time. It only works when "
-                "export_shard_size is 0, and its default number of processes is "
-                "the same as the argument np. **Notice**: If it's True, "
-                "sometimes exporting in parallel might require much more time "
-                "due to the IO blocking, especially for very large datasets. "
-                "When this happens, False is a better choice, although it takes "
-                "more time.",
-            )
-            parser.add_argument(
-                "--export_extra_args",
-                type=Dict,
-                default={},
-                help="Other optional arguments for exporting in dict. For example, the key mapping info for exporting "
-                "the WebDataset format.",
-            )
-            parser.add_argument(
-                "--export_aws_credentials",
-                type=Dict,
-                default=None,
-                help="Export-specific AWS credentials for S3 export. If export_path is S3 and this is not provided, "
-                "an error will be raised. Should contain aws_access_key_id, aws_secret_access_key, aws_region, "
-                "and optionally aws_session_token and endpoint_url.",
-            )
-            parser.add_argument(
-                "--keep_stats_in_res_ds",
-                type=bool,
-                default=False,
-                help="Whether to keep the computed stats in the result dataset. If "  # noqa: E251
-                "it's False, the intermediate fields to store the stats "
-                "computed by Filters will be removed. Default: False.",
-            )
-            parser.add_argument(
-                "--keep_hashes_in_res_ds",
-                type=bool,
-                default=False,
-                help="Whether to keep the computed hashes in the result dataset. If "  # noqa: E251
-                "it's False, the intermediate fields to store the hashes "
-                "computed by Deduplicators will be removed. Default: False.",
-            )
-            parser.add_argument("--np", type=PositiveInt, default=4, help="Number of processes to process dataset.")
-            parser.add_argument(
-                "--text_keys",
-                type=Union[str, List[str]],
-                default="text",
-                help="Key name of field where the sample texts to be processed, e.g., "  # noqa: E251
-                "`text`, `text.instruction`, `text.output`, ... Note: currently, "
-                "we support specify only ONE key for each op, for cases "
-                "requiring multiple keys, users can specify the op multiple "
-                "times.  We will only use the first key of `text_keys` when you "
-                "set multiple keys.",
-            )
-            parser.add_argument(
-                "--image_key",
-                type=str,
-                default="images",
-                help="Key name of field to store the list of sample image paths.",  # noqa: E251
-            )
-            parser.add_argument(
-                "--image_bytes_key",
-                type=str,
-                default="image_bytes",
-                help="Key name of field to store the list of sample image bytes.",  # noqa: E251
-            )
-            parser.add_argument(
-                "--image_special_token",
-                type=str,
-                default=SpecialTokens.image,
-                help="The special token that represents an image in the text. In "  # noqa: E251
-                'default, it\'s "<__dj__image>". You can specify your own special'
-                " token according to your input dataset.",
-            )
-            parser.add_argument(
-                "--audio_key",
-                type=str,
-                default="audios",
-                help="Key name of field to store the list of sample audio paths.",  # noqa: E251
-            )
-            parser.add_argument(
-                "--audio_special_token",
-                type=str,
-                default=SpecialTokens.audio,
-                help="The special token that represents an audio in the text. In "  # noqa: E251
-                'default, it\'s "<__dj__audio>". You can specify your own special'
-                " token according to your input dataset.",
-            )
-            parser.add_argument(
-                "--video_key",
-                type=str,
-                default="videos",
-                help="Key name of field to store the list of sample video paths.",  # noqa: E251
-            )
-            parser.add_argument(
-                "--video_special_token",
-                type=str,
-                default=SpecialTokens.video,
-                help="The special token that represents a video in the text. In "
-                'default, it\'s "<__dj__video>". You can specify your own special'
-                " token according to your input dataset.",
-            )
-            parser.add_argument(
-                "--eoc_special_token",
-                type=str,
-                default=SpecialTokens.eoc,
-                help="The special token that represents the end of a chunk in the "  # noqa: E251
-                'text. In default, it\'s "<|__dj__eoc|>". You can specify your '
-                "own special token according to your input dataset.",
-            )
-            parser.add_argument(
-                "--suffixes",
-                type=Union[str, List[str]],
-                default=[],
-                help="Suffixes of files that will be find and loaded. If not set, we "  # noqa: E251
-                "will find all suffix files, and select a suitable formatter "
-                "with the most files as default.",
-            )
-            parser.add_argument(
-                "--turbo",
-                type=bool,
-                default=False,
-                help="Enable Turbo mode to maximize processing speed when batch size " "is 1.",  # noqa: E251
-            )
-            parser.add_argument(
-                "--skip_op_error",
-                type=bool,
-                default=True,
-                help="Skip errors in OPs caused by unexpected invalid samples.",  # noqa: E251
-            )
-            parser.add_argument(
-                "--use_cache",
-                type=bool,
-                default=True,
-                help="Whether to use the cache management of huggingface datasets. It "  # noqa: E251
-                "might take up lots of disk space when using cache",
-            )
-            parser.add_argument(
-                "--ds_cache_dir",
-                type=str,
-                default=None,
-                help="Cache dir for HuggingFace datasets. In default it's the same "  # noqa: E251
-                "as the environment variable `HF_DATASETS_CACHE`, whose default "
-                'value is usually "~/.cache/huggingface/datasets". If this '
-                "argument is set to a valid path by users, it will override the "
-                "default cache dir. Modifying this arg might also affect the other two"
-                " paths to store downloaded and extracted datasets that depend on "
-                "`HF_DATASETS_CACHE`",
-            )
-            parser.add_argument(
-                "--cache_compress",
-                type=str,
-                default=None,
-                help="The compression method of the cache file, which can be"
-                'specified in ["gzip", "zstd", "lz4"]. If this parameter is'
-                "None, the cache file will not be compressed.",
-            )
-            parser.add_argument(
-                "--open_monitor",
-                type=bool,
-                default=True,
-                help="Whether to open the monitor to trace resource utilization for "  # noqa: E251
-                "each OP during data processing. It's True in default.",
-            )
-            parser.add_argument(
-                "--use_checkpoint",
-                type=bool,
-                default=False,
-                help="Whether to use the checkpoint management to save the latest "  # noqa: E251
-                "version of dataset to work dir when processing. Rerun the same "
-                "config will reload the checkpoint and skip ops before it. Cache "
-                "will be disabled when it is true . If args of ops before the "
-                "checkpoint are changed, all ops will be rerun from the "
-                "beginning.",
-            )
-            # Enhanced checkpoint configuration for PartitionedRayExecutor
-            parser.add_argument(
-                "--checkpoint.enabled",
-                type=bool,
-                default=True,
-                help="Enable enhanced checkpointing for PartitionedRayExecutor",
-            )
-            parser.add_argument(
-                "--checkpoint.strategy",
-                type=str,
-                default="every_n_ops",
-                choices=["every_op", "every_partition", "every_n_ops", "manual", "disabled"],
-                help="Checkpoint strategy: every_n_ops (default, balanced), every_op (max protection), "
-                "manual (after specific ops), disabled (best performance)",
-            )
-            parser.add_argument(
-                "--checkpoint.n_ops",
-                type=int,
-                default=5,
-                help="Number of operations between checkpoints for every_n_ops strategy. "
-                "Default 5 balances fault tolerance with Ray optimization.",
-            )
-            parser.add_argument(
-                "--checkpoint.op_names",
-                type=List[str],
-                default=[],
-                help="List of operation names to checkpoint for manual strategy",
-            )
-            # Event logging configuration
-            parser.add_argument(
-                "--event_logging.enabled",
-                type=bool,
-                default=True,
-                help="Enable event logging for job tracking and resumption",
-            )
-            # Logging configuration
-            parser.add_argument(
-                "--max_log_size_mb",
-                type=int,
-                default=100,
-                help="Maximum log file size in MB before rotation",
-            )
-            parser.add_argument(
-                "--backup_count",
-                type=int,
-                default=5,
-                help="Number of backup log files to keep",
-            )
-            # Storage configuration
-            parser.add_argument(
-                "--event_log_dir",
-                type=str,
-                default=None,
-                help="Separate directory for event logs (fast storage)",
-            )
-            parser.add_argument(
-                "--checkpoint_dir",
-                type=str,
-                default=None,
-                help="Separate directory for checkpoints (large storage)",
-            )
-            # Job management
-            parser.add_argument(
-                "--job_id",
-                type=str,
-                default=None,
-                help="Custom job ID for resumption and tracking. If not provided, a unique ID will be auto-generated.",
-            )
-            parser.add_argument(
-                "--temp_dir",
-                type=str,
-                default=None,
-                help="Path to the temp directory to store intermediate caches when "  # noqa: E251
-                "cache is disabled. In default it's None, so the temp dir will "
-                "be specified by system. NOTICE: you should be caution when "
-                "setting this argument because it might cause unexpected program "
-                "behaviors when this path is set to an unsafe directory.",
-            )
-            parser.add_argument(
-                "--open_tracer",
-                type=bool,
-                default=False,
-                help="Whether to open the tracer to trace samples changed during "  # noqa: E251
-                "process. It might take more time when opening tracer.",
-            )
-            parser.add_argument(
-                "--op_list_to_trace",
-                type=List[str],
-                default=[],
-                help="Which ops will be traced by tracer. If it's empty, all ops in "  # noqa: E251
-                "cfg.process will be traced. Only available when open_tracer is "
-                "true.",
-            )
-            parser.add_argument(
-                "--trace_num",
-                type=int,
-                default=10,
-                help="Number of samples extracted by tracer to show the dataset "
-                "difference before and after a op. Only available when "
-                "open_tracer is true.",
-            )
-            parser.add_argument(
-                "--trace_keys",
-                type=List[str],
-                default=[],
-                help="List of field names to include in trace output. If set, the "
-                "specified fields' values will be included in each trace entry. "
-                "Only available when open_tracer is true.",
-            )
-            parser.add_argument(
-                "--open_insight_mining",
-                type=bool,
-                default=False,
-                help="Whether to open insight mining to trace the OP-wise stats/tags "  # noqa: E251
-                "changes during process. It might take more time when opening "
-                "insight mining.",
-            )
-            parser.add_argument(
-                "--op_list_to_mine",
-                type=List[str],
-                default=[],
-                help="Which OPs will be applied on the dataset to mine the insights "  # noqa: E251
-                "in their stats changes. Only those OPs that produce stats or "
-                "meta are valid. If it's empty, all OPs that produce stats and "
-                "meta will be involved. Only available when filter_list_to_mine "
-                "is true.",
-            )
-            parser.add_argument(
-                "--min_common_dep_num_to_combine",
-                type=int,
-                default=-1,
-                help="The minimum number of common dependencies required to determine whether to merge two operation "
-                "environment specifications. If set to -1, it means no combination of operation environments, where "
-                "every OP has its own runtime environment during processing without any merging. If set to >= 0, "
-                "environments of OPs that share at least min_common_dep_num_to_combine common dependencies will be "
-                "merged. It will open the operator environment manager to automatically analyze and merge runtime "
-                "environment for different OPs. It helps different OPs share and reuse the same runtime environment to "
-                "reduce resource utilization. It's -1 in default. Only available in ray mode. ",
-            )
-            parser.add_argument(
-                "--conflict_resolve_strategy",
-                type=str,
-                default="split",
-                choices=["split", "overwrite", "latest"],
-                help="Strategy for resolving dependency conflicts, default is 'split' strategy. 'split': Keep the two "
-                "specs split when there is a conflict. 'overwrite': Overwrite the existing dependency with one "
-                "from the later OP. 'latest': Use the latest version of all specified dependency versions. "
-                "Only available when min_common_dep_num_to_combine >= 0.",
-            )
-            parser.add_argument(
-                "--op_fusion",
-                type=bool,
-                default=False,
-                help="Whether to fuse operators that share the same intermediate "  # noqa: E251
-                "variables automatically. Op fusion might reduce the memory "
-                "requirements slightly but speed up the whole process.",
-            )
-            parser.add_argument(
-                "--fusion_strategy",
-                type=str,
-                default="probe",
-                help='OP fusion strategy. Support ["greedy", "probe"] now. "greedy" '  # noqa: E251
-                "means keep the basic OP order and put the fused OP to the last "
-                'of each fused OP group. "probe" means Data-Juicer will probe '
-                "the running speed for each OP at the beginning and reorder the "
-                "OPs and fused OPs according to their probed speed (fast to "
-                'slow). It\'s "probe" in default.',
-            )
-            parser.add_argument(
-                "--adaptive_batch_size",
-                type=bool,
-                default=False,
-                help="Whether to use adaptive batch sizes for each OP according to "  # noqa: E251
-                "the probed results. It's False in default.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_adaptive_batching",
-                type=bool,
-                default=False,
-                help="Whether to enable actor-local OOM-safe adaptive batching "
-                "for batched Mapper operators in Ray actor mode. It's False "
-                "by default.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_metrics_max_in_flight",
-                type=int,
-                default=64,
-                help="Maximum pending metrics submissions per adaptive Ray "
-                "actor. New observations are dropped while the bounded "
-                "window is full.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_control_poll_interval_sec",
-                type=float,
-                default=0.1,
-                help="Non-blocking interval for adaptive Ray actors to poll the "
-                "job-scoped quota service at micro-slice boundaries. The "
-                "business path never waits for this request.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_sample_interval_sec",
-                type=float,
-                default=0.01,
-                help="Actor-process RSS sampling interval for adaptive batch metrics.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_enabled",
-                type=bool,
-                default=False,
-                help="Enable the job-scoped stage Captain lifecycle. Requires "
-                "elastic_juicer_adaptive_batching and a complete process or "
-                "CUDA memory watermark pair.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_poll_interval_sec",
-                type=float,
-                default=0.5,
-                help="Driver Captain decision-loop interval.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_rpc_timeout_sec",
-                type=float,
-                default=5.0,
-                help="Finite timeout for each Captain metrics/control Ray RPC.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_retry_backoff_sec",
-                type=float,
-                default=0.1,
-                help="Captain retry backoff after a timed-out or failed RPC.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_metrics_ttl_ms",
-                type=int,
-                default=5000,
-                help="Maximum observation age accepted by Captain.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_quota_ttl_ms",
-                type=int,
-                default=10000,
-                help="Validity window for Captain quota delivery envelopes.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_min_confidence",
-                type=float,
-                default=0.8,
-                help="Minimum resource-observation confidence for Captain decisions.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_min_decision_interval_ms",
-                type=int,
-                default=1000,
-                help="Per-actor Captain decision rate limit.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_recovery_observations",
-                type=int,
-                default=3,
-                help="Complete low-pressure stage windows required before recovery.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_process_memory_high_mb",
-                type=float,
-                default=None,
-                help="Optional actor-process RSS high watermark for Captain shrink.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_process_memory_low_mb",
-                type=float,
-                default=None,
-                help="Optional actor-process RSS low watermark for stage recovery.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_cuda_memory_high_mb",
-                type=float,
-                default=None,
-                help="Optional actor CUDA allocator high watermark for Captain shrink.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_captain_cuda_memory_low_mb",
-                type=float,
-                default=None,
-                help="Optional actor CUDA allocator low watermark for stage recovery.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_profile_seed",
-                type=bool,
-                default=False,
-                help="Whether new adaptive actor incarnations seed their initial "
-                "batch bounds from a prior incarnation's stage profile. It's "
-                "False by default until the benefit is demonstrated end to end.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_profile_seed_timeout_sec",
-                type=float,
-                default=2.0,
-                help="Bounded wait for the one-shot stage-profile seed fetch and "
-                "for profile report acknowledgements.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_profile_ttl_ms",
-                type=int,
-                default=1800000,
-                help="Maximum stage-profile age served to a new incarnation; "
-                "older profiles are discarded on read.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_lease_ttl_ms",
-                type=int,
-                default=60000,
-                help="Control-service registration lease TTL. Actors renew on "
-                "every quota poll; expired leases leave stage coordination.",
-            )
-            parser.add_argument(
-                "--elastic_juicer_metrics_sink_max_events",
-                type=int,
-                default=2048,
-                help="Bounded capacity of the job-scoped async metrics sink; the "
-                "oldest events are dropped and counted when it is full.",
-            )
-            parser.add_argument(
-                "--process",
-                type=List[Dict],
-                default=[],
-                help="List of several operators with their arguments, these ops will "  # noqa: E251
-                "be applied to dataset in order",
-            )
-            parser.add_argument(
-                "--percentiles",
-                type=List[float],
-                default=[],
-                help="Percentiles to analyze the dataset distribution. Only used in " "Analysis.",  # noqa: E251
-            )
-            parser.add_argument(
-                "--export_original_dataset",
-                type=bool,
-                default=False,
-                help="whether to export the original dataset with stats. If you only "  # noqa: E251
-                "need the stats of the dataset, setting it to false could speed "
-                "up the exporting..",
-            )
-            parser.add_argument(
-                "--save_stats_in_one_file",
-                type=bool,
-                default=False,
-                help="Whether to save all stats to only one file. Only used in " "Analysis.",
-            )
-            parser.add_argument("--ray_address", type=str, default="auto", help="The address of the Ray cluster.")
-
-            # Partitioning configuration for PartitionedRayExecutor
-            # Support both flat and nested partition configuration
-            parser.add_argument(
-                "--partition_size",
-                type=int,
-                default=10000,
-                help="Number of samples per partition for PartitionedRayExecutor (legacy flat config)",
-            )
-            parser.add_argument(
-                "--max_partition_size_mb",
-                type=int,
-                default=128,
-                help="Maximum partition size in MB for PartitionedRayExecutor (legacy flat config)",
-            )
-
-            parser.add_argument(
-                "--preserve_intermediate_data",
-                type=bool,
-                default=False,
-                help="Preserve intermediate data for debugging (legacy flat config)",
-            )
-
-            # partition configuration
-            parser.add_argument(
-                "--partition.mode",
-                type=str,
-                default="auto",
-                choices=["manual", "auto"],
-                help="Partition mode: manual (specify num_of_partitions) or auto (use partition size optimizer)",
-            )
-            parser.add_argument(
-                "--partition.num_of_partitions",
-                type=int,
-                default=4,
-                help="Number of partitions for manual mode (ignored in auto mode)",
-            )
-            parser.add_argument(
-                "--partition.target_size_mb",
-                type=int,
-                default=256,
-                help="Target partition size in MB for auto mode (128, 256, 512, or 1024). "
-                "Controls how large each partition should be. Smaller = more checkpoints & better recovery, "
-                "larger = less overhead. Default 256MB balances memory safety and efficiency.",
-            )
-
-            # Resource optimization configuration
-            parser.add_argument(
-                "--resource_optimization.auto_configure",
-                type=bool,
-                default=False,
-                help="Enable automatic optimization of partition size, worker count, and other resource-dependent settings (nested resource_optimization config)",
-            )
-
-            # Intermediate storage configuration
-            parser.add_argument(
-                "--intermediate_storage.preserve_intermediate_data",
-                type=bool,
-                default=False,
-                help="Preserve intermediate data for debugging (nested intermediate_storage config)",
-            )
-            parser.add_argument(
-                "--intermediate_storage.cleanup_temp_files",
-                type=bool,
-                default=True,
-                help="Clean up temporary files after processing (nested intermediate_storage config)",
-            )
-            parser.add_argument(
-                "--intermediate_storage.cleanup_on_success",
-                type=bool,
-                default=False,
-                help="Clean up intermediate files even on successful completion (nested intermediate_storage config)",
-            )
-            parser.add_argument(
-                "--intermediate_storage.retention_policy",
-                type=str,
-                default="keep_all",
-                choices=["keep_all", "keep_failed_only", "cleanup_all"],
-                help="File retention policy (nested intermediate_storage config)",
-            )
-            parser.add_argument(
-                "--intermediate_storage.max_retention_days",
-                type=int,
-                default=7,
-                help="Maximum retention days for files (nested intermediate_storage config)",
-            )
-
-            # Intermediate storage format configuration
-            parser.add_argument(
-                "--intermediate_storage.format",
-                type=str,
-                default="parquet",
-                choices=["parquet", "arrow", "jsonl"],
-                help="Storage format for checkpoints and intermediate data (nested intermediate_storage config)",
-            )
-            parser.add_argument(
-                "--intermediate_storage.compression",
-                type=str,
-                default="snappy",
-                choices=["snappy", "gzip", "none"],
-                help="Compression format for storage files (nested intermediate_storage config)",
-            )
-
-            parser.add_argument(
-                "--intermediate_storage.write_partitions",
-                type=bool,
-                default=True,
-                help="Whether to write intermediate partition files to disk (nested intermediate_storage config). Set to false for better performance when intermediate files aren't needed.",
-            )
-
-            parser.add_argument(
-                "--partition_dir",
-                type=str,
-                default=None,
-                help="Directory to store partition files. Supports {work_dir} placeholder. If not set, defaults to {work_dir}/partitions.",
-            )
-
-            parser.add_argument(
-                "--custom-operator-paths", nargs="+", help="Paths to custom operator scripts or directories."
-            )
-            parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode.")
-            parser.add_argument(
-                "--auto_op_parallelism",
-                type=bool,
-                default=True,
-                help="Whether to automatically set operator parallelism.",
-            )
+            parser = build_base_parser()
             # Filter out non-essential arguments for initial parsing
             essential_args = []
             if args:
@@ -1030,15 +1106,16 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     :param cfg: an updated cfg
     """
 
-    # Handle S3 paths differently from local paths
-    if cfg.export_path.startswith("s3://"):
-        # For S3 paths, keep as-is (don't use os.path.abspath)
+    # Handle remote paths (S3/HDFS) differently from local paths
+    _is_remote = cfg.export_path.startswith("s3://") or cfg.export_path.startswith("hdfs://")
+    if _is_remote:
+        # For remote paths, keep as-is (don't use os.path.abspath)
         # If work_dir is not provided, use a default local directory for logs/checkpoints
         if cfg.work_dir is None:
-            # Use a default local work directory for S3 exports
+            # Use a default local work directory for remote exports
             # This is where logs, checkpoints, and other local artifacts will be stored
             cfg.work_dir = os.path.abspath("./outputs")
-            logger.info(f"Using default work_dir [{cfg.work_dir}] for S3 export_path [{cfg.export_path}]")
+            logger.info(f"Using default work_dir [{cfg.work_dir}] for remote export_path [{cfg.export_path}]")
     else:
         # For local paths, convert to absolute path
         cfg.export_path = os.path.abspath(cfg.export_path)
@@ -1051,11 +1128,12 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
 
     timestamp = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
     if not load_configs_only:
-        # For S3 paths, use a simplified export path for log filename
-        if cfg.export_path.startswith("s3://"):
-            # Extract bucket and key from S3 path for log filename
-            s3_path_parts = cfg.export_path.replace("s3://", "").split("/", 1)
-            export_rel_path = s3_path_parts[1] if len(s3_path_parts) > 1 else s3_path_parts[0]
+        # For remote paths, use a simplified export path for log filename
+        if _is_remote:
+            # Extract path after scheme prefix for log filename
+            scheme = "s3://" if cfg.export_path.startswith("s3://") else "hdfs://"
+            remote_parts = cfg.export_path.replace(scheme, "").split("/", 1)
+            export_rel_path = remote_parts[1] if len(remote_parts) > 1 else remote_parts[0]
         else:
             export_rel_path = os.path.relpath(cfg.export_path, start=cfg.work_dir)
 
@@ -1122,6 +1200,37 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         if cfg.temp_dir is not None and not os.path.exists(cfg.temp_dir):
             os.makedirs(cfg.temp_dir, exist_ok=True)
         tempfile.tempdir = cfg.temp_dir
+
+    # encryption mode: force disable HF cache to prevent plaintext Arrow files
+    # from being persisted to disk, and validate the key early.
+    if cfg.get("decrypt_after_reading", False) or cfg.get("encrypt_before_export", False):
+        if cfg.get("use_cache", True):
+            logger.warning(
+                "Encryption mode is enabled: forcing use_cache=False to "
+                "prevent plaintext Arrow cache files from being written to disk."
+            )
+            from datasets import disable_caching
+
+            disable_caching()
+            cfg.use_cache = False
+            if cfg.cache_compress:
+                logger.warning("Disable cache compression due to disabled cache.")
+                cfg.cache_compress = None
+            import tempfile
+
+            logger.warning(
+                f"Set temp directory to store temp files to [{cfg.temp_dir}]. "
+                "For maximum security, set temp_dir to a memory-backed "
+                "filesystem such as /dev/shm."
+            )
+            if cfg.temp_dir is not None and not os.path.exists(cfg.temp_dir):
+                os.makedirs(cfg.temp_dir, exist_ok=True)
+            tempfile.tempdir = cfg.temp_dir
+        # Validate key availability early so the job fails fast on
+        # misconfiguration rather than deep into processing.
+        from data_juicer.utils.encryption_utils import load_fernet_key
+
+        load_fernet_key(cfg.get("encryption_key_path", None))
 
     # The checkpoint mode is not compatible with op fusion for now.
     if cfg.get("op_fusion", False):
@@ -1341,15 +1450,20 @@ def update_op_process(cfg, parser, used_ops=None):
             # Add new operator
             cfg.process.append({op_name: None if internal_op_para is None else namespace_to_dict(internal_op_para)})
 
-    # Optimize type checking
+    # Optimize type checking: deepcopy(parser) does not replicate nested add_class_arguments,
+    # so only pass global args to temp_parser to avoid "Unrecognized arguments" for op.* keys.
     recognized_args = {
         action.dest for action in parser._actions if hasattr(action, "dest") and isinstance(action, ActionTypeHint)
     }
+    exclude_prefixes = tuple(used_ops) + tuple(f"{op_name}." for op_name in (used_ops or ()))
 
-    # check the op params via type hint
     temp_parser = copy.deepcopy(parser)
-
-    temp_args = namespace_to_arg_list(temp_cfg, includes=recognized_args, excludes=["config"])
+    temp_args = namespace_to_arg_list(
+        temp_cfg,
+        includes=recognized_args,
+        excludes=["config"],
+        exclude_prefixes=exclude_prefixes,
+    )
 
     if temp_cfg.config:
         temp_args.extend(["--config", os.path.abspath(temp_cfg.config[0])])
@@ -1362,15 +1476,27 @@ def update_op_process(cfg, parser, used_ops=None):
     return cfg
 
 
-def namespace_to_arg_list(namespace, prefix="", includes=None, excludes=None):
+def namespace_to_arg_list(namespace, prefix="", includes=None, excludes=None, exclude_prefixes=None):
     arg_list = []
+    exclude_prefixes = exclude_prefixes or ()
 
     for key, value in vars(namespace).items():
+        concat_key = f"{prefix}{key}"
+        if exclude_prefixes and (
+            concat_key in exclude_prefixes
+            or any(concat_key.startswith(p + ".") for p in exclude_prefixes if "." not in p)
+        ):
+            continue
         if issubclass(type(value), Namespace):
-            nested_args = namespace_to_arg_list(value, f"{prefix}{key}.")
+            nested_args = namespace_to_arg_list(
+                value,
+                f"{prefix}{key}.",
+                includes=includes,
+                excludes=excludes,
+                exclude_prefixes=exclude_prefixes,
+            )
             arg_list.extend(nested_args)
         elif value is not None:
-            concat_key = f"{prefix}{key}"
             if includes is not None and concat_key not in includes:
                 continue
             if excludes is not None and concat_key in excludes:
@@ -1827,8 +1953,6 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
     """
     set init configs of data-juicer for cfg
     """
-    temp_dir = tempfile.gettempdir()
-    temp_file = os.path.join(temp_dir, "job_dj_config.json")
     if isinstance(cfg, Namespace):
         cfg = namespace_to_dict(cfg)
 
@@ -1849,10 +1973,13 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
         for attr in internal_attrs:
             cfg.pop(attr, None)
 
-    # create a temp config file
-    with open(temp_file, "w") as f:
-        json.dump(prepare_cfgs_for_export(cfg), f)
-    inited_dj_cfg = init_configs(["--config", temp_file], load_configs_only=load_configs_only)
+    # Use a unique temporary file per call to avoid race conditions when
+    # multiple requests are processed concurrently (e.g. in API service mode).
+    # The file is automatically deleted after the with-block exits.
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", prefix="job_dj_config_", delete=True) as temp_f:
+        json.dump(prepare_cfgs_for_export(cfg), temp_f)
+        temp_f.flush()
+        inited_dj_cfg = init_configs(["--config", temp_f.name], load_configs_only=load_configs_only)
     return inited_dj_cfg
 
 

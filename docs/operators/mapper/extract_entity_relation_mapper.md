@@ -51,7 +51,7 @@ Tags 标签: cpu, api, text
 ## 📊 Effect demonstration 效果演示
 ### test_default
 ```python
-ExtractEntityRelationMapper(api_model='qwen2.5-72b-instruct')
+ExtractEntityRelationMapper(api_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据
@@ -142,7 +142,7 @@ This example demonstrates the basic functionality of the ExtractEntityRelationMa
 
 ### test_entity_types
 ```python
-ExtractEntityRelationMapper(api_model='qwen2.5-72b-instruct', entity_types=['人物', '组织', '地点', '物件', '武器', '武功'])
+ExtractEntityRelationMapper(api_model='qwen3.7-max', entity_types=['人物', '组织', '地点', '物件', '武器', '武功'])
 ```
 
 #### 📥 input data 输入数据

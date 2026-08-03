@@ -98,6 +98,9 @@ auto_op_parallelism: false
 partition:
   mode: manual
   num_of_partitions: 2
+  # Profile-seed inheritance asserts partition 1 actors start after partition
+  # 0 reported bounds; keep partitions sequential for this serial-semantics test.
+  max_concurrent_partitions: 1
 elastic_juicer_adaptive_batching: true
 elastic_juicer_profile_seed: true
 elastic_juicer_captain_enabled: true

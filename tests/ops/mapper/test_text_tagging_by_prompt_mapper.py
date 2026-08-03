@@ -5,13 +5,13 @@ from data_juicer.utils.resource_utils import is_cuda_available
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 def check_string_in_list(string_list, output):
-    if not string_list: 
+    if not string_list:
         assert False, "输入的列表不能是空的"
-    
+
     for string in string_list:
         if string in output:
             return
-        
+
     assert False, f"没有字符串在输出中"
 
 

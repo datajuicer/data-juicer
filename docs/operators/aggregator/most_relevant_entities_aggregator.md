@@ -34,7 +34,7 @@ Tags 标签: cpu, api
 ## 📊 Effect demonstration 效果演示
 ### test_default_aggregator
 ```python
-MostRelevantEntitiesAggregator(api_model='qwen2.5-72b-instruct', entity='李莲花', query_entity_type='人物')
+MostRelevantEntitiesAggregator(api_model='qwen3.7-max', entity='李莲花', query_entity_type='人物')
 ```
 
 #### 📥 input data 输入数据
@@ -49,7 +49,7 @@ This example demonstrates the typical use of the operator, where it extracts and
 
 ### test_max_token_num
 ```python
-MostRelevantEntitiesAggregator(api_model='qwen2.5-72b-instruct', entity='李莲花', query_entity_type='人物', max_token_num=40)
+MostRelevantEntitiesAggregator(api_model='qwen3.7-max', entity='李莲花', query_entity_type='人物', max_token_num=40)
 ```
 
 #### 📥 input data 输入数据

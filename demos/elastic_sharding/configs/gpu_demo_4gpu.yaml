@@ -1,0 +1,61 @@
+# Single-node, four-GPU variant of the elastic sharding GPU smoke test.
+#
+# Keep --num-shards=1 when using the bundled four-row dataset. Ray reads the
+# shard as four blocks and schedules up to four one-GPU tasks concurrently.
+project_name: elastic-sharding-4gpu-demo
+dataset_path: ./demos/elastic_sharding/data/gpu-demo-dataset.jsonl
+export_path: ./outputs/elastic-sharding-4gpu-demo/processed.jsonl
+executor_type: ray
+ray_address: local
+override_num_blocks: 4
+
+process:
+  # CPU Mapper
+  - whitespace_normalization_mapper:
+      text_key: text
+      num_proc: 4
+      num_cpus: 1
+
+  # GPU Mapper 1: sentiment classification.
+  - query_sentiment_detection_mapper:
+      query_key: text
+      hf_model: mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis
+      zh_to_en_hf_model: null
+      batch_size: 1
+      num_proc: 4
+      num_cpus: 1
+      num_gpus: 1
+      ray_execution_mode: task
+
+  # GPU Mapper 2: topic classification.
+  - query_topic_detection_mapper:
+      query_key: text
+      hf_model: dstefa/roberta-base_topic_classification_nyt_news
+      zh_to_en_hf_model: null
+      batch_size: 1
+      num_proc: 4
+      num_cpus: 1
+      num_gpus: 1
+      ray_execution_mode: task
+
+  # GPU Filter 3: CLIP text-pair similarity.
+  - text_pair_similarity_filter:
+      text_key: text
+      text_key_second: target_text
+      hf_clip: openai/clip-vit-base-patch32
+      min_score: 0.0
+      max_score: 1.0
+      any_or_all: any
+      batch_size: 1
+      num_proc: 4
+      num_cpus: 1
+      num_gpus: 1
+      ray_execution_mode: task
+
+  # CPU Filter
+  - text_length_filter:
+      text_key: text
+      min_len: 1
+      max_len: 10000
+      num_proc: 4
+      num_cpus: 1

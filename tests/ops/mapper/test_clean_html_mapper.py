@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from data_juicer.core.data import NestedDataset as Dataset
@@ -124,6 +125,17 @@ class CleanHtmlMapperTest(DataJuicerTestCaseBase):
             },
         ]
         self._run_helper(samples)
+
+    def test_non_string_text(self):
+        # Non-string inputs (e.g. None, nan, int) should be left untouched
+        # so that the user's original data is not silently modified.
+        for invalid_text in [None, 12345]:
+            with self.subTest(invalid_text=invalid_text):
+                result = self.op.process_batched({'text': [invalid_text]})
+                self.assertEqual(result['text'], [invalid_text])
+        # nan needs a dedicated check since nan != nan.
+        result = self.op.process_batched({'text': [float('nan')]})
+        self.assertTrue(math.isnan(result['text'][0]))
 
     def test_fake_html_text(self):
 

@@ -1,3 +1,10 @@
+from .agent_bad_case_signal_mapper import AgentBadCaseSignalMapper
+from .agent_dialog_normalize_mapper import AgentDialogNormalizeMapper
+from .agent_insight_llm_mapper import AgentInsightLLMMapper
+from .agent_skill_insight_mapper import AgentSkillInsightMapper
+from .agent_tool_relevance_mapper import AgentToolRelevanceMapper
+from .agent_tool_type_mapper import AgentToolTypeMapper
+from .agent_trace_coherence_mapper import AgentTraceCoherenceMapper
 from .annotation.human_preference_annotation_mapper import (
     HumanPreferenceAnnotationMapper,
 )
@@ -15,12 +22,20 @@ from .clean_links_mapper import CleanLinksMapper
 from .detect_character_attributes_mapper import DetectCharacterAttributesMapper
 from .detect_character_locations_mapper import DetectCharacterLocationsMapper
 from .detect_main_character_mapper import DetectMainCharacterMapper
+from .dialog_clarification_quality_mapper import DialogClarificationQualityMapper
+from .dialog_coreference_mapper import DialogCoreferenceMapper
+from .dialog_error_recovery_mapper import DialogErrorRecoveryMapper
 from .dialog_intent_detection_mapper import DialogIntentDetectionMapper
+from .dialog_memory_consistency_mapper import DialogMemoryConsistencyMapper
+from .dialog_non_repetition_mapper import DialogNonRepetitionMapper
+from .dialog_proactivity_mapper import DialogProactivityMapper
 from .dialog_sentiment_detection_mapper import DialogSentimentDetectionMapper
 from .dialog_sentiment_intensity_mapper import DialogSentimentIntensityMapper
 from .dialog_topic_detection_mapper import DialogTopicDetectionMapper
+from .dialog_topic_shift_mapper import DialogTopicShiftMapper
 from .download_file_mapper import DownloadFileMapper
 from .expand_macro_mapper import ExpandMacroMapper
+from .export_to_lerobot_mapper import ExportToLeRobotMapper
 from .extract_entity_attribute_mapper import ExtractEntityAttributeMapper
 from .extract_entity_relation_mapper import ExtractEntityRelationMapper
 from .extract_event_mapper import ExtractEventMapper
@@ -32,7 +47,6 @@ from .fix_unicode_mapper import FixUnicodeMapper
 from .generate_qa_from_examples_mapper import GenerateQAFromExamplesMapper
 from .generate_qa_from_text_mapper import GenerateQAFromTextMapper
 from .image_blur_mapper import ImageBlurMapper
-from .image_captioning_from_gpt4v_mapper import ImageCaptioningFromGPT4VMapper
 from .image_captioning_mapper import ImageCaptioningMapper
 from .image_detection_yolo_mapper import ImageDetectionYoloMapper
 from .image_diffusion_mapper import ImageDiffusionMapper
@@ -47,7 +61,9 @@ from .imgdiff_difference_area_generator_mapper import Difference_Area_Generator_
 from .imgdiff_difference_caption_generator_mapper import (
     Difference_Caption_Generator_Mapper,
 )
+from .latex_figure_context_extractor_mapper import LatexFigureContextExtractorMapper
 from .latex_merge_tex_mapper import LatexMergeTexMapper
+from .llm_extract_mapper import LLMExtractMapper
 from .mllm_mapper import MllmMapper
 from .nlpaug_en_mapper import NlpaugEnMapper
 from .nlpcda_zh_mapper import NlpcdaZhMapper
@@ -56,6 +72,8 @@ from .optimize_qa_mapper import OptimizeQAMapper
 from .optimize_query_mapper import OptimizeQueryMapper
 from .optimize_response_mapper import OptimizeResponseMapper
 from .pair_preference_mapper import PairPreferenceMapper
+from .pii_llm_suspect_mapper import PiiLlmSuspectMapper
+from .pii_redaction_mapper import PiiRedactionMapper
 from .punctuation_normalization_mapper import PunctuationNormalizationMapper
 from .python_file_mapper import PythonFileMapper
 from .python_lambda_mapper import PythonLambdaMapper
@@ -82,25 +100,46 @@ from .sentence_augmentation_mapper import SentenceAugmentationMapper
 from .sentence_split_mapper import SentenceSplitMapper
 from .text_chunk_mapper import TextChunkMapper
 from .text_tagging_by_prompt_mapper import TextTaggingByPromptMapper
+from .tool_success_tagger_mapper import ToolSuccessTaggerMapper
+from .usage_counter_mapper import UsageCounterMapper
 from .vggt_mapper import VggtMapper
-from .video_camera_calibration_static_deepcalib_mapper import (
-    VideoCameraCalibrationStaticDeepcalibMapper,
+from .video_active_speaker_detect_mapper import VideoActiveSpeakerDetectMapper
+from .video_atomic_action_segment_mapper import VideoAtomicActionSegmentMapper
+from .video_audio_ASR_mapper import VideoAudioASRMapper
+from .video_audio_detect_age_gender_mapper import VideoAudioDetectAgeGenderMapper
+from .video_audio_speech_emotion_mapper import VideoAudioSpeechEmotionMapper
+from .video_camera_calibration_deepcalib_mapper import (
+    VideoCameraCalibrationDeepcalibMapper,
 )
-from .video_camera_calibration_static_moge_mapper import (
-    VideoCameraCalibrationStaticMogeMapper,
+from .video_camera_calibration_droidcalib_mapper import (
+    VideoCameraCalibrationDroidCalibMapper,
 )
-from .video_camera_pose_mapper import VideoCameraPoseMapper
+from .video_camera_calibration_moge_mapper import VideoCameraCalibrationMogeMapper
+from .video_camera_pose_megasam_mapper import VideoCameraPoseMegaSaMMapper
+from .video_captioning_face_attribute_emotion_mapper import (
+    VideoCaptioningFaceAttributeEmotionMapper,
+)
 from .video_captioning_from_audio_mapper import VideoCaptioningFromAudioMapper
 from .video_captioning_from_frames_mapper import VideoCaptioningFromFramesMapper
+from .video_captioning_from_human_tracks_mapper import (
+    VideoCaptioningFromHumanTracksMapper,
+)
 from .video_captioning_from_summarizer_mapper import VideoCaptioningFromSummarizerMapper
 from .video_captioning_from_video_mapper import VideoCaptioningFromVideoMapper
 from .video_captioning_from_vlm_mapper import VideoCaptioningFromVLMMapper
+from .video_clip_reassembly_mapper import VideoClipReassemblyMapper
 from .video_depth_estimation_mapper import VideoDepthEstimationMapper
 from .video_extract_frames_mapper import VideoExtractFramesMapper
 from .video_face_blur_mapper import VideoFaceBlurMapper
 from .video_ffmpeg_wrapped_mapper import VideoFFmpegWrappedMapper
+from .video_hand_action_compute_mapper import VideoHandActionComputeMapper
+from .video_hand_motion_smooth_mapper import VideoHandMotionSmoothMapper
 from .video_hand_reconstruction_hawor_mapper import VideoHandReconstructionHaworMapper
 from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
+from .video_human_tracks_extraction_mapper import VideoHumanTracksExtractionMapper
+from .video_human_tracks_face_demographic_mapper import (
+    VideoHumantrackFaceDemographicMapper,
+)
 from .video_object_segmenting_mapper import VideoObjectSegmentingMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
 from .video_resize_aspect_ratio_mapper import VideoResizeAspectRatioMapper
@@ -110,11 +149,19 @@ from .video_split_by_key_frame_mapper import VideoSplitByKeyFrameMapper
 from .video_split_by_scene_mapper import VideoSplitBySceneMapper
 from .video_tagging_from_audio_mapper import VideoTaggingFromAudioMapper
 from .video_tagging_from_frames_mapper import VideoTaggingFromFramesMapper
+from .video_trajectory_overlay_mapper import VideoTrajectoryOverlayMapper
 from .video_undistort_mapper import VideoUndistortMapper
 from .video_whole_body_pose_estimation_mapper import VideoWholeBodyPoseEstimationMapper
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
 
 __all__ = [
+    "AgentBadCaseSignalMapper",
+    "AgentDialogNormalizeMapper",
+    "AgentInsightLLMMapper",
+    "AgentSkillInsightMapper",
+    "AgentToolTypeMapper",
+    "AgentToolRelevanceMapper",
+    "AgentTraceCoherenceMapper",
     "AudioAddGaussianNoiseMapper",
     "AudioFFmpegWrappedMapper",
     "CalibrateQAMapper",
@@ -133,12 +180,20 @@ __all__ = [
     "DialogSentimentDetectionMapper",
     "DialogSentimentIntensityMapper",
     "DialogTopicDetectionMapper",
+    "DialogClarificationQualityMapper",
+    "DialogCoreferenceMapper",
+    "DialogErrorRecoveryMapper",
+    "DialogMemoryConsistencyMapper",
+    "DialogNonRepetitionMapper",
+    "DialogProactivityMapper",
+    "DialogTopicShiftMapper",
     "Difference_Area_Generator_Mapper",
     "Difference_Caption_Generator_Mapper",
     "DownloadFileMapper",
     "ExpandMacroMapper",
     "ExtractEntityAttributeMapper",
     "ExtractEntityRelationMapper",
+    "ExportToLeRobotMapper",
     "ExtractEventMapper",
     "ExtractKeywordMapper",
     "ExtractNicknameMapper",
@@ -149,7 +204,6 @@ __all__ = [
     "GenerateQAFromTextMapper",
     "HumanPreferenceAnnotationMapper",
     "ImageBlurMapper",
-    "ImageCaptioningFromGPT4VMapper",
     "ImageCaptioningMapper",
     "ImageDetectionYoloMapper",
     "ImageDiffusionMapper",
@@ -160,6 +214,7 @@ __all__ = [
     "ImageSegmentMapper",
     "ImageTaggingMapper",
     "ImageTaggingVLMMapper",
+    "LatexFigureContextExtractorMapper",
     "LatexMergeTexMapper",
     "MllmMapper",
     "NlpaugEnMapper",
@@ -169,6 +224,8 @@ __all__ = [
     "OptimizeQueryMapper",
     "OptimizeResponseMapper",
     "PairPreferenceMapper",
+    "PiiLlmSuspectMapper",
+    "PiiRedactionMapper",
     "PunctuationNormalizationMapper",
     "PythonFileMapper",
     "PythonLambdaMapper",
@@ -187,25 +244,35 @@ __all__ = [
     "RemoveWordsWithIncorrectSubstringsMapper",
     "ReplaceContentMapper",
     "S3DownloadFileMapper",
+    "LLMExtractMapper",
     "S3UploadFileMapper",
     "SDXLPrompt2PromptMapper",
     "SentenceAugmentationMapper",
     "SentenceSplitMapper",
     "TextChunkMapper",
     "TextTaggingByPromptMapper",
+    "ToolSuccessTaggerMapper",
+    "UsageCounterMapper",
     "VggtMapper",
-    "VideoCameraCalibrationStaticDeepcalibMapper",
-    "VideoCameraCalibrationStaticMogeMapper",
+    "VideoCameraCalibrationDeepcalibMapper",
+    "VideoCameraCalibrationDroidCalibMapper",
+    "VideoCameraCalibrationMogeMapper",
     "VideoCaptioningFromAudioMapper",
     "VideoCaptioningFromFramesMapper",
     "VideoCaptioningFromSummarizerMapper",
     "VideoCaptioningFromVideoMapper",
     "VideoCaptioningFromVLMMapper",
+    "VideoCameraPoseMegaSaMMapper",
     "VideoDepthEstimationMapper",
     "VideoExtractFramesMapper",
     "VideoFFmpegWrappedMapper",
     "VideoHandReconstructionHaworMapper",
     "VideoHandReconstructionMapper",
+    "VideoHandActionComputeMapper",
+    "VideoHandMotionSmoothMapper",
+    "VideoClipReassemblyMapper",
+    "VideoAtomicActionSegmentMapper",
+    "VideoTrajectoryOverlayMapper",
     "VideoFaceBlurMapper",
     "VideoObjectSegmentingMapper",
     "VideoRemoveWatermarkMapper",
@@ -219,4 +286,12 @@ __all__ = [
     "VideoUndistortMapper",
     "VideoWholeBodyPoseEstimationMapper",
     "WhitespaceNormalizationMapper",
+    "VideoActiveSpeakerDetectMapper",
+    "VideoAudioASRMapper",
+    "VideoAudioDetectAgeGenderMapper",
+    "VideoAudioSpeechEmotionMapper",
+    "VideoCaptioningFaceAttributeEmotionMapper",
+    "VideoCaptioningFromHumanTracksMapper",
+    "VideoHumanTracksExtractionMapper",
+    "VideoHumantrackFaceDemographicMapper",
 ]

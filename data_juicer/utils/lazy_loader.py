@@ -49,7 +49,7 @@ class LazyLoader(types.ModuleType):
 
     # Mapping of module names to their corresponding package names
     _module_to_package = {
-        "cv2": "opencv-python",
+        "cv2": "opencv-contrib-python",
         "PIL": "Pillow",
         "bs4": "beautifulsoup4",
         "sklearn": "scikit-learn",
@@ -65,7 +65,7 @@ class LazyLoader(types.ModuleType):
             module_name: The name of the module (e.g., 'cv2', 'PIL')
 
         Returns:
-            str: The corresponding package name (e.g., 'opencv-python', 'Pillow')
+            str: The corresponding package name (e.g., 'opencv-contrib-python', 'Pillow')
         """
         # Try to get the package name from the mapping
         if module_name in cls._module_to_package:
@@ -224,13 +224,20 @@ class LazyLoader(types.ModuleType):
             else:
                 logger.info(f"Package [{package_spec}] already installed, carry on..")
 
-    def __init__(self, module_name: str, package_name: str = None, package_url: str = None, auto_install: bool = True):
+    def __init__(
+        self,
+        module_name: str,
+        package_name: str = None,
+        package_url: str = None,
+        auto_install: bool = True,
+        post_import=None,
+    ):
         """
         Initialize the LazyLoader.
 
         Args:
             module_name: The name of the module to import (e.g., 'cv2', 'ray.data', 'torchvision.models')
-            package_name: The name of the pip package to install (e.g., 'opencv-python', 'ray', 'torchvision')
+            package_name: The name of the pip package to install (e.g., 'opencv-contrib-python', 'ray', 'torchvision')
                         If None, will use the base module name (e.g., 'ray' for 'ray.data')
             package_url: The URL to install the package from (e.g., git+https://github.com/...)
             auto_install: Whether to automatically install missing dependencies
@@ -257,6 +264,8 @@ class LazyLoader(types.ModuleType):
         frame = inspect.currentframe().f_back
         self._parent_module_globals = frame.f_globals
         self._module = None
+
+        self.post_import = post_import
 
         # Print trace information
         # logger.debug(
@@ -434,6 +443,8 @@ class LazyLoader(types.ModuleType):
             # Try importing again
             try:
                 self._module = importlib.import_module(self._module_name)
+                if self.post_import:
+                    self.post_import(self._module)
             except ImportError as import_error:
                 raise ImportError(
                     f"Failed to import {self._module_name} after "

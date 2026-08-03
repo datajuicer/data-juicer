@@ -36,6 +36,7 @@ executor_type: ray_partitioned
 
 partition:
   mode: "auto"
+  max_concurrent_partitions: "auto"  # 资源感知的 Driver 并发上限
   target_size_mb: 256    # 目标分区大小（128、256、512 或 1024）
   size: 5000             # 自动分析失败时的回退值
   max_size_mb: 256       # 回退最大大小
@@ -47,7 +48,10 @@ partition:
 partition:
   mode: "manual"
   num_of_partitions: 8
+  max_concurrent_partitions: "auto"
 ```
+
+`max_concurrent_partitions: "auto"` 是默认值。该值会在 Operator 资源规划完成后解析：含 GPU Operator 的 pipeline 根据 Ray 集群可容纳的最小 CPU/GPU worker 数确定，纯 CPU pipeline 的外层并发保守限制为 4。实际并发还会受到 Partition 数量和显式全局 Actor `num_proc` 预算的限制。需要手动调优时，可将其设置为正整数来覆盖自动值。
 
 ### 检查点
 

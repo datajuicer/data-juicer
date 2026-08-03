@@ -11,7 +11,7 @@ from data_juicer.ops.filter.image_watermark_filter import ImageWatermarkFilter
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
-cv2 = LazyLoader('cv2', 'opencv-python')
+cv2 = LazyLoader('cv2', 'opencv-contrib-python')
 
 class ImageWatermarkFilterTest(DataJuicerTestCaseBase):
 

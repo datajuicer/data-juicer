@@ -1,6 +1,5 @@
 import os
 
-import plotly.express as px
 import streamlit as st
 import yaml
 from loguru import logger
@@ -11,6 +10,7 @@ from data_juicer.config import init_configs
 from data_juicer.core import Analyzer
 from data_juicer.ops.base_op import OPERATORS
 from data_juicer.utils.model_utils import prepare_model, get_model
+from data_juicer.utils.lazy_loader import LazyLoader
 
 
 @st.cache_data
@@ -139,7 +139,7 @@ class Visualize:
 
     @staticmethod
     def draw_sunburst(df, path, values):
-
+        px = LazyLoader("plotly.express")
         fig = px.sunburst(df, path=path, values=values)
         fig.update_layout(margin=dict(l=0, r=0, t=0, b=0),
                           font_family='Times New Roman',

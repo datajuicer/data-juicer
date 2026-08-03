@@ -238,21 +238,30 @@ class RayDataset(DJDataset):
         Returns:
             Schema: Dataset schema containing column names and types
         """
-        if self.data is None or self.data.columns() is None:
+        if self.data is None:
             raise ValueError("Dataset is empty or not initialized")
 
-        return Schema.from_ray_schema(self.data.schema())
+        ray_schema = self.data.schema()
+        if ray_schema is None:
+            raise ValueError("Dataset is empty or not initialized")
+
+        return Schema.from_ray_schema(ray_schema)
 
     def get(self, k: int) -> List[Dict[str, Any]]:
-        """Get k rows from the dataset."""
+        """Get k rows from the dataset.
+
+        Note:
+            The requested rows are moved to the caller's machine. A ``k``
+            larger than the dataset size returns all rows and may cause an
+            OutOfMemory error on the caller.
+        """
         if k < 0:
             raise ValueError(f"k must be non-negative, got {k}")
 
         if k == 0:
             return []
 
-        k = min(k, self.data.count())
-        return list(self.data.limit(k).take())
+        return list(self.data.take(k))
 
     def get_column(self, column: str, k: Optional[int] = None) -> List[Any]:
         """Get column values from Ray dataset.
@@ -267,8 +276,18 @@ class RayDataset(DJDataset):
         Raises:
             KeyError: If column doesn't exist
             ValueError: If k is negative
+
+        Note:
+            The requested rows are moved to the caller's machine. A ``k``
+            larger than the dataset size returns all rows, and ``k=None``
+            returns every row; either may cause an OutOfMemory error on the
+            caller for large datasets.
         """
-        if self.data is None or self.data.columns() is None or column not in self.data.columns():
+        if self.data is None:
+            raise KeyError(f"Column '{column}' not found in dataset")
+
+        columns = self.data.columns()
+        if columns is None or column not in columns:
             raise KeyError(f"Column '{column}' not found in dataset")
 
         if k is not None:
@@ -276,10 +295,9 @@ class RayDataset(DJDataset):
                 raise ValueError(f"k must be non-negative, got {k}")
             if k == 0:
                 return []
-            k = min(k, self.data.count())
-            return [row[column] for row in self.data.limit(k).take()]
+            return [row[column] for row in self.data.take(k)]
 
-        return [row[column] for row in self.data.take()]
+        return [row[column] for row in self.data.take_all()]
 
     def process(self, operators, *, exporter=None, checkpointer=None, tracer=None) -> DJDataset:
         if operators is None:
@@ -292,27 +310,13 @@ class RayDataset(DJDataset):
         if self._auto_proc:
             calculate_ray_np(operators)
 
-        # Check if dataset is empty - Ray returns None for columns() on empty datasets
-        # with unknown schema. If empty, skip processing as there's nothing to process.
-        try:
-            row_count = self.data.count()
-        except Exception:
-            row_count = 0
-
-        if row_count == 0:
-            from loguru import logger
-
-            logger.warning("Dataset is empty (0 rows), skipping operator processing")
-            return self
-
         # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
         # Ray's columns() internally does limit(1) which forces execution and breaks streaming
         columns_result = self.data.columns()
-        # Handle empty dataset case where columns() returns None
-        if columns_result is None:
-            from loguru import logger
-
-            logger.warning("Dataset has unknown schema (likely empty), skipping operator processing")
+        # Handle empty dataset: columns() returns None when the schema is unknown
+        # (lazy/empty datasets) and [] for datasets with a known schema but 0 rows
+        if not columns_result:
+            logger.warning("Dataset is empty (0 rows or unknown schema), skipping operator processing")
             return self
         cached_columns = set(columns_result)
 
@@ -492,7 +496,14 @@ class RayDataset(DJDataset):
                         process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
                     )
                     cached_columns.add(Fields.stats)
-                if op.use_ray_actor():
+                prepare_for_ray_map_batches = getattr(op, "_prepare_for_ray_map_batches", None)
+                use_instance_for_ray_tasks = bool(prepare_for_ray_map_batches and prepare_for_ray_map_batches())
+                if use_instance_for_ray_tasks and op.use_ray_actor():
+                    logger.info(
+                        f"{op._name}: overriding ray_execution_mode from actor to task "
+                        f"to preserve shared dedup state across workers"
+                    )
+                if op.use_ray_actor() and not use_instance_for_ray_tasks:
                     compute = ActorPoolStrategy(size=op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
@@ -518,6 +529,8 @@ class RayDataset(DJDataset):
                         compute=compute,
                         runtime_env=op.runtime_env,
                     )
+                    if use_instance_for_ray_tasks:
+                        self.data = self.data.materialize()
                 if op.stats_export_path is not None:
                     self.data.write_json(op.stats_export_path, force_ascii=False)
                 # Wrap process method with tracer for sample-level collection
@@ -555,11 +568,8 @@ class RayDataset(DJDataset):
                 logger.error("Ray executor only support Filter, Mapper, Deduplicator and Pipeline OPs for now")
                 raise NotImplementedError
         except:  # noqa: E722
-            logger.error(f"An error occurred during Op [{op._name}].")
-            import traceback
-
-            traceback.print_exc()
-            exit(1)
+            logger.exception(f"An error occurred during Op [{op._name}].")
+            raise
 
         return cached_columns
 
@@ -567,11 +577,11 @@ class RayDataset(DJDataset):
         return self.data.count()
 
     @classmethod
-    def read(cls, data_format: str, paths: Union[str, List[str]]) -> RayDataset:
+    def read(cls, data_format: str, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
-            return RayDataset.read_json(paths)
+            return RayDataset.read_json(paths, **kwargs)
         elif data_format == "webdataset":
-            return RayDataset.read_webdataset(paths)
+            return RayDataset.read_webdataset(paths, **kwargs)
         elif data_format in {
             "parquet",
             "images",
@@ -584,29 +594,43 @@ class RayDataset(DJDataset):
             "binary_files",
             "lance",
         }:
-            return getattr(ray.data, f"read_{data_format}")(paths)
+            if data_format == "lance":
+                from data_juicer.utils.lazy_loader import LazyLoader
+
+                LazyLoader.check_packages(["pylance"])
+            return getattr(ray.data, f"read_{data_format}")(paths, **kwargs)
 
     @classmethod
-    def read_json(cls, paths: Union[str, List[str]]) -> RayDataset:
+    def read_json(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         # Note: a temp solution for reading json stream
         # TODO: replace with ray.data.read_json_stream once it is available
         import pyarrow.json as js
 
         try:
             js.open_json
-            return read_json_stream(paths)
+            return read_json_stream(paths, **kwargs)
         except AttributeError:
-            return ray.data.read_json(paths)
+            return ray.data.read_json(paths, **kwargs)
 
     @classmethod
-    def read_webdataset(cls, paths: Union[str, List[str]]) -> RayDataset:
-        return ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"))
+    def read_webdataset(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
+        return ray.data.read_webdataset(paths, decoder=partial(_custom_default_decoder, format="PIL"), **kwargs)
 
     def to_list(self) -> list:
         return self.data.to_pandas().to_dict(orient="records")
 
 
-class JSONStreamDatasource(ray.data.read_api.ArrowJSONDatasource):
+# Ray renamed ArrowJSONDatasource -> JSONDatasource in newer releases
+_read_api = ray.data.read_api
+_JSONDatasourceBase = getattr(_read_api, "ArrowJSONDatasource", None) or getattr(_read_api, "JSONDatasource", None)
+if _JSONDatasourceBase is None:
+    raise ImportError(
+        "ray.data.read_api has neither ArrowJSONDatasource nor JSONDatasource; "
+        "please upgrade or pin a compatible Ray version."
+    )
+
+
+class JSONStreamDatasource(_JSONDatasourceBase):
     """
     A temp Datasource for reading json stream.
 
@@ -633,6 +657,25 @@ class JSONStreamDatasource(ray.data.read_api.ArrowJSONDatasource):
                 raise ValueError(f"Failed to read JSON file: {path}. Error: {e}") from e
             return
 
+        import pyarrow.json as paj
+
+        def _full_file_fallback():
+            """Re-read the entire file with paj.read_json which handles
+            schema inference across all rows in a single pass."""
+            fs = getattr(self, "_filesystem", None)
+            if fs is not None:
+                with fs.open_input_file(path) as f2:
+                    return paj.read_json(
+                        f2,
+                        read_options=self.read_options,
+                        **self.arrow_json_args,
+                    )
+            return paj.read_json(
+                path,
+                read_options=self.read_options,
+                **self.arrow_json_args,
+            )
+
         try:
             reader = open_json(
                 f,
@@ -640,17 +683,32 @@ class JSONStreamDatasource(ray.data.read_api.ArrowJSONDatasource):
                 **self.arrow_json_args,
             )
             schema = None
+            batches = []
+            schema_evolved = False
             while True:
                 try:
                     batch = reader.read_next_batch()
-                    table = pyarrow.Table.from_batches([batch], schema=schema)
-                    if schema is None:
-                        schema = table.schema
-                    yield table
                 except StopIteration:
-                    return
-        except pyarrow.lib.ArrowInvalid as e:
-            raise ValueError(f"Failed to read JSON file: {path}.") from e
+                    break
+                batches.append(batch)
+                if schema is None:
+                    schema = batch.schema
+                elif not schema.equals(batch.schema):
+                    schema = pyarrow.unify_schemas([schema, batch.schema])
+                    schema_evolved = True
+            # Yield all batches with consistent schema.
+            # Use .cast() when schema evolved (from_batches does NOT cast).
+            if schema_evolved:
+                for batch in batches:
+                    yield pyarrow.Table.from_batches([batch]).cast(schema)
+            else:
+                for batch in batches:
+                    yield pyarrow.Table.from_batches([batch])
+        except (pyarrow.lib.ArrowInvalid, pyarrow.lib.ArrowTypeError):
+            # PyArrow's streaming reader cannot handle schema evolution
+            # across block boundaries (e.g. null -> string). Fall back to
+            # paj.read_json() which infers schema across the entire file.
+            yield _full_file_fallback()
 
 
 def read_json_stream(

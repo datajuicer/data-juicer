@@ -33,7 +33,13 @@ export_in_parallel: false                                   # whether to export 
 keep_stats_in_res_ds: false                                 # whether to keep the computed stats in the result dataset. The intermediate fields to store the stats computed by Filters will be removed if it's False. It's False in default.
 keep_hashes_in_res_ds: false                                # whether to keep the computed hashes in the result dataset. The intermediate fields to store the hashes computed by Deduplicators will be removed if it's False. It's False in default.
 export_extra_args: {}                                       # Other optional arguments for exporting in dict. For example, the key mapping info for exporting the WebDataset format.
+# If loading local JSONL fails with ujson ValueError: Value is too big!, run with:
+#   DATA_JUICER_USE_STDLIB_JSON=1 dj-process --config your.yaml
+# Per-line tolerance (stdlib json, skip bad lines; jsonl-only inputs), see DatasetCfg:
+#   load_jsonl_lenient: true
+#   # or: DATA_JUICER_JSONL_LENIENT=1
 load_dataset_kwargs: {}                                     # extra kwargs passed to datasets.load_dataset(). Useful for format-specific options, e.g. chunksize (JSON), columns (Parquet), delimiter (CSV).
+load_jsonl_lenient: false                                    # if true, stream jsonl* shards with stdlib json and skip bad lines; other suffixes in the same folder are ignored (not HF fallback). Confirm logs contain "[lenient jsonl] ACTIVE".
 
 auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.
 np: 4                                                       # number of subprocess to process your dataset
@@ -44,7 +50,7 @@ turbo: false                                                # Enable Turbo mode 
 skip_op_error: true                                         # Skip errors in OPs caused by unexpected invalid samples.
 use_cache: true                                             # whether to use the cache management of Hugging Face datasets. It might take up lots of disk space when using cache
 ds_cache_dir: null                                          # cache dir for Hugging Face datasets. In default, it\'s the same as the environment variable `HF_DATASETS_CACHE`, whose default value is usually "~/.cache/huggingface/datasets". If this argument is set to a valid path by users, it will override the default cache dir
-open_monitor: true                                          # Whether to open the monitor to trace resource utilization for each OP during data processing. It\'s True in default.
+open_monitor: false                                         # Whether to open the monitor to trace resource utilization for each OP during data processing. It\'s True in default.
 use_checkpoint: false                                       # whether to use the checkpoint management to save the latest version of dataset to work dir when processing. Rerun the same config will reload the checkpoint and skip ops before it. Cache will be disabled when using checkpoint. If args of ops before the checkpoint are changed, all ops will be rerun from the beginning.
 temp_dir: null                                              # the path to the temp directory to store intermediate caches when cache is disabled, these cache files will be removed on-the-fly. In default, it's None, so the temp dir will be specified by system. NOTICE: you should be caution when setting this argument because it might cause unexpected program behaviors when this path is set to an unsafe directory.
 open_tracer: false                                          # whether to open the tracer to trace the changes during process. It might take more time when opening tracer
@@ -78,6 +84,11 @@ elastic_juicer_profile_ttl_ms: 1800000                      # maximum stage-prof
 elastic_juicer_lease_ttl_ms: 60000                          # control-service registration lease TTL; actors renew on every quota poll and expired leases leave stage coordination.
 elastic_juicer_metrics_sink_max_events: 2048                # bounded capacity of the job-scoped async metrics sink; oldest events are dropped and counted when full.
 
+# for data encryption / decryption
+decrypt_after_reading: false                                # whether to decrypt input files after reading. Each file is decrypted in-memory (plaintext never written to disk). HF cache is automatically disabled. Requires encryption_key_path or DJ_ENCRYPTION_KEY env var.
+encrypt_before_export: false                                # whether to encrypt output files before writing to disk. Each exported file is encrypted in-place immediately after being written. Requires encryption_key_path or DJ_ENCRYPTION_KEY env var.
+encryption_key_path: null                                   # path to a file containing the Fernet key (base64 url-safe string). Falls back to environment variable DJ_ENCRYPTION_KEY if not set.
+
 # for multimodal data processing
 image_key: 'images'                                         # key name of field to store the list of sample image paths.
 image_bytes_key: 'image_bytes'                              # key name of field to store the list of sample image bytes.
@@ -92,11 +103,13 @@ eoc_special_token: '<|__dj__eoc|>'                          # the special token 
 # for distributed processing
 executor_type: default                                      # type of executor, support "default" or "ray" for now.
 ray_address: auto                                           # the address of the Ray cluster.
+override_num_blocks: null                                   # override the number of output blocks for Ray Data read operations. Useful for controlling parallelism when reading large datasets. Default is null (no override).
 
 # partition configuration (for ray_partitioned executor)
 partition:
   mode: auto                                                # partition mode: "auto" (use optimizer) or "manual" (specify count)
   num_of_partitions: 4                                      # number of partitions for manual mode
+  max_concurrent_partitions: auto                           # resource-aware driver concurrency; set a positive integer to override
   target_size_mb: 256                                       # target partition size in MB for auto mode (128, 256, 512, or 1024). 256MB balances memory safety and efficiency.
 
 # only for data analysis
@@ -221,6 +234,14 @@ process:
       model_params: {}                                        # Parameters for initializing the API model.
       sampling_params: {}                                     # Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95}
   - expand_macro_mapper:                                    # expand macro definitions in Latex text.
+  - latex_figure_context_extractor_mapper:                  # Extract figures and their citing context from LaTeX source.
+      citation_commands: ['\ref', '\cref', '\Cref', '\autoref']  # LaTeX reference commands to search for citing paragraphs.
+      paragraph_separator: '\n\n'                               # Pattern for splitting LaTeX text into paragraphs.
+      caption_key: 'caption'                                  # Output field name for the figure caption.
+      label_key: 'label'                                      # Output field name for the LaTeX label.
+      context_key: 'citing_paragraphs'                        # Output field name for citing paragraphs.
+      parent_caption_key: 'parent_caption'                    # Output field name for the parent figure's caption (subfigures only).
+      parent_label_key: 'parent_label'                        # Output field name for the parent figure's label (for grouping subfigures).
   - latex_merge_tex_mapper:                                 # Extract and concatenate all .tex files from a compressed LaTeX project archive.
       compressed_file_key: 'compressed_file'                   # Field storing the archive path.
       separator: '\n\n'                                       # Separator between concatenated .tex files.
@@ -352,16 +373,6 @@ process:
       blur_type: 'gaussian'                                   # type of blur kernel, including ['mean', 'box', 'gaussian']
       radius: 2                                               # radius of blur kernel
       save_dir: null                                          # The directory where generated files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
-  - image_captioning_from_gpt4v_mapper:                     # generate samples whose texts are generated based on gpt-4-vision and the image
-      mode: 'description'                                     # mode of text generated from images, can be one of ['reasoning', 'description', 'conversation', 'custom']
-      api_key: ''                                             # the API key to authenticate the request
-      max_token: 500                                          # the maximum number of tokens to generate. Default is 500.
-      temperature: 1.0                                        # controls the randomness of the output (range from 0 to 1). Default is 0.
-      system_prompt: ''                                       # a string prompt used to set the context of a conversation and provide global guidance or rules for the gpt4-vision so that it can  generate responses in the expected way. If `mode` set to `custom`, the parameter will be used
-      user_prompt: ''                                         # a string prompt to guide the generation of gpt4-vision for each samples. It's "" in default, which means no prompt provided
-      user_prompt_key: null                                   # the key name of fields in samples to store prompts for each sample. It's used for set different prompts for different samples. If it's none, use prompt in parameter "prompt". It's None in default
-      keep_original_sample: true                              # whether to keep the original sample. If it's set to False, there will be only generated text in the final datasets and the original text will be removed. It's True in default
-      any_or_all: 'any'                                       # keep this sample with 'any' or 'all' strategy of all images. 'any': keep this sample if any images meet the condition. 'all': keep this sample only if all images meet the condition
   - image_captioning_mapper:                                # generate captions for images to augment datasets
       hf_img2seq: 'Salesforce/blip2-opt-2.7b'                 # model name on huggingface to generate caption
       caption_num: 1                                          # how many candidate captions to generate for each image
@@ -574,24 +585,90 @@ process:
       if_output_point_maps_from_projection: True              # Determines whether to output point maps directly inferred by VGGT.
       if_output_point_maps_from_unprojection: True            # Determines whether to output point maps constructed from depth maps and camera parameters.
       if_output_point_tracks: True                            # Determines whether to output point tracks.
-  - video_camera_calibration_static_deepcalib_mapper:   # Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib.
+  - video_camera_calibration_deepcalib_mapper:   # Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib.
       model_path: "weights_10_0.02.h5"                        # The path to the DeepCalib Regression model.
-      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
-      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
-      tag_field_name: 'static_camera_calibration_deepcalib_tags'   # the field name to store the tags. It's "static_camera_calibration_deepcalib_tags" in default.
-      frame_dir: None                                         # Output directory to save extracted frames.
-      output_info_dir: None                                   # Output directory for saving camera parameters.
-  - video_camera_calibration_static_moge_mapper:        # Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib).
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      tag_field_name: 'camera_calibration_deepcalib_tags'     # The field name to store the tags. It's "camera_calibration_deepcalib_tags" in default.
+      frame_batch_size: 8                                     # Number of frames to batch together for GPU inference. Larger values improve throughput but require more VRAM.
+  - video_camera_calibration_moge_mapper:        # Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib).
       model_path: "Ruicheng/moge-2-vitl"                      # The path to the Moge-2 model.
-      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
-      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
-      tag_field_name: 'static_camera_calibration_moge_tags'   # the field name to store the tags. It's "static_camera_calibration_moge_tags" in default.
-      frame_dir: None                                         # Output directory to save extracted frames.
-      if_output_info: True                                    # Whether to save the camera parameters results to an JSON file.
-      output_info_dir: None                                   # Output directory for saving camera parameters.
-      if_output_points_info: True                             # Determines whether to output point map in OpenCV camera coordinate system (x right, y down, z forward).
-      if_output_depth_info: True                              # Determines whether to output depth maps.
-      if_output_mask_info: True                               # Determines whether to output a binary mask for valid pixels.
+      tag_field_name: 'camera_calibration_moge_tags'          # The field name to store the tags. It's "camera_calibration_moge_tags" in default.
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      output_intrinsics: true                                 # Determines whether to output camera intrinsics.
+      output_hfov: true                                       # Determines whether to output horizontal field of view.
+      output_vfov: true                                       # Determines whether to output vertical field of view.
+      output_points: true                                     # Determines whether to output point map in OpenCV camera coordinate system (x right, y down, z forward).
+      output_depth: true                                      # Determines whether to output depth maps.
+      output_mask: true                                       # Determines whether to output a binary mask for valid pixels.
+      frame_batch_size: 8                                     # Number of frames to batch together for GPU inference. Larger values improve throughput but require more VRAM.
+      save_dir: null                                          # Directory to save large numpy arrays (depth, mask, points) as .npy files instead of storing them inline.
+  - video_camera_calibration_droidcalib_mapper:  # Extract camera intrinsics from videos using DroidCalib.
+      weights_path: null                                      # Path to the model weights.
+      image_size: [384, 512]                                  # Target image size [height, width].
+      stride: 2                                               # Frame stride.
+      max_frames: 300                                         # Maximum number of frames to process.
+      buffer: 1024                                            # Buffer size for Droid.
+      beta: 0.3                                               # Weight for translation / rotation components of flow.
+      filter_thresh: 2.4                                      # Motion threshold before considering new keyframe.
+      warmup: 8                                               # Number of warmup frames.
+      keyframe_thresh: 4.0                                    # Threshold to create a new keyframe.
+      frontend_thresh: 16.0                                   # Add edges between frames within this distance.
+      frontend_window: 25                                     # Frontend optimization window.
+      frontend_radius: 2                                      # Force edges between frames within radius.
+      frontend_nms: 1                                         # Non-maximal suppression of edges.
+      backend_thresh: 22.0                                    # Backend threshold.
+      backend_radius: 2                                       # Backend radius.
+      backend_nms: 3                                          # Backend NMS.
+      upsample: false                                         # Whether to upsample.
+      disable_vis: true                                       # Whether to disable visualization.
+      verbose: false                                          # Whether to print verbose logs.
+      tag_field_name: 'camera_calibration_droidcalib_tags'    # The field name to store the tags.
+  - video_camera_pose_megasam_mapper:            # Extract camera poses by leveraging MegaSaM and MoGe-2.
+      tag_field_name: 'video_camera_pose_tags'                # The field name to store the tags. It's "video_camera_pose_tags" in default.
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      camera_calibration_field: 'camera_calibration'          # The field name where the camera calibration info is stored.
+      max_frames: 1000                                        # Maximum number of frames to save.
+      droid_buffer: 1024                                      # DROID SLAM pre-allocated frame buffer size. Controls GPU memory usage.
+      save_dir: null                                          # Directory to save large numpy arrays (depth, cam_c2w) as .npy files instead of storing them inline.
+      use_prepare_env: false                                  # Whether to prepare the environment.
+  - video_hand_reconstruction_hawor_mapper:      # Use HaWoR and MoGe-2 for hand reconstruction.
+      hawor_model_path: 'hawor.ckpt'                          # The path to 'hawor.ckpt' for the HaWoR model.
+      hawor_config_path: 'model_config.yaml'                  # The path to 'model_config.yaml' for the HaWoR model.
+      hawor_detector_path: 'detector.pt'                      # The path to 'detector.pt' for the HaWoR model.
+      mano_right_path: 'path_to_mano_right_pkl'               # The path to 'MANO_RIGHT.pkl'. Users need to download this file from https://mano.is.tue.mpg.de/
+      mano_left_path: 'path_to_mano_left_pkl'                 # The path to 'MANO_LEFT.pkl'. Users need to download this file from https://mano.is.tue.mpg.de/
+      frame_field: 'video_frames'                             # The field name where the video frames are stored.
+      camera_calibration_field: 'camera_calibration'          # The field name where the camera calibration info is stored.
+      tag_field_name: 'hand_reconstruction_hawor_tags'        # The field name to store the tags. It's "hand_reconstruction_hawor_tags" in default.
+      thresh: 0.2                                             # The confidence threshold for hand detection.
+  - video_hand_action_compute_mapper:            # Compute 7-DoF actions and 8-dim states from hand reconstruction and camera pose results.
+      hand_reconstruction_field: 'hand_reconstruction_hawor_tags'  # Meta field storing HaWoR hand reconstruction results.
+      camera_pose_field: 'video_camera_pose_tags'             # Meta field storing camera pose (cam_c2w) results.
+      tag_field_name: 'hand_action_tags'                      # Output field name in Fields.meta.
+      hand_type: 'both'                                       # Which hand to compute actions for. 'right', 'left', or 'both'.
+  - video_hand_motion_smooth_mapper:             # Apply smoothing to world-space hand motions and remove outliers.
+      hand_action_field: 'hand_action_tags'                   # Meta field storing hand action results (output of VideoHandActionComputeMapper).
+      savgol_window: 11                                       # Window length for Savitzky-Golay filter. Must be odd. Larger = smoother but may lose fast motions.
+      savgol_polyorder: 3                                     # Polynomial order for Savitzky-Golay filter. Must be less than savgol_window.
+      outlier_velocity_threshold: 5.0                         # Frames whose wrist speed exceeds median + threshold * MAD are replaced by interpolation.
+      min_frames_for_smoothing: 5                             # Minimum number of valid frames required to apply smoothing.
+      smooth_joints: true                                     # Whether to also smooth joints_world (21-joint MANO skeleton in world space).
+  - video_atomic_action_segment_mapper:          # Segment a unified hand trajectory into atomic action clips.
+      hand_action_field: 'hand_action_tags'                   # Meta field storing merged hand action results (output of VideoClipReassemblyMapper).
+      segment_field: 'atomic_action_segments'                 # Output meta field for atomic segments.
+      speed_smooth_window: 5                                  # Window size for Savitzky-Golay smoothing of the speed signal before minima detection. Must be odd.
+      min_window: 15                                          # Half-window size for local minima detection. Larger values → fewer, longer segments.
+      min_segment_frames: 8                                   # Minimum frames per segment. Segments shorter than this are merged with neighbors.
+      max_segment_frames: 300                                 # Maximum frames per segment. Segments longer than this are forcibly split at the deepest speed minimum.
+      hand_type: 'both'                                       # Which hand(s) to segment: 'left', 'right', or 'both'.
+  - export_to_lerobot_mapper:                    # Export processed video data to LeRobot v2.0 dataset format (LIBERO-style).
+      output_dir: './lerobot_output'                          # Root directory for the LeRobot dataset output.
+      hand_action_field: 'hand_action_tags'                   # Meta field with action/state data. Used in whole-video mode (segment_field=None).
+      fps: 10                                                 # Frames per second for the dataset.
+      robot_type: 'egodex_hand'                               # Robot type identifier for info.json.
+      chunks_size: 1000                                       # Max episodes per chunk directory.
+      segment_field: null                                     # Meta field storing atomic action segments. When set, each segment becomes a separate episode.
+      frame_field: 'video_frames'                             # Sample field with extracted frame image paths. Used in segment mode to create per-segment videos.
   - video_captioning_from_audio_mapper:                     # caption a video according to its audio streams based on Qwen-Audio model
       keep_original_sample: true                              # whether to keep the original sample. If it's set to False, there will be only captioned sample in the final datasets and the original sample will be removed. It's True in default.
       memory: '30GB'                                    # This operation (Op) utilizes deep neural network models that consume a significant amount of memory for computation, hence the system's available memory might constrain the maximum number of processes that can be launched
@@ -697,8 +774,9 @@ process:
       tag_field_name: 'video_frame_tags'                    # the key name in the meta field to store the tags. It's "video_frame_tags" in default.
       memory: '9GB'
   - video_undistort_mapper:                             # Undistort raw videos with corresponding camera intrinsics and distortion coefficients.
-      output_video_dir: None                                # Output directory to save undistorted videos.
-      tag_field_name: 'video_undistortion_tags'             # The field name to store the tags. It's "video_undistortion_tags" in default.
+      output_video_dir: null                                # Output directory to save undistorted videos. (must be specified)
+      undistorted_video_field: 'undistorted_video'          # The field name to store the undistorted videos.
+      camera_calibration_field: 'camera_calibration'        # The field name where the camera calibration info is stored.
       batch_size_each_video: 1000                           # Number of frames to process and save per temporary TS file batch.
       crf: 22                                               # Constant Rate Factor (CRF) for FFmpeg encoding quality.
   - video_whole_body_pose_estimation_mapper:            # Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation.
@@ -712,7 +790,63 @@ process:
       save_visualization_dir: None                            # The path for saving visualization results.
   - whitespace_normalization_mapper:                        # normalize different kinds of whitespaces to English whitespace.
 
+
+# When use HumanVBench mapper, keep_stats_in_res_ds should be set true
+
+  - video_human_tracks_extraction_mapper:                   # Get the body and face trajectory bounding box of people in one shot of the video. To ensure correctness, it should be applied after video_split_by_scene_mapper
+      face_track_bbox_path: /your_path/bounding_box_track       # The storage location of the bounding box tracks of the characters in the video
+      mem_required: '10GB'
+
+  # video_human_tracks_face_demographic_mapper should be operated after video_human_tracks_extraction_mapper.
+  - video_human_tracks_face_demographic_mapper:             # Get the facial demographics of each person based on the results of video_human_tracks_extraction_mapper
+      original_data_save_path: your_path/bounding_box_track    # The location where the specific results of each frame's detection are stored
+      detect_interval: 5
+
+  # video_audio_detect_age_gender_mapper should be operated after video_tagging_from_audio_mapper.
+  - video_audio_detect_age_gender_mapper:                   # If the audio is speech, classify the gender and age of the speech
+      hf_audio_mapper: 'audeering/wav2vec2-large-robust-24-ft-age-gender'   # Huggingface model name for speech age and gender classification
+      mem_required: '7GB'
+
+  # video_captioning_from_human_tracks_mapper should be operated after video_human_tracks_extraction_mapper.
+  - video_captioning_from_human_tracks_mapper:              # Based on the results of video_human_tracks_extraction_mapper, focus on the single person in the video for captioning
+      video_describe_model_path: DAMO-NLP-SG/VideoLLaMA3-7B     # model path to VideoLLaMA3-7B
+      trust_remote_code: true
+      temp_video_path: ./temp_video_path                        # Used to store temporary videos that will be removed finally.
+      mem_required: '25GB'
+
+  # video_captioning_face_attribute_emotion_mapper should be operated after video_human_tracks_extraction_mapper.
+  - video_captioning_face_attribute_emotion_mapper:         # Based on the results of video_human_tracks_extraction_mapper, focus on judging the gender, age, and race of a single person in the video
+      face_track_query: Please only describe the appearance and facial emotions of the person in the video in detail. Don't mention the background. Less than 80 words.
+      trust_remote_code: true
+      cropping_face_video_temp_path: ./temp_video_path          # Used to store temporary videos
+      video_describe_model_path: DAMO-NLP-SG/VideoLLaMA3-7B     # Huggingface model DAMO-NLP-SG/VideoLLaMA3-7B
+      mem_required: '25GB'
+
+  # video_active_speaker_detect_mapper must be operated after video_tagging_from_audio_mapper and video_human_tracks_extraction_mapper.
+  - video_active_speaker_detect_mapper:                     # Based on the results of video_human_tracks_extraction_mapper, determine whether each person is an active speaker
+      temp_save_path: ./temp_path                               # Used to store temporary videos
+      active_threshold: 15                                      # Higher values are stricter, reducing false positives from noise but potentially increasing missed detections
+      mem_required: '10GB'
+
+  - video_audio_ASR_mapper:                                 # Automatic speech recognition from video speech
+      model_dir_ASR: 'FunAudioLLM/SenseVoiceSmall'            # HF model; loading falls back to ModelScope 'iic/SenseVoiceSmall' if HF download fails
+      mem_required: '20GB'
+
+  - video_audio_speech_emotion_mapper:                      # Speech emotion recognition from video speech
+      model_dir_emo: 'FunAudioLLM/SenseVoiceSmall'           # HF model; loading falls back to ModelScope 'iic/SenseVoiceSmall' if HF download fails
+      mem_required: '20GB'
+
+  # Pipeline ops
+  - ray_repartition_pipeline:                               # repartition a Ray Dataset into a target number of blocks.
+      num_blocks: 1                                           # Target number of Ray Dataset blocks.
+      shuffle: False                                          # Whether to shuffle records during repartition.
+
   # Filter ops
+  - video_face_ratio_filter:                                # Filter to retain human-centric videos
+      threshold: 0.65                                           # The lower limit of the ratio of frames with faces to the total number of video frames
+      detect_interval: 4
+      any_or_all: any
+
   - alphanumeric_filter:                                    # filter text with alphabet/numeric ratio out of specific range.
       tokenization: false                                     # whether to count the ratio of alphanumeric to the total number of tokens.
       min_ratio: 0.0                                          # the min ratio of filter range
@@ -986,6 +1120,7 @@ process:
       min_score: 0.25                                         # the minimum motion score to keep samples
       max_score: 10000.0                                      # the maximum motion score to keep samples
       sampling_fps: 2                                         # the samplig rate of frames_per_second to compute optical flow
+      original_fps: null                                      # the original FPS of the video from which the frames were extracted, only used when frame_field is specified
       size: null                                              # resize frames along the smaller edge before computing optical flow, or a sequence like (h, w)
       max_size: null                                          # maximum allowed for the longer edge of resized frames
       divisible: 1                                            # The number that the dimensions must be divisible by.
@@ -995,6 +1130,7 @@ process:
       min_score: 1.0                                          # the minimum motion score to keep samples
       max_score: 10000.0                                      # the maximum motion score to keep samples
       sampling_fps: 2                                         # the samplig rate of frames_per_second to compute optical flow
+      original_fps: null                                      # the original FPS of the video from which the frames were extracted, only used when frame_field is specified
       size: null                                              # resize frames along the smaller edge before computing optical flow, or a sequence like (h, w)
       max_size: null                                          # maximum allowed for the longer edge of resized frames
       divisible: 8                                            # The number that the dimensions must be divisible by.
@@ -1052,6 +1188,15 @@ process:
   - document_deduplicator:                                  # deduplicate text samples using md5 hashing exact matching method
       lowercase: false                                        # whether to convert text to lower case
       ignore_non_character: false                             # whether to ignore non-alphabet characters, including whitespaces, digits, and punctuations
+  - document_line_deduplicator:                              # deduplicate at the line level across documents by removing high-frequency boilerplate lines
+      frequency_threshold: 6                                  # document-frequency threshold; lines appearing in more than this many documents are removed
+      lowercase: false                                        # whether to convert text to lower case before hashing
+      ignore_special_character: false                         # whether to ignore whitespace, digits, and punctuation before hashing
+      min_line_length: 2                                      # lines shorter than this (after stripping) are skipped
+      skip_brackets: true                                     # skip lines consisting solely of bracket/semicolon characters
+      skip_markdown_headers: true                             # skip Markdown heading lines (starting with #)
+      skip_latex_env: true                                    # skip LaTeX \begin{} / \end{} environment declarations
+      skip_html_tags: true                                    # skip lines that are pure HTML/XML tags
   - document_minhash_deduplicator:                          # deduplicate text samples using MinHash-LSH method
       tokenization: space                                     # tokenization method for text. One of [space, punctuation, character, sentencepiece]
       window_size: 5                                          # window size of shingling

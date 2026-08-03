@@ -1,20 +1,19 @@
 # Demos
 
-This folder contains some demos, which allow users to easily experience the basic functions and tools of Data-Juicer.
+This folder contains both interactive demos for experiencing Data-Juicer and
+functional examples that demonstrate specific features and workflows.
 
-## Usage
+Sample datasets used by the demos and examples are available in the `data`
+subdirectory.
 
-Use `app.py` in the subdirectory of `demos` to run the demos.
+## Interactive Demos
+
+Run an interactive demo with its `app.py`:
 
 ```shell
 cd <subdir_of_demos>
 streamlit run app.py
 ```
-
-## Available Demos
-
-- Data (`data`)
-  - This folder contains some sample datasets.
 
 - Overview scan (`overview_scan`)
   - This demo introduces the basic concepts and functions of Data-Juicer, such as features, configuration, operators, and so on.
@@ -49,5 +48,13 @@ streamlit run app.py
 - Data mixture (`data_mixture`)
   - This demo selects and mixes samples from multiple datasets and exports them into a new dataset.
 
+## Functional Examples
+
+Follow the instructions in the corresponding subdirectory to run these
+examples.
+
 - Partition and checkpoint (`partition_and_checkpoint`)
   - This demo showcases distributed processing with partitioning, checkpointing, and event logging. It demonstrates the new job management features including resource-aware partitioning, comprehensive event logging, and the processing snapshot utility for monitoring job progress.
+
+- Elastic sharding (`elastic_sharding`)
+  - This demo pre-splits a JSONL dataset, launches any number of DLC workers with one command, dynamically claims shards through a shared POSIX filesystem, and processes each claimed shard with node-local Ray. It includes CPU-only and mixed CPU/GPU recipes.

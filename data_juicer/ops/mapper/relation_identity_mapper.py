@@ -90,7 +90,11 @@ class RelationIdentityMapper(Mapper):
         super().__init__(**kwargs)
 
         if source_entity is None or target_entity is None:
-            logger.warning("source_entity and target_entity cannot be None")
+            logger.warning(
+                "relation_identity_mapper: source_entity and target_entity must be set "
+                "(e.g. source_entity: 用户, target_entity: 助手); "
+                "see demos/agent/minimal_configs/07_entity_keyword.yaml"
+            )
 
         self.source_entity = source_entity
         self.target_entity = target_entity
@@ -121,11 +125,33 @@ class RelationIdentityMapper(Mapper):
             _, relation = match
             relation = relation.strip()
 
+        if relation:
+            return relation
+
+        # Models (esp. fast chat APIs) often skip strict templates or use
+        # 「因此」/ half-width colons — try a light fallback before giving up.
+        tail = (raw_output or "").strip()
+        for line in reversed(tail.splitlines()):
+            line = line.strip()
+            if not line:
+                continue
+            m = re.search(
+                r"(?:所以|因此|故|可见).{0,48}?[：:]\s*(.+?)(?:\s*$)",
+                line,
+            )
+            if m:
+                cand = m.group(1).strip().strip('。.""\'')
+                if cand:
+                    return cand
         return relation
 
     def process_single(self, sample, rank=None):
         meta = sample[Fields.meta]
         if self.output_key in meta:
+            return sample
+
+        if self.source_entity is None or self.target_entity is None:
+            meta[self.output_key] = ""
             return sample
 
         client = get_model(self.model_key, rank=rank)

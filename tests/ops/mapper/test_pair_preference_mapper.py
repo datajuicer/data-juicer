@@ -3,9 +3,10 @@ import unittest
 from loguru import logger
 
 from data_juicer.ops.mapper.pair_preference_mapper import PairPreferenceMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.constant import DEFAULT_API_MODEL
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class PairPreferenceMapperTest(DataJuicerTestCaseBase):
 
     def _run_op(self, op, samples):
@@ -26,7 +27,7 @@ class PairPreferenceMapperTest(DataJuicerTestCaseBase):
             'query': '李莲花，你认识方多病吗?',
             'response': '方多病啊，那可是我的好友。'
         }]
-        op = PairPreferenceMapper(api_model='qwen2.5-72b-instruct')
+        op = PairPreferenceMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
 
     def test_no_reference(self):
@@ -43,7 +44,8 @@ class PairPreferenceMapperTest(DataJuicerTestCaseBase):
                           '【回答】\n'
                           '{response}')
 
-        op = PairPreferenceMapper(api_model='qwen2.5-72b-instruct',
+        op = PairPreferenceMapper(api_model=DEFAULT_API_MODEL,
+        sampling_params={'enable_thinking': False},
                                   system_prompt=system_prompt,
                                   input_template=input_template)
         self._run_op(op, samples)

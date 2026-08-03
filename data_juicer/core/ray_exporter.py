@@ -1,10 +1,11 @@
 import os
 from functools import partial
+from pathlib import Path
 
 from loguru import logger
 
 from data_juicer.utils.constant import Fields, HashKeys
-from data_juicer.utils.file_utils import Sizes, byte_size_to_size_str
+from data_juicer.utils.file_utils import Sizes, byte_size_to_size_str, is_remote_path
 from data_juicer.utils.model_utils import filter_arguments
 from data_juicer.utils.webdataset_utils import reconstruct_custom_webdataset_format
 
@@ -33,6 +34,8 @@ class RayExporter:
         export_shard_size=0,
         keep_stats_in_res_ds=True,
         keep_hashes_in_res_ds=False,
+        encrypt_before_export=False,
+        encryption_key_path=None,
         **kwargs,
     ):
         """
@@ -46,6 +49,13 @@ class RayExporter:
             dataset.
         :param keep_hashes_in_res_ds: whether to keep hashes in the result
             dataset.
+        :param encrypt_before_export: whether to encrypt each exported file
+            in-place after Ray has finished writing. All files inside the
+            export directory will be encrypted. S3 paths are skipped.
+            Default: False.
+        :param encryption_key_path: path to a file containing the Fernet key.
+            Falls back to the ``DJ_ENCRYPTION_KEY`` environment variable when
+            ``None``. Only used when ``encrypt_before_export`` is True.
         """
         self.export_path = export_path
         self.export_shard_size = export_shard_size
@@ -58,6 +68,36 @@ class RayExporter:
                 f"for now. Only support {self._SUPPORTED_FORMATS}. Please check export_type or export_path."
             )
         self.export_extra_args = kwargs if kwargs is not None else {}
+
+        # Set up encryption for local export
+        self.encrypt_before_export = encrypt_before_export
+        self._fernet = None
+        if encrypt_before_export:
+            if export_path.startswith("s3://") or export_path.startswith("hdfs://"):
+                logger.warning(
+                    "encrypt_before_export is True but export_path is a remote "
+                    f"path ({export_path}). Local-file encryption is skipped. "
+                    "Use server-side encryption to protect data at rest."
+                )
+                self.encrypt_before_export = False
+            else:
+                from data_juicer.utils.encryption_utils import load_fernet_key
+
+                self._fernet = load_fernet_key(encryption_key_path)
+
+        # Check if export_path is HDFS and create filesystem if needed.
+        # PyArrow's HadoopFileSystem expects paths WITHOUT the hdfs:// scheme,
+        # so we also strip the scheme and use the bare path for writing.
+        self.hdfs_filesystem = None
+        if export_path.startswith("hdfs://"):
+            from data_juicer.utils.hdfs_utils import create_pyarrow_hdfs_filesystem
+
+            hdfs_config = {"path": export_path}
+            for field in ("hdfs_host", "hdfs_port", "hdfs_user", "hdfs_kerb_ticket", "hdfs_extra_conf"):
+                if field in self.export_extra_args:
+                    hdfs_config[field] = self.export_extra_args.pop(field)
+            self.hdfs_filesystem = create_pyarrow_hdfs_filesystem(hdfs_config)
+            logger.info(f"Detected HDFS export path: {export_path}. HDFS filesystem configured.")
 
         # Check if export_path is S3 and create filesystem if needed
         self.s3_filesystem = None
@@ -169,6 +209,16 @@ class RayExporter:
         # Add S3 filesystem if available
         if self.s3_filesystem is not None:
             export_kwargs["export_extra_args"]["filesystem"] = self.s3_filesystem
+        # Add HDFS filesystem if available; PyArrow needs the bare path
+        # (without the hdfs:// scheme) when a filesystem is provided.
+        # Keep the original path for remote-path checks below;
+        # only strip the scheme when passing it to export_method.
+        export_path_for_checks = export_path
+        if self.hdfs_filesystem is not None:
+            from data_juicer.utils.hdfs_utils import strip_hdfs_scheme
+
+            export_kwargs["export_extra_args"]["filesystem"] = self.hdfs_filesystem
+            export_path = strip_hdfs_scheme(export_path)
         if self.export_shard_size > 0:
             # compute the min_rows_per_file for export methods
             dataset_nbytes = dataset.size_bytes()
@@ -178,11 +228,26 @@ class RayExporter:
             rows_per_file = int(dataset_num_rows / num_shards)
             export_kwargs["export_extra_args"]["min_rows_per_file"] = rows_per_file
 
-        # Ensure export directory exists (Ray's write_json treats export_path as a directory)
-        if not export_path.startswith("s3://"):
-            os.makedirs(export_path, exist_ok=True)
+        # Ensure export directory exists (Ray's write_json treats export_path as a directory).
+        # Skip for any remote path (s3://, hdfs://, ...); the remote filesystem
+        # creates directories automatically during write.
+        if not is_remote_path(export_path_for_checks):
+            os.makedirs(export_path_for_checks, exist_ok=True)
 
-        return export_method(dataset, export_path, **export_kwargs)
+        result = export_method(dataset, export_path, **export_kwargs)
+
+        # Encrypt all exported files in-place after Ray has finished writing
+        if self.encrypt_before_export and self._fernet is not None and not is_remote_path(export_path_for_checks):
+            from data_juicer.utils.encryption_utils import encrypt_file
+
+            export_dir = Path(export_path)
+            if export_dir.is_dir():
+                for fpath in export_dir.iterdir():
+                    if fpath.is_file():
+                        encrypt_file(str(fpath), str(fpath), self._fernet)
+                        logger.debug(f"Encrypted exported file: {fpath}")
+
+        return result
 
     def export(self, dataset, columns=None):
         """
@@ -247,6 +312,11 @@ class RayExporter:
         :return:
         """
         export_format = kwargs.get("export_format", "parquet")
+        if export_format == "lance":
+            # use lazy loader to check pylance installation
+            from data_juicer.utils.lazy_loader import LazyLoader
+
+            LazyLoader.check_packages(["pylance"])
         write_method = getattr(dataset, f"write_{export_format}")
         export_extra_args = kwargs.get("export_extra_args", {})
         filtered_kwargs = filter_arguments(write_method, export_extra_args)

@@ -43,6 +43,34 @@ class DatasetCacheControlTest(DataJuicerTestCaseBase):
         self.assertFalse(check())
         self.assertTrue(datasets.is_caching_enabled())
 
+    def test_dataset_cache_control_enable_from_disabled(self):
+        """Start with cache disabled, use DatasetCacheControl(on=True)
+        to re-enable, then verify restore."""
+        datasets.disable_caching()
+        self.assertFalse(datasets.is_caching_enabled())
+
+        with DatasetCacheControl(on=True):
+            self.assertTrue(datasets.is_caching_enabled())
+
+        # Should be restored to disabled
+        self.assertFalse(datasets.is_caching_enabled())
+
+    def test_dataset_cache_control_decorator_enable(self):
+        """Use @dataset_cache_control(on=True) decorator on a function
+        that checks caching is enabled inside."""
+        datasets.disable_caching()
+        self.assertFalse(datasets.is_caching_enabled())
+
+        @dataset_cache_control(on=True)
+        def check_enabled():
+            return datasets.is_caching_enabled()
+
+        result = check_enabled()
+        self.assertTrue(result)
+        # After the decorated function returns, cache should be
+        # restored to disabled
+        self.assertFalse(datasets.is_caching_enabled())
+
 
 if __name__ == '__main__':
     unittest.main()

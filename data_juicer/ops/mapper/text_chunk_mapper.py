@@ -55,7 +55,7 @@ class TextChunkMapper(Mapper):
             The text length will be calculate as the token num if it is
             offered. Otherwise, the text length equals to string length.
             Support tiktoken tokenizer (such as gpt-4o), dashscope tokenizer (
-            such as qwen2.5-72b-instruct) and huggingface tokenizer.
+            such as qwen3.7-max) and huggingface tokenizer.
         :param trust_remote_code: whether to trust the remote code of HF models.
         :param args: extra args
         :param kwargs: extra args
@@ -109,8 +109,8 @@ class TextChunkMapper(Mapper):
 
     def get_text_chunks(self, text, rank=None):
         if self.split_pattern is not None and self.max_len is None:
-            chunks = re.split(f"({self.split_pattern})", text)
-            chunks = [t for t in chunks if t.strip()]
+            chunks = re.split(self.split_pattern, text)
+            chunks = [t for t in chunks if t is not None and t.strip()]
         elif self.split_pattern is None and self.max_len is not None:
             tokens = text
             total_len = len(text)

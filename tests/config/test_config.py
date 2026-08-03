@@ -1073,5 +1073,133 @@ from . import new_op4
         finally:
             os.unlink(temp_config_path)
 
+
+class EncryptionConfigTest(DataJuicerTestCaseBase):
+    """Tests for encryption-related config parameters and post-parse logic."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp()
+        from cryptography.fernet import Fernet
+        self._key = Fernet.generate_key()
+        self._key_file = os.path.join(self.tmp_dir, 'enc.key')
+        with open(self._key_file, 'wb') as f:
+            f.write(self._key)
+
+    def tearDown(self):
+        super().tearDown()
+        import shutil
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        # clean env
+        os.environ.pop('DJ_ENCRYPTION_KEY', None)
+        super().tearDown()
+
+    def _write_minimal_yaml(self, extra: dict = None) -> str:
+        """Write a minimal valid config yaml and return its path."""
+        cfg_dict = {
+            'project_name': 'enc_test',
+            'dataset_path': test_yaml_path,  # reuse existing dataset path
+            'export_path': os.path.join(self.tmp_dir, 'out.jsonl'),
+            'process': [],
+        }
+        if extra:
+            cfg_dict.update(extra)
+        path = os.path.join(self.tmp_dir, 'enc_cfg.yaml')
+        with open(path, 'w') as f:
+            yaml.dump(cfg_dict, f)
+        return path
+
+    # ------------------------------------------------------------------
+    # Default values
+    # ------------------------------------------------------------------
+
+    def test_default_values(self):
+        """Both encryption flags default to False / None."""
+        yaml_path = self._write_minimal_yaml()
+        cfg = init_configs(args=['--config', yaml_path])
+        self.assertFalse(cfg.decrypt_after_reading)
+        self.assertFalse(cfg.encrypt_before_export)
+        self.assertIsNone(cfg.encryption_key_path)
+
+    # ------------------------------------------------------------------
+    # decrypt_after_reading flag
+    # ------------------------------------------------------------------
+
+    def test_decrypt_after_reading_true_disables_cache(self):
+        """When decrypt_after_reading=True, use_cache is forced to False."""
+        yaml_path = self._write_minimal_yaml({
+            'decrypt_after_reading': True,
+            'encryption_key_path': self._key_file,
+        })
+        cfg = init_configs(args=['--config', yaml_path])
+        self.assertTrue(cfg.decrypt_after_reading)
+        self.assertFalse(cfg.use_cache)
+
+    def test_decrypt_after_reading_uses_env_key(self):
+        """Key resolved from DJ_ENCRYPTION_KEY env var when no key file."""
+        os.environ['DJ_ENCRYPTION_KEY'] = self._key.decode()
+        yaml_path = self._write_minimal_yaml({'decrypt_after_reading': True})
+        # Should not raise even without encryption_key_path
+        cfg = init_configs(args=['--config', yaml_path])
+        self.assertTrue(cfg.decrypt_after_reading)
+
+    # ------------------------------------------------------------------
+    # encrypt_before_export flag
+    # ------------------------------------------------------------------
+
+    def test_encrypt_before_export_true_disables_cache(self):
+        """When encrypt_before_export=True, use_cache is forced to False."""
+        yaml_path = self._write_minimal_yaml({
+            'encrypt_before_export': True,
+            'encryption_key_path': self._key_file,
+        })
+        cfg = init_configs(args=['--config', yaml_path])
+        self.assertTrue(cfg.encrypt_before_export)
+        self.assertFalse(cfg.use_cache)
+
+    def test_encrypt_before_export_cmd_override(self):
+        """CLI flag --encrypt_before_export True overrides yaml default."""
+        yaml_path = self._write_minimal_yaml()
+        cfg = init_configs(args=[
+            '--config', yaml_path,
+            '--encrypt_before_export', 'True',
+            '--encryption_key_path', self._key_file,
+        ])
+        self.assertTrue(cfg.encrypt_before_export)
+
+    # ------------------------------------------------------------------
+    # Missing key raises ValueError early
+    # ------------------------------------------------------------------
+
+    def test_missing_key_raises_on_decrypt(self):
+        """decrypt_after_reading=True with no key raises ValueError."""
+        # Clear env just in case
+        os.environ.pop('DJ_ENCRYPTION_KEY', None)
+        yaml_path = self._write_minimal_yaml({'decrypt_after_reading': True})
+        with self.assertRaises((ValueError, Exception)):
+            init_configs(args=['--config', yaml_path])
+
+    def test_missing_key_raises_on_encrypt(self):
+        """encrypt_before_export=True with no key raises ValueError."""
+        os.environ.pop('DJ_ENCRYPTION_KEY', None)
+        yaml_path = self._write_minimal_yaml({'encrypt_before_export': True})
+        with self.assertRaises((ValueError, Exception)):
+            init_configs(args=['--config', yaml_path])
+
+    # ------------------------------------------------------------------
+    # cache_compress is cleared when cache is disabled
+    # ------------------------------------------------------------------
+
+    def test_cache_compress_cleared_when_encryption_enabled(self):
+        """cache_compress is set to None when encryption forces use_cache=False."""
+        yaml_path = self._write_minimal_yaml({
+            'decrypt_after_reading': True,
+            'encryption_key_path': self._key_file,
+            'cache_compress': 'gzip',
+        })
+        cfg = init_configs(args=['--config', yaml_path])
+        self.assertIsNone(cfg.cache_compress)
+
+
 if __name__ == '__main__':
     unittest.main()

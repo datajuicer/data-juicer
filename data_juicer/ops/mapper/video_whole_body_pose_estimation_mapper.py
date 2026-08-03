@@ -1,6 +1,5 @@
 import os
 
-import matplotlib.pyplot as plt
 from pydantic import PositiveInt
 
 import data_juicer
@@ -16,7 +15,7 @@ from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_whole_body_pose_estimation_mapper"
 
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -75,6 +74,8 @@ class VideoWholeBodyPoseEstimationMapper(Mapper):
             "duration": duration,
             "frame_dir": frame_dir,
             "frame_key": MetaKeys.video_frames,
+            "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
+            "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
         self.fused_ops = load_ops([{"video_extract_frames_mapper": self.video_extract_frames_mapper_args}])
 
@@ -136,6 +137,7 @@ class VideoWholeBodyPoseEstimationMapper(Mapper):
             bbox_results_list.append(bbox_results)
 
             if self.if_save_visualization:
+                plt = LazyLoader("matplotlib.pyplot")
                 plt.imsave(
                     os.path.join(frame_dir_for_temp_video, f"temp_frame_pose_{str(temp_frame_id)}.jpg"), draw_pose
                 )

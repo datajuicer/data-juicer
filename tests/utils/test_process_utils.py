@@ -236,6 +236,22 @@ class CalculateRayNPTest(DataJuicerTestCaseBase):
         self.assertEqual(op.num_gpus, 1)
         self.assertEqual(op.num_cpus, None)
 
+    def test_gpu_op_in_task_mode_preserves_requested_gpu(self):
+        """A CUDA Ray task must retain its GPU scheduling requirement."""
+        op = self.mock_op(
+            use_cuda=True,
+            num_proc=8,
+            ray_execution_mode="task",
+        )
+        op.num_cpus = 1
+        op.num_gpus = 1
+
+        calculate_ray_np([op])
+
+        self.assertEqual(op.num_proc, 8)
+        self.assertEqual(op.num_cpus, 1)
+        self.assertEqual(op.num_gpus, 1)
+
     def test_user_specified_num_proc(self):
         """Test user-specified num_proc takes priority"""
         op = self.mock_op(use_cuda=False, num_proc=2)

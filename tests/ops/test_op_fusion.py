@@ -1,9 +1,10 @@
 import unittest
 
 from data_juicer.core import NestedDataset
-from data_juicer.ops.base_op import OP
+from data_juicer.ops.base_op import Mapper, OP
 from data_juicer.ops.load import load_ops
 from data_juicer.ops.op_fusion import fuse_operators, GeneralFusedOP
+from data_juicer.utils.constant import Fields
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -1981,12 +1982,16 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.dataset = NestedDataset.from_list([
+        self.raw_data = [
             {'text': 'This is a test.'},
             {'text': 'This is a test. This is a test. This is a test.'},
             {'text': 'aaaaaaaaaaaaaaabbbbbbbbbbbbcccccccccccccc'},
             {'text': 'punc test。'}
-        ])
+        ]
+
+    def _get_fresh_dataset(self):
+        """Get a fresh dataset instance to avoid state pollution between tests."""
+        return NestedDataset.from_list(self.raw_data)
 
     def _run_equal_config(self, fused_process, unfused_process):
         fused_op = load_ops(fused_process)
@@ -1995,14 +2000,13 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
         unfused_op = load_ops(unfused_process)
         self.assertIsInstance(fused_op, GeneralFusedOP)
         self.assertEqual(len(fused_op.fused_ops), len(unfused_process))
-        res1 = self.dataset.process(fused_op)
-        res2 = self.dataset.process(unfused_op)
-        # invoke process_batched directly
-        for op in fused_op.fused_ops:
-            self.dataset = OP.run(op, self.dataset)
-        res3 = fused_op.process_batched(self.dataset.to_dict())
+        
+        # Use fresh datasets for each operation to avoid state pollution
+        dataset1 = self._get_fresh_dataset()
+        dataset2 = self._get_fresh_dataset()
+        res1 = dataset1.process(fused_op)
+        res2 = dataset2.process(unfused_op)
         self.assertDatasetEqual(res1, res2)
-        self.assertEqual(res1.to_dict(), res3)
 
     def test_regular_config(self):
 
@@ -2083,9 +2087,11 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
         # empty fused process
         fused_op = load_ops(empty_fused_process)[0]
         self.assertEqual(len(fused_op.fused_ops), 0)
-        res = fused_op.run(self.dataset)
-        self.assertDatasetEqual(res, self.dataset)
+        dataset = self._get_fresh_dataset()
+        res = fused_op.run(dataset)
+        self.assertDatasetEqual(res, dataset)
         # unsupported fused op
+        dataset2 = self._get_fresh_dataset()
         with self.assertRaises(NotImplementedError):
             fused_op = load_ops([{
                 'general_fused_op': {
@@ -2095,7 +2101,130 @@ class GeneralFusedOPTest(DataJuicerTestCaseBase):
                     }],
                 }
             }])[0]
-            fused_op.process_batched(self.dataset.to_dict())
+            fused_op.process_batched(dataset2.to_dict())
+
+
+class FusedFilterFingerprintTest(DataJuicerTestCaseBase):
+    """Tests that FusedFilter fingerprints exclude child OP work_dirs."""
+
+    def test_fused_filter_stable_across_work_dirs(self):
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.filter.words_num_filter import WordsNumFilter
+        from data_juicer.ops.op_fusion import FusedFilter
+        from data_juicer.utils.fingerprint_utils import Hasher
+
+        f1a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        f2a = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_a = FusedFilter('fused', [f1a, f2a])
+
+        f1b = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/b')
+        f2b = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/b')
+        fused_b = FusedFilter('fused', [f1b, f2b])
+
+        self.assertEqual(Hasher.hash(fused_a), Hasher.hash(fused_b))
+
+    def test_fused_filter_differs_when_child_params_change(self):
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.filter.words_num_filter import WordsNumFilter
+        from data_juicer.ops.op_fusion import FusedFilter
+        from data_juicer.utils.fingerprint_utils import Hasher
+
+        f1a = TextLengthFilter(min_len=5, max_len=10000, work_dir='/tmp/a')
+        f2a = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_a = FusedFilter('fused', [f1a, f2a])
+
+        f1b = TextLengthFilter(min_len=50, max_len=10000, work_dir='/tmp/a')
+        f2b = WordsNumFilter(min_num=2, max_num=1000, work_dir='/tmp/a')
+        fused_b = FusedFilter('fused', [f1b, f2b])
+
+        self.assertNotEqual(Hasher.hash(fused_a), Hasher.hash(fused_b))
+
+
+class _MockUpperCaseMapper(Mapper):
+    """Mapper that uppercases text and returns a NEW dict."""
+    _batched_op = True
+
+    def __init__(self, text_key='text', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_key = text_key
+        self._name = 'mock_upper_case_mapper'
+
+    def process_batched(self, samples, **kwargs):
+        new_samples = samples.copy()
+        new_samples[self.text_key] = [t.upper() for t in samples[self.text_key]]
+        return new_samples
+
+
+class _MockSuffixMapper(Mapper):
+    """Mapper that appends a suffix and returns a NEW dict."""
+    _batched_op = True
+
+    def __init__(self, suffix='_DONE', text_key='text', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_key = text_key
+        self.suffix = suffix
+        self._name = 'mock_suffix_mapper'
+
+    def process_batched(self, samples, **kwargs):
+        new_samples = samples.copy()
+        new_samples[self.text_key] = [t + self.suffix for t in samples[self.text_key]]
+        return new_samples
+
+
+class _MockInPlaceMapper(Mapper):
+    """Mapper that mutates in-place (masks the new-dict bug)."""
+    _batched_op = True
+
+    def __init__(self, text_key='text', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_key = text_key
+        self._name = 'mock_inplace_mapper'
+
+    def process_batched(self, samples, **kwargs):
+        samples[self.text_key] = [t.lower() for t in samples[self.text_key]]
+        return samples
+
+
+class GeneralFusedOPMapperBugTest(DataJuicerTestCaseBase):
+    """Regression: mapper results must chain correctly in GeneralFusedOP."""
+
+    def _make_fused_op(self, ops):
+        fused = GeneralFusedOP.__new__(GeneralFusedOP)
+        fused._name = 'GeneralFusedOP:test'
+        fused.fused_ops = ops
+        fused.accelerator = 'cpu'
+        fused.batch_size = 10
+        fused.num_proc = 1
+        return fused
+
+    def test_two_new_dict_mappers_results_chained(self):
+        fused_op = self._make_fused_op([
+            _MockUpperCaseMapper(), _MockSuffixMapper(suffix='_DONE')])
+        samples = {
+            'text': ['hello', 'world'],
+            Fields.stats: [{}, {}],
+        }
+        result = fused_op.process_batched(samples)
+        self.assertEqual(result['text'], ['HELLO_DONE', 'WORLD_DONE'])
+
+    def test_single_mapper_result_returned(self):
+        fused_op = self._make_fused_op([_MockUpperCaseMapper()])
+        samples = {
+            'text': ['hello', 'world'],
+            Fields.stats: [{}, {}],
+        }
+        result = fused_op.process_batched(samples)
+        self.assertEqual(result['text'], ['HELLO', 'WORLD'])
+
+    def test_inplace_then_newdict_mapper(self):
+        fused_op = self._make_fused_op([
+            _MockInPlaceMapper(), _MockSuffixMapper(suffix='_END')])
+        samples = {
+            'text': ['HELLO', 'WORLD'],
+            Fields.stats: [{}, {}],
+        }
+        result = fused_op.process_batched(samples)
+        self.assertEqual(result['text'], ['hello_END', 'world_END'])
 
 
 if __name__ == '__main__':

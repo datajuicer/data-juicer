@@ -179,6 +179,9 @@ def test_ray_executor_closes_captain_when_dataset_processing_fails(load_ops, tmp
         op_fusion=False,
         export_path=str(tmp_path / "out.jsonl"),
     )
+    # RayExecutor.run reads cfg.get("read_options"); mirror jsonargparse's
+    # Namespace.get on this hand-built namespace.
+    executor.cfg.get = lambda key, default=None: getattr(executor.cfg, key, default)
     executor.datasetbuilder = MagicMock()
     executor.op_env_manager = None
     executor.pipeline_dag = None

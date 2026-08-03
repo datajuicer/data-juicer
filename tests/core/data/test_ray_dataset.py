@@ -1,59 +1,60 @@
+import json
 import unittest
 import os
+from unittest.mock import MagicMock
+
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
+
 
 class RayDatasetFuncsTest(DataJuicerTestCaseBase):
 
     def setUp(self):
         """Set up test data"""
         super().setUp()
-        
+
         import ray
         from data_juicer.core.data.ray_dataset import (
             get_abs_path,
             convert_to_absolute_paths,
             set_dataset_to_absolute_path,
-            preprocess_dataset
+            preprocess_dataset,
         )
-        
+
         self.get_abs_path = get_abs_path
         self.convert_to_absolute_paths = convert_to_absolute_paths
         self.set_dataset_to_absolute_path = set_dataset_to_absolute_path
         self.preprocess_dataset = preprocess_dataset
-        
+
         self.test_data = [
             {
-                'text': 'Hello',
-                'images': ['image1.jpg', 'subdir/image2.png'],
-                'videos': ['video1.mp4'],
-                'audios': ['audio1.wav', 'audio2.mp3']
+                "text": "Hello",
+                "images": ["image1.jpg", "subdir/image2.png"],
+                "videos": ["video1.mp4"],
+                "audios": ["audio1.wav", "audio2.mp3"],
             },
-            {
-                'text': 'World',
-                'images': ['image3.jpg'],
-                'videos': ['subdir/video2.mp4'],
-                'audios': ['audio3.wav']
-            }
+            {"text": "World", "images": ["image3.jpg"], "videos": ["subdir/video2.mp4"], "audios": ["audio3.wav"]},
         ]
 
-        self.tmp_dir = 'tmp/test_ray_executor/'
+        self.tmp_dir = "tmp/test_ray_executor/"
         os.makedirs(self.tmp_dir, exist_ok=True)
 
     def tearDown(self) -> None:
         super().tearDown()
         if os.path.exists(self.tmp_dir):
-            os.system(f'rm -rf {self.tmp_dir}')
+            import shutil
+
+            shutil.rmtree(self.tmp_dir)
 
     def _touch_a_file(self, path):
         """Create a file at the given path"""
-        with open(path, 'w') as f:
-            f.write('test')
+        with open(path, "w") as f:
+            f.write("test")
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_get_abs_path_local(self):
         """Test get_abs_path function for local paths"""
         import os
-        
+
         # Test relative path
         dataset_dir = self.tmp_dir
         rel_path = "image.jpg"
@@ -62,27 +63,27 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
         expected = os.path.abspath(os.path.join(dataset_dir, rel_path))
         result = self.get_abs_path(rel_path, dataset_dir)
         self.assertEqual(result, expected)
-        
+
         # Test absolute path (should remain unchanged)
         abs_path = os.path.abspath(full_path)
         result = self.get_abs_path(abs_path, dataset_dir)
         self.assertEqual(result, abs_path)
-        
+
         # Test remote path (should remain unchanged)
         remote_path = "http://bucket/file.jpg"
         result = self.get_abs_path(remote_path, dataset_dir)
         self.assertEqual(result, remote_path)
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_convert_to_absolute_paths(self):
         """Test convert_to_absolute_paths function"""
         import pyarrow as pa
-        
+
         # Create a PyArrow table similar to what would be passed to the function
 
         sample_data = {
-            'images': [['image1.jpg', 'subdir/image2.png'], ['image3.jpg']],
-            'videos': [['video1.mp4'], ['subdir/video2.mp4']]
+            "images": [["image1.jpg", "subdir/image2.png"], ["image3.jpg"]],
+            "videos": [["video1.mp4"], ["subdir/video2.mp4"]],
         }
 
         for key, value_list in sample_data.items():
@@ -93,24 +94,24 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
                     self._touch_a_file(full_path)
 
         table = pa.Table.from_pydict(sample_data)
-        
+
         dataset_dir = self.tmp_dir
-        path_keys = ['images', 'videos']
-        
+        path_keys = ["images", "videos"]
+
         result_table = self.convert_to_absolute_paths(table, dataset_dir, path_keys)
-        
+
         result_dict = result_table.to_pydict()
 
         # Check that images were converted to absolute paths
-        self.assertTrue(result_dict['images'][0][0].startswith('/'))
-        self.assertTrue(result_dict['images'][0][1].startswith('/'))
-        self.assertTrue(result_dict['images'][1][0].startswith('/'))
-        
+        self.assertTrue(result_dict["images"][0][0].startswith("/"))
+        self.assertTrue(result_dict["images"][0][1].startswith("/"))
+        self.assertTrue(result_dict["images"][1][0].startswith("/"))
+
         # Check that videos were converted to absolute paths
-        self.assertTrue(result_dict['videos'][0][0].startswith('/'))
-        self.assertTrue(result_dict['videos'][1][0].startswith('/'))
-    
-    @TEST_TAG('ray')
+        self.assertTrue(result_dict["videos"][0][0].startswith("/"))
+        self.assertTrue(result_dict["videos"][1][0].startswith("/"))
+
+    @TEST_TAG("ray")
     def test_get_abs_path_with_nonexistent_local_path(self):
         """Test get_abs_path when local path doesn't exist"""
         # When the joined path doesn't exist, it should return the current path
@@ -122,6 +123,99 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
         self.assertEqual(result, tgt_path)
         self.assertNotEqual(result, non_tgt_path)
 
+    @TEST_TAG("ray")
+    def test_read_json_stream(self):
+        """Test reading JSON stream with RayDataset"""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+
+        LONG_TEXT_MULTIPLIER = 100_000
+        BLOCK_SIZE_MB = 3
+        BLOCK_SIZE_BYTES = BLOCK_SIZE_MB * 1024 * 1024
+
+        _text = "I have a very long text. " * LONG_TEXT_MULTIPLIER  # Create a long text to test large JSON objects
+        self.test_data.append({"text": _text, "images": ["image4.jpg"], "videos": [], "audios": []})
+        # Create a temporary JSONL file
+        jsonl_path = os.path.join(self.tmp_dir, "test.jsonl")
+        with open(jsonl_path, "w") as f:
+            for item in self.test_data:
+                f.write(f"{json.dumps(item)}\n")
+
+        # In PyArrow 20.0.0+, a large record can cause a 'straddling object' error.
+        # We set a larger block size to allow PyArrow to read larger records.
+        read_options = js.ReadOptions(block_size=BLOCK_SIZE_BYTES)  # Set block size to 3MB
+        dataset = read_json_stream(jsonl_path, read_options=read_options)
+        self.assertEqual(len(dataset.take(3)[2]["text"]), len(_text))
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_schema_evolution(self):
+        """Regression test for #936: null -> concrete type schema evolution."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+
+        jsonl_path = os.path.join(self.tmp_dir, "schema_evolution.jsonl")
+        rows = [{"id": i, "meta": {"url": None}} for i in range(30)]
+        rows.append({"id": 999, "meta": {"url": "https://example.com"}})
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(jsonl_path, override_num_blocks=1, read_options=read_options)
+        result = dataset.take_all()
+        self.assertEqual(len(result), 31)
+        self.assertEqual(result[-1]["id"], 999)
+        self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_schema_evolution_with_filesystem(self):
+        """Regression test: schema evolution fallback works with filesystem abstraction."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+        import pyarrow.fs as pafs
+
+        jsonl_path = os.path.join(self.tmp_dir, "schema_evolution_fs.jsonl")
+        rows = [{"id": i, "meta": {"url": None}} for i in range(30)]
+        rows.append({"id": 999, "meta": {"url": "https://example.com"}})
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        fs = pafs.SubTreeFileSystem(self.tmp_dir, pafs.LocalFileSystem())
+        relative_path = "schema_evolution_fs.jsonl"
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(
+            relative_path,
+            filesystem=fs,
+            override_num_blocks=1,
+            read_options=read_options,
+        )
+        result = dataset.take_all()
+        self.assertEqual(len(result), 31)
+        self.assertEqual(result[-1]["id"], 999)
+        self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_stable_schema_no_fallback(self):
+        """Verify stable-schema files stream without buffering (no fallback)."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+
+        jsonl_path = os.path.join(self.tmp_dir, "stable_schema.jsonl")
+        rows = [{"id": i, "meta": {"url": f"https://example.com/{i}"}} for i in range(100)]
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(jsonl_path, override_num_blocks=1, read_options=read_options)
+        result = dataset.take_all()
+        self.assertEqual(len(result), 100)
+        self.assertEqual(result[0]["id"], 0)
+        self.assertEqual(result[99]["meta"]["url"], "https://example.com/99")
+
+
 class TestRayDataset(DataJuicerTestCaseBase):
     def setUp(self):
         """Set up test data"""
@@ -131,24 +225,9 @@ class TestRayDataset(DataJuicerTestCaseBase):
         from data_juicer.core.data.ray_dataset import RayDataset
 
         self.data = [
-            {
-                'text': 'Hello',
-                'score': 1,
-                'metadata': {'lang': 'en'},
-                'labels': [1, 2, 3]
-            },
-            {
-                'text': 'World',
-                'score': 2,
-                'metadata': {'lang': 'es'},
-                'labels': [4, 5, 6]
-            },
-            {
-                'text': 'Test',
-                'score': 3,
-                'metadata': {'lang': 'fr'},
-                'labels': [7, 8, 9]
-            }
+            {"text": "Hello", "score": 1, "metadata": {"lang": "en"}, "labels": [1, 2, 3]},
+            {"text": "World", "score": 2, "metadata": {"lang": "es"}, "labels": [4, 5, 6]},
+            {"text": "Test", "score": 3, "metadata": {"lang": "fr"}, "labels": [7, 8, 9]},
         ]
 
         # Create fresh dataset for each test
@@ -159,66 +238,68 @@ class TestRayDataset(DataJuicerTestCaseBase):
         self.dataset = None
         super().tearDown()
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_get_column_basic(self):
         """Test basic column retrieval"""
         # Test string column
-        texts = self.dataset.get_column('text')
-        self.assertEqual(texts, ['Hello', 'World', 'Test'])
+        texts = self.dataset.get_column("text")
+        self.assertEqual(texts, ["Hello", "World", "Test"])
 
         # Test numeric column
-        scores = self.dataset.get_column('score')
+        scores = self.dataset.get_column("score")
         self.assertEqual(scores, [1, 2, 3])
 
         # Test dict column
-        metadata = self.dataset.get_column('metadata')
-        self.assertEqual(metadata, [
-            {'lang': 'en'},
-            {'lang': 'es'},
-            {'lang': 'fr'}
-        ])
+        metadata = self.dataset.get_column("metadata")
+        self.assertEqual(metadata, [{"lang": "en"}, {"lang": "es"}, {"lang": "fr"}])
 
         # Test list column
-        labels = self.dataset.get_column('labels')
-        self.assertEqual(labels, [
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, 9]
-        ])
+        labels = self.dataset.get_column("labels")
+        self.assertEqual(labels, [[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_get_column_with_k(self):
         """Test column retrieval with k limit"""
         # Test k=2
-        texts = self.dataset.get_column('text', k=2)
-        self.assertEqual(texts, ['Hello', 'World'])
+        texts = self.dataset.get_column("text", k=2)
+        self.assertEqual(texts, ["Hello", "World"])
 
         # Test k larger than dataset
-        texts = self.dataset.get_column('text', k=5)
-        self.assertEqual(texts, ['Hello', 'World', 'Test'])
+        texts = self.dataset.get_column("text", k=5)
+        self.assertEqual(texts, ["Hello", "World", "Test"])
 
         # Test k=0
-        texts = self.dataset.get_column('text', k=0)
+        texts = self.dataset.get_column("text", k=0)
         self.assertEqual(texts, [])
 
         # Test k=1
-        texts = self.dataset.get_column('text', k=1)
-        self.assertEqual(texts, ['Hello'])
+        texts = self.dataset.get_column("text", k=1)
+        self.assertEqual(texts, ["Hello"])
 
-    @TEST_TAG('ray')
+        # Ray's take() defaults to 20 rows, so explicitly requesting or
+        # retrieving all rows must not truncate larger datasets.
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get_column("text", k=25), [str(i) for i in range(25)])
+        self.assertEqual(large_dataset.get_column("text"), [str(i) for i in range(25)])
+
+    @TEST_TAG("ray")
     def test_get_column_errors(self):
         """Test error handling"""
         # Test non-existent column
         with self.assertRaises(KeyError) as context:
-            self.dataset.get_column('nonexistent')
+            self.dataset.get_column("nonexistent")
         self.assertIn("not found in dataset", str(context.exception))
 
         # Test negative k
         with self.assertRaises(ValueError) as context:
-            self.dataset.get_column('text', k=-1)
+            self.dataset.get_column("text", k=-1)
         self.assertIn("must be non-negative", str(context.exception))
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_get_column_empty_dataset(self):
         """Test with empty dataset"""
         import ray
@@ -228,80 +309,68 @@ class TestRayDataset(DataJuicerTestCaseBase):
 
         # Should raise ValuError for empty dataset/columns
         with self.assertRaises(KeyError):
-            empty_dataset.get_column('text')
+            empty_dataset.get_column("text")
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_get_column_types(self):
         """Test return type consistency"""
         # All elements should be strings
-        texts = self.dataset.get_column('text')
+        texts = self.dataset.get_column("text")
         self.assertTrue(all(isinstance(x, str) for x in texts))
 
         # All elements should be ints
-        scores = self.dataset.get_column('score')
+        scores = self.dataset.get_column("score")
         self.assertTrue(all(isinstance(x, int) for x in scores))
 
         # All elements should be dicts
-        metadata = self.dataset.get_column('metadata')
+        metadata = self.dataset.get_column("metadata")
         self.assertTrue(all(isinstance(x, dict) for x in metadata))
 
         # All elements should be lists
-        labels = self.dataset.get_column('labels')
+        labels = self.dataset.get_column("labels")
         self.assertTrue(all(isinstance(x, list) for x in labels))
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_get_column_preserve_order(self):
         """Test that column order is preserved"""
-        texts = self.dataset.get_column('text')
-        self.assertEqual(texts[0], 'Hello')
-        self.assertEqual(texts[1], 'World')
-        self.assertEqual(texts[2], 'Test')
+        texts = self.dataset.get_column("text")
+        self.assertEqual(texts[0], "Hello")
+        self.assertEqual(texts[1], "World")
+        self.assertEqual(texts[2], "Test")
 
         # Test with k
-        texts = self.dataset.get_column('text', k=2)
-        self.assertEqual(texts[0], 'Hello')
-        self.assertEqual(texts[1], 'World')
+        texts = self.dataset.get_column("text", k=2)
+        self.assertEqual(texts[0], "Hello")
+        self.assertEqual(texts[1], "World")
 
-    @TEST_TAG('ray')
+    @TEST_TAG("ray")
     def test_get(self):
         """Test get method for RayDataset"""
         import ray
         from data_juicer.core.data.ray_dataset import RayDataset
 
         # Test with simple data
-        simple_data = [
-            {'text': 'hello', 'score': 1},
-            {'text': 'world', 'score': 2},
-            {'text': 'test', 'score': 3}
-        ]
+        simple_data = [{"text": "hello", "score": 1}, {"text": "world", "score": 2}, {"text": "test", "score": 3}]
         dataset = RayDataset(ray.data.from_items(simple_data))
 
         # Basic get
         rows = dataset.get(2)
         self.assertEqual(len(rows), 2)
-        self.assertEqual(rows[0], {'text': 'hello', 'score': 1})
-        self.assertEqual(rows[1], {'text': 'world', 'score': 2})
+        self.assertEqual(rows[0], {"text": "hello", "score": 1})
+        self.assertEqual(rows[1], {"text": "world", "score": 2})
 
         # Test with nested structures
         nested_data = [
-            {
-                'text': 'hello',
-                'metadata': {'lang': 'en', 'source': 'web'},
-                'tags': [1, 2, 3]
-            },
-            {
-                'text': 'world',
-                'metadata': {'lang': 'es', 'source': 'book'},
-                'tags': [4, 5, 6]
-            }
+            {"text": "hello", "metadata": {"lang": "en", "source": "web"}, "tags": [1, 2, 3]},
+            {"text": "world", "metadata": {"lang": "es", "source": "book"}, "tags": [4, 5, 6]},
         ]
         nested_dataset = RayDataset(ray.data.from_items(nested_data))
 
         # Test nested structure preservation
         rows = nested_dataset.get(1)
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['metadata']['lang'], 'en')
-        self.assertEqual(rows[0]['tags'], [1, 2, 3])
+        self.assertEqual(rows[0]["metadata"]["lang"], "en")
+        self.assertEqual(rows[0]["tags"], [1, 2, 3])
 
         # Test edge cases
         self.assertEqual(dataset.get(0), [])
@@ -312,9 +381,89 @@ class TestRayDataset(DataJuicerTestCaseBase):
         # Test type preservation
         row = dataset.get(1)[0]
         self.assertIsInstance(row, dict)
-        self.assertIsInstance(row['text'], str)
-        self.assertIsInstance(row['score'], int)
+        self.assertIsInstance(row["text"], str)
+        self.assertIsInstance(row["score"], int)
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get(25), large_data)
+
+    @TEST_TAG("ray")
+    def test_process_does_not_count_before_building_plan(self):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.columns.return_value = ["text"]
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+        dataset._auto_proc = False
+        dataset._run_single_op = MagicMock(return_value={"text"})
+
+        result = dataset.process(MagicMock())
+
+        self.assertIs(result, dataset)
+        ray_data.count.assert_not_called()
+        ray_data.columns.assert_called_once()
+
+    @TEST_TAG("ray")
+    def test_process_skips_empty_dataset_with_known_schema(self):
+        """Empty datasets with a known schema (columns() returns []) must be
+        skipped instead of running operators on zero rows."""
+        import pyarrow
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+        from data_juicer.ops.mapper.punctuation_normalization_mapper import (
+            PunctuationNormalizationMapper,
+        )
+
+        empty_data = pyarrow.table({"text": []})
+        dataset = RayDataset(ray.data.from_arrow(empty_data))
+        self.assertEqual(dataset.data.columns(), ["text"])
+        self.assertEqual(dataset.data.count(), 0)
+
+        result = dataset.process([PunctuationNormalizationMapper()])
+
+        self.assertIs(result, dataset)
 
 
-if __name__ == '__main__':
+class RayComputeStrategyTest(DataJuicerTestCaseBase):
+    def _get_compute_strategy(self, op):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.map_batches.return_value = ray_data
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+
+        dataset._run_single_op(op, {"text"})
+
+        compute_strategies = [
+            call.kwargs["compute"] for call in ray_data.map_batches.call_args_list if "compute" in call.kwargs
+        ]
+        self.assertEqual(len(compute_strategies), 1)
+        return compute_strategies[0]
+
+    @TEST_TAG("ray")
+    def test_public_compute_strategies(self):
+        from ray.data import ActorPoolStrategy, TaskPoolStrategy
+
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.mapper.python_lambda_mapper import PythonLambdaMapper
+
+        for op_class in [PythonLambdaMapper, TextLengthFilter]:
+            with self.subTest(op=op_class.__name__, mode="task"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="task")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, TaskPoolStrategy)
+                self.assertEqual(compute.size, 2)
+
+            with self.subTest(op=op_class.__name__, mode="actor"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="actor")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, ActorPoolStrategy)
+                self.assertEqual(compute.min_size, 2)
+                self.assertEqual(compute.max_size, 2)
+
+
+if __name__ == "__main__":
     unittest.main()

@@ -24,7 +24,6 @@ class JsonFormatterTest(DataJuicerTestCaseBase):
 
         self._path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "structured")
         self._file = os.path.join(self._path, "demo-dataset.jsonl")
-        print(self._file)
         # create compressed variants for testing
         # create a temp directory to hold generated compressed files
         self._temp_dir = tempfile.mkdtemp()
@@ -111,6 +110,83 @@ class JsonFormatterTest(DataJuicerTestCaseBase):
         ds = formatter.load_dataset()
         self.assertEqual(len(ds), 6)
         self.assertEqual(list(ds.features.keys()), ["text", "meta"])
+
+
+class JsonFormatterLenientTest(DataJuicerTestCaseBase):
+    """Test JsonFormatter's lenient JSONL loading with real files."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        os.environ.pop("DATA_JUICER_JSONL_LENIENT", None)
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        super().tearDown()
+
+    def _write_jsonl(self, filename, lines):
+        import json
+        path = os.path.join(self.tmp_dir, filename)
+        with open(path, "w") as f:
+            for line in lines:
+                f.write(json.dumps(line) + "\n")
+        return path
+
+    def test_lenient_env_var(self):
+        self._write_jsonl("data.jsonl", [
+            {"text": "hello"},
+            {"text": "world"},
+        ])
+        os.environ["DATA_JUICER_JSONL_LENIENT"] = "1"
+
+        formatter = JsonFormatter(self.tmp_dir, text_keys=["text"])
+        ds = formatter.load_dataset()
+        self.assertEqual(len(ds), 2)
+
+    def test_lenient_skips_bad_lines(self):
+        import json
+        path = os.path.join(self.tmp_dir, "data.jsonl")
+        with open(path, "w") as f:
+            f.write('{"text": "good1"}\n')
+            f.write('bad json line\n')
+            f.write('{"text": "good2"}\n')
+
+        os.environ["DATA_JUICER_JSONL_LENIENT"] = "true"
+        formatter = JsonFormatter(self.tmp_dir, text_keys=["text"])
+        ds = formatter.load_dataset()
+        self.assertEqual(len(ds), 2)
+        texts = sorted(ds["text"])
+        self.assertEqual(texts, ["good1", "good2"])
+
+    def test_lenient_cfg_flag(self):
+        from jsonargparse import Namespace
+        self._write_jsonl("data.jsonl", [
+            {"text": "test"},
+        ])
+        cfg = Namespace(load_jsonl_lenient=True)
+        formatter = JsonFormatter(self.tmp_dir, text_keys=["text"])
+        ds = formatter.load_dataset(global_cfg=cfg)
+        self.assertEqual(len(ds), 1)
+
+    def test_non_lenient_uses_default(self):
+        self._write_jsonl("data.jsonl", [
+            {"text": "normal"},
+        ])
+        formatter = JsonFormatter(self.tmp_dir, text_keys=["text"])
+        ds = formatter.load_dataset()
+        self.assertEqual(len(ds), 1)
+        self.assertEqual(ds[0]["text"], "normal")
+
+    def test_lenient_no_jsonl_files_falls_back(self):
+        import json
+        path = os.path.join(self.tmp_dir, "data.json")
+        with open(path, "w") as f:
+            json.dump([{"text": "from_json"}], f)
+
+        os.environ["DATA_JUICER_JSONL_LENIENT"] = "1"
+        formatter = JsonFormatter(self.tmp_dir, text_keys=["text"])
+        ds = formatter.load_dataset()
+        self.assertEqual(len(ds), 1)
 
 
 if __name__ == "__main__":

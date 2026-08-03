@@ -31,7 +31,7 @@ Data-Juicer (DJ) 将原始数据转化为 AI 就绪的智能。它将数据处�
 ## 🚀 快速开始
 
 **零安装探索**：
-- [带教程的 JupyterLab 在线环境](http://8.138.149.181/) 
+- [带教程的 JupyterLab 在线环境](http://8.138.149.181/)
 - [询问 DJ Copilot](https://datajuicer.github.io/data-juicer/zh_CN/main/docs_index_ZH.html)
 
 **安装并运行**：
@@ -84,8 +84,45 @@ for s in res_ds:
 ---
 
 ## 📰 动态
+<details open>
+<summary>[2026-07-17] Release v1.5.4: <b>HumanVBench 视频算子；批内阶段算子融合；健壮性修复</b></summary>
+
+* 🧑‍🤝‍🧑 新算子 — 新增 9 个以人为中心的视频理解算子（人物轨迹提取、活跃说话人检测、音频 ASR、语音情绪与年龄/性别检测、人脸人口统计与属性/情绪描述、人脸占比过滤），用于构建 HumanVBench (CVPR'26) 风格的处理流水线。
+* ⚡ 批内阶段算子融合 — 新增 `FusedSequentialBatchOp`，在一个 batch 内融合连续算子，减少算子间开销，加速顺序处理。
+* 🔧 健壮性与安装修复 — 修复 Ray 去重算子的共享状态处理；修复 Ray checkpoint writer 的相对路径问题；使 `clean_html_mapper` 对 null 文本值更健壮；`ColumnWiseAnalysis` 支持处理布尔型统计列；并通过为 `decord`/`torchcodec` 添加精确的平台标记解锁 ARM64 (aarch64) 平台的安装。
+* 🧪 测试覆盖与清理 — 扩展工具函数与模型处理相关的测试，并进行若干代码清理。
+</details>
 
 <details open>
+<summary>[2026-06-26] Release v1.5.3: <b>VLA 算子升级；Ray 重分区管道；可扩展性与健壮性</b></summary>
+
+* 🤖 VLA 算子升级 — 新增/重命名 10+ 个 VLA 算子（DeepCalib/DroidCalib/MoGe 相机标定、原子动作分割、手部动作计算与运动平滑、片段重组、轨迹叠加、LeRobot 导出），并提供完整的 VLA pipeline 示例。
+* 🔄 Ray 重分区管道 — 新增 'ray_repartition_pipeline'，支持 Ray 模式下的数据集级块重分区。
+* ⚡ 可扩展的 Ray Data 读取 — 将 `override_num_blocks` 贯通整个调用链，支持通过 CLI 控制 PB 级数据集的块并行度。
+* 🧪 测试覆盖扩展 — 新增 409 个测试用例，覆盖 18 个测试文件。
+* 🐳 稳定性与健壮性修复 — JSONStreamDatasource 跨批次 schema 统一、OP 环境版本解析、PartitionedRayExecutor FUSE 安全 rmtree、废弃模型名更新、num_proc 处理修复等。
+</details>
+
+<details>
+<summary>[2026-05-29] Release v1.5.2: <b>语义化 LLM 算子；跨文档行级去重；更轻量的依赖</b></summary>
+
+- 🧹 新增去重算子：DocumentLineDeduplicator 支持跨文档的行级去重，依据全局文档频率识别并移除模板文本、版权声明、导航栏等样板行。
+- 🤖 Agent 数据质量工具集：上线交互质量算子与配方（recipe），新增 bad-case HTML 报告，并增强 JSONL / HuggingFace meta 加载的健壮性。
+- 📦 更轻量、更快的安装：精简默认依赖集（Ray、音频、spaCy、av 等移至按需安装的可选依赖），显著加快安装速度。
+- 🐳 稳定性与健壮性修复：库友好的错误处理（以 raise 替代 exit(1)）、Ray 初始化与临时目录修复、清理非法 API 参数（移除无效的 max_new_tokens）、PyArrow 20+ 批量读取 JSON 修复、支持本地路径的 aesthetics 模型，以及更多性能与 Bug 修复。
+- 🧠 新增语义化 LLM 算子：引入 llm_extract_mapper、llm_condition_filter 和 llm_structured_ops，统一 llm_* 命名规范，并支持可配置的推理策略（join/agg/top-k 等能力规划中）。
+</details>
+
+<details>
+<summary>[2026-03-17] Release v1.5.1: <b>LaTeX 算子上线；压缩格式支持；算子健壮性修复</b></summary>
+
+- 📄 新增两个面向 LaTeX 的 Mapper 算子，将 data-juicer 的文档处理能力延伸至 .tex 压缩包和图片上下文的提取与处理。
+- 🗜️ 支持压缩数据集格式：现在可以直接加载 json[l].gz 文件，Ray 数据集也同步支持读取压缩 JSON 文件。
+- 📚 新增文档，覆盖缓存、导出和执行追踪等工作流，帮助用户更好地理解和调试数据处理流水线。
+- 🤖 对 data-juicer-agents 的重大重构与升级已经完成：项目架构及 CLI/会话能力经过全面重新设计，以提升可维护性与可扩展性。详情请参阅 [date-juicer-agents](https://github.com/datajuicer/data-juicer-agents).
+</details>
+
+<details>
 <summary>[2026-02-12] Release v1.5.0: <b>分区Ray执行器，OP级环境隔离，以及更多具身算子</b></summary>
 
 - 🚀 *分布式执行框架升级* — 新增分区Ray执行器与OP级隔离环境，强化容错性、可扩展性及依赖冲突管理。
@@ -94,13 +131,13 @@ for s in res_ds:
 - 🐳 *关键问题修复与稳定性提升* — 修复重复项追踪、参数冲突、首页渲染等缺陷，增强系统可靠性。
 </details>
 
-<details open>
+<details>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot、视频字节 I/O 与 Ray 追踪</b></summary>
 
-- 🤖 *Q&A Copilot* — 现已上线我们的[文档站点](https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH.html) | [钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK)。欢迎询问任何与 Data-Juicer 生态系统相关的问题！  
+- 🤖 *Q&A Copilot* — 现已上线我们的[文档站点](https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH.html) | [钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK)。欢迎询问任何与 Data-Juicer 生态系统相关的问题！
     - 查看 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [部署就绪代码](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[更多演示](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md) 了解更多详情。
-- 🎬 *视频字节 I/O* — 视频管道的直接字节处理  
-- 🫆 *Ray 模式追踪器* — 在分布式处理中追踪变更的样本  
+- 🎬 *视频字节 I/O* — 视频管道的直接字节处理
+- 🫆 *Ray 模式追踪器* — 在分布式处理中追踪变更的样本
 - 🐳 *增强与修复* — 刷新 Docker 镜像、小幅性能提升、GitHub Insights 流量工作流、Ray 兼容性更新以及 Bug/文档修复。
 </details>
 
@@ -110,7 +147,7 @@ for s in res_ds:
 - *具身 AI OP*：添加/增强了用于视频标题生成（VLM）、视频对象分割（YOLOE+SAM2）、视频深度估计（可视化 + 点云）、人体姿态（MMPose）、图像标签（VLM）、单图像 3D 人体网格恢复（SAM 3D Body）的映射器，以及 *S3 上传/下载*。
 - *新管道 OP*：将多个 OP 组合成一个管道；引入了用于 LLM/VLM 推理的 *Ray + vLLM* 管道。
 - *文档升级*：迁移到统一的基于 *Sphinx* 的文档构建/部署工作流，具有隔离的主题/架构仓库。
-- *增强与修复*：依赖更新、改进的 Ray 去重和 S3 加载、OpenAI Responses API 支持、追踪器一致性、Docker 基础更新为 CUDA 12.6.3 + Ubuntu 24.04 + Py3.11，以及多个 Bug 修复。 
+- *增强与修复*：依赖更新、改进的 Ray 去重和 S3 加载、OpenAI Responses API 支持、追踪器一致性、Docker 基础更新为 CUDA 12.6.3 + Ubuntu 24.04 + Py3.11，以及多个 Bug 修复。
 
 </details>
 
@@ -128,15 +165,15 @@ for s in res_ds:
 ---
 
 ## 🔌 用户与生态系统
-> 以下列表重点关注*面向开发者的集成和使用*，按*字母顺序*排列。  
+> 以下列表重点关注*面向开发者的集成和使用*，按*字母顺序*排列。
 > 缺少您的项目/名称？欢迎[提交 PR](https://github.com/datajuicer/data-juicer/pulls) 或[联系我们](#贡献与社区)。
 
 Data-Juicer 可无缝集成到您现有的技术栈，并随着社区贡献而不断发展：
 
 ### 扩展
-- **[data-juicer-agents](https://github.com/datajuicer/data-juicer-agents)** — DJ Copilot 和智能体工作流  
-- **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — 社区配方和最佳实践  
-- **[data-juicer-sandbox](https://github.com/datajuicer/data-juicer-sandbox)** — 带反馈循环的数据-模型协同开发  
+- **[data-juicer-agents](https://github.com/datajuicer/data-juicer-agents)** — DJ Copilot 和智能体工作流
+- **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — 社区配方和最佳实践
+- **[data-juicer-sandbox](https://github.com/datajuicer/data-juicer-sandbox)** — 带反馈循环的数据-模型协同开发
 
 ### 框架与平台
 [阿里云 PAI](https://www.alibabacloud.com/zh/product/machine-learning?_p_lc=1) · [Delta Lake](https://delta.io/)[AgentScope](https://github.com/agentscope-ai/agentscope) · [Apache Arrow](https://github.com/apache/arrow) · [Apache HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html) · [Apache Hudi](https://hudi.apache.org/) · [Apache Iceberg](https://iceberg.apache.org/) · [Apache Paimon](https://paimon.apache.org/) · [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) · [EasyAnimate](https://github.com/aigc-apps/EasyAnimate) · [Eval-Scope](https://github.com/modelscope/evalscope) · [华为昇腾](https://www.huawei.com/en/products/cloud-computing-dc/atlas/ascend) · [Hugging Face](https://huggingface.co/) · [LanceDB](https://lancedb.github.io/lance/) · [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) · [ModelScope](https://modelscope.cn/) · [ModelScope Swift](https://github.com/modelscope/ms-swift) · [NVIDIA NeMo](https://github.com/NVIDIA/NeMo) · [Ray](https://docs.ray.io/) · [RM-Gallery](https://github.com/modelscope/RM-Gallery) · [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) · [火山引擎](https://www.volcengine.com/)
@@ -161,7 +198,7 @@ Data-Juicer 可无缝集成到您现有的技术栈，并随着社区贡献而�
 | <img src="https://gw.alicdn.com/imgextra/i1/O1CN011Oj8CB1f8Bw5JpgJA_!!6000000003961-0-tps-762-769.jpg" width="100"> | <img src="https://gw.alicdn.com/imgextra/i3/O1CN01bBPoaX1EwZsiYudtd_!!6000000000416-2-tps-656-660.png" width="100"> |
 
 Data-Juicer 由用户和社区共同打造：
-- **发起方**：阿里巴巴通义实验室  
+- **发起方**：阿里巴巴通义实验室
 - **联合开发**：阿里云 PAI、Anyscale（Ray 团队）、中山大学、NVIDIA（NeMo 团队）以及[全球贡献者](https://github.com/datajuicer/data-juicer/graphs/contributors)
 - **启发来源**：Apache Arrow、Ray、Hugging Face Datasets、BLOOM、RedPajama-Data、...
 
@@ -182,7 +219,7 @@ Data-Juicer 由用户和社区共同打造：
 
 ## 📄 许可证与致谢
 
-Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。  
+Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。
 如果您项目中要致谢DataJuicer：请使用我们的[Badge](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/assets/DJ-Org-Logo.jpeg)，或文本譬如 "本项目使用Data-Juicer: https://github.com/datajuicer"。
 
 ---
@@ -213,16 +250,16 @@ Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。
 - (ICML'25 Spotlight) [Data-Juicer Sandbox: A Feedback-Driven Suite for Multimodal Data-Model Co-development](https://arxiv.org/abs/2407.11784)
 
 - (CVPR'25) [ImgDiff: Contrastive Data Synthesis for Vision Large Language Models](https://arxiv.org/abs/2408.04594)
- 
+
 - (TPAMI'25) [The Synergy between Data and Multi-Modal Large Language Models: A Survey from Co-Development Perspective](https://arxiv.org/abs/2407.08583)
 
 - (NeurIPS'25) [Diversity as a Reward: Fine-Tuning LLMs on a Mixture of Domain-Undetermined Data](https://arxiv.org/abs/2502.04380)
 
 - (NeurIPS'25) [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499)
 
-- (Benchmark Data) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
- 
-- (Benchmark Data) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
+- (CVPR'26) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
+
+- (ICML'26) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
 
 - (Data Scaling) [BiMix: A Bivariate Data Mixing Law for Language Model Pretraining](https://arxiv.org/abs/2405.14908)
 

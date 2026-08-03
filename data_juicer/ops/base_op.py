@@ -301,6 +301,57 @@ class OP(metaclass=OPMetaClass):
     #   2. a string of the path to the requirements.txt file
     _requirements = None
 
+    # Attributes excluded from cache fingerprinting only (not from
+    # pickling/dill serialization).  These do not affect data
+    # transformation output, so they must not contribute to cache keys.
+    # Only ``work_dir`` actually poisons caches (contains a per-run UUID);
+    # the others are included defensively since they are execution-policy
+    # settings that should not invalidate cached results.
+    _NON_FINGERPRINT_ATTRS = frozenset(
+        {
+            # root cause: contains a per-run UUID via job_id
+            "work_dir",
+            # raw constructor args stashed by OPMetaClass for Ray actor
+            # reconstruction — the kwargs dict embeds work_dir
+            "_init_args",
+            "_init_kwargs",
+        }
+    )
+
+    def _fingerprint_bytes(self):
+        """Return deterministic bytes for cache-key hashing.
+
+        Unlike ``dill.dumps(self)`` (which honours ``__getstate__`` and is
+        also used for worker serialization), this method is called *only*
+        by ``Hasher`` when computing dataset fingerprints.  It strips
+        attributes listed in ``_NON_FINGERPRINT_ATTRS`` so that
+        execution-only values (e.g. the per-run ``work_dir``) do not
+        poison the cache.  Callable attributes (bound/wrapped methods like
+        ``process``, ``compute_stats``) are also excluded because they
+        close over ``self`` and would re-introduce the excluded attrs.
+
+        Nested OP instances (e.g. ``FusedFilter.fused_filters``) are
+        recursively fingerprinted via their own ``_fingerprint_bytes``
+        so that their ``work_dir`` is also excluded.
+        """
+        import dill
+
+        def _sanitize(v):
+            """Recursively replace OP instances with their fingerprint bytes."""
+            if isinstance(v, OP) and hasattr(v, "_fingerprint_bytes"):
+                return v._fingerprint_bytes()
+            if isinstance(v, (list, tuple)):
+                converted = [_sanitize(item) for item in v]
+                return type(v)(converted)
+            return v
+
+        state = {}
+        for k, v in self.__dict__.items():
+            if k in self._NON_FINGERPRINT_ATTRS or callable(v):
+                continue
+            state[k] = _sanitize(v)
+        return dill.dumps(state)
+
     def __init__(self, *args, **kwargs):
         """
         Base class of operators.

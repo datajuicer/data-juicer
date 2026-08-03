@@ -29,6 +29,7 @@ with timing_context('Importing operator modules'):
         Pipeline,
         Selector,
     )
+    from .fused_sequential_batch_op import FusedSequentialBatchOp  # noqa: F401
     from .load import load_ops
     from .op_env import (
         OPEnvManager,

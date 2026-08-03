@@ -4,17 +4,69 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_keyword_mapper import ExtractKeywordMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+
+class ExtractKeywordMapperParseOutputTest(DataJuicerTestCaseBase):
+
+    def _make_op(self):
+        return ExtractKeywordMapper(api_model='fake')
+
+    def test_parse_output_normal(self):
+        op = self._make_op()
+        raw_output = '("content_keywords" "power dynamics, ideological conflict, discovery")'
+        result = op.parse_output(raw_output)
+        self.assertIsInstance(result, list)
+        self.assertGreater(len(result), 0)
+        self.assertIn('power dynamics', result)
+        self.assertIn('ideological conflict', result)
+        self.assertIn('discovery', result)
+
+    def test_parse_output_with_delimiter(self):
+        op = self._make_op()
+        raw_output = (
+            '("content_keywords" "rebellion, control")'
+            '<|COMPLETE|>'
+        )
+        result = op.parse_output(raw_output)
+        self.assertIsInstance(result, list)
+        self.assertIn('rebellion', result)
+        self.assertIn('control', result)
+
+    def test_parse_output_empty(self):
+        op = self._make_op()
+        result = op.parse_output('')
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 0)
+
+
+class ExtractKeywordMapperEdgeCaseTest(DataJuicerTestCaseBase):
+
+    def test_already_generated_skip(self):
+        op = ExtractKeywordMapper(api_model='fake')
+        sample = {
+            'text': 'some text content',
+            Fields.meta: {
+                MetaKeys.keyword: ['existing', 'keywords'],
+            },
+        }
+        result = op.process_single(sample)
+        self.assertEqual(
+            result[Fields.meta][MetaKeys.keyword],
+            ['existing', 'keywords'],
+        )
+
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class ExtractKeywordMapperTest(DataJuicerTestCaseBase):
 
 
-    def _run_op(self, api_model, response_path=None):
+    def _run_op(self, api_model, response_path=None, sampling_params=None):
 
         op = ExtractKeywordMapper(api_model=api_model,
-                               response_path=response_path)
+                               response_path=response_path,
+                               sampling_params=sampling_params)
 
         raw_text = """△芩婆走到中间，看着众人。
 芩婆：当年，我那老鬼漆木山与李相夷之父乃是挚交。原本李家隐世而居，一日为了救人，得罪附近山匪，夜里便遭了山匪所袭，唯有二子生还，流落街头。
@@ -63,7 +115,34 @@ class ExtractKeywordMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
+
+    def test_drop_text(self):
+        op = ExtractKeywordMapper(
+            api_model=DEFAULT_API_MODEL,
+            drop_text=True,
+            sampling_params={'enable_thinking': False},
+        )
+        raw_text = '李莲花与方多病合作破案，揭露了各种阴谋。'
+        sample = {'text': raw_text, Fields.meta: {}}
+        result = op.process_single(sample)
+        self.assertNotIn('text', result)
+        self.assertIn(MetaKeys.keyword, result[Fields.meta])
+
+    def test_custom_key(self):
+        op = ExtractKeywordMapper(
+            api_model=DEFAULT_API_MODEL,
+            keyword_key='my_keywords',
+            sampling_params={'enable_thinking': False},
+        )
+        raw_text = '李莲花与方多病合作破案，揭露了各种阴谋。'
+        samples = [{'text': raw_text}]
+        dataset = Dataset.from_list(samples)
+        dataset = op.run(dataset)
+        sample = dataset[0]
+        self.assertIn('my_keywords', sample[Fields.meta])
+        self.assertNotEqual(len(sample[Fields.meta]['my_keywords']), 0)
+        logger.info(f"keywords: {sample[Fields.meta]['my_keywords']}")
 
 
 if __name__ == '__main__':

@@ -106,6 +106,42 @@ validators:
       language: "str"
 ```
 
+### JSONL 样本级容错（跳过坏行）
+
+若少数行损坏、或整行无法被 HF/ujson 解析，可使用 **宽松 JSONL 加载**：用标准库逐行 ``json.loads``，解析失败 **仅跳过该行** 并打日志，其余样本照常进入流水线（下游算子仍面对与普通 JSONL 一致的 ``datasets.Dataset``）。
+
+**启用方式（二选一）：**
+
+```yaml
+load_jsonl_lenient: true
+```
+
+```bash
+DATA_JUICER_JSONL_LENIENT=1 dj-process --config path/to/config.yaml
+```
+
+**限制：**
+
+- 只会读 ``.jsonl`` / ``.jsonl.gz`` / ``.jsonl.zst``；同目录下其它后缀（如 ``.json``）会被 **跳过** 并打警告，**不再** 整体回退到 HF/ujson（避免再次出现 ``Value is too big!``）。需要时可设 ``suffixes: ['.jsonl']``。
+- 适合 **DefaultExecutor** 本地 jsonl；与 Parquet 无关。
+- 跳过的行请搜日志前缀 ``[lenient jsonl]``。
+
+### JSON / JSONL 加载报错 ``Value is too big!``
+
+本地 JSONL 由 HuggingFace ``datasets`` 解析时可能走 ``ujson``；若某条样本里含有 **超出 ujson 表示范围的整数**（例如极长的数字型 ID），会报错 ``ValueError: Value is too big!``。这与单行文本长短无关，多半是 **数字字段** 问题。
+
+**处理方式：**
+
+1. **推荐（无需改数据）**：在运行前设置环境变量，让解析改走 CPython 标准库 ``json``：
+
+   ```bash
+   DATA_JUICER_USE_STDLIB_JSON=1 dj-process --config path/to/config.yaml
+   ```
+
+2. **从源头规避**：把易超大的字段导出为 **字符串**（JSON 里加引号），再生成 JSONL。
+
+3. **换一种格式**：例如改为 Parquet，由 Arrow 读入，不经过该 JSON 路径。
+
 ### 旧版 dataset_path 配置
 
 `dataset_path` 配置是指定数据集路径的历史版本方式。它简单易用，但缺乏灵活性。它可以在 yaml 或命令行输入中使用。一些示例：

@@ -1,9 +1,17 @@
 import unittest
+from functools import partial
 from unittest.mock import patch, MagicMock
+import json
 import os
+import tempfile
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse
+
 import numpy as np
 
 from data_juicer.utils.model_utils import (
+    check_model,
     get_backup_model_link,
     prepare_simple_aesthetics_model,
     prepare_api_model,
@@ -18,15 +26,108 @@ from data_juicer.utils.model_utils import (
     prepare_video_blip_model,
     prepare_fastsam_model,
     prepare_sdxl_prompt2prompt,
+    prepare_deepcalib_model,
+    prepare_opencv_classifier,
     prepare_model,
     get_model,
     free_models,
     prepare_recognizeAnything_model,
+    update_sampling_params,
 )
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+
+
+# ---------------------------------------------------------------------------
+# Mock Server for API client error-path testing.
+# Kept intentionally: real APIs cannot reliably reproduce broken JSON, 404,
+# or connection errors.  This server is NOT for happy-path testing — happy
+# paths should be covered by real API tests with @skip_if_from_fork.
+# ---------------------------------------------------------------------------
+
+class LocalAPIHandler(BaseHTTPRequestHandler):
+    requests = []
+
+    def log_message(self, format, *args):
+        return
+
+    def _send_json(self, payload, status=200):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        path = urlparse(self.path).path
+        if path.endswith("/models"):
+            self._send_json({"data": [{"id": "server-model"}]})
+            return
+        self._send_json({"error": "not found"}, status=404)
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        body_len = int(self.headers.get("Content-Length", "0"))
+        body = json.loads(self.rfile.read(body_len) or b"{}")
+        self.__class__.requests.append((path, body))
+
+        if path.endswith("/broken-json"):
+            payload = b"{"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
+        if path.endswith("/chat/completions"):
+            user_text = body["messages"][0]["content"]
+            self._send_json(
+                {
+                    "choices": [{"message": {"content": f"chat:{user_text}"}}],
+                    "usage": {"total_tokens": 3},
+                }
+            )
+            return
+
+        if path.endswith("/embeddings"):
+            input_value = body["input"]
+            width = len(input_value) if isinstance(input_value, list) else len(str(input_value))
+            self._send_json({"data": [{"embedding": [1.0, 2.0, float(width)]}]})
+            return
+
+        if path.endswith("/responses"):
+            self._send_json({"output": [{"content": [{"text": f"response:{body['input']}"}]}]})
+            return
+
+        self._send_json({"error": "not found"}, status=404)
+
 
 # other funcs are called by ops already
+#
+# ===================================================================
+# Pure logic / mock-based tests — no network, no server, always runnable.
+# ===================================================================
 class ModelUtilsTest(DataJuicerTestCaseBase):
+
+    def _start_local_api_server(self):
+        LocalAPIHandler.requests = []
+        server = HTTPServer(("127.0.0.1", 0), LocalAPIHandler)
+        thread = threading.Thread(target=server.serve_forever)
+        thread.daemon = True
+        thread.start()
+        self.addCleanup(self._stop_local_api_server, server, thread)
+        return f"http://127.0.0.1:{server.server_port}"
+
+    @staticmethod
+    def _stop_local_api_server(server, thread):
+        server.shutdown()
+        thread.join(timeout=5)
+        server.server_close()
+
+    @staticmethod
+    def _local_client_params(base_url):
+        return {"base_url": base_url, "api_key": "local-token"}  # noqa: S106
 
     def test_get_backup_model_link(self):
         test_data = [
@@ -85,7 +186,9 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         mock_processor = MagicMock()
         mock_tiktoken.encoding_for_model.return_value = mock_processor
 
-        model = prepare_api_model('test_model')
+        # Pass explicit base_url to avoid environment variable (e.g. OPENAI_BASE_URL)
+        # from CI being merged and triggering DashScope model remapping.
+        model = prepare_api_model('test_model', base_url='https://api.openai.com/v1')
         self.assertEqual(model._client, mock_client)
         self.assertEqual(model.model, 'test_model')
         self.assertEqual(model.endpoint, '/chat/completions')
@@ -93,7 +196,7 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         # Test with processor for chat model
         mock_openai.OpenAI.reset_mock()
         mock_tiktoken.encoding_for_model.reset_mock()
-        model, processor = prepare_api_model('test_model', return_processor=True)
+        model, processor = prepare_api_model('test_model', base_url='https://api.openai.com/v1', return_processor=True)
         self.assertEqual(model._client, mock_client)
         self.assertEqual(processor, mock_processor)
         mock_tiktoken.encoding_for_model.assert_called_once()
@@ -152,10 +255,10 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         processor = prepare_huggingface_model('test_model', return_model=False)
         self.assertEqual(processor, mock_processor)
 
-    @patch('data_juicer.utils.model_utils.os')
-    def test_prepare_vllm_model(self, mock_os):
-        mock_os.path.join.return_value = 'test_model'
-
+    @patch('data_juicer.utils.model_utils.check_model_home', return_value='test_model')
+    @patch('data_juicer.utils.model_utils.is_ray_mode', return_value=False)
+    @patch('data_juicer.utils.model_utils.torch.cuda.device_count', return_value=0)
+    def test_prepare_vllm_model(self, mock_cuda, mock_ray, mock_check):
         # Create a mock vllm module
         mock_vllm = MagicMock()
         mock_model = MagicMock()
@@ -163,30 +266,34 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         mock_vllm.LLM.return_value = mock_model
         mock_model.get_tokenizer.return_value = mock_tokenizer
 
-        # Replace the vllm module in model_utils
+        # Replace the vllm module in model_utils and restore afterwards
         import data_juicer.utils.model_utils as model_utils
+        original_vllm = model_utils.vllm
         model_utils.vllm = mock_vllm
+        try:
+            # Test basic functionality
+            model, tokenizer = prepare_vllm_model('test_model')
+            self.assertEqual(model, mock_model)
+            self.assertEqual(tokenizer, mock_tokenizer)
+            mock_vllm.LLM.assert_called_once_with(model='test_model', generation_config='auto')
+            mock_model.get_tokenizer.assert_called_once()
 
-        # Test basic functionality
-        model, tokenizer = prepare_vllm_model('test_model')
-        self.assertEqual(model, mock_model)
-        self.assertEqual(tokenizer, mock_tokenizer)
-        mock_vllm.LLM.assert_called_once()
-        mock_model.get_tokenizer.assert_called_once()
+            # Test environment setup
+            self.assertEqual(os.environ['VLLM_WORKER_MULTIPROC_METHOD'], 'spawn')
 
-        # Test environment setup
-        mock_os.environ.__setitem__.assert_called_with('VLLM_WORKER_MULTIPROC_METHOD', 'spawn')
+            # Test device handling
+            mock_vllm.LLM.reset_mock()
+            model, _ = prepare_vllm_model('test_model', device='cuda:0')
+            mock_vllm.LLM.assert_called_once_with(model='test_model', generation_config='auto')
 
-        # Test device handling
-        mock_vllm.LLM.reset_mock()
-        model, _ = prepare_vllm_model('test_model', device='cuda:0')
-        mock_vllm.LLM.assert_called_once_with(model='test_model', generation_config='auto')
-
-        # Test model parameters
-        mock_vllm.LLM.reset_mock()
-        model_params = {'tensor_parallel_size': 2, 'max_model_len': 2048}
-        model, _ = prepare_vllm_model('test_model', **model_params)
-        mock_vllm.LLM.assert_called_once_with(model='test_model', generation_config='auto', **model_params)
+            # Test model parameters
+            mock_vllm.LLM.reset_mock()
+            model_params = {'tensor_parallel_size': 2, 'max_model_len': 2048}
+            model, _ = prepare_vllm_model('test_model', **model_params)
+            mock_vllm.LLM.assert_called_once_with(model='test_model', generation_config='auto', **model_params)
+        finally:
+            model_utils.vllm = original_vllm
+            os.environ.pop('VLLM_WORKER_MULTIPROC_METHOD', None)
 
     @patch('data_juicer.utils.model_utils.torch')
     @patch('data_juicer.utils.model_utils.transformers')
@@ -205,9 +312,8 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         mock_transformers.AutoModel.from_pretrained.assert_called_once_with(
             'test_model', trust_remote_code=True)
 
-        # Test the return function
-        self.assertTrue(hasattr(model, 'encode'))
-        self.assertTrue(callable(model.encode))
+        # Test the model is moved to the target device
+        mock_model.to.assert_called_once_with('cuda:0')
 
     @patch('data_juicer.utils.model_utils.diffusers')
     def test_prepare_diffusion_model(self, mock_diffusers):
@@ -229,6 +335,11 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         model = prepare_fasttext_model('test_model')
         self.assertEqual(model, mock_model)
 
+    # ===================================================================
+    # Real model download tests — require network access.
+    # Skipped in fork CI; run in main repo CI with model cache available.
+    # ===================================================================
+    @skip_if_from_fork("Skipping real model download test because running from a fork repo")
     def test_prepare_fasttext_model_real(self):
         """Test FastText model loading and prediction functionality with real model."""
         # Test with default language identification model
@@ -262,6 +373,7 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         with self.assertRaises(Exception):
             prepare_fasttext_model("invalid_model.bin")
 
+    @skip_if_from_fork("Skipping real model download test because running from a fork repo")
     def test_prepare_fasttext_model_force_download(self):
         """Test FastText model with force download."""
         # First remove the model file if it exists
@@ -356,12 +468,16 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         mock_model.to.assert_called_once()  # Verify .to() was called
 
     def test_prepare_model(self):
-        # Test valid model type
+        # Test valid model type returns a keyed partial bound to the right factory
         model_func = prepare_model('huggingface', pretrained_model_name_or_path='test_model')
-        self.assertIsNotNone(model_func)
+        self.assertIsInstance(model_func, partial)
+        self.assertIs(model_func.func, prepare_huggingface_model)
+        self.assertEqual(model_func.keywords, {'pretrained_model_name_or_path': 'test_model'})
 
         model_func = prepare_model('embedding', model_path='test_embedding_model', device='cuda:0')
-        self.assertIsNotNone(model_func)
+        self.assertIsInstance(model_func, partial)
+        self.assertIs(model_func.func, prepare_embedding_model)
+        self.assertEqual(model_func.keywords, {'model_path': 'test_embedding_model', 'device': 'cuda:0'})
 
         # Test invalid model type
         with self.assertRaises(AssertionError):
@@ -377,15 +493,16 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
 
         model_key = prepare_model('huggingface', pretrained_model_name_or_path='test_model')
         model = get_model(model_key)
-        self.assertIsNotNone(model)
+        self.assertEqual(model, (mock_model, mock_processor))
 
-        # Test getting a model with CUDA
+        # Test getting a model with CUDA returns the same cached instance
         model = get_model(model_key, use_cuda=True)
-        self.assertIsNotNone(model)
+        self.assertEqual(model, (mock_model, mock_processor))
 
     @patch('data_juicer.utils.model_utils.transformers')
     def test_free_models(self, mock_transformers):
         # Test freeing models
+        from data_juicer.utils.model_utils import MODEL_ZOO
         mock_model = MagicMock()
         mock_processor = MagicMock()
         mock_transformers.AutoProcessor.from_pretrained.return_value = mock_processor
@@ -393,8 +510,227 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
 
         model_key = prepare_model('huggingface', pretrained_model_name_or_path='test_model')
         get_model(model_key)
+        self.assertIn(model_key, MODEL_ZOO)
         free_models()
-        # No assertion needed, just checking it doesn't raise an exception
+        # Model zoo should be cleared after freeing
+        self.assertEqual(len(MODEL_ZOO), 0)
+
+    def test_filter_arguments_keeps_only_supported_parameters(self):
+        from data_juicer.utils.model_utils import filter_arguments
+
+        def limited(alpha, beta=1):
+            return alpha + beta
+
+        def accepts_kwargs(alpha, **kwargs):
+            return alpha, kwargs
+
+        source = {"alpha": 1, "beta": 2, "gamma": 3}
+        self.assertEqual(filter_arguments(limited, source), {"alpha": 1, "beta": 2})
+        self.assertEqual(filter_arguments(accepts_kwargs, source), source)
+
+    def test_check_model_returns_existing_local_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            model_path = os.path.join(tmp, "local-model.bin")
+            with open(model_path, "wb") as f:
+                f.write(b"model")
+
+            self.assertEqual(check_model(model_path), model_path)
+
+    def test_prepare_deepcalib_rejects_cpu_before_external_setup(self):
+        with self.assertRaisesRegex(ValueError, "CUDA device must be specified"):
+            prepare_deepcalib_model("weights.h5", device="cpu")
+
+    def test_prepare_opencv_classifier_uses_local_cascade_path(self):
+        from data_juicer.utils.model_utils import cv2
+
+        cascade_path = os.path.join(
+            cv2.data.haarcascades,
+            "haarcascade_frontalface_default.xml",
+        )
+        classifier = prepare_opencv_classifier(cascade_path)
+
+        self.assertFalse(classifier.empty())
+
+    def test_update_sampling_params_uses_defaults_and_preserves_existing(self):
+        params = update_sampling_params(
+            {},
+            "plain-model-name",
+            enable_vllm=False,
+            fetch_generation_config_from_hf=False,
+        )
+        self.assertEqual(params["max_new_tokens"], 512)
+
+        existing = update_sampling_params(
+            {"max_new_tokens": 32},
+            "plain-model-name",
+            fetch_generation_config_from_hf=False,
+        )
+        self.assertEqual(existing["max_new_tokens"], 32)
+
+        vllm_params = update_sampling_params(
+            {},
+            "plain-model-name",
+            enable_vllm=True,
+            fetch_generation_config_from_hf=False,
+        )
+        self.assertEqual(vllm_params["max_tokens"], 512)
+
+    def test_update_sampling_params_reads_local_generation_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, "generation_config.json"), "w") as f:
+                f.write('{"max_new_tokens": 77}')
+
+            params = update_sampling_params(
+                {},
+                tmp,
+                enable_vllm=False,
+                fetch_generation_config_from_hf=True,
+            )
+
+        self.assertEqual(params["max_new_tokens"], 77)
+
+    def test_update_sampling_params_falls_back_when_local_config_invalid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, "generation_config.json"), "w") as f:
+                f.write("{")
+
+            params = update_sampling_params(
+                {},
+                tmp,
+                enable_vllm=False,
+                fetch_generation_config_from_hf=True,
+            )
+
+        self.assertEqual(params["max_new_tokens"], 512)
+
+    # ===================================================================
+    # Real API happy-path tests — require OPENAI_BASE_URL / OPENAI_API_KEY.
+    # ===================================================================
+    @skip_if_from_fork("Skipping API-based test because running from a fork repo")
+    def test_prepare_api_model_chat_with_real_api(self):
+        from data_juicer.utils.constant import DEFAULT_API_MODEL
+
+        client = prepare_api_model(DEFAULT_API_MODEL)
+        result = client(
+            [{"role": "user", "content": "Reply with exactly: OK"}],
+            temperature=0,
+        )
+        self.assertIsInstance(result, str)
+        self.assertGreater(len(result), 0)
+        # The model is asked to reply with exactly "OK"; verify the semantic
+        # content rather than only that *some* string came back.
+        self.assertIn("OK", result.upper())
+        self.assertIsNotNone(client.last_response)
+
+    @skip_if_from_fork("Skipping API-based test because running from a fork repo")
+    def test_prepare_api_model_embedding_with_real_api(self):
+        embedding_model = "text-embedding-v4"
+
+        embeddings = prepare_api_model(
+            embedding_model,
+            endpoint="/embeddings",
+        )
+        result = embeddings(["hello world"])
+        # The default response_path is "data.0.embedding", so a single
+        # embedding vector (a flat list of floats) is returned.
+        self.assertIsInstance(result, list)
+        self.assertGreater(len(result), 0)
+        self.assertTrue(all(isinstance(v, (int, float)) for v in result))
+
+    # ===================================================================
+    # Mock Server error-path tests.
+    # Kept intentionally: real APIs cannot reliably reproduce broken JSON,
+    # 404, or connection errors.
+    # ===================================================================
+
+    def test_api_models_return_defaults_for_malformed_local_response(self):
+        base_url = self._start_local_api_server()
+        chat = prepare_api_model(
+            "local-chat",
+            endpoint="/chat/broken-json",
+            **self._local_client_params(base_url),
+        )
+        self.assertEqual(chat([{"role": "user", "content": "hello"}]), "")
+        self.assertIsNone(chat.last_response)
+
+        embeddings = prepare_api_model(
+            "local-embedding",
+            endpoint="/embeddings/broken-json",
+            **self._local_client_params(base_url),
+        )
+        self.assertEqual(embeddings("hello"), [])
+
+        responses = prepare_api_model(
+            "local-response",
+            endpoint="/responses/broken-json",
+            **self._local_client_params(base_url),
+        )
+        self.assertEqual(responses("hello"), "")
+
+    def test_prepare_model_get_model_caching_with_mock_server(self):
+        """Model caching test uses Mock Server because it verifies identity
+        (same object returned), not API correctness."""
+        base_url = self._start_local_api_server()
+        free_models()
+        try:
+            model_key = prepare_model(
+                "api",
+                model="local-chat",
+                endpoint="/chat/completions",
+                **self._local_client_params(base_url),
+            )
+
+            first = get_model(model_key)
+            second = get_model(model_key)
+
+            self.assertIs(first, second)
+            self.assertIsNone(get_model(None))
+        finally:
+            free_models()
+
+
+# ===================================================================
+# DashScope / OpenAI compatibility tests — pure logic, no network.
+# ===================================================================
+class DashScopeOpenAICompatTest(DataJuicerTestCaseBase):
+    """Env merge + model remap for DashScope OpenAI-compatible REST."""
+
+    def test_merge_env_from_openai_and_dashscope_aliases(self):
+        from data_juicer.utils.model_utils import _merge_openai_compatible_env_into_model_params
+
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "",
+                "DASHSCOPE_API_KEY": "ds-key",
+                "OPENAI_API_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1/",
+            },
+            clear=False,
+        ):
+            m = _merge_openai_compatible_env_into_model_params({})
+        self.assertEqual(m.get("api_key"), "ds-key")
+        self.assertTrue(m["base_url"].endswith("/v1"))
+
+    def test_remap_gpt4o_on_dashscope_chat_only(self):
+        from data_juicer.utils.model_utils import _maybe_remap_model_for_dashscope
+
+        base = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        overrides = {"DASHSCOPE_DEFAULT_MODEL": "", "OPENAI_DEFAULT_MODEL": ""}
+        with patch.dict(os.environ, overrides, clear=False):
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope("gpt-4o", base, "/chat/completions"),
+                "qwen-plus",
+            )
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope("gpt-4o", base, "/embeddings"),
+                "gpt-4o",
+            )
+            self.assertEqual(
+                _maybe_remap_model_for_dashscope(
+                    "qwen-turbo", base, "/chat/completions"
+                ),
+                "qwen-turbo",
+            )
 
 
 if __name__ == '__main__':

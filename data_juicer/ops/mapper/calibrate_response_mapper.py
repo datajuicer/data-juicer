@@ -21,4 +21,10 @@ class CalibrateResponseMapper(CalibrateQAMapper):
         使其更加详细、准确，且仍可以回答原问题。只输出校准后的回答，不要输出多余内容。"
 
     def parse_output(self, raw_output):
+        if self.output_pattern != self.DEFAULT_OUTPUT_PATTERN:
+            import re
+
+            match = re.match(self.output_pattern, raw_output)
+            if match:
+                return None, match.group(match.lastindex).strip()
         return None, raw_output.strip()

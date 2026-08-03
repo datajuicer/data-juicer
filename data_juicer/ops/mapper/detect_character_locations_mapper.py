@@ -236,7 +236,7 @@ class DetectCharacterLocationsMapper(Mapper):
 
                 crop_image_filtered = crop_samples.map(
                     self.fused_ops[1].compute_stats,
-                    num_proc=self.image_text_matching_filter_args["num_proc"],
+                    num_proc=None,
                     with_rank=True,
                 )
                 os.remove(temp_image_path_yoloe)

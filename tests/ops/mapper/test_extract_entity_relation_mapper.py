@@ -4,8 +4,8 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_entity_relation_mapper import ExtractEntityRelationMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
 class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
 
@@ -62,23 +62,117 @@ class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        op = ExtractEntityRelationMapper(api_model='qwen2.5-72b-instruct')
+        op = ExtractEntityRelationMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op)
     
     def test_entity_types(self):
         op = ExtractEntityRelationMapper(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity_types=['人物', '组织', '地点', '物件', '武器', '武功'],
         )
         self._run_op(op)
     
     def test_max_gleaning(self):
         op = ExtractEntityRelationMapper(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity_types=['人物', '组织', '地点', '物件', '武器', '武功'],
             max_gleaning=5,
         )
         self._run_op(op)
+
+
+class ExtractEntityRelationParseOutputTest(DataJuicerTestCaseBase):
+
+    def _make_op(self):
+        return ExtractEntityRelationMapper(api_model='fake')
+
+    def test_parse_output_entities(self):
+        op = self._make_op()
+        raw_string = (
+            '("entity"<|>Alex<|>person<|>A character)\n'
+            '##\n'
+            '("entity"<|>Taylor<|>person<|>Another character)'
+        )
+        entities, relations = op.parse_output(raw_string)
+        self.assertEqual(len(entities), 2)
+        names = {e[MetaKeys.entity_name] for e in entities}
+        self.assertIn('Alex', names)
+        self.assertIn('Taylor', names)
+        for e in entities:
+            self.assertIn(MetaKeys.entity_type, e)
+            self.assertIn(MetaKeys.entity_description, e)
+
+    def test_parse_output_relations(self):
+        op = self._make_op()
+        raw_string = (
+            '("relationship"<|>Alex<|>Taylor<|>'
+            'They are friends<|>friendship<|>7)'
+        )
+        entities, relations = op.parse_output(raw_string)
+        self.assertEqual(len(entities), 0)
+        self.assertEqual(len(relations), 1)
+        rel = relations[0]
+        self.assertEqual(rel[MetaKeys.source_entity], 'Alex')
+        self.assertEqual(rel[MetaKeys.target_entity], 'Taylor')
+        self.assertEqual(rel[MetaKeys.relation_description], 'They are friends')
+        self.assertIsInstance(rel[MetaKeys.relation_strength], float)
+        self.assertEqual(rel[MetaKeys.relation_strength], 7.0)
+
+    def test_parse_output_malformed_entity(self):
+        op = self._make_op()
+        # Only 2 items instead of 3 -- should be skipped
+        raw_string = '("entity"<|>Alex<|>person)'
+        entities, relations = op.parse_output(raw_string)
+        self.assertEqual(len(entities), 0)
+        self.assertEqual(len(relations), 0)
+
+    def test_parse_output_malformed_relation(self):
+        op = self._make_op()
+        # Non-float strength -- should be skipped
+        raw_string = (
+            '("relationship"<|>Alex<|>Taylor<|>'
+            'They are friends<|>friendship<|>not_a_number)'
+        )
+        entities, relations = op.parse_output(raw_string)
+        self.assertEqual(len(entities), 0)
+        self.assertEqual(len(relations), 0)
+
+    def test_parse_output_empty(self):
+        op = self._make_op()
+        entities, relations = op.parse_output('')
+        self.assertEqual(len(entities), 0)
+        self.assertEqual(len(relations), 0)
+
+    def test_parse_output_quoted_items(self):
+        op = self._make_op()
+        raw_string = (
+            '("entity"<|>"Alex"<|>"person"<|>"A character")'
+        )
+        entities, relations = op.parse_output(raw_string)
+        self.assertEqual(len(entities), 1)
+        self.assertEqual(entities[0][MetaKeys.entity_name], 'Alex')
+        self.assertEqual(entities[0][MetaKeys.entity_type], 'person')
+        self.assertEqual(entities[0][MetaKeys.entity_description], 'A character')
+
+
+class ExtractEntityRelationEdgeCaseTest(DataJuicerTestCaseBase):
+
+    def test_already_generated_skip(self):
+        op = ExtractEntityRelationMapper(api_model='fake')
+        sample = {
+            'text': 'test text',
+            Fields.meta: {
+                MetaKeys.entity: [{'existing': True}],
+                MetaKeys.relation: [{'existing': True}],
+            },
+        }
+        result = op.process_single(sample)
+        self.assertEqual(
+            result[Fields.meta][MetaKeys.entity], [{'existing': True}])
+        self.assertEqual(
+            result[Fields.meta][MetaKeys.relation], [{'existing': True}])
 
 
 if __name__ == '__main__':

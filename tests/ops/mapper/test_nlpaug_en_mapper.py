@@ -235,5 +235,67 @@ class NlpaugEnMapperTest(DataJuicerTestCaseBase):
         self.assertEqual(len(result['meta']), len(result['text']))
 
 
+class NlpaugEnMapperBatchBugTest(DataJuicerTestCaseBase):
+    """Regression tests for batch processing bug where only the first
+    sample in a batch was augmented."""
+
+    def test_batch_only_augments_first_sample(self):
+        op = NlpaugEnMapper(
+            sequential=False,
+            aug_num=1,
+            keep_original_sample=True,
+            delete_random_word=True,
+        )
+        samples = {
+            'text': [
+                'The quick brown fox jumps over the lazy dog',
+                'Machine learning is transforming the world today',
+                'Natural language processing enables computers to understand text',
+            ],
+            'meta': ['meta1', 'meta2', 'meta3'],
+        }
+        result = op.process_batched(samples)
+        for original_text in samples['text']:
+            self.assertIn(original_text, result['text'])
+        self.assertEqual(len(result['text']), 6)
+        self.assertEqual(len(result['meta']), len(result['text']))
+
+    def test_batch_without_keep_original(self):
+        op = NlpaugEnMapper(
+            sequential=False,
+            aug_num=1,
+            keep_original_sample=False,
+            delete_random_word=True,
+        )
+        samples = {
+            'text': [
+                'The quick brown fox jumps over the lazy dog',
+                'Machine learning is transforming the world today',
+                'Natural language processing enables computers to understand text',
+            ],
+            'meta': ['meta1', 'meta2', 'meta3'],
+        }
+        result = op.process_batched(samples)
+        self.assertEqual(len(result['text']), 3)
+
+    def test_batch_sequential_mode(self):
+        op = NlpaugEnMapper(
+            sequential=True,
+            aug_num=2,
+            keep_original_sample=True,
+            delete_random_word=True,
+            swap_random_char=True,
+        )
+        samples = {
+            'text': [
+                'The quick brown fox jumps over the lazy dog',
+                'Machine learning is transforming the world today',
+            ],
+            'meta': ['meta1', 'meta2'],
+        }
+        result = op.process_batched(samples)
+        self.assertEqual(len(result['text']), 6)
+
+
 if __name__ == '__main__':
     unittest.main()

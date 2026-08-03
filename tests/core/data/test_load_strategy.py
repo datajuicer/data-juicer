@@ -1,21 +1,34 @@
-import unittest
-from unittest.mock import patch, MagicMock
-from data_juicer.core.data.load_strategy import (
-    DataLoadStrategyRegistry, DataLoadStrategy, StrategyKey,
-    DefaultLocalDataLoadStrategy,
-    DefaultHuggingfaceDataLoadStrategy,
-    RayLocalJsonDataLoadStrategy,
-    DefaultS3DataLoadStrategy,
-    RayS3DataLoadStrategy
-)
-from jsonargparse import Namespace
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
-from data_juicer.config import get_default_cfg
+import json
 import os
 import os.path as osp
-import json
 import shutil
+import tempfile
+import unittest
 import uuid
+from unittest.mock import patch, MagicMock
+
+from jsonargparse import Namespace
+
+from data_juicer.config import get_default_cfg
+from data_juicer.core.data.load_strategy import (
+    DataLoadStrategy,
+    DataLoadStrategyRegistry,
+    DefaultArxivDataLoadStrategy,
+    DefaultCommonCrawlDataLoadStrategy,
+    DefaultHuggingfaceDataLoadStrategy,
+    DefaultLocalDataLoadStrategy,
+    DefaultModelScopeDataLoadStrategy,
+    DefaultS3DataLoadStrategy,
+    DefaultWikiDataLoadStrategy,
+    RayLocalJsonDataLoadStrategy,
+    RayS3DataLoadStrategy,
+    StrategyKey,
+    DefaultHdfsDataLoadStrategy,
+    RayHdfsDataLoadStrategy,
+)
+from data_juicer.core.data.config_validator import ConfigValidationError
+from data_juicer.utils.constant import Fields
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, TEST_TAG
 
 WORK_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -278,6 +291,75 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         ds = strategy.load_data(num_proc=1, features=extra_features)
 
         self.assertIn("extra", ds.features)
+
+    def test_registry_uses_defaults_and_specific_patterns(self):
+        saved_strategies = DataLoadStrategyRegistry._strategies.copy()
+        self.addCleanup(
+            setattr, DataLoadStrategyRegistry, '_strategies', saved_strategies)
+        DataLoadStrategyRegistry._strategies = {}
+
+        class ConcreteDataLoadStrategy(DataLoadStrategy):
+            def load_data(self, **kwargs):
+                return kwargs
+
+        @DataLoadStrategyRegistry.register("*", "local", "*.jsonl")
+        class JsonLinesStrategy(ConcreteDataLoadStrategy):
+            pass
+
+        @DataLoadStrategyRegistry.register("ray", "local", "records.json?")
+        class QuestionPatternStrategy(ConcreteDataLoadStrategy):
+            pass
+
+        @DataLoadStrategyRegistry.register("ray", "local", "records.jsonl")
+        class ExactJsonLinesStrategy(ConcreteDataLoadStrategy):
+            pass
+
+        @DataLoadStrategyRegistry.register("default", "local", "*")
+        class LocalFileStrategy(ConcreteDataLoadStrategy):
+            pass
+
+        self.assertTrue(
+            StrategyKey("*", "local", "*.jsonl").matches(
+                StrategyKey("ray", "local", "records.jsonl")
+            )
+        )
+        self.assertIs(
+            DataLoadStrategyRegistry.get_strategy_class("ray", "local", "records.json1"),
+            QuestionPatternStrategy,
+        )
+        self.assertIs(
+            DataLoadStrategyRegistry.get_strategy_class("ray", "local", "records.jsonl"),
+            ExactJsonLinesStrategy,
+        )
+        self.assertIs(
+            DataLoadStrategyRegistry.get_strategy_class(None, "local", "records.jsonl"),
+            JsonLinesStrategy,
+        )
+        self.assertIs(
+            DataLoadStrategyRegistry.get_strategy_class("default", "local", "records.csv"),
+            LocalFileStrategy,
+        )
+        self.assertIsNone(
+            DataLoadStrategyRegistry.get_strategy_class("ray", "remote", "records.csv")
+        )
+
+    def test_default_local_strategy_loads_jsonl_with_suffix_filter_enabled(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_path = os.path.join(tmpdir, "records.jsonl")
+            with open(data_path, "w", encoding="utf-8") as f:
+                f.write(json.dumps({"text": "alpha"}) + "\n")
+                f.write(json.dumps({"text": "beta"}) + "\n")
+
+            cfg = Namespace(
+                text_keys=["text"], suffixes=None, process=[{"suffix_filter": {}}]
+            )
+            strategy = DefaultLocalDataLoadStrategy({"path": data_path}, cfg)
+            dataset = strategy.load_data(num_proc=1)
+
+        rows = dataset.to_list()
+        self.assertEqual([row["text"] for row in rows], ["alpha", "beta"])
+        self.assertIn(Fields.suffix, dataset.features)
+        self.assertEqual({row[Fields.suffix] for row in rows}, {".jsonl"})
 
     @patch("data_juicer.core.data.load_strategy.datasets.load_dataset")
     def test_huggingface_strategy_forwards_load_dataset_kwargs(self, mock_load_dataset):
@@ -658,6 +740,177 @@ class TestRayS3DataLoadStrategy(DataJuicerTestCaseBase):
         self.assertEqual(strategy.ds_config["aws_session_token"], "test_token")
         self.assertEqual(strategy.ds_config["aws_region"], "us-east-1")
         self.assertEqual(strategy.ds_config["endpoint_url"], "https://s3.amazonaws.com")
+
+
+class UnimplementedRemoteStrategiesTest(DataJuicerTestCaseBase):
+    def test_unimplemented_remote_strategies_raise(self):
+        cfg = Namespace(text_keys=["text"])
+        cases = [
+            (DefaultModelScopeDataLoadStrategy, {"path": "modelscope_name"}),
+            (DefaultArxivDataLoadStrategy, {"path": "2026.00001"}),
+            (DefaultWikiDataLoadStrategy, {"path": "enwiki"}),
+            (
+                DefaultCommonCrawlDataLoadStrategy,
+                {"start_snapshot": "2023-06", "end_snapshot": "2023-14"},
+            ),
+        ]
+
+        for strategy_cls, ds_config in cases:
+            with self.subTest(strategy=strategy_cls.__name__):
+                strategy = strategy_cls(ds_config, cfg)
+                with self.assertRaises(NotImplementedError):
+                    strategy.load_data()
+
+
+class LocalAndS3PathValidationTest(DataJuicerTestCaseBase):
+    def test_local_and_s3_strategies_reject_missing_or_invalid_paths(self):
+        with tempfile.TemporaryDirectory() as work_dir:
+            cfg = Namespace(work_dir=work_dir, text_keys=["text"])
+            missing = RayLocalJsonDataLoadStrategy(
+                {"path": "missing/records.jsonl"}, cfg
+            )
+            with self.assertRaises(FileNotFoundError):
+                missing.load_data()
+
+            default_s3 = DefaultS3DataLoadStrategy(
+                {"path": "https://bucket/records.jsonl"}, cfg
+            )
+            with self.assertRaises(ValueError):
+                default_s3.load_data()
+
+            ray_s3 = RayS3DataLoadStrategy(
+                {"path": "https://bucket/records.jsonl"}, cfg
+            )
+            with self.assertRaises(ValueError):
+                ray_s3.load_data()
+
+
+class TestDefaultHdfsDataLoadStrategy(DataJuicerTestCaseBase):
+    """Test cases for DefaultHdfsDataLoadStrategy"""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = get_default_cfg()
+        self.cfg.text_keys = ["text"]
+
+    def test_strategy_registration(self):
+        """Test that DefaultHdfsDataLoadStrategy is registered correctly"""
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="default", data_type="remote", data_source="hdfs"
+        )
+        self.assertIsNotNone(strategy_class)
+        self.assertEqual(strategy_class, DefaultHdfsDataLoadStrategy)
+
+    def test_config_validation_valid_path(self):
+        """Test config validation with valid HDFS path"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl"
+        }
+        strategy = DefaultHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["path"], "hdfs://namenode:8020/user/data/file.jsonl")
+
+    def test_config_validation_invalid_path(self):
+        """Test config validation with invalid HDFS path"""
+        from data_juicer.utils.hdfs_utils import validate_hdfs_path
+
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "s3://bucket/file.jsonl"  # Not hdfs://
+        }
+
+        with self.assertRaises(ValueError) as ctx:
+            validate_hdfs_path(ds_config["path"])
+        self.assertIn("hdfs://", str(ctx.exception))
+
+    def test_config_validation_optional_fields(self):
+        """Test config validation with optional HDFS fields"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl",
+            "hdfs_host": "namenode",
+            "hdfs_port": 8020,
+            "hdfs_user": "data_juicer",
+            "hdfs_kerb_ticket": "/tmp/krb5cc",
+            "hdfs_extra_conf": {"dfs.replication": "3"},
+        }
+        strategy = DefaultHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["hdfs_host"], "namenode")
+        self.assertEqual(strategy.ds_config["hdfs_port"], 8020)
+        self.assertEqual(strategy.ds_config["hdfs_user"], "data_juicer")
+        self.assertEqual(strategy.ds_config["hdfs_kerb_ticket"], "/tmp/krb5cc")
+        self.assertEqual(strategy.ds_config["hdfs_extra_conf"], {"dfs.replication": "3"})
+
+    def test_config_validation_missing_required_path(self):
+        """Test that missing required path field raises error"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+        }
+        with self.assertRaises((ConfigValidationError, ValueError, KeyError)):
+            DefaultHdfsDataLoadStrategy(ds_config, self.cfg)
+
+
+class TestRayHdfsDataLoadStrategy(DataJuicerTestCaseBase):
+    """Test cases for RayHdfsDataLoadStrategy"""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = get_default_cfg()
+        self.cfg.text_keys = ["text"]
+
+    def test_strategy_registration(self):
+        """Test that RayHdfsDataLoadStrategy is registered correctly"""
+        strategy_class = DataLoadStrategyRegistry.get_strategy_class(
+            executor_type="ray", data_type="remote", data_source="hdfs"
+        )
+        self.assertIsNotNone(strategy_class)
+        self.assertEqual(strategy_class, RayHdfsDataLoadStrategy)
+
+    def test_config_validation_valid_path(self):
+        """Test config validation with valid HDFS path"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl"
+        }
+        strategy = RayHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["path"], "hdfs://namenode:8020/user/data/file.jsonl")
+
+    def test_config_validation_invalid_path(self):
+        """Test config validation with invalid HDFS path"""
+        from data_juicer.utils.hdfs_utils import validate_hdfs_path
+
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "/local/path/file.jsonl"
+        }
+
+        with self.assertRaises(ValueError) as ctx:
+            validate_hdfs_path(ds_config["path"])
+        self.assertIn("hdfs://", str(ctx.exception))
+
+    def test_config_validation_optional_fields(self):
+        """Test config validation with optional HDFS fields"""
+        ds_config = {
+            "type": "remote",
+            "source": "hdfs",
+            "path": "hdfs://namenode:8020/user/data/file.jsonl",
+            "format": "jsonl",
+            "hdfs_host": "namenode",
+            "hdfs_port": 8020,
+            "hdfs_user": "data_juicer",
+        }
+        strategy = RayHdfsDataLoadStrategy(ds_config, self.cfg)
+        self.assertEqual(strategy.ds_config["hdfs_host"], "namenode")
+        self.assertEqual(strategy.ds_config["hdfs_port"], 8020)
+        self.assertEqual(strategy.ds_config["format"], "jsonl")
+
+
 
 
 if __name__ == '__main__':

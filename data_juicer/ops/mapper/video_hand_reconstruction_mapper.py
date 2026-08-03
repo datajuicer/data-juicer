@@ -23,7 +23,7 @@ OP_NAME = "video_hand_reconstruction_mapper"
 # Note that pyrender requires numpy==1.26 to correctly generate rendering results.
 
 numpy = LazyLoader("numpy")
-cv2 = LazyLoader("cv2", "opencv-python")
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 torch = LazyLoader("torch")
 
 
@@ -99,6 +99,8 @@ class VideoHandReconstructionMapper(Mapper):
             "duration": duration,
             "frame_dir": frame_dir,
             "frame_key": MetaKeys.video_frames,
+            "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
+            "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
         self.fused_ops = load_ops([{"video_extract_frames_mapper": self.video_extract_frames_mapper_args}])
         self.model_key = prepare_model(

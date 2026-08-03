@@ -17,7 +17,7 @@ classifiers = [
 
 # Core dependencies
 dependencies = [
-    "datasets>=2.19.0", # core data loading
+    "datasets>=4.7.0", # core data loading
     "fsspec==2023.5.0", # file system operations
     "pandas", # data manipulation
     "numpy>=1.26.4,<2.0.0", # numerical operations
@@ -32,33 +32,19 @@ dependencies = [
     "psutil", # system monitoring
     "pydantic>=2.0", # data validation
     "uv",
-    "wordcloud==1.9.4",
-    "spacy==3.8.7",
     "httpx",
-    "av==13.1.0", # video/audio handling
     "emoji==2.2.0", # emoji handling
     "tabulate",
-    "librosa>=0.10",
-    "resampy",
-    "samplerate==0.1.0",
-    "bs4",
-    "matplotlib",
-    "plotly", # interactive plots
-    "seaborn",
+    "beautifulsoup4",
     "requests",
     "wget",
-    "pdfplumber",
-    "python-docx",
     "streamlit",
     "Pillow",
-    "fastapi>=0.110",
     "mwparserfromhell",
     "regex", # regular expressions
     "tomli",
     "tomli-w",
     "gitpython",
-    "mcp[cli]>=1.7.0",
-    "pylance",
     "dep-logic",
 ]
 
@@ -72,12 +58,12 @@ generic = [
     "vllm==0.11.0",  # LLM serving
     "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "onnxruntime",  # ONNX runtime
-    "cudf-cu12==25.4.0", # dataframe on GPU
+    "cudf-cu12==25.10.0; sys_platform == 'linux'",  # dataframe on GPU (Linux only)
 ]
 
 # Computer Vision
 vision = [
-    "opencv-python",  # OpenCV
+    "av==13.1.0", # video/audio handling
     "opencv-contrib-python",
     "imagededup",  # Image deduplication
     "diffusers>=0.33.0",  # Diffusion models
@@ -85,10 +71,20 @@ vision = [
     "scenedetect[opencv]",  # Scene detection
     "ultralytics",  # YOLO models
     "rembg",  # Background removal
-    "decord", # video/audio handling
+    "decord; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')", # video/audio handling (no aarch64/macOS py3.10+ wheel)
     "qwen-vl-utils==0.0.14",  # for Qwen-VL
     "ptlflow==0.4.1",  # optical flow models collection
     "timm==1.0.22",  # avoid importing issue in the latest v1.0.23
+    # --- HumanVBench (CVPR 2026) face/video ops ---
+    # These ops additionally need ffmpeg/ffprobe binaries on PATH (VideoLLaMA3
+    # video loading) and a flash-attn build matching the local torch/CUDA; the
+    # matching prebuilt flash-attn wheel should be installed manually since a
+    # plain `pip install flash-attn` triggers a slow source build.
+    "deepface==0.0.100",  # face age/gender/race demographic op
+    "tf-keras==2.21.0",  # required by deepface on TensorFlow>=2.16
+    "imageio>=2.37",  # required by VideoLLaMA3 remote code
+    "imageio-ffmpeg>=0.6",  # ffmpeg backend for imageio
+    "scipy",  # signal/interpolation/wavfile for face-track ASD ops
 ]
 
 # Natural Language Processing
@@ -107,25 +103,34 @@ nlp = [
     "opencc==1.1.9",  # Chinese conversion
     "spacy-pkuseg",  # Chinese segmentation
     "rouge",  # Text evaluation
+    "pdfplumber",  # For PDF input and processing
+    "spacy==3.8.7",
+    "python-docx",  # For docx input and processing
 ]
 
 # Audio Processing
 audio = [
+    "librosa>=0.10",
+    "resampy",
+    "samplerate==0.1.0",
     "torchaudio",  # Audio processing with PyTorch
-    "torchcodec==0.7",
+    "torchcodec==0.7; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'darwin' and platform_machine == 'arm64') or (sys_platform == 'win32' and platform_machine == 'AMD64')", # only platforms with 0.7 wheels
     "soundfile",  # audio handling
     "ffmpeg-python",
     "audiomentations",
+    "funasr==1.3.14",  # SenseVoice-based ASR / speech-emotion ops (HumanVBench)
 ]
 
 # Distributed Computing
 distributed = [
     "ray[default]>=2.51.0",  # distributed computing
+    "pandas<3",  # Ray Data versions supported by Data-Juicer are not compatible with pandas 3
     "uvloop==0.21.0",  # avoid async error before it's fixed in uvloop
     "pyspark==3.5.5",  # distributed data processing
     "s3fs",  # S3 filesystem support for cloud storage
     "boto3",  # AWS SDK for S3 operations
     "bitarray", # efficient arrays of booleans
+    "pylance",  # to support I/O for lance data in ray mode
 ]
 
 # Development & Tools
@@ -139,7 +144,7 @@ dev = [
     "myst_parser",
     "linkify-it-py",
     "recommonmark",
-    "wandb<=0.19.0",
+    "wandb>=0.19.11,<0.22",  # >=0.19.11 lifts protobuf cap to <7, compatible with tensorflow 2.21 (protobuf>=6.31); old <=0.19.0 pin (added in #512 to dodge a 0.19.x bug) forced protobuf<6 and clashed with TF
     "fire",
     "click",
     "toml",  # for yapf configuration
@@ -158,6 +163,15 @@ ai_services = [
     "label-studio==1.17.0",  # Data labeling
 ]
 
+# tools, including analysis, mcp, ...
+tools = [
+    "matplotlib",  # For drawing analysis results
+    "wordcloud==1.9.4",  # For drawing word clouds
+    "mcp[cli]>=1.7.0",  # For mcp service
+    "rank-bm25>=0.2.2",  # For OP search
+    "fastapi>=0.110",  # For using data-juicer in a service way
+]
+
 
 # All dependencies (default + all optional)
 all = [
@@ -168,6 +182,7 @@ all = [
     "py-data-juicer[distributed]",
     "py-data-juicer[dev]",
     "py-data-juicer[ai_services]",
+    "py-data-juicer[tools]",
 ]
 
 [project.scripts]
@@ -231,4 +246,11 @@ addopts = "-v"
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
+]
+
+[tool.uv]
+override-dependencies = [
+    "opencv-python; sys_platform == 'never'",
+    "opencv-python-headless; sys_platform == 'never'",
+    "opencv-contrib-python-headless; sys_platform == 'never'", # never install other versions of opencv-python
 ]

@@ -4,17 +4,18 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_event_mapper import ExtractEventMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class ExtractEventMapperTest(DataJuicerTestCaseBase):
 
 
-    def _run_op(self, api_model, response_path=None):
+    def _run_op(self, api_model, response_path=None, sampling_params=None):
 
         op = ExtractEventMapper(api_model=api_model,
                                response_path=response_path,
+                               sampling_params=sampling_params,
                                index_key='chunk_id')
 
         raw_text = """△芩婆走到中间，看着众人。
@@ -69,7 +70,43 @@ class ExtractEventMapperTest(DataJuicerTestCaseBase):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
+
+
+class ExtractEventParseOutputTest(DataJuicerTestCaseBase):
+
+    def _make_op(self):
+        return ExtractEventMapper(api_model='fake')
+
+    def test_parse_output_normal(self):
+        op = self._make_op()
+        raw_string = (
+            '### 情节1：\n'
+            '- **情节描述**： 芩婆揭露了李相夷的身世真相\n'
+            '- **相关人物**：芩婆，李相夷，单孤刀\n'
+            '### 情节2：\n'
+            '- **情节描述**： 封磬得知认错了主人\n'
+            '- **相关人物**：封磬，李莲花\n'
+        )
+        event_list, character_list = op.parse_output(raw_string)
+        self.assertEqual(len(event_list), 2)
+        self.assertEqual(len(character_list), 2)
+        self.assertIn('芩婆揭露了李相夷的身世真相', event_list[0])
+        self.assertIn('芩婆', character_list[0])
+        self.assertIn('封磬', character_list[1])
+
+    def test_parse_output_empty(self):
+        op = self._make_op()
+        event_list, character_list = op.parse_output('')
+        self.assertEqual(len(event_list), 0)
+        self.assertEqual(len(character_list), 0)
+
+    def test_parse_output_no_match(self):
+        op = self._make_op()
+        raw_string = 'This is some random text with no matching pattern.'
+        event_list, character_list = op.parse_output(raw_string)
+        self.assertEqual(len(event_list), 0)
+        self.assertEqual(len(character_list), 0)
 
 
 if __name__ == '__main__':

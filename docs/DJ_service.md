@@ -90,29 +90,65 @@ The Data-Juicer MCP server provides data processing operators to assist in tasks
 - Recipe-Flow: Allows filtering operators by type and tags, and supports combining multiple operators into a data recipe for execution.
 - Granular-Operators: Provides each operator as an independent tool, allowing you to flexibly specify a list of operators to use via environment variables, thus building a customized data processing pipeline.
 
-Please note that the Data-Juicer MCP server is currently in early development. Its features and available tools may change and expand as we continue to develop and improve the server.
+Please note that the Data-Juicer MCP server features and available tools may change and expand as we continue to develop and improve the server.
 
-The server supports two deployment methods: **stdio** and **SSE**. The **stdio** method does not support multiprocessing. If you require multiprocessing or multithreading capabilities, you must use the **SSE** deployment method. Configuration details for each method are provided below.
+The server supports two deployment methods: **stdio** and **streamable-http**. The **stdio** method does not support multiprocessing. If you require multiprocessing or multithreading capabilities, you must use the **streamable-http** deployment method. Configuration details for each method are provided below.
 
 ### Recipe-Flow
 
-1. `get_data_processing_ops`
-   - Retrieves a list of available data processing operators based on the specified type and tags (if unspecified, returns all operators)
-   - Input:
-     - `op_type` (str, optional): The type of data processing operator to retrieve
-     - `tags` (List[str], optional): A list of tags to filter operators
-     - `match_all` (bool): Whether all specified tags must match. Default is True
-   - Returns: A dictionary containing details about the available operators
+The Recipe-Flow mode provides the following MCP tools:
 
-2. `run_data_recipe`
-   - Executes a data recipe
-   - Input:
-     - `dataset_path` (str): The path to the dataset to be processed
-     - `process` (List[Dict]): A list of processing steps to execute, where each dictionary contains an operator name and a parameter dictionary
-     - `export_path` (str, optional): The path to export the dataset to. Default is None, meaning the dataset will be exported to './outputs'
-   - Returns: A string representing the execution result
+#### 1. search_ops
+- Search for available data processing operators with multiple search modes
+- Input:
+  - `query` (str, optional): Search query string. Required for "keyword" and "bm25" modes
+  - `op_type` (str, optional): The type of data processing operator to filter by (aggregator / deduplicator / filter / grouper / mapper / selector / pipeline)
+  - `tags` (List[str], optional): A list of tags to filter operators (Modality: text / image / audio / video / multimodal; Resource: cpu / gpu; Model: api / vllm / hf)
+  - `match_all` (bool): Whether all specified tags must match. Default is True
+  - `search_mode` (str): Search strategy — "tags" (filter by type and tags, default), "regex" (regex pattern matching), or "bm25" (BM25 text relevance ranking)
+  - `top_k` (int): Maximum number of results for "bm25" mode. Default is 10
+- Returns: A dictionary containing details about the matched operators
 
-For specific data processing requests, the MCP client should first call `get_data_processing_ops` to obtain relevant operator information, select the operators that meet the requirements, and then call `run_data_recipe` to execute the chosen operator combination.
+#### 2. get_global_config_schema
+- Dynamically retrieves the full schema of all available global configuration options (parameter name, type, default value, description)
+- No input parameters required
+- Returns: A config schema dictionary, useful for discovering what options can be passed to `run_data_recipe` and `analyze_dataset` via the `extra_config` parameter
+
+#### 3. get_dataset_load_strategies
+- Dynamically retrieves all available dataset loading strategies and their configuration rules
+- No input parameters required
+- Returns: Information about each strategy including executor_type, data_type, data_source, required/optional fields, etc. Useful for understanding how to configure the `dataset` parameter in `run_data_recipe` and `analyze_dataset` for different data sources (local files, HuggingFace, S3, etc.)
+
+#### 4. run_data_recipe
+- Executes a data processing recipe (equivalent to `dj-process`)
+- Input:
+  - `process` (List[Dict]): A list of processing steps to execute, where each dictionary contains an operator name and its parameter dictionary
+  - `dataset_path` (str, optional): The path to the dataset to be processed (simple mode for local files)
+  - `dataset` (Dict, optional): Advanced dataset configuration supporting multiple data sources. Format: `{"configs": [{"type": "local", "path": "..."}], "max_sample_num": 10000}`. Use `get_dataset_load_strategies` to discover available options
+  - `export_path` (str, optional): The path to export the processed dataset. Default is None, exporting to './outputs'
+  - `np` (int): Number of processes to use. Default is 1
+  - `extra_config` (Dict, optional): Additional global configuration options. Use `get_global_config_schema` to discover all available options. Example: `{"open_tracer": true, "trace_num": 20, "op_fusion": true}`
+- Returns: A string representing the execution result
+
+#### 5. analyze_dataset
+- Analyzes dataset quality distribution (equivalent to `dj-analyze`)
+- Computes statistics for specified filter/tagging operators, performs overall analysis, column-wise analysis, and correlation analysis, generating stats tables and distribution figures
+- Input:
+  - `process` (List[Dict]): A list of filter/tagging operators to compute stats for
+  - `dataset_path` (str, optional): The path to the dataset to be analyzed
+  - `dataset` (Dict, optional): Advanced dataset configuration (same as `run_data_recipe`)
+  - `export_path` (str, optional): The path to export the analysis results
+  - `np` (int): Number of processes to use. Default is 1
+  - `percentiles` (List[float], optional): Percentiles for distribution analysis. Default is [0.25, 0.5, 0.75]
+  - `extra_config` (Dict, optional): Additional global configuration options (same as `run_data_recipe`)
+- Returns: A string indicating where the analysis results are saved
+
+#### Typical Workflow
+
+1. **Search operators**: Call `search_ops` to find suitable operators (supports tag filtering, keyword search, or BM25 natural language search)
+2. **Discover configuration**: Optionally call `get_global_config_schema` and `get_dataset_load_strategies` to discover available configuration options and data sources
+3. **Analyze dataset**: Call `analyze_dataset` to analyze dataset quality distribution and determine appropriate filter thresholds
+4. **Execute processing**: Based on the analysis results, call `run_data_recipe` to execute the actual data processing
 
 ### Granular-Operators
 
@@ -228,18 +264,18 @@ Run the latest version of Data-Juicer MCP directly from the repository without m
   }
   ```
 
-#### SSE
+#### streamable-http
 
-To use SSE deployment, first start the MCP server separately.
+To use streamable-http deployment, first start the MCP server separately.
 
 1. Run the MCP server: Execute the MCP server script and specify the port number:
    - Using uvx:
      ```bash
-     uvx --from git+https://github.com/datajuicer/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
+     uvx --from git+https://github.com/datajuicer/data-juicer dj-mcp <MODE: recipe-flow/granular-ops> --transport streamable-http --port 8080
      ```
    - Local execution:
      ```bash
-     uv run dj-mcp <MODE: recipe-flow/granular-ops> --transport sse --port 8080
+     uv run dj-mcp <MODE: recipe-flow/granular-ops> --transport streamable-http --port 8080
      ```
 
 2. Configure your MCP client: Add the following to the MCP client's configuration file:
@@ -247,13 +283,13 @@ To use SSE deployment, first start the MCP server separately.
    {
      "mcpServers": {
        "DJ_MCP": {
-         "url": "http://127.0.0.1:8080/sse"
+         "url": "http://127.0.0.1:8080/mcp"
        }
      }
    }
    ```
 
 Notes:
-- URL: The `url` should point to the SSE endpoint of the running server (typically `http://127.0.0.1:<port>/sse`). Adjust the port number if a different value was used when starting the server.
-- Separate server process: The SSE server must be running before the MCP client attempts to connect.
+- URL: The `url` should point to the mcp endpoint of the running server (typically `http://127.0.0.1:<port>/mcp`). Adjust the port number if a different value was used when starting the server.
+- Separate server process: The streamable-http server must be running before the MCP client attempts to connect.
 - Firewall: Ensure the firewall allows connections to the specified port.

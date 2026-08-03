@@ -367,6 +367,67 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
             self.assertEqual(result, "failed")
 
 
+    # ==================== Path Resolution Tests ====================
+    # These cover the ray-mode path handling in PartitionedRayExecutor:
+    # Ray workers may run with a different working directory than the main
+    # process, so relative work_dir / checkpoint_dir must be resolved to
+    # absolute paths, while remote URIs and empty values must be preserved.
+
+    @TEST_TAG('ray')
+    def test_resolve_relative_path_to_absolute(self):
+        """Relative local paths should be converted to absolute paths."""
+        rel_path = os.path.join('.', 'tmp', 'ckpt')
+        resolved = PartitionedRayExecutor._resolve_local_path(rel_path)
+        self.assertTrue(os.path.isabs(resolved))
+        self.assertEqual(resolved, os.path.abspath(rel_path))
+
+    @TEST_TAG('ray')
+    def test_resolve_absolute_path_preserved(self):
+        """Normalized absolute local paths should pass through unchanged."""
+        abs_path = os.path.abspath(os.path.join(self.tmp_dir, 'checkpoints'))
+        resolved = PartitionedRayExecutor._resolve_local_path(abs_path)
+        self.assertEqual(resolved, abs_path)
+        # Applying resolution again must not change an already-absolute path
+        self.assertEqual(PartitionedRayExecutor._resolve_local_path(resolved), abs_path)
+
+    @TEST_TAG('ray')
+    def test_resolve_remote_uri_not_corrupted(self):
+        """Remote URIs must not be mangled by absolute-path conversion."""
+        for uri in ['s3://bucket/ckpt', 'gs://bucket/ckpt', 'hdfs://ns/ckpt']:
+            resolved = PartitionedRayExecutor._resolve_local_path(uri)
+            self.assertEqual(resolved, uri)
+
+    @TEST_TAG('ray')
+    def test_resolve_empty_path_no_error(self):
+        """Empty/None paths should pass through without raising TypeError."""
+        self.assertIsNone(PartitionedRayExecutor._resolve_local_path(None))
+        self.assertEqual(PartitionedRayExecutor._resolve_local_path(''), '')
+
+    @TEST_TAG('ray')
+    def test_executor_resolves_relative_work_dir_and_checkpoint_dir(self):
+        """End-to-end: relative work_dir/checkpoint_dir become absolute on the
+        executor and its checkpoint manager."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '2',
+            '--checkpoint.enabled', 'true'
+        ])
+        abs_work_dir = os.path.join(self.tmp_dir, 'test_relative_work_dir')
+        os.makedirs(abs_work_dir, exist_ok=True)
+        cfg.export_path = os.path.join(abs_work_dir, 'res.jsonl')
+        # Provide a relative work_dir to mimic './tmp/...' usage
+        cfg.work_dir = os.path.relpath(abs_work_dir, os.getcwd())
+
+        executor = PartitionedRayExecutor(cfg)
+
+        # work_dir on the executor must be absolute and point to the same place
+        self.assertTrue(os.path.isabs(executor.work_dir))
+        self.assertEqual(os.path.realpath(executor.work_dir), os.path.realpath(abs_work_dir))
+        # checkpoint dir handed to the manager must be absolute too, so that
+        # Ray workers write to the correct location
+        self.assertTrue(os.path.isabs(executor.ckpt_manager.ckpt_dir))
+
     # ==================== Edge Case Tests ====================
 
     @TEST_TAG('ray')

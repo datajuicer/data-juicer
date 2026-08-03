@@ -16,7 +16,7 @@ def stats_to_number(s, reverse=True):
     try:
         if isinstance(s, str):
             return float(s)
-        if s is None or s == []:
+        if s is None or (isinstance(s, list) and len(s) == 0):
             raise ValueError("empty value")
         return float(np.asarray(s).mean())
     except Exception:

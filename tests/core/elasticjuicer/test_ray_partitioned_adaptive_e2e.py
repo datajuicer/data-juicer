@@ -99,13 +99,19 @@ class ElasticJuicerRayPartitionedAdaptiveE2ETest(DataJuicerTestCaseBase):
         cfg.update(overrides)
         return cfg
 
-    def _build_executor(self, cfg, num_partitions=2, checkpoint_enabled=False):
+    def _build_executor(self, cfg, num_partitions=2, checkpoint_enabled=False, max_concurrent_partitions=None):
         # Instantiate only the joint data path under test; dataset loading,
         # export and event logging are out of PR-RP-EJ-1 scope.
         executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
         executor.cfg = cfg
         executor.executor_type = "ray_partitioned"
         executor.num_partitions = num_partitions
+        # Concurrent partition execution (upstream #1022) reads this before
+        # submitting partition worker threads. Default lets every partition
+        # run at once; sequential-semantics tests pin it to 1 explicitly.
+        executor.max_concurrent_partitions = (
+            max_concurrent_partitions if max_concurrent_partitions is not None else num_partitions
+        )
         executor.pipeline_dag = None
         executor.event_logger = None  # EventLoggingMixin._log_event degrades to a no-op
         executor.ckpt_manager = RayCheckpointManager(
@@ -161,7 +167,14 @@ class ElasticJuicerRayPartitionedAdaptiveE2ETest(DataJuicerTestCaseBase):
     def test_partitioned_adaptive_is_lossless_and_shares_job_scoped_services(self):
         values = list(range(80))
         cfg = self._elastic_cfg("ej-rp-lossless")
-        executor = self._build_executor(cfg, num_partitions=2, checkpoint_enabled=False)
+        executor = self._build_executor(
+            cfg,
+            num_partitions=2,
+            checkpoint_enabled=False,
+            # Sequential partitions keep the per-partition OOM/retry event
+            # ordering this losslessness assertion relies on.
+            max_concurrent_partitions=1,
+        )
         source = self._source_dataset(values, cfg)
         operator = self._operator("rp_threshold_single", increment=3)
 
@@ -338,7 +351,14 @@ class ElasticJuicerRayPartitionedAdaptiveE2ETest(DataJuicerTestCaseBase):
         # seeded ones (always succeeds).
         values = list(range(128))
         cfg = self._elastic_cfg("ej-rp-profile-seed", elastic_juicer_profile_seed=True)
-        executor = self._build_executor(cfg, num_partitions=2, checkpoint_enabled=False)
+        executor = self._build_executor(
+            cfg,
+            num_partitions=2,
+            checkpoint_enabled=False,
+            # Profile inheritance requires partition N+1 to start after
+            # partition N reported its learned bounds; run sequentially.
+            max_concurrent_partitions=1,
+        )
         source = self._source_dataset(values, cfg)
         operator = self._operator("rp_threshold_seeded", increment=1)
 

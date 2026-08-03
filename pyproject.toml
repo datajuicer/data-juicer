@@ -7,7 +7,7 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "Apache-2.0"}
-requires-python = ">=3.10"
+requires-python = ">=3.10,<4"
 urls = {repository = "https://github.com/datajuicer/data-juicer"}
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -20,7 +20,7 @@ dependencies = [
     "datasets>=4.7.0", # core data loading
     "fsspec==2023.5.0", # file system operations
     "pandas", # data manipulation
-    "numpy>=1.26.4,<2.0.0", # numerical operations
+    "numpy>=1.26.4", # numerical operations
     "loguru", # logging
     "tqdm", # progress bars
     "jsonargparse[signatures]", # configuration
@@ -68,7 +68,7 @@ vision = [
     "imagededup",  # Image deduplication
     "diffusers>=0.33.0",  # Diffusion models
     "simple-aesthetics-predictor",  # Image aesthetics
-    "scenedetect[opencv]",  # Scene detection
+    "scenedetect",  # Scene detection
     "ultralytics",  # YOLO models
     "rembg",  # Background removal
     "decord; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')", # video/audio handling (no aarch64/macOS py3.10+ wheel)
@@ -160,7 +160,7 @@ dev = [
 ai_services = [
     "dashscope",  # Alibaba Cloud AI
     "openai",  # OpenAI API
-    "label-studio==1.17.0",  # Data labeling
+    "label-studio>=1.23.0",  # Data labeling
 ]
 
 # tools, including analysis, mcp, ...

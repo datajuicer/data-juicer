@@ -407,3 +407,57 @@ class ElasticJuicerRayPartitionedAdaptiveE2ETest(DataJuicerTestCaseBase):
             self.assertLessEqual(profiles[0].oom_upper_bound, 16)
         finally:
             self._shutdown_job_services(cfg)
+
+    @TEST_TAG("ray")
+    def test_concurrent_partitions_keep_one_stage_identity_and_seed_late_partition(self):
+        import ray
+
+        # Upstream #1022 deep-copies the operator graph per concurrent
+        # partition. The executor must stamp clone-stable identities before
+        # cloning so all partitions share one stage (profile merge target),
+        # and a partition admitted after earlier ones reported bounds must
+        # start seeded instead of re-probing.
+        values = list(range(192))  # 3 partitions x 64 rows = two 32-row batches
+        cfg = self._elastic_cfg("ej-rp-concurrent-seed", elastic_juicer_profile_seed=True)
+        executor = self._build_executor(
+            cfg,
+            num_partitions=3,
+            checkpoint_enabled=False,
+            # Two slots for three partitions force one staggered admission,
+            # giving the late partition a profile to inherit.
+            max_concurrent_partitions=2,
+        )
+        source = self._source_dataset(values, cfg)
+        operator = self._operator("rp_threshold_concurrent", increment=1)
+
+        try:
+            result = executor._process_with_simple_partitioning(source, [operator])
+            rows = result.data.take_all()
+            self.assertEqual(sorted(row["value"] for row in rows), [value + 1 for value in values])
+
+            metrics = self._wait_for_complete_metrics(cfg["_elastic_juicer_metrics_sink"])
+            stage_ids = {event.stage_id for event in metrics["events"]}
+            # Clone-stable identity: exactly one stage across all partitions.
+            self.assertEqual(len(stage_ids), 1)
+
+            first_events = {}
+            for event in metrics["events"]:
+                current = first_events.get(event.actor_incarnation_id)
+                if current is None or event.sequence < current.sequence:
+                    first_events[event.actor_incarnation_id] = event
+            seeded = [
+                event
+                for event in first_events.values()
+                if event.snapshot.succeeded
+                and event.control is not None
+                and event.control.local_oom_upper_bound is not None
+            ]
+            # The staggered partition inherits bounds instead of re-probing.
+            self.assertGreaterEqual(len(seeded), 1)
+
+            control_snapshot = ray.get(cfg["_elastic_juicer_control_service"].snapshot.remote())
+            profiles = control_snapshot["stage_profiles"]
+            self.assertEqual(len(profiles), 1)
+            self.assertEqual(profiles[0].safe_batch_size, 8)
+        finally:
+            self._shutdown_job_services(cfg)

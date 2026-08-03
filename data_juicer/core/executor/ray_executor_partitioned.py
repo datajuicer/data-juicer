@@ -454,6 +454,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Prepare operations
         logger.info("Preparing operations...")
         ops = self._prepare_operators()
+        self._ensure_elastic_juicer_stage_identities(ops)
 
         # Handle auto partition mode BEFORE initializing DAG
         # (DAG needs final partition count)
@@ -549,6 +550,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         checkpoint resumption.
         """
         logger.info("Processing with real partitioning using Ray Data's split and union...")
+
+        # Direct callers (tests, embedding scripts) may bypass run(); make
+        # sure clone-stable identities exist before partition cloning.
+        self._ensure_elastic_juicer_stage_identities(ops)
 
         # Split the dataset deterministically with metadata collection
         partitions, partitioning_info = self._split_dataset_deterministic(dataset)
@@ -662,6 +667,46 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 "Failed to isolate operators for concurrent partition execution. "
                 "All partition operators must support deep copying."
             ) from error
+
+    def _ensure_elastic_juicer_stage_identities(self, ops: List) -> None:
+        """Guarantee clone-stable ElasticJuicer identities before cloning.
+
+        Embedding scripts may override ``_prepare_operators`` without
+        stamping stage identities. Without stamps, deep-copied partition
+        operators fall back to instance-keyed stage ids, so every concurrent
+        partition gets a distinct stage and cross-partition profile seeding
+        silently stops working. Stamping is idempotent: lists whose
+        operators are all already stamped pass through untouched.
+        """
+        if not ops:
+            return
+        try:
+            adaptive = self.cfg.get("elastic_juicer_adaptive_batching", False)
+        except AttributeError:
+            adaptive = getattr(self.cfg, "elastic_juicer_adaptive_batching", False)
+        if not adaptive:
+            return
+
+        from data_juicer.core.elasticjuicer.stage_identity import (
+            STAGE_IDENTITY_ATTR,
+            assign_stage_identities,
+        )
+
+        if all(getattr(op, STAGE_IDENTITY_ATTR, None) for op in ops):
+            return
+
+        manifest = assign_stage_identities(ops)
+        work_dir = getattr(self, "work_dir", None)
+        if not work_dir:
+            logger.warning("No work_dir available; ElasticJuicer stage identity manifest not persisted")
+            return
+        try:
+            manifest_path = os.path.join(work_dir, "elastic_juicer_stage_identities.json")
+            with open(manifest_path, "w") as f:
+                json.dump(manifest, f, indent=2)
+            logger.info(f"ElasticJuicer stage identities written to {manifest_path}")
+        except OSError as e:
+            logger.warning(f"Could not persist ElasticJuicer stage identity manifest: {e}")
 
     def _configure_operator_parallelism(self, ops: List) -> None:
         """Plan global actor resources once before partition threads.

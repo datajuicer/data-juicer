@@ -16,6 +16,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 from jsonargparse import Namespace
 from loguru import logger
@@ -232,7 +233,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # 1. export_aws_credentials (export-specific)
         # 2. dataset config (for backward compatibility)
         # 3. environment variables (handled by exporter)
-        if self.cfg.export_path.startswith("s3://"):
+        if urlparse(self.cfg.export_path).scheme.lower() == "s3":
             # Pass export-specific credentials if provided.
             # The RayExporter will handle falling back to environment variables or other credential mechanisms.
             if hasattr(self.cfg, "export_aws_credentials") and self.cfg.export_aws_credentials:

@@ -75,7 +75,7 @@ class RayExporter:
         self.encrypt_before_export = encrypt_before_export
         self._fernet = None
         if encrypt_before_export:
-            if export_path.startswith("s3://") or export_path.startswith("hdfs://"):
+            if urlparse(export_path).scheme.lower() in ("s3", "hdfs"):
                 logger.warning(
                     "encrypt_before_export is True but export_path is a remote "
                     f"path ({export_path}). Local-file encryption is skipped. "

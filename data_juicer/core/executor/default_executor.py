@@ -1,6 +1,7 @@
 import os
 from time import time
 from typing import Optional, Union
+from urllib.parse import urlparse
 
 from datasets import Dataset
 from jsonargparse import Namespace
@@ -88,7 +89,7 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         # 1. export_aws_credentials (export-specific)
         # 2. dataset config (for backward compatibility)
         # 3. environment variables (handled by exporter)
-        if self.cfg.export_path.startswith("s3://"):
+        if urlparse(self.cfg.export_path).scheme.lower() == "s3":
             # Priority 1: Check for export-specific credentials
             if hasattr(self.cfg, "export_aws_credentials"):
                 export_aws_creds = self.cfg.export_aws_credentials

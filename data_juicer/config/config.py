@@ -12,6 +12,7 @@ from argparse import ArgumentError
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict, List, Optional, Union
+from urllib.parse import urlparse
 
 import yaml
 from jsonargparse import (
@@ -950,7 +951,8 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     """
 
     # Handle remote paths (S3/HDFS) differently from local paths
-    _is_remote = cfg.export_path.startswith("s3://") or cfg.export_path.startswith("hdfs://")
+    _export_scheme = urlparse(cfg.export_path).scheme.lower()
+    _is_remote = _export_scheme in ("s3", "hdfs")
     if _is_remote:
         # For remote paths, keep as-is (don't use os.path.abspath)
         # If work_dir is not provided, use a default local directory for logs/checkpoints
@@ -973,10 +975,11 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     if not load_configs_only:
         # For remote paths, use a simplified export path for log filename
         if _is_remote:
-            # Extract path after scheme prefix for log filename
-            scheme = "s3://" if cfg.export_path.startswith("s3://") else "hdfs://"
-            remote_parts = cfg.export_path.replace(scheme, "").split("/", 1)
-            export_rel_path = remote_parts[1] if len(remote_parts) > 1 else remote_parts[0]
+            # Extract path after scheme prefix for log filename. urlparse
+            # splits the URI case-insensitively; netloc is the bucket/host
+            # and path is the key, falling back to netloc when no key.
+            _parsed = urlparse(cfg.export_path)
+            export_rel_path = _parsed.path.lstrip("/") or _parsed.netloc
         else:
             export_rel_path = os.path.relpath(cfg.export_path, start=cfg.work_dir)
 

@@ -155,8 +155,12 @@ def find_files_with_suffix(
 
 
 def is_remote_path(path: str):
-    """Check if the path is a remote path."""
-    return path.startswith(("http://", "https://", "s3://", "gs://", "hdfs://"))
+    """Check if the path is a remote path.
+
+    The scheme check is case-insensitive, consistent with RFC 3986
+    (URI schemes are case-insensitive) and urlparse semantics.
+    """
+    return path.lower().startswith(("http://", "https://", "s3://", "gs://", "hdfs://"))
 
 
 def is_absolute_path(path: Union[str, Path]) -> bool:

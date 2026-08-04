@@ -84,7 +84,13 @@ def test_enabled_datasets_reuse_job_scoped_services_from_shared_config(create_si
     second._configure_elastic_juicer(cfg)
 
     create_sink.assert_called_once_with("job-a", max_events=2048)
-    create_control.assert_called_once_with("job-a", lease_ttl_ms=60_000, profile_ttl_ms=1_800_000)
+    create_control.assert_called_once_with(
+        "job-a",
+        lease_ttl_ms=60_000,
+        profile_ttl_ms=1_800_000,
+        profiles_path="",
+        pipeline_fingerprint="",
+    )
     assert first._elastic_juicer_metrics_sink is handle
     assert second._elastic_juicer_metrics_sink is handle
     assert first.elastic_juicer_metrics_sink is handle

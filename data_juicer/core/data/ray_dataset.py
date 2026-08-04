@@ -171,6 +171,8 @@ class RayDataset(DJDataset):
                 job_id,
                 lease_ttl_ms=lease_ttl_ms,
                 profile_ttl_ms=profile_ttl_ms,
+                profiles_path=cfg.get("elastic_juicer_profiles_path", "") or "",
+                pipeline_fingerprint=cfg.get("elastic_juicer_pipeline_fingerprint", "") or "",
             )
             cfg[control_key] = control_service
         self._elastic_juicer_job_id = job_id

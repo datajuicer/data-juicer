@@ -1,15 +1,93 @@
 """Job-scoped quota delivery without Ray Data ActorPool private APIs."""
 
+import json
+import os
 import time
-from dataclasses import dataclass
-from typing import Callable, Dict, Optional, Tuple
+from dataclasses import asdict, dataclass
+from typing import Callable, Dict, List, Optional, Tuple
+
+from data_juicer.utils.logger_utils import logger
 
 from .quota import ActorRegistration, QuotaEnvelope, current_time_ms
 
 _ActorKey = Tuple[str, str]
 
 STAGE_PROFILE_SCHEMA_VERSION = 1
+STAGE_PROFILES_FILE_SCHEMA_VERSION = 1
 _DEFAULT_RESOURCE_CLASS = "default"
+
+
+def _profile_to_dict(profile: "StageProfile") -> Dict:
+    return asdict(profile)
+
+
+def _profile_from_dict(data: Dict) -> "StageProfile":
+    return StageProfile(
+        job_id=data["job_id"],
+        stage_id=data["stage_id"],
+        op_name=data["op_name"],
+        safe_batch_size=data.get("safe_batch_size"),
+        oom_upper_bound=data.get("oom_upper_bound"),
+        observed_at_ms=data["observed_at_ms"],
+        op_fingerprint=data.get("op_fingerprint", ""),
+        resource_class=data.get("resource_class", _DEFAULT_RESOURCE_CLASS),
+        partition_id=data.get("partition_id"),
+        schema_version=data.get("schema_version", STAGE_PROFILE_SCHEMA_VERSION),
+    )
+
+
+def save_stage_profiles(
+    path: str, profiles: List["StageProfile"], pipeline_fingerprint: str
+) -> None:
+    """Atomically persist stage profiles (tmp file + os.replace).
+
+    Lessons from the 0803 checkpoint row-loss defect apply here: a
+    partially written profiles file must never be readable as valid.
+    """
+    envelope = {
+        "schema_version": STAGE_PROFILES_FILE_SCHEMA_VERSION,
+        "pipeline_fingerprint": pipeline_fingerprint,
+        "persisted_at_ms": current_time_ms(),
+        "profiles": [_profile_to_dict(profile) for profile in profiles],
+    }
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    tmp_path = f"{path}.tmp.{os.getpid()}"
+    with open(tmp_path, "w", encoding="utf-8") as stream:
+        json.dump(envelope, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(tmp_path, path)
+
+
+def load_stage_profiles(path: str, expected_pipeline_fingerprint: str) -> List["StageProfile"]:
+    """Load persisted profiles; fail closed on any incompatibility.
+
+    Restored profiles are advisory priors only (RFC 4.5): stale or
+    mismatched entries must degrade to an unseeded start, never brick the
+    incarnation. Expiry is enforced later by the service's profile TTL.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as stream:
+            envelope = json.load(stream)
+    except (OSError, ValueError):
+        return []
+    if envelope.get("schema_version") != STAGE_PROFILES_FILE_SCHEMA_VERSION:
+        logger.warning(f"Stage profiles file {path} has unsupported schema; ignoring")
+        return []
+    if expected_pipeline_fingerprint and envelope.get("pipeline_fingerprint") != expected_pipeline_fingerprint:
+        logger.warning(
+            f"Stage profiles file {path} pipeline fingerprint mismatch "
+            f"(expected {expected_pipeline_fingerprint[:8]}...); ignoring"
+        )
+        return []
+    restored: List[StageProfile] = []
+    for entry in envelope.get("profiles", []):
+        try:
+            restored.append(_profile_from_dict(entry))
+        except (KeyError, ValueError, TypeError) as error:
+            logger.warning(f"Skipping invalid persisted stage profile entry: {error}")
+    return restored
 
 
 @dataclass(frozen=True)
@@ -84,6 +162,8 @@ class ControlService:
         lease_ttl_ms: int = 60_000,
         profile_ttl_ms: int = 1_800_000,
         max_stage_profiles: int = 256,
+        profiles_path: str = "",
+        pipeline_fingerprint: str = "",
     ):
         if not isinstance(job_id, str) or not job_id.strip():
             raise ValueError("job_id must be a non-empty string")
@@ -97,6 +177,10 @@ class ControlService:
         self.lease_ttl_ms = lease_ttl_ms
         self.profile_ttl_ms = profile_ttl_ms
         self.max_stage_profiles = max_stage_profiles
+        self.profiles_path = profiles_path if isinstance(profiles_path, str) else ""
+        self.pipeline_fingerprint = (
+            pipeline_fingerprint if isinstance(pipeline_fingerprint, str) else ""
+        )
         self._registrations: Dict[_ActorKey, ActorRegistration] = {}
         self._active_incarnations: Dict[str, str] = {}
         self._latest_quotas: Dict[_ActorKey, QuotaEnvelope] = {}
@@ -107,6 +191,21 @@ class ControlService:
         self._rejected_quotas = 0
         self._deregistrations = 0
         self._expired_profile_reads = 0
+        self._restored_profiles = 0
+        # Cross-restart learning (gap 5.6): restore advisory priors persisted
+        # by a previous driver of the same pipeline. TTL expiry is enforced
+        # at read time; restored profiles keep their original job_id, which
+        # the read path does not compare against stored entries.
+        if self.profiles_path:
+            restored = load_stage_profiles(self.profiles_path, self.pipeline_fingerprint)
+            for profile in restored:
+                self._stage_profiles[profile.store_key] = profile
+            self._restored_profiles = len(restored)
+            if restored:
+                logger.info(
+                    f"ControlService restored {len(restored)} stage profile(s) "
+                    f"from {self.profiles_path}"
+                )
 
     @staticmethod
     def _key(actor_id: str, actor_incarnation_id: str) -> _ActorKey:
@@ -201,6 +300,27 @@ class ControlService:
             return None
         return quota
 
+    def configure_profile_persistence(self, profiles_path: str, pipeline_fingerprint: str) -> int:
+        """Attach persistence after construction and restore existing profiles.
+
+        The job-scoped service is created when the first RayDataset wrapper
+        configures ElasticJuicer, which may precede the executor's identity
+        stamping that knows the work_dir and pipeline fingerprint. This RPC
+        closes that ordering gap; it is idempotent.
+        """
+        self.profiles_path = profiles_path if isinstance(profiles_path, str) else ""
+        self.pipeline_fingerprint = (
+            pipeline_fingerprint if isinstance(pipeline_fingerprint, str) else ""
+        )
+        if self.profiles_path:
+            for profile in load_stage_profiles(self.profiles_path, self.pipeline_fingerprint):
+                key = profile.store_key
+                self._stage_profiles[key] = self._merge_stage_profile(
+                    self._stage_profiles.get(key), profile
+                )
+                self._restored_profiles += 1
+        return self._restored_profiles
+
     def report_stage_profile(self, profile: StageProfile) -> StageProfile:
         """Merge one incarnation's learning into the job-scoped stage profile."""
 
@@ -218,7 +338,21 @@ class ControlService:
         if len(self._stage_profiles) > self.max_stage_profiles:
             oldest_key = min(self._stage_profiles, key=lambda k: self._stage_profiles[k].observed_at_ms)
             del self._stage_profiles[oldest_key]
+        self._persist_stage_profiles()
         return merged
+
+    def _persist_stage_profiles(self) -> None:
+        """Best-effort atomic persistence; never breaks the control plane."""
+        if not self.profiles_path:
+            return
+        try:
+            save_stage_profiles(
+                self.profiles_path,
+                list(self._stage_profiles.values()),
+                self.pipeline_fingerprint,
+            )
+        except Exception as error:
+            logger.warning(f"Failed to persist stage profiles to {self.profiles_path}: {error}")
 
     @staticmethod
     def _merge_stage_profile(current: Optional[StageProfile], update: StageProfile) -> StageProfile:
@@ -284,6 +418,7 @@ class ControlService:
             "rejected_quotas": self._rejected_quotas,
             "deregistrations": self._deregistrations,
             "expired_profile_reads": self._expired_profile_reads,
+            "restored_profiles": self._restored_profiles,
             "lease_ttl_ms": self.lease_ttl_ms,
         }
 
@@ -438,6 +573,8 @@ def create_ray_control_service(
     lease_ttl_ms: int = 60_000,
     profile_ttl_ms: int = 1_800_000,
     ray_module=None,
+    profiles_path: str = "",
+    pipeline_fingerprint: str = "",
 ):
     """Create an unnamed explicit Ray actor handle for one job."""
 
@@ -445,4 +582,10 @@ def create_ray_control_service(
         import ray as ray_module
 
     remote_class = ray_module.remote(num_cpus=0)(ControlService)
-    return remote_class.remote(job_id=job_id, lease_ttl_ms=lease_ttl_ms, profile_ttl_ms=profile_ttl_ms)
+    return remote_class.remote(
+        job_id=job_id,
+        lease_ttl_ms=lease_ttl_ms,
+        profile_ttl_ms=profile_ttl_ms,
+        profiles_path=profiles_path,
+        pipeline_fingerprint=pipeline_fingerprint,
+    )

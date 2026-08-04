@@ -154,7 +154,18 @@ def test_ray_factory_returns_an_explicit_unnamed_handle():
             return decorate
 
     assert create_ray_control_service("job-a", ray_module=FakeRay()) == "control-handle"
-    assert calls == [((), {"job_id": "job-a", "lease_ttl_ms": 60_000, "profile_ttl_ms": 1_800_000})]
+    assert calls == [
+        (
+            (),
+            {
+                "job_id": "job-a",
+                "lease_ttl_ms": 60_000,
+                "profile_ttl_ms": 1_800_000,
+                "profiles_path": "",
+                "pipeline_fingerprint": "",
+            },
+        )
+    ]
 
 
 def _profile(stage_id="stage-000000:mapper", safe=8, oom=16, job_id="job-a", observed=100, **kwargs):

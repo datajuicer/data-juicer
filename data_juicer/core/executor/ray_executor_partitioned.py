@@ -702,10 +702,56 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         )
 
         if all(getattr(op, STAGE_IDENTITY_ATTR, None) for op in ops):
-            return
+            all_stamped = True
+        else:
+            all_stamped = False
 
+        # Idempotent (re)stamp: also yields the pipeline fingerprint needed
+        # for cross-restart profile persistence (gap 5.6).
         manifest = assign_stage_identities(ops)
         work_dir = getattr(self, "work_dir", None)
+
+        # Expose the persisted-profile bridge to the job-scoped ControlService
+        # (created lazily by RayDataset from these cfg attributes): profiles
+        # survive driver restarts for the same pipeline + work_dir, guarded by
+        # pipeline fingerprint and the service's profile TTL.
+        if work_dir:
+            profiles_path = os.path.join(work_dir, "elastic_juicer_stage_profiles.json")
+            fingerprint = manifest["pipeline_fingerprint"]
+            try:
+                self.cfg.elastic_juicer_profiles_path = profiles_path
+                self.cfg.elastic_juicer_pipeline_fingerprint = fingerprint
+            except (AttributeError, TypeError):
+                try:
+                    # dict-like configs (tests / embedding scripts)
+                    self.cfg["elastic_juicer_profiles_path"] = profiles_path
+                    self.cfg["elastic_juicer_pipeline_fingerprint"] = fingerprint
+                except Exception as e:
+                    logger.warning(f"Could not expose ElasticJuicer profile bridge on cfg: {e}")
+            # The job-scoped ControlService may already exist (created when
+            # the source RayDataset configured ElasticJuicer, before this
+            # stamping ran). Attach persistence to it as well; a service
+            # created later picks the cfg attributes up directly.
+            try:
+                existing_service = self.cfg.get("_elastic_juicer_control_service")
+            except AttributeError:
+                existing_service = getattr(self.cfg, "_elastic_juicer_control_service", None)
+            if existing_service is not None:
+                try:
+                    import ray
+
+                    ray.get(
+                        existing_service.configure_profile_persistence.remote(
+                            profiles_path, fingerprint
+                        ),
+                        timeout=10,
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not attach profile persistence to ControlService: {e}")
+
+        if all_stamped:
+            return
+
         if not work_dir:
             logger.warning("No work_dir available; ElasticJuicer stage identity manifest not persisted")
             return

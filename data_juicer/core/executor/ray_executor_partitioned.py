@@ -562,6 +562,15 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             f"{partitioning_info.total_rows} total rows"
         )
 
+        # Split-time ground truth for checkpoint integrity validation: a
+        # checkpoint whose row count deviates from its partition membership
+        # is incomplete (crash mid write_parquet) and must not be resumed.
+        # Defensive getattr: mocked split results in tests may omit metadata.
+        self._partition_expected_rows = {
+            meta.partition_id: meta.row_count
+            for meta in getattr(partitioning_info, "partitions", [])
+        }
+
         # Process partitions concurrently. Each worker thread drives one Ray
         # Dataset execution; the actual data processing still runs on Ray.
         requested_max_workers = min(len(partitions), self.max_concurrent_partitions)
@@ -979,6 +988,34 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             # No post-convergence operations, just return the merged result
             return RayDataset(merged_dataset, cfg=self.cfg)
 
+    def _validate_checkpoint_integrity(self, latest_checkpoint, partition_id: int):
+        """Reject checkpoints whose row count deviates from the partition.
+
+        Ray ``write_parquet`` writes one file per block with no atomic
+        commit, so a driver crash mid-checkpoint can leave a structurally
+        readable but row-incomplete checkpoint directory. Resuming from it
+        silently drops the missing rows (0803 defect: 16/1600 rows lost).
+        Compare against the split-time partition row count; on mismatch the
+        checkpoint is discarded and the partition is recomputed from scratch.
+        """
+        if latest_checkpoint is None:
+            return None
+        expected_rows = getattr(self, "_partition_expected_rows", {}).get(partition_id)
+        if expected_rows is None:
+            return latest_checkpoint
+        probe = self.ckpt_manager.load_checkpoint(
+            latest_checkpoint[0], latest_checkpoint[1], partition_id, cfg=self.cfg
+        )
+        actual_rows = probe.data.count() if probe is not None else None
+        if probe is None or actual_rows != expected_rows:
+            logger.warning(
+                f"Partition {partition_id}: checkpoint after op {latest_checkpoint[0]} is "
+                f"incomplete or unreadable ({actual_rows} rows, expected {expected_rows}). "
+                f"Ignoring checkpoints for this partition and recomputing it from scratch."
+            )
+            return None
+        return latest_checkpoint
+
     def _process_with_checkpointing(self, dataset: RayDataset, partition_id: int, ops: List) -> RayDataset:
         """
         Process dataset with checkpointing support.
@@ -1018,6 +1055,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # check the latest checkpoint for the partition
         latest_checkpoint = self.ckpt_manager.find_latest_checkpoint(partition_id)
+        latest_checkpoint = self._validate_checkpoint_integrity(latest_checkpoint, partition_id)
 
         # Group operations based on checkpoint strategy
         op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)

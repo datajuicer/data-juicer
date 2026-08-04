@@ -187,6 +187,15 @@ class OOMSafeAdaptiveMapper:
                         f"ElasticJuicer[{self.label}] recovered: slice delivered at "
                         f"batch_size={batch_size} after {retries} OOM retry(ies)"
                     )
+                grown_size = self.controller.state.current_batch_size
+                if grown_size > batch_size:
+                    state = self.controller.state
+                    logger.info(
+                        f"ElasticJuicer[{self.label}] grew: success at batch_size={batch_size}, "
+                        f"next_batch_size={grown_size} "
+                        f"(success_lower_bound={state.success_lower_bound}, "
+                        f"oom_upper_bound={state.oom_upper_bound})"
+                    )
                 self._emit_snapshot(measurement)
                 outputs.append(output)
                 offset += batch_size

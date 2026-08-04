@@ -133,6 +133,7 @@ class RayAdaptiveMapperActor:
             max_retries_per_slice=max_retries_per_slice,
             before_slice=self._apply_pending_quota,
             snapshot_callback=None if self.metrics_reporter is None else self.metrics_reporter.report,
+            label=self.op_name,
         )
         self.control_poller = None
         if control_service is not None:

@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from contextlib import nullcontext
 from typing import Any, Callable, List, Optional
 
+from data_juicer.utils.logger_utils import logger
+
 from .batch_controller import AdaptiveBatchController, MinimumBatchSizeOOM
 from .oom import is_oom_error
 
@@ -109,6 +111,7 @@ class OOMSafeAdaptiveMapper:
         validate_output_rows: bool = True,
         before_slice: Optional[Callable[[], None]] = None,
         snapshot_callback: Optional[Callable] = None,
+        label: str = "",
     ):
         if max_retries_per_slice < 0:
             raise ValueError("max_retries_per_slice must be non-negative")
@@ -120,6 +123,7 @@ class OOMSafeAdaptiveMapper:
         self.validate_output_rows = validate_output_rows
         self.before_slice = before_slice
         self.snapshot_callback = snapshot_callback
+        self.label = label or "op"
         self.oom_retries = 0
         self.successful_slices = 0
 
@@ -150,8 +154,19 @@ class OOMSafeAdaptiveMapper:
                     try:
                         self.controller.observe_oom(batch_size)
                     except MinimumBatchSizeOOM:
+                        logger.error(
+                            f"ElasticJuicer[{self.label}] OOM at minimum batch size "
+                            f"({batch_size}); propagating (no smaller slice possible)"
+                        )
                         self._emit_snapshot(measurement)
                         raise error
+                    state = self.controller.state
+                    logger.info(
+                        f"ElasticJuicer[{self.label}] OOM absorbed: batch_size={batch_size} "
+                        f"failed (slice retry {retries}/{self.max_retries_per_slice}); "
+                        f"oom_upper_bound={state.oom_upper_bound}, "
+                        f"next_batch_size={state.current_batch_size}"
+                    )
                     self._emit_snapshot(measurement)
                     if retries > self.max_retries_per_slice:
                         raise
@@ -167,6 +182,11 @@ class OOMSafeAdaptiveMapper:
                             f"mapper returned {output_rows} rows for an {batch_size}-row input micro-batch"
                         )
                 self.controller.observe_success(batch_size)
+                if retries > 0:
+                    logger.info(
+                        f"ElasticJuicer[{self.label}] recovered: slice delivered at "
+                        f"batch_size={batch_size} after {retries} OOM retry(ies)"
+                    )
                 self._emit_snapshot(measurement)
                 outputs.append(output)
                 offset += batch_size

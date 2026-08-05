@@ -27,6 +27,7 @@ OP_NAME = "document_minhash_deduplicator"
 
 MERSENNE_PRIME = np.uint64((1 << 61) - 1)
 MAX_HASH = np.uint64((1 << 32) - 1)
+_MINHASH_PERMUTATION_BLOCK_BYTES = 8 * 1024 * 1024
 
 
 def sha1_hash32(data):
@@ -260,8 +261,24 @@ class DocumentMinhashDeduplicator(Deduplicator):
 
         # compute minhash value
         hv = np.fromiter((sha1_hash32(token) for token in tokens), dtype=np.uint64, count=len(tokens))
-        phv = np.bitwise_and((hv[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME, MAX_HASH)
-        hash_values = phv.min(axis=0)
+        if len(hv) == 0:
+            phv = np.bitwise_and((hv[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME, MAX_HASH)
+            hash_values = phv.min(axis=0)
+        else:
+            bytes_per_token = self.num_permutation * np.dtype(np.uint64).itemsize
+            tokens_per_block = max(1, _MINHASH_PERMUTATION_BLOCK_BYTES // bytes_per_token)
+            hash_values = None
+            for start in range(0, len(hv), tokens_per_block):
+                block = hv[start : start + tokens_per_block]
+                phv = np.bitwise_and(
+                    (block[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME,
+                    MAX_HASH,
+                )
+                block_min = phv.min(axis=0)
+                if hash_values is None:
+                    hash_values = block_min
+                else:
+                    np.minimum(hash_values, block_min, out=hash_values)
         sample[HashKeys.minhash] = [bytes(hash_values[start:end].byteswap().data) for start, end in self.hash_ranges]
         return sample
 

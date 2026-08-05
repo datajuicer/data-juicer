@@ -91,7 +91,7 @@ vision = [
 nlp = [
     "nltk==3.9.1",  # NLP toolkit
     "easyocr==1.7.1",  # OCR
-    "fasttext-wheel",  # FastText
+    "fasttext-predict",  # FastText (no numpy dependency, numpy 2.x safe)
     "kenlm",  # Language modeling
     "sentencepiece",  # Tokenization
     "ftfy",  # Text fixing

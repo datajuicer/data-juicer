@@ -601,7 +601,7 @@ sp = LazyLoader('sentencepiece')
 
 class PerplexityFilter(Filter):
     # set the additional requirements for this OP explicitly
-    _requirements = ['kenlm', 'sentencepiece', 'fasttext-wheel']
+    _requirements = ['kenlm', 'sentencepiece', 'fasttext-predict']
 
     def __init__(self,
                 # ... (OP parameters)
@@ -609,7 +609,7 @@ class PerplexityFilter(Filter):
                 **kwargs):
         # auto install before init
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(['fasttext-wheel'])
+        LazyLoader.check_packages(['fasttext-predict'])
         # ... (some codes)
 
     def process_single(self, sample):

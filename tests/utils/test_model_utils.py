@@ -360,13 +360,13 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
             
             labels, scores = predictions
             self.assertIsInstance(labels, tuple, "Labels should be a tuple")
-            self.assertIsInstance(scores, np.ndarray, "Scores should be a numpy array")
+            self.assertIsInstance(scores, (tuple, list), "Scores should be a sequence")
             self.assertEqual(len(labels), len(scores), "Number of labels should match number of scores")
             
             # Check first prediction
             self.assertTrue(labels[0].startswith('__label__'), 
                           "Label should start with __label__")
-            self.assertIsInstance(scores[0], (float, np.floating), "Score should be a float")
+            self.assertIsInstance(scores[0], float, "Score should be a float")
 
     def test_prepare_fasttext_model_invalid(self):
         """Test FastText model with invalid model file."""

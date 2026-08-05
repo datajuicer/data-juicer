@@ -189,7 +189,7 @@ nlp = [
     "transformers>=4.30.0",
     "sentencepiece",
     "kenlm",
-    "fasttext-wheel"
+    "fasttext-predict"
 ]
 audio = [
     "librosa>=0.10",

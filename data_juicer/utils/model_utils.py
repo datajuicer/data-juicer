@@ -32,7 +32,7 @@ from .cache_utils import DATA_JUICER_MODELS_CACHE as DJMC
 torch = LazyLoader("torch")
 transformers = LazyLoader("transformers")
 nn = LazyLoader("torch.nn")
-fasttext = LazyLoader("fasttext", "fasttext-wheel")
+fasttext = LazyLoader("fasttext", "fasttext-predict")
 sentencepiece = LazyLoader("sentencepiece")
 kenlm = LazyLoader("kenlm")
 nltk = LazyLoader("nltk")

@@ -578,7 +578,7 @@ nltk = LazyLoader('nltk')
 
 class PerplexityFilter(Filter):
     # 显式为 OP 设置额外的依赖
-    _requirements = ['kenlm', 'sentencepiece', 'fasttext-wheel']
+    _requirements = ['kenlm', 'sentencepiece', 'fasttext-predict']
 
     def __init__(self,
                 # ... (OP parameters)
@@ -586,7 +586,7 @@ class PerplexityFilter(Filter):
                 **kwargs):
         # 在初始化前自动安装所需依赖库
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(['fasttext-wheel'])
+        LazyLoader.check_packages(['fasttext-predict'])
         # ... (some codes)
 
     def process_single(self, sample):

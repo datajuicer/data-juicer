@@ -40,6 +40,52 @@ from data_juicer.utils.lazy_loader import LazyLoader
 ray = LazyLoader("ray")
 
 _AUTO_CPU_PARTITION_CAP = 4
+_PARTITION_CONTENT_HASH_ALGORITHM = "sha256-multiset-v1"
+_PARTITION_CONTENT_HASH_MODULUS = 1 << 256
+
+
+def _canonical_row_bytes(row: Dict) -> bytes:
+    """Serialize one row consistently for partition content hashing."""
+    try:
+        serialized = json.dumps(row, sort_keys=True, default=str, separators=(",", ":"), ensure_ascii=False)
+    except Exception:
+        serialized = str(row)
+    return serialized.encode("utf-8")
+
+
+def _hash_partition_batch(batch):
+    """Return an order-independent hash accumulator for one Arrow batch."""
+    import pyarrow
+
+    digest_sum = 0
+    digest_xor = 0
+    rows = batch.to_pylist()
+    for row in rows:
+        digest = int.from_bytes(hashlib.sha256(_canonical_row_bytes(row)).digest(), "big")
+        digest_sum = (digest_sum + digest) % _PARTITION_CONTENT_HASH_MODULUS
+        digest_xor ^= digest
+
+    return pyarrow.table(
+        {
+            "row_count": [len(rows)],
+            "digest_sum": [f"{digest_sum:064x}"],
+            "digest_xor": [f"{digest_xor:064x}"],
+        }
+    )
+
+
+def _combine_partition_hash_partials(partials: List[Dict]) -> tuple:
+    """Combine batch accumulators into a stable partition content hash."""
+    row_count = 0
+    digest_sum = 0
+    digest_xor = 0
+    for partial in partials:
+        row_count += int(partial["row_count"])
+        digest_sum = (digest_sum + int(partial["digest_sum"], 16)) % _PARTITION_CONTENT_HASH_MODULUS
+        digest_xor ^= int(partial["digest_xor"], 16)
+
+    payload = f"{_PARTITION_CONTENT_HASH_ALGORITHM}:" f"{row_count}:{digest_sum:064x}:{digest_xor:064x}"
+    return hashlib.sha256(payload.encode("ascii")).hexdigest(), row_count
 
 
 class TempDirManager:
@@ -91,6 +137,9 @@ class PartitionMetadata:
     row_count: int
     first_row_hash: str  # Hash of first row for validation
     last_row_hash: str  # Hash of last row for validation
+    content_hash: str = ""  # Stable hash of the complete partition contents
+    start_row: Optional[int] = None  # Inclusive row offset in the ordered input
+    end_row: Optional[int] = None  # Exclusive row offset in the ordered input
 
     def to_dict(self) -> Dict:
         return asdict(self)
@@ -112,12 +161,14 @@ class PartitioningInfo:
     total_rows: int
     partitions: List[PartitionMetadata] = field(default_factory=list)
     deterministic: bool = True  # Whether deterministic splitting was used
+    hash_algorithm: str = _PARTITION_CONTENT_HASH_ALGORITHM
 
     def to_dict(self) -> Dict:
         return {
             "num_partitions": self.num_partitions,
             "total_rows": self.total_rows,
             "deterministic": self.deterministic,
+            "hash_algorithm": self.hash_algorithm,
             "partitions": [p.to_dict() for p in self.partitions],
         }
 
@@ -128,6 +179,7 @@ class PartitioningInfo:
             num_partitions=data["num_partitions"],
             total_rows=data["total_rows"],
             deterministic=data.get("deterministic", True),
+            hash_algorithm=data.get("hash_algorithm", _PARTITION_CONTENT_HASH_ALGORITHM),
             partitions=partitions,
         )
 
@@ -400,6 +452,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Check if user provided a job_id (indicating resumption attempt)
         user_provided_job_id = getattr(self.cfg, "_user_provided_job_id", False)
+        resume_requested = getattr(self.cfg, "_resume_requested", False)
 
         if user_provided_job_id and self.job_id:
             logger.info(f"🔄 User provided job_id: {self.job_id} - attempting to resume job")
@@ -411,6 +464,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 logger.info("✅ Job resumption successful - will use existing checkpoints")
                 is_resuming = True
             else:  # resume_result == "failed"
+                if resume_requested:
+                    raise RuntimeError(
+                        f"Unable to resume job {self.job_id}. " "The existing checkpoints were left unchanged."
+                    )
                 logger.info("❌ Job resumption failed - starting fresh")
                 is_resuming = False
         else:
@@ -419,6 +476,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             else:
                 logger.info("🚀 Starting new job")
             is_resuming = False
+            if self.job_id and self.ckpt_manager.checkpoint_enabled:
+                logger.info(
+                    f"Resume token: {self.job_id}. "
+                    f"Rerun the original command with --resume {self.job_id} to resume this job."
+                )
 
         if not is_resuming:
             logger.info("🚀 Starting simplified partitioned processing...")
@@ -439,6 +501,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 "is_resuming": is_resuming,
                 "job_id": self.job_id,
                 "user_provided_job_id": user_provided_job_id,
+                "resume_requested": resume_requested,
             },
         )
 
@@ -447,6 +510,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Load the full dataset using a single DatasetBuilder
         logger.info("Loading dataset with single DatasetBuilder...")
 
+        # Ray Dataset captures a copy of DataContext when it is created. This
+        # must therefore happen before DatasetBuilder.load_dataset() so saved
+        # row boundaries have the same meaning when a job is resumed.
+        self._enable_deterministic_execution()
         override_num_blocks = getattr(self.cfg, "override_num_blocks", None)
         dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np, override_num_blocks=override_num_blocks)
         columns = dataset.schema().columns
@@ -455,9 +522,21 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         logger.info("Preparing operations...")
         ops = self._prepare_operators()
 
+        # A resumed job must reuse the saved partition count before DAG
+        # initialization. Auto mode can otherwise choose a different count if
+        # the Ray cluster resources changed between runs.
+        if resume_requested:
+            saved_info = self._load_partitioning_info()
+            if saved_info is None:
+                raise RuntimeError(
+                    "Explicit resume requires saved partitioning_info.json; "
+                    "existing checkpoints were left unchanged."
+                )
+            self.num_partitions = saved_info.num_partitions
+            logger.info(f"Using saved partition count for resume: {self.num_partitions}")
         # Handle auto partition mode BEFORE initializing DAG
         # (DAG needs final partition count)
-        if self.partition_mode == "auto":
+        elif self.partition_mode == "auto":
             self._configure_auto_partitioning(dataset, ops)
 
         # Record explicit actor-pool budgets and calculate automatic Ray
@@ -1166,8 +1245,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     def _enable_deterministic_execution(self) -> None:
         """Enable deterministic execution order in Ray Data.
 
-        This ensures that split() produces the same partitions on re-runs,
-        which is critical for checkpoint resumption.
+        This keeps the global row order stable so saved row boundaries can be
+        reapplied with split_at_indices() during explicit resume.
         """
         try:
             ctx = ray.data.DataContext.get_current()
@@ -1189,14 +1268,24 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             # Fallback for non-serializable rows
             return hashlib.md5(str(row).encode()).hexdigest()[:16]
 
-    def _collect_partition_metadata(self, partition, partition_id: int) -> PartitionMetadata:
+    def _collect_partition_metadata(
+        self,
+        partition,
+        partition_id: int,
+        start_row: Optional[int] = None,
+        compute_content_hash: bool = True,
+    ) -> PartitionMetadata:
         """Collect metadata from a partition for validation on resume.
 
-        Only collects first_row_hash (not last_row_hash) for efficiency.
-        Getting the last row requires take(all_rows) which is expensive.
-        First row hash + row count is sufficient for detecting most mismatches.
+        The complete content hash is independent of Ray block boundaries and
+        row order within the partition. It is used for strict explicit resume
+        validation; the first-row hash remains for backward compatibility.
         """
-        row_count = partition.count()
+        if compute_content_hash:
+            content_hash, row_count = self._compute_partition_content_hash(partition)
+        else:
+            content_hash = ""
+            row_count = partition.count()
 
         # Get first row for hashing (cheap operation)
         first_row_hash = ""
@@ -1213,7 +1302,15 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             row_count=row_count,
             first_row_hash=first_row_hash,
             last_row_hash="",  # Skip last_row_hash for efficiency
+            content_hash=content_hash,
+            start_row=start_row,
+            end_row=start_row + row_count if start_row is not None else None,
         )
+
+    def _compute_partition_content_hash(self, partition) -> tuple:
+        """Compute a block-boundary-independent hash of a partition."""
+        partials = partition.map_batches(_hash_partition_batch, batch_format="pyarrow").take_all()
+        return _combine_partition_hash_partials(partials)
 
     def _get_partitioning_info_path(self) -> str:
         """Get the path to the partitioning info file."""
@@ -1237,23 +1334,35 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         Validation checks:
         1. Partition count matches
         2. Row count per partition matches
-        3. First row hash matches (efficient validation)
+        3. Complete partition content hash matches when available
+        4. First row hash matches for backward compatibility
         """
         if len(partitions) != saved_info.num_partitions:
             logger.error(f"Partition count mismatch: current={len(partitions)}, " f"saved={saved_info.num_partitions}")
             return False
 
         for i, partition in enumerate(partitions):
-            current_count = partition.count()
             saved_meta = saved_info.partitions[i] if i < len(saved_info.partitions) else None
 
             if saved_meta is None:
-                logger.warning(f"No saved metadata for partition {i}")
-                continue
+                logger.error(f"No saved metadata for partition {i}")
+                return False
+
+            if saved_meta.content_hash:
+                current_hash, current_count = self._compute_partition_content_hash(partition)
+            else:
+                current_hash = ""
+                current_count = partition.count()
 
             if current_count != saved_meta.row_count:
                 logger.error(
                     f"Partition {i} row count mismatch: current={current_count}, " f"saved={saved_meta.row_count}"
+                )
+                return False
+
+            if saved_meta.content_hash and current_hash != saved_meta.content_hash:
+                logger.error(
+                    f"Partition {i} content hash mismatch: " f"current={current_hash}, saved={saved_meta.content_hash}"
                 )
                 return False
 
@@ -1275,6 +1384,46 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         logger.info("Partition validation passed - safe to use checkpoints")
         return True
 
+    def _split_at_saved_boundaries(self, dataset: RayDataset, saved_info: PartitioningInfo) -> List:
+        """Recreate partitions using row boundaries saved by the first run."""
+        if saved_info.num_partitions != self.num_partitions:
+            raise RuntimeError(
+                "Cannot resume with a different partition count: "
+                f"current={self.num_partitions}, saved={saved_info.num_partitions}"
+            )
+        if len(saved_info.partitions) != saved_info.num_partitions:
+            raise RuntimeError(
+                "Saved partition metadata is incomplete: "
+                f"expected={saved_info.num_partitions}, actual={len(saved_info.partitions)}"
+            )
+
+        if saved_info.num_partitions == 1:
+            return [dataset.data.materialize()]
+
+        split_indices = []
+        expected_start = 0
+        for partition_id, meta in enumerate(saved_info.partitions):
+            start_row = meta.start_row if meta.start_row is not None else expected_start
+            end_row = meta.end_row if meta.end_row is not None else start_row + meta.row_count
+            if start_row != expected_start or end_row - start_row != meta.row_count:
+                raise RuntimeError(
+                    f"Saved row boundaries are invalid for partition {partition_id}: "
+                    f"start={start_row}, end={end_row}, rows={meta.row_count}, "
+                    f"expected_start={expected_start}"
+                )
+            expected_start = end_row
+            if partition_id < saved_info.num_partitions - 1:
+                split_indices.append(end_row)
+
+        if expected_start != saved_info.total_rows:
+            raise RuntimeError(
+                "Saved row boundaries do not cover the saved total row count: "
+                f"boundaries_end={expected_start}, total_rows={saved_info.total_rows}"
+            )
+
+        logger.info(f"Recreating partitions at saved row boundaries: {split_indices}")
+        return dataset.data.split_at_indices(split_indices)
+
     def _split_dataset_deterministic(self, dataset: RayDataset) -> tuple:
         """Split dataset deterministically and collect metadata.
 
@@ -1286,6 +1435,40 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Check for existing partitioning info (resumption case)
         saved_info = self._load_partitioning_info()
+        resume_requested = getattr(self.cfg, "_resume_requested", False)
+
+        if resume_requested:
+            if saved_info is None:
+                raise RuntimeError(
+                    "Explicit resume requires saved partitioning_info.json; "
+                    "existing checkpoints were left unchanged."
+                )
+            if saved_info.hash_algorithm != _PARTITION_CONTENT_HASH_ALGORITHM:
+                raise RuntimeError(
+                    "Explicit resume cannot validate the saved partition hash algorithm: "
+                    f"saved={saved_info.hash_algorithm}, "
+                    f"supported={_PARTITION_CONTENT_HASH_ALGORITHM}. "
+                    "Existing checkpoints were left unchanged."
+                )
+            if any(
+                not meta.content_hash or meta.start_row is None or meta.end_row is None
+                for meta in saved_info.partitions
+            ):
+                raise RuntimeError(
+                    "Explicit resume requires content hashes and row boundaries "
+                    "created by this version. Existing checkpoints were left unchanged."
+                )
+
+            logger.info("Explicit resume requested; recreating saved partition row boundaries...")
+            partitions = self._split_at_saved_boundaries(dataset, saved_info)
+            logger.info(f"Recreated {len(partitions)} partitions from saved boundaries")
+            if not self._validate_partitions(partitions, saved_info):
+                raise RuntimeError(
+                    "Saved partition content hashes do not match the current input. "
+                    "Refusing to resume; existing checkpoints were left unchanged."
+                )
+            logger.info("Saved partition hashes validated successfully - resuming checkpoints")
+            return partitions, saved_info
 
         # Split the dataset
         logger.info(f"Splitting dataset into {self.num_partitions} partitions (deterministic mode)...")
@@ -1309,13 +1492,22 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Collect metadata for new partitions
         logger.info("Collecting partition metadata for checkpoint validation...")
-        total_rows = sum(p.count() for p in partitions)
         partition_metadata = []
+        next_start_row = 0
+        compute_content_hash = self.ckpt_manager.checkpoint_enabled
 
         for i, partition in enumerate(partitions):
-            meta = self._collect_partition_metadata(partition, i)
+            meta = self._collect_partition_metadata(
+                partition,
+                i,
+                start_row=next_start_row,
+                compute_content_hash=compute_content_hash,
+            )
             partition_metadata.append(meta)
+            next_start_row = meta.end_row
             logger.debug(f"Partition {i}: {meta.row_count} rows, hash={meta.first_row_hash[:8]}...")
+
+        total_rows = sum(meta.row_count for meta in partition_metadata)
 
         partitioning_info = PartitioningInfo(
             num_partitions=self.num_partitions,

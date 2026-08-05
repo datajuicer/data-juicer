@@ -20,6 +20,8 @@
 ├── events_{timestamp}.jsonl      # 机器可读事件日志
 ├── dag_execution_plan.json       # DAG 执行计划
 ├── checkpoints/                  # 检查点数据
+│   ├── partitioning_info.json    # 保存的行号边界和分区内容 hash
+│   └── checkpoint_op_*.parquet/  # 各操作、各分区的检查点
 ├── partitions/                   # 输入分区
 ├── logs/                         # 人类可读日志
 └── metadata/                     # 作业元数据
@@ -65,6 +67,16 @@ checkpoint:
     - embedding_mapper
 ```
 
+启用检查点后，首次运行会保存
+`checkpoints/partitioning_info.json`。该文件为每个逻辑分区记录：
+
+- 输入数据中的 `start_row`（包含）和 `end_row`（不包含）；
+- 分区样本行数；
+- 覆盖完整分区内容的稳定 hash；
+- 写入 metadata 时使用的分区 hash 算法。
+
+即使新进程中的 Ray 物理 block 布局发生变化，显式续跑也可以用这些信息重建首次运行的逻辑分区。完整分区 hash 不依赖 Ray batch 边界，并且会在复用任何 checkpoint 前完成校验。
+
 ### 中间存储
 
 ```yaml
@@ -86,14 +98,46 @@ dj-process --config config.yaml --partition.mode auto
 # 手动分区模式
 dj-process --config config.yaml --partition.mode manual --partition.num_of_partitions 4
 
-# 自定义作业 ID
+# 可选：使用自定义作业 ID 启动新任务
 dj-process --config config.yaml --job_id my_experiment_001
+```
+
+启用检查点后，新建的 `ray_partitioned` 作业会打印 resume token：
+
+```text
+Resume token: 20260805_115141_81270d. Rerun the original command with
+--resume 20260805_115141_81270d to resume this job.
 ```
 
 ### 恢复作业
 
 ```bash
-dj-process --config config.yaml --job_id my_experiment_001
+# 使用首次运行打印的 token，并保持输入数据和 recipe 不变
+dj-process --config config.yaml --resume 20260805_115141_81270d
+
+# 首次运行使用的自定义 ID 也可以作为 resume token
+dj-process --config config.yaml --resume my_experiment_001
+```
+
+`--resume` 仅支持 `ray_partitioned` 执行器。它会依次执行严格续跑流程：
+
+1. 定位原任务的工作目录和检查点目录；
+2. 确认当前配置与首次运行配置一致；
+3. 读取保存的分区数、行号边界和内容 hash；
+4. 使用保存的行号边界重建首次运行的逻辑分区；
+5. 校验所有分区的完整内容 hash；
+6. 加载已完成的 checkpoint，仅处理尚未完成的部分。
+
+如果 metadata 缺失、行号边界非法、输入内容发生变化或内容 hash 不一致，显式续跑会报错停止，并保留已有 checkpoint，不会将其删除。
+
+`--job_id` 仍可用于自定义任务名称和向后兼容。需要进行容错续跑时，应优先使用 `--resume`：旧的 `--job_id` 续跑路径保持原有行为，在分区不匹配时可能清除 checkpoint 并重新开始。旧版 Data-Juicer 创建的 metadata 仍可读取，但其中没有显式续跑所需的行号边界和完整内容 hash；因此，`--resume` 会拒绝使用这种旧 metadata，同时保留已有 checkpoint。
+
+如果同时提供两个参数，它们的值必须相同：
+
+```bash
+dj-process --config config.yaml \
+  --job_id my_experiment_001 \
+  --resume my_experiment_001
 ```
 
 ### 检查点策略
@@ -268,7 +312,10 @@ disabled          | 0秒     | 重新执行全部
 ```bash
 ls -la ./outputs/{work_dir}/{job_id}/job_summary.json
 ls -la ./outputs/{work_dir}/{job_id}/checkpoints/
+cat ./outputs/{work_dir}/{job_id}/checkpoints/partitioning_info.json
 ```
+
+请使用首次运行打印的 resume token，并通过 `--resume` 重新执行相同的 recipe。可以在错误日志中检查配置不一致、分区 metadata 缺失、行号边界非法或分区内容 hash 不匹配。显式续跑校验失败时不会删除已有 checkpoint。
 
 **检查 Ray 状态：**
 ```bash

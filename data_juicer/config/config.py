@@ -522,6 +522,16 @@ def build_base_parser() -> ArgumentParser:
         help="Custom job ID for resumption and tracking. If not provided, a unique ID will be auto-generated.",
     )
     parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        help=(
+            "Resume a ray_partitioned job using the job ID printed by its "
+            "original run. The saved partition boundaries and content hashes "
+            "are used to reconstruct and validate the original partitions."
+        ),
+    )
+    parser.add_argument(
         "--temp_dir",
         type=str,
         default=None,
@@ -1460,7 +1470,15 @@ def validate_config_for_resumption(cfg: Namespace, work_dir: str, original_args:
         # Compare CLI arguments per key
         cli_differences = []
         all_cli_keys = set(cli_config.keys()) | set(current_cli_config.keys())
-        excluded_keys = {"config", "_original_args", "backed_up_config_path", "_same_yaml_config", "job_id", "work_dir"}
+        excluded_keys = {
+            "config",
+            "_original_args",
+            "backed_up_config_path",
+            "_same_yaml_config",
+            "job_id",
+            "resume",
+            "work_dir",
+        }
 
         for key in all_cli_keys:
             if key in excluded_keys:
@@ -1876,6 +1894,19 @@ def prepare_cfgs_for_export(cfg):
 def resolve_job_id(cfg):
     """Resolve or auto-generate job_id and set it on cfg."""
     job_id = getattr(cfg, "job_id", None)
+    resume_id = getattr(cfg, "resume", None)
+
+    if resume_id is not None:
+        if job_id is not None and job_id != resume_id:
+            raise ValueError("--resume and --job_id must refer to the same job when both are provided.")
+        if getattr(cfg, "executor_type", "ray_partitioned") != "ray_partitioned":
+            raise ValueError("--resume is only supported by the ray_partitioned executor.")
+        setattr(cfg, "job_id", resume_id)
+        setattr(cfg, "_user_provided_job_id", True)
+        setattr(cfg, "_resume_requested", True)
+        return cfg
+
+    setattr(cfg, "_resume_requested", False)
 
     # Track whether job_id was user-provided
     if job_id is not None:

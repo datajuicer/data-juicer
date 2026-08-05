@@ -472,6 +472,23 @@ class ResolveJobIdTest(DataJuicerTestCaseBase):
         resolve_job_id(cfg2)
         self.assertNotEqual(cfg1.job_id, cfg2.job_id)
 
+    def test_resume_uses_resume_id_as_job_id(self):
+        cfg = Namespace(executor_type="ray_partitioned", job_id=None, resume="resume_token")
+        result = resolve_job_id(cfg)
+        self.assertEqual(result.job_id, "resume_token")
+        self.assertTrue(result._user_provided_job_id)
+        self.assertTrue(result._resume_requested)
+
+    def test_resume_rejects_conflicting_job_id(self):
+        cfg = Namespace(executor_type="ray_partitioned", job_id="job_a", resume="job_b")
+        with self.assertRaisesRegex(ValueError, "must refer to the same job"):
+            resolve_job_id(cfg)
+
+    def test_resume_rejects_non_partitioned_executor(self):
+        cfg = Namespace(executor_type="ray", job_id=None, resume="resume_token")
+        with self.assertRaisesRegex(ValueError, "only supported by the ray_partitioned executor"):
+            resolve_job_id(cfg)
+
 
 class ValidateWorkDirConfigTest(DataJuicerTestCaseBase):
     """Test validate_work_dir_config: ensures {job_id} is at end of path."""
@@ -609,6 +626,7 @@ class BuildBaseParserTest(DataJuicerTestCaseBase):
         self.assertIn("project_name", action_dests)
         self.assertIn("executor_type", action_dests)
         self.assertIn("dataset_path", action_dests)
+        self.assertIn("resume", action_dests)
 
     def test_executor_type_choices(self):
         parser = build_base_parser()

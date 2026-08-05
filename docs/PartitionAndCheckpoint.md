@@ -20,6 +20,8 @@ The `ray_partitioned` executor splits datasets into partitions and processes the
 ├── events_{timestamp}.jsonl      # Machine-readable event log
 ├── dag_execution_plan.json       # DAG execution plan
 ├── checkpoints/                  # Checkpoint data
+│   ├── partitioning_info.json    # Saved row boundaries and partition hashes
+│   └── checkpoint_op_*.parquet/  # Per-operation partition checkpoints
 ├── partitions/                   # Input partitions
 ├── logs/                         # Human-readable logs
 └── metadata/                     # Job metadata
@@ -70,6 +72,20 @@ checkpoint:
     - embedding_mapper
 ```
 
+When checkpointing is enabled, the initial run saves
+`checkpoints/partitioning_info.json`. For every logical partition, this file
+records:
+
+- `start_row` (inclusive) and `end_row` (exclusive) in the ordered input;
+- the partition row count;
+- a stable hash of the complete partition contents;
+- the partition hash algorithm used by the writer.
+
+These values allow an explicit resume to recreate the original logical
+partitions even when Ray produces a different physical block layout in the new
+process. Complete partition hashes are independent of Ray batch boundaries and
+are validated before any checkpoint is reused.
+
 ### Intermediate Storage
 
 ```yaml
@@ -91,14 +107,56 @@ dj-process --config config.yaml --partition.mode auto
 # Manual partition mode
 dj-process --config config.yaml --partition.mode manual --partition.num_of_partitions 4
 
-# With custom job ID
+# Optional: start a new job with a custom job ID
 dj-process --config config.yaml --job_id my_experiment_001
+```
+
+When checkpointing is enabled, a new `ray_partitioned` job prints a resume
+token:
+
+```text
+Resume token: 20260805_115141_81270d. Rerun the original command with
+--resume 20260805_115141_81270d to resume this job.
 ```
 
 ### Resuming Jobs
 
 ```bash
-dj-process --config config.yaml --job_id my_experiment_001
+# Use the token printed by the initial run. Keep the input and recipe unchanged.
+dj-process --config config.yaml --resume 20260805_115141_81270d
+
+# A custom ID from the initial run can be used in the same way.
+dj-process --config config.yaml --resume my_experiment_001
+```
+
+`--resume` is supported only by the `ray_partitioned` executor. It performs a
+strict resume in the following order:
+
+1. locate the original work and checkpoint directories;
+2. verify that the current configuration matches the original run;
+3. load the saved partition count, row boundaries, and content hashes;
+4. recreate the original partitions with the saved row boundaries;
+5. validate every complete partition hash;
+6. load completed checkpoints and process only the unfinished work.
+
+If metadata is missing, row boundaries are invalid, the input has changed, or
+a content hash does not match, explicit resume stops with an error and leaves
+the existing checkpoints unchanged.
+
+`--job_id` remains available for custom job naming and backward compatibility.
+For fault-tolerant continuation, prefer `--resume`: the legacy `--job_id`
+resumption path keeps its previous behavior and may clear mismatched
+checkpoints before starting fresh. Metadata created by an older Data-Juicer
+version can still be read, but it does not contain the row boundaries and full
+content hashes required by explicit resume; `--resume` therefore rejects it
+without deleting its checkpoints.
+
+If both arguments are supplied, their values must be identical:
+
+```bash
+dj-process --config config.yaml \
+  --job_id my_experiment_001 \
+  --resume my_experiment_001
 ```
 
 ### Checkpoint Strategies
@@ -273,7 +331,13 @@ disabled         | 0s        | Re-run everything
 ```bash
 ls -la ./outputs/{work_dir}/{job_id}/job_summary.json
 ls -la ./outputs/{work_dir}/{job_id}/checkpoints/
+cat ./outputs/{work_dir}/{job_id}/checkpoints/partitioning_info.json
 ```
+
+Use the resume token printed by the original run and rerun the same recipe with
+`--resume`. Check the error log for configuration mismatch, missing partition
+metadata, invalid row boundaries, or partition content hash mismatch. Explicit
+resume does not delete checkpoints when validation fails.
 
 **Check Ray status:**
 ```bash

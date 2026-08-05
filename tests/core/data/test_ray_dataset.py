@@ -464,6 +464,13 @@ class RayComputeStrategyTest(DataJuicerTestCaseBase):
                 self.assertEqual(compute.min_size, 2)
                 self.assertEqual(compute.max_size, 2)
 
+            with self.subTest(op=op_class.__name__, mode="actor", concurrency="elastic"):
+                op = op_class(auto_op_parallelism=False, num_proc=(1, 3), ray_execution_mode="actor")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, ActorPoolStrategy)
+                self.assertEqual(compute.min_size, 1)
+                self.assertEqual(compute.max_size, 3)
+
 
 if __name__ == "__main__":
     unittest.main()

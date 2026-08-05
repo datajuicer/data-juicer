@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from functools import partial
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import pyarrow
 import ray
@@ -18,6 +18,16 @@ from data_juicer.ops.base_op import DEFAULT_BATCH_SIZE, TAGGING_OPS
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import is_remote_path
 from data_juicer.utils.webdataset_utils import _custom_default_decoder
+
+
+def _build_actor_pool_strategy(num_proc: Union[int, Tuple[int, int], List[int]]) -> ActorPoolStrategy:
+    """Build a Ray ActorPool strategy for fixed or elastic concurrency."""
+    if isinstance(num_proc, (tuple, list)):
+        if len(num_proc) != 2:
+            raise ValueError(f"Invalid ActorPool concurrency range: {num_proc}")
+        min_size, max_size = num_proc
+        return ActorPoolStrategy(min_size=min_size, max_size=max_size)
+    return ActorPoolStrategy(size=num_proc)
 
 
 def get_abs_path(path, dataset_dir):
@@ -241,7 +251,7 @@ class RayDataset(DJDataset):
 
                 try:
                     if op.use_ray_actor():
-                        compute = ActorPoolStrategy(size=op.num_proc)
+                        compute = _build_actor_pool_strategy(op.num_proc)
                         self.data = self.data.map_batches(
                             op.__class__,
                             fn_args=None,
@@ -291,7 +301,7 @@ class RayDataset(DJDataset):
                         f"to preserve shared dedup state across workers"
                     )
                 if op.use_ray_actor() and not use_instance_for_ray_tasks:
-                    compute = ActorPoolStrategy(size=op.num_proc)
+                    compute = _build_actor_pool_strategy(op.num_proc)
                     self.data = self.data.map_batches(
                         op.__class__,
                         fn_args=None,

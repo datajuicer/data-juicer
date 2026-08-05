@@ -454,6 +454,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Prepare operations
         logger.info("Preparing operations...")
         ops = self._prepare_operators()
+        self._ensure_elastic_juicer_stage_identities(ops)
 
         # Handle auto partition mode BEFORE initializing DAG
         # (DAG needs final partition count)
@@ -492,16 +493,28 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Detect convergence points for global operations
         convergence_points = self._detect_convergence_points(self.cfg)
 
-        if convergence_points:
-            logger.info(f"Found convergence points at operations: {convergence_points}")
-            final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
-        else:
-            logger.info("No convergence points found, processing with simple partitioning")
-            final_dataset = self._process_with_simple_partitioning(dataset, ops)
+        # Own the job-scoped ElasticJuicer Captain here so its lifetime covers
+        # every controlled stage (simple partitioning, convergence, and the
+        # post-convergence global segment), and release it on any exit path.
+        captain_lifecycle = None
+        start_captain = getattr(dataset, "start_elastic_juicer_captain", None)
+        if callable(start_captain):
+            captain_lifecycle = start_captain(self.cfg)
 
-        # Export final dataset
-        logger.info("Exporting final dataset...")
-        self.exporter.export(final_dataset.data, columns=columns)
+        try:
+            if convergence_points:
+                logger.info(f"Found convergence points at operations: {convergence_points}")
+                final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
+            else:
+                logger.info("No convergence points found, processing with simple partitioning")
+                final_dataset = self._process_with_simple_partitioning(dataset, ops)
+
+            # Export final dataset
+            logger.info("Exporting final dataset...")
+            self.exporter.export(final_dataset.data, columns=columns)
+        finally:
+            if captain_lifecycle is not None:
+                captain_lifecycle.close()
 
         job_duration = time.time() - job_start_time
         logger.info(f"✅ Job completed successfully in {job_duration:.2f}s")
@@ -538,12 +551,25 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         """
         logger.info("Processing with real partitioning using Ray Data's split and union...")
 
+        # Direct callers (tests, embedding scripts) may bypass run(); make
+        # sure clone-stable identities exist before partition cloning.
+        self._ensure_elastic_juicer_stage_identities(ops)
+
         # Split the dataset deterministically with metadata collection
         partitions, partitioning_info = self._split_dataset_deterministic(dataset)
         logger.info(
             f"Partitioning complete: {partitioning_info.num_partitions} partitions, "
             f"{partitioning_info.total_rows} total rows"
         )
+
+        # Split-time ground truth for checkpoint integrity validation: a
+        # checkpoint whose row count deviates from its partition membership
+        # is incomplete (crash mid write_parquet) and must not be resumed.
+        # Defensive getattr: mocked split results in tests may omit metadata.
+        self._partition_expected_rows = {
+            meta.partition_id: meta.row_count
+            for meta in getattr(partitioning_info, "partitions", [])
+        }
 
         # Process partitions concurrently. Each worker thread drives one Ray
         # Dataset execution; the actual data processing still runs on Ray.
@@ -625,6 +651,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             # tracing). Give every concurrent partition its own instances.
             partition_ops = self._clone_partition_operators(ops) if isolate_operators else ops
             partition_dataset = self._wrap_with_precomputed_parallelism(partition)
+            if hasattr(partition_dataset, "set_elastic_juicer_partition_id"):
+                partition_dataset.set_elastic_juicer_partition_id(partition_id)
             processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, partition_ops)
         except Exception as error:
             self.log_partition_failed(partition_id, str(error), retry_count=0)
@@ -648,6 +676,92 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 "Failed to isolate operators for concurrent partition execution. "
                 "All partition operators must support deep copying."
             ) from error
+
+    def _ensure_elastic_juicer_stage_identities(self, ops: List) -> None:
+        """Guarantee clone-stable ElasticJuicer identities before cloning.
+
+        Embedding scripts may override ``_prepare_operators`` without
+        stamping stage identities. Without stamps, deep-copied partition
+        operators fall back to instance-keyed stage ids, so every concurrent
+        partition gets a distinct stage and cross-partition profile seeding
+        silently stops working. Stamping is idempotent: lists whose
+        operators are all already stamped pass through untouched.
+        """
+        if not ops:
+            return
+        try:
+            adaptive = self.cfg.get("elastic_juicer_adaptive_batching", False)
+        except AttributeError:
+            adaptive = getattr(self.cfg, "elastic_juicer_adaptive_batching", False)
+        if not adaptive:
+            return
+
+        from data_juicer.core.elasticjuicer.stage_identity import (
+            STAGE_IDENTITY_ATTR,
+            assign_stage_identities,
+        )
+
+        if all(getattr(op, STAGE_IDENTITY_ATTR, None) for op in ops):
+            all_stamped = True
+        else:
+            all_stamped = False
+
+        # Idempotent (re)stamp: also yields the pipeline fingerprint needed
+        # for cross-restart profile persistence (gap 5.6).
+        manifest = assign_stage_identities(ops)
+        work_dir = getattr(self, "work_dir", None)
+
+        # Expose the persisted-profile bridge to the job-scoped ControlService
+        # (created lazily by RayDataset from these cfg attributes): profiles
+        # survive driver restarts for the same pipeline + work_dir, guarded by
+        # pipeline fingerprint and the service's profile TTL.
+        if work_dir:
+            profiles_path = os.path.join(work_dir, "elastic_juicer_stage_profiles.json")
+            fingerprint = manifest["pipeline_fingerprint"]
+            try:
+                self.cfg.elastic_juicer_profiles_path = profiles_path
+                self.cfg.elastic_juicer_pipeline_fingerprint = fingerprint
+            except (AttributeError, TypeError):
+                try:
+                    # dict-like configs (tests / embedding scripts)
+                    self.cfg["elastic_juicer_profiles_path"] = profiles_path
+                    self.cfg["elastic_juicer_pipeline_fingerprint"] = fingerprint
+                except Exception as e:
+                    logger.warning(f"Could not expose ElasticJuicer profile bridge on cfg: {e}")
+            # The job-scoped ControlService may already exist (created when
+            # the source RayDataset configured ElasticJuicer, before this
+            # stamping ran). Attach persistence to it as well; a service
+            # created later picks the cfg attributes up directly.
+            try:
+                existing_service = self.cfg.get("_elastic_juicer_control_service")
+            except AttributeError:
+                existing_service = getattr(self.cfg, "_elastic_juicer_control_service", None)
+            if existing_service is not None:
+                try:
+                    import ray
+
+                    ray.get(
+                        existing_service.configure_profile_persistence.remote(
+                            profiles_path, fingerprint
+                        ),
+                        timeout=10,
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not attach profile persistence to ControlService: {e}")
+
+        if all_stamped:
+            return
+
+        if not work_dir:
+            logger.warning("No work_dir available; ElasticJuicer stage identity manifest not persisted")
+            return
+        try:
+            manifest_path = os.path.join(work_dir, "elastic_juicer_stage_identities.json")
+            with open(manifest_path, "w") as f:
+                json.dump(manifest, f, indent=2)
+            logger.info(f"ElasticJuicer stage identities written to {manifest_path}")
+        except OSError as e:
+            logger.warning(f"Could not persist ElasticJuicer stage identity manifest: {e}")
 
     def _configure_operator_parallelism(self, ops: List) -> None:
         """Plan global actor resources once before partition threads.
@@ -920,6 +1034,34 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             # No post-convergence operations, just return the merged result
             return RayDataset(merged_dataset, cfg=self.cfg)
 
+    def _validate_checkpoint_integrity(self, latest_checkpoint, partition_id: int):
+        """Reject checkpoints whose row count deviates from the partition.
+
+        Ray ``write_parquet`` writes one file per block with no atomic
+        commit, so a driver crash mid-checkpoint can leave a structurally
+        readable but row-incomplete checkpoint directory. Resuming from it
+        silently drops the missing rows (0803 defect: 16/1600 rows lost).
+        Compare against the split-time partition row count; on mismatch the
+        checkpoint is discarded and the partition is recomputed from scratch.
+        """
+        if latest_checkpoint is None:
+            return None
+        expected_rows = getattr(self, "_partition_expected_rows", {}).get(partition_id)
+        if expected_rows is None:
+            return latest_checkpoint
+        probe = self.ckpt_manager.load_checkpoint(
+            latest_checkpoint[0], latest_checkpoint[1], partition_id, cfg=self.cfg
+        )
+        actual_rows = probe.data.count() if probe is not None else None
+        if probe is None or actual_rows != expected_rows:
+            logger.warning(
+                f"Partition {partition_id}: checkpoint after op {latest_checkpoint[0]} is "
+                f"incomplete or unreadable ({actual_rows} rows, expected {expected_rows}). "
+                f"Ignoring checkpoints for this partition and recomputing it from scratch."
+            )
+            return None
+        return latest_checkpoint
+
     def _process_with_checkpointing(self, dataset: RayDataset, partition_id: int, ops: List) -> RayDataset:
         """
         Process dataset with checkpointing support.
@@ -959,6 +1101,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # check the latest checkpoint for the partition
         latest_checkpoint = self.ckpt_manager.find_latest_checkpoint(partition_id)
+        latest_checkpoint = self._validate_checkpoint_integrity(latest_checkpoint, partition_id)
 
         # Group operations based on checkpoint strategy
         op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
@@ -995,6 +1138,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     logger.info(
                         f"Partition {partition_id}: Successfully loaded checkpoint, resuming from operation {latest_checkpoint[0] + 1}"
                     )
+                    # Restore the executor partition identity on the reloaded
+                    # wrapper so ElasticJuicer metrics from resumed partitions
+                    # stay attributable instead of reporting partition_id=None.
+                    if hasattr(current_dataset, "set_elastic_juicer_partition_id"):
+                        current_dataset.set_elastic_juicer_partition_id(partition_id)
                     group_ops = ops[latest_checkpoint[0] + 1 : end_idx]  # Resume from checkpoint
                     if not group_ops:
                         logger.info(
@@ -1141,6 +1289,21 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
                 mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
             )
+
+        # Assign restart-stable ElasticJuicer stage identities on the complete
+        # prepared list, before any checkpoint grouping or resume slicing, and
+        # persist the manifest next to checkpoints for resumed jobs.
+        if self.cfg.get("elastic_juicer_adaptive_batching", False):
+            from data_juicer.core.elasticjuicer.stage_identity import assign_stage_identities
+
+            manifest = assign_stage_identities(ops)
+            try:
+                manifest_path = os.path.join(self.work_dir, "elastic_juicer_stage_identities.json")
+                with open(manifest_path, "w") as f:
+                    json.dump(manifest, f, indent=2)
+                logger.info(f"ElasticJuicer stage identities written to {manifest_path}")
+            except OSError as e:
+                logger.warning(f"Could not persist ElasticJuicer stage identity manifest: {e}")
 
         return ops
 

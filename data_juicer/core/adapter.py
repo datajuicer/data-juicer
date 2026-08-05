@@ -7,6 +7,7 @@ from datasets.config import DEFAULT_MAX_BATCH_SIZE
 from jsonargparse import Namespace
 
 from data_juicer.analysis.measure import RelatedTTestMeasure
+from data_juicer.core.elasticjuicer.profiler.probe_adapter import ProbeAdapter
 from data_juicer.core.monitor import Monitor
 from data_juicer.ops import UNFORKABLE
 from data_juicer.utils.cache_utils import dataset_cache_control
@@ -25,6 +26,7 @@ class Adapter:
 
         # resource probe related
         self.idle_resources = Monitor.monitor_current_resources()
+        self.probe_adapter = ProbeAdapter.from_config(self.cfg)
 
     @staticmethod
     def execute_and_probe(dataset, operators, sample_interval=0.5):
@@ -108,6 +110,7 @@ class Adapter:
         """
         # TODO: set batch size to 1 for all OPs for probing
         load_analysis_res, probed_batch_size = self.probe_small_batch(dataset, operators)
+        self.probe_adapter.stash(operators, load_analysis_res, batch_size=probed_batch_size)
 
         # calculate batch size for each OP according to the analysis results
         bs_per_op = self.batch_size_strategy(load_analysis_res, base_bs=probed_batch_size)

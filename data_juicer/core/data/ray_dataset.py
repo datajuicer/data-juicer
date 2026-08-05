@@ -99,12 +99,140 @@ class RayDataset(DJDataset):
         auto_op_parallelism=True,
     ) -> None:
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
+        self._configure_elastic_juicer(cfg)
 
         # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
         if cfg and cfg.get("auto_op_parallelism") is not None:
             self._auto_proc = cfg.get("auto_op_parallelism")
         else:
             self._auto_proc = auto_op_parallelism
+
+    def _configure_elastic_juicer(self, cfg) -> None:
+        self._elastic_juicer_cfg = cfg
+        self._elastic_juicer_adaptive_batching = bool(cfg and cfg.get("elastic_juicer_adaptive_batching", False))
+        self._elastic_juicer_job_id = None
+        self._elastic_juicer_metrics_sink = None
+        self._elastic_juicer_metrics_max_in_flight = 64
+        self._elastic_juicer_control_service = None
+        self._elastic_juicer_control_poll_interval_sec = 0.1
+        self._elastic_juicer_sample_interval_sec = 0.01
+        self._elastic_juicer_next_stage_index = 0
+        self._elastic_juicer_profile_seed_enabled = False
+        self._elastic_juicer_profile_seed_timeout_sec = 2.0
+        self._elastic_juicer_partition_id = None
+        self._elastic_juicer_captain_enabled = bool(cfg and cfg.get("elastic_juicer_captain_enabled", False))
+        self._elastic_juicer_captain_lifecycle = None
+        if self._elastic_juicer_captain_enabled and not self._elastic_juicer_adaptive_batching:
+            raise ValueError("elastic_juicer_captain_enabled requires elastic_juicer_adaptive_batching")
+        if not self._elastic_juicer_adaptive_batching:
+            return
+
+        job_id = cfg.get("job_id")
+        if not job_id:
+            raise ValueError("elastic_juicer_adaptive_batching requires a resolved job_id")
+        metrics_max_in_flight = int(cfg.get("elastic_juicer_metrics_max_in_flight", 64))
+        if metrics_max_in_flight < 1:
+            raise ValueError("elastic_juicer_metrics_max_in_flight must be at least 1")
+        control_poll_interval_sec = float(cfg.get("elastic_juicer_control_poll_interval_sec", 0.1))
+        if control_poll_interval_sec <= 0:
+            raise ValueError("elastic_juicer_control_poll_interval_sec must be positive")
+        sample_interval_sec = float(cfg.get("elastic_juicer_sample_interval_sec", 0.01))
+        if sample_interval_sec <= 0:
+            raise ValueError("elastic_juicer_sample_interval_sec must be positive")
+        metrics_sink_max_events = int(cfg.get("elastic_juicer_metrics_sink_max_events", 2048))
+        if metrics_sink_max_events < 1:
+            raise ValueError("elastic_juicer_metrics_sink_max_events must be at least 1")
+        profile_seed_timeout_sec = float(cfg.get("elastic_juicer_profile_seed_timeout_sec", 2.0))
+        if profile_seed_timeout_sec <= 0:
+            raise ValueError("elastic_juicer_profile_seed_timeout_sec must be positive")
+        profile_ttl_ms = int(cfg.get("elastic_juicer_profile_ttl_ms", 1_800_000))
+        if profile_ttl_ms < 1:
+            raise ValueError("elastic_juicer_profile_ttl_ms must be positive")
+        lease_ttl_ms = int(cfg.get("elastic_juicer_lease_ttl_ms", 60_000))
+        if lease_ttl_ms < 1:
+            raise ValueError("elastic_juicer_lease_ttl_ms must be positive")
+        sink_key = "_elastic_juicer_metrics_sink"
+        metrics_sink = cfg.get(sink_key)
+        if metrics_sink is None:
+            from data_juicer.core.elasticjuicer.async_metrics_sink import (
+                create_ray_metrics_sink,
+            )
+
+            metrics_sink = create_ray_metrics_sink(job_id, max_events=metrics_sink_max_events)
+            cfg[sink_key] = metrics_sink
+        control_key = "_elastic_juicer_control_service"
+        control_service = cfg.get(control_key)
+        if control_service is None:
+            from data_juicer.core.elasticjuicer.control_service import (
+                create_ray_control_service,
+            )
+
+            control_service = create_ray_control_service(
+                job_id,
+                lease_ttl_ms=lease_ttl_ms,
+                profile_ttl_ms=profile_ttl_ms,
+                profiles_path=cfg.get("elastic_juicer_profiles_path", "") or "",
+                pipeline_fingerprint=cfg.get("elastic_juicer_pipeline_fingerprint", "") or "",
+            )
+            cfg[control_key] = control_service
+        self._elastic_juicer_job_id = job_id
+        self._elastic_juicer_metrics_sink = metrics_sink
+        self._elastic_juicer_metrics_max_in_flight = metrics_max_in_flight
+        self._elastic_juicer_control_service = control_service
+        self._elastic_juicer_control_poll_interval_sec = control_poll_interval_sec
+        self._elastic_juicer_sample_interval_sec = sample_interval_sec
+        # Profile seeding stays opt-in for benefit experiments: default off
+        # until its stability and benefit are demonstrated end to end.
+        self._elastic_juicer_profile_seed_enabled = bool(cfg.get("elastic_juicer_profile_seed", False))
+        self._elastic_juicer_profile_seed_timeout_sec = profile_seed_timeout_sec
+
+    @property
+    def elastic_juicer_metrics_sink(self):
+        """Return the explicit job-scoped sink handle for driver-side polling."""
+
+        return self._elastic_juicer_metrics_sink
+
+    def set_elastic_juicer_partition_id(self, partition_id) -> None:
+        """Record which executor partition this dataset wrapper processes."""
+
+        if partition_id is not None and (isinstance(partition_id, bool) or not isinstance(partition_id, int)):
+            raise TypeError("partition_id must be an int or None")
+        self._elastic_juicer_partition_id = partition_id
+
+    @property
+    def elastic_juicer_control_service(self):
+        """Return the explicit job-scoped control handle for Captain."""
+
+        return self._elastic_juicer_control_service
+
+    @property
+    def elastic_juicer_captain_lifecycle(self):
+        return self._elastic_juicer_captain_lifecycle
+
+    def start_elastic_juicer_captain(self, cfg):
+        """Start the explicitly enabled job-scoped driver lifecycle."""
+
+        if not self._elastic_juicer_captain_enabled:
+            return None
+        lifecycle_key = "_elastic_juicer_captain_lifecycle"
+        lifecycle = cfg.get(lifecycle_key)
+        if lifecycle is None:
+            from data_juicer.core.elasticjuicer.captain import create_captain_lifecycle
+
+            lifecycle = create_captain_lifecycle(
+                self._elastic_juicer_metrics_sink,
+                self._elastic_juicer_control_service,
+                cfg,
+            )
+            cfg[lifecycle_key] = lifecycle
+        lifecycle.start()
+        self._elastic_juicer_captain_lifecycle = lifecycle
+        return lifecycle
+
+    def close_elastic_juicer_captain(self) -> None:
+        lifecycle = self._elastic_juicer_captain_lifecycle
+        if lifecycle is not None:
+            lifecycle.close()
 
     def schema(self) -> Schema:
         """Get dataset schema.
@@ -195,8 +323,11 @@ class RayDataset(DJDataset):
         cached_columns = set(columns_result)
 
         for op in operators:
+            stage_id = None
+            if self._elastic_juicer_adaptive_batching:
+                stage_id = self._next_elastic_juicer_stage_id(op)
             try:
-                cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+                cached_columns = self._run_single_op(op, cached_columns, tracer=tracer, stage_id=stage_id)
             except Exception as e:
                 logger.error(f"Error processing operator {op}: {e}.")
                 if op.runtime_env is not None:
@@ -204,14 +335,59 @@ class RayDataset(DJDataset):
                     original_runtime_env = op.runtime_env
                     try:
                         op.runtime_env = None
-                        cached_columns = self._run_single_op(op, cached_columns, tracer=tracer)
+                        cached_columns = self._run_single_op(op, cached_columns, tracer=tracer, stage_id=stage_id)
                     finally:
                         op.runtime_env = original_runtime_env
                 else:
                     raise e
         return self
 
-    def _run_single_op(self, op, cached_columns=None, tracer=None):
+    def _next_elastic_juicer_stage_id(self, op) -> str:
+        """Resolve a stable topology identity for one operator instance.
+
+        The executor stamps deterministic identities (pipeline index,
+        occurrence, and operator fingerprint) onto every prepared operator
+        before any partition or checkpoint grouping, so the same operator
+        keeps one stage id across partitions, checkpoint resumes, and
+        process restarts. The first-seen registry below is only a fallback
+        for callers that invoke ``process`` directly without an executor.
+        """
+
+        from data_juicer.core.elasticjuicer.stage_identity import stamped_stage_identity
+
+        stamped = stamped_stage_identity(op)
+        if stamped is not None:
+            return stamped
+
+        cfg = getattr(self, "_elastic_juicer_cfg", None)
+        registry_key = "_elastic_juicer_stage_registry"
+        shared_key = "_elastic_juicer_next_stage_index"
+        if cfg is not None:
+            registry = cfg.get(registry_key)
+            if registry is None:
+                registry = {}
+                cfg[registry_key] = registry
+            cached = registry.get(id(op))
+            if cached is not None and cached[0] is op:
+                return cached[1]
+            index = int(cfg.get(shared_key, 0))
+            cfg[shared_key] = index + 1
+        else:
+            registry = getattr(self, registry_key, None)
+            if registry is None:
+                registry = {}
+                setattr(self, registry_key, registry)
+            cached = registry.get(id(op))
+            if cached is not None and cached[0] is op:
+                return cached[1]
+            index = getattr(self, shared_key, 0)
+            setattr(self, shared_key, index + 1)
+        op_name = getattr(op, "_name", None) or op.__class__.__name__
+        stage_id = f"stage-{index:06d}:{op_name}"
+        registry[id(op)] = (op, stage_id)
+        return stage_id
+
+    def _run_single_op(self, op, cached_columns=None, tracer=None, stage_id=None):
         # Use cached columns to avoid calling self.data.columns() which breaks pipeline
         if cached_columns is None:
             cached_columns = set(self.data.columns())
@@ -241,20 +417,59 @@ class RayDataset(DJDataset):
 
                 try:
                     if op.use_ray_actor():
-                        compute = ActorPoolStrategy(size=op.num_proc)
-                        self.data = self.data.map_batches(
-                            op.__class__,
-                            fn_args=None,
-                            fn_kwargs=None,
-                            fn_constructor_args=op._init_args,
-                            fn_constructor_kwargs=op._init_kwargs,
-                            batch_size=batch_size,
-                            num_cpus=op.num_cpus,
-                            num_gpus=op.num_gpus,
-                            compute=compute,
-                            batch_format="pyarrow",
-                            runtime_env=op.runtime_env,
-                        )
+                        if self._elastic_juicer_adaptive_batching and op.is_batched_op():
+                            from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
+                                RayAdaptiveMapperActor,
+                            )
+
+                            compute = ActorPoolStrategy(size=op.num_proc)
+                            resolved_stage_id = stage_id or self._next_elastic_juicer_stage_id(op)
+                            self.data = self.data.map_batches(
+                                RayAdaptiveMapperActor,
+                                fn_args=None,
+                                fn_kwargs=None,
+                                fn_constructor_kwargs={
+                                    "operator_class": op.__class__,
+                                    "operator_args": op._init_args,
+                                    "operator_kwargs": op._init_kwargs,
+                                    "initial_batch_size": batch_size,
+                                    "max_batch_size": batch_size,
+                                    "metrics_sink": self._elastic_juicer_metrics_sink,
+                                    "metrics_max_in_flight": getattr(self, "_elastic_juicer_metrics_max_in_flight", 64),
+                                    "job_id": self._elastic_juicer_job_id,
+                                    "op_name": getattr(op, "_name", None) or op.__class__.__name__,
+                                    "stage_id": resolved_stage_id,
+                                    "control_service": self._elastic_juicer_control_service,
+                                    "control_poll_interval_sec": self._elastic_juicer_control_poll_interval_sec,
+                                    "sample_interval_sec": self._elastic_juicer_sample_interval_sec,
+                                    "profile_seed_enabled": getattr(self, "_elastic_juicer_profile_seed_enabled", False),
+                                    "profile_seed_timeout_sec": getattr(
+                                        self, "_elastic_juicer_profile_seed_timeout_sec", 2.0
+                                    ),
+                                    "partition_id": getattr(self, "_elastic_juicer_partition_id", None),
+                                },
+                                batch_size=batch_size,
+                                num_cpus=op.num_cpus,
+                                num_gpus=op.num_gpus,
+                                compute=compute,
+                                batch_format="pyarrow",
+                                runtime_env=op.runtime_env,
+                            )
+                        else:
+                            compute = ActorPoolStrategy(size=op.num_proc)
+                            self.data = self.data.map_batches(
+                                op.__class__,
+                                fn_args=None,
+                                fn_kwargs=None,
+                                fn_constructor_args=op._init_args,
+                                fn_constructor_kwargs=op._init_kwargs,
+                                batch_size=batch_size,
+                                num_cpus=op.num_cpus,
+                                num_gpus=op.num_gpus,
+                                compute=compute,
+                                batch_format="pyarrow",
+                                runtime_env=op.runtime_env,
+                            )
                     else:
                         compute = TaskPoolStrategy(size=op.num_proc)
                         self.data = self.data.map_batches(

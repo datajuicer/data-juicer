@@ -61,6 +61,28 @@ op_fusion: false                                            # whether to fuse op
 fusion_strategy: 'probe'                                    # OP fusion strategy. Support ['greedy', 'probe'] now. 'greedy' means keep the basic OP order and put the fused OP to the last of each fused OP group. 'probe' means Data-Juicer will probe the running speed for each OP at the beginning and reorder the OPs and fused OPs according to their probed speed (fast to slow). It's 'probe' in default.
 cache_compress: null                                        # the compression method of the cache file, which can be specified in ['gzip', 'zstd', 'lz4']. If this parameter is None, the cache file will not be compressed. We recommend you turn on this argument when your input dataset is larger than tens of GB and your disk space is not enough.
 adaptive_batch_size: false                                  # whether to use adaptive batch sizes for each OP according to the probed results. It's False in default.
+elastic_juicer_adaptive_batching: false                     # whether to enable actor-local OOM-safe adaptive batching for batched Mapper operators in Ray actor mode. It's False in default.
+elastic_juicer_metrics_max_in_flight: 64                    # maximum pending metrics submissions per adaptive Ray actor; newer observations are dropped while this bounded window is full.
+elastic_juicer_control_poll_interval_sec: 0.1               # non-blocking quota poll cadence at adaptive actor micro-slice boundaries.
+elastic_juicer_sample_interval_sec: 0.01                    # actor-process RSS sampling interval used by adaptive runtime metrics.
+elastic_juicer_captain_enabled: false                       # enable the product driver Captain lifecycle; requires adaptive batching and a complete watermark pair.
+elastic_juicer_captain_poll_interval_sec: 0.5               # Captain stage decision-loop interval.
+elastic_juicer_captain_rpc_timeout_sec: 5.0                 # finite timeout for Captain metrics/control RPCs.
+elastic_juicer_captain_retry_backoff_sec: 0.1               # retry backoff after Captain RPC failure or timeout.
+elastic_juicer_captain_metrics_ttl_ms: 5000                 # maximum age of a metrics observation used for a decision.
+elastic_juicer_captain_quota_ttl_ms: 10000                  # validity window of a Captain quota envelope.
+elastic_juicer_captain_min_confidence: 0.8                  # minimum observation confidence used by Captain.
+elastic_juicer_captain_min_decision_interval_ms: 1000       # per-actor decision rate limit.
+elastic_juicer_captain_recovery_observations: 3             # complete low-pressure stage windows required before recovery.
+elastic_juicer_captain_process_memory_high_mb: null         # optional actor-process RSS high watermark; configure with the low watermark.
+elastic_juicer_captain_process_memory_low_mb: null          # optional actor-process RSS low watermark; configure with the high watermark.
+elastic_juicer_captain_cuda_memory_high_mb: null            # optional CUDA allocator high watermark; configure with the low watermark.
+elastic_juicer_captain_cuda_memory_low_mb: null             # optional CUDA allocator low watermark; configure with the high watermark.
+elastic_juicer_profile_seed: false                          # whether new adaptive actor incarnations seed initial batch bounds from a prior incarnation's stage profile. It's False in default.
+elastic_juicer_profile_seed_timeout_sec: 2.0                # bounded wait for the one-shot stage-profile seed fetch and profile report acknowledgements.
+elastic_juicer_profile_ttl_ms: 1800000                      # maximum stage-profile age served to a new incarnation; older profiles are discarded on read.
+elastic_juicer_lease_ttl_ms: 60000                          # control-service registration lease TTL; actors renew on every quota poll and expired leases leave stage coordination.
+elastic_juicer_metrics_sink_max_events: 2048                # bounded capacity of the job-scoped async metrics sink; oldest events are dropped and counted when full.
 
 # for data encryption / decryption
 decrypt_after_reading: false                                # whether to decrypt input files after reading. Each file is decrypted in-memory (plaintext never written to disk). HF cache is automatically disabled. Requires encryption_key_path or DJ_ENCRYPTION_KEY env var.

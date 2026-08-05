@@ -807,6 +807,153 @@ def build_base_parser() -> ArgumentParser:
         help="Whether to automatically set operator parallelism.",
     )
 
+    parser.add_argument(
+        "--elastic_juicer_adaptive_batching",
+        type=bool,
+        default=False,
+        help="Whether to enable actor-local OOM-safe adaptive batching "
+        "for batched Mapper operators in Ray actor mode. It's False "
+        "by default.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_metrics_max_in_flight",
+        type=int,
+        default=64,
+        help="Maximum pending metrics submissions per adaptive Ray "
+        "actor. New observations are dropped while the bounded "
+        "window is full.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_control_poll_interval_sec",
+        type=float,
+        default=0.1,
+        help="Non-blocking interval for adaptive Ray actors to poll the "
+        "job-scoped quota service at micro-slice boundaries. The "
+        "business path never waits for this request.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_sample_interval_sec",
+        type=float,
+        default=0.01,
+        help="Actor-process RSS sampling interval for adaptive batch metrics.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_enabled",
+        type=bool,
+        default=False,
+        help="Enable the job-scoped stage Captain lifecycle. Requires "
+        "elastic_juicer_adaptive_batching and a complete process or "
+        "CUDA memory watermark pair.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_poll_interval_sec",
+        type=float,
+        default=0.5,
+        help="Driver Captain decision-loop interval.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_rpc_timeout_sec",
+        type=float,
+        default=5.0,
+        help="Finite timeout for each Captain metrics/control Ray RPC.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_retry_backoff_sec",
+        type=float,
+        default=0.1,
+        help="Captain retry backoff after a timed-out or failed RPC.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_metrics_ttl_ms",
+        type=int,
+        default=5000,
+        help="Maximum observation age accepted by Captain.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_quota_ttl_ms",
+        type=int,
+        default=10000,
+        help="Validity window for Captain quota delivery envelopes.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_min_confidence",
+        type=float,
+        default=0.8,
+        help="Minimum resource-observation confidence for Captain decisions.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_min_decision_interval_ms",
+        type=int,
+        default=1000,
+        help="Per-actor Captain decision rate limit.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_recovery_observations",
+        type=int,
+        default=3,
+        help="Complete low-pressure stage windows required before recovery.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_process_memory_high_mb",
+        type=float,
+        default=None,
+        help="Optional actor-process RSS high watermark for Captain shrink.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_process_memory_low_mb",
+        type=float,
+        default=None,
+        help="Optional actor-process RSS low watermark for stage recovery.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_cuda_memory_high_mb",
+        type=float,
+        default=None,
+        help="Optional actor CUDA allocator high watermark for Captain shrink.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_captain_cuda_memory_low_mb",
+        type=float,
+        default=None,
+        help="Optional actor CUDA allocator low watermark for stage recovery.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_profile_seed",
+        type=bool,
+        default=False,
+        help="Whether new adaptive actor incarnations seed their initial "
+        "batch bounds from a prior incarnation's stage profile. It's "
+        "False by default until the benefit is demonstrated end to end.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_profile_seed_timeout_sec",
+        type=float,
+        default=2.0,
+        help="Bounded wait for the one-shot stage-profile seed fetch and "
+        "for profile report acknowledgements.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_profile_ttl_ms",
+        type=int,
+        default=1800000,
+        help="Maximum stage-profile age served to a new incarnation; "
+        "older profiles are discarded on read.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_lease_ttl_ms",
+        type=int,
+        default=60000,
+        help="Control-service registration lease TTL. Actors renew on "
+        "every quota poll; expired leases leave stage coordination.",
+    )
+    parser.add_argument(
+        "--elastic_juicer_metrics_sink_max_events",
+        type=int,
+        default=2048,
+        help="Bounded capacity of the job-scoped async metrics sink; the "
+        "oldest events are dropped and counted when it is full.",
+    )
+
     return parser
 
 

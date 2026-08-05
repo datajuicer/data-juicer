@@ -197,41 +197,53 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
                 mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
             )
 
-        with TempDirManager(self.tmp_dir):
-            # 3. data process with DAG monitoring
-            logger.info("Processing data with DAG monitoring...")
-            tstart = time.time()
+        # Stamp deterministic stage identities on the final operator list so
+        # adaptive stages keep the same id across restarts of this pipeline.
+        if getattr(self.cfg, "elastic_juicer_adaptive_batching", False):
+            from data_juicer.core.elasticjuicer.stage_identity import assign_stage_identities
 
-            # Get input row count before processing
-            input_rows = dataset.data.count()
-            start_time = time.time()
+            assign_stage_identities(ops)
 
-            # Pre-execute DAG monitoring (log operation start events)
-            if self.pipeline_dag:
-                self._pre_execute_operations_with_dag_monitoring(ops)
+        captain_lifecycle = dataset.start_elastic_juicer_captain(self.cfg)
+        try:
+            with TempDirManager(self.tmp_dir):
+                # 3. data process with DAG monitoring
+                logger.info("Processing data with DAG monitoring...")
+                tstart = time.time()
 
-            # Execute operations (Ray executor uses simple dataset.process)
-            dataset = dataset.process(ops, tracer=self.tracer)
+                # Get input row count before processing
+                input_rows = dataset.data.count()
+                start_time = time.time()
 
-            # Force materialization to get real execution
-            logger.info("Materializing dataset to collect real metrics...")
-            dataset.data = dataset.data.materialize()
+                # Pre-execute DAG monitoring (log operation start events)
+                if self.pipeline_dag:
+                    self._pre_execute_operations_with_dag_monitoring(ops)
 
-            # Get metrics after execution
-            duration = time.time() - start_time
-            output_rows = dataset.data.count()
+                # Execute operations (Ray executor uses simple dataset.process)
+                dataset = dataset.process(ops, tracer=self.tracer)
 
-            # Post-execute DAG monitoring (log operation completion events with real metrics)
-            if self.pipeline_dag:
-                metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-                self._post_execute_operations_with_dag_monitoring(ops, metrics=metrics)
+                # Force materialization to get real execution
+                logger.info("Materializing dataset to collect real metrics...")
+                dataset.data = dataset.data.materialize()
 
-            # 4. data export
-            if not skip_export:
-                logger.info("Exporting dataset to disk...")
-                self.exporter.export(dataset.data, columns=columns)
-            tend = time.time()
-            logger.info(f"All Ops are done in {tend - tstart:.3f}s.")
+                # Get metrics after execution
+                duration = time.time() - start_time
+                output_rows = dataset.data.count()
+
+                # Post-execute DAG monitoring (log operation completion events with real metrics)
+                if self.pipeline_dag:
+                    metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
+                    self._post_execute_operations_with_dag_monitoring(ops, metrics=metrics)
+
+                # 4. data export
+                if not skip_export:
+                    logger.info("Exporting dataset to disk...")
+                    self.exporter.export(dataset.data, columns=columns)
+                tend = time.time()
+                logger.info(f"All Ops are done in {tend - tstart:.3f}s.")
+        finally:
+            if captain_lifecycle is not None:
+                captain_lifecycle.close()
 
         # Log job completion with DAG context
         job_duration = time.time() - tstart

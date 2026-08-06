@@ -85,6 +85,18 @@ for s in res_ds:
 
 ## 📰 动态
 <details open>
+<summary>[2026-08-06] Release v1.5.5: <b>外部算子插件；HDFS I/O 与 Ray Data 优化；多节点弹性分片</b></summary>
+
+* 🧩 外部算子插件 — 第三方算子现在可作为独立 pip 包分发，并通过 Python entry points 自动注册。
+* 🗄️ HDFS I/O — 新增 `hdfs://` 支持，可用于数据集加载与导出，与现有 S3 路径对齐。
+* ⚡ Ray Data 优化 — 移除会强制提前执行的急切操作，迁移至公开的 `TaskPoolStrategy`/`ActorPoolStrategy` API，并行化分区执行，并保留弹性 actor pool 并发度。
+* 🌐 多节点弹性分片 — 新增位于 `demos/elastic_sharding/` 的可运行参考工作流，通过节点本地 Ray 执行器将大型 JSONL 数据集跨节点分片处理，支持重试与有序合并。
+* 📊 分布式 RayAnalyzer — 新增 `RayAnalyzer`，以 Ray 原生算子计算并汇总数据集统计量，避免 pandas 物化。
+* 🧮 内存优化 — 重复度过滤器的流式 n-gram 计数与分块式 MinHash 置换降低了内存峰值（RSS 768 → 272 MiB），且结果不变。
+* 🔧 健壮性与依赖修复 — 修复 `text_chunk_mapper` 分隔符泄漏、`calibrate_response_mapper` 的 `output_pattern` 处理以及 `image_diffusion_mapper` 的空 caption 问题；为 `general_field_filter` 增加成员运算符；放宽 `numpy`/`fsspec`/`pandas` 版本约束以兼容 Python 3.13+ 与 pyarrow>=17。
+</details>
+
+<details open>
 <summary>[2026-07-17] Release v1.5.4: <b>HumanVBench 视频算子；批内阶段算子融合；健壮性修复</b></summary>
 
 * 🧑‍🤝‍🧑 新算子 — 新增 9 个以人为中心的视频理解算子（人物轨迹提取、活跃说话人检测、音频 ASR、语音情绪与年龄/性别检测、人脸人口统计与属性/情绪描述、人脸占比过滤），用于构建 HumanVBench (CVPR'26) 风格的处理流水线。
@@ -93,7 +105,7 @@ for s in res_ds:
 * 🧪 测试覆盖与清理 — 扩展工具函数与模型处理相关的测试，并进行若干代码清理。
 </details>
 
-<details open>
+<details>
 <summary>[2026-06-26] Release v1.5.3: <b>VLA 算子升级；Ray 重分区管道；可扩展性与健壮性</b></summary>
 
 * 🤖 VLA 算子升级 — 新增/重命名 10+ 个 VLA 算子（DeepCalib/DroidCalib/MoGe 相机标定、原子动作分割、手部动作计算与运动平滑、片段重组、轨迹叠加、LeRobot 导出），并提供完整的 VLA pipeline 示例。
@@ -139,25 +151,6 @@ for s in res_ds:
 - 🎬 *视频字节 I/O* — 视频管道的直接字节处理
 - 🫆 *Ray 模式追踪器* — 在分布式处理中追踪变更的样本
 - 🐳 *增强与修复* — 刷新 Docker 镜像、小幅性能提升、GitHub Insights 流量工作流、Ray 兼容性更新以及 Bug/文档修复。
-</details>
-
-<details >
-<summary>[2026-01-15] Release v1.4.5: <b>20+ 新 OP、Ray vLLM 管道与 Sphinx 文档升级</b> </summary>
-
-- *具身 AI OP*：添加/增强了用于视频标题生成（VLM）、视频对象分割（YOLOE+SAM2）、视频深度估计（可视化 + 点云）、人体姿态（MMPose）、图像标签（VLM）、单图像 3D 人体网格恢复（SAM 3D Body）的映射器，以及 *S3 上传/下载*。
-- *新管道 OP*：将多个 OP 组合成一个管道；引入了用于 LLM/VLM 推理的 *Ray + vLLM* 管道。
-- *文档升级*：迁移到统一的基于 *Sphinx* 的文档构建/部署工作流，具有隔离的主题/架构仓库。
-- *增强与修复*：依赖更新、改进的 Ray 去重和 S3 加载、OpenAI Responses API 支持、追踪器一致性、Docker 基础更新为 CUDA 12.6.3 + Ubuntu 24.04 + Py3.11，以及多个 Bug 修复。
-
-</details>
-
-<details>
-<summary>[2025-12-01] Release v1.4.4: <b>NeurIPS'25 Spotlight、6 个新视频/多模态 OP 与 S3 I/O</b> </summary>
-
-- Data-Juicer 2.0 获得 NeurIPS'25 **Spotlight**
-- *仓库拆分*：sandbox/recipes/agents 移至独立仓库
-- *S3 I/O* 添加到加载器/导出器
-- *6 个新的视频和多模态 OP*（角色检测、VGGT、全身姿态、手部重建）+ 文档/Ray/视频 I/O 改进和 Bug 修复
 </details>
 
 查看 [所有发布](https://github.com/datajuicer/data-juicer/releases) 和 [动态归档](docs/news_zh.md)

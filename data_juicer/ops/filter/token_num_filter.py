@@ -6,6 +6,7 @@ from data_juicer.utils.model_utils import get_model, prepare_model
 from ..base_op import OPERATORS, Filter
 
 OP_NAME = "token_num_filter"
+_TOKENIZATION_BATCH_SIZE = 128
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -63,9 +64,16 @@ class TokenNumFilter(Filter):
 
         if texts:
             tokenizer = get_model(self.model_key)
-            encoded = tokenizer(texts, add_special_tokens=False)
-            for i, idx in enumerate(indices):
-                samples_stats[idx][StatsKeys.num_token] = len(encoded["input_ids"][i])
+            token_counts = []
+            for start in range(0, len(texts), _TOKENIZATION_BATCH_SIZE):
+                text_batch = texts[start : start + _TOKENIZATION_BATCH_SIZE]
+                encoded = tokenizer(text_batch, add_special_tokens=False)
+                input_ids = encoded["input_ids"]
+                for index in range(len(text_batch)):
+                    token_counts.append(len(input_ids[index]))
+                del input_ids, encoded, text_batch
+            for idx, token_count in zip(indices, token_counts):
+                samples_stats[idx][StatsKeys.num_token] = token_count
 
         return samples
 

@@ -87,11 +87,11 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
-<summary>[2026-08-06] Release v1.5.5: <b>External OP Plugins; HDFS I/O & Ray Data Optimizations; Elastic Multi-node Sharding</b></summary>
+<summary>[2026-08-07] Release v1.5.5: <b>External OP Plugins; HDFS I/O & Ray Data Optimizations; Elastic Multi-node Sharding</b></summary>
 
 * 🧩 *External OP Plugins* — Third-party operators can now be shipped as standalone pip packages and auto-registered via Python entry points.
 * 🗄️ *HDFS I/O* — Added `hdfs://` support for dataset loading and exporting, aligned with the existing S3 path.
-* ⚡ *Ray Data Optimizations* — Removed eager actions that forced premature execution, migrated to the public `TaskPoolStrategy`/`ActorPoolStrategy` APIs, parallelized partitioned execution, and preserved elastic actor pool concurrency.
+* ⚡ *Ray Data Optimizations* — Removed eager actions that forced premature execution, migrated to the public `TaskPoolStrategy`/`ActorPoolStrategy` APIs, parallelized partitioned execution, preserved elastic actor pool concurrency, and kept partition checkpoints valid across block-layout changes.
 * 🌐 *Elastic Multi-node Sharding* — New runnable reference workflow under `demos/elastic_sharding/` that shards large JSONL datasets across nodes via node-local Ray executors, with retries and ordered merge.
 * 📊 *Distributed RayAnalyzer* — New `RayAnalyzer` computes and aggregates dataset stats with Ray native operators, avoiding pandas materialization.
 * 🧮 *Memory Optimizations* — Streamed n-gram counting in repetition filters and block-wise MinHash permutations cut peak memory (768 → 272 MiB RSS) without changing results.

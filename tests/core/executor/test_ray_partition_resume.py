@@ -23,7 +23,7 @@ def _metadata(partition_id, row_count, content_hash="hash"):
     )
 
 
-def test_partition_content_hash_is_independent_of_batch_boundaries_and_order():
+def test_partition_content_hash_is_independent_of_batch_boundaries():
     rows = [{"id": 1, "text": "a"}, {"id": 2, "text": "b"}, {"id": 3, "text": "c"}]
     one_batch = [_hash_partition_batch(pyarrow.Table.from_pylist(rows)).to_pylist()[0]]
     split_batches = [
@@ -32,10 +32,24 @@ def test_partition_content_hash_is_independent_of_batch_boundaries_and_order():
     ]
 
     one_hash, one_count = _combine_partition_hash_partials(one_batch)
-    split_hash, split_count = _combine_partition_hash_partials(list(reversed(split_batches)))
+    split_hash, split_count = _combine_partition_hash_partials(split_batches)
 
     assert one_count == split_count == 3
     assert one_hash == split_hash
+
+
+def test_partition_content_hash_detects_reordered_rows():
+    original = [{"id": "A"}, {"id": "B"}, {"id": "C"}]
+    reordered = [{"id": "A"}, {"id": "C"}, {"id": "B"}]
+
+    original_hash, _ = _combine_partition_hash_partials(
+        _hash_partition_batch(pyarrow.Table.from_pylist(original)).to_pylist()
+    )
+    reordered_hash, _ = _combine_partition_hash_partials(
+        _hash_partition_batch(pyarrow.Table.from_pylist(reordered)).to_pylist()
+    )
+
+    assert original_hash != reordered_hash
 
 
 def test_partition_content_hash_detects_changed_content():
@@ -134,6 +148,44 @@ def test_split_at_saved_boundaries_rejects_invalid_row_offsets():
 
     with pytest.raises(RuntimeError, match="Saved row boundaries are invalid"):
         executor._split_at_saved_boundaries(SimpleNamespace(data=Mock()), info)
+
+
+def test_split_at_saved_boundaries_materializes_valid_single_partition():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.num_partitions = 1
+    data = Mock()
+    data.materialize.return_value = "p0"
+    first = _metadata(0, 4)
+    first.start_row = 0
+    first.end_row = 4
+    info = PartitioningInfo(num_partitions=1, total_rows=4, partitions=[first])
+
+    partitions = executor._split_at_saved_boundaries(SimpleNamespace(data=data), info)
+
+    assert partitions == ["p0"]
+    data.materialize.assert_called_once_with()
+    data.split_at_indices.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [("start_row", 1), ("end_row", 5), ("total_rows", 5)],
+)
+def test_split_at_saved_boundaries_rejects_invalid_single_partition_metadata(field, invalid_value):
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.num_partitions = 1
+    data = Mock()
+    first = _metadata(0, 4)
+    first.start_row = 0
+    first.end_row = 4
+    info = PartitioningInfo(num_partitions=1, total_rows=4, partitions=[first])
+    target = first if field in {"start_row", "end_row"} else info
+    setattr(target, field, invalid_value)
+
+    with pytest.raises(RuntimeError, match="Saved row boundaries"):
+        executor._split_at_saved_boundaries(SimpleNamespace(data=data), info)
+
+    data.materialize.assert_not_called()
 
 
 def test_explicit_resume_hash_mismatch_keeps_checkpoints():

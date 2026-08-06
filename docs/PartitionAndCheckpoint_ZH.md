@@ -75,7 +75,7 @@ checkpoint:
 - 覆盖完整分区内容的稳定 hash；
 - 写入 metadata 时使用的分区 hash 算法。
 
-即使新进程中的 Ray 物理 block 布局发生变化，显式续跑也可以用这些信息重建首次运行的逻辑分区。完整分区 hash 不依赖 Ray batch 边界，并且会在复用任何 checkpoint 前完成校验。
+即使新进程中的 Ray 物理 block 布局发生变化，显式续跑也可以用这些信息重建首次运行的逻辑分区。完整分区 hash 对样本顺序敏感、不依赖 Ray batch 边界，并且会在复用任何 checkpoint 前完成校验。
 
 ### 中间存储
 

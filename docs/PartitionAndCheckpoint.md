@@ -83,8 +83,8 @@ records:
 
 These values allow an explicit resume to recreate the original logical
 partitions even when Ray produces a different physical block layout in the new
-process. Complete partition hashes are independent of Ray batch boundaries and
-are validated before any checkpoint is reused.
+process. Complete partition hashes are sensitive to row order, independent of
+Ray batch boundaries, and validated before any checkpoint is reused.
 
 ### Intermediate Storage
 

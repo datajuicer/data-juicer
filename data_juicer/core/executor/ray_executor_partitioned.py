@@ -40,8 +40,9 @@ from data_juicer.utils.lazy_loader import LazyLoader
 ray = LazyLoader("ray")
 
 _AUTO_CPU_PARTITION_CAP = 4
-_PARTITION_CONTENT_HASH_ALGORITHM = "sha256-multiset-v1"
+_PARTITION_CONTENT_HASH_ALGORITHM = "sha256-sequence-v1"
 _PARTITION_CONTENT_HASH_MODULUS = 1 << 256
+_PARTITION_CONTENT_HASH_BASE = int.from_bytes(hashlib.sha256(b"data-juicer-partition-sequence-v1").digest(), "big") | 1
 
 
 def _canonical_row_bytes(row: Dict) -> bytes:
@@ -54,37 +55,36 @@ def _canonical_row_bytes(row: Dict) -> bytes:
 
 
 def _hash_partition_batch(batch):
-    """Return an order-independent hash accumulator for one Arrow batch."""
+    """Return an order-sensitive rolling hash for one Arrow batch."""
     import pyarrow
 
-    digest_sum = 0
-    digest_xor = 0
+    sequence_hash = 0
     rows = batch.to_pylist()
     for row in rows:
         digest = int.from_bytes(hashlib.sha256(_canonical_row_bytes(row)).digest(), "big")
-        digest_sum = (digest_sum + digest) % _PARTITION_CONTENT_HASH_MODULUS
-        digest_xor ^= digest
+        sequence_hash = (sequence_hash * _PARTITION_CONTENT_HASH_BASE + digest) % _PARTITION_CONTENT_HASH_MODULUS
 
     return pyarrow.table(
         {
             "row_count": [len(rows)],
-            "digest_sum": [f"{digest_sum:064x}"],
-            "digest_xor": [f"{digest_xor:064x}"],
+            "sequence_hash": [f"{sequence_hash:064x}"],
         }
     )
 
 
 def _combine_partition_hash_partials(partials: List[Dict]) -> tuple:
-    """Combine batch accumulators into a stable partition content hash."""
+    """Combine ordered batch hashes without depending on batch boundaries."""
     row_count = 0
-    digest_sum = 0
-    digest_xor = 0
+    sequence_hash = 0
     for partial in partials:
-        row_count += int(partial["row_count"])
-        digest_sum = (digest_sum + int(partial["digest_sum"], 16)) % _PARTITION_CONTENT_HASH_MODULUS
-        digest_xor ^= int(partial["digest_xor"], 16)
+        partial_count = int(partial["row_count"])
+        sequence_hash = (
+            sequence_hash * pow(_PARTITION_CONTENT_HASH_BASE, partial_count, _PARTITION_CONTENT_HASH_MODULUS)
+            + int(partial["sequence_hash"], 16)
+        ) % _PARTITION_CONTENT_HASH_MODULUS
+        row_count += partial_count
 
-    payload = f"{_PARTITION_CONTENT_HASH_ALGORITHM}:" f"{row_count}:{digest_sum:064x}:{digest_xor:064x}"
+    payload = f"{_PARTITION_CONTENT_HASH_ALGORITHM}:{row_count}:{sequence_hash:064x}"
     return hashlib.sha256(payload.encode("ascii")).hexdigest(), row_count
 
 
@@ -1277,9 +1277,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     ) -> PartitionMetadata:
         """Collect metadata from a partition for validation on resume.
 
-        The complete content hash is independent of Ray block boundaries and
-        row order within the partition. It is used for strict explicit resume
-        validation; the first-row hash remains for backward compatibility.
+        The complete content hash is independent of Ray block boundaries but
+        sensitive to row order within the partition. It is used for strict
+        explicit resume validation; the first-row hash remains for backward
+        compatibility.
         """
         if compute_content_hash:
             content_hash, row_count = self._compute_partition_content_hash(partition)
@@ -1308,7 +1309,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         )
 
     def _compute_partition_content_hash(self, partition) -> tuple:
-        """Compute a block-boundary-independent hash of a partition."""
+        """Compute an order-sensitive, block-boundary-independent hash."""
+        # preserve_order is enabled before the source Dataset is created, so
+        # take_all() returns these one-row partials in partition row order.
         partials = partition.map_batches(_hash_partition_batch, batch_format="pyarrow").take_all()
         return _combine_partition_hash_partials(partials)
 
@@ -1397,9 +1400,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 f"expected={saved_info.num_partitions}, actual={len(saved_info.partitions)}"
             )
 
-        if saved_info.num_partitions == 1:
-            return [dataset.data.materialize()]
-
         split_indices = []
         expected_start = 0
         for partition_id, meta in enumerate(saved_info.partitions):
@@ -1420,6 +1420,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 "Saved row boundaries do not cover the saved total row count: "
                 f"boundaries_end={expected_start}, total_rows={saved_info.total_rows}"
             )
+
+        if saved_info.num_partitions == 1:
+            return [dataset.data.materialize()]
 
         logger.info(f"Recreating partitions at saved row boundaries: {split_indices}")
         return dataset.data.split_at_indices(split_indices)

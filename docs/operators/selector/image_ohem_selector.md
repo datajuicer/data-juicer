@@ -36,7 +36,9 @@ process:
 When both `top_ratio` and `topk` are specified, the smaller resulting sample count
 is used. The computed loss is stored in `__dj__stats__.image_ohem_loss` by default.
 
-Type: **selector**
+Type 算子类型: **selector**
+
+Tags 标签: image, gpu
 
 ## Parameters
 

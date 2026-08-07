@@ -1,16 +1,22 @@
 """Select hard image examples using a user supplied per-sample loss function."""
 
+import hashlib
 import heapq
 import importlib.util
+import logging
 import os
+import sys
+import uuid
 from typing import Optional
 
 import numpy as np
 
 from data_juicer.utils.constant import Fields
-from data_juicer.utils.mm_utils import load_image
+from data_juicer.utils.mm_utils import load_image, load_mm_bytes_from_sample
 
 from ..base_op import OPERATORS, Selector
+
+logger = logging.getLogger(__name__)
 
 
 @OPERATORS.register_module("image_ohem_selector")
@@ -36,7 +42,7 @@ class ImageOHEMSelector(Selector):
         topk: Optional[int] = None,
         batch_size: int = 8,
         image_key: str = "images",
-        image_bytes_key: str = "",
+        image_bytes_key: str = "image_bytes",
         loss_field: str = "image_ohem_loss",
         device: str = "auto",
         model_kwargs: Optional[dict] = None,
@@ -64,19 +70,38 @@ class ImageOHEMSelector(Selector):
         self.model_kwargs = model_kwargs or {}
         self.score_kwargs = score_kwargs or {}
         self._model = None
+        self._module_name = None
         if score_file:
             self._load_user_functions()
         if not callable(self.score_fn):
             raise ValueError("score_fn or a score_file containing a callable score_fn is required")
+        if self.model_factory is not None and not callable(self.model_factory):
+            raise ValueError("model_factory must be callable or None")
 
     def _load_user_functions(self):
+        self.score_file = os.path.abspath(self.score_file)
         if not os.path.isfile(self.score_file) or not self.score_file.endswith(".py"):
             raise ValueError(f"score_file must be an existing Python file: {self.score_file}")
-        spec = importlib.util.spec_from_file_location("data_juicer_image_ohem_user", self.score_file)
+
+        path_digest = hashlib.sha256(self.score_file.encode()).hexdigest()[:12]
+        module_name = f"data_juicer_image_ohem_{path_digest}_{uuid.uuid4().hex}"
+        spec = importlib.util.spec_from_file_location(module_name, self.score_file)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Could not load a Python module from score_file: {self.score_file}")
+
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        self.score_fn = getattr(module, self.score_function, self.score_fn)
-        self.model_factory = getattr(module, self.model_function, self.model_factory)
+        sys.modules[module_name] = module
+        try:
+            spec.loader.exec_module(module)
+            if not hasattr(module, self.score_function):
+                raise ValueError(f"Function '{self.score_function}' not found in '{self.score_file}'")
+            self.score_fn = getattr(module, self.score_function)
+            if hasattr(module, self.model_function):
+                self.model_factory = getattr(module, self.model_function)
+        except Exception:
+            sys.modules.pop(module_name, None)
+            raise
+        self._module_name = module_name
 
     def _device(self):
         if self.device_name != "auto":
@@ -97,30 +122,47 @@ class ImageOHEMSelector(Selector):
                 self._model.eval()
         return self._model
 
+    def _release_model(self):
+        model = self._model
+        self._model = None
+        if model is not None and hasattr(model, "to"):
+            try:
+                model.to("cpu")
+            except Exception as error:
+                logger.warning("Failed to move the user model to CPU during cleanup: %s", error)
+
     def _images(self, sample):
         paths = sample.get(self.image_key, []) or []
         if not isinstance(paths, (list, tuple)):
             paths = [paths]
-        byte_values = sample.get(self.image_bytes_key, []) if self.image_bytes_key else []
-        if byte_values and len(byte_values) == len(paths):
-            return [load_image(value) for value in byte_values]
-        return [load_image(path) for path in paths]
+        images = []
+        for index, path in enumerate(paths):
+            image_bytes = load_mm_bytes_from_sample(sample, index, self.image_bytes_key)
+            images.append(load_image(image_bytes if image_bytes is not None else path))
+        return images
 
     def process(self, dataset):
         if not len(dataset):
             return dataset
-        model, device = self._ensure_model(), self._device()
+        model = None
         losses = []
-        for start in range(0, len(dataset), self.batch_size):
-            samples = dataset.select(range(start, min(start + self.batch_size, len(dataset)))).to_list()
-            images = [self._images(sample) for sample in samples]
-            batch_losses = self.score_fn(model, samples, images, device, **self.score_kwargs)
-            if hasattr(batch_losses, "detach"):
-                batch_losses = batch_losses.detach().cpu().reshape(-1).tolist()
-            batch_losses = np.asarray(batch_losses, dtype=float).reshape(-1).tolist()
-            if len(batch_losses) != len(samples):
-                raise ValueError("score_fn must return exactly one loss per sample")
-            losses.extend(batch_losses)
+        try:
+            model, device = self._ensure_model(), self._device()
+            for start in range(0, len(dataset), self.batch_size):
+                samples = dataset.select(range(start, min(start + self.batch_size, len(dataset)))).to_list()
+                images = [self._images(sample) for sample in samples]
+                batch_losses = self.score_fn(model, samples, images, device, **self.score_kwargs)
+                if hasattr(batch_losses, "detach"):
+                    batch_losses = batch_losses.detach().cpu().reshape(-1).tolist()
+                batch_losses = np.asarray(batch_losses, dtype=float).reshape(-1).tolist()
+                if len(batch_losses) != len(samples):
+                    raise ValueError("score_fn must return exactly one loss per sample")
+                if not np.isfinite(batch_losses).all():
+                    raise ValueError("score_fn returned NaN or infinite loss")
+                losses.extend(batch_losses)
+        finally:
+            self._release_model()
+            model = None
 
         def attach_loss(sample, index):
             stats = dict(sample.get(Fields.stats, {}))
@@ -137,7 +179,5 @@ class ImageOHEMSelector(Selector):
         if select_num <= 0:
             return dataset.select([])
         values = [float(sample[Fields.stats][self.loss_field]) for sample in dataset]
-        if not np.isfinite(values).all():
-            raise ValueError("score_fn returned NaN or infinite loss")
         indices = heapq.nlargest(select_num, range(len(dataset)), values.__getitem__)
         return dataset.select(indices)

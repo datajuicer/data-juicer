@@ -859,6 +859,15 @@ process:
       words_aug_join_char: ""                                 # the join char between words to augment
   - general_field_filter:                                    # Filter to keep samples based on a general field filter condition.
       filter_condition: ""                                  # The filter condition as a string. It can include logical operators (and/or) and chain comparisons.
+  - image_ohem_selector:                                   # select high-loss image samples using a user-defined model/loss.
+      score_file: ""                                        # Python file defining score_fn(model, samples, images, device, **kwargs)
+      score_function: score_fn
+      model_function: model_factory
+      top_ratio: 0.3                                        # retain this fraction of highest-loss samples
+      topk: null                                             # optional maximum number of selected samples
+      batch_size: 8
+      loss_field: image_ohem_loss
+      device: auto
   - image_aesthetics_filter:                                # filter samples according to the aesthetics score of images.
       hf_scorer_model: shunk031/aesthetics-predictor-v2-sac-logos-ava1-l14-linearMSE # Huggingface model name for the aesthetics predictor
       min_score: 0.3                                          # the min aesthetics score of filter range

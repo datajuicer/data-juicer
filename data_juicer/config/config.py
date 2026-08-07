@@ -1848,6 +1848,7 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
         # Remove internal attributes that are added during config processing
         internal_attrs = [
             "_user_provided_job_id",
+            "_resume_requested",
             "_same_yaml_config",
             "metadata_dir",
             "results_dir",

@@ -334,7 +334,7 @@ All the specific operators are listed below, each featured with several capabili
 | Operator 算子 | Tags 标签 | Description 描述 | Details 详情 | Reference 参考 |
 |----------|------|-------------|-------------|-------------|
 | frequency_specified_field_selector | 💻CPU 🟢Stable | Selector to filter samples based on the frequency of a specified field. 选择器根据指定字段的频率过滤样本。 | [info](operators/selector/frequency_specified_field_selector.md) | - |
-| image_ohem_selector | 🏞Image 🚀GPU 🟡Beta | Selects high-loss image samples using a user-defined model and loss function. 使用用户自定义模型和损失函数选择高损失图像样本。 | [info](operators/selector/image_ohem_selector.md) | - |
+| image_ohem_selector | 🏞Image 🚀GPU 🟡Beta | Keep the highest-loss image samples (Online Hard Example Mining). 保留损失最大的样本（在线难例挖掘）。 | [info](operators/selector/image_ohem_selector.md) | - |
 | random_selector | 💻CPU 🟢Stable | Randomly selects a subset of samples from the dataset. 从数据集中随机选择样本子集。 | [info](operators/selector/random_selector.md) | - |
 | range_specified_field_selector | 💻CPU 🟢Stable | Selects a range of samples based on the sorted values of a specified field. 根据指定字段的排序值选择采样范围。 | [info](operators/selector/range_specified_field_selector.md) | - |
 | tags_specified_field_selector | 💻CPU 🟢Stable | Selector to filter samples based on the tags of a specified field. 选择器根据指定字段的标签过滤样本。 | [info](operators/selector/tags_specified_field_selector.md) | - |

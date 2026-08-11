@@ -22,6 +22,15 @@ if TYPE_CHECKING:
     import pyarrow.fs
 
 
+ACCEPTED_CONFIG_KEYS = (
+    "hdfs_host",
+    "hdfs_port",
+    "hdfs_user",
+    "hdfs_kerb_ticket",
+    "hdfs_extra_conf",
+)
+
+
 def parse_hdfs_path(path: str) -> Tuple[Optional[str], Optional[int]]:
     """
     Parse the host and port from an HDFS URI.

@@ -2,7 +2,9 @@ import copy
 import unittest
 from unittest.mock import MagicMock, patch
 
-from data_juicer.utils.fs_utils import HDFS_FS_KEYS, S3_FS_KEYS, create_filesystem_for_path
+from data_juicer.utils.fs_utils import create_filesystem_for_path
+from data_juicer.utils.hdfs_utils import ACCEPTED_CONFIG_KEYS as HDFS_FS_KEYS
+from data_juicer.utils.s3_utils import ACCEPTED_CONFIG_KEYS as S3_FS_KEYS
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 

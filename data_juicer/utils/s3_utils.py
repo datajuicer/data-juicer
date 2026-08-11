@@ -21,6 +21,14 @@ except ImportError:
     # python-dotenv not installed, .env files won't be automatically loaded
     pass
 
+ACCEPTED_CONFIG_KEYS = (
+    "aws_access_key_id",
+    "aws_secret_access_key",
+    "aws_session_token",
+    "aws_region",
+    "endpoint_url",
+)
+
 
 def get_aws_credentials(ds_config: Dict = {}) -> Tuple[str, str, str, str]:
     """

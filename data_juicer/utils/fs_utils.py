@@ -20,26 +20,6 @@ from loguru import logger
 if TYPE_CHECKING:
     import pyarrow.fs
 
-# config keys consumed when building a PyArrow S3 filesystem,
-# accepted by data_juicer.utils.s3_utils.create_pyarrow_s3_filesystem
-S3_FS_KEYS = (
-    "aws_access_key_id",
-    "aws_secret_access_key",
-    "aws_session_token",
-    "aws_region",
-    "endpoint_url",
-)
-
-# config keys consumed when building a PyArrow HDFS filesystem,
-# accepted by data_juicer.utils.hdfs_utils.create_pyarrow_hdfs_filesystem
-HDFS_FS_KEYS = (
-    "hdfs_host",
-    "hdfs_port",
-    "hdfs_user",
-    "hdfs_kerb_ticket",
-    "hdfs_extra_conf",
-)
-
 
 def _split_args(extra_args: Dict, consumed_keys: Tuple[str, ...]) -> Tuple[Dict, Dict]:
     """
@@ -74,8 +54,8 @@ def create_filesystem_for_path(
     - other (local) paths: no filesystem is created.
 
     The input ``extra_args`` is never mutated; the backend-specific keys
-    (see ``S3_FS_KEYS`` / ``HDFS_FS_KEYS``) are consumed and removed from
-    the returned ``remaining_args`` copy instead.
+    (see ``s3_utils.ACCEPTED_CONFIG_KEYS`` / ``hdfs_utils.ACCEPTED_CONFIG_KEYS``)
+    are consumed and removed from the returned ``remaining_args`` copy instead.
 
     :param path: the target path to create a filesystem for.
     :param extra_args: extra config dict that may contain backend-specific
@@ -93,7 +73,7 @@ def create_filesystem_for_path(
     # guarantee for case-insensitive dispatch
     scheme = urlparse(path).scheme.lower()
     if scheme == "s3":
-        # s3_utils imports pyarrow at module level, so import it lazily
+        from data_juicer.utils.s3_utils import ACCEPTED_CONFIG_KEYS as S3_FS_KEYS
         from data_juicer.utils.s3_utils import (
             create_pyarrow_s3_filesystem,
             validate_s3_path,
@@ -105,7 +85,7 @@ def create_filesystem_for_path(
         return create_pyarrow_s3_filesystem(s3_conf), remaining_args
 
     if scheme == "hdfs":
-        # import at call time so the pyarrow-dependent construction stays lazy
+        from data_juicer.utils.hdfs_utils import ACCEPTED_CONFIG_KEYS as HDFS_FS_KEYS
         from data_juicer.utils.hdfs_utils import (
             create_pyarrow_hdfs_filesystem,
             validate_hdfs_path,

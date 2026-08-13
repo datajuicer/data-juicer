@@ -20,22 +20,9 @@ def main():
         cfg = init_configs()
 
     with timing_context("Initializing executor"):
-        if cfg.executor_type == "default":
-            from data_juicer.core import DefaultExecutor
+        from data_juicer.core.executor import ExecutorFactory
 
-            executor = DefaultExecutor(cfg)
-        elif cfg.executor_type == "ray":
-            from data_juicer.core.executor.ray_executor import RayExecutor
-
-            executor = RayExecutor(cfg)
-        elif cfg.executor_type == "ray_partitioned":
-            from data_juicer.core.executor.ray_executor_partitioned import (
-                PartitionedRayExecutor,
-            )
-
-            executor = PartitionedRayExecutor(cfg)
-        else:
-            raise ValueError(f"Unsupported executor type: {cfg.executor_type}")
+        executor = ExecutorFactory.create_executor_from_config(cfg)
 
     with timing_context("Running executor"):
         executor.run()

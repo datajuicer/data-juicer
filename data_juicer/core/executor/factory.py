@@ -23,3 +23,15 @@ class ExecutorFactory:
         #    return DaskExecutor
         else:
             raise ValueError("Unsupported executor type")
+
+    @staticmethod
+    def create_executor_from_config(cfg) -> ExecutorBase:
+        """Create the configured executor, adding auto sharding when eligible."""
+        from .elastic_sharding.context import should_wrap_executor
+
+        if should_wrap_executor(cfg):
+            from .elastic_sharding.executor import ElasticShardingExecutor
+
+            return ElasticShardingExecutor(cfg)
+        executor_class = ExecutorFactory.create_executor(cfg.executor_type)
+        return executor_class(cfg)

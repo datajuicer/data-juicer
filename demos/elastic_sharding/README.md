@@ -49,8 +49,9 @@ coordinates nodes, while every node has its own independent Ray runtime.
   current one, so faster nodes naturally process more work.
 - **Ray remains available inside every node**: every shard is processed by the
   Data-Juicer Ray executor using that node's CPU/GPU resources.
-- **No rank dependency**: coordination does not require `RANK`, `WORLD_SIZE`,
-  or a static hostname-to-file mapping.
+- **Manual CLI has no rank dependency**: scheduler-specific launchers can use
+  dynamic claims without rank metadata. Core auto-detection uses rank metadata
+  to prove that every advertised process joined the same submission.
 - **Auditable and reproducible**: the manifest records input fingerprints,
   recipe hash, Data-Juicer commit, Ray configuration, and shard order.
 - **Exclusive claims**: POSIX `O_CREAT|O_EXCL` prevents two active Workers from
@@ -61,8 +62,8 @@ coordinates nodes, while every node has its own independent Ray runtime.
   checked before a result is accepted and merged.
 - **Deterministic order**: directory inputs are sorted, shards are contiguous,
   and merge follows manifest order.
-- **Low integration risk**: the implementation lives under `demos` and does
-  not modify existing executors or operators.
+- **Core and manual entry points**: the state machine lives in core; this demo
+  remains a compatibility CLI for explicit scheduler workflows.
 
 ## Comparison with existing approaches
 
@@ -96,7 +97,7 @@ demos/elastic_sharding/
 └── README_ZH.md
 ```
 
-`shard_job.py` contains the shared-storage shard state machine. For
+`shard_job.py` is a compatibility entry point for the core shared-storage shard state machine. For
 Worker-broadcast job types, `dlc_job.py` coordinates one-time preparation and
 finalization around any number of DLC Workers. `two_node_test.py` keeps the
 original strict two-node defaults for backward compatibility. An MPIJob
@@ -139,8 +140,8 @@ python demos/elastic_sharding/dlc_job.py dlc \
 - Only shard-independent Mapper and Filter operators are currently accepted.
 - Deduplicators, Selectors, Groupers, Aggregators, Pipelines, and other
   whole-dataset operations are rejected during `prepare`.
-- Claims use a static timeout without a heartbeat. The timeout must be longer
-  than the longest expected shard runtime.
+- Active claims renew their lease with a heartbeat. Token fencing prevents a
+  timed-out attempt from publishing after another Worker takes ownership.
 - The job directory stores normalized shards and attempt results, so reserve
   enough capacity. Media files are referenced by path and are not copied.
 

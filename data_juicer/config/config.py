@@ -1,5 +1,6 @@
 import argparse
 import copy
+import hashlib
 import importlib.util
 import json
 import os
@@ -159,6 +160,38 @@ def build_base_parser() -> ArgumentParser:
         choices=["default", "ray", "ray_partitioned"],
         help='Type of executor, support "default", "ray", or "ray_partitioned".',
     )
+    parser.add_argument(
+        "--elastic_sharding.mode",
+        type=str,
+        default="auto",
+        choices=["auto", "on", "off"],
+        help=(
+            "Automatically coordinate worker-broadcast multi-node launches when the recipe contains only "
+            "record-local operators. 'on' makes unmet prerequisites an error; 'off' preserves legacy behavior."
+        ),
+    )
+    parser.add_argument(
+        "--elastic_sharding.run_id",
+        type=Optional[str],
+        default=None,
+        help="Stable submission identity used when the launcher does not expose PAI_JOB_ID, JOB_ID, or SLURM_JOB_ID.",
+    )
+    parser.add_argument(
+        "--elastic_sharding.coordination_dir",
+        type=Optional[str],
+        default=None,
+        help="Optional shared-POSIX parent directory for elastic rendezvous and shard state.",
+    )
+    parser.add_argument("--elastic_sharding.rendezvous_timeout_secs", type=PositiveInt, default=120)
+    parser.add_argument("--elastic_sharding.rendezvous_poll_interval_secs", type=PositiveInt, default=1)
+    parser.add_argument("--elastic_sharding.result_timeout_secs", type=PositiveInt, default=7 * 24 * 60 * 60)
+    parser.add_argument("--elastic_sharding.shards_per_node", type=PositiveInt, default=2)
+    parser.add_argument("--elastic_sharding.target_shard_size_mb", type=PositiveInt, default=1024)
+    parser.add_argument("--elastic_sharding.max_shards", type=PositiveInt, default=4096)
+    parser.add_argument("--elastic_sharding.lock_timeout_secs", type=PositiveInt, default=35 * 60 * 60)
+    parser.add_argument("--elastic_sharding.heartbeat_interval_secs", type=PositiveInt, default=30)
+    parser.add_argument("--elastic_sharding.max_retries", type=NonNegativeInt, default=3)
+    parser.add_argument("--elastic_sharding.poll_interval_secs", type=PositiveInt, default=20)
     parser.add_argument(
         "--dataset_path",
         type=str,
@@ -1933,9 +1966,29 @@ def resolve_job_id(cfg):
     else:
         # No job_id provided by user
         setattr(cfg, "_user_provided_job_id", False)
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        short_hash = uuid.uuid4().hex[:6]
-        job_id = f"{timestamp}_{short_hash}"
+        elastic_cfg = getattr(cfg, "elastic_sharding", None)
+        elastic_mode = str(getattr(elastic_cfg, "mode", "auto")).lower()
+        run_id = getattr(elastic_cfg, "run_id", None)
+        if not run_id:
+            for env_name in ("DJ_ELASTIC_RUN_ID", "PAI_JOB_ID", "DLC_JOB_ID", "JOB_ID", "SLURM_JOB_ID"):
+                if os.environ.get(env_name):
+                    run_id = os.environ[env_name]
+                    break
+        distributed = False
+        for size_name in ("WORLD_SIZE", "OMPI_COMM_WORLD_SIZE", "SLURM_NTASKS"):
+            try:
+                distributed = distributed or int(os.environ.get(size_name, "1") or "1") > 1
+            except ValueError:
+                continue
+        if elastic_mode != "off" and distributed and run_id:
+            digest = hashlib.sha256(str(run_id).encode("utf-8")).hexdigest()[:16]
+            job_id = f"elastic_{digest}"
+            setattr(cfg, "_elastic_auto_job_id", True)
+        else:
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            short_hash = uuid.uuid4().hex[:6]
+            job_id = f"{timestamp}_{short_hash}"
+            setattr(cfg, "_elastic_auto_job_id", False)
         setattr(cfg, "job_id", job_id)
     return cfg
 

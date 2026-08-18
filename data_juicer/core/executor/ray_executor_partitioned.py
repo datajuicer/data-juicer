@@ -359,6 +359,31 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             else:
                 logger.warning("Legacy num_partitions detected, overriding partition configuration")
 
+        # Cluster-aware auto mode: the sentinel "auto" as a partition count
+        # requests a count derived from cluster topology (node count and
+        # resolved driver concurrency) instead of a fixed integer. A plain
+        # integer always wins, so larger/smaller counts stay one config key
+        # away. Numeric strings are normalized so YAML/CLI typing quirks do
+        # not flip modes silently.
+        partitions_per_node = ConfigAccessor.get(partition_cfg, "partitions_per_node", "auto")
+        if isinstance(num_of_partitions, str):
+            sentinel = num_of_partitions.strip().lower()
+            if sentinel == "auto":
+                mode = "auto"
+                num_of_partitions = 4  # placeholder until dataset/cluster analysis runs
+            else:
+                try:
+                    num_of_partitions = int(sentinel)
+                except ValueError:
+                    logger.warning(
+                        f"Invalid partition.num_of_partitions={num_of_partitions!r}; " "falling back to auto mode"
+                    )
+                    mode = "auto"
+                    num_of_partitions = 4
+        if isinstance(num_of_partitions, float):
+            num_of_partitions = max(1, int(num_of_partitions))
+
+        self._partitions_per_node_cfg = partitions_per_node
         self.partition_mode = mode
         self.num_partitions = num_of_partitions
         self.max_concurrent_partitions = max_concurrent_partitions
@@ -373,6 +398,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
     def _configure_auto_partitioning(self, dataset, ops):
         """Configure partitioning using the partition size optimizer for auto mode."""
+        recommendations = None
         try:
             from data_juicer.core.executor.partition_size_optimizer import (
                 auto_configure_resources,
@@ -382,7 +408,14 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
             # Use the partition size optimizer to determine optimal settings
             recommendations = auto_configure_resources(self.cfg, dataset, ops)
+        except ImportError as e:
+            logger.warning(f"Could not import partition size optimizer: {e}")
+            logger.info("Falling back to manual partition configuration")
+        except Exception as e:
+            logger.warning(f"Auto partition configuration failed: {e}")
+            logger.info("Falling back to manual partition configuration")
 
+        if recommendations is not None:
             # Update partition configuration based on recommendations
             recommended_size = ConfigAccessor.get(recommendations, "recommended_partition_size", self.partition_size)
             recommended_max_size_mb = ConfigAccessor.get(recommendations, "recommended_max_size_mb", self.max_size_mb)
@@ -422,12 +455,110 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 logger.warning(f"Could not determine dataset size for partition calculation: {e}")
                 logger.info(f"Using fallback partition count: {self.num_partitions}")
 
-        except ImportError as e:
-            logger.warning(f"Could not import partition size optimizer: {e}")
-            logger.info("Falling back to manual partition configuration")
+        # Align the partition count with the real cluster topology. This
+        # also runs when the optimizer failed above, so the fallback
+        # count still benefits from cluster awareness.
+        try:
+            self._apply_cluster_partition_bounds(ops)
         except Exception as e:
-            logger.warning(f"Auto partition configuration failed: {e}")
-            logger.info("Falling back to manual partition configuration")
+            logger.warning(f"Cluster-aware partition bounds failed: {e}")
+
+    def _apply_cluster_partition_bounds(self, ops: List) -> None:
+        """Align the auto partition count with the cluster topology.
+
+        The data-driven count acts as a ceiling (memory safety); the cluster
+        topology provides the floor and target:
+
+        - floor: ``max(nodes x partitions_per_node, nodes, concurrency)`` so
+          every node stays busy and no resolved concurrent-partition slot
+          idles (a partition count below driver concurrency wastes threads);
+        - target: roughly 2x resolved concurrency so tail partitions overlap
+          instead of serializing the final stage.
+
+        Requires ``_resolve_max_concurrent_partitions`` to have run first so
+        ``max_concurrent_partitions`` is an integer; otherwise concurrency is
+        treated as unknown (0) and only the node-based floor applies.
+        """
+        from data_juicer.utils.ray_cluster_utils import detect_cluster_topology
+
+        topology = detect_cluster_topology()
+
+        concurrency = getattr(self, "max_concurrent_partitions", None)
+        if isinstance(concurrency, str) or concurrency is None:
+            concurrency = 0
+        concurrency = max(0, int(concurrency))
+
+        per_node = self._resolve_partitions_per_node(ops, topology)
+        floor = max(topology.num_nodes * per_node, topology.num_nodes, concurrency)
+        target = max(2 * concurrency, floor) if concurrency > 0 else floor
+
+        data_driven = max(1, int(self.num_partitions))
+        # Raise small counts up to the cluster floor/target, but never beyond
+        # the data-driven ceiling; lower data-driven counts below the floor
+        # are raised to the floor because undersupplying the driver threads
+        # is the failure mode this guard prevents.
+        resolved = min(max(floor, target), max(floor, data_driven))
+        if resolved != data_driven:
+            logger.info(
+                f"Cluster-aware partitioning: adjusting num_partitions from {data_driven} to {resolved} "
+                f"(nodes={topology.num_nodes}, partitions_per_node={per_node}, concurrency={concurrency})"
+            )
+        self.num_partitions = resolved
+
+        # Expose the decision for auditing and downstream consumers (e.g.
+        # elastic control planes reading driver-side planning state).
+        try:
+            self.cfg._resolved_partition_plan = {
+                "num_partitions": resolved,
+                "data_driven_count": data_driven,
+                "num_nodes": topology.num_nodes,
+                "partitions_per_node": per_node,
+                "max_concurrent_partitions": concurrency,
+            }
+        except (AttributeError, TypeError):
+            pass
+
+    def _resolve_partitions_per_node(self, ops: List, topology) -> int:
+        """Resolve the per-node partition multiplier.
+
+        An explicit positive integer in ``partition.partitions_per_node``
+        always wins. Otherwise the multiplier is derived from the tightest
+        per-node parallelism implied by operator GPU requests (one partition
+        per node-level GPU slot). Pipelines whose operators do not use GPUs
+        fall back to a 2x overlap factor even on GPU clusters, so stage
+        boundaries can still overlap without spawning GPU-count-sized
+        partitions for CPU-only work.
+        """
+        configured = getattr(self, "_partitions_per_node_cfg", "auto")
+        if not (isinstance(configured, str) and configured.strip().lower() == "auto"):
+            try:
+                value = int(configured)
+                if value > 0:
+                    return value
+            except (TypeError, ValueError):
+                pass
+            logger.warning(f"Invalid partition.partitions_per_node={configured!r}; using auto")
+
+        gpus_per_node = topology.gpus_per_node
+        if gpus_per_node > 0:
+            per_stage_gpus = []
+            for op in ops:
+                num_gpus = getattr(op, "num_gpus", None)
+                gpu_per_worker = float(num_gpus) if num_gpus and float(num_gpus) > 0 else None
+                if gpu_per_worker is None:
+                    try:
+                        if op.use_cuda():
+                            gpu_per_worker = 1.0
+                    except (AttributeError, RuntimeError):
+                        pass
+                if gpu_per_worker is not None:
+                    per_stage_gpus.append(gpu_per_worker)
+            if per_stage_gpus:
+                tightest = max(per_stage_gpus)
+                return max(1, math.floor(gpus_per_node / tightest + 1e-9))
+        # No operator uses GPUs (or the cluster has none): CPU-only overlap
+        # factor, even when the cluster itself carries GPUs.
+        return 2
 
     def run(self, load_data_np: Optional[PositiveInt] = None, skip_return=False):
         """
@@ -538,6 +669,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Handle auto partition mode BEFORE initializing DAG
         # (DAG needs final partition count)
         elif self.partition_mode == "auto":
+            # Cluster-aware auto sizing needs the resolved driver
+            # concurrency; resolving here is safe because the call below is
+            # a no-op once the value is no longer "auto".
+            self._resolve_max_concurrent_partitions(ops)
             self._configure_auto_partitioning(dataset, ops)
 
         # Record explicit actor-pool budgets and calculate automatic Ray
@@ -769,17 +904,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             self.max_concurrent_partitions = max(1, int(raw_value))
             return self.max_concurrent_partitions
 
-        try:
-            cluster_resources = ray.cluster_resources()
-            total_cpus = float(cluster_resources.get("CPU", 0))
-            total_gpus = float(cluster_resources.get("GPU", 0))
-        except Exception as error:
-            logger.warning(
-                "Could not inspect Ray cluster resources for automatic partition "
-                f"concurrency; falling back to 1. Error: {error}"
-            )
-            self.max_concurrent_partitions = 1
-            return self.max_concurrent_partitions
+        from data_juicer.utils.ray_cluster_utils import detect_cluster_topology
+
+        topology = detect_cluster_topology()
+        total_cpus = topology.total_cpus
+        total_gpus = topology.total_gpus
 
         if total_cpus <= 0:
             logger.warning(

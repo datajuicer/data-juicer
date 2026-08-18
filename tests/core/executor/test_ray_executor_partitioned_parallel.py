@@ -11,6 +11,18 @@ from data_juicer.core.executor.event_logging_mixin import EventType
 from data_juicer.core.executor.pipeline_dag import DAGNodeStatus, PipelineDAG
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
 from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
+from data_juicer.utils.ray_cluster_utils import ClusterTopology
+
+
+def _topology_from_resources(resources):
+    """Build the cluster view the executor now resolves resources through."""
+    return ClusterTopology(
+        num_nodes=1,
+        total_cpus=float(resources.get("CPU", 0)),
+        total_gpus=float(resources.get("GPU", 0)),
+        available_cpus=float(resources.get("CPU", 0)),
+        available_gpus=float(resources.get("GPU", 0)),
+    )
 
 
 class FakeData:
@@ -250,8 +262,10 @@ def test_auto_partition_concurrency_is_resource_aware(resources, ops, expected):
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.max_concurrent_partitions = "auto"
 
-    fake_ray = SimpleNamespace(cluster_resources=Mock(return_value=resources))
-    with patch("data_juicer.core.executor.ray_executor_partitioned.ray", fake_ray):
+    with patch(
+        "data_juicer.utils.ray_cluster_utils.detect_cluster_topology",
+        return_value=_topology_from_resources(resources),
+    ):
         resolved = executor._resolve_max_concurrent_partitions(ops)
 
     assert resolved == expected
@@ -261,21 +275,29 @@ def test_auto_partition_concurrency_is_resource_aware(resources, ops, expected):
 def test_explicit_partition_concurrency_overrides_auto_detection():
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.max_concurrent_partitions = 3
-    fake_ray = SimpleNamespace(cluster_resources=Mock())
 
-    with patch("data_juicer.core.executor.ray_executor_partitioned.ray", fake_ray):
+    with patch("data_juicer.utils.ray_cluster_utils.detect_cluster_topology") as detect:
         resolved = executor._resolve_max_concurrent_partitions([])
 
     assert resolved == 3
-    fake_ray.cluster_resources.assert_not_called()
+    detect.assert_not_called()
 
 
 def test_auto_partition_concurrency_falls_back_to_one_when_ray_inspection_fails():
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.max_concurrent_partitions = "auto"
-    fake_ray = SimpleNamespace(cluster_resources=Mock(side_effect=RuntimeError("Ray unavailable")))
+    fallback = ClusterTopology(
+        num_nodes=1,
+        total_cpus=0.0,
+        total_gpus=0.0,
+        available_cpus=0.0,
+        available_gpus=0.0,
+    )
 
-    with patch("data_juicer.core.executor.ray_executor_partitioned.ray", fake_ray):
+    with patch(
+        "data_juicer.utils.ray_cluster_utils.detect_cluster_topology",
+        return_value=fallback,
+    ):
         resolved = executor._resolve_max_concurrent_partitions([])
 
     assert resolved == 1

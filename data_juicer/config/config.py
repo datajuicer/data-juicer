@@ -715,9 +715,25 @@ def build_base_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "--partition.num_of_partitions",
-        type=int,
+        type=Union[PositiveInt, Literal["auto"]],
         default=4,
-        help="Number of partitions for manual mode (ignored in auto mode)",
+        help=(
+            "Number of partitions for manual mode (ignored in auto mode). "
+            "In auto mode, 'auto' derives a cluster-aware count; a positive "
+            "integer acts as the data-driven ceiling for the cluster-aware "
+            "adjustment."
+        ),
+    )
+    parser.add_argument(
+        "--partition.partitions_per_node",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Per-node partition multiplier used by the cluster-aware auto "
+            "partition count. 'auto' uses per-node GPU slots for GPU "
+            "pipelines (2x for CPU-only pipelines); set a positive integer "
+            "to override."
+        ),
     )
     parser.add_argument(
         "--partition.max_concurrent_partitions",

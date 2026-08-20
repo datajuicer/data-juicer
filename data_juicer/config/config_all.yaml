@@ -83,6 +83,22 @@ executor_type: default                                      # type of executor, 
 ray_address: auto                                           # the address of the Ray cluster.
 override_num_blocks: null                                   # override the number of output blocks for Ray Data read operations. Useful for controlling parallelism when reading large datasets. Default is null (no override).
 
+# worker-broadcast multi-node launches (shared POSIX filesystem required)
+elastic_sharding:
+  mode: auto                                                # auto: shard eligible Mapper/Filter pipelines across nodes; on: require sharding; off: legacy behavior.
+  run_id: null                                              # stable submission ID; normally detected from PAI/DLC/Slurm environment variables.
+  coordination_dir: null                                    # optional shared-POSIX parent; defaults under the job work directory.
+  rendezvous_timeout_secs: 120                              # time to wait for all advertised ranks before auto mode falls back.
+  rendezvous_poll_interval_secs: 1
+  result_timeout_secs: 604800                               # maximum time followers wait for preparation/final publication.
+  shards_per_node: 2                                       # minimum shard concurrency exposed per physical node.
+  target_shard_size_mb: 1024                               # additional shards are created for inputs larger than this target.
+  max_shards: 4096
+  lock_timeout_secs: 126000                                # reclaim a shard only after this much time without a heartbeat.
+  heartbeat_interval_secs: 30
+  max_retries: 3
+  poll_interval_secs: 20
+
 # partition configuration (for ray_partitioned executor)
 partition:
   mode: auto                                                # partition mode: "auto" (use optimizer) or "manual" (specify count)

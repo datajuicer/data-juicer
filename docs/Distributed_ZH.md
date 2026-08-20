@@ -19,6 +19,40 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 - 对于 Data-Juicer 的大部分[算子](Operators.md)实现，其核心处理函数是引擎无关的。[RayDataset](../data_juicer/core/ray_data.py) 和 [RayExecutor](../data_juicer/core/executor/ray_executor.py) 封装了与Ray引擎的具体互操作，它们分别是基类 `DJDataset` 和 `BaseExecutor` 的子类，并且都支持 Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) 和 [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) 。
 - 其中，去重算子是例外。它们在单机模式下很难规模化。因此我们提供了针对它们的 Ray 优化版本算子，并以特殊前缀开头：[`ray_xx_deduplicator`](../data_juicer/ops/deduplicator/) 。
 
+### Worker 广播任务的自动分片
+
+`dj-process` 默认启用 `elastic_sharding.mode: auto`。当调度器把同一条命令广播到
+多个进程时，Data-Juicer 会识别 Torch、OpenMPI 或 Slurm 的 rank 环境，要求存在
+稳定的提交 ID，在共享 POSIX 目录中收齐所有 rank，并按 hostname 统计物理节点。
+如果至少存在两个节点，且配方仅包含相互独立的 Mapper/Filter，则每个节点只选一个
+进程动态领取确定性 JSONL 分片，并使用节点内独立的 Ray 执行器处理；最后由 rank 0
+校验、按原顺序合并并且只发布一次结果。
+
+安全检查会拒绝去重、选择、分组、聚合、Pipeline、远程或非 JSONL I/O、算子共享固定
+输出路径、采样，以及未显式声明 `partition_safe = True` 的自定义算子。`auto` 模式下
+检查不通过时，只由 rank 0 运行原执行器，避免 Worker 广播任务重复写结果。
+`elastic_sharding.mode: on` 会在任何前置条件不满足时快速报错，`off` 则保留旧的逐进程
+行为。
+
+协调目录必须在所有节点上以相同路径可见，并支持原子 rename、硬链接、独占创建和
+`fcntl` 锁。分片租约由心跳续期，并使用 token fencing，过期 Worker 恢复后无法覆盖
+替代 Worker 的结果。当前范围是本地 JSONL 输入和输出，以及 `default`
+或节点内 `ray` 执行方式。
+
+```yaml
+elastic_sharding:
+  mode: auto
+  coordination_dir: /mnt/shared/data-juicer-coordination  # 可选
+  shards_per_node: 2
+  target_shard_size_mb: 1024
+  heartbeat_interval_secs: 30
+  max_retries: 3
+```
+
+针对特定调度器的启动和故障排查，仍可使用
+[`demos/elastic_sharding`](../demos/elastic_sharding/) 中手动的
+prepare/worker/status/retry/merge 接口。
+
 ### 数据子集分割
 
 当在上万个节点中处理仅有若干个文件的数据集时， Ray 会根据可用资源分割数据集文件，并将它们分发到所有节点上，这可能带来极大的网络通信开销并减少 CPU 利用率。更多细节可以参考文档 [Ray's autodetect_parallelism](https://github.com/ray-project/ray/blob/2dbd08a46f7f08ea614d8dd20fd0bca5682a3078/python/ray/data/_internal/util.py#L201-L205) 和 [tuning output blocks for Ray](https://docs.ray.io/en/latest/data/performance-tips.html#tuning-output-blocks-for-read) 。

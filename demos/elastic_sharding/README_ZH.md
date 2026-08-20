@@ -42,8 +42,8 @@
 - **动态负载均衡**：节点处理完一片后继续认领下一片，快节点自然承担更多工作。
 - **节点内继续使用 Ray**：每个分片仍由 Data-Juicer Ray executor 利用当前节点的
   CPU/GPU 并行能力。
-- **不依赖 rank**：分片协调不需要 `RANK`、`WORLD_SIZE` 或固定 hostname 到文件的
-  静态映射。
+- **手动 CLI 不依赖 rank**：调度器专用启动器无需 rank 也能动态领取分片；core 自动
+  检测则使用 rank 元数据确认同一提交声明的所有进程都已加入。
 - **任务可审计、可恢复**：manifest 固定输入、recipe、Data-Juicer commit、Ray
   配置和分片顺序；每次 attempt 都保留元数据与日志。
 - **避免重复认领**：`O_CREAT|O_EXCL` 原子创建锁，同一时刻只有一个 Worker 能持有
@@ -51,7 +51,7 @@
 - **支持失败与过期接管**：失败可自动重试；超过锁超时的认领会被其他 Worker 接管。
 - **结果完整性校验**：完成记录包含行数、字节数和 SHA256；合并前会重新校验。
 - **顺序确定**：目录输入按相对路径排序，分片连续，最终结果按 manifest 顺序合并。
-- **低侵入**：实现位于 `demos/elastic_sharding`，不修改现有 executor 或算子行为。
+- **core 与手动入口共用**：状态机已位于 core，本目录保留显式调度流程的兼容 CLI。
 
 ## 与现有方式的区别
 
@@ -85,7 +85,7 @@ demos/elastic_sharding/
 └── README_ZH.md
 ```
 
-`shard_job.py` 实现共享存储分片状态机。对于 Worker 广播型作业，
+`shard_job.py` 是 core 共享存储分片状态机的兼容入口。对于 Worker 广播型作业，
 `dlc_job.py` 为任意数量的 DLC Worker 协调一次性 prepare 和 finalize。
 `two_node_test.py` 保留原来的严格两节点默认值，仅用于向后兼容。MPIJob Launcher
 应改为在 `prepare` 和 `merge` 之间，通过 `mpirun -np N -npernode 1` 拉起
@@ -123,7 +123,7 @@ python demos/elastic_sharding/dlc_job.py dlc \
 - 当前只接受可逐分片独立执行的 Mapper 和 Filter。
 - Deduplicator、Selector、Grouper、Aggregator、Pipeline 和其他全数据集语义算子会在
   `prepare` 阶段被拒绝。
-- 锁采用静态超时，不发送心跳；锁超时必须大于最长单片处理时间。
+- 活跃锁由心跳续租；token fencing 可防止超时任务在新 Worker 接管后发布旧结果。
 - `prepare` 会保存完整分片，attempt 会保存处理结果，需为 `job-dir` 预留足够空间。
   媒体文件只改写路径，不会复制到 `job-dir`。
 

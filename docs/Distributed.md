@@ -19,6 +19,45 @@ More details can be found in our paper, [Data-Juicer 2.0: Cloud-Scale Adaptive D
 - For most implementations of Data-Juicer [operators](Operators.md), the core processing functions are engine-agnostic. Interoperability is primarily managed in [RayDataset](../data_juicer/core/ray_data.py) and [RayExecutor](../data_juicer/core/executor/ray_executor.py), which are subclasses of the base `DJDataset` and `BaseExecutor`, respectively, and support both Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) and [Actors](https://docs.ray.io/en/latest/ray-core/actors.html).
 - The exception is the deduplication operators, which are challenging to scale in standalone mode. We provide these operators named as [`ray_xx_deduplicator`](../data_juicer/ops/deduplicator/).
 
+### Automatic sharding for worker-broadcast launches
+
+`dj-process` enables `elastic_sharding.mode: auto` by default. When the same
+command is broadcast to multiple processes, Data-Juicer recognizes Torch,
+OpenMPI, or Slurm rank metadata, requires a stable submission ID, rendezvous
+all ranks on shared POSIX storage, and counts distinct hostnames. If at least
+two physical nodes are present and the recipe contains only independent Mapper
+and Filter operators, one process per node dynamically claims deterministic
+JSONL shards and runs a node-local Ray executor. Rank 0 validates and publishes
+the ordered merged output once.
+
+The safety check rejects deduplication, selectors, grouping, aggregation,
+pipelines, remote/non-JSONL I/O, shared operator output paths, sampling, and
+custom operators unless they explicitly declare `partition_safe = True`. If
+the check fails in `auto` mode, only rank 0 runs the original executor, so a
+worker-broadcast launch cannot duplicate the output. Use
+`elastic_sharding.mode: on` to make an unmet prerequisite fail fast, or `off`
+to retain legacy per-process behavior.
+
+The coordination path must be visible at the same path on every node and must
+support atomic rename, hard links, exclusive creation, and `fcntl` locks.
+Claims use heartbeat-renewed leases and token fencing, so a recovered stale
+worker cannot overwrite a replacement's result. The current scope is local
+JSONL input and output, and `default` or node-local `ray` execution.
+
+```yaml
+elastic_sharding:
+  mode: auto
+  coordination_dir: /mnt/shared/data-juicer-coordination  # optional
+  shards_per_node: 2
+  target_shard_size_mb: 1024
+  heartbeat_interval_secs: 30
+  max_retries: 3
+```
+
+The manual prepare/worker/status/retry/merge interface remains available in
+[`demos/elastic_sharding`](../demos/elastic_sharding/) for scheduler-specific
+launchers and operational debugging.
+
 ### Subset Splitting
 
 When dealing with tens of thousands of nodes but only a few dataset files, Ray would split the dataset files according to available resources and distribute the blocks across all nodes, incurring huge network communication costs and reduces CPU utilization. For more details, see [Ray's autodetect_parallelism](https://github.com/ray-project/ray/blob/2dbd08a46f7f08ea614d8dd20fd0bca5682a3078/python/ray/data/_internal/util.py#L201-L205) and [tuning output blocks for Ray](https://docs.ray.io/en/latest/data/performance-tips.html#tuning-output-blocks-for-read).

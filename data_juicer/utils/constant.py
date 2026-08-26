@@ -1,4 +1,5 @@
 import copy
+import gzip
 import inspect
 import io
 import os
@@ -266,15 +267,15 @@ class StatsKeysMeta(type):
             tmp_dj_cfg = copy.deepcopy(dj_cfg)
             # the access has been skipped due to the use of cache
             # we will using a temp data sample to get the access log
-            if os.path.exists(dj_cfg.dataset_path) and (
-                "jsonl" in dj_cfg.dataset_path or "jsonl.zst" in dj_cfg.dataset_path
+            if os.path.exists(dj_cfg.dataset_path) and dj_cfg.dataset_path.endswith(
+                (".jsonl.zst", ".jsonl.gz", ".jsonl")
             ):
                 logger.info("Begin to track the usage of ops with a dummy data sample")
 
                 # load the first line as tmp_data
                 tmp_f_name = None
                 first_line = None
-                if "jsonl.zst" in dj_cfg.dataset_path:
+                if dj_cfg.dataset_path.endswith(".jsonl.zst"):
                     tmp_f_name = dj_cfg.dataset_path.replace(".jsonl.zst", ".tmp.jsonl")
                     # Open the file in binary mode and
                     # create a Zstandard decompression context
@@ -285,7 +286,11 @@ class StatsKeysMeta(type):
                         with dctx.stream_reader(compressed_file) as reader:
                             text_stream = io.TextIOWrapper(reader, encoding="utf-8")
                             first_line = text_stream.readline()
-                elif "jsonl" in dj_cfg.dataset_path:
+                elif dj_cfg.dataset_path.endswith(".jsonl.gz"):
+                    tmp_f_name = dj_cfg.dataset_path.replace(".jsonl.gz", ".tmp.jsonl")
+                    with gzip.open(dj_cfg.dataset_path, "rt", encoding="utf-8") as orig_file:
+                        first_line = orig_file.readline()
+                elif dj_cfg.dataset_path.endswith(".jsonl"):
                     tmp_f_name = dj_cfg.dataset_path.replace(".jsonl", ".tmp.jsonl")
                     with open(dj_cfg.dataset_path, "r", encoding="utf-8") as orig_file:
                         first_line = orig_file.readline()
@@ -309,14 +314,16 @@ class StatsKeysMeta(type):
                         op_config[op_name]["auto_op_parallelism"] = False
                         op_config[op_name]["num_proc"] = None
 
-                from data_juicer.config import get_init_configs
-                from data_juicer.core import Analyzer
+                try:
+                    from data_juicer.config import get_init_configs
+                    from data_juicer.core import Analyzer
 
-                tmp_analyzer = Analyzer(get_init_configs(tmp_dj_cfg))
-                # do not overwrite the true analysis results
-                tmp_analyzer.run(skip_export=True)
-
-                os.remove(tmp_f_name)
+                    tmp_analyzer = Analyzer(get_init_configs(tmp_dj_cfg))
+                    # do not overwrite the true analysis results
+                    tmp_analyzer.run(skip_export=True)
+                finally:
+                    if os.path.exists(tmp_f_name):
+                        os.remove(tmp_f_name)
             else:
                 raise NotImplementedError(
                     f"For now, the dummy data is supported for only jsonl type"

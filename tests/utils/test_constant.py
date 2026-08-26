@@ -1,10 +1,11 @@
-import os
-import unittest
-import tempfile
+import gzip
 import json
+import os
+import tempfile
+import unittest
 
-from data_juicer.core import NestedDataset
 from data_juicer.config import init_configs
+from data_juicer.core import NestedDataset
 from data_juicer.utils.constant import StatsKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
@@ -13,16 +14,20 @@ test_yaml_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                               'config',
                               'demo_4_test.yaml')
 
+
 class StatsKeysTest(DataJuicerTestCaseBase):
 
     def setUp(self) -> None:
         super().setUp()
         StatsKeys._accessed_by = {}
-        
+
         # Create a temporary jsonl file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_jsonl = os.path.join(self.temp_dir.name, "test-dataset.jsonl")
         with open(self.temp_jsonl, 'w', encoding='utf-8') as f:
+            f.write(json.dumps({"text": "hello world"}) + "\n")
+        self.temp_jsonl_gz = os.path.join(self.temp_dir.name, "test-dataset.jsonl.gz")
+        with gzip.open(self.temp_jsonl_gz, 'wt', encoding='utf-8') as f:
             f.write(json.dumps({"text": "hello world"}) + "\n")
 
     def tearDown(self) -> None:
@@ -35,7 +40,7 @@ class StatsKeysTest(DataJuicerTestCaseBase):
         # Create a temporary config with the test dataset path
         args = f'--config {test_yaml_path} --dataset_path {self.temp_jsonl}'.split()
         cfg = init_configs(args=args)
-        
+
         res = StatsKeys.get_access_log(cfg)
         self.assertEqual(len(res), 1)  # only 1 filter
         self.assertIn('language_id_score_filter', res)
@@ -49,11 +54,24 @@ class StatsKeysTest(DataJuicerTestCaseBase):
         dataset = NestedDataset.from_list([{'text': 'hello world'}])
         args = f'--config {test_yaml_path} --dataset_path {self.temp_jsonl}'.split()
         cfg = init_configs(args=args)
-        
+
         res = StatsKeys.get_access_log(cfg, dataset)
         self.assertEqual(len(res), 1)  # only 1 filter
         self.assertIn('language_id_score_filter', res)
         self.assertEqual(res['language_id_score_filter'], {'lang', 'lang_score'})
+
+    def test_basic_func_with_gzip_dataset(self):
+        plain_args = f'--config {test_yaml_path} --dataset_path {self.temp_jsonl}'.split()
+        plain_cfg = init_configs(args=plain_args)
+        plain_res = StatsKeys.get_access_log(plain_cfg)
+
+        StatsKeys._accessed_by = {}
+        gzip_args = f'--config {test_yaml_path} --dataset_path {self.temp_jsonl_gz}'.split()
+        gzip_cfg = init_configs(args=gzip_args)
+        gzip_res = StatsKeys.get_access_log(gzip_cfg)
+
+        self.assertEqual(gzip_res, plain_res)
+        self.assertFalse(os.path.exists(self.temp_jsonl_gz.replace('.jsonl.gz', '.tmp.jsonl')))
 
 
 if __name__ == '__main__':

@@ -10,6 +10,12 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 
 
+@unittest.skip(
+    "MoGe runtime installation upgrades shared dependencies during the "
+    "regression suite, causing later tests to run against incompatible "
+    "versions. This integration test cannot safely run in the shared "
+    "regression environment."
+)
 class VideoCameraCalibrationMogeMapperTest(DataJuicerTestCaseBase):
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
                              'data')

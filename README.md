@@ -25,6 +25,8 @@ Whether you're deduplicating web-scale pre-training corpora, curating agent inte
 
 > **Alibaba Cloud PAI** has deeply integrated Data-Juicer into its data processing products.  See **[Quickly submit a DataJuicer job](https://www.alibabacloud.com/help/en/pai/user-guide/quickly-submit-a-datajuicer-task)**.
 
+> 🧃 **Juicer**, our natural-language data-refinement model, turns cleaning instructions, filtering rules, and semantic-tagging requirements into structured outputs. Try it on [HuggingFace](https://huggingface.co/datajuicer/Juicer-35B-A3B) or [ModelScope](https://www.modelscope.cn/models/Data-Juicer/Juicer-35B-A3B), or see the **[Juicer docs](docs/Juicer.md)**.
+
 ---
 
 ## 🚀 Quick Start
@@ -89,6 +91,18 @@ for s in res_ds:
 - 🎉 [2026-08-25] We release [Juicer](docs/Juicer.md), a locally deployable data-refinement model that follows natural-language instructions for text cleaning, filtering, and semantic labeling. Explore the [model](https://huggingface.co/datajuicer/Juicer-35B-A3B) and try recipes in the [Juicer Playground](https://github.com/datajuicer/data-juicer-hub/tree/main/juicer_playground).
 
 <details open>
+<summary>[2026-09-01] Release v1.6.1: <b>Juicer Model Release; Cluster-Aware Auto Partitioning; Config Preflight Validation</b></summary>
+
+* 🧃 *Juicer Model Release* — Released [Juicer-35B-A3B](https://huggingface.co/datajuicer/Juicer-35B-A3B) ([ModelScope](https://www.modelscope.cn/models/Data-Juicer/Juicer-35B-A3B)), a natural-language data-refinement model built on Qwen3.6-35B-A3B that compiles cleaning instructions, filtering rules, and semantic-tagging requirements into tagged text or canonical JSON. It handles atomic, compositional, order-sensitive, and semantic refinement (PII, hallucination, rubric, safety), and is evaluated on CDR-Bench. See [docs](docs/Juicer.md) and the [Playground](https://github.com/datajuicer/data-juicer-hub/tree/main/juicer_playground) for local deployment and 51 showcase cases.
+* 🧮 *Cluster-Aware Auto Partitioning* — `num_of_partitions: auto` derives partition count from live Ray cluster topology, with a single topology source that fixes guessed node counts and driver-local clamping.
+* ✅ *Config Preflight Validation* — New `preflight` module validates pipeline configs and OP field requirements against the dataset schema before execution, failing fast instead of erroring mid-run.
+* 🗄️ *Unified Remote Filesystem Dispatch* — Exporters now resolve S3/HDFS/local paths through a shared `fs_utils` dispatch layer, laying groundwork for lakehouse support.
+* 🖼️ *Image OHEM Selector* — New `image_ohem_selector` retains high-loss image samples for hard-example mining.
+* ⚡ *Bounded Tokenizer Batches* — Token-count filters now cap tokenizer batch sizes to bound peak memory on long texts.
+* 🔧 *Robustness Fixes* — Prevented fused-filter context cache collisions across text columns and tokenizer settings; fixed MinHash state reuse and empty-token handling, deduplicator execution-mode declarations, extensionless export-path errors, empty text chunks, gzip JSONL HPO sampling, pandas extension-dtype handling, and regression test discovery; and updated maintenance fork URLs for external model dependencies.
+</details>
+
+<details open>
 <summary>[2026-08-07] Release v1.5.5: <b>External OP Plugins; HDFS I/O & Ray Data Optimizations; Elastic Multi-node Sharding</b></summary>
 
 * 🧩 *External OP Plugins* — Third-party operators can now be shipped as standalone pip packages and auto-registered via Python entry points.
@@ -100,7 +114,7 @@ for s in res_ds:
 * 🔧 *Robustness & Dependency Fixes* — Fixed `text_chunk_mapper` delimiter leakage, `calibrate_response_mapper` `output_pattern` handling, and null captions in `image_diffusion_mapper`; added membership operators to `general_field_filter`; relaxed `numpy`/`fsspec`/`pandas` bounds for Python 3.13+ and pyarrow>=17.
 </details>
 
-<details open>
+<details>
 <summary>[2026-07-17] Release v1.5.4: <b>HumanVBench Video OPs; Batch-local Stage Fusion; Robustness Fixes</b></summary>
 
 * 🧑‍🤝‍🧑 *New OPs* — Added 9 human-centric video understanding operators (human track extraction, active-speaker detection, audio ASR, speech emotion & age/gender detection, face demographic & attribute/emotion captioning, face-ratio filtering) for building HumanVBench (CVPR'26)-style pipelines.

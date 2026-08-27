@@ -5,12 +5,7 @@ These tests verify that configuration errors are caught early (at preflight)
 rather than silently passing through to runtime.
 """
 
-import sys
 import unittest
-
-sys.path.insert(0, ".")
-
-
 
 
 class TestPreflightPreInstantiation(unittest.TestCase):

@@ -355,15 +355,20 @@ def _merge_openai_compatible_env_into_model_params(model_params):
     """Fill OpenAI client kwargs from environment (DashScope REST / OpenAI-compatible).
 
     Supported env vars:
-    - ``OPENAI_API_KEY``, ``DASHSCOPE_API_KEY``, or ``SK`` -> ``api_key``
-    - ``OPENAI_BASE_URL``, ``OPENAI_API_URL``, or ``DASHSCOPE_BASE_URL`` -> ``base_url``
-      (trailing slash stripped)
+    - ``OPENAI_API_KEY``, ``DASHSCOPE_API_KEY``, ``ORCAROUTER_API_KEY``, or ``SK`` -> ``api_key``
+    - ``OPENAI_BASE_URL``, ``OPENAI_API_URL``, ``DASHSCOPE_BASE_URL``, or
+      ``ORCAROUTER_BASE_URL`` -> ``base_url`` (trailing slash stripped)
 
     Explicit keys in ``model_params`` take precedence.
     """
     out = dict(model_params) if model_params else {}
     if not out.get("api_key"):
-        key = os.environ.get("OPENAI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("SK")
+        key = (
+            os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("DASHSCOPE_API_KEY")
+            or os.environ.get("ORCAROUTER_API_KEY")
+            or os.environ.get("SK")
+        )
         if key:
             out["api_key"] = key
     if not out.get("base_url"):
@@ -371,6 +376,7 @@ def _merge_openai_compatible_env_into_model_params(model_params):
             os.environ.get("OPENAI_BASE_URL")
             or os.environ.get("OPENAI_API_URL")
             or os.environ.get("DASHSCOPE_BASE_URL")
+            or os.environ.get("ORCAROUTER_BASE_URL")
         )
         if base:
             out["base_url"] = base.rstrip("/")

@@ -472,6 +472,55 @@ class LiteLLMEmbeddingAPIModel:
             return []
 
 
+class LiteLLMResponsesAPIModel:
+    """Responses-API model backed by ``litellm.responses``.
+
+    Mirrors :class:`ResponsesAPIModel` but routes through LiteLLM, so a single
+    provider/model string reaches every provider LiteLLM exposes through the
+    OpenAI Responses API. LiteLLM returns a Responses-shaped object, so the
+    existing ``output.0.content.0.text`` extraction is unchanged.
+    """
+
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        :param model: The LiteLLM model string. Required.
+        :param endpoint: Kept for interface parity; unused by LiteLLM routing.
+        :param response_path: Defaults to ``output.0.content.0.text``.
+        :param kwargs: Credentials and default params (see the chat model).
+        """
+        if model is None:
+            raise ValueError("`model` is required for the LiteLLM responses backend.")
+        self.model = model
+        self.endpoint = endpoint or "/responses"
+        self.response_path = response_path or "output.0.content.0.text"
+        self.last_response = None
+        self.api_key, self.api_base, self.default_params = _split_litellm_credentials(kwargs)
+
+    def __call__(self, input, **kwargs):
+        """
+        :param input: The input text/content to send to the Responses API.
+        :param kwargs: Per-call overrides.
+        :return: Parsed response content, or an empty string on error.
+        """
+        call_kwargs = {"model": self.model, "input": input, "drop_params": True}
+        if self.api_key:
+            call_kwargs["api_key"] = self.api_key
+        if self.api_base:
+            call_kwargs["api_base"] = self.api_base
+        call_kwargs.update(self.default_params)
+        call_kwargs.update(kwargs)
+
+        try:
+            response = litellm.responses(**call_kwargs)
+            result = response.model_dump()
+            self.last_response = result
+            return nested_access(result, self.response_path) or ""
+        except Exception as e:
+            logger.exception(f"LiteLLM responses API error: {e}")
+            self.last_response = None
+            return ""
+
+
 def _merge_openai_compatible_env_into_model_params(model_params):
     """Fill OpenAI client kwargs from environment (DashScope REST / OpenAI-compatible).
 
@@ -601,6 +650,7 @@ def prepare_api_model(
         ENDPOINT_CLASS_MAP = {
             "chat": LiteLLMChatAPIModel,
             "embeddings": LiteLLMEmbeddingAPIModel,
+            "responses": LiteLLMResponsesAPIModel,
         }
     else:
         model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)

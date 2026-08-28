@@ -17,6 +17,7 @@ from data_juicer.utils.model_utils import (
     prepare_api_model,
     LiteLLMChatAPIModel,
     LiteLLMEmbeddingAPIModel,
+    LiteLLMResponsesAPIModel,
     prepare_huggingface_model,
     prepare_vllm_model,
     prepare_embedding_model,
@@ -278,6 +279,17 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         emb_resp.model_dump.return_value = {'data': [{'embedding': [0.1, 0.2]}]}
         mock_litellm.embedding.return_value = emb_resp
         self.assertEqual(embed('some text'), [0.1, 0.2])
+
+        # Responses dispatch via litellm.responses.
+        responses = prepare_api_model('gpt-5-mini', endpoint='/responses', use_litellm=True)
+        self.assertIsInstance(responses, LiteLLMResponsesAPIModel)
+        resp_resp = MagicMock()
+        resp_resp.model_dump.return_value = {'output': [{'content': [{'text': 'hi'}]}]}
+        mock_litellm.responses.return_value = resp_resp
+        self.assertEqual(responses('say hi'), 'hi')
+        _, resp_kwargs = mock_litellm.responses.call_args
+        self.assertTrue(resp_kwargs['drop_params'])
+        self.assertEqual(resp_kwargs['input'], 'say hi')
 
         # A model id is required for the LiteLLM backend.
         with self.assertRaises(ValueError):

@@ -15,6 +15,8 @@ from data_juicer.utils.model_utils import (
     get_backup_model_link,
     prepare_simple_aesthetics_model,
     prepare_api_model,
+    LiteLLMChatAPIModel,
+    LiteLLMEmbeddingAPIModel,
     prepare_huggingface_model,
     prepare_vllm_model,
     prepare_embedding_model,
@@ -238,6 +240,48 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         with self.assertRaises(ValueError) as context:
             prepare_api_model('test_model', endpoint='/unsupported/endpoint')
         self.assertIn('Unsupported endpoint', str(context.exception))
+
+    # Isolate from ambient OPENAI_*/DASHSCOPE_* env so credential-omission
+    # assertions are hermetic.
+    @patch('data_juicer.utils.model_utils._merge_openai_compatible_env_into_model_params',
+           side_effect=lambda p: p)
+    @patch('data_juicer.utils.model_utils.litellm')
+    def test_prepare_api_model_litellm(self, mock_litellm, _mock_merge):
+        # Chat dispatch: routes through litellm.completion with drop_params
+        # defaulted and the credential forwarded.
+        chat = prepare_api_model('anthropic/claude-opus-4-8', use_litellm=True, api_key='secret')
+        self.assertIsInstance(chat, LiteLLMChatAPIModel)
+        self.assertEqual(chat.model, 'anthropic/claude-opus-4-8')
+
+        completion = MagicMock()
+        completion.model_dump.return_value = {'choices': [{'message': {'content': '4'}}]}
+        mock_litellm.completion.return_value = completion
+
+        result = chat([{'role': 'user', 'content': 'What is 2+2?'}])
+        self.assertEqual(result, '4')
+        _, call_kwargs = mock_litellm.completion.call_args
+        self.assertEqual(call_kwargs['model'], 'anthropic/claude-opus-4-8')
+        self.assertTrue(call_kwargs['drop_params'])
+        self.assertEqual(call_kwargs['api_key'], 'secret')
+
+        # Credentials omitted when blank -> LiteLLM falls back to provider env vars.
+        bare = prepare_api_model('gpt-4o-mini', use_litellm=True)
+        bare([{'role': 'user', 'content': 'hi'}])
+        _, bare_kwargs = mock_litellm.completion.call_args
+        self.assertNotIn('api_key', bare_kwargs)
+        self.assertNotIn('api_base', bare_kwargs)
+
+        # Embedding dispatch via litellm.embedding.
+        embed = prepare_api_model('text-embedding-3-small', endpoint='/embeddings', use_litellm=True)
+        self.assertIsInstance(embed, LiteLLMEmbeddingAPIModel)
+        emb_resp = MagicMock()
+        emb_resp.model_dump.return_value = {'data': [{'embedding': [0.1, 0.2]}]}
+        mock_litellm.embedding.return_value = emb_resp
+        self.assertEqual(embed('some text'), [0.1, 0.2])
+
+        # A model id is required for the LiteLLM backend.
+        with self.assertRaises(ValueError):
+            prepare_api_model(None, use_litellm=True)
 
     @patch('data_juicer.utils.model_utils.transformers')
     def test_prepare_huggingface_model(self, mock_transformers):

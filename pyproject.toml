@@ -160,6 +160,7 @@ dev = [
 ai_services = [
     "dashscope",  # Alibaba Cloud AI
     "openai",  # OpenAI API
+    "litellm>=1.89.0,<2",  # LiteLLM AI gateway (100+ providers via one API)
     "label-studio>=1.23.0",  # Data labeling
 ]
 

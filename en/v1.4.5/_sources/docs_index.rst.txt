@@ -15,6 +15,7 @@ DOCS
 
    docs/Operators
    docs/DatasetCfg
+   docs/Juicer
    docs/*
 
 .. toctree::

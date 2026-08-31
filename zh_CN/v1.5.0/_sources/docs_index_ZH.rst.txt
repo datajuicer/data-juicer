@@ -15,6 +15,7 @@
 
    docs/Operators
    docs/DatasetCfg_ZH
+   docs/Juicer_ZH
    docs/*
 
 .. toctree::

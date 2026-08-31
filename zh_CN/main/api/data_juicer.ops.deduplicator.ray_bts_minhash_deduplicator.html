@@ -113,6 +113,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../docs/tutorial/QuickStart_ZH.html">快速上手</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/Operators.html">Operator Schemas 算子提要</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/DatasetCfg_ZH.html">数据集配置指南</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/Juicer_ZH.html">Juicer：自然语言数据精炼模型</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/BadDataExhibition_ZH.html">“坏”数据展览</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/Cache_ZH.html">缓存管理</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/DJ_SORA_ZH.html">DJ-SORA</a></li>
@@ -685,7 +686,7 @@ Default is None (no reservation).</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicatorWithUid">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.</span></span><span class="sig-name descname"><span class="pre">RayBTSMinhashDeduplicatorWithUid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_minhash_deduplicator.html#RayBTSMinhashDeduplicatorWithUid"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicatorWithUid" title="链接到此定义。">¶</a></dt>
-<dd><p>基类：<a class="reference internal" href="#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator" title="data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayBTSMinhashDeduplicator</span></code></a></p>
+<dd><p>基类：<a class="reference internal" href="data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator" title="data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayBTSMinhashDeduplicator</span></code></a></p>
 <p>A MinhashLSH deduplicator based on RAY.</p>
 <p>Unlike <cite>RayBTSMinhashDeduplicator</cite>, this class requires the input dataset to contain an additional column
 named '__dj__uid' of type int, where each value is unique across samples. This column serves two main purposes:</p>

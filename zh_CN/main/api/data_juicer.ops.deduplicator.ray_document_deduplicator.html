@@ -113,6 +113,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../docs/tutorial/QuickStart_ZH.html">快速上手</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/Operators.html">Operator Schemas 算子提要</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/DatasetCfg_ZH.html">数据集配置指南</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/Juicer_ZH.html">Juicer：自然语言数据精炼模型</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/BadDataExhibition_ZH.html">“坏”数据展览</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/Cache_ZH.html">缓存管理</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/DJ_SORA_ZH.html">DJ-SORA</a></li>
@@ -417,7 +418,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.ray_document_deduplicator.RayDocumentDeduplicator">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.deduplicator.ray_document_deduplicator.</span></span><span class="sig-name descname"><span class="pre">RayDocumentDeduplicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_document_deduplicator.html#RayDocumentDeduplicator"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.ray_document_deduplicator.RayDocumentDeduplicator" title="链接到此定义。">¶</a></dt>
-<dd><p>基类：<a class="reference internal" href="data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator" title="data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayBasicDeduplicator</span></code></a></p>
+<dd><p>基类：<a class="reference internal" href="data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBasicDeduplicator" title="data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayBasicDeduplicator</span></code></a></p>
 <p>Deduplicates samples at the document level using exact matching in Ray distributed mode.</p>
 <p>This operator computes a hash for each document and filters out duplicates based on
 exact matches. The hash is calculated from the text content, which can be optionally

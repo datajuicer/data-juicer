@@ -112,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/tutorial/QuickStart_ZH.html">快速上手</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/Operators.html">Operator Schemas 算子提要</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/DatasetCfg_ZH.html">数据集配置指南</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/Juicer_ZH.html">Juicer：自然语言数据精炼模型</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/BadDataExhibition_ZH.html">“坏”数据展览</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/Cache_ZH.html">缓存管理</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/DJ_SORA_ZH.html">DJ-SORA</a></li>
@@ -443,17 +444,17 @@
 
 
 <div class="viewcode-block" id="IdGenerator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.IdGenerator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.IdGenerator">[文档]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">IdGenerator</span><span class="p">:</span>
 
 <div class="viewcode-block" id="IdGenerator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.IdGenerator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.IdGenerator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_id</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span> <span class="o">=</span> <span class="n">start_id</span></div>
 
 
 <div class="viewcode-block" id="IdGenerator.get_next_id">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.IdGenerator.get_next_id">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.IdGenerator.get_next_id">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_next_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">count</span><span class="p">):</span>
         <span class="n">current_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span> <span class="o">+=</span> <span class="n">count</span>
@@ -463,29 +464,29 @@
 
 
 <div class="viewcode-block" id="EdgeBuffer">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.EdgeBuffer">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer">[文档]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EdgeBuffer</span><span class="p">:</span>
 
 <div class="viewcode-block" id="EdgeBuffer.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.EdgeBuffer.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">edge_dict</span> <span class="o">=</span> <span class="p">{}</span></div>
 
 
 <div class="viewcode-block" id="EdgeBuffer.clear">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.EdgeBuffer.clear">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer.clear">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">edge_dict</span> <span class="o">=</span> <span class="p">{}</span></div>
 
 
 <div class="viewcode-block" id="EdgeBuffer.set_edges">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.EdgeBuffer.set_edges">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer.set_edges">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge_dict</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">edge_dict</span> <span class="o">=</span> <span class="n">edge_dict</span></div>
 
 
 <div class="viewcode-block" id="EdgeBuffer.get_edges">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.EdgeBuffer.get_edges">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.EdgeBuffer.get_edges">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[])</span></div>
 </div>
@@ -493,7 +494,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind">[文档]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BTSUnionFind</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    A distributed implementation of Union-Find with load balancing.</span>
@@ -503,7 +504,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="BTSUnionFind.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">union_threshold</span><span class="p">,</span>
@@ -527,7 +528,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.add_key_value_pairs">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.add_key_value_pairs">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.add_key_value_pairs">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_key_value_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pairs</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash_table</span><span class="p">:</span>
@@ -538,7 +539,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.flush_key_value_pairs">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.flush_key_value_pairs">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.flush_key_value_pairs">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">flush_key_value_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash_table</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -547,7 +548,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.balanced_union_find">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.balanced_union_find">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.balanced_union_find">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">balanced_union_find</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_buffer</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
@@ -572,7 +573,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.distribute_edge">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.distribute_edge">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.distribute_edge">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">distribute_edge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="n">hash_u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">//</span> <span class="n">BATCH_SIZE</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_num</span>
         <span class="n">hash_v</span> <span class="o">=</span> <span class="n">v</span> <span class="o">//</span> <span class="n">BATCH_SIZE</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_num</span>
@@ -586,7 +587,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.set_edge_buffer">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.set_edge_buffer">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.set_edge_buffer">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_edge_buffer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_list_dict</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">edge_buffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_list_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parallel_id</span><span class="p">]</span>
@@ -598,7 +599,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.edge_redistribution">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.edge_redistribution">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.edge_redistribution">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">edge_redistribution</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">flush_key_value_pairs</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rebalancing</span><span class="p">()</span>
@@ -610,7 +611,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.communication">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.communication">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.communication">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">communication</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">edge_list_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">del_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -627,7 +628,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.find">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.find">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.find">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">x</span>
@@ -637,7 +638,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.union">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.union">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.union">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">union</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
         <span class="n">px</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">py</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
@@ -649,7 +650,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.union_list">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.union_list">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.union_list">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">union_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_list</span><span class="p">):</span>
         <span class="n">px_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x_list</span><span class="p">]</span>
         <span class="n">p</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">px_list</span><span class="p">)</span>
@@ -660,7 +661,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.rebalancing">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.rebalancing">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.rebalancing">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">rebalancing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">new_px_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
@@ -690,7 +691,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.squeeze">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.squeeze">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.squeeze">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">squeeze</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">dup_keys</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">x</span> <span class="o">//</span> <span class="n">BATCH_SIZE</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_num</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_id</span><span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">dup_keys</span>
@@ -700,7 +701,7 @@
 
 
 <div class="viewcode-block" id="BTSUnionFind.dup_idx">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.BTSUnionFind.dup_idx">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.BTSUnionFind.dup_idx">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dup_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">idx</span> <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">queries</span> <span class="k">if</span> <span class="n">uid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">]</span></div>
 </div>
@@ -708,7 +709,7 @@
 
 
 <div class="viewcode-block" id="get_remote_classes">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.get_remote_classes">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.get_remote_classes">[文档]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_remote_classes</span><span class="p">(</span><span class="n">actor_memory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Get remote versions of classes with Ray decorators applied at runtime.</span>
 
@@ -733,11 +734,11 @@
 
 
 <div class="viewcode-block" id="GPUMinHashActor">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.GPUMinHashActor">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.GPUMinHashActor">[文档]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GPUMinHashActor</span><span class="p">:</span>
 
 <div class="viewcode-block" id="GPUMinHashActor.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.GPUMinHashActor.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.GPUMinHashActor.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">perm_a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">perm_b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">lowercase</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">cudf</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">rmm</span>
@@ -762,7 +763,7 @@
 
 
 <div class="viewcode-block" id="GPUMinHashActor.compute_minhash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.GPUMinHashActor.compute_minhash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.GPUMinHashActor.compute_minhash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_minhash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text_arr</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Array</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Compute MinHash signatures for texts in a table</span>
@@ -787,7 +788,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RayBTSMinhashDeduplicator</span><span class="p">(</span><span class="n">Deduplicator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A MinhashLSH deduplicator that operates in Ray distributed mode.</span>
@@ -808,7 +809,7 @@
     <span class="n">_supported_exec_modes</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"ray"</span><span class="p">,</span> <span class="s2">"ray_partitioned"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokenization</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"space"</span><span class="p">,</span>
@@ -1069,7 +1070,7 @@
         <span class="k">return</span> <span class="n">kwargs</span>
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator.band_minhash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator.band_minhash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator.band_minhash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">band_minhash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">minhash_list</span><span class="p">,</span> <span class="n">uid_list</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Logic for creating and pusing LSH bands to the union find list</span>
@@ -1093,7 +1094,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator.calc_minhash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator.calc_minhash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator.calc_minhash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calc_minhash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text_list</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Array</span><span class="p">,</span> <span class="n">uid_list</span><span class="p">:</span> <span class="n">List</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Logic for computing minhash values for each text in the input table</span>
@@ -1131,7 +1132,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator.merge_op_batch">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator.merge_op_batch">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator.merge_op_batch">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">merge_op_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_refs</span><span class="p">):</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">while</span> <span class="n">object_refs</span><span class="p">:</span>
@@ -1141,7 +1142,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator.merge">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator.merge">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator.merge">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">merge_op_batch</span><span class="p">([</span><span class="n">union_find</span><span class="o">.</span><span class="n">edge_redistribution</span><span class="o">.</span><span class="n">remote</span><span class="p">()</span> <span class="k">for</span> <span class="n">union_find</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">union_find_list</span><span class="p">])</span>
         <span class="k">while</span> <span class="nb">any</span><span class="p">(</span>
@@ -1152,7 +1153,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator.filter_with_union_find">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator.filter_with_union_find">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator.filter_with_union_find">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">filter_with_union_find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
         <span class="n">query_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">uid</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">uid</span><span class="p">]):</span>
@@ -1180,7 +1181,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicator.run">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicator.run">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicator.run">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="c1"># Ignore additional parameters like exporter, tracer, etc.</span>
         <span class="c1"># Initialize actors lazily - now cluster has had time to autoscale</span>
@@ -1272,7 +1273,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicatorWithUid">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicatorWithUid">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicatorWithUid">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">OP_NAME</span><span class="si">}</span><span class="s2">_with_uid"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RayBTSMinhashDeduplicatorWithUid</span><span class="p">(</span><span class="n">RayBTSMinhashDeduplicator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -1296,7 +1297,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="RayBTSMinhashDeduplicatorWithUid.run">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashDeduplicatorWithUid.run">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.html#data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator.RayBTSMinhashDeduplicatorWithUid.run">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="c1"># Ignore additional parameters like exporter, tracer, etc.</span>
         <span class="c1"># Initialize actors lazily - now cluster has had time to autoscale</span>

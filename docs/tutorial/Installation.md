@@ -20,6 +20,13 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 pip install uv
 ```
 
+Run the following `uv pip` and CLI commands in an activated virtual environment. Create and activate one in a Linux/macOS shell:
+
+```bash
+uv venv
+source .venv/bin/activate
+```
+
 ## 2. Basic Installation
 
 Data-Juicer is available on PyPI:
@@ -105,6 +112,8 @@ Install from source to use the latest features and updates:
 # Clone repository
 git clone https://github.com/datajuicer/data-juicer.git
 cd data-juicer
+uv venv
+source .venv/bin/activate
 uv pip install -e .
 
 # You can install specific domain as well
@@ -131,7 +140,7 @@ As the number of operators grows, installing every dependency becomes heavy. Ins
   dj-install --config path_to_your_data-juicer_config_file
   ```
 
-  This will read the operator list in your config and install exactly the packages those operators require.
+  The tool scans direct imports and LazyLoader declarations in the configured operators' source; it does not recursively collect all dependencies in helper modules. Running the recipe may still install additional packages or download model weights. A successful install command does not guarantee offline readiness.
 
 ## 6. Installation Using Docker
 

@@ -3,7 +3,7 @@
 
 欢迎来到 Data-Juicer 文档。
 
-- **初次使用？** 请按顺序阅读「快速上手」：安装、跟随快速开始跑通第一个任务、阅读核心概念建立心智模型，再通过 DJ-Cookbook 探索更多资源。
+- **初次使用？** 请按顺序阅读「快速上手」：安装、跟随快速开始跑通第一个任务，再通过 DJ-Cookbook 探索更多资源。
 - **构建自己的菜谱？** 「使用指南」涵盖算子库、数据集配置、导出、缓存与追踪。
 - **大规模处理？** 「分布式处理」介绍 Ray 模式、分区与检查点、作业管理。
 - **扩展 Data-Juicer？** 「扩展与开发」涵盖算子插件、API 服务与开发者指南。
@@ -14,9 +14,6 @@
 
    docs/tutorial/Installation_ZH
    docs/tutorial/QuickStart_ZH
-   docs/concepts/recipes_ZH
-   docs/concepts/operators_ZH
-   docs/concepts/executor_ZH
    docs/tutorial/DJ-Cookbook_ZH
 
 .. toctree::

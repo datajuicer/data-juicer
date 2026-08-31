@@ -3,7 +3,7 @@ DOCS
 
 Welcome to the Data-Juicer documentation.
 
-- **New to Data-Juicer?** Follow *Getting Started* in order: install it, walk through the Quick Start, read Core Concepts to get the mental model, then explore more resources in the DJ-Cookbook.
+- **New to Data-Juicer?** Follow *Getting Started* in order: install it, walk through the Quick Start, then explore more resources in the DJ-Cookbook.
 - **Building your own recipes?** The *Guides* cover the operator zoo, dataset configuration, export, caching, and tracing.
 - **Processing at scale?** See *Distributed Processing* for Ray mode, partitioning/checkpointing, and job management.
 - **Extending Data-Juicer?** *Extension & Development* covers operator plugins, the API service, and the developer guide.
@@ -14,9 +14,6 @@ Welcome to the Data-Juicer documentation.
 
    docs/tutorial/Installation
    docs/tutorial/QuickStart
-   docs/concepts/recipes
-   docs/concepts/operators
-   docs/concepts/executor
    docs/tutorial/DJ-Cookbook
 
 .. toctree::

@@ -1,18 +1,22 @@
 # 快速上手
 
-本指南带你在 5 分钟内完成一次完整的 Data-Juicer 数据处理：安装、编写菜谱、运行流水线、查看输出。
+本指南带你完成一次完整的 Data-Juicer 数据处理：安装、编写菜谱、运行流水线、查看输出。
 
-> **提示：** 部分算子在首次使用时会下载模型权重（例如 `language_id_score_filter` 会下载 fastText 语言识别模型）。首次运行可能多等几分钟，后续使用本地缓存立即启动。
+> **提示：** 部分算子在首次使用时会下载模型权重（例如 `language_id_score_filter` 会下载 fastText 语言识别模型）。首次运行可能多等几分钟，后续运行可以复用本地模型缓存。
 
 ---
 
 ## 1. 安装 Data-Juicer
+
+先按[安装文档](Installation_ZH.md)准备 Python、Git 和 uv。以下命令使用 Linux/macOS shell。
 
 克隆仓库并从源码安装。本指南会用到仓库中的示例菜谱和样例数据：
 
 ```bash
 git clone https://github.com/datajuicer/data-juicer.git --depth 1
 cd data-juicer
+uv venv
+source .venv/bin/activate  # Linux / macOS
 uv pip install -e ".[nlp]"
 ```
 
@@ -83,10 +87,11 @@ Data-Juicer 加载数据集，按顺序执行每个算子，将过滤后的结�
 命令行可以覆盖菜谱中的任何参数，无需修改 YAML：
 
 ```bash
-dj-process --config demos/process_simple/process.yaml --language_id_score_filter.lang=en
+dj-process --config demos/process_simple/process.yaml --language_id_score_filter.lang=en \
+  --export_path ./outputs/demo-process/demo-processed-en.jsonl
 ```
 
-> 使用 `dj-install --config your-recipe.yaml` 可以自动安装菜谱中算子所需的依赖，无需手动管理。详见[安装文档 §5](Installation_ZH.md#5-特定算子的安装)。
+> 英文结果写到单独文件，避免覆盖下一节要查看的中文结果。`dj-install --config your-recipe.yaml` 可以预装能从算子源码识别的依赖，但不保证覆盖全部运行时依赖或模型文件。详见[安装文档](Installation_ZH.md)。
 
 ---
 
@@ -129,7 +134,7 @@ executor.run()
 dataset = dataset.process([op1, op2])
 ```
 
-> 编程接口的完整用法请参见[处理数据指南](../ProcessData_ZH.md#python-api-方式)。
+> 编程接口的完整用法请参见[处理数据指南](../ProcessData_ZH.md)。
 
 ---
 

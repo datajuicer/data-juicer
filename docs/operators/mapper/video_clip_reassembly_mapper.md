@@ -48,29 +48,17 @@ Tags 标签: cpu, video
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `hand_action_field` | <class 'str'> | `'hand_action_tags'` |  |
-
 | `camera_pose_field` | <class 'str'> | `'video_camera_pose_tags'` |  |
-
 | `hand_reconstruction_field` | <class 'str'> | `'hand_reconstruction_hawor_tags'` |  |
-
 | `frame_field` | <class 'str'> | `'video_frames'` |  |
-
 | `moge_field` | <class 'str'> | `'camera_calibration_moge_tags'` |  |
-
 | `clip_field` | <class 'str'> | `'clips'` |  |
-
 | `video_key` | <class 'str'> | `'videos'` |  |
-
 | `split_duration` | <class 'float'> | `None` |  |
-
 | `overlap_duration` | <class 'float'> | `None` |  |
-
 | `fps` | <class 'float'> | `None` |  |
-
 | `args` |  | `` |  |
-
 | `kwargs` |  | `` |  |
 
 

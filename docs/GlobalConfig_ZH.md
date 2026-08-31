@@ -16,7 +16,7 @@
 | `dataset_path` | str | `""` | 输入数据集路径，支持权重混合格式：`<w1> path1 <w2> path2` |
 | `dataset` | list/dict | `[]` | 高级数据集配置（本地/远程），详见[数据集配置](DatasetCfg_ZH.md) |
 | `export_path` | str | `./outputs/hello_world/hello_world.jsonl` | 输出文件路径 |
-| `work_dir` | str | `None` | 工作目录（默认取 export_path 的父目录） |
+| `work_dir` | str | `None` | 工作目录基路径（默认取 export_path 的父目录）；解析后追加 job_id |
 | `temp_dir` | str | `None` | 临时文件目录（禁用缓存时使用） |
 
 ---
@@ -78,8 +78,8 @@
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `op_fusion` | bool | `false` | 启用算子融合（仅 default 模式），2–10× 吞吐提升 |
-| `fusion_strategy` | str | `probe` | 融合策略：`probe`（按速度重排）/ `greedy`（保持原序） |
+| `op_fusion` | bool | `false` | 启用兼容算子的融合，default 和 Ray 均有融合路径；收益取决于菜谱与数据 |
+| `fusion_strategy` | str | `probe` | 融合策略：`probe`（分组后按探测速度排序）/ `greedy`（只分组，不做速度排序；仍可能重排） |
 | `mapper_fusion` | bool | `true` | 融合连续 GPU Mapper（需 op_fusion 开启） |
 | `mapper_fusion_vram_limit` | float | `0.9` | 融合 Mapper 聚合显存上限 |
 | `adaptive_batch_size` | bool | `false` | 在 `default` 执行器中探测并调整批处理算子的批大小；Ray 执行器和 Analyzer 不应用此设置 |
@@ -94,7 +94,7 @@
 | `use_cache` | bool | `true` | 使用 HuggingFace datasets 缓存 |
 | `ds_cache_dir` | str | `None` | 自定义缓存目录（覆盖 `HF_DATASETS_CACHE`） |
 | `cache_compress` | str | `None` | 缓存压缩：`gzip` / `zstd` / `lz4` |
-| `use_checkpoint` | bool | `false` | 启用检查点（自动禁用 cache，与 op_fusion 互斥） |
+| `use_checkpoint` | bool | `false` | 启用 default 执行器检查点（自动禁用 cache，与 op_fusion 互斥） |
 
 ### ray_partitioned 检查点
 
@@ -115,7 +115,7 @@
 | `resume` | str | `None` | 恢复指定 job ID 的任务（仅 ray_partitioned） |
 | `event_logging.enabled` | bool | `true` | 启用事件日志 |
 | `event_log_dir` | str | `None` | 事件日志目录（推荐快速存储） |
-| `checkpoint_dir` | str | `None` | 检查点目录（推荐大容量存储） |
+| `checkpoint_dir` | str | `None` | 分区检查点目录；default 执行器使用 `<work_dir>/ckpt`，不读取此字段 |
 
 ---
 

@@ -45,29 +45,17 @@ Tags 标签: cpu, video
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `segment_field` | <class 'str'> | `'atomic_action_segments'` | Meta field storing atomic action segments. |
-
 | `camera_pose_field` | <class 'str'> | `'video_camera_pose_tags'` | Meta field storing camera pose (cam_c2w). |
-
 | `moge_field` | <class 'str'> | `'camera_calibration_moge_tags'` | Meta field storing MoGe calibration (for fov_x). |
-
 | `frame_field` | <class 'str'> | `'video_frames'` | Field storing frame image paths. |
-
 | `save_dir` | <class 'str'> | `None` | Directory to save overlay images.  If None, uses a temp directory derived from the first frame path. |
-
 | `n_sample_frames` | <class 'int'> | `8` | Number of frames to evenly sample from each segment. |
-
 | `palm_joint_index` | <class 'int'> | `9` | MANO joint index for the palm position. Default 9 = middle finger MCP (palm center proxy). Joint 0 = wrist root. |
-
 | `dot_radius` | <class 'int'> | `10` | Radius of the dot at the current wrist position. |
-
 | `line_thickness` | <class 'int'> | `4` | Thickness of the trajectory line. |
-
 | `trajectory_alpha` | <class 'float'> | `0.7` | Alpha blending for the trajectory overlay. |
-
 | `args` |  | `` |  |
-
 | `kwargs` |  | `` |  |
 
 

@@ -16,7 +16,7 @@ Accepted configuration does not mean every executor uses a parameter. Check the 
 | `dataset_path` | str | `""` | Input dataset path; supports weighted mixing: `<w1> path1 <w2> path2` |
 | `dataset` | list/dict | `[]` | Advanced dataset config (local/remote), see [Dataset Configuration](DatasetCfg.md) |
 | `export_path` | str | `./outputs/hello_world/hello_world.jsonl` | Output file path |
-| `work_dir` | str | `None` | Working directory (defaults to export_path's parent) |
+| `work_dir` | str | `None` | Working-directory base (defaults to export_path's parent); resolution appends job_id |
 | `temp_dir` | str | `None` | Temp file directory (used when cache is disabled) |
 
 ---
@@ -78,8 +78,8 @@ See [Export](Export.md) for details.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `op_fusion` | bool | `false` | Enable op fusion (default mode only); 2–10× throughput |
-| `fusion_strategy` | str | `probe` | Fusion strategy: `probe` (reorder by speed) / `greedy` (keep order) |
+| `op_fusion` | bool | `false` | Fuse compatible operators in default and Ray execution; benefit depends on recipe and data |
+| `fusion_strategy` | str | `probe` | Fusion strategy: `probe` (group and sort by probed speed) / `greedy` (group without speed sorting; may still reorder) |
 | `mapper_fusion` | bool | `true` | Fuse consecutive GPU Mappers (requires op_fusion) |
 | `mapper_fusion_vram_limit` | float | `0.9` | Max aggregate VRAM fraction for fused mappers |
 | `adaptive_batch_size` | bool | `false` | Probe and adjust batch sizes for batched operators in the `default` executor; not applied by the Ray executors or Analyzer |
@@ -94,7 +94,7 @@ See [Export](Export.md) for details.
 | `use_cache` | bool | `true` | Use HuggingFace datasets cache |
 | `ds_cache_dir` | str | `None` | Custom cache directory (overrides `HF_DATASETS_CACHE`) |
 | `cache_compress` | str | `None` | Cache compression: `gzip` / `zstd` / `lz4` |
-| `use_checkpoint` | bool | `false` | Enable checkpointing (disables cache; mutually exclusive with op_fusion) |
+| `use_checkpoint` | bool | `false` | Enable default-executor checkpointing (disables cache; mutually exclusive with op_fusion) |
 
 ### ray_partitioned Checkpointing
 
@@ -115,7 +115,7 @@ See [Export](Export.md) for details.
 | `resume` | str | `None` | Resume a job by ID (ray_partitioned only) |
 | `event_logging.enabled` | bool | `true` | Enable event logging |
 | `event_log_dir` | str | `None` | Event log directory (fast storage recommended) |
-| `checkpoint_dir` | str | `None` | Checkpoint directory (large storage recommended) |
+| `checkpoint_dir` | str | `None` | Partition checkpoint directory; default executor uses `<work_dir>/ckpt` and does not read this field |
 
 ---
 

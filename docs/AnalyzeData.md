@@ -21,7 +21,7 @@ dj-analyze --config path/to/your-recipe.yaml
 No dedicated analysis recipe needed—automatically uses all stats-producing Filters on a dataset subset:
 
 ```bash
-dj-analyze --auto --dataset_path your-dataset.jsonl [--auto_num 1000]
+dj-analyze --auto --dataset_path your-dataset.jsonl --auto_num 1000
 ```
 
 - `--auto_num`: Number of samples to analyze (default 1000). Good for quick distribution overview.
@@ -46,6 +46,8 @@ print(analyzer.overall_result)
 
 ### Analyze an Existing Dataset
 
+Wrap the loaded data explicitly: with current dependencies, `from_json()` returns a plain Hugging Face Dataset, while Analyzer needs the `.process()` method.
+
 ```python
 from data_juicer.core import Analyzer, NestedDataset
 from data_juicer.config import init_configs
@@ -56,22 +58,27 @@ cfg = init_configs(args=[
 ])
 analyzer = Analyzer(cfg)
 
-dataset = NestedDataset.from_json('my-data.jsonl')
+dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
 analyzed = analyzer.run(dataset=dataset)
 ```
 
-### Compute Stats Only (No Export)
+### Compute Stats Without Exporting Results
 
-Useful for programmatic decisions without writing files:
+Call a Filter directly with `reduce=False` to compute statistics without filtering or exporting a dataset or analysis reports. Dataset caching may still write cache files.
 
 ```python
-analyzed = analyzer.run(dataset=dataset, skip_export=True)
+from data_juicer.core import NestedDataset
+from data_juicer.ops.filter import TextLengthFilter
+from data_juicer.utils.constant import Fields, StatsKeys
 
-# Access computed stats
-stats = analyzed['stats']
-avg_len = sum(s.get('text_length', 0) for s in stats) / len(stats)
-print(f"Average text length: {avg_len:.0f}")
+dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
+analyzed = TextLengthFilter().run(dataset=dataset, reduce=False)
+stats = analyzed[Fields.stats]
+avg_len = sum(s[StatsKeys.text_len] for s in stats) / len(stats) if len(stats) else 0
+print(f"Average text length: {avg_len:.2f}")
 ```
+
+`Analyzer.run(..., skip_export=True)` has a different scope: it skips the overall tables and plots, but currently still exports the statistics dataset and creates working directories/configuration backups. It is not a no-export mode.
 
 ### Manual Analysis Pipeline
 
@@ -82,9 +89,9 @@ from data_juicer.ops.filter import LanguageIDScoreFilter, TextLengthFilter
 from data_juicer.analysis import OverallAnalysis, ColumnWiseAnalysis
 from data_juicer.core import NestedDataset
 
-dataset = NestedDataset.from_json('my-data.jsonl')
+dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
 
-# Compute stats only (disable filtering by nulling process)
+# Compute stats only: reduce=False below disables filtering
 filters = [
     TextLengthFilter(min_len=0, max_len=999999),
     LanguageIDScoreFilter(lang='en', min_score=0.0),
@@ -111,7 +118,7 @@ Programmatically choose analysis operators based on data modality—useful for a
 from data_juicer.core import Analyzer, NestedDataset
 from data_juicer.config import init_configs
 
-dataset = NestedDataset.from_json('input.jsonl')
+dataset = NestedDataset(NestedDataset.from_json('input.jsonl'))
 sample = dataset[0]
 
 # Build analysis config based on data modality
@@ -138,6 +145,7 @@ cfg = init_configs(args=[
     '--export_path', './analysis/stats.jsonl',
 ], allow_auto=True)
 cfg.process = process_config
+# Auto mode remains enabled: analyze at most auto_num rows (default 1000).
 
 analyzer = Analyzer(cfg)
 analyzed = analyzer.run(dataset=dataset)
@@ -153,15 +161,15 @@ The analyzer produces:
 - **Distribution plots**: histogram for each metric
 - **Correlation analysis**: heatmap of metric correlations
 
-Output is saved under the `analysis/` subdirectory of `export_path`.
+Plots and overall tables are saved in `analyzer.analysis_path` (`<cfg.work_dir>/analysis`); the resolved `work_dir` includes `job_id`. The statistics dataset is exported according to `export_path`.
 
 ---
 
 ## Which Operators Participate
 
 The Analyzer processes two types of operators:
-- **Filter operators** that produce stats in the `stats` field (most Filters do)
-- **Tagging operators** that produce labels in the `meta` field
+- **Filter operators** that produce stats in the `__dj__stats__` field (most Filters do)
+- **Tagging operators** that produce labels in the `__dj__meta__` field
 
 Registry markers:
 - `NON_STATS_FILTERS`: Filters that do NOT produce stats

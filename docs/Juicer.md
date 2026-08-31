@@ -18,6 +18,15 @@ Juicer is **not** a general-purpose chat model. It is purpose-built for data-ref
 
 ## Quick Start
 
+### 0. Get the launch scripts
+
+The `serve.sh`, `requirements.txt`, and `app.py` below belong to the separate data-juicer-hub repository, not this repository. Prepare the inference environment and model weights according to its deployment instructions, then enter its Playground directory:
+
+```bash
+git clone https://github.com/datajuicer/data-juicer-hub.git
+cd data-juicer-hub/juicer_playground
+```
+
 ### 1. Deploy the model
 
 Juicer can be served as an OpenAI-compatible endpoint. On a single H20 (96 GB):

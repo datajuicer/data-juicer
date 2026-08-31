@@ -1,18 +1,22 @@
 # Quickstart
 
-This guide walks you through a complete Data-Juicer workflow in under 5 minutes: install, write a recipe, run the pipeline, and inspect the output.
+This guide walks you through a complete Data-Juicer workflow: install, write a recipe, run the pipeline, and inspect the output.
 
-> **Note:** Some operators download model weights on first use (for example, `language_id_score_filter` downloads a fastText language identification model). The initial run may take a few extra minutes while these assets are fetched. Subsequent runs use the local cache and start immediately.
+> **Note:** Some operators download model weights on first use (for example, `language_id_score_filter` downloads a fastText language identification model). The initial run may take a few extra minutes while these assets are fetched. Subsequent runs can reuse the local model cache.
 
 ---
 
 ## 1. Install Data-Juicer
+
+First install Python, Git, and uv as described in [Installation](Installation.md). The commands below use a Linux/macOS shell.
 
 Clone the repository and install from source. This guide uses the demo recipes and sample data included in the repo:
 
 ```bash
 git clone https://github.com/datajuicer/data-juicer.git --depth 1
 cd data-juicer
+uv venv
+source .venv/bin/activate  # Linux / macOS
 uv pip install -e ".[nlp]"
 ```
 
@@ -83,10 +87,11 @@ Data-Juicer loads the dataset, executes each operator in sequence, and writes fi
 Override any recipe parameter from the command line without editing the YAML:
 
 ```bash
-dj-process --config demos/process_simple/process.yaml --language_id_score_filter.lang=en
+dj-process --config demos/process_simple/process.yaml --language_id_score_filter.lang=en \
+  --export_path ./outputs/demo-process/demo-processed-en.jsonl
 ```
 
-> Use `dj-install --config your-recipe.yaml` to automatically install operator dependencies. See [Installation §5](Installation.md#5-installation-for-specific-ops).
+> The English results use a separate file so the Chinese output inspected below is preserved. `dj-install --config your-recipe.yaml` can preinstall dependencies identified in operator source, but does not guarantee all runtime dependencies or model files are ready. See [Installation](Installation.md).
 
 ---
 
@@ -129,7 +134,7 @@ Chain-style single-operator calls are also supported:
 dataset = dataset.process([op1, op2])
 ```
 
-> For complete Python API usage, see the [Processing Data Guide](../ProcessData.md#python-api).
+> For complete Python API usage, see the [Processing Data Guide](../ProcessData.md).
 
 ---
 

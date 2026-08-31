@@ -38,41 +38,23 @@ Tags 标签: cpu, text
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `messages_key` | <class 'str'> | `'messages'` |  |
-
 | `choices_key` | <class 'str'> | `'choices'` |  |
-
 | `text_key` | <class 'str'> | `'text'` |  |
-
 | `history_key` | <class 'str'> | `'dialog_history'` |  |
-
 | `query_key` | <class 'str'> | `'query'` |  |
-
 | `response_key` | <class 'str'> | `'response'` |  |
-
 | `extract_tool_skill_tags` | <class 'bool'> | `True` |  |
-
 | `include_system_in_first_user` | <class 'bool'> | `False` |  |
-
 | `user_label` | <class 'str'> | `'User'` |  |
-
 | `assistant_label` | <class 'str'> | `'Assistant'` |  |
-
 | `copy_lineage_fields` | <class 'bool'> | `True` |  |
-
 | `copy_request_id` | <class 'bool'> | `True` |  |
-
 | `request_id_keys` | typing.List[str] | `['request_id', 'trace_id', 'id']` |  |
-
 | `history_tool_result_max_chars` | <class 'int'> | `10000` |  |
-
 | `history_max_assistant_trace_chars` | <class 'int'> | `0` |  |
-
 | `history_max_user_chars` | <class 'int'> | `0` |  |
-
 | `history_compress_head_ratio` | <class 'float'> | `0.62` |  |
-
 | `kwargs` |  | `` |  |
 
 

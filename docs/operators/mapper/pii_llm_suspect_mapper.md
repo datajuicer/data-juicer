@@ -44,57 +44,31 @@ Tags 标签: cpu, api
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `api_model` | str | `'qwen-turbo'` |  |
-
 | `inspect_keys` | Optional[List[str]] | `None` |  |
-
 | `messages_key` | Optional[str] | `'messages'` |  |
-
 | `max_messages_for_prompt` | PositiveInt | `4` |  |
-
 | `max_chars_per_field` | PositiveInt | `6000` |  |
-
 | `max_chars_messages_excerpt` | PositiveInt | `8000` |  |
-
 | `gate_mode` | str | `'heuristic'` |  |
-
 | `result_key` | str | `'pii_llm_suspect'` |  |
-
 | `raw_key` | str | `'pii_llm_suspect_raw'` |  |
-
 | `overwrite` | bool | `False` |  |
-
 | `api_endpoint` | Optional[str] | `None` |  |
-
 | `response_path` | Optional[str] | `None` |  |
-
 | `system_prompt` | Optional[str] | `None` |  |
-
 | `preferred_output_lang` | str | `'zh'` |  |
-
 | `try_num` | PositiveInt | `2` |  |
-
 | `model_params` | Optional[Dict] | `None` |  |
-
 | `sampling_params` | Optional[Dict] | `None` |  |
-
 | `text_key` | str | `'text'` |  |
-
 | `heuristic_name_rules` | bool | `True` |  |
-
 | `spacy_ner_model` | Optional[str] | `None` |  |
-
 | `spacy_ner_models` | Optional[List[str]] | `None` |  |
-
 | `spacy_ner_max_chars` | PositiveInt | `4000` |  |
-
 | `spacy_auto_download` | bool | `True` |  |
-
 | `redaction_mode` | str | `'none'` |  |
-
 | `redaction_placeholder` | str | `'[LLM_PII_SUSPECT_REDACTED]'` |  |
-
 | `kwargs` |  | `` |  |
 
 

@@ -20,15 +20,10 @@ Tags 标签: cpu
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `choices_key` | <class 'str'> | `'choices'` |  |
-
 | `usage_key` | <class 'str'> | `'usage'` |  |
-
 | `response_metadata_key` | <class 'str'> | `'response_metadata'` |  |
-
 | `dedupe_identical_usage` | <class 'bool'> | `True` |  |
-
 | `kwargs` |  | `` |  |
 
 

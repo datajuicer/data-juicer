@@ -24,29 +24,17 @@ Tags 标签: cpu, api
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `api_model` | <class 'str'> | `'gpt-4o'` |  |
-
 | `tool_types_key` | <class 'str'> | `'agent_tool_types'` |  |
-
 | `skill_types_key` | <class 'str'> | `'agent_skill_types'` |  |
-
 | `insights_key` | <class 'str'> | `'agent_skill_insights'` |  |
-
 | `api_endpoint` | typing.Optional[str] | `None` |  |
-
 | `response_path` | typing.Optional[str] | `None` |  |
-
 | `system_prompt` | typing.Optional[str] | `None` |  |
-
 | `try_num` | typing.Annotated[int, Gt(gt=0)] | `2` |  |
-
 | `model_params` | typing.Dict | `{}` |  |
-
 | `sampling_params` | typing.Dict | `{}` |  |
-
 | `preferred_output_lang` | <class 'str'> | `'en'` |  |
-
 | `kwargs` |  | `` |  |
 
 

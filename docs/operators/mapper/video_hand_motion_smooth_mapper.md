@@ -39,21 +39,13 @@ Tags 标签: cpu, video
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `hand_action_field` | <class 'str'> | `'hand_action_tags'` | Meta field storing hand action results (output of VideoHandActionComputeMapper). |
-
 | `savgol_window` | <class 'int'> | `11` | Window length for Savitzky-Golay filter. Must be odd.  Larger = smoother but may lose fast motions. |
-
 | `savgol_polyorder` | <class 'int'> | `3` | Polynomial order for Savitzky-Golay filter. Must be less than savgol_window. |
-
 | `outlier_velocity_threshold` | <class 'float'> | `5.0` | Frames whose wrist speed exceeds ``median + threshold * MAD`` are replaced by interpolation. Higher = more conservative (fewer replacements). |
-
 | `min_frames_for_smoothing` | <class 'int'> | `5` | Minimum number of valid frames required to apply smoothing. |
-
 | `smooth_joints` | <class 'bool'> | `True` | Whether to also smooth ``joints_world`` (21-joint MANO skeleton in world space). |
-
 | `args` |  | `` |  |
-
 | `kwargs` |  | `` |  |
 
 

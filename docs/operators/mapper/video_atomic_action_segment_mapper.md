@@ -70,23 +70,14 @@ Tags 标签: cpu, video
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `hand_action_field` | <class 'str'> | `'hand_action_tags'` | Meta field storing merged hand action results (output of VideoClipReassemblyMapper). |
-
 | `segment_field` | <class 'str'> | `'atomic_action_segments'` | Output meta field for atomic segments. |
-
 | `speed_smooth_window` | <class 'int'> | `5` | Window size for Savitzky-Golay smoothing of the speed signal before minima detection. Must be odd. |
-
 | `min_window` | <class 'int'> | `15` | Half-window size for local minima detection. A frame is a local minimum only if it is the minimum within ``[t - min_window, t + min_window]``. Larger values → fewer, longer segments. |
-
 | `min_segment_frames` | <class 'int'> | `8` | Minimum frames per segment. Segments shorter than this are merged with neighbors. |
-
 | `max_segment_frames` | <class 'int'> | `300` | Maximum frames per segment. Segments longer than this are forcibly split at the deepest speed minimum. |
-
 | `hand_type` | <class 'str'> | `'both'` | Which hand(s) to segment: 'left', 'right', or 'both'. |
-
 | `args` |  | `` |  |
-
 | `kwargs` |  | `` |  |
 
 

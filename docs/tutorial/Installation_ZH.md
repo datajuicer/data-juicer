@@ -20,6 +20,13 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 pip install uv
 ```
 
+以下 `uv pip` 和 CLI 命令均在已激活的虚拟环境中运行。使用 Linux/macOS shell 创建并激活环境：
+
+```bash
+uv venv
+source .venv/bin/activate
+```
+
 ## 2. 基础安装
 
 Data-Juicer 已上架 PyPI：
@@ -105,6 +112,8 @@ uv pip install "py-data-juicer[all]"
 # 克隆仓库
 git clone https://github.com/datajuicer/data-juicer.git
 cd data-juicer
+uv venv
+source .venv/bin/activate
 uv pip install -e .
 
 # 同样也可以安装指定的额外领域依赖
@@ -131,7 +140,7 @@ uv pip install -e ".[vision]"
   dj-install --config path_to_your_data-juicer_config_file
   ```
 
-  这将读取你配置中的算子列表，并精确安装这些算子所需的包。
+  工具扫描配置中算子源码里的直接导入和 LazyLoader 声明，不会递归收集辅助模块中的全部依赖。运行时仍可能安装额外包或下载模型权重；命令成功不代表菜谱可以离线运行。
 
 ## 6. 使用 Docker 安装
 

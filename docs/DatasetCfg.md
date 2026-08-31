@@ -113,11 +113,7 @@ See [data_validator.py](https://github.com/datajuicer/data-juicer/blob/main/data
 
 If your JSONL file contains a few corrupted lines, enable **lenient JSONL loading** to skip bad lines instead of failing the entire job:
 
-```yaml
-load_jsonl_lenient: true
-```
-
-Or via environment variable:
+Use the environment variable; the current global config parser does not accept `load_jsonl_lenient` as a top-level YAML option:
 
 ```bash
 DATA_JUICER_JSONL_LENIENT=1 dj-process --config path/to/config.yaml

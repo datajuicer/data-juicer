@@ -113,11 +113,7 @@ validators:
 
 如果你的 JSONL 文件中包含少量损坏行，启用**宽松 JSONL 加载**可跳过坏行而非整个任务失败：
 
-```yaml
-load_jsonl_lenient: true
-```
-
-或通过环境变量：
+使用环境变量；当前全局配置解析器不接受 YAML 顶层的 `load_jsonl_lenient`：
 
 ```bash
 DATA_JUICER_JSONL_LENIENT=1 dj-process --config path/to/config.yaml

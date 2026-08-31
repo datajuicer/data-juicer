@@ -11,15 +11,10 @@ Tags 标签: cpu
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `tool_types_meta_key` | <class 'str'> | `'agent_tool_types'` |  |
-
 | `primary_key` | <class 'str'> | `'primary_tool_type'` |  |
-
 | `dominant_key` | <class 'str'> | `'dominant_tool_types'` |  |
-
 | `top_k_dominant` | <class 'int'> | `5` |  |
-
 | `kwargs` |  | `` |  |
 
 

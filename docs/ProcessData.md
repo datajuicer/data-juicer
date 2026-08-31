@@ -32,7 +32,7 @@ dj-process --config recipe.yaml --language_id_score_filter.lang=en
 dj-install --config my-recipe.yaml
 ```
 
-Resolves and installs all per-operator dependencies in one pass. See [Installation §5](tutorial/Installation.md#5-installation-for-specific-ops).
+Preinstalls dependencies that the scanner can identify in operator source. It does not recursively collect every dependency in helper modules or guarantee that model weights are downloaded or a recipe can run offline. See [Installation](tutorial/Installation.md).
 
 ---
 
@@ -161,11 +161,11 @@ process:
 
 ### Op Fusion
 
-Merges adjacent compatible operators into a single data pass—**2–10× throughput** (default mode only):
+Fuses compatible operators to reduce repeated processing. Both default and Ray execution paths support fusion. Throughput gains depend on the recipe and data; measure them for your workload:
 
 ```yaml
 op_fusion: true
-fusion_strategy: probe   # probe (reorder by speed) | greedy (keep order)
+fusion_strategy: probe   # probe (group and sort by probed speed) | greedy (group; may reorder)
 ```
 
 ### GPU Mapper Fusion
@@ -204,9 +204,15 @@ Replace the path with your dataset and choose a budget no larger than its row co
 use_checkpoint: true
 ```
 
-Re-running the same config skips completed operators. `use_checkpoint` is mutually exclusive with `op_fusion`.
+The default executor must reuse the same `job_id` and working-directory base to find a previous checkpoint. Repeating a YAML alone creates a new job ID. Specify a stable ID on the first run, then repeat the same command after interruption, keeping the input and recipe unchanged:
 
-For `ray_partitioned`, finer strategies are available; resume with `--resume <job_id>`. See [Global Config](GlobalConfig.md#cache--checkpointing).
+```bash
+dj-process --config your-recipe.yaml --use_checkpoint true --job_id recipe-checkpoint
+```
+
+Checkpoints live in the resolved `<cfg.work_dir>/ckpt`, where `work_dir` includes `job_id`. The default executor does not read `checkpoint_dir`. `use_checkpoint` disables data caching and is mutually exclusive with `op_fusion`.
+
+For `ray_partitioned`, finer strategies are available; resume with `--resume <job_id>`. See [Global Config](GlobalConfig.md).
 
 ---
 

@@ -21,7 +21,7 @@ dj-analyze --config path/to/your-recipe.yaml
 无需编写专门的分析菜谱——自动使用全部可产出统计信息的 Filter 来分析数据集子集：
 
 ```bash
-dj-analyze --auto --dataset_path your-dataset.jsonl [--auto_num 1000]
+dj-analyze --auto --dataset_path your-dataset.jsonl --auto_num 1000
 ```
 
 - `--auto_num`：采样分析的样本数量，默认 1000。适合快速了解数据分布。
@@ -46,6 +46,8 @@ print(analyzer.overall_result)
 
 ### 对已有 dataset 分析
 
+显式包装为 `NestedDataset`：当前依赖中的 `from_json()` 返回普通 Hugging Face Dataset，而 Analyzer 需要 `.process()` 方法。
+
 ```python
 from data_juicer.core import Analyzer, NestedDataset
 from data_juicer.config import init_configs
@@ -57,21 +59,27 @@ cfg = init_configs(args=[
 analyzer = Analyzer(cfg)
 
 # 传入已加载的数据集
-dataset = NestedDataset.from_json('my-data.jsonl')
+dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
 analyzed = analyzer.run(dataset=dataset)
 ```
 
-### 仅计算统计量（不导出）
+### 计算统计量，不导出结果
 
-适合在脚本中获取统计信息做后续判断：
+直接调用 Filter 并设置 `reduce=False`，只计算统计量，不执行过滤，也不导出数据集或分析报告。数据集缓存仍可能写入缓存文件。
 
 ```python
-analyzed = analyzer.run(dataset=dataset, skip_export=True)
+from data_juicer.core import NestedDataset
+from data_juicer.ops.filter import TextLengthFilter
+from data_juicer.utils.constant import Fields, StatsKeys
 
-# 访问统计字段
-stats = analyzed['stats']
-print(f"平均文本长度: {sum(s.get('text_length', 0) for s in stats) / len(stats):.0f}")
+dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
+analyzed = TextLengthFilter().run(dataset=dataset, reduce=False)
+stats = analyzed[Fields.stats]
+avg_len = sum(s[StatsKeys.text_len] for s in stats) / len(stats) if len(stats) else 0
+print(f"平均文本长度: {avg_len:.2f}")
 ```
+
+`Analyzer.run(..., skip_export=True)` 的作用范围不同：它会跳过总体统计表和图表，但当前实现仍会导出统计数据集，并创建工作目录和配置备份，因此不能用它实现“不导出结果”。
 
 ### 手动构建分析流程
 
@@ -82,7 +90,7 @@ from data_juicer.ops.filter import LanguageIDScoreFilter, TextLengthFilter
 from data_juicer.analysis import OverallAnalysis, ColumnWiseAnalysis
 from data_juicer.core import NestedDataset
 
-dataset = NestedDataset.from_json('my-data.jsonl')
+dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
 
 # 手动计算统计量（仅 compute_stats，不过滤）
 filters = [
@@ -111,7 +119,7 @@ column_wise.analyze()
 from data_juicer.core import Analyzer, NestedDataset
 from data_juicer.config import init_configs
 
-dataset = NestedDataset.from_json('input.jsonl')
+dataset = NestedDataset(NestedDataset.from_json('input.jsonl'))
 sample = dataset[0]
 
 # 根据数据模态构建分析菜谱
@@ -138,6 +146,7 @@ cfg = init_configs(args=[
     '--export_path', './analysis/stats.jsonl',
 ], allow_auto=True)
 cfg.process = process_config
+# 保留 auto 模式：最多分析 auto_num 条数据（默认 1000）。
 
 analyzer = Analyzer(cfg)
 analyzed = analyzer.run(dataset=dataset)
@@ -153,15 +162,15 @@ analyzed = analyzer.run(dataset=dataset)
 - **分布图表**：每个统计量的直方图
 - **相关性分析**：统计量之间的相关性热力图
 
-输出默认保存在 `export_path` 所在目录下的 `analysis/` 子目录。
+图表与总体统计表保存在 `analyzer.analysis_path`（即 `<cfg.work_dir>/analysis`）中；解析后的 `work_dir` 包含 `job_id`。统计数据集则由 `export_path` 决定导出位置。
 
 ---
 
 ## 哪些算子参与分析
 
 Analyzer 只处理两类算子：
-- **Filter 算子**中能在 `stats` 字段产出统计信息的（大多数 Filter 都可以）
-- **Tagging 算子**中能在 `meta` 字段产出标签的
+- **Filter 算子**中能在 `__dj__stats__` 字段产出统计信息的（大多数 Filter 都可以）
+- **Tagging 算子**中能在 `__dj__meta__` 字段产出标签的
 
 注册器标记：
 - `NON_STATS_FILTERS`：不能产出统计信息的 Filter

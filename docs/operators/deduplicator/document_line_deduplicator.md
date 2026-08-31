@@ -26,25 +26,15 @@ Tags 标签: cpu, text
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `frequency_threshold` | <class 'int'> | `6` | document-frequency threshold.  Lines appearing in **more than** this many documents are removed. |
-
 | `lowercase` | <class 'bool'> | `False` | whether to lower-case a line before hashing. |
-
 | `ignore_special_character` | <class 'bool'> | `False` | whether to strip whitespace, digits, and punctuation before hashing. |
-
 | `min_line_length` | <class 'int'> | `2` | lines whose stripped length is below this value are skipped (never considered for dedup). |
-
 | `skip_brackets` | <class 'bool'> | `True` | skip lines consisting solely of bracket / semicolon characters such as ``{ } [ ] ( ) ;``. |
-
 | `skip_markdown_headers` | <class 'bool'> | `True` | skip lines that start with ``#`` (Markdown headings). |
-
 | `skip_latex_env` | <class 'bool'> | `True` | skip LaTeX ``\begin{…}`` / ``\end{…}`` environment declarations. |
-
 | `skip_html_tags` | <class 'bool'> | `True` | skip lines that are pure HTML / XML tags. |
-
 | `args` |  | `` | extra args |
-
 | `kwargs` |  | `` | extra args |
 
 

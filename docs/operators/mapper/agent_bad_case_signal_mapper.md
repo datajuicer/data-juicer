@@ -64,79 +64,42 @@ Tags 标签: cpu
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `query_key` | str | `'query'` |  |
-
 | `response_key` | str | `'response'` |  |
-
 | `signal_on_tool_fail` | bool | `True` |  |
-
 | `min_tool_fail_count_for_signal` | int | `1` |  |
-
 | `signal_on_low_tool_success_ratio` | bool | `True` |  |
-
 | `tool_success_ratio_max_for_signal` | float | `0.499` |  |
-
 | `min_tool_rounds_for_ratio_signal` | int | `2` |  |
-
 | `signal_on_suspect_empty_response` | bool | `True` |  |
-
 | `min_query_len_for_empty_check` | int | `80` |  |
-
 | `max_response_len_for_empty_check` | int | `20` |  |
-
 | `max_total_tokens` | Optional[int] | `None` |  |
-
 | `max_latency_ms` | Optional[int] | `None` |  |
-
 | `calibration_json_path` | Optional[str] | `None` |  |
-
 | `auto_calibrate_thresholds` | bool | `False` |  |
-
 | `calibration_manual_overrides_auto` | bool | `True` |  |
-
 | `auto_enable_perplexity_from_calibration` | bool | `True` |  |
-
 | `signal_on_llm_analysis_low` | bool | `True` |  |
-
 | `llm_analysis_score_max_for_bad` | float | `0.28` |  |
-
 | `llm_analysis_discard_must_be_strict` | bool | `True` |  |
-
 | `high_precision_llm_analysis_discard_threshold` | float | `0.24` |  |
-
 | `signal_on_llm_text_quality_low` | bool | `True` |  |
-
 | `llm_text_quality_score_max_for_bad` | float | `0.28` |  |
-
 | `llm_text_quality_discard_must_be_strict` | bool | `True` |  |
-
 | `high_precision_llm_text_quality_discard_threshold` | float | `0.24` |  |
-
 | `signal_on_negative_sentiment_hint` | bool | `False` |  |
-
 | `negative_sentiment_substrings` | Optional[List[str]] | `None` |  |
-
 | `signal_on_high_perplexity` | bool | `False` |  |
-
 | `perplexity_high_threshold` | float | `800.0` |  |
-
 | `signal_hard_query_poor_reply` | bool | `False` |  |
-
 | `hard_query_difficulty_min` | float | `0.72` |  |
-
 | `poor_reply_quality_max` | float | `0.36` |  |
-
 | `high_precision_on_tool_fail_alone` | bool | `True` |  |
-
 | `min_medium_signals_for_watchlist` | int | `2` |  |
-
 | `signal_on_low_dialog_quality_meta` | bool | `True` |  |
-
 | `dialog_quality_low_score_threshold` | float | `2.0` |  |
-
 | `min_dialog_quality_low_axes_for_signal` | int | `1` |  |
-
 | `kwargs` |  | `` |  |
 
 

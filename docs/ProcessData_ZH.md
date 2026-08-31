@@ -32,7 +32,7 @@ dj-process --config recipe.yaml --language_id_score_filter.lang=en
 dj-install --config my-recipe.yaml
 ```
 
-解析菜谱中每个算子声明的依赖并一次性安装。详见[安装文档 §5](tutorial/Installation_ZH.md#5-特定算子的安装)。
+预装工具能从算子源码中识别的依赖；它不会递归收集辅助模块中的全部依赖，也不保证模型权重已下载或菜谱可以离线运行。详见[安装文档](tutorial/Installation_ZH.md)。
 
 ---
 
@@ -165,11 +165,11 @@ process:
 
 ### 算子融合
 
-启用后 Data-Juicer 将相邻兼容算子合并为一次数据读取，**2–10× 吞吐提升**（仅 `default` 模式）：
+融合兼容算子以减少重复处理；`default` 和 Ray 执行路径均支持算子融合。实际吞吐收益取决于菜谱与数据，需要实测：
 
 ```yaml
 op_fusion: true
-fusion_strategy: probe   # probe（按速度重排）| greedy（保持原序）
+fusion_strategy: probe   # probe（分组后按探测速度排序）| greedy（仅分组，仍可能重排）
 ```
 
 ### GPU Mapper 融合
@@ -208,9 +208,15 @@ dataset:
 use_checkpoint: true
 ```
 
-重新运行相同配置时跳过已完成算子。`use_checkpoint` 与 `op_fusion` 互斥。
+默认执行器需要复用同一个 `job_id` 和工作目录基路径才能找到旧断点；只重复同一 YAML 会生成新作业 ID。首次运行就指定稳定 ID，中断后重复同一命令（保持输入与菜谱不变）：
 
-对于 `ray_partitioned` 模式有更精细的策略，失败后可通过 `--resume <job_id>` 恢复。详见[全局配置](GlobalConfig_ZH.md#缓存与检查点)。
+```bash
+dj-process --config your-recipe.yaml --use_checkpoint true --job_id recipe-checkpoint
+```
+
+断点位于解析后的 `<cfg.work_dir>/ckpt`，其中 `work_dir` 包含 `job_id`；默认执行器不读取 `checkpoint_dir`。`use_checkpoint` 会禁用数据缓存，并与 `op_fusion` 互斥。
+
+对于 `ray_partitioned` 模式有更精细的策略，失败后可通过 `--resume <job_id>` 恢复。详见[全局配置](GlobalConfig_ZH.md)。
 
 ---
 

@@ -4380,7 +4380,7 @@ def _html_page(
     )
     adv = (
         "<p>进阶说明见 <code>demos/agent/BAD_CASE_INSIGHTS_ZH.md</code>、"
-        "<code>demos/agent/scripts/README.md</code>。</p>"
+        "<code>demos/agent/scripts/README_ZH.md</code>。</p>"
     )
 
     input_sources_summary_html = _data_source_summary_for_meta(

@@ -50,23 +50,14 @@ Tags 标签: cpu, multimodal
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `output_dir` | <class 'str'> | `'./lerobot_output'` | Root directory for the LeRobot dataset output. |
-
 | `hand_action_field` | <class 'str'> | `'hand_action_tags'` | Meta field with action/state data. Used in whole-video mode (segment_field=None). |
-
 | `fps` | <class 'int'> | `10` | Frames per second for the dataset. |
-
 | `robot_type` | <class 'str'> | `'egodex_hand'` | Robot type identifier for info.json. |
-
 | `chunks_size` | <class 'int'> | `1000` | Max episodes per chunk directory (default 1000). |
-
 | `segment_field` | <class 'str'> | `None` | Meta field storing atomic action segments. When set, each segment becomes a separate episode with its own caption as task description. When None (default), falls back to whole-video export via hand_action_field. |
-
 | `frame_field` | <class 'str'> | `'video_frames'` | Sample field with extracted frame image paths. Used in segment mode to create per-segment videos. |
-
 | `args` |  | `` |  |
-
 | `kwargs` |  | `` |  |
 
 

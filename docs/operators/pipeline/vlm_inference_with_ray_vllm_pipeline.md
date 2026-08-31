@@ -1,4 +1,8 @@
-# vlm_inference_with_ray_vllm_pipeline
+# vlm_ray_vllm_engine_pipeline
+
+Use `vlm_ray_vllm_engine_pipeline` as the operator name in YAML recipes. This registered name differs from the source filename.
+
+YAML 菜谱中的算子名为 `vlm_ray_vllm_engine_pipeline`，与源码文件名不同。
 
 Pipeline to generate response using vLLM engine on Ray. This pipeline leverages the vLLM engine for efficient large vision language model inference. More details about ray vLLM engine can be found at: https://docs.ray.io/en/latest/data/working-with-llms.html
 

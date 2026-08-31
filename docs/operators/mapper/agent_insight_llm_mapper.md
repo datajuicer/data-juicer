@@ -23,33 +23,19 @@ Tags 标签: cpu, api
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `api_model` | str | `'gpt-4o'` |  |
-
 | `api_endpoint` | Optional[str] | `None` |  |
-
 | `response_path` | Optional[str] | `None` |  |
-
 | `system_prompt` | Optional[str] | `None` |  |
-
 | `query_key` | str | `'query'` |  |
-
 | `response_key` | str | `'response'` |  |
-
 | `query_preview_max_chars` | int | `500` |  |
-
 | `response_preview_max_chars` | int | `500` |  |
-
 | `run_for_tiers` | Optional[List[str]] | `None` |  |
-
 | `try_num` | PositiveInt | `2` |  |
-
 | `model_params` | Dict | `{}` |  |
-
 | `sampling_params` | Dict | `{}` |  |
-
 | `preferred_output_lang` | str | `'en'` |  |
-
 | `kwargs` |  | `` |  |
 
 

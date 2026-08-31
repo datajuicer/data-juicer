@@ -15,17 +15,11 @@ Tags 标签: cpu
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `messages_key` | <class 'str'> | `'messages'` |  |
-
 | `tool_role_names` | typing.Optional[typing.List[str]] | `None` |  |
-
 | `success_patterns` | typing.Optional[typing.List[str]] | `None` |  |
-
 | `error_patterns` | typing.Optional[typing.List[str]] | `None` |  |
-
 | `store_per_tool_results` | <class 'bool'> | `True` |  |
-
 | `kwargs` |  | `` |  |
 
 

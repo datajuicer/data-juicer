@@ -20,17 +20,11 @@ Tags 标签: cpu, video
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-
 | `hand_reconstruction_field` | <class 'str'> | `'hand_reconstruction_hawor_tags'` | Meta field storing HaWoR hand reconstruction results. |
-
 | `camera_pose_field` | <class 'str'> | `'video_camera_pose_tags'` | Meta field storing camera pose (cam_c2w) results. |
-
 | `tag_field_name` | <class 'str'> | `'hand_action_tags'` | Output field name in Fields.meta. |
-
 | `hand_type` | <class 'str'> | `'both'` | Which hand to compute actions for. 'right', 'left', or 'both'. Default is 'both'. |
-
 | `args` |  | `` |  |
-
 | `kwargs` |  | `` |  |
 
 

@@ -57,11 +57,13 @@ arXiv 论文请使用[预处理工具](../tools/preprocess/README_ZH.md)下载�
 
 ## 数据混合
 
-在 `dataset.configs` 下列出多个数据集并附带权重，即可将它们合并到同一条流水线中。Data-Juicer 按权重从各数据源中采样。
+使用默认执行器时，可在 `dataset.configs` 下列出多个数据集。只有设置了 `dataset.max_sample_num`，权重才参与各数据源的样本数分配；未设置此预算时，各源会全量拼接，权重不会改变它们的比例。Ray 通过该数据集构建器目前只支持单个数据源。
+
+虽然名称含有 `max`，`max_sample_num` 实际是采样预算，不是只会截短数据的上限。某个源分配到的数量超过其可用样本数时，采样器会重复样本来补足。
 
 ```yaml
 dataset:
-  max_sample_num: 10000    # 可选的总样本数上限
+  max_sample_num: 10000    # 总样本预算；权重生效的前提
   configs:
     - type: 'local'
       weight: 1.0

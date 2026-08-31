@@ -39,7 +39,7 @@ partition:
 
 ## 日志
 
-日志按作业组织，支持轮转和保留：
+日志按作业组织。下图以 `log.txt` 为例，CLI 实际按导出路径和时间戳生成文件名。目前 `max_log_size_mb` 和 `backup_count` 不会配置按大小轮转或历史日志保留。
 
 ```
 {job_dir}/
@@ -58,11 +58,11 @@ from data_juicer.utils.logger_utils import setup_logger
 
 setup_logger(
     save_dir="./outputs",
-    filename="log.txt",
-    max_log_size_mb=100,
-    backup_count=5
+    filename="log.txt"
 )
 ```
+
+`setup_logger()` 不接受 `max_log_size_mb` 或 `backup_count`，传入会触发 `TypeError`。菜谱解析器虽然接受这两个字段，内置日志器却没有使用它们。如需轮转或保留策略，应在自己的日志集成中单独配置。
 
 ## API 参考
 

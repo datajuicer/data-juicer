@@ -79,13 +79,9 @@ checkpoint:
 
 ### 中间存储
 
-```yaml
-intermediate_storage:
-  format: "parquet"              # parquet, arrow, jsonl
-  compression: "snappy"          # snappy, gzip, none
-  preserve_intermediate_data: true
-  retention_policy: "keep_all"   # keep_all, keep_failed_only, cleanup_all
-```
+当前分区执行器不读取解析器已接受的 `intermediate_storage.*` 设置，包括格式、压缩、保留、清理、保留策略以及 `write_partitions`。旧版顶层参数 `preserve_intermediate_data` 也未被应用。不要依赖这些字段切换检查点格式、保留临时文件或限制文件保留时间。
+
+检查点是否生成由 `checkpoint.enabled` 和 `checkpoint.strategy` 控制，内容通过现有 Parquet 写入路径保存。临时目录按执行器实现清理，不受 `intermediate_storage` 标志控制。另一个字段 `resource_optimization.auto_configure` 同样未被读取；自动分区规划实际由 `partition.mode: auto` 选择。
 
 ## 使用方法
 

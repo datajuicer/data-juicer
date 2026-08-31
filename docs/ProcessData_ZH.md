@@ -182,13 +182,23 @@ mapper_fusion: true
 adaptive_batch_size: true
 ```
 
+`adaptive_batch_size` 仅由 `default` 执行器应用，且只更新批处理算子的批大小。它不会开启 Ray 执行器的自动批大小调整。
+
 ### 数据采样试跑
 
-正式运行前取 1% 数据验证菜谱：
+源数据至少有 1,000 条时，使用默认执行器取 1,000 条样本验证菜谱：将原菜谱中的 `dataset_path` 替换为结构化的 `dataset` 配置，并保留其 `process` 列表。
 
 ```yaml
-data_probe_ratio: 0.01
+dataset:
+  max_sample_num: 1000
+  configs:
+    - type: local
+      path: path/to/your/dataset.jsonl
 ```
+
+将路径替换为自己的数据集，并将预算设为不超过源数据条数的值。`max_sample_num` 是样本条数预算，不是百分比，也不是只会截短数据的上限：预算超过可用样本数时，采样器会重复样本来补足。抽样发生在加载之后，因此不保证减少输入 I/O。也可以提前准备小样本文件并直接使用，正式全量运行时移除预算。
+
+`data_probe_ratio` 和 `data_probe_algo` 属于 Sandbox 模型推理探测步骤，普通 `dj-process` 不会自动应用；仅设置 `data_probe_ratio: 0.01` 仍会处理全部输入。参见[分析与工具专用参数](GlobalConfig_ZH.md)。
 
 ---
 

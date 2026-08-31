@@ -178,13 +178,23 @@ mapper_fusion: true
 adaptive_batch_size: true
 ```
 
+`adaptive_batch_size` is applied only by the `default` executor, and updates only batched operators. It does not enable automatic batch-size tuning in the Ray executors.
+
 ### Sampling Dry Run
 
-Validate your recipe on 1% of data before the full run:
+For a source with at least 1,000 rows, validate a recipe on 1,000 samples with the default executor by replacing its `dataset_path` with a structured `dataset` configuration. Keep its `process` list:
 
 ```yaml
-data_probe_ratio: 0.01
+dataset:
+  max_sample_num: 1000
+  configs:
+    - type: local
+      path: path/to/your/dataset.jsonl
 ```
+
+Replace the path with your dataset and choose a budget no larger than its row count. `max_sample_num` is a sample-count budget, not a percentage or a truncation-only limit: if the budget exceeds the available rows, the sampler repeats rows to fill it. Sampling happens after loading, so this does not guarantee reduced input I/O. Alternatively, prepare a small input file first and use it directly. Remove the budget for the full run.
+
+`data_probe_ratio` and `data_probe_algo` belong to the Sandbox model-inference probe. A normal `dj-process` run does not apply them automatically; setting `data_probe_ratio: 0.01` alone still processes the full input. See [Analysis and tool-specific parameters](GlobalConfig.md).
 
 ---
 

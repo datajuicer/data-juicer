@@ -57,11 +57,13 @@ For the full list of supported formats and loading strategies, see [load_strateg
 
 ## Data mixture
 
-Combine multiple datasets into a single pipeline by listing them under `dataset.configs` with weights. Data-Juicer samples from each source according to the weights.
+With the default executor, combine multiple datasets by listing them under `dataset.configs`. Weights determine sample allocation only when `dataset.max_sample_num` is set. Without this budget, the sources are concatenated in full and weights do not change their proportions. Ray currently supports a single source through this dataset builder.
+
+Despite its name, `max_sample_num` is a sampling budget, not a truncation-only limit. If a source's allocated count exceeds its available rows, the sampler repeats rows to fill that allocation.
 
 ```yaml
 dataset:
-  max_sample_num: 10000    # optional cap on total samples
+  max_sample_num: 10000    # total sample budget; required for weights to take effect
   configs:
     - type: 'local'
       weight: 1.0

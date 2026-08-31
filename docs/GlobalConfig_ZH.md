@@ -4,6 +4,8 @@
 
 > 算子参数不在此列——请参考[算子提要](Operators.md)或各算子详情页。
 
+配置能被解析，不代表每个执行器都会使用它。请留意下文的适用范围：部分参数属于分析或外部工具，另一些需要先开启对应功能。
+
 ---
 
 ## 项目与路径
@@ -39,8 +41,20 @@
 | `video_key` | str | `"videos"` | 视频路径列表字段名 |
 | `suffixes` | str/list | `[]` | 限制加载的文件后缀（空=自动检测） |
 | `load_dataset_kwargs` | dict | `{}` | 传递给 `datasets.load_dataset()` 的额外参数 |
-| `read_options` | dict | `{}` | 传递给 PyArrow 读取函数的参数（如 `block_size`） |
-| `data_probe_ratio` | float | `1.0` | 数据采样比例（`0.01` = 仅用 1%） |
+| `read_options` | dict | `{}` | 由 `ray` 执行器传递的 PyArrow 读取选项；不是 `default` 或 `ray_partitioned` 的通用读取选项 |
+
+使用默认执行器处理少量输入时，可设置 `dataset.max_sample_num` 或提前准备子集。参见[数据采样试跑](ProcessData_ZH.md)。
+
+### 分析与工具专用参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `data_probe_ratio` | float | `1.0` | Sandbox 模型推理探测传给 `sample_data()` 的抽样比例；不会减少普通 `dj-process` 的输入数量 |
+| `data_probe_algo` | str | `uniform` | 同一 Sandbox 探测步骤的抽样算法；`dj-process` 不会自动应用 |
+| `hpo_config` | str | `None` | [HPO 工具](../data_juicer/tools/hpo/README_ZH.md)的搜索空间配置；仅在 `dj-process` 中设置它不会启动 HPO |
+| `auto_num` | int | `1000` | `dj-analyze --auto` 的分析样本数上限；不是处理流程或按菜谱分析的样本数上限 |
+
+主库保留探测参数供独立的 [Data-Juicer Sandbox](https://github.com/datajuicer/data-juicer-sandbox) 使用。自定义调用方也可以显式执行 `executor.sample_data(sample_ratio=cfg.data_probe_ratio, sample_algo=cfg.data_probe_algo)`，再处理返回的子集。
 
 ---
 
@@ -68,7 +82,7 @@
 | `fusion_strategy` | str | `probe` | 融合策略：`probe`（按速度重排）/ `greedy`（保持原序） |
 | `mapper_fusion` | bool | `true` | 融合连续 GPU Mapper（需 op_fusion 开启） |
 | `mapper_fusion_vram_limit` | float | `0.9` | 融合 Mapper 聚合显存上限 |
-| `adaptive_batch_size` | bool | `false` | 根据探测结果自适应批大小 |
+| `adaptive_batch_size` | bool | `false` | 在 `default` 执行器中探测并调整批处理算子的批大小；Ray 执行器和 Analyzer 不应用此设置 |
 | `turbo` | bool | `false` | Turbo 模式（batch_size=1 时最大化速度） |
 
 ---
@@ -123,8 +137,10 @@
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `max_log_size_mb` | int | `100` | 单个日志文件最大 MB |
-| `backup_count` | int | `5` | 保留的历史日志文件数 |
+| `max_log_size_mb` | int | `100` | 解析器接受，但尚未接入内置日志器；目前不能配置日志轮转 |
+| `backup_count` | int | `5` | 解析器接受，但尚未接入内置日志器；目前不能配置日志保留策略 |
+
+这两个字段也不是 `setup_logger()` 的参数。可执行的日志示例见[作业管理](JobManagement_ZH.md)。类似地，当前分区执行器不读取已声明的 `intermediate_storage.*`、旧版 `preserve_intermediate_data` 和 `resource_optimization.auto_configure` 配置；实际行为见[中间存储](PartitionAndCheckpoint_ZH.md)。
 
 ---
 

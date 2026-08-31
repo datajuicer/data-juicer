@@ -4,6 +4,8 @@ This page lists common global parameters available in a Data-Juicer recipe YAML,
 
 > Operator-specific parameters are not covered here—see the [Operator Schemas](Operators.md) or individual operator detail pages.
 
+Accepted configuration does not mean every executor uses a parameter. Check the scope below: some parameters belong to analysis or external tools, and others require a related feature to be enabled.
+
 ---
 
 ## Project & Paths
@@ -39,8 +41,20 @@ This page lists common global parameters available in a Data-Juicer recipe YAML,
 | `video_key` | str | `"videos"` | Field for video path list |
 | `suffixes` | str/list | `[]` | File suffixes to load (empty = auto-detect) |
 | `load_dataset_kwargs` | dict | `{}` | Extra kwargs for `datasets.load_dataset()` |
-| `read_options` | dict | `{}` | PyArrow read options (e.g., `block_size`) |
-| `data_probe_ratio` | float | `1.0` | Dataset sampling ratio (`0.01` = use only 1%) |
+| `read_options` | dict | `{}` | PyArrow read options forwarded by the `ray` executor; not a general read option for `default` or `ray_partitioned` |
+
+To process a smaller input with the default executor, use `dataset.max_sample_num` or prepare a subset first. See [Sampling Dry Run](ProcessData.md).
+
+### Analysis and tool-specific parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `data_probe_ratio` | float | `1.0` | Sampling ratio passed by the Sandbox model-inference probe to `sample_data()`; does not reduce the input of a normal `dj-process` run |
+| `data_probe_algo` | str | `uniform` | Sampling algorithm for the same Sandbox probe; not applied automatically by `dj-process` |
+| `hpo_config` | str | `None` | Search-space configuration for the [HPO tool](../data_juicer/tools/hpo/README.md); setting it does not start HPO in `dj-process` |
+| `auto_num` | int | `1000` | Maximum samples analyzed with `dj-analyze --auto`; not a processing sample limit or a limit for recipe-based analysis |
+
+The probe parameters remain in the main configuration for use by [Data-Juicer Sandbox](https://github.com/datajuicer/data-juicer-sandbox). Custom callers can also pass them explicitly to `executor.sample_data(sample_ratio=cfg.data_probe_ratio, sample_algo=cfg.data_probe_algo)` before processing the returned subset.
 
 ---
 
@@ -68,7 +82,7 @@ See [Export](Export.md) for details.
 | `fusion_strategy` | str | `probe` | Fusion strategy: `probe` (reorder by speed) / `greedy` (keep order) |
 | `mapper_fusion` | bool | `true` | Fuse consecutive GPU Mappers (requires op_fusion) |
 | `mapper_fusion_vram_limit` | float | `0.9` | Max aggregate VRAM fraction for fused mappers |
-| `adaptive_batch_size` | bool | `false` | Auto-tune batch size per operator |
+| `adaptive_batch_size` | bool | `false` | Probe and adjust batch sizes for batched operators in the `default` executor; not applied by the Ray executors or Analyzer |
 | `turbo` | bool | `false` | Turbo mode (maximize speed at batch_size=1) |
 
 ---
@@ -123,8 +137,10 @@ See [Export](Export.md) for details.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `max_log_size_mb` | int | `100` | Max log file size in MB before rotation |
-| `backup_count` | int | `5` | Number of backup log files to keep |
+| `max_log_size_mb` | int | `100` | Accepted by the parser, but not connected to the built-in logger; does not currently configure rotation |
+| `backup_count` | int | `5` | Accepted by the parser, but not connected to the built-in logger; does not currently configure retention |
+
+These are not arguments to `setup_logger()`. See [Job Management](JobManagement.md) for a supported logging example. Similarly, the accepted `intermediate_storage.*`, legacy `preserve_intermediate_data`, and `resource_optimization.auto_configure` settings are not read by the current partitioned executor. See [Intermediate Storage](PartitionAndCheckpoint.md) for the actual behavior.
 
 ---
 

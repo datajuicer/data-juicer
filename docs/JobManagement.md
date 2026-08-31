@@ -39,7 +39,7 @@ The optimizer:
 
 ## Logging
 
-Logs are organized per job with rotation and retention:
+Logs are organized per job. The layout below uses `log.txt` as an example; CLI runs generate filenames from the export path and timestamp. Automatic size-based rotation and backup retention are not currently configured by `max_log_size_mb` or `backup_count`.
 
 ```
 {job_dir}/
@@ -58,11 +58,11 @@ from data_juicer.utils.logger_utils import setup_logger
 
 setup_logger(
     save_dir="./outputs",
-    filename="log.txt",
-    max_log_size_mb=100,
-    backup_count=5
+    filename="log.txt"
 )
 ```
+
+`setup_logger()` does not accept `max_log_size_mb` or `backup_count`; passing them raises `TypeError`. Although the recipe parser accepts these fields, the built-in logger does not use them. Configure any required rotation or retention separately in your logging integration.
 
 ## API Reference
 

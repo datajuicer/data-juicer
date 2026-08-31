@@ -88,13 +88,9 @@ Ray batch boundaries, and validated before any checkpoint is reused.
 
 ### Intermediate Storage
 
-```yaml
-intermediate_storage:
-  format: "parquet"              # parquet, arrow, jsonl
-  compression: "snappy"          # snappy, gzip, none
-  preserve_intermediate_data: true
-  retention_policy: "keep_all"   # keep_all, keep_failed_only, cleanup_all
-```
+The current partitioned executor does not read the accepted `intermediate_storage.*` settings, including format, compression, preservation, cleanup, retention, and `write_partitions`. The legacy top-level `preserve_intermediate_data` setting is also not applied. Do not rely on these fields to select a checkpoint format, preserve temporary files, or enforce a storage retention policy.
+
+Checkpoint creation is controlled by `checkpoint.enabled` and `checkpoint.strategy`; checkpoints use the existing Parquet writer. Temporary-directory cleanup follows the executor's implementation rather than the `intermediate_storage` flags. The separate `resource_optimization.auto_configure` field is not consulted either: automatic partition planning is selected by `partition.mode: auto`.
 
 ## Usage
 

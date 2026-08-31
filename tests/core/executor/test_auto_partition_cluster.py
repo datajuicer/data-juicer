@@ -116,8 +116,6 @@ def _fake_executor(**attrs):
     fake.max_concurrent_partitions = "auto"
     fake.num_partitions = 4
     fake.partition_mode = "auto"
-    fake.partition_size = 5000
-    fake.max_size_mb = 64
     fake._partitions_per_node_cfg = "auto"
     for key, value in attrs.items():
         setattr(fake, key, value)

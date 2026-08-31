@@ -73,14 +73,11 @@ class DataCharacteristics:
 
 @dataclass
 class ModalityConfig:
-    """Configuration for a specific modality."""
+    """Per-modality sample-count bounds used by the partition optimizer."""
 
     modality: ModalityType
-    default_partition_size: int
-    max_partition_size: int
-    max_partition_size_mb: int
-    memory_multiplier: float  # Memory usage multiplier compared to text
-    complexity_multiplier: float  # Processing complexity multiplier
+    default_partition_size: int  # Fallback when per-sample sizing is unavailable
+    max_partition_size: int  # Upper bound on the recommended sample count
     description: str
 
 
@@ -249,48 +246,33 @@ class PartitionSizeOptimizer:
     MODALITY_CONFIGS = {
         ModalityType.TEXT: ModalityConfig(
             modality=ModalityType.TEXT,
-            default_partition_size=10000,  # Increased for 256MB target
-            max_partition_size=50000,  # Increased for larger partitions
-            max_partition_size_mb=256,  # Default 256MB per partition (configurable)
-            memory_multiplier=1.0,
-            complexity_multiplier=1.0,
-            description="Text data - efficient processing, low memory usage, target 256MB partitions (configurable)",
+            default_partition_size=10000,
+            max_partition_size=50000,
+            description="Sample-count bounds for text data.",
         ),
         ModalityType.IMAGE: ModalityConfig(
             modality=ModalityType.IMAGE,
-            default_partition_size=2000,  # Increased for 256MB target
-            max_partition_size=10000,  # Increased for larger partitions
-            max_partition_size_mb=256,  # Default 256MB per partition (configurable)
-            memory_multiplier=5.0,
-            complexity_multiplier=3.0,
-            description="Image data - moderate memory usage, target 256MB partitions (configurable)",
+            default_partition_size=2000,
+            max_partition_size=10000,
+            description="Sample-count bounds for image data.",
         ),
         ModalityType.AUDIO: ModalityConfig(
             modality=ModalityType.AUDIO,
-            default_partition_size=1000,  # Increased for 256MB target
-            max_partition_size=4000,  # Increased for larger partitions
-            max_partition_size_mb=256,  # Default 256MB per partition (configurable)
-            memory_multiplier=8.0,
-            complexity_multiplier=5.0,
-            description="Audio data - high memory usage, target 256MB partitions (configurable)",
+            default_partition_size=1000,
+            max_partition_size=4000,
+            description="Sample-count bounds for audio data.",
         ),
         ModalityType.VIDEO: ModalityConfig(
             modality=ModalityType.VIDEO,
-            default_partition_size=400,  # Increased for 256MB target
-            max_partition_size=2000,  # Increased for larger partitions
-            max_partition_size_mb=256,  # Default 256MB per partition (configurable)
-            memory_multiplier=20.0,
-            complexity_multiplier=15.0,
-            description="Video data - very high memory usage, target 256MB partitions (configurable)",
+            default_partition_size=400,
+            max_partition_size=2000,
+            description="Sample-count bounds for video data.",
         ),
         ModalityType.MULTIMODAL: ModalityConfig(
             modality=ModalityType.MULTIMODAL,
-            default_partition_size=1600,  # Increased for 256MB target
-            max_partition_size=6000,  # Increased for larger partitions
-            max_partition_size_mb=256,  # Default 256MB per partition (configurable)
-            memory_multiplier=10.0,
-            complexity_multiplier=8.0,
-            description="Multimodal data - combination of multiple modalities, target 256MB partitions (configurable)",
+            default_partition_size=1600,
+            max_partition_size=6000,
+            description="Sample-count bounds for multimodal data.",
         ),
     }
 
@@ -774,7 +756,12 @@ class PartitionSizeOptimizer:
         return optimal_max_size_mb
 
     def get_partition_recommendations(self, dataset, process_pipeline: List) -> Dict:
-        """Get comprehensive partition recommendations."""
+        """Get partition recommendations and analysis details.
+
+        ``modality_configs`` describes static sample-count bounds. The sizing
+        target is resolved separately from ``partition.target_size_mb`` and
+        available resources.
+        """
         # Analyze the dataset once and reuse the characteristics for both
         # sizing and worker-count calculation (avoids double sampling).
         characteristics = self.analyze_dataset_characteristics(dataset)
@@ -829,7 +816,6 @@ class PartitionSizeOptimizer:
                 modality.value: {
                     "default_size": config.default_partition_size,
                     "max_size": config.max_partition_size,
-                    "max_size_mb": config.max_partition_size_mb,
                     "description": config.description,
                 }
                 for modality, config in self.MODALITY_CONFIGS.items()
@@ -858,8 +844,8 @@ def auto_configure_resources(cfg, dataset, process_pipeline: List) -> Dict:
     recommendations = optimizer.get_partition_recommendations(dataset, process_pipeline)
 
     logger.info("Resource optimization completed:")
-    logger.info(f"  Recommended partition.size: {recommendations['recommended_partition_size']}")
-    logger.info(f"  Recommended partition.max_size_mb: {recommendations['recommended_max_size_mb']}")
+    logger.info(f"  Recommended samples per partition: {recommendations['recommended_partition_size']}")
+    logger.info(f"  Recommended size estimate (MB): {recommendations['recommended_max_size_mb']}")
     logger.info(f"  Recommended worker count: {recommendations['recommended_worker_count']}")
 
     return recommendations

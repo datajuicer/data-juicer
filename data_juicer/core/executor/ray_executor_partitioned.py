@@ -342,8 +342,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         mode = ConfigAccessor.get(partition_cfg, "mode", "auto")
         num_of_partitions = ConfigAccessor.get(partition_cfg, "num_of_partitions", 4)
         max_concurrent_partitions = ConfigAccessor.get(partition_cfg, "max_concurrent_partitions", "auto")
-        partition_size = ConfigAccessor.get(partition_cfg, "size", 5000)
-        max_size_mb = ConfigAccessor.get(partition_cfg, "max_size_mb", 64)
 
         # Fallback to legacy configuration if partition config is not available
         # or if legacy num_partitions is explicitly set
@@ -387,14 +385,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         self.partition_mode = mode
         self.num_partitions = num_of_partitions
         self.max_concurrent_partitions = max_concurrent_partitions
-        self.partition_size = partition_size
-        self.max_size_mb = max_size_mb
 
         if mode == "manual":
             logger.info(f"Manual partition mode: using {self.num_partitions} partitions")
         else:  # auto mode
             logger.info(f"Auto partition mode: will determine optimal partitioning based on data characteristics")
-            logger.info(f"Fallback partition size: {self.partition_size} samples, max {self.max_size_mb} MB")
 
     def _configure_auto_partitioning(self, dataset, ops):
         """Configure partitioning using the partition size optimizer for auto mode."""
@@ -417,14 +412,16 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         if recommendations is not None:
             # Update partition configuration based on recommendations
-            recommended_size = ConfigAccessor.get(recommendations, "recommended_partition_size", self.partition_size)
-            recommended_max_size_mb = ConfigAccessor.get(recommendations, "recommended_max_size_mb", self.max_size_mb)
+            recommended_size = ConfigAccessor.get(recommendations, "recommended_partition_size")
             recommended_workers = ConfigAccessor.get(
                 recommendations, "recommended_worker_count", getattr(self.cfg, "np", 4)
             )
 
             # Calculate optimal number of partitions based on dataset size and recommended partition size
             try:
+                if recommended_size is None or recommended_size <= 0:
+                    raise ValueError("Optimizer must return a positive recommended_partition_size")
+
                 if hasattr(dataset, "count"):
                     total_samples = dataset.count()
                 elif hasattr(dataset, "__len__"):
@@ -443,7 +440,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 logger.info(f"  Total samples: {total_samples}")
                 logger.info(f"  Recommended partition size: {recommended_size} samples")
                 logger.info(f"  Calculated partitions: {self.num_partitions}")
-                logger.info(f"  Recommended max size: {recommended_max_size_mb} MB")
                 logger.info(f"  Recommended workers: {recommended_workers}")
 
                 # Update worker count if not already set
@@ -452,7 +448,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     logger.info(f"  Updated worker count to: {recommended_workers}")
 
             except Exception as e:
-                logger.warning(f"Could not determine dataset size for partition calculation: {e}")
+                logger.warning(f"Could not calculate partition count from optimizer recommendations: {e}")
                 logger.info(f"Using fallback partition count: {self.num_partitions}")
 
         # Align the partition count with the real cluster topology. This

@@ -20,6 +20,13 @@ temporary-directory cleanup. There is no replacement setting for preserving
 arbitrary intermediate files, choosing their format/compression, or retaining
 files by age or job outcome.
 
+The historical nested names `partition.size` and `partition.max_size_mb` are
+also unsupported in YAML/CLI. Their remaining executor reads and fallback
+attributes have been removed. Manual mode uses `partition.num_of_partitions`;
+automatic mode derives a count from optimizer recommendations and cluster
+resources. If optimization fails or returns an invalid sample count, the
+configured partition count is retained before applying cluster bounds.
+
 `checkpoint.strategy: every_partition` is also rejected: it was accepted by
 the parser but fell back to `every_op` in the executor. The supported strategies
 are `every_op`, `every_n_ops`, `manual`, and `disabled`.
@@ -57,3 +64,17 @@ Automatic partition analysis now uses the first configured `text_keys` field,
 including nested paths. An empty list excludes text from modality and text-length
 analysis. Notification and annotation settings are configured on individual operators,
 where their implementations consume them; the global example points to that scope.
+
+## Programmatic optimizer results
+
+`ModalityConfig` now contains the modality, fallback sample count, recommended
+sample-count limit, and description. The unused `max_partition_size_mb`,
+`memory_multiplier`, and `complexity_multiplier` fields have been removed.
+The optimizer's actual operation-complexity calculation remains in use.
+
+`get_partition_recommendations()` continues to return computed recommendations
+and analysis details. Its `modality_configs` entries contain `default_size`,
+`max_size`, and `description`; the obsolete `max_size_mb` entry is removed.
+Code constructing `ModalityConfig` directly or reading the removed attributes
+or result keys must be updated. The `recommended_max_size_mb` result remains
+an estimate, and the user-facing planning target remains `partition.target_size_mb`.

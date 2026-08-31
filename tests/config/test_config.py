@@ -1212,6 +1212,8 @@ class ConfigRuntimeConsistencyTest(DataJuicerTestCaseBase):
             'preserve_intermediate_data': True,
             'partition_size': 10,
             'max_partition_size_mb': 128,
+            'partition.size': 10,
+            'partition.max_size_mb': 128,
             'resource_optimization.auto_configure': True,
             'max_log_size_mb': 1,
             'backup_count': 2,

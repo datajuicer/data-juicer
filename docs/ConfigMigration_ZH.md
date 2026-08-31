@@ -14,6 +14,8 @@
 
 删除这些配置不会改变现有检查点保存、续跑和临时目录清理行为。保留任意中间文件、选择中间文件格式和压缩方式、按天数或任务结果保留文件，目前没有对应的新开关。
 
+历史嵌套字段 `partition.size` 和 `partition.max_size_mb` 同样不受 YAML/CLI 支持，本次也移除了执行器中残留的读取和回退属性。手动模式使用 `partition.num_of_partitions`；自动模式依据优化器建议和集群资源计算分区数量。优化失败或返回无效的建议样本数时，保留配置的分区数量，再应用集群约束。
+
 `checkpoint.strategy: every_partition` 也会在解析时被拒绝：此前解析器接受此值，但执行器将其回退为 `every_op`。支持的策略为 `every_op`、`every_n_ops`、`manual` 和 `disabled`。`checkpoint.n_ops`、`partition.target_size_mb` 和非空的 `override_num_blocks` 必须为正整数。
 
 ## 可配置的现有功能
@@ -33,3 +35,9 @@
 `data_probe_algo`、`data_probe_ratio` 保留供外部 Data-Juicer Sandbox 的模型探测使用；`hpo_config` 保留供 HPO 工具使用。
 
 自动分区分析现使用 `text_keys` 的第一个字段，支持嵌套路径；空列表表示不将文本计入模态和文本长度分析。全局配置示例中的通知、标注配置说明也已改为实际实现使用的算子参数位置。
+
+## 程序化优化器接口
+
+`ModalityConfig` 现保留模态、回退样本数、建议样本数上限和描述。已移除不参与计算的 `max_partition_size_mb`、`memory_multiplier`、`complexity_multiplier`。优化器根据实际算子计算处理复杂度的逻辑保持不变。
+
+`get_partition_recommendations()` 继续返回计算建议和分析信息，其中 `modality_configs` 的各项保留 `default_size`、`max_size`、`description`，移除过时的 `max_size_mb`。直接构造 `ModalityConfig`、读取已移除属性或返回键的代码需要调整。计算得到的 `recommended_max_size_mb` 估算值仍保留，用户侧的规划目标仍为 `partition.target_size_mb`。

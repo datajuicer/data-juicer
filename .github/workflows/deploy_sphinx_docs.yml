@@ -4,7 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - "docs/sphinx_doc/**/*"
+      - "**/*.md"
+      - "docs/**"
+      - ".github/workflows/deploy_sphinx_docs.yml"
   push:
     branches:
       - main
@@ -60,18 +62,16 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - name: Install dependencies with uv
-        working-directory: repo
-        run: |
-          uv pip install --system --upgrade pip
-          uv pip install --system -e .[all]
       - name: Fetch Data-Juicer Sphinx Theme
         working-directory: repo
         run: |
           set -e
           echo "Cloning sphinx theme..."
           git clone --depth=1 https://github.com/datajuicer/data-juicer-sphinx.git /tmp/template
-          uv pip install --system -e /tmp/template
+          # All build modes below use -A (no API generation), so the processing
+          # package and its model/GPU extras are not needed. PyYAML is used by
+          # the template's build script and conf.py.
+          uv pip install --system -e /tmp/template PyYAML
           if [ -d "docs/sphinx_doc/source" ]; then
             echo "Backing up custom files..."
             mkdir -p /tmp/custom_files

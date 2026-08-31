@@ -5,8 +5,6 @@ import re
 from pathlib import Path
 from typing import List
 
-import translators as ts
-
 DOC_PATH = "docs/Operators.md"
 
 
@@ -280,14 +278,43 @@ def pick_doc_for_op(docstrings: List[tuple], op_stem: str) -> str:
     return docstrings[-1][1]
 
 
-def is_registered_op(code_path):
-    """
-    Return True only if the file contains an OPERATORS.register_module call,
-    indicating it defines a concrete registered OP rather than a base class.
-    """
-    with open(code_path, "r", encoding="utf-8") as fin:
-        content = fin.read()
-    return "OPERATORS.register_module" in content
+def get_registered_op_name(code_path):
+    """Read the primary OP's recipe name without importing its dependencies."""
+    tree = ast.parse(Path(code_path).read_text(encoding="utf-8"))
+    constants = {}
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)) and isinstance(node.value, ast.Constant):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    constants[target.id] = node.value
+
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        for decorator in node.decorator_list:
+            if not (
+                isinstance(decorator, ast.Call)
+                and isinstance(decorator.func, ast.Attribute)
+                and isinstance(decorator.func.value, ast.Name)
+                and decorator.func.value.id == "OPERATORS"
+                and decorator.func.attr == "register_module"
+            ):
+                continue
+            name = (
+                decorator.args[0]
+                if decorator.args
+                else next((kw.value for kw in decorator.keywords if kw.arg == "module_name"), ast.Constant(value=None))
+            )
+            if isinstance(name, ast.Name):
+                name = constants.get(name.id)
+            if isinstance(name, ast.Constant):
+                if name.value is None:
+                    return node.name
+                if isinstance(name.value, str):
+                    return name.value
+            raise ValueError(f"Cannot statically resolve registered OP name in {code_path}:{decorator.lineno}")
+    return None
 
 
 def get_class_and_docstring(code_path):
@@ -392,7 +419,8 @@ def get_op_list_from_code():
                 continue
             if not code_path.endswith(".py") or "_cpp" in code_path:
                 continue
-            if not is_registered_op(code_path):
+            name = get_registered_op_name(code_path)
+            if name is None:
                 continue
             docstrings = get_class_and_docstring(code_path)
             stem = op.replace(".py", "")
@@ -401,7 +429,7 @@ def get_op_list_from_code():
             op_record_list.append(
                 OPRecord(
                     type=type,
-                    name=stem,
+                    name=name,
                     desc=doc,
                     tags=analyze_tag_from_code(code_path),
                     test=test_path if os.path.exists(test_path) else "-",
@@ -538,6 +566,10 @@ def generate_op_table_section(op_type, op_record_list, reference_op_record_dict)
 
 
 def get_op_desc_in_en_zh_batched(descs):
+    # Reading metadata and checking unchanged docs must not initialize a network
+    # translator (or require its dependencies).
+    import translators as ts
+
     separator = "\n"
     limit = int(5e3)
     batch = separator.join(descs)

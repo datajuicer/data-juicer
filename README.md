@@ -86,6 +86,8 @@ for s in res_ds:
 
 ## 📰 News
 
+- 🎉 [2026-08-25] We release [Juicer](docs/Juicer.md), a locally deployable data-refinement model that follows natural-language instructions for text cleaning, filtering, and semantic labeling. Explore the [model](https://huggingface.co/datajuicer/Juicer-35B-A3B) and try recipes in the [Juicer Playground](https://github.com/datajuicer/data-juicer-hub/tree/main/juicer_playground).
+
 <details open>
 <summary>[2026-08-07] Release v1.5.5: <b>External OP Plugins; HDFS I/O & Ray Data Optimizations; Elastic Multi-node Sharding</b></summary>
 

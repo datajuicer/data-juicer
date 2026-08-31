@@ -84,6 +84,9 @@ for s in res_ds:
 ---
 
 ## 📰 动态
+
+- 🎉 [2026-08-25] 我们发布了 [Juicer](docs/Juicer_ZH.md)，一个支持本地部署的数据精炼模型，可通过自然语言指令完成文本清洗、过滤与语义标注。欢迎下载[模型](https://huggingface.co/datajuicer/Juicer-35B-A3B)，并在 [Juicer Playground](https://github.com/datajuicer/data-juicer-hub/tree/main/juicer_playground) 中体验数据处理配方。
+
 <details open>
 <summary>[2026-08-07] Release v1.5.5: <b>外部算子插件；HDFS I/O 与 Ray Data 优化；多节点弹性分片</b></summary>
 

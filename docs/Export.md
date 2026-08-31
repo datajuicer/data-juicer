@@ -1,10 +1,10 @@
 # Dataset Export
 
-This document describes how DataJuicer exports processed datasets, including supported formats, sharding, parallel export, S3 export, and stats/hash management.
+After processing, Data-Juicer writes the result dataset to the path you specify in `export_path`. This page covers supported output formats, sharding large datasets into multiple files, parallel export, writing directly to S3, and controlling which intermediate fields (stats, hashes) are kept in the output.
 
 ## Overview
 
-After processing, DataJuicer exports the result dataset to disk using the `Exporter` (default mode) or `RayExporter` (Ray mode). The export system supports:
+Data-Juicer exports via `Exporter` (default mode) or `RayExporter` (Ray mode). The export system supports:
 
 - **Multiple output formats** — JSONL, JSON, Parquet, and more in Ray mode
 - **Shard export** — split large datasets into multiple files by size
@@ -280,3 +280,11 @@ export_shard_size: 1073741824             # 1 GB
 keep_stats_in_res_ds: true
 # Or check the separate stats file: result_stats.jsonl
 ```
+
+---
+
+## What's next
+
+- [Cache Management](Cache.md) — speed up re-runs by caching intermediate results.
+- [Data Tracing](Tracing.md) — debug sample-level changes through the pipeline.
+- [Distributed Processing](Distributed.md) — scale export across a Ray cluster.

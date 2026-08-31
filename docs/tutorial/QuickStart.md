@@ -1,206 +1,155 @@
-# Quick Start
+# Quickstart
 
-## Dataset Configuration
+This guide walks you through a complete Data-Juicer workflow: install, write a recipe, run the pipeline, and inspect the output.
 
-DJ supports various dataset input types, including local files, remote datasets like huggingface; it also supports data validation and data mixture.
+> **Note:** Some operators download model weights on first use (for example, `language_id_score_filter` downloads a fastText language identification model). The initial run may take a few extra minutes while these assets are fetched. Subsequent runs can reuse the local model cache.
 
-Two ways to configure a input file
-- Simple scenarios, single path for local/HF file
-```yaml
-dataset_path: '/path/to/your/dataset'  # path to your dataset directory or file
+---
+
+## 1. Install Data-Juicer
+
+First install Python, Git, and uv as described in [Installation](Installation.md). The commands below use a Linux/macOS shell.
+
+Clone the repository and install from source. This guide uses the demo recipes and sample data included in the repo:
+
+```bash
+git clone https://github.com/datajuicer/data-juicer.git --depth 1
+cd data-juicer
+uv venv
+source .venv/bin/activate  # Linux / macOS
+uv pip install -e ".[nlp]"
 ```
-- advanced method, supports sub-configuration items and more features
-```yaml
-dataset:
-  configs:
-    - type: 'local'
-      path: 'path/to/your/dataset' # path to your dataset directory or file
+
+Verify the CLI is available:
+
+```bash
+dj-process --help
 ```
 
-Refer to [Dataset Configuration Guide](../DatasetCfg.md) for more details.
+> **Tip:** If you don't need the demo files, `uv pip install "py-data-juicer[nlp]"` installs the same package from PyPI without cloning. For all installation methods (extras, Docker, etc.), see [Installation](Installation.md).
 
+---
 
+## 2. Understand the input data
 
-## Data Processing
+Data-Juicer supports JSONL, Parquet, CSV/TSV, plain text, and more out of the box. This guide uses the built-in sample dataset [`demos/data/demo-dataset.jsonl`](https://github.com/datajuicer/data-juicer/blob/main/demos/data/demo-dataset.jsonl):
 
-- Run `process_data.py` tool or `dj-process` command line tool with your config as the argument to process
-  your dataset.
+```json
+{"text": "Today is Sunday and it's a happy day!", "meta": {"src": "Arxiv"}}
+{"text": "Do you need a cup of coffee?", "meta": {"src": "code"}}
+{"text": "你好，请问你是谁", "meta": {"src": "customized"}}
+{"text": "Sur la plateforme MT4, plusieurs manières...", "meta": {"src": "Oscar"}}
+{"text": "欢迎来到阿里巴巴！", "meta": {"src": "customized"}}
+{"text": "This paper proposed a novel method on LLM pretraining.", "meta": {"src": "customized"}}
+```
 
-```shell
-# only for installation from source
-python tools/process_data.py --config demos/process_simple/process.yaml
+Each line is a JSON object. Text is in the `"text"` field by default; other fields are preserved as metadata.
 
-# use command line tool
+> For advanced input configuration (format options, data mixing, remote datasets like Hugging Face), see [Dataset Configuration](../DatasetCfg.md). For raw data that requires extra extraction or conversion (arXiv tar archives, Stack Exchange 7z files, etc.), the [preprocessing tools](../../tools/preprocess/README.md) can transform them into formats Data-Juicer reads directly.
+
+---
+
+## 3. Write a recipe
+
+A **recipe** is a YAML config file declaring which operators to run and in what order. Use the built-in demo recipe [`demos/process_simple/process.yaml`](https://github.com/datajuicer/data-juicer/blob/main/demos/process_simple/process.yaml):
+
+```yaml
+# Global parameters
+project_name: 'demo-process'
+dataset_path: './demos/data/demo-dataset.jsonl'
+np: 4
+
+export_path: './outputs/demo-process/demo-processed.jsonl'
+
+# Operators to apply
+process:
+  - language_id_score_filter:
+      lang: 'zh'
+      min_score: 0.8
+```
+
+Each entry under `process` is one operator, executed in listed order—the output of each becomes the input to the next. This recipe keeps only Chinese samples with high language confidence.
+
+> For full recipe syntax, see [Global Configuration Reference](../GlobalConfig.md). For the complete list of 200+ built-in operators, see [Operators](../Operators.md).
+
+---
+
+## 4. Run the pipeline
+
+Pass the recipe to the `dj-process` CLI:
+
+```bash
 dj-process --config demos/process_simple/process.yaml
 ```
 
-- **Note:** For some operators that involve third-party models or resources that are not stored locally on your computer, it might be slow for the first running because these ops need to download corresponding resources into a directory first.
-The default download cache directory is `~/.cache/data_juicer`. Change the cache location by setting the shell environment variable, `DATA_JUICER_CACHE_HOME` to another directory, and you can also change `DATA_JUICER_MODELS_CACHE` or `DATA_JUICER_ASSETS_CACHE` in the same way:
+Data-Juicer loads the dataset, executes each operator in sequence, and writes filtered results to `export_path`. Per-operator statistics are printed to the console as the pipeline runs.
 
-- **Note:** When using operators with third-party models, it's necessary to declare the corresponding `memory` in the configuration file (you can refer to the settings in the `data_juicer/config/config_all.yaml` file). During runtime, Data-Juicer will control the number of processes based on memory availability and the memory requirements of the operator models to achieve better data processing efficiency. When running with CUDA environments, if the memory for an operator is not declared correctly, it could potentially lead to a CUDA Out of Memory issue.
+Override any recipe parameter from the command line without editing the YAML:
 
-```shell
-# cache home
-export DATA_JUICER_CACHE_HOME="/path/to/another/directory"
-# cache models
-export DATA_JUICER_MODELS_CACHE="/path/to/another/directory/models"
-# cache assets
-export DATA_JUICER_ASSETS_CACHE="/path/to/another/directory/assets"
+```bash
+dj-process --config demos/process_simple/process.yaml --language_id_score_filter.lang=en \
+  --export_path ./outputs/demo-process/demo-processed-en.jsonl
 ```
 
-- **Flexible Programming Interface:**
-We provide various simple interfaces for users to choose from as follows. 
+> English results are saved in `demo-processed-en.jsonl`; the next section inspects the Chinese results in `demo-processed.jsonl`. For other recipes, `dj-install --config your-recipe.yaml` preinstalls dependencies identified in operator source. See [Installation](Installation.md).
+
+---
+
+## 5. Inspect the output
+
+The processed dataset is at your configured `export_path`:
+
+```bash
+cat ./outputs/demo-process/demo-processed.jsonl
+```
+
+You should see only the Chinese samples that passed the filter—English and French lines have been removed.
+
+To understand your dataset's quality distribution before committing to a full run, use the analyzer:
+
+```bash
+dj-analyze --config demos/process_simple/process.yaml
+```
+
+> For the full analyzer usage (auto mode, distributed analysis, custom metrics), see [Data Analysis Guide](../AnalyzeData.md). For interactive threshold tuning with sliders, see [Web Playground](../Playground.md).
+
+---
+
+## 6. Use from Python (optional)
+
+To embed Data-Juicer in a training script or notebook:
+
 ```python
-#... init op & dataset ...
+from data_juicer.config import init_configs
+from data_juicer.core import DefaultExecutor
 
-# Chain call style, support single operator or operator list
-dataset = dataset.process(op)
+cfg = init_configs(args=['--config', 'my-recipe.yaml'])
+executor = DefaultExecutor(cfg)
+executor.run()
+```
+
+Chain-style single-operator calls are also supported:
+
+```python
 dataset = dataset.process([op1, op2])
-# Functional programming style for quick integration or script prototype iteration
-dataset = op(dataset)
-dataset = op.run(dataset)
 ```
 
+> For complete Python API usage, see the [Processing Data Guide](../ProcessData.md).
 
-## Distributed Data Processing
+---
 
-We have now implemented multi-machine distributed data processing based on [RAY](https://www.ray.io/). The corresponding demos can be run using the following commands:
+## Next steps
 
-```shell
-# Run text data processing
-python tools/process_data.py --config ./demos/process_on_ray/configs/demo.yaml
-# Run video data processing
-python tools/process_data.py --config ./demos/process_video_on_ray/configs/demo.yaml
-```
+You have a working pipeline. Explore further based on your needs:
 
-- To run data processing across multiple machines, it is necessary to ensure that all distributed nodes can access the corresponding data paths (for example, by mounting the respective data paths on a file-sharing system such as NAS).
-- The deduplication operators for RAY mode are different from the single-machine version, and all those operators are prefixed with `ray`, e.g. `ray_video_deduplicator` and `ray_document_deduplicator`.
-- More details can be found in the doc for [distributed processing](../Distributed.md).
-
-> Users can also opt not to use RAY and instead split the dataset to run on a cluster with [Slurm](https://slurm.schedmd.com/). In this case, please use the default Data-Juicer without RAY.
-> [Aliyun PAI-DLC](https://www.aliyun.com/activity/bigdata/pai-dlc) supports the RAY framework, Slurm framework, etc. Users can directly create RAY jobs and Slurm jobs on the DLC cluster.
-
-## Data Analysis
-- Run `analyze_data.py` tool or `dj-analyze` command line tool with your config as the argument to analyze your dataset.
-- The analyzer will produce the overall distribution of the stats computed by the OPs for the whole dataset, the detailed distribution of each type of stats, and the correlation analysis among stats from different OPs.
-
-```shell
-# only for installation from source
-python tools/analyze_data.py --config demos/analyze_simple/analyzer.yaml
-
-# use command line tool
-dj-analyze --config demos/analyze_simple/analyzer.yaml
-
-# you can also use auto mode to avoid writing a recipe. It will analyze a small
-# part (e.g. 1000 samples, specified by argument `auto_num`) of your dataset 
-# with all Filters that produce stats.
-dj-analyze --auto --dataset_path xx.jsonl [--auto_num 1000]
-```
-
-- **Note:** Analyzer only computes stats for Filters that produce stats or other OPs that produce tags/categories in meta. So other OPs will be ignored in the analysis process. We use the following registries to decorate OPs:
-  - `NON_STATS_FILTERS`: decorate Filters that **DO NOT** produce any stats.
-  - `TAGGING_OPS`: decorate OPs that **DO** produce tags/categories in meta field.
-- Sometimes, "Glyph missing" warning occurs and invalid characters show in the analyzed results figures. Users can specify appropriate font using the environment variable `ANALYZER_FONT`. For example:
-```shell
-export ANALYZER_FONT="Heiti TC"  # Use Heiti for Chinese characters. And it's the default font for analyzer.
-python tools/analyze_data.py --config demos/analyze_simple/analyzer.yaml
-```
-
-- **Distributed Analysis with Ray:** `dj-analyze` also supports Ray mode for large-scale distributed analysis. Set `executor_type: ray` in your config file, and the analyzer will automatically use `RayAnalyzer`, which computes overall statistics (count/mean/std/min/max) via Ray native aggregation without pandas materialization. Note that RayAnalyzer does not produce per-column distribution charts or correlation analysis. More details can be found in the doc for [distributed processing](../Distributed.md).
-
-```shell
-dj-analyze --config demos/analyze_simple/ray_analyzer.yaml
-```
-
-## Data Visualization
-
-- Run `app.py` tool to visualize your dataset in your browser.
-- **Note**: only available for installation from source.
-
-```shell
-streamlit run app.py
-```
-
-## Build Up Config Files
-
-- Config files specify some global arguments, and an operator list for the
-  data process. You need to set:
-  - Global arguments: input/output dataset path, number of workers, etc.
-  - Operator list: list operators with their arguments used to process the dataset.
-- You can build up your own config files by:
-  - ➖：Modify from our example config file [`config_all.yaml`](../../data_juicer/config/config_all.yaml) which includes **all** ops and default
-    arguments. You just need to **remove** ops that you won't use and refine
-    some arguments of ops.
-  - ➕：Build up your own config files **from scratch**. You can refer our
-    example config file [`config_all.yaml`](../../data_juicer/config/config_all.yaml), [op documents](../Operators.md), and advanced [Build-Up Guide for developers](../DeveloperGuide.md#2-build-your-own-ops).
-  - Besides the yaml files, you also have the flexibility to specify just
-    one (of several) parameters on the command line, which will override
-    the values in yaml files.
-
-```shell
-python xxx.py --config demos/process_simple/process.yaml --language_id_score_filter.lang=en
-```
-
-- The basic config format and definition is shown below.
-
-  ![Basic config example of format and definition](https://img.alicdn.com/imgextra/i1/O1CN01uXgjgj1khWKOigYww_!!6000000004715-0-tps-1745-871.jpg "Basic config file example")
-
-## Sandbox
-
-The data sandbox laboratory (DJ-Sandbox) provides users with the best practices for continuously producing data recipes. It features low overhead, portability, and guidance.
-
-- In the sandbox, users can quickly experiment, iterate, and refine data recipes based on small-scale datasets and models, before scaling up to produce high-quality data to serve large-scale models.
-- In addition to the basic data optimization and recipe refinement features offered by Data-Juicer, users can seamlessly use configurable components such as data probe and analysis, model training and evaluation, and data and model feedback-based recipe refinement to form a complete one-stop data-model research and development pipeline.
-
-For more information and details, please refer to the [sandbox documentation](https://datajuicer.github.io/data-juicer-sandbox/en/main/index.html).
-
-## Preprocess Raw Data (Optional)
-- Our Formatters support some common input dataset formats for now:
-  - Multi-sample in one file: jsonl/json, parquet, csv/tsv, etc.
-  - Single-sample in one file: txt, code, docx, pdf, etc.
-- However, data from different sources are complicated and diverse. Such as:
-  - [Raw arXiv data downloaded from S3](https://info.arxiv.org/help/bulk_data_s3.html) include thousands of tar files and even more gzip files in them, and expected tex files are embedded in the gzip files so they are hard to obtain directly.
-  - Some crawled data include different kinds of files (pdf, html, docx, etc.). And extra information like tables, charts, and so on is hard to extract.
-- It's impossible to handle all kinds of data in Data-Juicer, issues/PRs are welcome to contribute to processing new data types!
-- Thus, we provide some **common preprocessing tools** in [`tools/preprocess`](../../tools/preprocess/) for you to preprocess these data.
-  - You are welcome to make your contributions to new preprocessing tools for the community.
-  - We **highly recommend** that complicated data can be preprocessed to jsonl or parquet files.
-
-## For Docker Users
-
-- If you build or pull the docker image of `data-juicer`, you can run the commands or tools mentioned above using this docker image.
-- Run directly:
-
-```shell
-# run the data processing directly
-docker run --rm \  # remove container after the processing
-  --privileged \
-  --shm-size 256g \
-  --network host \
-  --gpus all \
-  --name dj \  # name of the container
-  -v <host_data_path>:<image_data_path> \  # mount data or config directory into the container
-  -v ~/.cache/:/root/.cache/ \  # mount the cache directory into the container to reuse caches and models (recommended)
-  datajuicer/data-juicer:<version_tag> \  # image to run
-  dj-process --config /path/to/config.yaml  # similar data processing commands
-```
-
-- Or enter into the running container and run commands in editable mode:
-
-```shell
-# start the container
-docker run -dit \  # run the container in the background
-  --privileged \
-  --shm-size 256g \
-  --network host \
-  --gpus all \
-  --rm \
-  --name dj \
-  -v <host_data_path>:<image_data_path> \
-  -v ~/.cache/:/root/.cache/ \
-  datajuicer/data-juicer:latest /bin/bash
-
-# enter into this container and then you can use data-juicer in editable mode
-docker exec -it <container_id> bash
-```
-
+| Topic | Description | Link |
+|-------|-------------|------|
+| **Processing Data** | Full CLI & Python API usage, performance tuning | [Processing Data Guide](../ProcessData.md) |
+| **Data Analysis** | Profile dataset distributions before processing | [Analysis Guide](../AnalyzeData.md) |
+| **Operator Zoo** | Browse 200+ operators across text/image/audio/video | [Operators Overview](../Operators.md) |
+| **Visual Tuning** | Drag sliders to tune filter thresholds interactively | [Web Playground](../Playground.md) |
+| **Distributed** | Scale to multi-node clusters with Ray | [Distributed Processing](../Distributed.md) |
+| **Sandbox** | Small-scale experiments with data-model co-optimization | [DJ-Sandbox](https://datajuicer.github.io/data-juicer-sandbox/en/main/index.html) |
+| **Export & Cache** | Control output format, speed up repeated runs | [Export](../Export.md) · [Cache](../Cache.md) |
+| **Custom Operators** | Write your own operators and contribute code | [Developer Guide](../DeveloperGuide.md) |
+| **DJ-Cookbook** | Community recipes and tutorial resources | [DJ-Cookbook](DJ-Cookbook.md) |

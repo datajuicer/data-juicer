@@ -50,7 +50,7 @@ dj-process --config demos/agent/minimal_configs/08_one_llm_filter.yaml
 # 09 bad case 信号 + 分层（无 LLM；对齐 BAD_CASE_INSIGHTS 本地验证）
 dj-process --config demos/agent/minimal_configs/09_bad_case_smoke.yaml
 
-# 或一键：后处理 + 校验 + 分位数 + cohort（见 demos/agent/QUICKSTART_BAD_CASE.md）
+# 或一键：后处理 + 校验 + 分位数 + cohort（见 demos/agent/QUICKSTART_BAD_CASE_ZH.md）
 bash demos/agent/scripts/run_bad_case_pipeline.sh smoke
 ```
 

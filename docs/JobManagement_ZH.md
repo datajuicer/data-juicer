@@ -39,7 +39,7 @@ partition:
 
 ## 日志
 
-日志按作业组织，支持轮转和保留：
+日志按作业组织。下图以 `log.txt` 为例，CLI 实际按导出路径和时间戳生成文件名。
 
 ```
 {job_dir}/
@@ -58,11 +58,11 @@ from data_juicer.utils.logger_utils import setup_logger
 
 setup_logger(
     save_dir="./outputs",
-    filename="log.txt",
-    max_log_size_mb=100,
-    backup_count=5
+    filename="log.txt"
 )
 ```
+
+`setup_logger()` 使用 `save_dir` 和 `filename` 指定日志输出位置，并分别保存各级别日志。日志轮转和保留策略可在应用的日志集成中配置。
 
 ## API 参考
 

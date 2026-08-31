@@ -1,6 +1,6 @@
-# Postprocess tools
+# 后处理工具
 
-此文件夹包含一些后处理脚本，用于对 Data-Juicer 处理后的数据集进行进一步处理。
+[`tools/postprocess`](.) 中的脚本用于对 Data-Juicer 处理后的数据集进行 token 计数、数据混合、元字段反序列化等操作。
 
 ## 用法
 

@@ -263,7 +263,7 @@ process:
   #   high_precision — 强怀疑档：建议优先人工复核（常为 LLM eval 主证据，或你显式允许「仅 tool 失败」升格）
   #   watchlist — 待观察档：弱证据或单一启发式
   #   none — 未打标
-  # 导出后 jq 仍用 high_precision / watchlist / none；见 demos/agent/BAD_CASE_INSIGHTS.md
+  # 导出后 jq 仍用 high_precision / watchlist / none；见 demos/agent/BAD_CASE_INSIGHTS_ZH.md
   - agent_bad_case_signal_mapper:
       # 读取 §5b 已写出的 1–5 分 meta，无额外 LLM；与 stats 类 eval 互补
       signal_on_low_dialog_quality_meta: true

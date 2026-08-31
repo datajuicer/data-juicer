@@ -106,7 +106,7 @@ __all__ = [
 ]
 ```
 
-4. （可选）算子有`environments/science_requires.txt`中列举的包依赖时，需要在`data_juicer/utils/auto_install_mapping.py`里的`OPS_TO_PKG`中添加对应的依赖包，以支持算子粒度的依赖安装。
+4. （可选）当算子有第三方包依赖时，使用 `LazyLoader` 在运行时按需加载，而非在模块顶层 import。这与所有内置算子的惯例一致（参见 [`data_juicer/utils/lazy_loader.py`](../data_juicer/utils/lazy_loader.py) 以及[算子插件文档](OperatorPlugins_ZH.md)）。无需手工维护 requirements 文件——Data-Juicer 在首次使用时会自动安装缺失的包。
 
 5. 全部完成！现在您可以在自己的配置文件中使用新添加的算子：
 

@@ -1,21 +1,21 @@
-# Dataset Configuration Guide
-EN | [中文](DatasetCfg_ZH.md)
+# Dataset Configuration
 
-This guide provides an overview of how to configure datasets using YAML format in the Data-Juicer framework. The configurations allow you to specify local and remote datasets, with data validation rules.
+This guide covers how to configure input datasets in your Data-Juicer recipe. You will learn how to point at local files, remote Hugging Face or arXiv datasets, mix multiple sources, validate data, and handle edge cases.
 
-## Supported Dataset Formats
+## Supported dataset formats
 
-### Local Dataset
+Data-Juicer auto-detects file formats for local files. Supported formats include `parquet`, `jsonl`, `json`, `csv`, `tsv`, `txt`, and `jsonl.gz`.
 
-The `local_json.yaml` configuration file is used to specify datasets stored locally in JSON format. *path* is required to specify the local dataset path, either a single file or a directory. *format* is optional to specify the dataset format.
-For local files, DJ will automatically detect the file format and load the dataset accordingly. Formats like parquet, jsonl, json, csv, tsv, txt, and jsonl.gz are supported
-Refer to [local_json.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/local_json.yaml) for more details.
+### Local dataset
+
+Point at a file or directory on your local filesystem. The `format` field is optional — Data-Juicer detects it from the file extension.
+
 ```yaml
 dataset:
   configs:
     - type: local
       path: path/to/your/local/dataset.json
-      format: json
+      format: json    # optional
 ```
 
 ```yaml
@@ -26,10 +26,11 @@ dataset:
       format: parquet
 ```
 
-### Remote Huggingface Dataset
+See [local_json.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/local_json.yaml) for a complete example.
 
-The `remote_huggingface.yaml` configuration file is used to specify huggingface datasets. *type* and *source* are fixed to 'remote' and 'huggingface' to locate huggingface loading logic. *path* is required to identify the huggingface dataset. *name*, *split* and *limit* are optional to specify the dataset name/split and limit the number of samples to load.
-Refer to [remote_huggingface.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/remote_huggingface.yaml) for more details.
+### Remote Hugging Face dataset
+
+Load any dataset from the Hugging Face Hub. Set `type` to `remote` and `source` to `huggingface`.
 
 ```yaml
 dataset:
@@ -37,41 +38,35 @@ dataset:
     - type: 'remote'
       source: 'huggingface'
       path: "HuggingFaceFW/fineweb"
-      name: "CC-MAIN-2024-10"
-      split: "train"
-      limit: 1000
+      name: "CC-MAIN-2024-10"   # optional: dataset config name
+      split: "train"             # optional: which split to load
+      limit: 1000                # optional: cap the number of samples
 ```
 
-### Remote Arxiv Dataset
+See [remote_huggingface.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/remote_huggingface.yaml) for a complete example.
 
-The `remote_arxiv.yaml` configuration file is used to specify datasets stored remotely in JSON format. *type* and *source* are fixed to 'remote' and 'arxiv' to locate arxiv loading logic. *lang*, *dump_date*, *force_download* and *url_limit* are optional to specify the dataset language, dump date, force download and url limit.
-Refer to [remote_arxiv.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/remote_arxiv.yaml) for more details.
+### arXiv data
+
+For arXiv papers, use the [preprocessing tools](../tools/preprocess/README.md) to download and convert arXiv tar archives into JSONL format that Data-Juicer can process directly.
+
+### Other formats
+
+For the full list of supported formats and loading strategies, see [load_strategy.py](https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/load_strategy.py).
+
+---
+
+## Data mixture
+
+The default executor combines sources listed in `dataset.configs` in two ways:
+
+- With `dataset.max_sample_num`: allocate the total sample budget by source weight, then sample and combine the results. An allocation larger than a source is filled by repeating samples.
+- With `dataset.max_sample_num` omitted: concatenate all rows from each source.
+
+The Ray executor loads a single source through this configuration.
 
 ```yaml
 dataset:
-  configs:
-    - type: 'remote'
-      source: 'arxiv'
-      lang: 'en'
-      dump_date: 'latest'
-      force_download: false
-      url_limit: 2
-```
-
-### Other Supported Dataset Formats
-
-Refer to [load_strategy.py](https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/load_strategy.py) for more details and supported dataset formats.
-
-
-## Other features 
-
-### Data Mixture  
-
-The `mixture.yaml` configuration file demonstrates how to specify data mixture rules. DJ will mix the datasets by sampling a portion of the dataset and applying proper weights.
-Refer to [mixture.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/mixture.yaml) for more details.
-```yaml 
-dataset:
-  max_sample_num: 10000
+  max_sample_num: 10000    # total samples allocated by source weight
   configs:
     - type: 'local'
       weight: 1.0
@@ -81,11 +76,14 @@ dataset:
       path: 'path/to/csv/file'
 ```
 
+See [mixture.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/mixture.yaml) for a complete example.
 
-### Data Validation 
+---
 
-The `validator.yaml` configuration file demonstrates how to specify data validation rules. DJ will validate the dataset by sampling a portion of the dataset and applying the validation rules.
-Refer to [data_validator.py](https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/data_validator.py) for more details and supported validators.
+## Data validation
+
+Validate your dataset before processing by adding `validators` to your recipe. Each validator checks a specific aspect of the data.
+
 ```yaml
 dataset:
   configs:
@@ -108,57 +106,55 @@ validators:
       language: "str"
 ```
 
+See [data_validator.py](https://github.com/datajuicer/data-juicer/blob/main/data_juicer/core/data/data_validator.py) for the full list of supported validators.
 
-### JSONL per-line fault tolerance (skip bad lines)
+---
 
-For a few corrupted lines or parser failures in the HuggingFace JSON/ujson path, enable **lenient JSONL loading**: read with stdlib :func:`json.loads` **line by line**, **skip** lines that fail parsing (with warnings), and keep the rest. The result is still a HuggingFace ``Dataset``, so downstream ops behave like normal JSONL.
+## Troubleshooting
 
-**Enable (either works):**
+### JSONL per-line fault tolerance
 
-```yaml
-load_jsonl_lenient: true
-```
+Set the environment variable `DATA_JUICER_JSONL_LENIENT=1` to enable **lenient JSONL loading**, skip corrupted lines, and process the remaining data:
 
 ```bash
 DATA_JUICER_JSONL_LENIENT=1 dj-process --config path/to/config.yaml
 ```
 
-**Constraints:**
+> **Note:** Only `.jsonl` / `.jsonl.gz` / `.jsonl.zst` shards are read. Other files in the same directory (e.g. `.json`) are skipped with a warning. Search logs for `[lenient jsonl]` to see which lines were skipped.
 
-- Only ``.jsonl`` / ``.jsonl.gz`` / ``.jsonl.zst`` shards are read. Other matched files (e.g. ``.json`` in the same folder) are **skipped** with a warning so the loader does **not** fall back to HuggingFace/ujson (which would hit ``Value is too big!`` again). Use ``suffixes: ['.jsonl']`` if needed.
-- Intended for **DefaultExecutor** local JSONL; unrelated to Parquet.
-- Search logs for ``[lenient jsonl]`` for skipped lines.
+### `Value is too big!` error
 
-### JSON / JSONL load error: ``Value is too big!``
+When loading local JSONL, HuggingFace `datasets` may parse with `ujson`, which cannot handle very large integers. If you see `ValueError: Value is too big!`:
 
-When loading local JSONL, HuggingFace ``datasets`` may parse lines with ``ujson`` (via pandas). **Very large JSON integers** (e.g. long numeric IDs) can exceed what ujson supports and raise ``ValueError: Value is too big!``. This is usually about **numeric fields**, not necessarily huge strings.
+| Fix | How |
+| --- | --- |
+| **Use stdlib json** (recommended) | `DATA_JUICER_USE_STDLIB_JSON=1 dj-process --config path/to/config.yaml` |
+| **Export as strings** | Quote the problematic numeric fields in your JSON source. |
+| **Switch to Parquet** | Parquet uses Arrow, which avoids this code path entirely. |
 
-**Mitigations:**
+---
 
-1. **Preferred (no data rewrite):** force stdlib ``json`` before running:
+## Legacy `dataset_path` configuration
 
-   ```bash
-   DATA_JUICER_USE_STDLIB_JSON=1 dj-process --config path/to/config.yaml
-   ```
+The `dataset_path` key is the original, simpler way to specify input. It works but lacks the flexibility of the `dataset.configs` approach above.
 
-2. **At source:** export problematic fields as **strings** (quoted in JSON).
-
-3. **Other formats:** e.g. Parquet, to avoid this JSON code path.
-
-### Legacy dataset_path Configuration
-
-The `dataset_path` configuration is the original way to specify the dataset path. It's simplistic and easy to use, but lacks flexibility. It can be used in yaml or command line input. Some examples:
-
-Command line input:
-```bash
-# command line input
-dj-process --dataset_path path/to/your/dataset.json
-
-# command line input with weights
-dj-process --dataset_path 0.5 path/to/your/dataset1.json 0.5 path/to/your/dataset2.json
-```
-
-Yaml input:
 ```yaml
+# YAML
 dataset_path: path/to/your/dataset.json
 ```
+
+```bash
+# CLI
+dj-process --dataset_path path/to/your/dataset.json
+
+# CLI with mixture weights
+dj-process --dataset_path 0.5 path/to/dataset1.json 0.5 path/to/dataset2.json
+```
+
+---
+
+## What's next
+
+- [Processing Data](ProcessData.md) — learn how to run pipelines and chain operators.
+- [Operator Schemas](Operators.md) — understand the operator types available for your data.
+- [Export Guide](Export.md) — control the output format and path.

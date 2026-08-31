@@ -1,6 +1,6 @@
 # 算子插件
 
-- [English](OperatorPlugins.md) | 中文
+
 
 ## 概述
 

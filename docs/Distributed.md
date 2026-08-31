@@ -1,4 +1,5 @@
 # Distributed Data Processing in Data-Juicer
+EN | [中文](Distributed_ZH.md)
 
 ## Overview
 
@@ -16,7 +17,7 @@ More details can be found in our paper, [Data-Juicer 2.0: Cloud-Scale Adaptive D
 
 ### Ray Mode in Data-Juicer
 
-- For most implementations of Data-Juicer [operators](Operators.md), the core processing functions are engine-agnostic. Interoperability is primarily managed in [RayDataset](../data_juicer/core/ray_data.py) and [RayExecutor](../data_juicer/core/executor/ray_executor.py), which are subclasses of the base `DJDataset` and `BaseExecutor`, respectively, and support both Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) and [Actors](https://docs.ray.io/en/latest/ray-core/actors.html).
+- For most implementations of Data-Juicer [operators](Operators.md), the core processing functions are engine-agnostic. Interoperability is primarily managed in [RayDataset](../data_juicer/core/data/ray_dataset.py) and [RayExecutor](../data_juicer/core/executor/ray_executor.py), which are subclasses of the base `DJDataset` and `BaseExecutor`, respectively, and support both Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) and [Actors](https://docs.ray.io/en/latest/ray-core/actors.html).
 - The exception is the deduplication operators, which are challenging to scale in standalone mode. We provide these operators named as [`ray_xx_deduplicator`](../data_juicer/ops/deduplicator/).
 
 ### Subset Splitting
@@ -86,7 +87,7 @@ Before starting, you should install Data-Juicer and its `dist` requirements:
 
 ```shell
 uv pip install -v -e .  # Install the minimal requirements of Data-Juicer
-uv pip install -v -e ".[dist]"  # Include dependencies on Ray and other distributed libraries
+uv pip install -v -e ".[distributed]"  # Include dependencies on Ray and other distributed libraries
 ```
 
 Then start a Ray cluster (ref to the [Ray doc](https://docs.ray.io/en/latest/ray-core/starting-ray.html) for more details):

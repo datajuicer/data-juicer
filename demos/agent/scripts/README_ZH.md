@@ -1,6 +1,6 @@
 # Agent pipeline 后分析脚本
 
-**HTML 报告一行命令** → [`../BAD_CASE_REPORT.md`](../BAD_CASE_REPORT.md)。**smoke / full / postprocess / calibrate / unittest** → [`../QUICKSTART_BAD_CASE.md`](../QUICKSTART_BAD_CASE.md)（命令总表）；环境变量 `PYTHON`、`SMOKE_OUT`、`FULL_OUT`、`CAL_OUT` 与 `bash …/run_bad_case_pipeline.sh --help` 同见该页。
+**HTML 报告一行命令** → [`../BAD_CASE_REPORT_ZH.md`](../BAD_CASE_REPORT_ZH.md)。**smoke / full / postprocess / calibrate / unittest** → [`../QUICKSTART_BAD_CASE_ZH.md`](../QUICKSTART_BAD_CASE_ZH.md)（命令总表）；环境变量 `PYTHON`、`SMOKE_OUT`、`FULL_OUT`、`CAL_OUT` 与 `bash …/run_bad_case_pipeline.sh --help` 同见该页。
 
 ---
 

@@ -1,4 +1,5 @@
 # How-to Guide for Developers
+EN | [中文](DeveloperGuide_ZH.md)
 
 - [How-to Guide for Developers](#how-to-guide-for-developers)
   - [1. Build Your Own OPs Quickly](#1-build-your-own-ops-quickly)
@@ -105,7 +106,7 @@ __all__ = [
 ]
 ```
 
-4. When an operator has package dependencies listed in `environments/science_requires.txt`, you need to add the corresponding dependency packages to the `OPS_TO_PKG` dictionary in `data_juicer/utils/auto_install_mapping.py` to support dependency installation at the operator level.
+4. When an operator has third-party package dependencies, use `LazyLoader` to load them at runtime rather than importing at module level. This follows the same convention used across all core operators (see [`data_juicer/utils/lazy_loader.py`](../data_juicer/utils/lazy_loader.py) and the [Operator Plugins](OperatorPlugins.md) guide). No manual requirements file is needed — Data-Juicer will auto-install missing packages on first use.
 
 5. Now you can use this new OP with custom arguments in your own config files!
 

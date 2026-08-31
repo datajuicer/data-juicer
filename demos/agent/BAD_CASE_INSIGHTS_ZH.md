@@ -1,6 +1,6 @@
 # Agent 交互数据：Bad case 洞察
 
-**从哪里读起**：命令与排障 → `[QUICKSTART_BAD_CASE.md](QUICKSTART_BAD_CASE.md)`；仅 HTML 报告 → `[BAD_CASE_REPORT.md](BAD_CASE_REPORT.md)`；脚本参数 → `[scripts/README.md](scripts/README.md)`。总索引见 `[README.md](README.md)`。
+**从哪里读起**：命令与排障 → `[QUICKSTART_BAD_CASE_ZH.md](QUICKSTART_BAD_CASE_ZH.md)`；仅 HTML 报告 → `[BAD_CASE_REPORT_ZH.md](BAD_CASE_REPORT_ZH.md)`；脚本参数 → `[scripts/README_ZH.md](scripts/README_ZH.md)`。总索引见 `[README.md](README.md)`。
 
 ---
 ## Overview
@@ -108,7 +108,7 @@ YAML 中请将 **`llm_analysis_discard_must_be_strict`** / **`llm_text_quality_d
 
 ## Pipeline 之后的分析脚本
 
-见 **`demos/agent/scripts/README.md`**：
+见 **`demos/agent/scripts/README_ZH.md`**：
 
 - `compute_percentile_thresholds.py`：分位数报告；`--write-calibration` → 自动阈值 JSON。
 - `analyze_bad_case_cohorts.py`：按 model / pt / tier 汇总并可选 CSV。

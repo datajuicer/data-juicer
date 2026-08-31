@@ -1,6 +1,6 @@
 # Bad case 自助报告（简化入口）
 
-面向：**跑完 `dj-process` 后只想看汇总与图**，不必记一串脚本。完整跑法见 [`QUICKSTART_BAD_CASE.md`](QUICKSTART_BAD_CASE.md)，文档索引见 [`README.md`](README.md)。
+面向：**跑完 `dj-process` 后只想看汇总与图**，不必记一串脚本。完整跑法见 [`QUICKSTART_BAD_CASE_ZH.md`](QUICKSTART_BAD_CASE_ZH.md)，文档索引见 [`README.md`](README.md)。
 
 - 产出报告示例
 
@@ -45,4 +45,4 @@ python demos/agent/scripts/generate_bad_case_report.py \
 
 ## 仍是「进阶」的内容（刻意不收进报告页）
 
-见 **`BAD_CASE_INSIGHTS.md`**（分层逻辑）、**`PERFORMANCE_LLM.md`**、**`scripts/README.md`**（`compute_percentile_thresholds`、`slice_export_by_tier`、校准 JSON 等）。
+见 **`BAD_CASE_INSIGHTS_ZH.md`**（分层逻辑）、**`PERFORMANCE_LLM_ZH.md`**、**`scripts/README_ZH.md`**（`compute_percentile_thresholds`、`slice_export_by_tier`、校准 JSON 等）。

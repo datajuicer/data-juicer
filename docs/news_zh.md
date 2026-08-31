@@ -1,3 +1,5 @@
+- 🛠️ [2026-01-15] 发布 [v1.4.5](https://github.com/datajuicer/data-juicer/releases/tag/v1.4.5)：20+ 新 OP（具身 AI 视频标题生成、对象分割、深度估计、人体姿态、图像标签、3D 人体网格）；新管道 OP 支持 Ray + vLLM；Sphinx 文档升级；Docker 基础更新为 CUDA 12.6.3 + Ubuntu 24.04 + Py3.11。
+- 🛠️ [2025-12-01] 发布 [v1.4.4](https://github.com/datajuicer/data-juicer/releases/tag/v1.4.4)：Data-Juicer 2.0 获得 NeurIPS'25 Spotlight；仓库拆分（sandbox/recipes/agents 移至独立仓库）；S3 I/O 支持加载器/导出器；6 个新视频与多模态 OP（角色检测、VGGT、全身姿态、手部重建）。
 - 🎉 [2025-09-19] 我们的工作 [Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for and with Foundation Models](https://arxiv.org/abs/2501.14755) 已被接收为 **NeurIPS'25 Spotlight**（所有投稿的前 3.1%）！
 - 🎉 [2025-09-19] 我们关于数据混合/选择/合成的两项工作：[Diversity as a Reward: Fine-Tuning LLMs on a Mixture of Domain-Undetermined Data](https://arxiv.org/abs/2502.04380) 和 [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499) 已被 **NeurIPS'25** 接收！
 - 🛠️ [2025-06-04] 如何在"经验时代"处理反馈数据？我们提出了 [Trinity-RFT: A General-Purpose and Unified Framework for Reinforcement Fine-Tuning of LLMs](https://arxiv.org/abs/2505.17826)，该框架利用 Data-Juicer 为 RFT 场景量身定制数据处理管道。

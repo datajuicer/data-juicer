@@ -1,10 +1,10 @@
 # 数据集导出
 
-本文档描述 DataJuicer 如何导出处理后的数据集，包括支持的格式、分片、并行导出、S3 导出以及统计信息/哈希管理。
+处理完成后，Data-Juicer 将结果数据集写入你在 `export_path` 中指定的路径。本页介绍支持的输出格式、将大数据集分片为多个文件、并行导出、直接写入 S3，以及控制哪些中间字段（统计信息、哈希）保留在输出中。
 
 ## 概述
 
-处理完成后，DataJuicer 使用 `Exporter`（默认模式）或 `RayExporter`（Ray 模式）将结果数据集导出到磁盘。导出系统支持：
+Data-Juicer 通过 `Exporter`（默认模式）或 `RayExporter`（Ray 模式）导出。导出系统支持：
 
 - **多种输出格式** — JSONL、JSON、Parquet，Ray 模式下支持更多格式
 - **分片导出** — 按大小将大型数据集拆分为多个文件
@@ -280,3 +280,11 @@ export_shard_size: 1073741824             # 1 GB
 keep_stats_in_res_ds: true
 # 或检查单独的统计信息文件：result_stats.jsonl
 ```
+
+---
+
+## 下一步
+
+- [缓存管理](Cache_ZH.md)——通过缓存中间结果加速重复运行。
+- [数据追踪](Tracing_ZH.md)——调试流水线中样本级别的变化。
+- [分布式处理](Distributed_ZH.md)——在 Ray 集群上扩展导出。

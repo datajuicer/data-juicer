@@ -1,5 +1,4 @@
-# DJ_service
-English | [中文页面](DJ_service_ZH.md)
+# DJ Service
 
 To further enhance the user experience of Data-Juicer, we have introduced a new service features based on API (Service API) and a MCP server, This enables users to integrate and utilize Data-Juicer's powerful operator pool in a more convenient way. With these service features, users can quickly build data processing pipelines without needing to delve into the underlying implementation details of the framework, and seamlessly integrate with existing systems. Additionally, users can achieve environment isolation between different projects through this service. This document will provide a detailed explanation of how to launch and use this service feature, helping you get started quickly and fully leverage the potential of Data-Juicer.
 

@@ -1,6 +1,5 @@
 # Operator Plugins
 
-- English | [中文](OperatorPlugins_ZH.md)
 
 ## Overview
 

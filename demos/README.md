@@ -1,7 +1,6 @@
 # Demos
 
-This folder contains both interactive demos for experiencing Data-Juicer and
-functional examples that demonstrate specific features and workflows.
+[`demos`](.) contains interactive demos for experiencing Data-Juicer and functional examples that demonstrate specific features and workflows. Sample datasets are located in [`demos/data`](./data).
 
 Sample datasets used by the demos and examples are available in the `data`
 subdirectory.

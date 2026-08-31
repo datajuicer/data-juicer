@@ -1,6 +1,6 @@
 # 预处理工具
 
-此文件夹包含一些预处理脚本，用于在使用 Data-Juicer 之前对数据集进行处理。
+[`tools/preprocess`](.) 中的脚本用于在 Data-Juicer 正式处理之前，将各类原始数据（arXiv tar、Stack Exchange 7z、Alpaca-CoT 等）转换为 JSONL 格式。
 
 ## 用法
 
@@ -80,7 +80,7 @@ python tools/preprocess/raw_stackexchange_to_jsonl.py  --help
 
 使用 `raw_alpaca_cot_merge_add_meta.py` 来转化原始 Alpaca-CoT 数据.
 
-该工具用于将从 [HuggingFace]( https://huggingface.co/datasets/QingyiSi/Alpaca-CoT) 下载的原始 Alpaca-Cot 数据转化为 jsonl 文件.
+该工具用于将从 [HuggingFace](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT) 下载的原始 Alpaca-CoT 数据转化为 jsonl 文件。
 
 ```shell
 python tools/preprocess/raw_alpaca_cot_merge_add_meta.py           \

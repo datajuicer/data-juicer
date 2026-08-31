@@ -79,13 +79,9 @@ checkpoint:
 
 ### 中间存储
 
-```yaml
-intermediate_storage:
-  format: "parquet"              # parquet, arrow, jsonl
-  compression: "snappy"          # snappy, gzip, none
-  preserve_intermediate_data: true
-  retention_policy: "keep_all"   # keep_all, keep_failed_only, cleanup_all
-```
+`ray_partitioned` 使用 Parquet 保存检查点，通过 `checkpoint.enabled` 和 `checkpoint.strategy` 控制检查点的生成。执行器在运行结束时清理其临时目录。
+
+自动分区规划由 `partition.mode: auto` 启用，分区大小通过 `partition` 配置。配置结构中的预留字段见[全局配置](GlobalConfig_ZH.md)。
 
 ## 使用方法
 

@@ -16,7 +16,7 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 
 ### Data-Juicer 的 Ray 处理模式
 
-- 对于 Data-Juicer 的大部分[算子](Operators.md)实现，其核心处理函数是引擎无关的。[RayDataset](../data_juicer/core/ray_data.py) 和 [RayExecutor](../data_juicer/core/executor/ray_executor.py) 封装了与Ray引擎的具体互操作，它们分别是基类 `DJDataset` 和 `BaseExecutor` 的子类，并且都支持 Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) 和 [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) 。
+- 对于 Data-Juicer 的大部分[算子](Operators.md)实现，其核心处理函数是引擎无关的。[RayDataset](../data_juicer/core/data/ray_dataset.py) 和 [RayExecutor](../data_juicer/core/executor/ray_executor.py) 封装了与Ray引擎的具体互操作，它们分别是基类 `DJDataset` 和 `BaseExecutor` 的子类，并且都支持 Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) 和 [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) 。
 - 其中，去重算子是例外。它们在单机模式下很难规模化。因此我们提供了针对它们的 Ray 优化版本算子，并以特殊前缀开头：[`ray_xx_deduplicator`](../data_juicer/ops/deduplicator/) 。
 
 ### 数据子集分割
@@ -88,7 +88,7 @@ RayAnalyzer 专注于在大规模数据上计算总体统计信息。如果需�
 
 ```shell
 uv pip install -v -e .  # 安装 Data-Juicer 的最小依赖需求
-uv pip install -v -e ".[dist]"  # 包括 Ray 以及其他分布式相关的依赖库
+uv pip install -v -e ".[distributed]"  # 包括 Ray 以及其他分布式相关的依赖库
 ```
 
 然后启动一个 Ray 集群（参考 [Ray 文档](https://docs.ray.io/en/latest/ray-core/starting-ray.html) ）：

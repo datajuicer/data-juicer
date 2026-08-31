@@ -1,0 +1,22 @@
+# Sphinx and the dependencies used by data_juicer_sphinx_theme at build time.
+sphinx==9.0.4
+myst-parser==5.1.0
+sphinx-copybutton==0.5.2
+linkify-it-py
+PyYAML
+
+# Imports used by the API modules in addition to the distributed/tools extras.
+Cython
+setuptools
+IPython
+fire
+wandb>=0.19.11,<0.22
+python-dotenv
+docstring-parser
+diffusers==0.35.2
+transformers==4.57.1
+smplx
+onnxruntime
+einops
+yacs
+pytorch-lightning==2.6.5

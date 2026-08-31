@@ -1,12 +1,12 @@
 # Bad case 流水线：一键运行与端到端指南
 
-姊妹篇：**方法论** → `[BAD_CASE_INSIGHTS.md](BAD_CASE_INSIGHTS.md)`；**仅报告命令** → `[BAD_CASE_REPORT.md](BAD_CASE_REPORT.md)`。`[README.md](README.md)` 为全文档索引。
+姊妹篇：**方法论** → `[BAD_CASE_INSIGHTS_ZH.md](BAD_CASE_INSIGHTS_ZH.md)`；**仅报告命令** → `[BAD_CASE_REPORT_ZH.md](BAD_CASE_REPORT_ZH.md)`。`[README.md](README.md)` 为全文档索引。
 
 ## 只想看报告（最少步骤）
 
 1. 跑完 `dj-process`（或 `bash … run_bad_case_pipeline.sh smoke|full`）。
 2. **`bash demos/agent/scripts/run_bad_case_pipeline.sh report ./outputs/.../processed.jsonl`**
-  → 打开生成的 **`processed_bad_case_report.html`**。说明见 **`BAD_CASE_REPORT.md`**。
+  → 打开生成的 **`processed_bad_case_report.html`**。说明见 **`BAD_CASE_REPORT_ZH.md`**。
 
 ## 前置条件
 
@@ -43,7 +43,7 @@
   - 配置：`demos/agent/minimal_configs/09_bad_case_smoke.yaml`
   - 导出：`./outputs/agent_bad_case_smoke/processed.jsonl`
   - 检查：`__dj__meta__.agent_bad_case_tier` / `agent_bad_case_signals`（或合并 `_stats.jsonl` 后脚本读取）
-2. 用 `jq` 抽查（见 `BAD_CASE_INSIGHTS.md` 文末）。
+2. 用 `jq` 抽查（见 `BAD_CASE_INSIGHTS_ZH.md` 文末）。
 
 ### B. 完整分析（含 LLM 评估 + 可选校准 + insight）
 
@@ -59,11 +59,11 @@
 
 ## 脚本目录说明
 
-详见 **`demos/agent/scripts/README.md`**（各 Python 脚本参数与示例）。
+详见 **`demos/agent/scripts/README_ZH.md`**（各 Python 脚本参数与示例）。
 
 ## LLM 算子慢、想加速？
 
-见 **`demos/agent/PERFORMANCE_LLM.md`**：`np` / `num_proc` / `turbo`、`try_num`、`max_round`、`sampling_params`、换小模型、收窄 `agent_insight_llm_mapper` 等。
+见 **`demos/agent/PERFORMANCE_LLM_ZH.md`**：`np` / `num_proc` / `turbo`、`try_num`、`max_round`、`sampling_params`、换小模型、收窄 `agent_insight_llm_mapper` 等。
 
 ## 导出里的 meta 键名
 

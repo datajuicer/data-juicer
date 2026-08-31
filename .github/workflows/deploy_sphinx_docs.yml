@@ -4,13 +4,22 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - "docs/sphinx_doc/**/*"
+      - "**/*.md"
+      - "docs/**"
+      - "data_juicer/**/*.py"
+      - "pyproject.toml"
+      - ".github/workflows/deploy_sphinx_docs.yml"
   push:
     branches:
       - main
     tags:
       - "*"
   workflow_dispatch:
+    inputs:
+      full:
+        description: "Full rebuild of all versions (refreshes theme on old tags, cleans orphan files)"
+        type: boolean
+        default: false
 
 jobs:
   pages:
@@ -55,22 +64,19 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - name: Install dependencies with uv
-        working-directory: repo
-        run: |
-          uv pip install --system --upgrade pip
-          uv pip install --system -e .[all]
-      - name: Check disk
-        run: |
-          set -euxo pipefail
-          df -h
-      - name: Fetch Data-Juicer Sphinx Template
+      - name: Fetch Data-Juicer Sphinx Theme
         working-directory: repo
         run: |
           set -e
-          echo "Cloning sphinx template..."
+          echo "Cloning sphinx theme..."
           git clone --depth=1 https://github.com/datajuicer/data-juicer-sphinx.git /tmp/template
-          uv pip install --system -e /tmp/template
+          # CPU packages provide the real model base classes used by autodoc.
+          uv pip install --system torch==2.8.0 torchvision==0.23.0 \
+            --index https://download.pytorch.org/whl/cpu
+          uv pip install --system -e '.[distributed,tools]' -r docs/requirements-sphinx.txt
+          # Load the theme as a Sphinx extension. Its package metadata also
+          # requires unused translation/NumPy dependencies that conflict with DJ.
+          echo 'PYTHONPATH=/tmp/template' >> "$GITHUB_ENV"
           if [ -d "docs/sphinx_doc/source" ]; then
             echo "Backing up custom files..."
             mkdir -p /tmp/custom_files
@@ -80,10 +86,23 @@ jobs:
           rm -rf docs/sphinx_doc
           mkdir -p docs
           cp -r /tmp/template/docs/sphinx_doc docs/
+          # Sphinx's package template includes links to all API submodules.
+          rm -f docs/sphinx_doc/_templates/package.rst_t
           echo "Restoring custom files..."
           cp -rf /tmp/custom_files/source/* docs/sphinx_doc/source
+          printf '\nextensions.extend(["data_juicer_sphinx_theme", "dj_api"])\n' >> docs/sphinx_doc/source/conf.py
           echo "Done!"
           df -h
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Build Ask-AI widget bundle
+        working-directory: repo
+        run: |
+          cd docs/sphinx_doc/source/_static
+          npm install
+          npm run build
       - name: Get git tags
         working-directory: repo
         run: |
@@ -95,8 +114,21 @@ jobs:
         working-directory: repo
         run: |
           cd docs/sphinx_doc
-          python build_versions.py --tags
-          df -h
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python build_versions.py --current preview
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.full }}" = "true" ]; then
+            python build_versions.py --tags
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            python build_versions.py --branches --tags "${GITHUB_REF_NAME}"
+          else
+            python build_versions.py --branches main
+          fi
+      - name: Generate versions.json
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        working-directory: repo
+        run: |
+          cd docs/sphinx_doc
+          python build_versions.py --emit-versions-json
       - name: Redirect index.html
         working-directory: repo
         run: |
@@ -113,7 +145,8 @@ jobs:
           name: SphinxDoc
           path: "repo/docs/sphinx_doc/build"
       - uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+        if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) || github.event_name == 'workflow_dispatch' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: "repo/docs/sphinx_doc/build"
+          keep_files: ${{ !(github.event_name == 'workflow_dispatch' && inputs.full) }}

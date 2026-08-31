@@ -88,13 +88,9 @@ Ray batch boundaries, and validated before any checkpoint is reused.
 
 ### Intermediate Storage
 
-```yaml
-intermediate_storage:
-  format: "parquet"              # parquet, arrow, jsonl
-  compression: "snappy"          # snappy, gzip, none
-  preserve_intermediate_data: true
-  retention_policy: "keep_all"   # keep_all, keep_failed_only, cleanup_all
-```
+`ray_partitioned` stores checkpoints in Parquet format. `checkpoint.enabled` and `checkpoint.strategy` control checkpoint creation. The executor cleans up its temporary directory when execution ends.
+
+Enable automatic partition planning with `partition.mode: auto` and configure partition sizes through `partition`. See [Global Config](GlobalConfig.md) for reserved configuration fields.
 
 ## Usage
 

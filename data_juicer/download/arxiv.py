@@ -6,14 +6,14 @@ import tarfile
 import tempfile
 
 from datasets import Dataset
-from downloader import (
+
+from data_juicer.download.downloader import (
     DocumentDownloader,
     DocumentExtractor,
     DocumentIterator,
     download_and_extract,
     get_arxiv_urls,
 )
-
 from data_juicer.utils.file_utils import (
     expand_outdir_and_mkdir,
     get_all_files_paths_under,

@@ -1,4 +1,4 @@
-# Evaluation Results Recorder
+# 评测结果记录器
 
 使用 [`wandb_writer.py`](wandb_writer.py) 将评测结果记录到 [W&B](https://wandb.ai/) (wandb) 并可视化展示。
 

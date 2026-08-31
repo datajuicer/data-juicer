@@ -1,4 +1,4 @@
-# Auto Evaluation Toolkit
+# 自动评测工具
 
 在训练过程中自动评测您的模型并持续监控指标的变化。
 

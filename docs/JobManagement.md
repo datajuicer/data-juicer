@@ -39,7 +39,7 @@ The optimizer:
 
 ## Logging
 
-Logs are organized per job with rotation and retention:
+Logs are organized per job. The layout below uses `log.txt` as an example; CLI runs generate filenames from the export path and timestamp.
 
 ```
 {job_dir}/
@@ -58,11 +58,11 @@ from data_juicer.utils.logger_utils import setup_logger
 
 setup_logger(
     save_dir="./outputs",
-    filename="log.txt",
-    max_log_size_mb=100,
-    backup_count=5
+    filename="log.txt"
 )
 ```
+
+`setup_logger()` uses `save_dir` and `filename` to configure log output and writes separate files for each log level. Configure rotation and retention through your application's logging integration.
 
 ## API Reference
 

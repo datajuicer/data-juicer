@@ -6,6 +6,8 @@ on:
     paths:
       - "**/*.md"
       - "docs/**"
+      - "data_juicer/**/*.py"
+      - "pyproject.toml"
       - ".github/workflows/deploy_sphinx_docs.yml"
   push:
     branches:
@@ -68,11 +70,13 @@ jobs:
           set -e
           echo "Cloning sphinx theme..."
           git clone --depth=1 https://github.com/datajuicer/data-juicer-sphinx.git /tmp/template
-          # All build modes below use -A (no API generation), so the processing
-          # package and its model/GPU extras are not needed. PyYAML is used by
-          # the template's build script and conf.py.
-          # Enabling API docs also requires Data-Juicer and its import dependencies.
-          uv pip install --system -e /tmp/template PyYAML
+          # CPU packages provide the real model base classes used by autodoc.
+          uv pip install --system torch==2.8.0 torchvision==0.23.0 \
+            --index https://download.pytorch.org/whl/cpu
+          uv pip install --system -e '.[distributed,tools]' -r docs/requirements-sphinx.txt
+          # Load the theme as a Sphinx extension. Its package metadata also
+          # requires unused translation/NumPy dependencies that conflict with DJ.
+          echo 'PYTHONPATH=/tmp/template' >> "$GITHUB_ENV"
           if [ -d "docs/sphinx_doc/source" ]; then
             echo "Backing up custom files..."
             mkdir -p /tmp/custom_files
@@ -82,8 +86,11 @@ jobs:
           rm -rf docs/sphinx_doc
           mkdir -p docs
           cp -r /tmp/template/docs/sphinx_doc docs/
+          # Sphinx's package template includes links to all API submodules.
+          rm -f docs/sphinx_doc/_templates/package.rst_t
           echo "Restoring custom files..."
           cp -rf /tmp/custom_files/source/* docs/sphinx_doc/source
+          printf '\nextensions.extend(["data_juicer_sphinx_theme", "dj_api"])\n' >> docs/sphinx_doc/source/conf.py
           echo "Done!"
           df -h
       - name: Setup Node.js
@@ -108,13 +115,13 @@ jobs:
         run: |
           cd docs/sphinx_doc
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            python build_versions.py --current preview -A
+            python build_versions.py --current preview
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.full }}" = "true" ]; then
-            python build_versions.py --tags -A
+            python build_versions.py --tags
           elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            python build_versions.py --branches --tags "${GITHUB_REF_NAME}" -A
+            python build_versions.py --branches --tags "${GITHUB_REF_NAME}"
           else
-            python build_versions.py -A
+            python build_versions.py --branches main
           fi
       - name: Generate versions.json
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}

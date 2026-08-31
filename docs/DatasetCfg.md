@@ -57,13 +57,16 @@ For the full list of supported formats and loading strategies, see [load_strateg
 
 ## Data mixture
 
-With the default executor, combine multiple datasets by listing them under `dataset.configs`. Weights determine sample allocation only when `dataset.max_sample_num` is set. Without this budget, the sources are concatenated in full and weights do not change their proportions. Ray currently supports a single source through this dataset builder.
+The default executor combines sources listed in `dataset.configs` in two ways:
 
-Despite its name, `max_sample_num` is a sampling budget, not a truncation-only limit. If a source's allocated count exceeds its available rows, the sampler repeats rows to fill that allocation.
+- With `dataset.max_sample_num`: allocate the total sample budget by source weight, then sample and combine the results. An allocation larger than a source is filled by repeating samples.
+- With `dataset.max_sample_num` omitted: concatenate all rows from each source.
+
+The Ray executor loads a single source through this configuration.
 
 ```yaml
 dataset:
-  max_sample_num: 10000    # total sample budget; required for weights to take effect
+  max_sample_num: 10000    # total samples allocated by source weight
   configs:
     - type: 'local'
       weight: 1.0
@@ -111,9 +114,7 @@ See [data_validator.py](https://github.com/datajuicer/data-juicer/blob/main/data
 
 ### JSONL per-line fault tolerance
 
-If your JSONL file contains a few corrupted lines, enable **lenient JSONL loading** to skip bad lines instead of failing the entire job:
-
-Use the environment variable; the current global config parser does not accept `load_jsonl_lenient` as a top-level YAML option:
+Set the environment variable `DATA_JUICER_JSONL_LENIENT=1` to enable **lenient JSONL loading**, skip corrupted lines, and process the remaining data:
 
 ```bash
 DATA_JUICER_JSONL_LENIENT=1 dj-process --config path/to/config.yaml

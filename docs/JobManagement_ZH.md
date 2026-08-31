@@ -39,7 +39,7 @@ partition:
 
 ## 日志
 
-日志按作业组织。下图以 `log.txt` 为例，CLI 实际按导出路径和时间戳生成文件名。目前 `max_log_size_mb` 和 `backup_count` 不会配置按大小轮转或历史日志保留。
+日志按作业组织。下图以 `log.txt` 为例，CLI 实际按导出路径和时间戳生成文件名。
 
 ```
 {job_dir}/
@@ -62,7 +62,7 @@ setup_logger(
 )
 ```
 
-`setup_logger()` 不接受 `max_log_size_mb` 或 `backup_count`，传入会触发 `TypeError`。菜谱解析器虽然接受这两个字段，内置日志器却没有使用它们。如需轮转或保留策略，应在自己的日志集成中单独配置。
+`setup_logger()` 使用 `save_dir` 和 `filename` 指定日志输出位置，并分别保存各级别日志。日志轮转和保留策略可在应用的日志集成中配置。
 
 ## API 参考
 

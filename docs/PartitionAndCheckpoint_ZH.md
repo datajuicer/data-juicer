@@ -79,9 +79,9 @@ checkpoint:
 
 ### 中间存储
 
-当前分区执行器不读取解析器已接受的 `intermediate_storage.*` 设置，包括格式、压缩、保留、清理、保留策略以及 `write_partitions`。旧版顶层参数 `preserve_intermediate_data` 也未被应用。不要依赖这些字段切换检查点格式、保留临时文件或限制文件保留时间。
+`ray_partitioned` 使用 Parquet 保存检查点，通过 `checkpoint.enabled` 和 `checkpoint.strategy` 控制检查点的生成。执行器在运行结束时清理其临时目录。
 
-检查点是否生成由 `checkpoint.enabled` 和 `checkpoint.strategy` 控制，内容通过现有 Parquet 写入路径保存。临时目录按执行器实现清理，不受 `intermediate_storage` 标志控制。另一个字段 `resource_optimization.auto_configure` 同样未被读取；自动分区规划实际由 `partition.mode: auto` 选择。
+自动分区规划由 `partition.mode: auto` 启用，分区大小通过 `partition` 配置。配置结构中的预留字段见[全局配置](GlobalConfig_ZH.md)。
 
 ## 使用方法
 

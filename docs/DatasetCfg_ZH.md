@@ -57,13 +57,16 @@ arXiv 论文请使用[预处理工具](../tools/preprocess/README_ZH.md)下载�
 
 ## 数据混合
 
-使用默认执行器时，可在 `dataset.configs` 下列出多个数据集。只有设置了 `dataset.max_sample_num`，权重才参与各数据源的样本数分配；未设置此预算时，各源会全量拼接，权重不会改变它们的比例。Ray 通过该数据集构建器目前只支持单个数据源。
+默认执行器支持在 `dataset.configs` 中配置多个数据源，并按以下方式合并：
 
-虽然名称含有 `max`，`max_sample_num` 实际是采样预算，不是只会截短数据的上限。某个源分配到的数量超过其可用样本数时，采样器会重复样本来补足。
+- 设置 `dataset.max_sample_num`：按各源权重分配总样本预算，再采样并合并。分配量超过某个源的样本数时，会重复采样以补足预算。
+- 省略 `dataset.max_sample_num`：全量拼接各数据源。
+
+Ray 执行器通过该配置加载单个数据源。
 
 ```yaml
 dataset:
-  max_sample_num: 10000    # 总样本预算；权重生效的前提
+  max_sample_num: 10000    # 按各数据源权重分配的总样本数
   configs:
     - type: 'local'
       weight: 1.0
@@ -111,9 +114,7 @@ validators:
 
 ### JSONL 逐行容错
 
-如果你的 JSONL 文件中包含少量损坏行，启用**宽松 JSONL 加载**可跳过坏行而非整个任务失败：
-
-使用环境变量；当前全局配置解析器不接受 YAML 顶层的 `load_jsonl_lenient`：
+设置环境变量 `DATA_JUICER_JSONL_LENIENT=1` 启用**宽松 JSONL 加载**，跳过损坏行并继续处理其余数据：
 
 ```bash
 DATA_JUICER_JSONL_LENIENT=1 dj-process --config path/to/config.yaml

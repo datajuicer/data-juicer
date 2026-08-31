@@ -39,7 +39,7 @@ The optimizer:
 
 ## Logging
 
-Logs are organized per job. The layout below uses `log.txt` as an example; CLI runs generate filenames from the export path and timestamp. Automatic size-based rotation and backup retention are not currently configured by `max_log_size_mb` or `backup_count`.
+Logs are organized per job. The layout below uses `log.txt` as an example; CLI runs generate filenames from the export path and timestamp.
 
 ```
 {job_dir}/
@@ -62,7 +62,7 @@ setup_logger(
 )
 ```
 
-`setup_logger()` does not accept `max_log_size_mb` or `backup_count`; passing them raises `TypeError`. Although the recipe parser accepts these fields, the built-in logger does not use them. Configure any required rotation or retention separately in your logging integration.
+`setup_logger()` uses `save_dir` and `filename` to configure log output and writes separate files for each log level. Configure rotation and retention through your application's logging integration.
 
 ## API Reference
 

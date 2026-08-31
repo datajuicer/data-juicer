@@ -91,7 +91,7 @@ dj-process --config demos/process_simple/process.yaml --language_id_score_filter
   --export_path ./outputs/demo-process/demo-processed-en.jsonl
 ```
 
-> The English results use a separate file so the Chinese output inspected below is preserved. `dj-install --config your-recipe.yaml` can preinstall dependencies identified in operator source, but does not guarantee all runtime dependencies or model files are ready. See [Installation](Installation.md).
+> English results are saved in `demo-processed-en.jsonl`; the next section inspects the Chinese results in `demo-processed.jsonl`. For other recipes, `dj-install --config your-recipe.yaml` preinstalls dependencies identified in operator source. See [Installation](Installation.md).
 
 ---
 

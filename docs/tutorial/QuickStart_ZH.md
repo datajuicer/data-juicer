@@ -91,7 +91,7 @@ dj-process --config demos/process_simple/process.yaml --language_id_score_filter
   --export_path ./outputs/demo-process/demo-processed-en.jsonl
 ```
 
-> 英文结果写到单独文件，避免覆盖下一节要查看的中文结果。`dj-install --config your-recipe.yaml` 可以预装能从算子源码识别的依赖，但不保证覆盖全部运行时依赖或模型文件。详见[安装文档](Installation_ZH.md)。
+> 英文结果保存在 `demo-processed-en.jsonl`，下一节查看中文结果文件 `demo-processed.jsonl`。其他菜谱可通过 `dj-install --config your-recipe.yaml` 预装算子源码中识别到的依赖，详见[安装文档](Installation_ZH.md)。
 
 ---
 

@@ -88,9 +88,9 @@ Ray batch boundaries, and validated before any checkpoint is reused.
 
 ### Intermediate Storage
 
-The current partitioned executor does not read the accepted `intermediate_storage.*` settings, including format, compression, preservation, cleanup, retention, and `write_partitions`. The legacy top-level `preserve_intermediate_data` setting is also not applied. Do not rely on these fields to select a checkpoint format, preserve temporary files, or enforce a storage retention policy.
+`ray_partitioned` stores checkpoints in Parquet format. `checkpoint.enabled` and `checkpoint.strategy` control checkpoint creation. The executor cleans up its temporary directory when execution ends.
 
-Checkpoint creation is controlled by `checkpoint.enabled` and `checkpoint.strategy`; checkpoints use the existing Parquet writer. Temporary-directory cleanup follows the executor's implementation rather than the `intermediate_storage` flags. The separate `resource_optimization.auto_configure` field is not consulted either: automatic partition planning is selected by `partition.mode: auto`.
+Enable automatic partition planning with `partition.mode: auto` and configure partition sizes through `partition`. See [Global Config](GlobalConfig.md) for reserved configuration fields.
 
 ## Usage
 

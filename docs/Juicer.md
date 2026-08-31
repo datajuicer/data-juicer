@@ -2,7 +2,7 @@
 
 **Juicer** is a data-refinement model built on [Qwen3.6-35B-A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) (MoE architecture: 35B total parameters / 3B activated). It turns natural-language cleaning instructions, filtering rules, and semantic-tagging requirements into structured outputs—strict tagged text or canonical JSON.
 
-Juicer is **not** a general-purpose chat model. It is purpose-built for data-refinement workflows and can be deployed locally to process sensitive data in your own environment.
+Juicer is designed for data-refinement workflows and supports local deployment to process sensitive data in your own environment.
 
 ---
 
@@ -20,7 +20,7 @@ Juicer is **not** a general-purpose chat model. It is purpose-built for data-ref
 
 ### 0. Get the launch scripts
 
-The `serve.sh`, `requirements.txt`, and `app.py` below belong to the separate data-juicer-hub repository, not this repository. Prepare the inference environment and model weights according to its deployment instructions, then enter its Playground directory:
+The `juicer_playground` directory in data-juicer-hub provides `serve.sh`, `requirements.txt`, and `app.py`. Prepare the inference environment and model weights using that repository's deployment instructions, then run the following commands from its Playground directory:
 
 ```bash
 git clone https://github.com/datajuicer/data-juicer-hub.git

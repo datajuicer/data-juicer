@@ -2,7 +2,7 @@
 
 **Juicer** 是基于 [Qwen3.6-35B-A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) 构建的数据精炼模型（MoE 架构：35B 总参数 / 3B 激活参数）。它能将自然语言描述的清洗指令、过滤规则和语义标注需求转化为结构化输出——严格的标记文本或规范的 JSON。
 
-Juicer **不是**通用聊天模型，而是专为数据精炼工作流设计，支持本地部署以处理敏感数据。
+Juicer 专为数据精炼工作流设计，支持在本地环境中部署和处理敏感数据。
 
 ---
 
@@ -20,7 +20,7 @@ Juicer **不是**通用聊天模型，而是专为数据精炼工作流设计，
 
 ### 0. 准备启动脚本
 
-下文的 `serve.sh`、`requirements.txt` 和 `app.py` 来自独立的 data-juicer-hub 仓库，不是本仓库中的同名文件。在已按该仓库部署说明准备好推理环境和模型权重后，进入其 Playground 目录：
+data-juicer-hub 仓库的 `juicer_playground` 目录提供 `serve.sh`、`requirements.txt` 和 `app.py`。按该仓库的部署说明准备推理环境和模型权重，并在以下目录运行后续命令：
 
 ```bash
 git clone https://github.com/datajuicer/data-juicer-hub.git

@@ -46,7 +46,7 @@ print(analyzer.overall_result)
 
 ### 对已有 dataset 分析
 
-显式包装为 `NestedDataset`：当前依赖中的 `from_json()` 返回普通 Hugging Face Dataset，而 Analyzer 需要 `.process()` 方法。
+将 Hugging Face Dataset 包装为 `NestedDataset`，即可使用 Analyzer 的数据处理接口：
 
 ```python
 from data_juicer.core import Analyzer, NestedDataset
@@ -63,9 +63,9 @@ dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
 analyzed = analyzer.run(dataset=dataset)
 ```
 
-### 计算统计量，不导出结果
+### 在内存中使用统计量
 
-直接调用 Filter 并设置 `reduce=False`，只计算统计量，不执行过滤，也不导出数据集或分析报告。数据集缓存仍可能写入缓存文件。
+调用 Filter 并设置 `reduce=False`，为每条数据计算统计量，保留全部输入行，并返回可供脚本继续使用的数据集。此调用的数据集和分析报告导出由调用方负责；启用数据集缓存时会使用磁盘缓存。
 
 ```python
 from data_juicer.core import NestedDataset
@@ -78,8 +78,6 @@ stats = analyzed[Fields.stats]
 avg_len = sum(s[StatsKeys.text_len] for s in stats) / len(stats) if len(stats) else 0
 print(f"平均文本长度: {avg_len:.2f}")
 ```
-
-`Analyzer.run(..., skip_export=True)` 的作用范围不同：它会跳过总体统计表和图表，但当前实现仍会导出统计数据集，并创建工作目录和配置备份，因此不能用它实现“不导出结果”。
 
 ### 手动构建分析流程
 
@@ -146,7 +144,7 @@ cfg = init_configs(args=[
     '--export_path', './analysis/stats.jsonl',
 ], allow_auto=True)
 cfg.process = process_config
-# 保留 auto 模式：最多分析 auto_num 条数据（默认 1000）。
+# auto 模式最多分析 auto_num 条数据（默认 1000）。
 
 analyzer = Analyzer(cfg)
 analyzed = analyzer.run(dataset=dataset)
@@ -163,6 +161,8 @@ analyzed = analyzer.run(dataset=dataset)
 - **相关性分析**：统计量之间的相关性热力图
 
 图表与总体统计表保存在 `analyzer.analysis_path`（即 `<cfg.work_dir>/analysis`）中；解析后的 `work_dir` 包含 `job_id`。统计数据集则由 `export_path` 决定导出位置。
+
+`Analyzer.run(..., skip_export=True)` 会保存统计数据集，并跳过总体统计表和图表的导出。Analyzer 初始化时创建工作目录并备份配置。
 
 ---
 

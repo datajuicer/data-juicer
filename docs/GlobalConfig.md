@@ -4,7 +4,7 @@ This page lists common global parameters available in a Data-Juicer recipe YAML,
 
 > Operator-specific parameters are not covered here—see the [Operator Schemas](Operators.md) or individual operator detail pages.
 
-Accepted configuration does not mean every executor uses a parameter. Check the scope below: some parameters belong to analysis or external tools, and others require a related feature to be enabled.
+Each description identifies the applicable executor or tool and any required feature switches.
 
 ---
 
@@ -41,7 +41,7 @@ Accepted configuration does not mean every executor uses a parameter. Check the 
 | `video_key` | str | `"videos"` | Field for video path list |
 | `suffixes` | str/list | `[]` | File suffixes to load (empty = auto-detect) |
 | `load_dataset_kwargs` | dict | `{}` | Extra kwargs for `datasets.load_dataset()` |
-| `read_options` | dict | `{}` | PyArrow read options forwarded by the `ray` executor; not a general read option for `default` or `ray_partitioned` |
+| `read_options` | dict | `{}` | PyArrow read options for the `ray` executor |
 
 To process a smaller input with the default executor, use `dataset.max_sample_num` or prepare a subset first. See [Sampling Dry Run](ProcessData.md).
 
@@ -49,12 +49,12 @@ To process a smaller input with the default executor, use `dataset.max_sample_nu
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `data_probe_ratio` | float | `1.0` | Sampling ratio passed by the Sandbox model-inference probe to `sample_data()`; does not reduce the input of a normal `dj-process` run |
-| `data_probe_algo` | str | `uniform` | Sampling algorithm for the same Sandbox probe; not applied automatically by `dj-process` |
-| `hpo_config` | str | `None` | Search-space configuration for the [HPO tool](../data_juicer/tools/hpo/README.md); setting it does not start HPO in `dj-process` |
-| `auto_num` | int | `1000` | Maximum samples analyzed with `dj-analyze --auto`; not a processing sample limit or a limit for recipe-based analysis |
+| `data_probe_ratio` | float | `1.0` | Sampling ratio passed to `sample_data()` by the Sandbox model-inference probe |
+| `data_probe_algo` | str | `uniform` | Sampling algorithm for the Sandbox model-inference probe |
+| `hpo_config` | str | `None` | Search-space configuration for the [HPO tool](../data_juicer/tools/hpo/README.md) |
+| `auto_num` | int | `1000` | Maximum samples analyzed with `dj-analyze --auto` |
 
-The probe parameters remain in the main configuration for use by [Data-Juicer Sandbox](https://github.com/datajuicer/data-juicer-sandbox). Custom callers can also pass them explicitly to `executor.sample_data(sample_ratio=cfg.data_probe_ratio, sample_algo=cfg.data_probe_algo)` before processing the returned subset.
+[Data-Juicer Sandbox](https://github.com/datajuicer/data-juicer-sandbox) uses these sampling parameters for model-inference probes. To sample through the Python API, call `executor.sample_data(sample_ratio=cfg.data_probe_ratio, sample_algo=cfg.data_probe_algo)` before processing the returned subset.
 
 ---
 
@@ -78,11 +78,11 @@ See [Export](Export.md) for details.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `op_fusion` | bool | `false` | Fuse compatible operators in default and Ray execution; benefit depends on recipe and data |
-| `fusion_strategy` | str | `probe` | Fusion strategy: `probe` (group and sort by probed speed) / `greedy` (group without speed sorting; may still reorder) |
+| `op_fusion` | bool | `false` | Fuse compatible operators in default or Ray execution to reduce repeated processing |
+| `fusion_strategy` | str | `probe` | Fusion strategy: `probe` orders by fusion group and measured speed; `greedy` orders by fusion group. Speed probing applies to the default executor and standard Analyzer |
 | `mapper_fusion` | bool | `true` | Fuse consecutive GPU Mappers (requires op_fusion) |
 | `mapper_fusion_vram_limit` | float | `0.9` | Max aggregate VRAM fraction for fused mappers |
-| `adaptive_batch_size` | bool | `false` | Probe and adjust batch sizes for batched operators in the `default` executor; not applied by the Ray executors or Analyzer |
+| `adaptive_batch_size` | bool | `false` | Adaptive batch sizes for batched operators in the `default` executor |
 | `turbo` | bool | `false` | Turbo mode (maximize speed at batch_size=1) |
 
 ---
@@ -115,7 +115,7 @@ See [Export](Export.md) for details.
 | `resume` | str | `None` | Resume a job by ID (ray_partitioned only) |
 | `event_logging.enabled` | bool | `true` | Enable event logging |
 | `event_log_dir` | str | `None` | Event log directory (fast storage recommended) |
-| `checkpoint_dir` | str | `None` | Partition checkpoint directory; default executor uses `<work_dir>/ckpt` and does not read this field |
+| `checkpoint_dir` | str | `None` | Checkpoint directory for `ray_partitioned`; the default executor stores checkpoints in `<work_dir>/ckpt` |
 
 ---
 
@@ -133,14 +133,15 @@ See [Export](Export.md) for details.
 
 ---
 
-## Logging
+## Reserved Configuration Fields
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `max_log_size_mb` | int | `100` | Accepted by the parser, but not connected to the built-in logger; does not currently configure rotation |
-| `backup_count` | int | `5` | Accepted by the parser, but not connected to the built-in logger; does not currently configure retention |
+The following fields are reserved and are not used by the built-in executors. See [Job Management](JobManagement.md) for log output configuration and [Intermediate Storage](PartitionAndCheckpoint.md) for partition file management.
 
-These are not arguments to `setup_logger()`. See [Job Management](JobManagement.md) for a supported logging example. Similarly, the accepted `intermediate_storage.*`, legacy `preserve_intermediate_data`, and `resource_optimization.auto_configure` settings are not read by the current partitioned executor. See [Intermediate Storage](PartitionAndCheckpoint.md) for the actual behavior.
+| Fields | Category |
+|--------|----------|
+| `max_log_size_mb`, `backup_count` | Log rotation and retention |
+| `intermediate_storage.*`, `preserve_intermediate_data` | Intermediate storage |
+| `resource_optimization.auto_configure` | Resource configuration |
 
 ---
 

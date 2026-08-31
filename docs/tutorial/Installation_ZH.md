@@ -140,7 +140,7 @@ uv pip install -e ".[vision]"
   dj-install --config path_to_your_data-juicer_config_file
   ```
 
-  工具扫描配置中算子源码里的直接导入和 LazyLoader 声明，不会递归收集辅助模块中的全部依赖。运行时仍可能安装额外包或下载模型权重；命令成功不代表菜谱可以离线运行。
+  工具的扫描范围是所配置算子源码中的直接导入和 LazyLoader 声明。辅助模块依赖及模型权重可能在算子运行时加载；准备离线环境时，请提前运行所需菜谱并缓存相关依赖和模型。
 
 ## 6. 使用 Docker 安装
 

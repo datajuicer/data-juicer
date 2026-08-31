@@ -71,6 +71,7 @@ jobs:
           # All build modes below use -A (no API generation), so the processing
           # package and its model/GPU extras are not needed. PyYAML is used by
           # the template's build script and conf.py.
+          # Enabling API docs also requires Data-Juicer and its import dependencies.
           uv pip install --system -e /tmp/template PyYAML
           if [ -d "docs/sphinx_doc/source" ]; then
             echo "Backing up custom files..."

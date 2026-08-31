@@ -4,7 +4,7 @@
 
 > 算子参数不在此列——请参考[算子提要](Operators.md)或各算子详情页。
 
-配置能被解析，不代表每个执行器都会使用它。请留意下文的适用范围：部分参数属于分析或外部工具，另一些需要先开启对应功能。
+各参数的说明包含适用的执行器、工具及所需的功能开关。
 
 ---
 
@@ -41,7 +41,7 @@
 | `video_key` | str | `"videos"` | 视频路径列表字段名 |
 | `suffixes` | str/list | `[]` | 限制加载的文件后缀（空=自动检测） |
 | `load_dataset_kwargs` | dict | `{}` | 传递给 `datasets.load_dataset()` 的额外参数 |
-| `read_options` | dict | `{}` | 由 `ray` 执行器传递的 PyArrow 读取选项；不是 `default` 或 `ray_partitioned` 的通用读取选项 |
+| `read_options` | dict | `{}` | `ray` 执行器的 PyArrow 读取选项 |
 
 使用默认执行器处理少量输入时，可设置 `dataset.max_sample_num` 或提前准备子集。参见[数据采样试跑](ProcessData_ZH.md)。
 
@@ -49,12 +49,12 @@
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `data_probe_ratio` | float | `1.0` | Sandbox 模型推理探测传给 `sample_data()` 的抽样比例；不会减少普通 `dj-process` 的输入数量 |
-| `data_probe_algo` | str | `uniform` | 同一 Sandbox 探测步骤的抽样算法；`dj-process` 不会自动应用 |
-| `hpo_config` | str | `None` | [HPO 工具](../data_juicer/tools/hpo/README_ZH.md)的搜索空间配置；仅在 `dj-process` 中设置它不会启动 HPO |
-| `auto_num` | int | `1000` | `dj-analyze --auto` 的分析样本数上限；不是处理流程或按菜谱分析的样本数上限 |
+| `data_probe_ratio` | float | `1.0` | Sandbox 模型推理探测的抽样比例，传给 `sample_data()` |
+| `data_probe_algo` | str | `uniform` | Sandbox 模型推理探测的抽样算法 |
+| `hpo_config` | str | `None` | [HPO 工具](../data_juicer/tools/hpo/README_ZH.md)的搜索空间配置 |
+| `auto_num` | int | `1000` | `dj-analyze --auto` 的分析样本数上限 |
 
-主库保留探测参数供独立的 [Data-Juicer Sandbox](https://github.com/datajuicer/data-juicer-sandbox) 使用。自定义调用方也可以显式执行 `executor.sample_data(sample_ratio=cfg.data_probe_ratio, sample_algo=cfg.data_probe_algo)`，再处理返回的子集。
+[Data-Juicer Sandbox](https://github.com/datajuicer/data-juicer-sandbox) 在模型推理探测中使用上述抽样参数。通过 Python API 抽样时，可调用 `executor.sample_data(sample_ratio=cfg.data_probe_ratio, sample_algo=cfg.data_probe_algo)`，再处理返回的子集。
 
 ---
 
@@ -78,11 +78,11 @@
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `op_fusion` | bool | `false` | 启用兼容算子的融合，default 和 Ray 均有融合路径；收益取决于菜谱与数据 |
-| `fusion_strategy` | str | `probe` | 融合策略：`probe`（分组后按探测速度排序）/ `greedy`（只分组，不做速度排序；仍可能重排） |
+| `op_fusion` | bool | `false` | 在 default 或 Ray 执行器中融合兼容算子，减少重复处理 |
+| `fusion_strategy` | str | `probe` | 融合策略：`probe` 按分组和探测速度安排顺序；`greedy` 按融合分组安排顺序。测速适用于 default 执行器和普通 Analyzer |
 | `mapper_fusion` | bool | `true` | 融合连续 GPU Mapper（需 op_fusion 开启） |
 | `mapper_fusion_vram_limit` | float | `0.9` | 融合 Mapper 聚合显存上限 |
-| `adaptive_batch_size` | bool | `false` | 在 `default` 执行器中探测并调整批处理算子的批大小；Ray 执行器和 Analyzer 不应用此设置 |
+| `adaptive_batch_size` | bool | `false` | `default` 执行器中批处理算子的自适应批大小 |
 | `turbo` | bool | `false` | Turbo 模式（batch_size=1 时最大化速度） |
 
 ---
@@ -115,7 +115,7 @@
 | `resume` | str | `None` | 恢复指定 job ID 的任务（仅 ray_partitioned） |
 | `event_logging.enabled` | bool | `true` | 启用事件日志 |
 | `event_log_dir` | str | `None` | 事件日志目录（推荐快速存储） |
-| `checkpoint_dir` | str | `None` | 分区检查点目录；default 执行器使用 `<work_dir>/ckpt`，不读取此字段 |
+| `checkpoint_dir` | str | `None` | `ray_partitioned` 执行器的检查点目录；default 执行器的检查点位于 `<work_dir>/ckpt` |
 
 ---
 
@@ -133,14 +133,15 @@
 
 ---
 
-## 日志
+## 预留配置字段
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `max_log_size_mb` | int | `100` | 解析器接受，但尚未接入内置日志器；目前不能配置日志轮转 |
-| `backup_count` | int | `5` | 解析器接受，但尚未接入内置日志器；目前不能配置日志保留策略 |
+下列字段为预留项，内置执行器尚未使用。日志输出配置见[作业管理](JobManagement_ZH.md)，分区文件管理见[中间存储](PartitionAndCheckpoint_ZH.md)。
 
-这两个字段也不是 `setup_logger()` 的参数。可执行的日志示例见[作业管理](JobManagement_ZH.md)。类似地，当前分区执行器不读取已声明的 `intermediate_storage.*`、旧版 `preserve_intermediate_data` 和 `resource_optimization.auto_configure` 配置；实际行为见[中间存储](PartitionAndCheckpoint_ZH.md)。
+| 字段 | 类别 |
+|------|------|
+| `max_log_size_mb`、`backup_count` | 日志轮转与保留 |
+| `intermediate_storage.*`、`preserve_intermediate_data` | 中间存储 |
+| `resource_optimization.auto_configure` | 资源配置 |
 
 ---
 

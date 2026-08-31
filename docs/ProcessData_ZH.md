@@ -15,7 +15,7 @@
 dj-process --config my-recipe.yaml
 ```
 
-Data-Juicer 读取菜谱文件，按 `process` 列表的顺序依次执行算子，将结果写入 `export_path`。
+Data-Juicer 读取菜谱文件，默认按 `process` 列表的顺序依次执行算子，将结果写入 `export_path`。
 
 ### 命令行覆盖
 
@@ -32,7 +32,7 @@ dj-process --config recipe.yaml --language_id_score_filter.lang=en
 dj-install --config my-recipe.yaml
 ```
 
-预装工具能从算子源码中识别的依赖；它不会递归收集辅助模块中的全部依赖，也不保证模型权重已下载或菜谱可以离线运行。详见[安装文档](tutorial/Installation_ZH.md)。
+工具根据菜谱中的算子列表扫描源码，并预装识别到的依赖。扫描范围和运行环境准备步骤见[安装文档](tutorial/Installation_ZH.md)。
 
 ---
 
@@ -141,7 +141,7 @@ dataset = dataset.process(ops)
 
 ## 算子执行顺序最佳实践
 
-`process` 列表中的算子**从上到下串行执行**。顺序影响性能和结果：
+默认执行流程按照 `process` 列表**从上到下串行执行**。顺序影响性能和结果：
 
 1. **低成本过滤先行**：文本长度、语言识别等轻量算子尽早减少数据量
 2. **去重放中段**：去重需全局状态，在初步过滤后、精细处理前执行
@@ -169,8 +169,10 @@ process:
 
 ```yaml
 op_fusion: true
-fusion_strategy: probe   # probe（分组后按探测速度排序）| greedy（仅分组，仍可能重排）
+fusion_strategy: probe   # probe：分组并按探测速度排序；greedy：按融合组安排顺序
 ```
+
+融合会按兼容性分组，并可能调整菜谱中的算子顺序。`default` 执行器和普通 Analyzer 使用 `probe` 时，默认取当前数据集的前 1,000 条测速，不足 1,000 条则全部使用。每个算子将这批样本复制为其实际进程数对应的份数，再执行测速。Ray 执行器按融合分组安排算子顺序。
 
 ### GPU Mapper 融合
 
@@ -182,7 +184,7 @@ mapper_fusion: true
 adaptive_batch_size: true
 ```
 
-`adaptive_batch_size` 仅由 `default` 执行器应用，且只更新批处理算子的批大小。它不会开启 Ray 执行器的自动批大小调整。
+`default` 执行器通过 `adaptive_batch_size` 探测并调整批处理算子的批大小。
 
 ### 数据采样试跑
 
@@ -196,9 +198,9 @@ dataset:
       path: path/to/your/dataset.jsonl
 ```
 
-将路径替换为自己的数据集，并将预算设为不超过源数据条数的值。`max_sample_num` 是样本条数预算，不是百分比，也不是只会截短数据的上限：预算超过可用样本数时，采样器会重复样本来补足。抽样发生在加载之后，因此不保证减少输入 I/O。也可以提前准备小样本文件并直接使用，正式全量运行时移除预算。
+将路径替换为自己的数据集。`max_sample_num` 指定采样条数；小样本试跑时，将它设为不超过源数据条数的值。预算超过源数据条数时，会重复采样以补足预算。
 
-`data_probe_ratio` 和 `data_probe_algo` 属于 Sandbox 模型推理探测步骤，普通 `dj-process` 不会自动应用；仅设置 `data_probe_ratio: 0.01` 仍会处理全部输入。参见[分析与工具专用参数](GlobalConfig_ZH.md)。
+采样在数据加载完成后执行。需要同时减少读取量时，可预先生成小样本文件并用它作为输入。正式处理全部数据时，移除 `max_sample_num`。
 
 ---
 
@@ -208,13 +210,13 @@ dataset:
 use_checkpoint: true
 ```
 
-默认执行器需要复用同一个 `job_id` 和工作目录基路径才能找到旧断点；只重复同一 YAML 会生成新作业 ID。首次运行就指定稳定 ID，中断后重复同一命令（保持输入与菜谱不变）：
+默认执行器通过 `job_id` 和工作目录基路径定位检查点。首次运行时指定一个固定 ID，中断后保持输入、菜谱和工作目录配置一致，重复运行该命令即可恢复：
 
 ```bash
 dj-process --config your-recipe.yaml --use_checkpoint true --job_id recipe-checkpoint
 ```
 
-断点位于解析后的 `<cfg.work_dir>/ckpt`，其中 `work_dir` 包含 `job_id`；默认执行器不读取 `checkpoint_dir`。`use_checkpoint` 会禁用数据缓存，并与 `op_fusion` 互斥。
+断点位于解析后的 `<cfg.work_dir>/ckpt`，其中 `work_dir` 包含 `job_id`。`use_checkpoint` 会禁用数据缓存，并与 `op_fusion` 互斥。
 
 对于 `ray_partitioned` 模式有更精细的策略，失败后可通过 `--resume <job_id>` 恢复。详见[全局配置](GlobalConfig_ZH.md)。
 

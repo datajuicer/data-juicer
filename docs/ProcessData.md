@@ -15,7 +15,7 @@ This guide covers running data processing pipelines with Data-Juicer—both CLI 
 dj-process --config my-recipe.yaml
 ```
 
-Data-Juicer reads the recipe, executes operators in the listed order, and writes results to `export_path`.
+Data-Juicer reads the recipe, executes operators in the listed order by default, and writes results to `export_path`.
 
 ### Command-Line Overrides
 
@@ -32,7 +32,7 @@ dj-process --config recipe.yaml --language_id_score_filter.lang=en
 dj-install --config my-recipe.yaml
 ```
 
-Preinstalls dependencies that the scanner can identify in operator source. It does not recursively collect every dependency in helper modules or guarantee that model weights are downloaded or a recipe can run offline. See [Installation](tutorial/Installation.md).
+The tool scans source files for the operators in the recipe and preinstalls the dependencies it identifies. See [Installation](tutorial/Installation.md) for the scan scope and environment preparation.
 
 ---
 
@@ -137,7 +137,7 @@ dataset = dataset.process(ops)
 
 ## Operator Execution Order
 
-Operators run **top-to-bottom sequentially**. Order matters:
+By default, operators run **top-to-bottom sequentially**. Order matters:
 
 1. **Cheap filters first**: Text length, language ID—reduce sample count early
 2. **Dedup in the middle**: Requires global state; run after initial filtering
@@ -165,8 +165,10 @@ Fuses compatible operators to reduce repeated processing. Both default and Ray e
 
 ```yaml
 op_fusion: true
-fusion_strategy: probe   # probe (group and sort by probed speed) | greedy (group; may reorder)
+fusion_strategy: probe   # probe: group and sort by measured speed; greedy: order by fusion group
 ```
+
+Fusion groups compatible operators and may change their order in the recipe. With `probe`, the `default` executor and standard Analyzer use the first 1,000 rows of the current dataset by default, or all rows of a smaller dataset. Each operator runs the probe on copies of this batch, with one copy per runtime process. Ray executors arrange operators by fusion group.
 
 ### GPU Mapper Fusion
 
@@ -178,7 +180,7 @@ mapper_fusion: true
 adaptive_batch_size: true
 ```
 
-`adaptive_batch_size` is applied only by the `default` executor, and updates only batched operators. It does not enable automatic batch-size tuning in the Ray executors.
+The `default` executor uses `adaptive_batch_size` to probe and adjust batch sizes for batched operators.
 
 ### Sampling Dry Run
 
@@ -192,9 +194,9 @@ dataset:
       path: path/to/your/dataset.jsonl
 ```
 
-Replace the path with your dataset and choose a budget no larger than its row count. `max_sample_num` is a sample-count budget, not a percentage or a truncation-only limit: if the budget exceeds the available rows, the sampler repeats rows to fill it. Sampling happens after loading, so this does not guarantee reduced input I/O. Alternatively, prepare a small input file first and use it directly. Remove the budget for the full run.
+Replace the path with your dataset. `max_sample_num` sets the sample count; for a small trial, choose a count no larger than the source. Larger budgets are filled by repeating samples.
 
-`data_probe_ratio` and `data_probe_algo` belong to the Sandbox model-inference probe. A normal `dj-process` run does not apply them automatically; setting `data_probe_ratio: 0.01` alone still processes the full input. See [Analysis and tool-specific parameters](GlobalConfig.md).
+Sampling runs after data loading. To also reduce input reads, prepare a small sample file and use it as the input. Remove `max_sample_num` to process the full dataset.
 
 ---
 
@@ -204,13 +206,13 @@ Replace the path with your dataset and choose a budget no larger than its row co
 use_checkpoint: true
 ```
 
-The default executor must reuse the same `job_id` and working-directory base to find a previous checkpoint. Repeating a YAML alone creates a new job ID. Specify a stable ID on the first run, then repeat the same command after interruption, keeping the input and recipe unchanged:
+The default executor locates checkpoints by `job_id` and the working-directory base. Specify a fixed ID on the first run. To resume after interruption, run the same command with the same input, recipe, and working-directory configuration:
 
 ```bash
 dj-process --config your-recipe.yaml --use_checkpoint true --job_id recipe-checkpoint
 ```
 
-Checkpoints live in the resolved `<cfg.work_dir>/ckpt`, where `work_dir` includes `job_id`. The default executor does not read `checkpoint_dir`. `use_checkpoint` disables data caching and is mutually exclusive with `op_fusion`.
+Checkpoints live in the resolved `<cfg.work_dir>/ckpt`, where `work_dir` includes `job_id`. `use_checkpoint` disables data caching and is mutually exclusive with `op_fusion`.
 
 For `ray_partitioned`, finer strategies are available; resume with `--resume <job_id>`. See [Global Config](GlobalConfig.md).
 

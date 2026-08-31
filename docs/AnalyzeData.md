@@ -46,7 +46,7 @@ print(analyzer.overall_result)
 
 ### Analyze an Existing Dataset
 
-Wrap the loaded data explicitly: with current dependencies, `from_json()` returns a plain Hugging Face Dataset, while Analyzer needs the `.process()` method.
+Wrap a Hugging Face Dataset in `NestedDataset` to use it with Analyzer:
 
 ```python
 from data_juicer.core import Analyzer, NestedDataset
@@ -62,9 +62,9 @@ dataset = NestedDataset(NestedDataset.from_json('my-data.jsonl'))
 analyzed = analyzer.run(dataset=dataset)
 ```
 
-### Compute Stats Without Exporting Results
+### Use Statistics in Memory
 
-Call a Filter directly with `reduce=False` to compute statistics without filtering or exporting a dataset or analysis reports. Dataset caching may still write cache files.
+Call a Filter with `reduce=False` to compute per-row statistics, retain all input rows, and return a dataset for further use in your script. The caller controls dataset and report export; enabled dataset caching uses disk storage.
 
 ```python
 from data_juicer.core import NestedDataset
@@ -77,8 +77,6 @@ stats = analyzed[Fields.stats]
 avg_len = sum(s[StatsKeys.text_len] for s in stats) / len(stats) if len(stats) else 0
 print(f"Average text length: {avg_len:.2f}")
 ```
-
-`Analyzer.run(..., skip_export=True)` has a different scope: it skips the overall tables and plots, but currently still exports the statistics dataset and creates working directories/configuration backups. It is not a no-export mode.
 
 ### Manual Analysis Pipeline
 
@@ -145,7 +143,7 @@ cfg = init_configs(args=[
     '--export_path', './analysis/stats.jsonl',
 ], allow_auto=True)
 cfg.process = process_config
-# Auto mode remains enabled: analyze at most auto_num rows (default 1000).
+# Auto mode analyzes at most auto_num rows (default 1000).
 
 analyzer = Analyzer(cfg)
 analyzed = analyzer.run(dataset=dataset)
@@ -162,6 +160,8 @@ The analyzer produces:
 - **Correlation analysis**: heatmap of metric correlations
 
 Plots and overall tables are saved in `analyzer.analysis_path` (`<cfg.work_dir>/analysis`); the resolved `work_dir` includes `job_id`. The statistics dataset is exported according to `export_path`.
+
+`Analyzer.run(..., skip_export=True)` saves the statistics dataset and skips export of overall tables and plots. Analyzer creates the working directory and backs up the configuration during initialization.
 
 ---
 

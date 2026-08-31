@@ -140,7 +140,7 @@ As the number of operators grows, installing every dependency becomes heavy. Ins
   dj-install --config path_to_your_data-juicer_config_file
   ```
 
-  The tool scans direct imports and LazyLoader declarations in the configured operators' source; it does not recursively collect all dependencies in helper modules. Running the recipe may still install additional packages or download model weights. A successful install command does not guarantee offline readiness.
+  The tool scans direct imports and LazyLoader declarations in the configured operators' source files. Helper-module dependencies and model weights may be loaded when operators run. For offline use, run the required recipe in advance and cache its dependencies and models.
 
 ## 6. Installation Using Docker
 

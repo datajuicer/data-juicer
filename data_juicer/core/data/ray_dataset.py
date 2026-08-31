@@ -405,13 +405,7 @@ class RayDataset(DJDataset):
     def read_json(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         # Note: a temp solution for reading json stream
         # TODO: replace with ray.data.read_json_stream once it is available
-        import pyarrow.json as js
-
-        try:
-            js.open_json
-            return read_json_stream(paths, **kwargs)
-        except AttributeError:
-            return ray.data.read_json(paths, **kwargs)
+        return read_json_stream(paths, **kwargs)
 
     @classmethod
     def read_webdataset(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
@@ -530,6 +524,13 @@ def read_json_stream(
     override_num_blocks: Optional[int] = None,
     **arrow_json_args,
 ) -> ray.data.Dataset:
+    import pyarrow.json as js
+
+    # YAML/CLI options are dictionaries; PyArrow expects a ReadOptions object.
+    read_options = arrow_json_args.get("read_options")
+    if isinstance(read_options, dict):
+        arrow_json_args["read_options"] = js.ReadOptions(**read_options)
+
     # Check if open_json is available (PyArrow 20.0.0+)
     # If not, fall back to ray.data.read_json which works with older PyArrow
     try:
@@ -539,7 +540,23 @@ def read_json_stream(
     except (ImportError, AttributeError):
         # Fall back to standard ray.data.read_json for older PyArrow versions
         # This works with filesystem parameter for S3
-        return ray.data.read_json(paths, filesystem=filesystem)
+        return ray.data.read_json(
+            paths,
+            filesystem=filesystem,
+            parallelism=parallelism,
+            ray_remote_args=ray_remote_args,
+            arrow_open_stream_args=arrow_open_stream_args,
+            meta_provider=meta_provider,
+            partition_filter=partition_filter,
+            partitioning=partitioning,
+            include_paths=include_paths,
+            ignore_missing_paths=ignore_missing_paths,
+            shuffle=shuffle,
+            file_extensions=file_extensions,
+            concurrency=concurrency,
+            override_num_blocks=override_num_blocks,
+            **arrow_json_args,
+        )
 
     if meta_provider is None:
         meta_provider = ray.data.read_api.DefaultFileMetadataProvider()

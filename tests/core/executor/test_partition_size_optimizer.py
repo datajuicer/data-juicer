@@ -280,6 +280,23 @@ class PartitionSizeOptimizerTest(DataJuicerTestCaseBase):
 
     # ==================== Dataset Characteristics Analysis Tests ====================
 
+    def test_text_keys_configuration_controls_characteristics(self):
+        from datasets import Dataset
+        from data_juicer.core.executor.partition_size_optimizer import ModalityType, PartitionSizeOptimizer
+
+        rows = [
+            {'body': {'content': 'abc'}, 'text': 'ignored', 'images': ['image.jpg']},
+            {'body': {'content': 'abcde'}, 'text': 'ignored', 'images': ['image.jpg']},
+        ]
+        dataset = Dataset.from_list(rows)
+        for keys in ('body.content', ['body.content'], ['body.content', 'text'], []):
+            with self.subTest(text_keys=keys):
+                cfg = Namespace(text_keys=keys)
+                characteristics = PartitionSizeOptimizer(cfg).analyze_dataset_characteristics(dataset)
+                self.assertEqual(characteristics.avg_text_length, 4 if keys else 0)
+                self.assertEqual(characteristics.primary_modality,
+                                 ModalityType.MULTIMODAL if keys else ModalityType.IMAGE)
+
     def test_analyze_dataset_characteristics_text(self):
         """Test dataset analysis for text data."""
         from data_juicer.core.executor.partition_size_optimizer import (

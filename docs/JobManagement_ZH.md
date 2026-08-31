@@ -39,7 +39,7 @@ partition:
 
 ## 日志
 
-日志按作业组织，支持轮转和保留：
+日志按作业组织：
 
 ```
 {job_dir}/
@@ -59,8 +59,8 @@ from data_juicer.utils.logger_utils import setup_logger
 setup_logger(
     save_dir="./outputs",
     filename="log.txt",
-    max_log_size_mb=100,
-    backup_count=5
+    level="INFO",
+    redirect=False
 )
 ```
 

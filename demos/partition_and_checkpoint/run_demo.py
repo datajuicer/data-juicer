@@ -26,6 +26,7 @@ import os
 import subprocess
 import time
 import json
+import yaml
 from pathlib import Path
 import re
 
@@ -230,20 +231,17 @@ def check_resource_optimization(config_file):
     print(f"\n⚙️ Resource-Aware Partitioning Check:")
     print("=" * 60)
 
-    # Check if resource optimization is enabled in config
     if os.path.exists(config_file):
         with open(config_file, 'r') as f:
-            config_content = f.read()
-
-        if "resource_optimization:" in config_content and "auto_configure: true" in config_content:
-            print("✅ Resource optimization is enabled")
-            print("   - Automatic partition size optimization")
-            print("   - Worker count optimization")
-            print("   - 256MB partition targeting")
+            config = yaml.safe_load(f) or {}
+        partition = config.get('partition') or {}
+        if partition.get('mode', 'auto') == 'auto' or partition.get('num_of_partitions') == 'auto':
+            print("Auto partitioning: analyze dataset characteristics and cluster resources")
+            print(f"   Target partition size: {partition.get('target_size_mb', 256)} MB")
         else:
-            print("ℹ️ Resource optimization not enabled (using manual configuration)")
+            print(f"Manual partition count: {partition.get('num_of_partitions', 4)}")
     else:
-        print(f"❌ Config file {config_file} not found")
+        print(f"Config file {config_file} not found")
 
     print("=" * 60)
 
@@ -308,7 +306,7 @@ def main():
     # Demo 3: New job with different checkpoint strategy (auto-generated job_id)
     print("\n🎯 Demo 3: Different Checkpoint Strategy")
     print("=" * 80)
-    extra_args = ["--checkpoint.strategy", "every_partition"]
+    extra_args = ["--checkpoint.enabled", "true", "--checkpoint.strategy", "every_op"]
     result3 = run_data_juicer_command(config_file, None, extra_args)
     job_id_2 = get_latest_job_id(work_dir)
     if result3.returncode == 0 and job_id_2:

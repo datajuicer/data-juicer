@@ -119,11 +119,22 @@ class DatasetBuilder(object):
         if self.use_generated_dataset_config:
             return DatasetBuilder.load_dataset_by_generated_config(self.generated_dataset_config)
 
+        # Apply global reader defaults here so execution and analysis share the
+        # same loading behavior. Explicit call arguments take precedence.
+        if self.executor_type == "default":
+            load_kwargs = dict(getattr(self.cfg, "load_dataset_kwargs", None) or {})
+        else:
+            load_kwargs = {
+                "read_options": getattr(self.cfg, "read_options", None),
+                "override_num_blocks": getattr(self.cfg, "override_num_blocks", None),
+            }
+        load_kwargs.update(kwargs)
+
         _datasets = []
         # load datasets with sample numbers
         for stra, weight, sample_num in zip(self.load_strategies, self.weights, self.sample_numbers):
             # load dataset with its load strategy
-            dataset = stra.load_data(**kwargs)
+            dataset = stra.load_data(**load_kwargs)
 
             # do data validation
             for validator in self.validators:

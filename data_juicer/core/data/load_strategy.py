@@ -288,7 +288,10 @@ class RayLocalJsonDataLoadStrategy(RayDataLoadStrategy):
         else:
             logger.info(f"Loading {data_format} data.")
         try:
-            dataset = RayDataset.read(data_format, path, override_num_blocks=override_num_blocks)
+            read_kwargs = {"override_num_blocks": override_num_blocks}
+            if data_format == "json":
+                read_kwargs["read_options"] = kwargs.get("read_options")
+            dataset = RayDataset.read(data_format, path, **read_kwargs)
             return RayDataset(dataset, dataset_path=path, cfg=self.cfg)
         except Exception as e:
             if auto_detect:

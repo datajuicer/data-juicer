@@ -653,8 +653,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # must therefore happen before DatasetBuilder.load_dataset() so saved
         # row boundaries have the same meaning when a job is resumed.
         self._enable_deterministic_execution()
-        override_num_blocks = getattr(self.cfg, "override_num_blocks", None)
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np, override_num_blocks=override_num_blocks)
+        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
         dataset_schema = dataset.schema()
         columns = dataset_schema.columns
 

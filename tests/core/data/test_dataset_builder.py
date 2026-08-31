@@ -719,5 +719,58 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
         self.assertEqual(captured_kwargs['chunksize'], 99999)
 
 
+class DatasetLoadingOptionsTest(DataJuicerTestCaseBase):
+
+    def test_global_parquet_columns_and_call_override(self):
+        from datasets import Dataset
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'data.parquet')
+            Dataset.from_dict({'text': ['one', 'two'], 'extra': [1, 2]}).to_parquet(path)
+            cfg = Namespace(dataset_path=path, text_keys=['text'], process=[])
+            self.assertEqual(set(DatasetBuilder(cfg).load_dataset().features), {'text', 'extra'})
+
+            cfg.load_dataset_kwargs = {'columns': ['text']}
+            builder = DatasetBuilder(cfg)
+            selected = builder.load_dataset(num_proc=1)
+            self.assertEqual(selected.to_list(), [{'text': 'one'}, {'text': 'two'}])
+
+            overridden = builder.load_dataset(num_proc=1, columns=['text', 'extra'])
+            self.assertEqual(overridden.to_list(), [{'text': 'one', 'extra': 1}, {'text': 'two', 'extra': 2}])
+            self.assertEqual(cfg.load_dataset_kwargs, {'columns': ['text']})
+
+    @TEST_TAG('ray')
+    def test_ray_global_read_options_and_call_override(self):
+        import json
+        import ray
+
+        started_ray = not ray.is_initialized()
+        if started_ray:
+            ray.init(num_cpus=2, include_dashboard=False)
+        try:
+            with tempfile.TemporaryDirectory(dir=WORK_DIR) as tmp:
+                path = os.path.join(tmp, 'data.jsonl')
+                records = [{'text': 'x' * 2048, 'index': i} for i in range(4)]
+                with open(path, 'w') as stream:
+                    for row in records:
+                        stream.write(json.dumps(row) + '\n')
+                cfg = Namespace(dataset_path=path, text_keys=['text'], process=[])
+                self.assertEqual(DatasetBuilder(cfg, 'ray').load_dataset().data.take_all(), records)
+
+                cfg.read_options = {'block_size': 16}
+                cfg.override_num_blocks = 2
+                with self.assertRaises(Exception) as caught:
+                    DatasetBuilder(cfg, 'ray').load_dataset().data.take_all()
+                self.assertIn('block', str(caught.exception).lower())
+
+                loaded = DatasetBuilder(cfg, 'ray').load_dataset(read_options={'block_size': 65536})
+                self.assertEqual(loaded.data.take_all(), records)
+                self.assertEqual(loaded.data.materialize().num_blocks(), 2)
+                self.assertEqual(cfg.read_options, {'block_size': 16})
+        finally:
+            if started_ray:
+                ray.shutdown()
+
+
 if __name__ == '__main__':
     unittest.main()

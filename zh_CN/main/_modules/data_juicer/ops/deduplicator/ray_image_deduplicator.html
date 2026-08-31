@@ -429,7 +429,7 @@
 
 
 <div class="viewcode-block" id="get_hash_method">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_image_deduplicator.html#data_juicer.ops.deduplicator.ray_image_deduplicator.get_hash_method">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_image_deduplicator.html#data_juicer.ops.deduplicator.get_hash_method">[文档]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_hash_method</span><span class="p">(</span><span class="n">method_name</span><span class="p">):</span>
     <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"phash"</span><span class="p">:</span> <span class="n">imgdedup_methods</span><span class="o">.</span><span class="n">PHash</span><span class="p">,</span>
@@ -443,7 +443,7 @@
 
 
 <div class="viewcode-block" id="RayImageDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_image_deduplicator.html#data_juicer.ops.deduplicator.ray_image_deduplicator.RayImageDeduplicator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayImageDeduplicator">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_IMAGES</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RayImageDeduplicator</span><span class="p">(</span><span class="n">RayBasicDeduplicator</span><span class="p">):</span>
@@ -457,7 +457,7 @@
 <span class="sd">    specified keys and computes their combined hash for comparison."""</span>
 
 <div class="viewcode-block" id="RayImageDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_image_deduplicator.html#data_juicer.ops.deduplicator.ray_image_deduplicator.RayImageDeduplicator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayImageDeduplicator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"ray_actor"</span><span class="p">,</span>
@@ -481,7 +481,7 @@
 
 
 <div class="viewcode-block" id="RayImageDeduplicator.calculate_hash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_image_deduplicator.html#data_juicer.ops.deduplicator.ray_image_deduplicator.RayImageDeduplicator.calculate_hash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayImageDeduplicator.calculate_hash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_key</span><span class="p">]:</span>
             <span class="k">return</span> <span class="n">RayBasicDeduplicator</span><span class="o">.</span><span class="n">EMPTY_HASH_VALUE</span>

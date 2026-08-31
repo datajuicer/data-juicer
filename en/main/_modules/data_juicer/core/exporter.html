@@ -596,7 +596,15 @@
 <span class="sd">        :param export_path: the path to export datasets.</span>
 <span class="sd">        :return: the suffix of export_path.</span>
 <span class="sd">        """</span>
-        <span class="n">suffix</span> <span class="o">=</span> <span class="n">export_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">export_path</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="s2">"/"</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Cannot determine file format from export_path "</span>
+                <span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">export_path</span><span class="si">}</span><span class="s2">] because it has no file extension. "</span>
+                <span class="sa">f</span><span class="s2">"Please add a suffix (e.g. .jsonl, .json, .parquet) "</span>
+                <span class="sa">f</span><span class="s2">"or specify export_type explicitly."</span>
+            <span class="p">)</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">suffix</span>
 
     <span class="nd">@staticmethod</span>

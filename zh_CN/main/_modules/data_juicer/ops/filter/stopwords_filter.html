@@ -510,7 +510,7 @@
             <span class="k">return</span> <span class="n">sample</span>
 
         <span class="c1"># try to get words from context</span>
-        <span class="n">words_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">InterVars</span><span class="o">.</span><span class="n">words</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">words_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">InterVars</span><span class="o">.</span><span class="n">words</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="si">}</span><span class="s2">"</span>
         <span class="k">if</span> <span class="n">context</span> <span class="ow">and</span> <span class="n">words_key</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">context</span><span class="p">]:</span>
             <span class="n">words</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">context</span><span class="p">][</span><span class="n">words_key</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
@@ -523,7 +523,9 @@
 
         <span class="c1"># try to get refined words from context</span>
         <span class="n">refined_words_key</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">InterVars</span><span class="o">.</span><span class="n">refined_words</span><span class="si">}</span><span class="s2">-True-SPECIAL_CHARS-"</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">InterVars</span><span class="o">.</span><span class="n">refined_words</span><span class="si">}</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="si">}</span><span class="s2">"</span>
+            <span class="s2">"-True-SPECIAL_CHARS-"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">use_words_aug</span><span class="si">}</span><span class="s2">-"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">words_aug_group_sizes</span><span class="si">}</span><span class="s2">-"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">words_aug_join_char</span><span class="si">}</span><span class="s2">"</span>

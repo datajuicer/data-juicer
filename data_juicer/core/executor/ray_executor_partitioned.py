@@ -31,7 +31,7 @@ from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin, EventType
 from data_juicer.core.ray_exporter import RayExporter
-from data_juicer.ops import load_ops
+from data_juicer.ops import Filter, Mapper, load_ops
 from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
 from data_juicer.utils.config_utils import ConfigAccessor
@@ -41,6 +41,13 @@ from data_juicer.utils.lazy_loader import LazyLoader
 ray = LazyLoader("ray")
 
 _AUTO_CPU_PARTITION_CAP = 4
+_AUTO_GPU_PIPELINE_CPU_FRACTION = 0.80
+_AUTO_GPU_PIPELINE_MEMORY_FRACTION = 0.90
+_DEFAULT_MAX_GPU_WORKERS_PER_DEVICE = 5
+_DEFAULT_GPU_PROBE_WARMUP_BATCHES = 1
+_DEFAULT_GPU_PROBE_STEADY_BATCHES = 3
+_DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO = 0.10
+_LOGICAL_PARTITION_COLUMN = "__data_juicer_logical_partition_id__"
 _PARTITION_CONTENT_HASH_ALGORITHM = "sha256-sequence-v1"
 _PARTITION_CONTENT_HASH_MODULUS = 1 << 256
 _PARTITION_CONTENT_HASH_BASE = int.from_bytes(hashlib.sha256(b"data-juicer-partition-sequence-v1").digest(), "big") | 1
@@ -87,6 +94,21 @@ def _combine_partition_hash_partials(partials: List[Dict]) -> tuple:
 
     payload = f"{_PARTITION_CONTENT_HASH_ALGORITHM}:{row_count}:{sequence_hash:064x}"
     return hashlib.sha256(payload.encode("ascii")).hexdigest(), row_count
+
+
+def _add_logical_partition_id(batch, partition_id: int):
+    """Attach the checkpoint partition identity without changing row order."""
+    import pyarrow
+
+    if _LOGICAL_PARTITION_COLUMN in batch.column_names:
+        index = batch.column_names.index(_LOGICAL_PARTITION_COLUMN)
+        batch = batch.remove_column(index)
+    values = pyarrow.array([partition_id] * batch.num_rows, type=pyarrow.int64())
+    return batch.append_column(_LOGICAL_PARTITION_COLUMN, values)
+
+
+def _matches_logical_partition(row: Dict, partition_id: int) -> bool:
+    return row[_LOGICAL_PARTITION_COLUMN] == partition_id
 
 
 class TempDirManager:
@@ -342,6 +364,42 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         mode = ConfigAccessor.get(partition_cfg, "mode", "auto")
         num_of_partitions = ConfigAccessor.get(partition_cfg, "num_of_partitions", 4)
         max_concurrent_partitions = ConfigAccessor.get(partition_cfg, "max_concurrent_partitions", "auto")
+        max_gpu_workers_per_device = ConfigAccessor.get(
+            partition_cfg,
+            "max_gpu_workers_per_device",
+            _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE,
+        )
+        max_concurrent_gpu_probes = ConfigAccessor.get(
+            partition_cfg,
+            "max_concurrent_gpu_probes",
+            "auto",
+        )
+        gpu_preflight_enabled = ConfigAccessor.get(
+            partition_cfg,
+            "gpu_preflight_enabled",
+            True,
+        )
+        gpu_probe_timeout_seconds = ConfigAccessor.get(
+            partition_cfg,
+            "gpu_probe_timeout_seconds",
+            None,
+        )
+        gpu_probe_warmup_batches = ConfigAccessor.get(
+            partition_cfg,
+            "gpu_probe_warmup_batches",
+            _DEFAULT_GPU_PROBE_WARMUP_BATCHES,
+        )
+        gpu_probe_steady_batches = ConfigAccessor.get(
+            partition_cfg,
+            "gpu_probe_steady_batches",
+            _DEFAULT_GPU_PROBE_STEADY_BATCHES,
+        )
+        execution_group_size = ConfigAccessor.get(partition_cfg, "execution_group_size", "auto")
+        max_initialization_overhead_ratio = ConfigAccessor.get(
+            partition_cfg,
+            "max_initialization_overhead_ratio",
+            _DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO,
+        )
         partition_size = ConfigAccessor.get(partition_cfg, "size", 5000)
         max_size_mb = ConfigAccessor.get(partition_cfg, "max_size_mb", 64)
 
@@ -387,6 +445,93 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         self.partition_mode = mode
         self.num_partitions = num_of_partitions
         self.max_concurrent_partitions = max_concurrent_partitions
+        if isinstance(gpu_preflight_enabled, str):
+            normalized = gpu_preflight_enabled.strip().lower()
+            if normalized in {"true", "1", "yes", "on"}:
+                self.gpu_preflight_enabled = True
+            elif normalized in {"false", "0", "no", "off"}:
+                self.gpu_preflight_enabled = False
+            else:
+                logger.warning(
+                    "Invalid partition.gpu_preflight_enabled=" f"{gpu_preflight_enabled!r}; enabling GPU preflight"
+                )
+                self.gpu_preflight_enabled = True
+        else:
+            self.gpu_preflight_enabled = bool(gpu_preflight_enabled)
+        try:
+            self.max_gpu_workers_per_device = max(1, int(max_gpu_workers_per_device))
+        except (TypeError, ValueError):
+            logger.warning(
+                "Invalid partition.max_gpu_workers_per_device="
+                f"{max_gpu_workers_per_device!r}; using {_DEFAULT_MAX_GPU_WORKERS_PER_DEVICE}"
+            )
+            self.max_gpu_workers_per_device = _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE
+        if isinstance(max_concurrent_gpu_probes, str) and max_concurrent_gpu_probes.strip().lower() == "auto":
+            self.max_concurrent_gpu_probes = None
+        else:
+            try:
+                self.max_concurrent_gpu_probes = max(1, int(max_concurrent_gpu_probes))
+            except (TypeError, ValueError):
+                logger.warning(
+                    "Invalid partition.max_concurrent_gpu_probes=" f"{max_concurrent_gpu_probes!r}; using auto"
+                )
+                self.max_concurrent_gpu_probes = None
+        if gpu_probe_timeout_seconds is None:
+            self.gpu_probe_timeout_seconds = None
+        else:
+            try:
+                timeout = float(gpu_probe_timeout_seconds)
+                if isinstance(gpu_probe_timeout_seconds, bool) or timeout <= 0:
+                    raise ValueError
+                self.gpu_probe_timeout_seconds = timeout
+            except (TypeError, ValueError):
+                logger.warning(
+                    "Invalid partition.gpu_probe_timeout_seconds="
+                    f"{gpu_probe_timeout_seconds!r}; disabling the probe timeout"
+                )
+                self.gpu_probe_timeout_seconds = None
+        try:
+            if isinstance(gpu_probe_warmup_batches, bool):
+                raise ValueError
+            self.gpu_probe_warmup_batches = max(0, int(gpu_probe_warmup_batches))
+        except (TypeError, ValueError):
+            logger.warning(
+                "Invalid partition.gpu_probe_warmup_batches="
+                f"{gpu_probe_warmup_batches!r}; using {_DEFAULT_GPU_PROBE_WARMUP_BATCHES}"
+            )
+            self.gpu_probe_warmup_batches = _DEFAULT_GPU_PROBE_WARMUP_BATCHES
+        try:
+            if isinstance(gpu_probe_steady_batches, bool) or int(gpu_probe_steady_batches) < 1:
+                raise ValueError
+            self.gpu_probe_steady_batches = int(gpu_probe_steady_batches)
+        except (TypeError, ValueError):
+            logger.warning(
+                "Invalid partition.gpu_probe_steady_batches="
+                f"{gpu_probe_steady_batches!r}; using {_DEFAULT_GPU_PROBE_STEADY_BATCHES}"
+            )
+            self.gpu_probe_steady_batches = _DEFAULT_GPU_PROBE_STEADY_BATCHES
+        if isinstance(execution_group_size, str) and execution_group_size.strip().lower() == "auto":
+            self.execution_group_size = "auto"
+        else:
+            try:
+                if isinstance(execution_group_size, bool) or int(execution_group_size) < 1:
+                    raise ValueError
+                self.execution_group_size = int(execution_group_size)
+            except (TypeError, ValueError):
+                logger.warning(f"Invalid partition.execution_group_size={execution_group_size!r}; using auto")
+                self.execution_group_size = "auto"
+        try:
+            ratio = float(max_initialization_overhead_ratio)
+            if isinstance(max_initialization_overhead_ratio, bool) or not 0 < ratio < 1:
+                raise ValueError
+            self.max_initialization_overhead_ratio = ratio
+        except (TypeError, ValueError):
+            logger.warning(
+                "Invalid partition.max_initialization_overhead_ratio="
+                f"{max_initialization_overhead_ratio!r}; using "
+                f"{_DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO}"
+            )
+            self.max_initialization_overhead_ratio = _DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO
         self.partition_size = partition_size
         self.max_size_mb = max_size_mb
 
@@ -399,6 +544,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     def _configure_auto_partitioning(self, dataset, ops):
         """Configure partitioning using the partition size optimizer for auto mode."""
         recommendations = None
+        total_samples = getattr(self, "_auto_total_samples", None)
         try:
             from data_juicer.core.executor.partition_size_optimizer import (
                 auto_configure_resources,
@@ -425,15 +571,16 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
             # Calculate optimal number of partitions based on dataset size and recommended partition size
             try:
-                if hasattr(dataset, "count"):
-                    total_samples = dataset.count()
-                elif hasattr(dataset, "__len__"):
-                    total_samples = len(dataset)
-                else:
-                    total_samples = 10000  # Fallback estimate
+                if total_samples is None:
+                    if hasattr(dataset, "count"):
+                        total_samples = dataset.count()
+                    elif hasattr(dataset, "__len__"):
+                        total_samples = len(dataset)
+                    else:
+                        total_samples = 10000  # Fallback estimate
 
                 # Calculate number of partitions needed
-                self.num_partitions = max(1, int(total_samples / recommended_size))
+                self.num_partitions = max(1, math.ceil(total_samples / recommended_size))
 
                 # Cap partitions at 2x recommended workers (scales with cluster size)
                 max_partitions = max(32, recommended_workers * 2)
@@ -455,29 +602,47 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 logger.warning(f"Could not determine dataset size for partition calculation: {e}")
                 logger.info(f"Using fallback partition count: {self.num_partitions}")
 
+        # Keep a real row-count ceiling even when the optimizer is unavailable.
+        # Ray Dataset.split() accepts counts larger than the dataset and creates
+        # empty partitions, which is especially costly for actor-based GPU
+        # pipelines because every empty partition still builds an operator graph.
+        if total_samples is None and dataset is not None:
+            try:
+                if hasattr(dataset, "count"):
+                    total_samples = dataset.count()
+                elif hasattr(dataset, "__len__"):
+                    total_samples = len(dataset)
+            except Exception as e:
+                logger.warning(f"Could not determine dataset size for partition ceiling: {e}")
+
         # Align the partition count with the real cluster topology. This
         # also runs when the optimizer failed above, so the fallback
         # count still benefits from cluster awareness.
         try:
-            self._apply_cluster_partition_bounds(ops)
+            self._apply_cluster_partition_bounds(ops, total_samples=total_samples)
         except Exception as e:
             logger.warning(f"Cluster-aware partition bounds failed: {e}")
 
-    def _apply_cluster_partition_bounds(self, ops: List) -> None:
+    def _apply_cluster_partition_bounds(self, ops: List, total_samples: Optional[int] = None) -> None:
         """Align the auto partition count with the cluster topology.
 
-        The data-driven count acts as a ceiling (memory safety); the cluster
-        topology provides the floor and target:
+        The data-driven count determines how many partitions the workload
+        needs. Cluster topology supplies an upper target, not a lower bound:
 
-        - floor: ``max(nodes x partitions_per_node, nodes, concurrency)`` so
-          every node stays busy and no resolved concurrent-partition slot
-          idles (a partition count below driver concurrency wastes threads);
-        - target: roughly 2x resolved concurrency so tail partitions overlap
-          instead of serializing the final stage.
+        - capacity target: ``max(nodes x partitions_per_node, nodes)``;
+        - overlap target: roughly 2x resolved concurrency so tail partitions
+          can overlap instead of serializing the final stage.
+
+        A small workload must not be expanded merely to fill theoretical
+        worker slots. In particular, fractional GPU requests can imply
+        hundreds of slots on a large-memory GPU; treating that capacity as a
+        partition floor creates empty partitions and actor scheduling stalls.
+        When the row count is known, it is also a hard ceiling so automatic
+        mode never asks Ray to create empty partitions.
 
         Requires ``_resolve_max_concurrent_partitions`` to have run first so
         ``max_concurrent_partitions`` is an integer; otherwise concurrency is
-        treated as unknown (0) and only the node-based floor applies.
+        treated as unknown (0) and only the node-based capacity target applies.
         """
         from data_juicer.utils.ray_cluster_utils import detect_cluster_topology
 
@@ -489,19 +654,22 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         concurrency = max(0, int(concurrency))
 
         per_node = self._resolve_partitions_per_node(ops, topology)
-        floor = max(topology.num_nodes * per_node, topology.num_nodes, concurrency)
-        target = max(2 * concurrency, floor) if concurrency > 0 else floor
+        capacity_target = max(topology.num_nodes * per_node, topology.num_nodes)
+        target = max(2 * concurrency, capacity_target) if concurrency > 0 else capacity_target
 
         data_driven = max(1, int(self.num_partitions))
-        # Raise small counts up to the cluster floor/target, but never beyond
-        # the data-driven ceiling; lower data-driven counts below the floor
-        # are raised to the floor because undersupplying the driver threads
-        # is the failure mode this guard prevents.
-        resolved = min(max(floor, target), max(floor, data_driven))
+        useful_ceiling = data_driven
+        if total_samples is not None:
+            useful_ceiling = min(useful_ceiling, max(1, int(total_samples)))
+
+        # Cluster resources cap useful outer parallelism. They must never
+        # manufacture work that the data-driven optimizer did not request.
+        resolved = max(1, min(useful_ceiling, target))
         if resolved != data_driven:
             logger.info(
                 f"Cluster-aware partitioning: adjusting num_partitions from {data_driven} to {resolved} "
-                f"(nodes={topology.num_nodes}, partitions_per_node={per_node}, concurrency={concurrency})"
+                f"(samples={total_samples}, nodes={topology.num_nodes}, "
+                f"partitions_per_node={per_node}, concurrency={concurrency})"
             )
         self.num_partitions = resolved
 
@@ -514,6 +682,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 "num_nodes": topology.num_nodes,
                 "partitions_per_node": per_node,
                 "max_concurrent_partitions": concurrency,
+                "total_samples": total_samples,
+                "cluster_target": target,
             }
         except (AttributeError, TypeError):
             pass
@@ -614,6 +784,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     f"Rerun the original command with --resume {self.job_id} to resume this job."
                 )
 
+        self._is_resuming = is_resuming
+
         if not is_resuming:
             logger.info("🚀 Starting simplified partitioned processing...")
         else:
@@ -668,6 +840,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
             post_instantiation_check(ops, dataset_schema, self.cfg)
 
+        # Profile unresolved GPU resources and plan per-operator parallelism
+        # only after the generic schema/environment validation has succeeded.
+        self._configure_pre_partition_resources(dataset, ops)
+
         # A resumed job must reuse the saved partition count before DAG
         # initialization. Auto mode can otherwise choose a different count if
         # the Ray cluster resources changed between runs.
@@ -681,20 +857,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             self.num_partitions = saved_info.num_partitions
             logger.info(f"Using saved partition count for resume: {self.num_partitions}")
         # Handle auto partition mode BEFORE initializing DAG
-        # (DAG needs final partition count)
-        elif self.partition_mode == "auto":
-            # Cluster-aware auto sizing needs the resolved driver
-            # concurrency; resolving here is safe because the call below is
-            # a no-op once the value is no longer "auto".
-            self._resolve_max_concurrent_partitions(ops)
+        # (DAG needs final partition count). At this point GPU preflight and
+        # automatic operator parallelism have both populated the real
+        # per-worker requests used by the cluster-aware bounds.
+        if not resume_requested and self.partition_mode == "auto":
             self._configure_auto_partitioning(dataset, ops)
-
-        # Record explicit actor-pool budgets and calculate automatic Ray
-        # operator parallelism once on the driver. Every partition shares the
-        # same operator objects, so resource planning must finish before the
-        # concurrent partition threads start.
-        self._configure_operator_parallelism(ops)
-        self._resolve_max_concurrent_partitions(ops)
 
         # Initialize DAG execution planning with final partition count
         # Pass ops to avoid redundant loading
@@ -774,9 +941,17 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             f"{partitioning_info.total_rows} total rows"
         )
 
+        if self._should_use_execution_groups(dataset, ops):
+            return self._process_partition_execution_groups(partitions, partitioning_info, ops)
+
         # Process partitions concurrently. Each worker thread drives one Ray
         # Dataset execution; the actual data processing still runs on Ray.
         requested_max_workers = min(len(partitions), self.max_concurrent_partitions)
+        if getattr(self, "_throughput_planned_op_ids", set()):
+            # Resume and unsupported operator graphs use the legacy per-partition
+            # path. Keep it sequential so the global actor plan is never
+            # multiplied by the number of driver threads.
+            requested_max_workers = 1
         max_workers = self._limit_partition_workers_for_explicit_actors(ops, requested_max_workers)
         logger.info(
             f"Processing {len(partitions)} partitions with up to {max_workers} concurrent "
@@ -830,6 +1005,219 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Return as RayDataset wrapper
         return RayDataset(merged_dataset, cfg=self.cfg)
+
+    def _should_use_execution_groups(self, dataset: RayDataset, ops: List) -> bool:
+        """Return whether logical partitions can safely share one GPU execution."""
+        if getattr(self, "_is_resuming", False):
+            logger.info("Using per-partition execution while resuming heterogeneous checkpoints.")
+            return False
+        has_gpu_actor = any(
+            getattr(op, "accelerator", None) == "cuda"
+            and (float(getattr(op, "num_gpus", 0) or 0) > 0 or op.use_ray_actor())
+            for op in ops
+        )
+        if not has_gpu_actor:
+            return False
+        if any(not isinstance(op, (Mapper, Filter)) for op in ops):
+            logger.info("GPU execution grouping is disabled because the segment contains a dataset-level operator.")
+            return False
+        try:
+            names = self._schema_names(dataset.data)
+        except Exception:
+            names = set()
+        if _LOGICAL_PARTITION_COLUMN in names:
+            raise RuntimeError(f"Input dataset contains reserved execution-group column {_LOGICAL_PARTITION_COLUMN!r}.")
+        return True
+
+    def _resolve_execution_group_size(
+        self,
+        partitioning_info: PartitioningInfo,
+        ops: List,
+    ) -> int:
+        """Choose how many logical partitions reuse one set of actor pools."""
+        total_partitions = max(1, partitioning_info.num_partitions)
+        configured = getattr(self, "execution_group_size", "auto")
+        if not (isinstance(configured, str) and configured.lower() == "auto"):
+            return min(total_partitions, max(1, int(configured)))
+
+        plan = getattr(self, "_resolved_throughput_actor_plan", None) or {}
+        stages = plan.get("operators") or []
+        if not stages or partitioning_info.total_rows <= 0:
+            return total_partitions
+
+        # Every stage actor pool is constructed once per execution group. The
+        # stages themselves are sequential, while actors within one stage are
+        # generally initialized concurrently; max(init) per stage is therefore
+        # a useful conservative wall-time estimate.
+        initialization_seconds = sum(float(stage.get("initialization_seconds", 0) or 0) for stage in stages)
+        source_capacity = min(float(stage.get("source_equivalent_rows_per_second", 0) or 0) for stage in stages)
+        if initialization_seconds <= 0 or source_capacity <= 0:
+            return total_partitions
+
+        rows_per_partition = partitioning_info.total_rows / total_partitions
+        processing_seconds = rows_per_partition / source_capacity
+        ratio = getattr(
+            self,
+            "max_initialization_overhead_ratio",
+            _DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO,
+        )
+        required_processing = initialization_seconds * (1 - ratio) / ratio
+        group_size = math.ceil(required_processing / max(processing_seconds, 1e-9))
+        return min(total_partitions, max(1, group_size))
+
+    @staticmethod
+    def _tag_execution_partition(partition, partition_id: int):
+        return partition.map_batches(
+            _add_logical_partition_id,
+            fn_kwargs={"partition_id": partition_id},
+            batch_format="pyarrow",
+        )
+
+    @staticmethod
+    def _logical_partition_view(dataset, partition_id: int):
+        return dataset.filter(
+            _matches_logical_partition,
+            fn_kwargs={"partition_id": partition_id},
+        ).drop_columns([_LOGICAL_PARTITION_COLUMN])
+
+    @staticmethod
+    def _schema_names(dataset) -> set:
+        schema = dataset.schema()
+        return set(getattr(schema, "names", None) or getattr(schema, "columns", None) or [])
+
+    def _process_partition_execution_groups(
+        self,
+        partitions: List,
+        partitioning_info: PartitioningInfo,
+        ops: List,
+    ) -> RayDataset:
+        """Run multiple checkpoint partitions through one actor-pool lifecycle."""
+        group_size = self._resolve_execution_group_size(partitioning_info, ops)
+        execution_group_count = math.ceil(len(partitions) / group_size)
+        plan = {
+            "logical_partitions": len(partitions),
+            "execution_group_size": group_size,
+            "execution_groups": execution_group_count,
+            "actor_pool_initializations_per_operator": execution_group_count,
+            "checkpoint_granularity": "logical_partition",
+        }
+        try:
+            self.cfg._resolved_execution_group_plan = plan
+        except (AttributeError, TypeError):
+            pass
+        logger.info(
+            f"GPU execution grouping: {len(partitions)} logical checkpoint partitions -> "
+            f"{execution_group_count} execution group(s), up to {group_size} partitions per actor lifecycle."
+        )
+
+        processed_groups = []
+        for start in range(0, len(partitions), group_size):
+            group_partitions = partitions[start : start + group_size]
+            partition_ids = list(range(start, start + len(group_partitions)))
+            for partition_id in partition_ids:
+                self._log_event(
+                    event_type=EventType.PARTITION_START,
+                    message=(
+                        f"Starting logical partition {partition_id + 1}/{len(partitions)} "
+                        f"in shared GPU execution group"
+                    ),
+                    partition_id=partition_id,
+                )
+
+            tagged = [
+                self._tag_execution_partition(partition, partition_id)
+                for partition, partition_id in zip(group_partitions, partition_ids)
+            ]
+            combined = tagged[0]
+            for tagged_partition in tagged[1:]:
+                combined = combined.union(tagged_partition)
+            try:
+                processed = self._process_execution_group_with_checkpointing(
+                    self._wrap_with_precomputed_parallelism(combined),
+                    partition_ids,
+                    ops,
+                )
+            except Exception as error:
+                for partition_id in partition_ids:
+                    self.log_partition_failed(partition_id, str(error), retry_count=0)
+                raise
+
+            processed_groups.append(processed.data)
+            for partition_id in partition_ids:
+                self._log_event(
+                    event_type=EventType.PARTITION_COMPLETE,
+                    message=(
+                        f"Completed logical partition {partition_id + 1}/{len(partitions)} "
+                        f"in shared GPU execution group"
+                    ),
+                    partition_id=partition_id,
+                )
+
+        merged = processed_groups[0]
+        for processed in processed_groups[1:]:
+            merged = merged.union(processed)
+        return RayDataset(merged, cfg=self.cfg)
+
+    def _process_execution_group_with_checkpointing(
+        self,
+        dataset: RayDataset,
+        partition_ids: List[int],
+        ops: List,
+    ) -> RayDataset:
+        """Execute once, while writing independent checkpoints for each tag."""
+        if not self.ckpt_manager.checkpoint_enabled:
+            current = dataset.process(ops)
+            current.data = current.data.materialize()
+            if _LOGICAL_PARTITION_COLUMN not in self._schema_names(current.data):
+                raise RuntimeError(
+                    "An operator removed the internal logical-partition tag; "
+                    "shared GPU execution cannot preserve checkpoint identity."
+                )
+            current.data = current.data.drop_columns([_LOGICAL_PARTITION_COLUMN])
+            return current
+
+        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
+        current = dataset
+        for group_idx, (start_idx, end_idx, group_ops) in enumerate(op_groups):
+            if not group_ops:
+                continue
+            input_rows = current.data.count()
+            started = time.time()
+            for partition_id in partition_ids:
+                if self.pipeline_dag:
+                    self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
+            current = current.process(group_ops)
+            current.data = current.data.materialize()
+            if _LOGICAL_PARTITION_COLUMN not in self._schema_names(current.data):
+                raise RuntimeError(f"Operation group {group_idx + 1} removed the internal logical-partition tag.")
+            duration = time.time() - started
+            output_rows = current.data.count()
+            metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
+            for partition_id in partition_ids:
+                if self.pipeline_dag:
+                    self._post_execute_operations_with_dag_monitoring(
+                        group_ops,
+                        partition_id=partition_id,
+                        metrics=metrics,
+                    )
+
+            last_op_idx = end_idx - 1
+            last_op_name = ops[last_op_idx]._name
+            if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
+                for partition_id in partition_ids:
+                    logical_dataset = self._wrap_with_precomputed_parallelism(
+                        self._logical_partition_view(current.data, partition_id)
+                    )
+                    self.ckpt_manager.save_checkpoint(
+                        logical_dataset,
+                        last_op_idx,
+                        last_op_name,
+                        partition_id,
+                        cfg=self.cfg,
+                    )
+
+        current.data = current.data.drop_columns([_LOGICAL_PARTITION_COLUMN])
+        return current
 
     def _process_partition(
         self,
@@ -902,16 +1290,412 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         self._auto_parallel_op_ids = {id(op) for op in auto_ops}
         calculate_ray_np(ops)
 
+    def _configure_pre_partition_resources(self, dataset, ops: List) -> None:
+        """Resolve worker resources before partition sizing and execution."""
+        if not getattr(self, "gpu_preflight_enabled", True):
+            logger.info(
+                "GPU preflight is disabled by partition.gpu_preflight_enabled=false; "
+                "using the configured operator resources and actor counts."
+            )
+            self._configure_operator_parallelism(ops)
+            self._resolve_max_concurrent_partitions(ops)
+            return
+
+        # Resource profiling is independent from the logical partition policy.
+        # Manual partition counts still need measured GPU memory and throughput
+        # for actor planning.
+        from data_juicer.core.executor.gpu_memory_probe import GPUMemoryProbe
+
+        GPUMemoryProbe(
+            self.work_dir,
+            max_gpu_workers_per_device=getattr(
+                self,
+                "max_gpu_workers_per_device",
+                _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE,
+            ),
+            max_concurrent_probes=getattr(self, "max_concurrent_gpu_probes", None),
+            probe_timeout_seconds=getattr(self, "gpu_probe_timeout_seconds", None),
+            warmup_batches=getattr(
+                self,
+                "gpu_probe_warmup_batches",
+                _DEFAULT_GPU_PROBE_WARMUP_BATCHES,
+            ),
+            steady_batches=getattr(
+                self,
+                "gpu_probe_steady_batches",
+                _DEFAULT_GPU_PROBE_STEADY_BATCHES,
+            ),
+        ).resolve(dataset, ops)
+
+        total_samples = self._count_dataset_rows(dataset)
+        if total_samples is not None:
+            self._auto_total_samples = total_samples
+
+        # Every partition shares the same operator objects. Automatic actor
+        # parallelism and outer partition concurrency must see probe results.
+        self._configure_operator_parallelism(ops)
+        self._configure_throughput_aware_gpu_parallelism(ops, total_samples=total_samples)
+        self._resolve_max_concurrent_partitions(ops, total_samples=total_samples)
+        self._cap_auto_gpu_operator_parallelism(
+            ops,
+            getattr(self, "_safe_gpu_workers_per_stage", None),
+            total_samples=total_samples,
+        )
+
     def _configure_auto_operator_parallelism(self, ops: List) -> None:
         """Compatibility wrapper for the former auto-only planner."""
         self._configure_operator_parallelism(ops)
 
-    def _resolve_max_concurrent_partitions(self, ops: List) -> int:
+    @staticmethod
+    def _gpu_actor_requests_fit(stage_specs: List[Dict[str, Any]], counts: List[int], total_gpus: float) -> bool:
+        """Check scheduling and measured-memory fractions on individual GPUs."""
+        device_count = int(math.floor(total_gpus + 1e-9))
+        if device_count < 1:
+            return False
+        requests = []
+        for spec, count in zip(stage_specs, counts):
+            requests.extend([(spec["num_gpus"], spec["memory_fraction"], spec["max_per_device"])] * count)
+        requests.sort(key=lambda item: (max(item[0], item[1]), item[1]), reverse=True)
+        devices = [{"gpu": 0.0, "memory": 0.0, "workers": 0} for _ in range(device_count)]
+        for gpu_fraction, memory_fraction, max_per_device in requests:
+            placed = False
+            for device in sorted(devices, key=lambda item: (item["gpu"], item["memory"], item["workers"])):
+                if (
+                    device["gpu"] + gpu_fraction <= 1.0 + 1e-9
+                    and device["memory"] + memory_fraction <= 1.0 + 1e-9
+                    and device["workers"] < max_per_device
+                ):
+                    device["gpu"] += gpu_fraction
+                    device["memory"] += memory_fraction
+                    device["workers"] += 1
+                    placed = True
+                    break
+            if not placed:
+                return False
+        return True
+
+    def _configure_throughput_aware_gpu_parallelism(
+        self,
+        ops: List,
+        *,
+        total_samples: Optional[int] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Allocate auto GPU actors to balance measured pipeline throughput.
+
+        Logical partitions are deliberately absent from this calculation. The
+        result is one global actor budget for the execution group, constrained
+        by CPU, per-device scheduling fractions, measured GPU memory, and the
+        amount of useful data available to each stage.
+        """
+        auto_ids = getattr(self, "_auto_parallel_op_ids", set())
+        candidates = [
+            op
+            for op in ops
+            if id(op) in auto_ids
+            and self._is_cuda_operator(op)
+            and float(getattr(op, "_gpu_rows_per_second", 0) or 0) > 0
+            and op.use_ray_actor()
+        ]
+        if not candidates:
+            self._resolved_throughput_actor_plan = None
+            self._throughput_planned_op_ids = set()
+            return None
+
+        from data_juicer.utils.ray_cluster_utils import detect_cluster_topology
+
+        topology = detect_cluster_topology()
+        cpu_budget = max(1.0, math.floor(topology.total_cpus * _AUTO_GPU_PIPELINE_CPU_FRACTION))
+        max_per_device = getattr(
+            self,
+            "max_gpu_workers_per_device",
+            _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE,
+        )
+
+        candidate_ids = {id(op) for op in candidates}
+        explicit_ids = getattr(self, "_explicit_actor_op_ids", set())
+        fixed_gpu_ops = [
+            op for op in ops if id(op) in explicit_ids and id(op) not in candidate_ids and self._is_cuda_operator(op)
+        ]
+        fixed_specs = []
+        fixed_counts = []
+        fixed_cpu = 0.0
+        for op in fixed_gpu_ops:
+            count = self._actor_pool_capacity(op.num_proc) or 1
+            fixed_counts.append(count)
+            fixed_cpu += count * float(getattr(op, "num_cpus", None) or 1.0)
+            fixed_specs.append(
+                {
+                    "num_gpus": float(getattr(op, "num_gpus", None) or 1.0),
+                    "memory_fraction": float(
+                        getattr(op, "_gpu_memory_fraction", 0) or getattr(op, "num_gpus", None) or 1.0
+                    ),
+                    "max_per_device": max_per_device,
+                }
+            )
+
+        source_ratio = 1.0
+        stage_specs = []
+        candidate_by_id = {id(op): op for op in candidates}
+        for op in ops:
+            if id(op) in candidate_by_id:
+                batch_size = max(1, int(getattr(op, "batch_size", 1) or 1))
+                stage_rows = None if total_samples is None else max(1, math.ceil(total_samples * source_ratio))
+                stage_specs.append(
+                    {
+                        "op": op,
+                        "name": getattr(op, "_name", type(op).__name__),
+                        "throughput": float(op._gpu_rows_per_second),
+                        "source_ratio": max(source_ratio, 1e-9),
+                        "data_cap": (None if stage_rows is None else max(1, math.ceil(stage_rows / batch_size))),
+                        "num_cpus": float(getattr(op, "num_cpus", None) or 1.0),
+                        "num_gpus": float(getattr(op, "num_gpus", None) or 1.0),
+                        "memory_fraction": float(
+                            getattr(op, "_gpu_memory_fraction", 0) or getattr(op, "num_gpus", None) or 1.0
+                        ),
+                        "max_per_device": max_per_device,
+                    }
+                )
+            measured_ratio = getattr(op, "_gpu_output_ratio", None)
+            if measured_ratio is not None and float(measured_ratio) >= 0:
+                source_ratio *= float(measured_ratio)
+
+        counts = [1] * len(stage_specs)
+
+        def cpu_used(values):
+            return fixed_cpu + sum(value * spec["num_cpus"] for value, spec in zip(values, stage_specs))
+
+        def resources_fit(values):
+            if cpu_used(values) > cpu_budget + 1e-9:
+                return False
+            return self._gpu_actor_requests_fit(
+                fixed_specs + stage_specs,
+                fixed_counts + values,
+                topology.total_gpus,
+            )
+
+        if not resources_fit(counts):
+            names = ", ".join(spec["name"] for spec in stage_specs)
+            raise RuntimeError(
+                "The Ray cluster cannot host the minimum throughput-aware GPU actor plan "
+                f"(one actor for each profiled stage: {names}). Reduce per-actor GPU memory, "
+                "reduce explicit actor budgets, or add GPU/CPU resources."
+            )
+
+        while True:
+            feasible = []
+            for index, spec in enumerate(stage_specs):
+                if spec["data_cap"] is not None and counts[index] >= spec["data_cap"]:
+                    continue
+                trial = list(counts)
+                trial[index] += 1
+                if not resources_fit(trial):
+                    continue
+                capacities = [
+                    value * item["throughput"] / item["source_ratio"] for value, item in zip(trial, stage_specs)
+                ]
+                feasible.append((min(capacities), -capacities[index], -index, index, trial))
+            if not feasible:
+                break
+            counts = max(feasible)[-1]
+
+        for count, spec in zip(counts, stage_specs):
+            spec["op"].num_proc = count
+        self._throughput_planned_op_ids = {id(spec["op"]) for spec in stage_specs}
+
+        plan = {
+            "policy": "balanced_source_throughput",
+            "total_samples": total_samples,
+            "cluster_cpus": topology.total_cpus,
+            "cluster_gpus": topology.total_gpus,
+            "cpu_budget": cpu_budget,
+            "cpu_used": cpu_used(counts),
+            "operators": [
+                {
+                    "name": spec["name"],
+                    "actors": count,
+                    "steady_rows_per_second": spec["throughput"],
+                    "source_input_ratio": spec["source_ratio"],
+                    "source_equivalent_rows_per_second": count * spec["throughput"] / spec["source_ratio"],
+                    "data_cap": spec["data_cap"],
+                    "num_cpus": spec["num_cpus"],
+                    "num_gpus": spec["num_gpus"],
+                    "memory_fraction": spec["memory_fraction"],
+                    "initialization_seconds": float(getattr(spec["op"], "_gpu_init_seconds", 0) or 0),
+                }
+                for count, spec in zip(counts, stage_specs)
+            ],
+        }
+        self._resolved_throughput_actor_plan = plan
+        try:
+            self.cfg._resolved_throughput_actor_plan = plan
+        except (AttributeError, TypeError):
+            pass
+        logger.info(
+            "Throughput-aware GPU actor plan: "
+            + ", ".join(f"{spec['name']}={count}" for count, spec in zip(counts, stage_specs))
+        )
+        return plan
+
+    @staticmethod
+    def _count_dataset_rows(dataset) -> Optional[int]:
+        """Return the exact row count when the dataset exposes one."""
+        if dataset is None:
+            return None
+        try:
+            if hasattr(dataset, "count"):
+                return max(0, int(dataset.count()))
+            if hasattr(dataset, "__len__"):
+                return max(0, int(len(dataset)))
+        except Exception as error:
+            logger.warning(f"Could not determine dataset row count for worker planning: {error}")
+        return None
+
+    @staticmethod
+    def _is_cuda_operator(op) -> bool:
+        try:
+            return bool(op.use_cuda())
+        except (AttributeError, RuntimeError):
+            return False
+
+    def _resolve_gpu_pipeline_worker_plan(self, ops: List, topology, total_samples: Optional[int] = None):
+        """Calculate a conservative common worker limit for all GPU stages."""
+        gpu_ops = [op for op in ops if self._is_cuda_operator(op)]
+        if not gpu_ops:
+            return None
+
+        cpu_per_pipeline = sum(float(getattr(op, "num_cpus", None) or 1.0) for op in gpu_ops)
+        gpu_per_pipeline = sum(float(getattr(op, "num_gpus", None) or 1.0) for op in gpu_ops)
+        memory_fractions = [float(getattr(op, "_gpu_memory_fraction", 0) or 0) for op in gpu_ops]
+
+        cpu_budget = max(1, math.floor(topology.total_cpus * _AUTO_GPU_PIPELINE_CPU_FRACTION))
+        cpu_capacity = math.floor(cpu_budget / cpu_per_pipeline + 1e-9)
+        gpu_capacity = math.floor(topology.total_gpus / gpu_per_pipeline + 1e-9)
+
+        memory_capacity = None
+        if memory_fractions and all(value > 0 for value in memory_fractions):
+            memory_capacity = math.floor(
+                topology.total_gpus * _AUTO_GPU_PIPELINE_MEMORY_FRACTION / sum(memory_fractions) + 1e-9
+            )
+
+        data_capacity = None
+        if total_samples is not None:
+            data_capacity = min(
+                max(1, math.ceil(total_samples / max(1, int(getattr(op, "batch_size", 1) or 1)))) for op in gpu_ops
+            )
+
+        capacities = [cpu_capacity, gpu_capacity]
+        if memory_capacity is not None:
+            capacities.append(memory_capacity)
+        if data_capacity is not None:
+            capacities.append(data_capacity)
+        safe_limit = min(capacities)
+        if safe_limit < 1:
+            logger.warning(
+                "The GPU pipeline resource sum cannot host one concurrent copy "
+                "of every GPU stage; using a worker limit of 1 so the existing "
+                "resource validation can surface the scheduling error."
+            )
+            safe_limit = 1
+
+        plan = {
+            "safe_workers_per_stage": safe_limit,
+            "gpu_operator_count": len(gpu_ops),
+            "gpu_operators": [getattr(op, "_name", type(op).__name__) for op in gpu_ops],
+            "total_samples": total_samples,
+            "cpu_budget": cpu_budget,
+            "cpu_per_pipeline": cpu_per_pipeline,
+            "cpu_capacity": cpu_capacity,
+            "gpu_per_pipeline": gpu_per_pipeline,
+            "gpu_capacity": gpu_capacity,
+            "memory_fraction_per_pipeline": sum(memory_fractions),
+            "gpu_memory_budget_fraction": _AUTO_GPU_PIPELINE_MEMORY_FRACTION,
+            "memory_capacity": memory_capacity,
+            "data_capacity": data_capacity,
+            "max_gpu_workers_per_device": getattr(
+                self,
+                "max_gpu_workers_per_device",
+                _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE,
+            ),
+        }
+        self._safe_gpu_workers_per_stage = safe_limit
+        try:
+            self.cfg._resolved_gpu_worker_plan = plan
+        except (AttributeError, TypeError):
+            pass
+        logger.info(
+            "Safe GPU worker plan: "
+            f"workers_per_stage={safe_limit} "
+            f"(cpu={cpu_capacity}, gpu={gpu_capacity}, memory={memory_capacity}, "
+            f"data={data_capacity}, stages={len(gpu_ops)})"
+        )
+        return plan
+
+    @staticmethod
+    def _cap_concurrency(concurrency, limit: int):
+        """Cap a Ray actor/task concurrency value without changing its shape."""
+        if isinstance(concurrency, bool) or concurrency is None:
+            return concurrency
+        if isinstance(concurrency, int):
+            return min(concurrency, limit) if concurrency > 0 else concurrency
+        if isinstance(concurrency, (tuple, list)):
+            capped = [
+                min(value, limit) if isinstance(value, int) and not isinstance(value, bool) and value > 0 else value
+                for value in concurrency
+            ]
+            if len(capped) >= 2 and isinstance(capped[0], int) and isinstance(capped[1], int):
+                capped[0] = min(capped[0], capped[1])
+            if (
+                len(capped) == 3
+                and isinstance(capped[0], int)
+                and isinstance(capped[1], int)
+                and isinstance(capped[2], int)
+            ):
+                capped[2] = min(max(capped[2], capped[0]), capped[1])
+            return tuple(capped)
+        return concurrency
+
+    def _cap_auto_gpu_operator_parallelism(
+        self,
+        ops: List,
+        safe_limit: Optional[int],
+        *,
+        total_samples: Optional[int] = None,
+    ) -> None:
+        """Apply the global safe limit to automatically planned GPU workers."""
+        if safe_limit is None:
+            return
+        auto_parallel_op_ids = getattr(self, "_auto_parallel_op_ids", set())
+        throughput_planned_op_ids = getattr(self, "_throughput_planned_op_ids", set())
+        for op in ops:
+            if (
+                id(op) not in auto_parallel_op_ids
+                or id(op) in throughput_planned_op_ids
+                or not self._is_cuda_operator(op)
+            ):
+                continue
+            op_limit = safe_limit
+            if total_samples is not None:
+                batch_size = max(1, int(getattr(op, "batch_size", 1) or 1))
+                op_limit = min(op_limit, max(1, math.ceil(total_samples / batch_size)))
+            original = op.num_proc
+            op.num_proc = self._cap_concurrency(op.num_proc, op_limit)
+            if op.num_proc != original:
+                logger.info(
+                    f"Op[{op._name}] automatic concurrency capped by the safe GPU "
+                    f"worker plan: {original} -> {op.num_proc}"
+                )
+
+    def _resolve_max_concurrent_partitions(
+        self,
+        ops: List,
+        total_samples: Optional[int] = None,
+    ) -> int:
         """Resolve automatic driver concurrency after operator planning.
 
-        A GPU pipeline is bounded by the tightest per-worker CPU/GPU
-        requirement. CPU-only pipelines use a small outer-pipeline cap because
-        Ray Data can already parallelize work inside each partition.
+        A GPU pipeline is bounded by the joint resource cost of all GPU stages
+        that can coexist in Ray's streaming execution. CPU-only pipelines use
+        a small outer-pipeline cap because Ray Data can already parallelize
+        work inside each partition.
         """
         raw_value = self.max_concurrent_partitions
         if not (isinstance(raw_value, str) and raw_value.lower() == "auto"):
@@ -964,7 +1748,12 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             resource_capacity = 1
 
         if gpu_operator_names:
-            resolved = resource_capacity
+            pipeline_plan = self._resolve_gpu_pipeline_worker_plan(
+                ops,
+                topology,
+                total_samples=total_samples,
+            )
+            resolved = min(resource_capacity, pipeline_plan["safe_workers_per_stage"])
             workload = f"GPU operators: {', '.join(gpu_operator_names)}"
         else:
             resolved = min(resource_capacity, _AUTO_CPU_PARTITION_CAP)

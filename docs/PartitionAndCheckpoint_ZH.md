@@ -17,6 +17,7 @@
 ```
 {work_dir}/{job_id}/
 ├── job_summary.json              # 作业元数据（完成时创建）
+├── gpu_probe_results.json         # 自动探测的 GPU Operator 资源
 ├── events_{timestamp}.jsonl      # 机器可读事件日志
 ├── dag_execution_plan.json       # DAG 执行计划
 ├── checkpoints/                  # 检查点数据
@@ -39,6 +40,14 @@ executor_type: ray_partitioned
 partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # 资源感知的 Driver 并发上限
+  max_gpu_workers_per_device: 5       # 每张 GPU 的保守模型副本上限
+  max_concurrent_gpu_probes: "auto"   # 默认填满可用 GPU/CPU 槽位，设置正整数可限制并发探测数
+  gpu_preflight_enabled: true          # false 时跳过 preflight，直接使用显式资源和 Actor 数
+  gpu_probe_timeout_seconds: null     # 可选的单任务超时；null 表示不主动终止
+  gpu_probe_warmup_batches: 1         # 稳态测速前的 warmup batch 数
+  gpu_probe_steady_batches: 3         # 用于稳态吞吐估计的 batch 数
+  execution_group_size: "auto"       # 共用一次 GPU Actor 生命周期的逻辑分区数
+  max_initialization_overhead_ratio: 0.1  # 每个执行组允许的模型初始化时间占比
   target_size_mb: 256    # 目标分区大小（128、256、512 或 1024）
   size: 5000             # 自动分析失败时的回退值
   max_size_mb: 256       # 回退最大大小
@@ -53,7 +62,43 @@ partition:
   max_concurrent_partitions: "auto"
 ```
 
-`max_concurrent_partitions: "auto"` 是默认值。该值会在 Operator 资源规划完成后解析：含 GPU Operator 的 pipeline 根据 Ray 集群可容纳的最小 CPU/GPU worker 数确定，纯 CPU pipeline 的外层并发保守限制为 4。实际并发还会受到 Partition 数量和显式全局 Actor `num_proc` 预算的限制。需要手动调优时，可将其设置为正整数来覆盖自动值。
+逻辑分区数与 GPU 执行并发现在相互独立：逻辑分区只决定 checkpoint 粒度、恢复边界和单分区数据上限；GPU Actor 数由 preflight 的稳态吞吐和集群资源统一规划。多个逻辑分区会组成 execution group，共用一次 Ray Actor pool 生命周期，但在每个 checkpoint 点仍按原逻辑分区分别落盘。`execution_group_size: "auto"` 会根据模型初始化时间、稳态吞吐、数据量和 `max_initialization_overhead_ratio` 选择组大小；显式正整数可覆盖该选择。续跑时可能存在不同 checkpoint 位置，因此会安全回退到逐分区串行执行。
+
+自动 Actor 规划先给每个待规划 GPU 阶段分配一个 Actor，然后反复给当前 pipeline 瓶颈阶段增加 Actor。每次增加都必须同时满足集群 CPU、Ray GPU 调度份额、每张卡的实测显存份额、每卡 Actor 上限以及有效 batch 数上限。若连“每阶段一个 Actor”的最低方案都无法放入集群，会在正式任务启动前直接报错，不会通过增加分区或超配显存来规避。
+
+#### GPU 显存预探测
+
+若希望运行固定资源的对照实验，可设置 `gpu_preflight_enabled: false`。此时不会读取小样本、初始化一次性探测 Actor 或生成 `gpu_probe_results.json`；CUDA 算子的 `num_gpus`、`memory` 和固定 `num_proc` 应由 recipe 显式给出，并建议同时关闭 `auto_op_parallelism`。
+
+在 `ray_partitioned` 模式下（包括手动分区），普通单卡 CUDA Mapper/Filter 会在正式实验启动前完成小样本 preflight。未配置 `memory`/`num_gpus` 的算子同时获得资源估计；显式值保持优先，但仍会测量吞吐用于自动 `num_proc` 规划：
+
+1. 只读取输入开头的固定样本，数量为所有待探测 GPU Operator 的最大 `batch_size`；
+2. Operator 可以通过 `input_columns` 和 `output_columns` 声明读写字段，支持 `__dj__meta__.quality_score` 这样的嵌套路径；执行器据此构建保守的数据依赖 DAG；
+3. 能证明相互独立、且祖先只包含兼容 CPU Mapper/Filter 的目标可以并行探测。每个一次性 Ray worker 接收轻量原始样本，在 worker 内重放所需 CPU 祖先，并为目标独占一张 GPU；因此不会再把大型 NumPy 中间值经 Driver 往返。`max_concurrent_gpu_probes: "auto"` 默认填满依赖安全的 GPU/CPU 槽位；当 checkpoint 存储或主机内存带宽不足时，可以设置正整数限制并发模型加载数；
+   worker 会分别记录依赖重放和目标测量耗时，Driver 在每个任务完成时立即记录，并每 30 秒输出一次存活任务心跳；可通过 `gpu_probe_timeout_seconds` 让卡住的目标带算子名超时失败，默认 `null` 不主动终止；
+4. 缺少字段契约、存在 GPU-to-GPU 依赖、runtime environment 不兼容或包含 Dataset 级 Operator 时，安全回退到原有 recipe 有序重放。若前序 Filter 导致样本不足，则循环补齐目标的一个 batch；
+5. 在同一个一次性 worker 内只初始化一次算子，分别记录模型初始化、warmup 和多个稳态 batch 的耗时，并统计稳态输入吞吐与输出比例；默认 warmup 1 个 batch、测量 3 个 batch；
+6. probe 不会在模型初始化期间从后台线程轮询 CUDA，以免 `cudaMemGetInfo` 与大量参数的 `model.to(cuda)` 竞争同一 CUDA context。一次性 worker 会像正式 Actor 一样让 Operator 自行初始化 CUDA，调用完成后合并 PyTorch allocator 的全过程峰值和设备持久占用（后者也覆盖 Paddle 等非 PyTorch runtime），再增加 10% 余量得到 `memory_fraction`；缺省资源时 Ray 使用的 `num_gpus` 为 `max(memory_fraction, 1 / max_gpu_workers_per_device)`，默认每张卡最多调度 5 个自动探测的模型 Actor；
+7. 将测量值、调度值、分阶段耗时、吞吐、输出比例、探测模式和重放依赖保存到 `{work_dir}/gpu_probe_results.json`。Operator 配置、GPU 型号/容量、测速 batch 数或每卡 worker 上限变化时会重新探测。原始 YAML 不会被覆盖。
+
+例如，共享一个 CPU resize 的多个独立图像打标算子可以只在 recipe 中声明字段契约，无需修改 Python 类：
+
+```yaml
+process:
+  - bucket_resize_mapper:
+      input_columns: [images]
+      output_columns: [_bucket_img]
+  - image_quality_mapper:
+      input_columns: [images, _bucket_img]
+      output_columns: [__dj__meta__.quality_score]
+  - image_rotation_mapper:
+      input_columns: [images, _bucket_img]
+      output_columns: [__dj__meta__.rotation_*]
+```
+
+省略字段契约表示“未知”，而不是“没有读写字段”；因此旧 recipe 会继续使用有序探测，直到相关 Operator 补齐契约。
+
+显式配置的 `memory` 或 `num_gpus` 始终优先，不会被实测值覆盖。当前 preflight 仅支持能装入单张 GPU 的普通 Mapper/Filter；GPU `Pipeline`、待探测 Operator 之前的 `Pipeline`，以及需要多张 GPU 的 Operator 必须显式配置资源和并发。空输入、探测异常、OOM 或无有效显存峰值都会在正式 partition worker 启动前终止任务。
 
 ### 检查点
 

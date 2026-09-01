@@ -17,6 +17,7 @@ The `ray_partitioned` executor splits datasets into partitions and processes the
 ```
 {work_dir}/{job_id}/
 ├── job_summary.json              # Job metadata (created on completion)
+├── gpu_probe_results.json         # Auto-probed GPU operator resources
 ├── events_{timestamp}.jsonl      # Machine-readable event log
 ├── dag_execution_plan.json       # DAG execution plan
 ├── checkpoints/                  # Checkpoint data
@@ -39,6 +40,14 @@ executor_type: ray_partitioned
 partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # Resource-aware driver concurrency
+  max_gpu_workers_per_device: 5       # Conservative model-replica cap per GPU
+  max_concurrent_gpu_probes: "auto"   # Fill available GPU/CPU slots; set an integer to cap parallel probes
+  gpu_preflight_enabled: true          # false skips preflight and uses explicit resources/actor counts
+  gpu_probe_timeout_seconds: null     # Optional per-probe timeout; null disables termination
+  gpu_probe_warmup_batches: 1         # Warmup batches before steady-state timing
+  gpu_probe_steady_batches: 3         # Batches used for steady-state throughput
+  execution_group_size: "auto"       # Logical partitions sharing one GPU actor lifecycle
+  max_initialization_overhead_ratio: 0.1  # Allowed model-init share per execution group
   target_size_mb: 256    # Target partition size (128, 256, 512, or 1024)
   size: 5000             # Fallback if auto-analysis fails
   max_size_mb: 256       # Fallback max size
@@ -53,12 +62,100 @@ partition:
   max_concurrent_partitions: "auto"
 ```
 
-`max_concurrent_partitions: "auto"` is the default. It is resolved after
-operator resource planning: GPU pipelines use the tightest CPU/GPU worker
-capacity reported by the Ray cluster, while CPU-only pipelines use a
-conservative outer-pipeline cap of 4. The actual concurrency is also bounded by
-the partition count and any explicit global actor `num_proc` budget. Set a
-positive integer to override the automatic limit.
+Logical partitions and GPU execution concurrency are independent. Logical
+partitions define checkpoint/recovery granularity and the per-partition data
+bound. Preflight throughput and cluster resources determine GPU actor counts.
+An execution group sends several logical partitions through one Ray actor-pool
+lifecycle while still writing a separate checkpoint for every logical
+partition. `execution_group_size: "auto"` uses measured initialization time,
+throughput, data volume, and `max_initialization_overhead_ratio`; a positive
+integer overrides it. Resume safely falls back to serial per-partition
+execution because partitions may be at different checkpoint boundaries.
+
+The automatic actor planner starts with one actor per profiled GPU stage and
+adds actors to the current pipeline bottleneck. Every addition must fit the
+cluster CPU budget, Ray GPU scheduling fractions, measured per-device GPU
+memory, the per-device actor cap, and useful-batch limits. If the cluster
+cannot host the one-actor-per-stage minimum, execution fails before the formal
+job instead of increasing partitions or oversubscribing GPU memory.
+
+#### GPU memory preflight
+
+For a fixed-resource control run, set `gpu_preflight_enabled: false`. The
+executor will not sample input rows, create disposable probe actors, or write
+`gpu_probe_results.json`. Configure CUDA `num_gpus`, `memory`, and fixed
+`num_proc` values explicitly, and normally disable `auto_op_parallelism` too.
+
+In `ray_partitioned` mode (including manual partitioning), ordinary single-GPU
+CUDA Mapper/Filter operators are profiled before the formal experiment. An op
+without `memory`/`num_gpus` also receives resource estimates. Explicit values
+still win, but throughput is measured for automatic `num_proc` planning:
+
+1. The executor takes a fixed prefix of the input. Its size is the largest
+   `batch_size` among operators that still need probing.
+2. Operators may declare `input_columns` and `output_columns`, including
+   nested paths such as `__dj__meta__.quality_score`. The executor builds a
+   conservative data-dependency graph from these contracts.
+3. Targets proven independent, with only compatible CPU Mapper/Filter
+   ancestors, can run concurrently. Each disposable Ray worker receives the
+   lightweight source rows, replays its required CPU ancestors locally, and
+   reserves one full GPU for the target. Large intermediate NumPy values are
+   therefore not round-tripped through the driver. The default
+   `max_concurrent_gpu_probes: "auto"` fills the dependency-safe GPU and CPU
+   slots. Set a positive integer to cap concurrent model loading when checkpoint
+   storage or host-memory bandwidth is constrained.
+   Workers log dependency replay and measured-target timing. The driver logs
+   each completion immediately and emits a progress heartbeat every 30 seconds.
+   `gpu_probe_timeout_seconds` can fail a stalled target with its operator name;
+   the default `null` keeps timeout termination disabled.
+4. Missing contracts, GPU-to-GPU dependencies, runtime-environment conflicts,
+   and dataset-level operations conservatively fall back to the original
+   ordered recipe replay. If an earlier filter leaves too few rows, surviving
+   rows are cycled to fill one target batch.
+5. The disposable worker constructs the target only once and separately
+   records model initialization, warmup, and multiple steady-state batches.
+   It reports steady input throughput and output ratio. Defaults are one
+   warmup batch and three measured batches.
+6. A probe does not poll CUDA from a background thread during model
+   initialization, avoiding `cudaMemGetInfo` contention with large
+   `model.to(cuda)` transfers on the same CUDA context. The disposable worker
+   lets the operator initialize CUDA as a formal actor would, then combines
+   PyTorch's allocator peak with final persistent device usage (which also
+   covers non-PyTorch runtimes such as Paddle). The measured value receives
+   10% headroom and becomes `memory_fraction`. Ray's scheduling `num_gpus` is `max(memory_fraction,
+   1 / max_gpu_workers_per_device)`; the default allows at most five
+   auto-probed model actors per physical GPU.
+7. Resource values, phased timing, throughput, output ratio, probe mode, and
+   replayed dependencies are saved in `{work_dir}/gpu_probe_results.json`. A resume
+   reuses entries when the operator configuration, GPU model/capacity, and
+   timing-batch settings, and per-device worker cap match, and re-probes
+   otherwise. The source YAML is not overwritten.
+
+For example, independent image taggers sharing a CPU resize can opt into the
+parallel path without changing their Python classes:
+
+```yaml
+process:
+  - bucket_resize_mapper:
+      input_columns: [images]
+      output_columns: [_bucket_img]
+  - image_quality_mapper:
+      input_columns: [images, _bucket_img]
+      output_columns: [__dj__meta__.quality_score]
+  - image_rotation_mapper:
+      input_columns: [images, _bucket_img]
+      output_columns: [__dj__meta__.rotation_*]
+```
+
+`None`/omitted metadata means unknown, not empty. Existing recipes therefore
+retain ordered probing until their operators declare a complete contract.
+
+An explicit `memory` or `num_gpus` always wins and is not overwritten by the
+measurement. Preflight currently supports ordinary Mapper/Filter operators
+that fit on one GPU.
+GPU `Pipeline` operators, a `Pipeline` before a pending target, and multi-GPU
+operators require explicit resources. Empty input, probe errors, OOM, and an
+invalid zero peak fail before formal partition workers start.
 
 ### Checkpointing
 

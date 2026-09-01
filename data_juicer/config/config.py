@@ -753,6 +753,77 @@ def build_base_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--partition.max_gpu_workers_per_device",
+        type=PositiveInt,
+        default=5,
+        help=(
+            "Maximum number of auto-probed GPU model workers scheduled on one physical GPU. "
+            "The measured memory fraction is retained separately; the default of 5 prevents "
+            "tiny models from overloading one GPU with excessive actors."
+        ),
+    )
+    parser.add_argument(
+        "--partition.max_concurrent_gpu_probes",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Maximum number of dependency-safe GPU preflight tasks running concurrently. "
+            "The default 'auto' fills the available GPU and CPU slots. Set a positive "
+            "integer to cap parallel model loading when storage or host-memory bandwidth "
+            "is limited; every probe reserves one full GPU."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_preflight_enabled",
+        type=bool,
+        default=True,
+        help=(
+            "Whether to profile CUDA Mapper/Filter operators before formal partitioned "
+            "execution. Disable only when GPU resources and actor counts are configured "
+            "explicitly."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_timeout_seconds",
+        type=Optional[float],
+        default=None,
+        help=(
+            "Optional timeout in seconds for each dependency-safe GPU preflight task. "
+            "The default None disables termination while 30-second progress heartbeats "
+            "remain enabled."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_warmup_batches",
+        type=NonNegativeInt,
+        default=1,
+        help="Number of unmeasured warmup batches before GPU steady-state throughput sampling.",
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_steady_batches",
+        type=PositiveInt,
+        default=3,
+        help="Number of batches used to estimate steady-state GPU operator throughput.",
+    )
+    parser.add_argument(
+        "--partition.execution_group_size",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Number of logical checkpoint partitions processed by one GPU actor-pool lifecycle. "
+            "'auto' uses preflight initialization and throughput measurements."
+        ),
+    )
+    parser.add_argument(
+        "--partition.max_initialization_overhead_ratio",
+        type=float,
+        default=0.1,
+        help=(
+            "Maximum estimated fraction of execution-group time spent initializing GPU models; "
+            "must be between 0 and 1."
+        ),
+    )
+    parser.add_argument(
         "--partition.target_size_mb",
         type=int,
         default=256,

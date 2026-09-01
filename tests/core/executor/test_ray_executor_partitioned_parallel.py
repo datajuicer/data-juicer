@@ -9,7 +9,10 @@ import pytest
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventType
 from data_juicer.core.executor.pipeline_dag import DAGNodeStatus, PipelineDAG
-from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
+from data_juicer.core.executor.ray_executor_partitioned import (
+    _LOGICAL_PARTITION_COLUMN,
+    PartitionedRayExecutor,
+)
 from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
 from data_juicer.utils.ray_cluster_utils import ClusterTopology
 
@@ -56,6 +59,7 @@ class FakeOp:
         self.num_cpus = num_cpus
         self.num_gpus = num_gpus
         self._cuda = cuda
+        self.batch_size = 1
 
     def use_auto_proc(self):
         return self._auto
@@ -281,6 +285,162 @@ def test_explicit_partition_concurrency_overrides_auto_detection():
 
     assert resolved == 3
     detect.assert_not_called()
+
+
+def test_gpu_pipeline_uses_joint_safe_worker_limit():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = SimpleNamespace()
+    executor.max_concurrent_partitions = "auto"
+    executor.max_gpu_workers_per_device = 4
+    ops = [
+        FakeOp("sentiment", (10, 30), num_cpus=1, num_gpus=0.25, cuda=True),
+        FakeOp("topic", (10, 30), num_cpus=1, num_gpus=0.25, cuda=True),
+        FakeOp("clip", (10, 30), num_cpus=1, num_gpus=0.25, cuda=True),
+    ]
+    for op, memory_fraction in zip(ops, (0.01, 0.01, 0.01)):
+        op.batch_size = 4
+        op._gpu_memory_fraction = memory_fraction
+
+    with patch(
+        "data_juicer.utils.ray_cluster_utils.detect_cluster_topology",
+        return_value=_topology_from_resources({"CPU": 32, "GPU": 2}),
+    ):
+        resolved = executor._resolve_max_concurrent_partitions(ops, total_samples=24)
+
+    assert resolved == 2
+    plan = executor.cfg._resolved_gpu_worker_plan
+    assert plan["cpu_capacity"] == 8
+    assert plan["gpu_capacity"] == 2
+    assert plan["memory_capacity"] == 60
+    assert plan["data_capacity"] == 6
+
+    executor._auto_parallel_op_ids = {id(op) for op in ops}
+    executor._cap_auto_gpu_operator_parallelism(ops, resolved, total_samples=24)
+    assert [op.num_proc for op in ops] == [(2, 2), (2, 2), (2, 2)]
+
+
+def test_throughput_aware_actor_plan_fills_gpus_without_partition_multiplier():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = SimpleNamespace()
+    executor.max_gpu_workers_per_device = 4
+    ops = [
+        FakeOp("slow", 20, num_cpus=1, num_gpus=0.25, cuda=True),
+        FakeOp("fast", 20, num_cpus=1, num_gpus=0.25, cuda=True),
+        FakeOp("medium", 20, num_cpus=1, num_gpus=0.25, cuda=True),
+    ]
+    for op, throughput in zip(ops, (10, 40, 20)):
+        op.batch_size = 10
+        op._gpu_rows_per_second = throughput
+        op._gpu_output_ratio = 1
+        op._gpu_init_seconds = 1
+        op._gpu_memory_fraction = 0.2
+    executor._auto_parallel_op_ids = {id(op) for op in ops}
+    executor._explicit_actor_op_ids = set()
+
+    with patch(
+        "data_juicer.utils.ray_cluster_utils.detect_cluster_topology",
+        return_value=_topology_from_resources({"CPU": 16, "GPU": 2}),
+    ):
+        plan = executor._configure_throughput_aware_gpu_parallelism(ops, total_samples=1000)
+
+    assert [op.num_proc for op in ops] == [5, 1, 2]
+    assert sum(item["actors"] * item["num_gpus"] for item in plan["operators"]) == 2
+    assert executor._throughput_planned_op_ids == {id(op) for op in ops}
+
+
+def test_throughput_actor_plan_fails_before_oversubscribing_one_gpu():
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = SimpleNamespace()
+    executor.max_gpu_workers_per_device = 4
+    ops = [
+        FakeOp("first", 1, num_cpus=1, num_gpus=0.6, cuda=True),
+        FakeOp("second", 1, num_cpus=1, num_gpus=0.6, cuda=True),
+    ]
+    for op in ops:
+        op._gpu_rows_per_second = 10
+        op._gpu_output_ratio = 1
+        op._gpu_init_seconds = 1
+        op._gpu_memory_fraction = 0.6
+    executor._auto_parallel_op_ids = {id(op) for op in ops}
+    executor._explicit_actor_op_ids = set()
+
+    with (
+        patch(
+            "data_juicer.utils.ray_cluster_utils.detect_cluster_topology",
+            return_value=_topology_from_resources({"CPU": 8, "GPU": 1}),
+        ),
+        pytest.raises(RuntimeError, match="minimum throughput-aware GPU actor plan"),
+    ):
+        executor._configure_throughput_aware_gpu_parallelism(ops, total_samples=100)
+
+
+def test_execution_group_runs_once_and_keeps_partition_scoped_checkpoints():
+    class Schema:
+        names = [_LOGICAL_PARTITION_COLUMN, "value"]
+
+    class GroupedData:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def count(self):
+            return len(self.rows)
+
+        def materialize(self):
+            return self
+
+        def schema(self):
+            return Schema()
+
+        def filter(self, function, fn_kwargs):
+            return GroupedData([row for row in self.rows if function(row, **fn_kwargs)])
+
+        def drop_columns(self, columns):
+            return GroupedData([{key: value for key, value in row.items() if key not in columns} for row in self.rows])
+
+    class GroupedRayDataset:
+        process_calls = 0
+
+        def __init__(self, data):
+            self.data = data
+
+        def process(self, ops):
+            type(self).process_calls += 1
+            return GroupedRayDataset(
+                GroupedData([{**row, "value": row["value"] + 1} for row in self.data.rows])
+            )
+
+    saved = {}
+
+    def save_checkpoint(dataset, op_idx, op_name, partition_id, cfg):
+        saved[partition_id] = dataset.data.rows
+
+    manager = SimpleNamespace(
+        checkpoint_enabled=True,
+        group_operations_for_checkpointing=lambda ops: [(0, 1, ops)],
+        should_checkpoint=lambda op_idx, op_name: True,
+        save_checkpoint=save_checkpoint,
+    )
+    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
+    executor.cfg = {}
+    executor.pipeline_dag = None
+    executor.ckpt_manager = manager
+    executor._wrap_with_precomputed_parallelism = lambda data: GroupedRayDataset(data)
+    data = GroupedData(
+        [
+            {_LOGICAL_PARTITION_COLUMN: 0, "value": 10},
+            {_LOGICAL_PARTITION_COLUMN: 1, "value": 20},
+        ]
+    )
+
+    result = executor._process_execution_group_with_checkpointing(
+        GroupedRayDataset(data),
+        [0, 1],
+        [SimpleNamespace(_name="gpu_mapper")],
+    )
+
+    assert GroupedRayDataset.process_calls == 1
+    assert saved == {0: [{"value": 11}], 1: [{"value": 21}]}
+    assert result.data.rows == [{"value": 11}, {"value": 21}]
 
 
 def test_auto_partition_concurrency_falls_back_to_one_when_ray_inspection_fails():

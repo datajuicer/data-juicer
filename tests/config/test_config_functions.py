@@ -647,6 +647,48 @@ class BuildBaseParserTest(DataJuicerTestCaseBase):
         cfg = parser.parse_args(["--auto", "--partition.max_concurrent_partitions=4"])
         self.assertEqual(cfg.partition.max_concurrent_partitions, 4)
 
+    def test_gpu_worker_cap_defaults_to_five(self):
+        parser = build_base_parser()
+        action = next(action for action in parser._actions if action.dest == "partition.max_gpu_workers_per_device")
+        self.assertEqual(action.default, 5)
+
+    def test_gpu_worker_cap_accepts_explicit_positive_integer(self):
+        parser = build_base_parser()
+        cfg = parser.parse_args(["--auto", "--partition.max_gpu_workers_per_device=2"])
+        self.assertEqual(cfg.partition.max_gpu_workers_per_device, 2)
+
+    def test_gpu_probe_concurrency_defaults_to_auto(self):
+        parser = build_base_parser()
+        action = next(action for action in parser._actions if action.dest == "partition.max_concurrent_gpu_probes")
+        self.assertEqual(action.default, "auto")
+
+    def test_gpu_probe_concurrency_accepts_explicit_positive_integer(self):
+        parser = build_base_parser()
+        cfg = parser.parse_args(["--auto", "--partition.max_concurrent_gpu_probes=3"])
+        self.assertEqual(cfg.partition.max_concurrent_gpu_probes, 3)
+
+    def test_gpu_probe_timeout_defaults_to_none_and_accepts_seconds(self):
+        parser = build_base_parser()
+        action = next(action for action in parser._actions if action.dest == "partition.gpu_probe_timeout_seconds")
+        self.assertIsNone(action.default)
+        cfg = parser.parse_args(["--auto", "--partition.gpu_probe_timeout_seconds=300"])
+        self.assertEqual(cfg.partition.gpu_probe_timeout_seconds, 300.0)
+
+    def test_gpu_profile_and_execution_group_defaults(self):
+        parser = build_base_parser()
+        cfg = parser.parse_args(["--auto"])
+
+        self.assertEqual(cfg.partition.gpu_probe_warmup_batches, 1)
+        self.assertEqual(cfg.partition.gpu_probe_steady_batches, 3)
+        self.assertEqual(cfg.partition.execution_group_size, "auto")
+        self.assertEqual(cfg.partition.max_initialization_overhead_ratio, 0.1)
+
+    def test_execution_group_accepts_explicit_positive_integer(self):
+        parser = build_base_parser()
+        cfg = parser.parse_args(["--auto", "--partition.execution_group_size=8"])
+
+        self.assertEqual(cfg.partition.execution_group_size, 8)
+
     def test_config_and_auto_mutually_exclusive(self):
         parser = build_base_parser()
         groups = [g for g in parser._mutually_exclusive_groups]

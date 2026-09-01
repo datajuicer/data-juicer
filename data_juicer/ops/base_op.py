@@ -299,6 +299,15 @@ class OP(metaclass=OPMetaClass):
     # executor modes this operator supports: "default", "ray", "ray_partitioned"
     _supported_exec_modes = ("default",)
 
+    # Optional data-flow contract used by dependency-aware optimizers.  ``None``
+    # means that the operator has not declared its reads/writes; an explicitly
+    # empty collection means that it reads/writes no dataset columns.  Nested
+    # paths such as ``__dj__meta__.quality_score`` are supported by consumers.
+    # Keep these conservative by default so existing and third-party operators
+    # are never assumed independent merely because metadata is absent.
+    _input_columns = None
+    _output_columns = None
+
     # extra requirements for this operator. Should be:
     #   1. a list of packages
     #   2. a string of the path to the requirements.txt file
@@ -325,6 +334,8 @@ class OP(metaclass=OPMetaClass):
         "history_key": (str, "history"),
         "index_key": (None, None),
         "work_dir": (None, None),
+        "input_columns": (None, None),
+        "output_columns": (None, None),
         # Behavior control
         "skip_op_error": (bool, False),
         "auto_op_parallelism": (bool, True),
@@ -419,6 +430,8 @@ class OP(metaclass=OPMetaClass):
         :param index_key: the key name of field that stores index
         :param batch_size: the batch size for processing
         :param work_dir: the working directory for this operator
+        :param input_columns: optional input-column contract for dependency-aware planning
+        :param output_columns: optional output-column contract for dependency-aware planning
         :param skip_op_error: whether to skip the error when processing samples
 
         # Ray related parameters
@@ -453,6 +466,18 @@ class OP(metaclass=OPMetaClass):
 
         self.index_key = kwargs.get("index_key", None)
         self.work_dir = kwargs.get("work_dir", None)
+
+        # A recipe can provide the same dependency contract as class-level
+        # declarations without requiring changes to a custom operator module.
+        # Preserve a class declaration when the corresponding recipe option is
+        # omitted.  Strings represent one column rather than an iterable of
+        # characters.
+        if "input_columns" in kwargs:
+            value = kwargs["input_columns"]
+            self._input_columns = [value] if isinstance(value, str) else value
+        if "output_columns" in kwargs:
+            value = kwargs["output_columns"]
+            self._output_columns = [value] if isinstance(value, str) else value
 
         # for unittest, do not skip the error.
         # It would be set to be True in config init.

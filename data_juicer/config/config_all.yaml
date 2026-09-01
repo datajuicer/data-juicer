@@ -90,7 +90,7 @@ partition:
   partitions_per_node: auto                                 # per-node partition multiplier for auto mode; "auto" uses per-node GPU slots for GPU pipelines (2x for CPU-only), set a positive integer to override
   max_concurrent_partitions: auto                           # resource-aware driver concurrency; set a positive integer to override
   max_gpu_workers_per_device: 5                             # conservative Ray scheduling cap for auto-probed GPU operators; implies a 0.2 scheduling floor while retaining measured memory separately
-  max_concurrent_gpu_probes: auto                           # dependency-safe preflight concurrency; auto serializes model loading to avoid shared-storage contention, set a positive integer to opt into parallel probes
+  max_concurrent_gpu_probes: auto                           # dependency-safe preflight concurrency; auto fills available GPU/CPU slots, set a positive integer to cap concurrent model loading
   gpu_preflight_enabled: true                               # set false to skip preflight and use explicitly configured GPU resources/actor counts
   gpu_probe_timeout_seconds: null                           # optional per-probe timeout; null disables termination while progress heartbeats remain enabled
   gpu_probe_warmup_batches: 1                               # warmup batches before steady-state GPU throughput measurement

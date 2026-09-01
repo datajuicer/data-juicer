@@ -27,7 +27,6 @@ _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE = 5
 _PROGRESS_INTERVAL_SECONDS = 30.0
 _MIB = 1024**2
 _PREFLIGHT_OP_ENV_VAR = "DATA_JUICER_GPU_PREFLIGHT_OP"
-_DEFAULT_AUTO_MAX_CONCURRENT_PROBES = 1
 
 
 def _positive_number(value: Any) -> Optional[float]:
@@ -567,8 +566,11 @@ def _run_parallel_probe_job(job: Mapping[str, Any], source_rows: List[Dict]) -> 
         steady_batches = max(1, int(job.get("steady_batches", 3)))
 
         def run_target():
-            previous_marker = os.environ.get(_PREFLIGHT_OP_ENV_VAR)
-            os.environ[_PREFLIGHT_OP_ENV_VAR] = target_name
+            # Keep operator execution identical to the formal Ray actor.  A
+            # diagnostic marker used here in the past enabled extra CUDA
+            # synchronizations in custom operators and could turn a normal
+            # model transfer into a multi-minute preflight stall.
+            previous_marker = os.environ.pop(_PREFLIGHT_OP_ENV_VAR, None)
             try:
                 return _profile_probe_target(target, target_rows, warmup_batches, steady_batches)
             finally:
@@ -641,8 +643,7 @@ def _run_probe_stage(
 
     def profile_stage():
         target_name = str(op_name or getattr(op_class, "_name", None) or op_class.__name__)
-        previous_marker = os.environ.get(_PREFLIGHT_OP_ENV_VAR)
-        os.environ[_PREFLIGHT_OP_ENV_VAR] = target_name
+        previous_marker = os.environ.pop(_PREFLIGHT_OP_ENV_VAR, None)
         try:
             init_started = time.monotonic()
             logger.info(f"GPU preflight profile Op[{target_name}] constructing operator instance.")
@@ -975,20 +976,11 @@ class GPUMemoryProbe:
         if cpu_slots < 1:
             raise RuntimeError(f"GPU preflight has no CPU slot for a probe requiring {max_job_cpus:g} CPU(s).")
         limit = min(len(jobs), gpu_slots, cpu_slots)
-        # GPU probes frequently initialize large models from the same shared
-        # filesystem.  Deriving the automatic limit from GPU/CPU slots alone
-        # can therefore create a model-loading storm: on an eight-GPU node,
-        # eight Ray workers may read several large checkpoints at once.
-        # Storage and host-memory bandwidth are not exposed as Ray resources,
-        # so the only generally safe automatic policy is to serialize probes.
-        # Users with local checkpoints or known I/O headroom can still opt in
-        # to parallel probing with an explicit cap.
-        configured_limit = (
-            self.max_concurrent_probes
-            if self.max_concurrent_probes is not None
-            else _DEFAULT_AUTO_MAX_CONCURRENT_PROBES
-        )
-        limit = min(limit, configured_limit)
+        # Auto mode fills dependency-safe GPU/CPU slots. Users can set an
+        # explicit cap when storage or host-memory bandwidth cannot sustain
+        # that many concurrent model initializations.
+        if self.max_concurrent_probes is not None:
+            limit = min(limit, self.max_concurrent_probes)
         return max(1, limit)
 
     def _run_parallel_jobs_with_ray(

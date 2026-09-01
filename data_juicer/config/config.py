@@ -768,9 +768,9 @@ def build_base_parser() -> ArgumentParser:
         default="auto",
         help=(
             "Maximum number of dependency-safe GPU preflight tasks running concurrently. "
-            "The default 'auto' runs one probe at a time to avoid concurrent model-loading "
-            "contention on shared storage. Set a positive integer to opt in to parallel "
-            "probing; every probe reserves one full GPU."
+            "The default 'auto' fills the available GPU and CPU slots. Set a positive "
+            "integer to cap parallel model loading when storage or host-memory bandwidth "
+            "is limited; every probe reserves one full GPU."
         ),
     )
     parser.add_argument(

@@ -41,7 +41,7 @@ partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # Resource-aware driver concurrency
   max_gpu_workers_per_device: 5       # Conservative model-replica cap per GPU
-  max_concurrent_gpu_probes: "auto"   # Serial by default; set an integer to opt in to parallel probes
+  max_concurrent_gpu_probes: "auto"   # Fill available GPU/CPU slots; set an integer to cap parallel probes
   gpu_preflight_enabled: true          # false skips preflight and uses explicit resources/actor counts
   gpu_probe_timeout_seconds: null     # Optional per-probe timeout; null disables termination
   gpu_probe_warmup_batches: 1         # Warmup batches before steady-state timing
@@ -101,10 +101,9 @@ still win, but throughput is measured for automatic `num_proc` planning:
    lightweight source rows, replays its required CPU ancestors locally, and
    reserves one full GPU for the target. Large intermediate NumPy values are
    therefore not round-tripped through the driver. The default
-   `max_concurrent_gpu_probes: "auto"` runs one probe at a time because Ray
-   cannot account for shared-filesystem and host-memory bandwidth consumed by
-   concurrent model loading. Set a positive integer to opt in to bounded
-   parallel probes when the checkpoint storage has sufficient I/O headroom.
+   `max_concurrent_gpu_probes: "auto"` fills the dependency-safe GPU and CPU
+   slots. Set a positive integer to cap concurrent model loading when checkpoint
+   storage or host-memory bandwidth is constrained.
    Workers log dependency replay and measured-target timing. The driver logs
    each completion immediately and emits a progress heartbeat every 30 seconds.
    `gpu_probe_timeout_seconds` can fail a stalled target with its operator name;

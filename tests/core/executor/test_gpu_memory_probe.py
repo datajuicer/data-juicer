@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -332,11 +333,26 @@ def test_parallel_worker_replays_cpu_dependency_and_measures_one_target():
         "target": _op_spec(consumer),
     }
 
-    def measure(function):
-        return function(), metrics(measured=123)
+    marker = "DATA_JUICER_GPU_PREFLIGHT_OP"
+    original_profile = _profile_probe_target
 
-    with patch("data_juicer.core.executor.gpu_memory_probe._measure_cuda_call", side_effect=measure):
+    def profile(*args, **kwargs):
+        assert marker not in os.environ
+        return original_profile(*args, **kwargs)
+
+    def measure(function):
+        assert os.environ[marker] == "custom_aesthetic_mapper"
+        output = function()
+        assert os.environ[marker] == "custom_aesthetic_mapper"
+        return output, metrics(measured=123)
+
+    with (
+        patch.dict(os.environ, {marker: "custom_aesthetic_mapper"}),
+        patch("data_juicer.core.executor.gpu_memory_probe._profile_probe_target", side_effect=profile),
+        patch("data_juicer.core.executor.gpu_memory_probe._measure_cuda_call", side_effect=measure),
+    ):
         result = _run_parallel_probe_job(job, [{"text": "a"}, {"text": "b"}])
+        assert os.environ[marker] == "custom_aesthetic_mapper"
 
     assert result["op_index"] == 1
     assert result["sample_count"] == 3
@@ -489,7 +505,7 @@ def test_gpu_dependent_target_falls_back_after_independent_parallel_probe(tmp_pa
     assert [record["probe_mode"] for record in records] == ["parallel", "ordered"]
 
 
-def test_parallel_probe_concurrency_is_serial_by_default_and_honors_user_cap(tmp_path):
+def test_parallel_probe_concurrency_fills_available_slots_and_honors_user_cap(tmp_path):
     targets = [
         DeclaredProbeMapper(
             name=f"gpu_{index}",
@@ -510,7 +526,7 @@ def test_parallel_probe_concurrency_is_serial_by_default_and_honors_user_cap(tmp
         automatic = GPUMemoryProbe(str(tmp_path))._parallel_probe_limit(jobs)
         explicit = GPUMemoryProbe(str(tmp_path), max_concurrent_probes=3)._parallel_probe_limit(jobs)
 
-    assert automatic == 1
+    assert automatic == 6
     assert explicit == 3
 
     with patch(

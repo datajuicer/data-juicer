@@ -41,7 +41,7 @@ partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # 资源感知的 Driver 并发上限
   max_gpu_workers_per_device: 5       # 每张 GPU 的保守模型副本上限
-  max_concurrent_gpu_probes: "auto"   # 默认串行，设置正整数可显式开启并行探测
+  max_concurrent_gpu_probes: "auto"   # 默认填满可用 GPU/CPU 槽位，设置正整数可限制并发探测数
   gpu_preflight_enabled: true          # false 时跳过 preflight，直接使用显式资源和 Actor 数
   gpu_probe_timeout_seconds: null     # 可选的单任务超时；null 表示不主动终止
   gpu_probe_warmup_batches: 1         # 稳态测速前的 warmup batch 数
@@ -74,7 +74,7 @@ partition:
 
 1. 只读取输入开头的固定样本，数量为所有待探测 GPU Operator 的最大 `batch_size`；
 2. Operator 可以通过 `input_columns` 和 `output_columns` 声明读写字段，支持 `__dj__meta__.quality_score` 这样的嵌套路径；执行器据此构建保守的数据依赖 DAG；
-3. 能证明相互独立、且祖先只包含兼容 CPU Mapper/Filter 的目标可以并行探测。每个一次性 Ray worker 接收轻量原始样本，在 worker 内重放所需 CPU 祖先，并为目标独占一张 GPU；因此不会再把大型 NumPy 中间值经 Driver 往返。由于 Ray 无法感知并发模型加载消耗的共享文件系统吞吐和主机内存带宽，`max_concurrent_gpu_probes: "auto"` 默认一次只运行一个探测任务；确认 checkpoint 存储有足够 I/O 余量时，可以设置正整数显式开启有界并行；
+3. 能证明相互独立、且祖先只包含兼容 CPU Mapper/Filter 的目标可以并行探测。每个一次性 Ray worker 接收轻量原始样本，在 worker 内重放所需 CPU 祖先，并为目标独占一张 GPU；因此不会再把大型 NumPy 中间值经 Driver 往返。`max_concurrent_gpu_probes: "auto"` 默认填满依赖安全的 GPU/CPU 槽位；当 checkpoint 存储或主机内存带宽不足时，可以设置正整数限制并发模型加载数；
    worker 会分别记录依赖重放和目标测量耗时，Driver 在每个任务完成时立即记录，并每 30 秒输出一次存活任务心跳；可通过 `gpu_probe_timeout_seconds` 让卡住的目标带算子名超时失败，默认 `null` 不主动终止；
 4. 缺少字段契约、存在 GPU-to-GPU 依赖、runtime environment 不兼容或包含 Dataset 级 Operator 时，安全回退到原有 recipe 有序重放。若前序 Filter 导致样本不足，则循环补齐目标的一个 batch；
 5. 在同一个一次性 worker 内只初始化一次算子，分别记录模型初始化、warmup 和多个稳态 batch 的耗时，并统计稳态输入吞吐与输出比例；默认 warmup 1 个 batch、测量 3 个 batch；

@@ -458,7 +458,9 @@
 <span class="sd">        """</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">"memory"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"9GB"</span> <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"memory"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">"memory"</span><span class="p">]</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">LazyLoader</span><span class="o">.</span><span class="n">check_packages</span><span class="p">([</span><span class="s2">"ram @ git+https://github.com/datajuicer/recognize-anything.git"</span><span class="p">])</span>
+        <span class="n">LazyLoader</span><span class="o">.</span><span class="n">check_packages</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">"ram @ git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf"</span><span class="p">]</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model_key</span> <span class="o">=</span> <span class="n">prepare_model</span><span class="p">(</span>
             <span class="n">model_type</span><span class="o">=</span><span class="s2">"recognizeAnything"</span><span class="p">,</span> <span class="n">pretrained_model_name_or_path</span><span class="o">=</span><span class="s2">"ram_plus_swin_large_14m.pth"</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">384</span>
         <span class="p">)</span>

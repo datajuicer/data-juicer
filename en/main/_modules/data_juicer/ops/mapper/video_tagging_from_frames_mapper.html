@@ -490,7 +490,9 @@
 <span class="sd">        """</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">"memory"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"9GB"</span> <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"memory"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">"memory"</span><span class="p">]</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">LazyLoader</span><span class="o">.</span><span class="n">check_packages</span><span class="p">([</span><span class="s2">"ram @ git+https://github.com/datajuicer/recognize-anything.git"</span><span class="p">])</span>
+        <span class="n">LazyLoader</span><span class="o">.</span><span class="n">check_packages</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">"ram @ git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf"</span><span class="p">]</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="n">frame_sampling_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"all_keyframes"</span><span class="p">,</span> <span class="s2">"uniform"</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Frame sampling method [</span><span class="si">{</span><span class="n">frame_sampling_method</span><span class="si">}</span><span class="s2">] is not "</span>

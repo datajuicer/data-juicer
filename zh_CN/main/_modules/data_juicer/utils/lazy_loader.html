@@ -689,9 +689,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_package_name</span> <span class="o">=</span> <span class="n">package_name</span>
 
         <span class="c1"># Standardize package_url to use git+ format</span>
-        <span class="k">if</span> <span class="n">package_url</span> <span class="ow">and</span> <span class="s2">"@"</span> <span class="ow">in</span> <span class="n">package_url</span><span class="p">:</span>
-            <span class="c1"># Convert from package@git+ format to git+ format</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_package_url</span> <span class="o">=</span> <span class="n">package_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"@"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">package_url</span> <span class="ow">and</span> <span class="s2">" @ "</span> <span class="ow">in</span> <span class="n">package_url</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_package_url</span> <span class="o">=</span> <span class="n">package_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">" @ "</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_package_url</span> <span class="o">=</span> <span class="n">package_url</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_package_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_package_url</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_package_url</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_package_url</span>
@@ -747,7 +746,15 @@
                     <span class="n">repo_url</span> <span class="o">=</span> <span class="n">package_spec</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span>  <span class="c1"># Remove 'git+' prefix</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">repo_url</span> <span class="o">=</span> <span class="n">package_spec</span>
-                <span class="n">git</span><span class="o">.</span><span class="n">Repo</span><span class="o">.</span><span class="n">clone_from</span><span class="p">(</span><span class="n">repo_url</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+                <span class="c1"># Split off a pinned revision (e.g. '...repo.git@&lt;sha&gt;'), which is</span>
+                <span class="c1"># pip syntax that git itself does not understand.</span>
+                <span class="n">repo_url</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">revision</span> <span class="o">=</span> <span class="n">repo_url</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">".git@"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">revision</span><span class="p">:</span>
+                    <span class="n">repo_url</span> <span class="o">+=</span> <span class="s2">".git"</span>
+                <span class="n">repo</span> <span class="o">=</span> <span class="n">git</span><span class="o">.</span><span class="n">Repo</span><span class="o">.</span><span class="n">clone_from</span><span class="p">(</span><span class="n">repo_url</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">revision</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Checking out pinned revision </span><span class="si">{</span><span class="n">revision</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
+                    <span class="n">repo</span><span class="o">.</span><span class="n">git</span><span class="o">.</span><span class="n">checkout</span><span class="p">(</span><span class="n">revision</span><span class="p">)</span>
 
                 <span class="c1"># Define all possible dependency files</span>
                 <span class="n">dep_files</span> <span class="o">=</span> <span class="p">{</span>

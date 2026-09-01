@@ -39,6 +39,8 @@ partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # 资源感知的 Driver 并发上限
   target_size_mb: 256    # 目标分区大小（128、256、512 或 1024）
+  size: 5000             # 自动分析失败时的回退值
+  max_size_mb: 256       # 回退最大大小
 ```
 
 **手动模式** - 指定确切的分区数量：

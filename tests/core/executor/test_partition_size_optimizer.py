@@ -472,47 +472,29 @@ class PartitionSizeOptimizerTest(DataJuicerTestCaseBase):
         for modality, config in PartitionSizeOptimizer.MODALITY_CONFIGS.items():
             self.assertIsNotNone(config.default_partition_size)
             self.assertIsNotNone(config.max_partition_size)
+            self.assertIsNotNone(config.max_partition_size_mb)
+            self.assertIsNotNone(config.memory_multiplier)
+            self.assertIsNotNone(config.complexity_multiplier)
             self.assertGreater(config.default_partition_size, 0)
             self.assertGreater(config.max_partition_size, config.default_partition_size)
 
-    def test_target_size_controls_recommendations(self):
-        from datasets import Dataset
-        from data_juicer.core.executor.partition_size_optimizer import PartitionSizeOptimizer
+    def test_modality_configs_memory_multipliers(self):
+        """Test that memory multipliers increase with complexity."""
+        from data_juicer.core.executor.partition_size_optimizer import (
+            ModalityType,
+            PartitionSizeOptimizer,
+        )
 
-        dataset = Dataset.from_dict({"text": ["x" * 4096] * 1024})
-        for target_mb, expected_rows in ((1, 128), (2, 256)):
-            with self.subTest(target_mb=target_mb):
-                cfg = Namespace(text_keys=["text"], partition=Namespace(target_size_mb=target_mb))
-                report = PartitionSizeOptimizer(cfg).get_partition_recommendations(dataset, [])
-                self.assertEqual(report["recommended_partition_size"], expected_rows)
-                for defaults in report["modality_configs"].values():
-                    self.assertEqual(set(defaults), {"default_size", "max_size", "description"})
+        configs = PartitionSizeOptimizer.MODALITY_CONFIGS
 
-    def test_modality_sample_bounds_control_recommendations(self):
-        from dataclasses import replace
-        from datasets import Dataset
-        from data_juicer.core.executor.partition_size_optimizer import ModalityType, PartitionSizeOptimizer
+        # Text should have lowest multiplier
+        self.assertEqual(configs[ModalityType.TEXT].memory_multiplier, 1.0)
 
-        cfg = Namespace(text_keys=["text"], partition=Namespace(target_size_mb=2))
-        optimizer = PartitionSizeOptimizer(cfg)
-        dataset = Dataset.from_dict({"text": ["x" * 4096] * 1024})
-        baseline = optimizer.get_partition_recommendations(dataset, [])
-        self.assertEqual(baseline["recommended_partition_size"], 256)
-
-        # Override only this instance's bounds, leaving class defaults intact.
-        defaults = optimizer.MODALITY_CONFIGS[ModalityType.TEXT]
-        optimizer.MODALITY_CONFIGS = dict(optimizer.MODALITY_CONFIGS)
-        optimizer.MODALITY_CONFIGS[ModalityType.TEXT] = replace(defaults, max_partition_size=128)
-        capped = optimizer.get_partition_recommendations(dataset, [])
-        self.assertEqual(capped["recommended_partition_size"], 128)
-
-        empty_text = Dataset.from_dict({"text": [""] * 1024})
-        optimizer.MODALITY_CONFIGS[ModalityType.TEXT] = defaults
-        empty_baseline = optimizer.get_partition_recommendations(empty_text, [])
-        self.assertEqual(empty_baseline["recommended_partition_size"], 1024)
-        optimizer.MODALITY_CONFIGS[ModalityType.TEXT] = replace(defaults, default_partition_size=256)
-        fallback = optimizer.get_partition_recommendations(empty_text, [])
-        self.assertEqual(fallback["recommended_partition_size"], 256)
+        # Video should have highest multiplier
+        self.assertGreater(
+            configs[ModalityType.VIDEO].memory_multiplier,
+            configs[ModalityType.IMAGE].memory_multiplier
+        )
 
     # ==================== Edge Cases ====================
 

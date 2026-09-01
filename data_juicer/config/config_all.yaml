@@ -88,10 +88,10 @@ override_num_blocks: null                                   # override the numbe
 # partition configuration (for ray_partitioned executor)
 partition:
   mode: auto                                                # partition mode: "auto" (use optimizer) or "manual" (specify count)
-  num_of_partitions: 4                                      # manual partition count; auto mode computes a count from data and cluster resources, using this value as fallback if analysis fails
+  num_of_partitions: 4                                      # number of partitions for manual mode; "auto" derives a cluster-aware count in auto mode (floor = nodes x partitions_per_node / resolved concurrency, ceiling = optimizer estimate)
   partitions_per_node: auto                                 # per-node partition multiplier for auto mode; "auto" uses per-node GPU slots for GPU pipelines (2x for CPU-only), set a positive integer to override
   max_concurrent_partitions: auto                           # resource-aware driver concurrency; set a positive integer to override
-  target_size_mb: 256                                       # positive target partition size in MB for auto-mode planning, e.g. 128, 256, 512 or 1024; an estimate, not a hard memory limit
+  target_size_mb: 256                                       # target partition size in MB for auto mode (128, 256, 512, or 1024). 256MB balances memory safety and efficiency.
 
 # checkpoint configuration (ray_partitioned executor)
 checkpoint:

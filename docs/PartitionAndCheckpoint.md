@@ -39,6 +39,8 @@ partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # Resource-aware driver concurrency
   target_size_mb: 256    # Target partition size (128, 256, 512, or 1024)
+  size: 5000             # Fallback if auto-analysis fails
+  max_size_mb: 256       # Fallback max size
 ```
 
 **Manual mode** - specify exact partition count:

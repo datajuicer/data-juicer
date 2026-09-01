@@ -666,6 +666,21 @@ def build_base_parser() -> ArgumentParser:
     )
     parser.add_argument("--ray_address", type=str, default="auto", help="The address of the Ray cluster.")
 
+    # Partitioning configuration for PartitionedRayExecutor
+    # Support both flat and nested partition configuration
+    parser.add_argument(
+        "--partition_size",
+        type=int,
+        default=10000,
+        help="Number of samples per partition for PartitionedRayExecutor (legacy flat config)",
+    )
+    parser.add_argument(
+        "--max_partition_size_mb",
+        type=int,
+        default=128,
+        help="Maximum partition size in MB for PartitionedRayExecutor (legacy flat config)",
+    )
+
     # partition configuration
     parser.add_argument(
         "--partition.mode",
@@ -678,9 +693,12 @@ def build_base_parser() -> ArgumentParser:
         "--partition.num_of_partitions",
         type=Union[PositiveInt, Literal["auto"]],
         default=4,
-        help="Partition count in manual mode. In auto mode, a positive integer is the fallback count if "
-        "dataset analysis fails; successful analysis computes a data-driven count and cluster bounds. The "
-        "'auto' sentinel selects auto mode.",
+        help=(
+            "Number of partitions for manual mode (ignored in auto mode). "
+            "In auto mode, 'auto' derives a cluster-aware count; a positive "
+            "integer acts as the data-driven ceiling for the cluster-aware "
+            "adjustment."
+        ),
     )
     parser.add_argument(
         "--partition.partitions_per_node",
@@ -705,10 +723,11 @@ def build_base_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "--partition.target_size_mb",
-        type=PositiveInt,
+        type=int,
         default=256,
-        help="Positive target partition size in MB for the auto-mode optimizer, e.g. 128, 256, 512 or 1024. "
-        "This is an estimate used for planning, not a hard memory or output-file size limit.",
+        help="Target partition size in MB for auto mode (128, 256, 512, or 1024). "
+        "Controls how large each partition should be. Smaller = more checkpoints & better recovery, "
+        "larger = less overhead. Default 256MB balances memory safety and efficiency.",
     )
 
     parser.add_argument(

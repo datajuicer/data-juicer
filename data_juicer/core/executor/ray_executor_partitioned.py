@@ -1637,12 +1637,21 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             logger.info("Saved partition hashes validated successfully - resuming checkpoints")
             return partitions, saved_info
 
-        # Split by existing Ray blocks. partition.size is a planning target,
-        # so exact row boundaries are unnecessary and would add a second
-        # dataset count plus boundary-block slicing.
         logger.info(f"Splitting dataset into {self.num_partitions} partitions (deterministic mode)...")
-        partitions = dataset.data.split(self.num_partitions)
-        logger.info(f"Created {len(partitions)} partitions")
+        if self.partition_size_cfg is not None:
+            # Sample-based partitioning: cut at row boundaries so each
+            # partition gets roughly partition_size_cfg rows, even when the
+            # dataset has fewer Ray blocks than requested partitions.
+            total_rows = dataset.data.count()
+            split_indices = [total_rows * i // self.num_partitions for i in range(1, self.num_partitions)]
+            partitions = dataset.data.split_at_indices(split_indices)
+            logger.info(
+                f"Created {len(partitions)} partitions via row-based splitting "
+                f"(target: {self.partition_size_cfg} samples each)"
+            )
+        else:
+            partitions = dataset.data.split(self.num_partitions)
+            logger.info(f"Created {len(partitions)} partitions")
 
         # If resuming, validate partitions match
         if saved_info is not None:

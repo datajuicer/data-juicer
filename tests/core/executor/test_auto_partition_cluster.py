@@ -10,7 +10,7 @@ Covers:
 import math
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from data_juicer.core.executor.ray_executor_partitioned import (
     PartitionedRayExecutor,
@@ -377,6 +377,62 @@ class OptimizerFallbackTest(DataJuicerTestCaseBase):
         ):
             PartitionedRayExecutor._configure_auto_partitioning(fake, None, [_gpu_op(0.5)])
         self.assertEqual(fake.num_partitions, 32)
+
+
+class SampleBasedSplitTest(DataJuicerTestCaseBase):
+    """Verify that manual+size mode uses split_at_indices for row-level cuts."""
+
+    def _make_executor(self, partition_size_cfg, num_partitions):
+        fake = _fake_executor(
+            partition_size_cfg=partition_size_cfg,
+            num_partitions=num_partitions,
+            partition_mode="manual",
+            ckpt_manager=SimpleNamespace(checkpoint_enabled=False),
+        )
+        fake._enable_deterministic_execution = lambda: None
+        fake._load_partitioning_info = lambda: None
+        fake._collect_partition_metadata = lambda p, i, **kw: SimpleNamespace(
+            partition_id=i, row_count=0, first_row_hash="", content_hash="",
+            start_row=0, end_row=0,
+        )
+        fake._save_partitioning_info = lambda info: None
+        return fake
+
+    def test_single_block_uses_split_at_indices(self):
+        """A single-block dataset with partition.size must use row-based
+        boundaries so all partitions get rows."""
+        data = MagicMock()
+        data.count.return_value = 1000
+        data.split_at_indices.return_value = [MagicMock() for _ in range(10)]
+        for p in data.split_at_indices.return_value:
+            p.count.return_value = 100
+            p.take.return_value = [{"x": 1}]
+
+        dataset = SimpleNamespace(data=data)
+        fake = self._make_executor(partition_size_cfg=100, num_partitions=10)
+
+        PartitionedRayExecutor._split_dataset_deterministic(fake, dataset)
+
+        data.split_at_indices.assert_called_once()
+        indices = data.split_at_indices.call_args[0][0]
+        self.assertEqual(indices, [100, 200, 300, 400, 500, 600, 700, 800, 900])
+        data.split.assert_not_called()
+
+    def test_count_based_uses_block_split(self):
+        """When partition_size_cfg is None (count-based), split() is used."""
+        data = MagicMock()
+        data.split.return_value = [MagicMock() for _ in range(4)]
+        for p in data.split.return_value:
+            p.count.return_value = 250
+            p.take.return_value = [{"x": 1}]
+
+        dataset = SimpleNamespace(data=data)
+        fake = self._make_executor(partition_size_cfg=None, num_partitions=4)
+
+        PartitionedRayExecutor._split_dataset_deterministic(fake, dataset)
+
+        data.split.assert_called_once_with(4)
+        data.split_at_indices.assert_not_called()
 
 
 if __name__ == "__main__":

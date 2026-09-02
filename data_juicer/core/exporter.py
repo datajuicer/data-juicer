@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import date
 from multiprocessing import Pool
 from urllib.parse import urlparse
 
@@ -395,6 +396,8 @@ class Exporter:
             return {k: Exporter._row_to_json_serializable(v) for k, v in obj.items()}
         if isinstance(obj, list):
             return [Exporter._row_to_json_serializable(v) for v in obj]
+        if isinstance(obj, date):
+            return obj.isoformat()
         if hasattr(obj, "item"):  # numpy scalar
             return obj.item()
         if hasattr(obj, "tolist"):

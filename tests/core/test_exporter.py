@@ -1,3 +1,5 @@
+from datetime import date, datetime, timezone
+
 import json
 import os
 import shutil
@@ -462,11 +464,21 @@ class CoreExporterFileTest(DataJuicerTestCaseBase):
             "scalar": np.int64(7),
             "array": ListLike(),
             "nested": [ArrowLike()],
+            "date": date(2024, 1, 2),
+            "datetime": datetime(2024, 1, 2, 3, 4, 5),
+            "datetime_tz": datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc),
         }
 
         self.assertEqual(
             self.Exporter._row_to_json_serializable(row),
-            {"scalar": 7, "array": [1, 2], "nested": [{"nested": 3}]},
+            {
+                "scalar": 7,
+                "array": [1, 2],
+                "nested": [{"nested": 3}],
+                "date": "2024-01-02",
+                "datetime": "2024-01-02T03:04:05",
+                "datetime_tz": "2024-01-02T03:04:05+00:00",
+            },
         )
 
     def test_json_jsonl_parquet_exports_and_filtered_shards(self):

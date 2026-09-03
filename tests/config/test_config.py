@@ -421,13 +421,11 @@ class ConfigTest(DataJuicerTestCaseBase):
         self.assertEqual(cfg.executor_type, 'default')
         self.assertEqual(cfg.ray_address, 'auto')
         self.assertEqual(cfg.text_keys, 'text')
-        self.assertEqual(cfg.add_suffix, False)
         self.assertEqual(cfg.export_path, './outputs/')
         self.assertEqual(cfg.suffixes, None)
         
         # Test default values are of correct type
         self.assertIsInstance(cfg.executor_type, str)
-        self.assertIsInstance(cfg.add_suffix, bool)
         self.assertIsInstance(cfg.export_path, str)
 
     def test_cli_override(self):

@@ -205,7 +205,6 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         # Verify defaults are used
         assert getattr(strategy.cfg, 'text_keys', ['text']) == ['text']
         assert getattr(strategy.cfg, 'suffixes', None) is None
-        assert getattr(strategy.cfg, 'add_suffix', False) is False
 
     def test_load_strategy_full_config(self):
         """Test load strategy with full config"""
@@ -215,8 +214,7 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         full_cfg = Namespace(
             path='test/path',
             text_keys=['content', 'title'],
-            suffixes=['.txt', '.md'],
-            add_suffix=True
+            suffixes=['.txt', '.md']
         )
         
         ds_config = {
@@ -228,7 +226,6 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         # Verify all config values are used
         assert strategy.cfg.text_keys == ['content', 'title']
         assert strategy.cfg.suffixes == ['.txt', '.md']
-        assert strategy.cfg.add_suffix is True
 
     def test_load_strategy_partial_config(self):
         """Test load strategy with partial config"""
@@ -238,7 +235,7 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         partial_cfg = Namespace(
             path='test/path',
             text_keys=['content'],
-            # suffixes and add_suffix omitted
+            # suffixes omitted
         )
         
         ds_config = {
@@ -250,7 +247,6 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         # Verify mix of specified and default values
         assert strategy.cfg.text_keys == ['content']
         assert getattr(strategy.cfg, 'suffixes', None) is None
-        assert getattr(strategy.cfg, 'add_suffix', False) is False
 
     def test_load_strategy_empty_config(self):
         """Test load strategy with empty config"""
@@ -268,7 +264,6 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
         # Verify all defaults are used
         assert getattr(strategy.cfg, 'text_keys', ['text']) == ['text']
         assert getattr(strategy.cfg, 'suffixes', None) is None
-        assert getattr(strategy.cfg, 'add_suffix', False) is False
 
     def test_local_strategy_forwards_load_dataset_kwargs(self):
         """Test that extra kwargs passed to load_data reach datasets.load_dataset.

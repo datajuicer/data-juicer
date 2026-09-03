@@ -109,6 +109,26 @@ validators:
 ```
 
 
+### Reader options
+
+Global reader options are applied by `DatasetBuilder`, so processing, analysis and direct `DatasetBuilder` calls load data the same way. Explicit `DatasetBuilder.load_dataset(...)` keyword arguments override the corresponding global default.
+
+```yaml
+# DefaultExecutor and Analyzer: HuggingFace reader defaults
+load_dataset_kwargs:
+  columns: ['text', 'meta']   # Parquet
+  delimiter: "\t"             # CSV
+
+# ray, ray_partitioned and RayAnalyzer: PyArrow JSON reading
+read_options:
+  block_size: 268435456       # 256MB; raise it for very large JSON records
+override_num_blocks: 64       # requested Ray read block count; must be positive
+```
+
+`read_options` accepts the fields of `pyarrow.json.ReadOptions`. Leave it empty to keep the reader's own defaults, which disable PyArrow's internal threading because each Ray read task is already parallel.
+
+`generated_dataset_config` is unaffected: it continues to use its own formatter constructor arguments.
+
 ### JSONL per-line fault tolerance (skip bad lines)
 
 For a few corrupted lines or parser failures in the HuggingFace JSON/ujson path, enable **lenient JSONL loading**: read with stdlib :func:`json.loads` **line by line**, **skip** lines that fail parsing (with warnings), and keep the rest. The result is still a HuggingFace ``Dataset``, so downstream ops behave like normal JSONL.

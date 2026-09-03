@@ -71,6 +71,10 @@ checkpoint:
     - embedding_mapper
 ```
 
+`strategy` accepts only `every_op`, `every_n_ops`, `manual`, and `disabled`;
+any other value, including `every_partition`, is rejected while the
+configuration is parsed. `n_ops` must be a positive integer.
+
 When checkpointing is enabled, the initial run saves
 `checkpoints/partitioning_info.json`. For every logical partition, this file
 records:
@@ -90,8 +94,6 @@ Ray batch boundaries, and validated before any checkpoint is reused.
 `checkpoint.enabled`, `checkpoint.strategy`, `checkpoint.n_ops`, and `checkpoint.op_names` control checkpoint creation. Checkpoints use Parquet with the underlying writer's default compression. Ray Dataset splitting creates the partitions; checkpoints capture data after the selected operations.
 
 On normal or exceptional exit from its run context, the executor attempts to remove `work_dir/.tmp/<Ray job id>`. Checkpoints live in a separate directory for resumption.
-
-See [configuration migration](ConfigMigration.md) when updating an older recipe.
 
 ## Usage
 

@@ -66,6 +66,8 @@ checkpoint:
     - embedding_mapper
 ```
 
+`strategy` 只接受 `every_op`、`every_n_ops`、`manual` 和 `disabled`，其他取值（包括 `every_partition`）会在解析配置时被拒绝。`n_ops` 必须为正整数。
+
 启用检查点后，首次运行会保存
 `checkpoints/partitioning_info.json`。该文件为每个逻辑分区记录：
 
@@ -81,8 +83,6 @@ checkpoint:
 检查点由 `checkpoint.enabled`、`checkpoint.strategy`、`checkpoint.n_ops` 和 `checkpoint.op_names` 控制，保存为 Parquet，压缩使用底层写入器的默认设置。分区通过 Ray Dataset 拆分；检查点记录所选算子执行后的数据。
 
 执行器退出运行上下文时会尝试清理 `work_dir/.tmp/<Ray job id>`，正常完成和异常退出都会触发。检查点保存在单独的目录中，可用于续跑。
-
-旧版配置的调整方式见[配置迁移说明](ConfigMigration_ZH.md)。
 
 ## 使用方法
 

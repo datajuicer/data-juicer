@@ -21,6 +21,16 @@ Output includes:
 - Checkpoint coverage
 - Timing information
 
+## Execution Plan and DAG Monitoring
+
+`use_dag` controls execution-plan generation and DAG monitoring, which produce the DAG structure the snapshot analyzer reads.
+
+```yaml
+use_dag: null   # null keeps the executor default
+```
+
+The default `null` preserves each executor's behavior: enabled for `ray` and `ray_partitioned`, disabled for `default`. Set `true` or `false` to override it.
+
 ## Resource-Aware Partitioning
 
 The system automatically optimizes partition sizes based on cluster resources and data characteristics.

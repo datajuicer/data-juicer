@@ -21,6 +21,16 @@ python -m data_juicer.utils.job.snapshot /path/to/job_dir --human-readable
 - 检查点覆盖率
 - 时间信息
 
+## 执行计划与 DAG 监控
+
+`use_dag` 控制执行计划生成和 DAG 监控，处理快照分析器读取的 DAG 结构正是由它产出。
+
+```yaml
+use_dag: null   # null 表示沿用执行器默认值
+```
+
+默认 `null` 保持各执行器原有行为：`ray` 和 `ray_partitioned` 开启，`default` 关闭。可设为 `true` 或 `false` 覆盖。
+
 ## 资源感知分区
 
 系统根据集群资源和数据特征自动优化分区大小。

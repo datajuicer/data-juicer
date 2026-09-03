@@ -106,6 +106,26 @@ validators:
       language: "str"
 ```
 
+### 读取选项
+
+全局读取选项由 `DatasetBuilder` 统一应用，因此数据处理、分析和直接调用 `DatasetBuilder` 的加载行为一致。显式传给 `DatasetBuilder.load_dataset(...)` 的同名参数优先于对应的全局默认值。
+
+```yaml
+# DefaultExecutor 和 Analyzer：HuggingFace 读取默认参数
+load_dataset_kwargs:
+  columns: ['text', 'meta']   # Parquet
+  delimiter: "\t"             # CSV
+
+# ray、ray_partitioned 和 RayAnalyzer：PyArrow JSON 读取
+read_options:
+  block_size: 268435456       # 256MB；JSON 单条记录很大时可调高
+override_num_blocks: 64       # Ray 读取请求的 block 数，必须为正整数
+```
+
+`read_options` 接受 `pyarrow.json.ReadOptions` 的字段。留空则保持读取器自身的默认值——其中 PyArrow 内部多线程是关闭的，因为每个 Ray 读取任务本身已经是并行的。
+
+`generated_dataset_config` 不受影响，它继续使用自己的 formatter 构造参数。
+
 ### JSONL 样本级容错（跳过坏行）
 
 若少数行损坏、或整行无法被 HF/ujson 解析，可使用 **宽松 JSONL 加载**：用标准库逐行 ``json.loads``，解析失败 **仅跳过该行** 并打日志，其余样本照常进入流水线（下游算子仍面对与普通 JSONL 一致的 ``datasets.Dataset``）。

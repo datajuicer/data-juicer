@@ -290,7 +290,11 @@ class RayLocalJsonDataLoadStrategy(RayDataLoadStrategy):
         try:
             read_kwargs = {"override_num_blocks": override_num_blocks}
             if data_format == "json":
-                read_kwargs["read_options"] = kwargs.get("read_options")
+                # Only forward a configured value: an unset option must leave
+                # the reader's own default in place.
+                read_options = kwargs.get("read_options")
+                if read_options:
+                    read_kwargs["read_options"] = read_options
             dataset = RayDataset.read(data_format, path, **read_kwargs)
             return RayDataset(dataset, dataset_path=path, cfg=self.cfg)
         except Exception as e:
@@ -887,14 +891,8 @@ class RayHdfsDataLoadStrategy(RayDataLoadStrategy):
             if data_format in {"json", "jsonl", "json.gz", "jsonl.gz", "json.zst", "jsonl.zst"}:
                 from data_juicer.core.data.ray_dataset import read_json_stream
 
+                # read_json_stream normalizes dict/None read_options itself.
                 read_options = kwargs.get("read_options")
-                # PyArrow's open_json/read_json require a pyarrow.json.ReadOptions
-                # object, but read_options is passed in as a dict (its default value
-                # is an empty dict {}). Convert it here so HDFS JSON reading works.
-                if isinstance(read_options, dict):
-                    import pyarrow.json as paj
-
-                    read_options = paj.ReadOptions(**read_options)
                 dataset = read_json_stream(
                     fs_path, filesystem=hdfs_fs, read_options=read_options, override_num_blocks=override_num_blocks
                 )

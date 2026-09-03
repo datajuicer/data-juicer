@@ -397,7 +397,7 @@
 
 
 <div class="viewcode-block" id="RangeSpecifiedFieldSelector">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.selector.html#data_juicer.ops.selector.RangeSpecifiedFieldSelector">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.selector.range_specified_field_selector.html#data_juicer.ops.selector.range_specified_field_selector.RangeSpecifiedFieldSelector">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"range_specified_field_selector"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RangeSpecifiedFieldSelector</span><span class="p">(</span><span class="n">Selector</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Selects a range of samples based on the sorted values of a specified field.</span>
@@ -411,7 +411,7 @@
 <span class="sd">    keys with dots."""</span>
 
 <div class="viewcode-block" id="RangeSpecifiedFieldSelector.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.selector.html#data_juicer.ops.selector.RangeSpecifiedFieldSelector.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.selector.range_specified_field_selector.html#data_juicer.ops.selector.range_specified_field_selector.RangeSpecifiedFieldSelector.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">field_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
@@ -461,7 +461,7 @@
 
 
 <div class="viewcode-block" id="RangeSpecifiedFieldSelector.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.selector.html#data_juicer.ops.selector.RangeSpecifiedFieldSelector.process">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.selector.range_specified_field_selector.html#data_juicer.ops.selector.range_specified_field_selector.RangeSpecifiedFieldSelector.process">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_key</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">dataset</span>

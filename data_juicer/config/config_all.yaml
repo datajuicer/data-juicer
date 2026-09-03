@@ -38,7 +38,7 @@ export_extra_args: {}                                       # Other optional arg
 # Per-line tolerance (stdlib json, skip bad lines; jsonl-only inputs), see DatasetCfg:
 #   load_jsonl_lenient: true
 #   # or: DATA_JUICER_JSONL_LENIENT=1
-load_dataset_kwargs: {}                                     # reader defaults for the default executor and Analyzer: e.g. columns (Parquet), delimiter (CSV). Explicit DatasetBuilder call arguments take precedence.
+load_dataset_kwargs: {}                                     # reader defaults for the default executor and Analyzer: e.g. columns (Parquet), delimiter (CSV), or num_proc to load with a parallelism other than np. Explicit DatasetBuilder call arguments take precedence.
 load_jsonl_lenient: false                                    # if true, stream jsonl* shards with stdlib json and skip bad lines; other suffixes in the same folder are ignored (not HF fallback). Confirm logs contain "[lenient jsonl] ACTIVE".
 
 auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.

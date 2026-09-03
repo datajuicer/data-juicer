@@ -127,6 +127,20 @@ override_num_blocks: 64       # requested Ray read block count; must be positive
 
 `read_options` accepts the fields of `pyarrow.json.ReadOptions`. Leave it empty to keep the reader's own defaults, which disable PyArrow's internal threading because each Ray read task is already parallel.
 
+#### Loader parallelism
+
+`np` is the global default for the number of loader processes. Set `load_dataset_kwargs.num_proc` to decouple loading from processing parallelism:
+
+```yaml
+np: 16                        # processing parallelism, and the loading default
+load_dataset_kwargs:
+  num_proc: 4                 # load with 4 processes instead of 16
+```
+
+Three layers apply, from weakest to strongest: `np`, then `load_dataset_kwargs.num_proc`, then an explicit `DatasetBuilder.load_dataset(num_proc=...)` argument. Only the default executor and the Analyzer read this value; the Ray executors derive their read parallelism from `override_num_blocks` and the cluster instead.
+
+The `load_data_np` argument of `run()` will be deprecated. It resolves to the same `num_proc`, but it is reachable only from Python. Passing it still applies the value on the default executor and the Analyzer, and logs a warning naming the parallelism used; on the Ray executors it has never had any effect, and the warning says so instead.
+
 `generated_dataset_config` is unaffected: it continues to use its own formatter constructor arguments.
 
 ### JSONL per-line fault tolerance (skip bad lines)

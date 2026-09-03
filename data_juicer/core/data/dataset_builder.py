@@ -15,6 +15,38 @@ from data_juicer.utils.file_utils import is_absolute_path
 from data_juicer.utils.sample import random_sample
 
 
+def deprecated_load_data_np_kwargs(load_data_np, executor_type: str) -> dict:
+    """Translate the deprecated ``load_data_np`` run argument into loader kwargs.
+
+    ``load_data_np`` predates the global configuration for loader parallelism and
+    is declared on every ``run()`` signature, but only the default executor and
+    the Analyzer ever acted on it: ``num_proc`` is read by the ``Default*`` load
+    strategies alone, so the Ray executors silently dropped it. The warning says
+    which of the two happened, since a caller cannot tell from the argument.
+
+    :param load_data_np: the value received by ``run()``, or None when unset.
+    :param executor_type: the type the ``DatasetBuilder`` was created with, which
+        is what decides whether ``num_proc`` reaches a load strategy that reads it.
+    :return: keyword arguments to forward to ``DatasetBuilder.load_dataset()``.
+    """
+    if load_data_np is None:
+        return {}
+    if executor_type == "default":
+        logger.warning(
+            f"The `load_data_np` argument will be deprecated; loading with "
+            f"{load_data_np} processes as requested. Set "
+            f"`load_dataset_kwargs.num_proc` in the configuration instead, or "
+            f"`np` to load with the same parallelism as processing."
+        )
+    else:
+        logger.warning(
+            "The `load_data_np` argument will be deprecated, and the Ray load "
+            "strategies have never applied it: read parallelism comes from "
+            "`override_num_blocks` and the cluster. Remove the argument."
+        )
+    return {"num_proc": load_data_np}
+
+
 class DatasetBuilder(object):
     """
     DatasetBuilder is a class that builds a dataset from a configuration.
@@ -129,6 +161,14 @@ class DatasetBuilder(object):
                 "override_num_blocks": getattr(self.cfg, "override_num_blocks", None),
             }
         load_kwargs.update(kwargs)
+
+        # `np` is the global default for loader parallelism, so seed it last and
+        # only when nothing more specific asked for a value: the `Default*` load
+        # strategies fall back to a single process, not to `np`. Callers keep the
+        # final say through an explicit argument, and a recipe can decouple
+        # loading from processing through `load_dataset_kwargs.num_proc`.
+        if self.executor_type == "default":
+            load_kwargs.setdefault("num_proc", getattr(self.cfg, "np", None) or 1)
 
         _datasets = []
         # load datasets with sample numbers

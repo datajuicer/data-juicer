@@ -9,7 +9,10 @@ from loguru import logger
 from pydantic import PositiveInt
 
 from data_juicer.config import init_configs
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.core.ray_exporter import RayExporter
 from data_juicer.ops import NON_STATS_FILTERS, TAGGING_OPS, Filter, load_ops
 from data_juicer.ops.op_fusion import fuse_operators
@@ -85,7 +88,9 @@ class RayAnalyzer:
     ):
         if dataset is None:
             logger.info("Loading dataset via Ray...")
-            dataset = self.dataset_builder.load_dataset()
+            dataset = self.dataset_builder.load_dataset(
+                **deprecated_load_data_np_kwargs(load_data_np, self.dataset_builder.executor_type)
+            )
         else:
             logger.info(f"Using existing dataset {dataset}")
 

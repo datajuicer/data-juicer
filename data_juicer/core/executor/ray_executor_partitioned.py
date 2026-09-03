@@ -25,7 +25,10 @@ from jsonargparse import Namespace
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
@@ -565,7 +568,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         Run the simplified partitioned dataset processing pipeline.
 
         Args:
-            load_data_np: Number of workers for loading dataset
+            load_data_np: deprecated, and never applied here: no Ray load
+                strategy reads `num_proc`. Use `override_num_blocks` to
+                control read parallelism.
             skip_return: Whether to skip returning the dataset
             job_id: Optional job ID to resume from checkpoints
 
@@ -653,7 +658,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # must therefore happen before DatasetBuilder.load_dataset() so saved
         # row boundaries have the same meaning when a job is resumed.
         self._enable_deterministic_execution()
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np)
+        dataset = self.datasetbuilder.load_dataset(
+            **deprecated_load_data_np_kwargs(load_data_np, self.datasetbuilder.executor_type)
+        )
         dataset_schema = dataset.schema()
         columns = dataset_schema.columns
 

@@ -206,8 +206,8 @@ def build_base_parser() -> ArgumentParser:
         type=Dict,
         default={},
         help="Extra keyword arguments for HuggingFace dataset loading in the default executor and Analyzer, "
-        "such as columns (Parquet) or delimiter (CSV). Explicit DatasetBuilder.load_dataset() arguments "
-        "override these defaults.",
+        "such as columns (Parquet) or delimiter (CSV), or num_proc to load with a parallelism other than "
+        "np. Explicit DatasetBuilder.load_dataset() arguments override these defaults.",
     )
     parser.add_argument(
         "--read_options",

@@ -771,6 +771,65 @@ class DatasetLoadingOptionsTest(DataJuicerTestCaseBase):
             if started_ray:
                 ray.shutdown()
 
+    def test_num_proc_precedence(self):
+        """np is the default, load_dataset_kwargs overrides it, callers win."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'data.jsonl')
+            with open(path, 'w') as stream:
+                stream.write('{"text": "one"}\n')
+            cfg = Namespace(dataset_path=path, text_keys=['text'], process=[], np=4)
+
+            def loaded_num_proc(load_dataset_kwargs, **call_kwargs):
+                cfg.load_dataset_kwargs = load_dataset_kwargs
+                builder = DatasetBuilder(cfg)
+                captured = {}
+                strategy = builder.load_strategies[0]
+                original_load = strategy.load_data
+
+                def spy_load_data(**kwargs):
+                    captured['num_proc'] = kwargs.get('num_proc')
+                    return original_load(**kwargs)
+
+                strategy.load_data = spy_load_data
+                builder.load_dataset(**call_kwargs)
+                return captured['num_proc']
+
+            # `np` seeds the default; the load strategies would fall back to 1.
+            self.assertEqual(loaded_num_proc({}), 4)
+            # A recipe decouples loading from processing parallelism.
+            self.assertEqual(loaded_num_proc({'num_proc': 3}), 3)
+            # An explicit call argument still has the final say.
+            self.assertEqual(loaded_num_proc({'num_proc': 3}, num_proc=2), 2)
+            self.assertEqual(cfg.load_dataset_kwargs, {'num_proc': 3})
+
+    def test_deprecated_load_data_np_kwargs(self):
+        """The deprecated run() argument stays honored, and warns when used."""
+        from loguru import logger
+
+        from data_juicer.core.data.dataset_builder import deprecated_load_data_np_kwargs
+
+        warnings = []
+        handler_id = logger.add(lambda msg: warnings.append(str(msg)), level='WARNING', format='{message}')
+        try:
+            # Unset is the common case: stay silent and leave `np` to apply.
+            self.assertEqual(deprecated_load_data_np_kwargs(None, 'default'), {})
+            self.assertEqual(deprecated_load_data_np_kwargs(None, 'ray'), {})
+            self.assertEqual(warnings, [])
+
+            self.assertEqual(deprecated_load_data_np_kwargs(8, 'default'), {'num_proc': 8})
+            self.assertEqual(deprecated_load_data_np_kwargs(8, 'ray'), {'num_proc': 8})
+        finally:
+            logger.remove(handler_id)
+
+        self.assertEqual(len(warnings), 2)
+        for message in warnings:
+            self.assertIn('load_data_np', message)
+        # The default executor honors the value, so say so rather than let the
+        # warning read as a no-op notice; only the Ray path ignores it.
+        self.assertIn('8 processes', warnings[0])
+        self.assertNotIn('never applied', warnings[0])
+        self.assertIn('never applied', warnings[1])
+
 
 if __name__ == '__main__':
     unittest.main()

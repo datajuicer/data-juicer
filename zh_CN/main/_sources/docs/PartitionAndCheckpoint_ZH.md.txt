@@ -39,9 +39,8 @@ executor_type: ray_partitioned
 partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # 资源感知的 Driver 并发上限
-  target_size_mb: 256    # 目标分区大小（128、256、512 或 1024）
-  size: 5000             # 自动分析失败时的回退值
-  max_size_mb: 256       # 回退最大大小
+  target_size_mb: 256    # 自动模式规划使用的目标大小（MB）
+  size: null             # 可选：优化器无法给出有效建议时使用的样本数回退值
 ```
 
 **手动模式** - 指定确切的分区数量：
@@ -52,6 +51,21 @@ partition:
   num_of_partitions: 8
   max_concurrent_partitions: "auto"
 ```
+
+手动模式也可以通过样本数目标推导最接近的分区数量。手动模式下，`size` 与
+`num_of_partitions` 互斥。执行器会物化一次输入数据，再按照行边界切分。除最后
+一个分区吸收按最接近数量规划产生的余数外，其余分区各包含 `size` 条样本。如果
+推导结果为一个分区，则整个数据集作为一个已物化分区处理：
+
+```yaml
+partition:
+  mode: "manual"
+  size: 5000
+```
+
+`target_size_mb` 是优化器的规划输入，并非内存或输出文件大小的硬限制。该参数
+接受 0 和负数；如果据此算出的建议低于优化器内部下限，Data-Juicer 会应用下限
+并记录 warning。
 
 `max_concurrent_partitions: "auto"` 是默认值。该值会在 Operator 资源规划完成后解析：含 GPU Operator 的 pipeline 根据 Ray 集群可容纳的最小 CPU/GPU worker 数确定，纯 CPU pipeline 的外层并发保守限制为 4。实际并发还会受到 Partition 数量和显式全局 Actor `num_proc` 预算的限制。需要手动调优时，可将其设置为正整数来覆盖自动值。
 

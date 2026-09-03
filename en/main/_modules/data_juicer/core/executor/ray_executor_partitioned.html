@@ -793,8 +793,7 @@
         <span class="n">mode</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">,</span> <span class="s2">"auto"</span><span class="p">)</span>
         <span class="n">num_of_partitions</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"num_of_partitions"</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
         <span class="n">max_concurrent_partitions</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"max_concurrent_partitions"</span><span class="p">,</span> <span class="s2">"auto"</span><span class="p">)</span>
-        <span class="n">partition_size</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">,</span> <span class="mi">5000</span><span class="p">)</span>
-        <span class="n">max_size_mb</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"max_size_mb"</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span>
+        <span class="n">partition_size</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="c1"># Fallback to legacy configuration if partition config is not available</span>
         <span class="c1"># or if legacy num_partitions is explicitly set</span>
@@ -838,17 +837,49 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">partition_mode</span> <span class="o">=</span> <span class="n">mode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span> <span class="o">=</span> <span class="n">num_of_partitions</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_concurrent_partitions</span> <span class="o">=</span> <span class="n">max_concurrent_partitions</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">partition_size</span> <span class="o">=</span> <span class="n">partition_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_size_mb</span> <span class="o">=</span> <span class="n">max_size_mb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span> <span class="o">=</span> <span class="n">partition_size</span>
 
         <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"manual"</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Manual partition mode: using </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2"> partitions"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Manual partition mode: using </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2"> partitions"</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Manual partition mode: targeting </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span><span class="si">}</span><span class="s2"> samples per partition; "</span>
+                    <span class="s2">"the partition count will be derived after loading the dataset"</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># auto mode</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Auto partition mode: will determine optimal partitioning based on data characteristics"</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fallback partition size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_size</span><span class="si">}</span><span class="s2"> samples, max </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_size_mb</span><span class="si">}</span><span class="s2"> MB"</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Auto partition mode: will determine optimal partitioning based on data characteristics"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Optimizer fallback: targeting </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span><span class="si">}</span><span class="s2"> samples per partition"</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_partition_count_from_size</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">partition_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Derive the nearest partition count for a samples-per-partition target."""</span>
+        <span class="k">if</span> <span class="n">partition_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"partition_size must be positive, got </span><span class="si">{</span><span class="n">partition_size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">"count"</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">total_samples</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">total_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">"__len__"</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">"__len__"</span><span class="p">):</span>
+            <span class="n">total_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">total_samples</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">total_samples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"Cannot determine dataset size for sample-based partitioning; "</span>
+                <span class="s2">"use partition.num_of_partitions instead."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total_samples</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">partition_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">quotient</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">total_samples</span><span class="p">,</span> <span class="n">partition_size</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">quotient</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">remainder</span> <span class="o">&gt;=</span> <span class="n">partition_size</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_samples</span> <span class="o">/</span> <span class="n">partition_size</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_configure_auto_partitioning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">ops</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Configure partitioning using the partition size optimizer for auto mode."""</span>
+<span class="w">        </span><span class="sd">"""Configure partitioning using the optimizer and an optional sample-count fallback."""</span>
         <span class="n">recommendations</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.partition_size_optimizer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -856,59 +887,47 @@
             <span class="p">)</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"🔧 Auto-configuring partition settings based on data characteristics..."</span><span class="p">)</span>
-
-            <span class="c1"># Use the partition size optimizer to determine optimal settings</span>
             <span class="n">recommendations</span> <span class="o">=</span> <span class="n">auto_configure_resources</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">ops</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not import partition size optimizer: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Falling back to manual partition configuration"</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Auto partition configuration failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Falling back to manual partition configuration"</span><span class="p">)</span>
 
+        <span class="n">recommended_size</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">recommended_workers</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"np"</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">recommendations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Update partition configuration based on recommendations</span>
-            <span class="n">recommended_size</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">recommendations</span><span class="p">,</span> <span class="s2">"recommended_partition_size"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size</span><span class="p">)</span>
-            <span class="n">recommended_max_size_mb</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">recommendations</span><span class="p">,</span> <span class="s2">"recommended_max_size_mb"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_size_mb</span><span class="p">)</span>
-            <span class="n">recommended_workers</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                <span class="n">recommendations</span><span class="p">,</span> <span class="s2">"recommended_worker_count"</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"np"</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="n">recommended_size</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">recommendations</span><span class="p">,</span> <span class="s2">"recommended_partition_size"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">recommended_workers</span> <span class="o">=</span> <span class="n">ConfigAccessor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">recommendations</span><span class="p">,</span> <span class="s2">"recommended_worker_count"</span><span class="p">,</span> <span class="n">recommended_workers</span><span class="p">)</span>
 
-            <span class="c1"># Calculate optimal number of partitions based on dataset size and recommended partition size</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">recommended_size</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="n">recommended_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">recommended_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span>
+            <span class="k">if</span> <span class="n">recommended_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Using partition.size fallback: </span><span class="si">{</span><span class="n">recommended_size</span><span class="si">}</span><span class="s2"> samples per partition"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">recommended_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">"count"</span><span class="p">):</span>
-                    <span class="n">total_samples</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
-                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">"__len__"</span><span class="p">):</span>
-                    <span class="n">total_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">total_samples</span> <span class="o">=</span> <span class="mi">10000</span>  <span class="c1"># Fallback estimate</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_count_from_size</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">recommended_size</span><span class="p">)</span>
 
-                <span class="c1"># Calculate number of partitions needed</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_samples</span> <span class="o">/</span> <span class="n">recommended_size</span><span class="p">))</span>
-
-                <span class="c1"># Cap partitions at 2x recommended workers (scales with cluster size)</span>
+                <span class="c1"># Cap auto-mode work submission at 2x the recommended workers.</span>
                 <span class="n">max_partitions</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">recommended_workers</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="p">,</span> <span class="n">max_partitions</span><span class="p">)</span>
 
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"📊 Dataset analysis complete:"</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Total samples: </span><span class="si">{</span><span class="n">total_samples</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"📊 Dataset analysis complete:"</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Recommended partition size: </span><span class="si">{</span><span class="n">recommended_size</span><span class="si">}</span><span class="s2"> samples"</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Calculated partitions: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Recommended max size: </span><span class="si">{</span><span class="n">recommended_max_size_mb</span><span class="si">}</span><span class="s2"> MB"</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Recommended workers: </span><span class="si">{</span><span class="n">recommended_workers</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-                <span class="c1"># Update worker count if not already set</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"np"</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">np</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">np</span> <span class="o">=</span> <span class="n">recommended_workers</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Updated worker count to: </span><span class="si">{</span><span class="n">recommended_workers</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not determine dataset size for partition calculation: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Using fallback partition count: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not calculate partition count from the sample target: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Using configured partition count: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Using configured partition count: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-        <span class="c1"># Align the partition count with the real cluster topology. This</span>
-        <span class="c1"># also runs when the optimizer failed above, so the fallback</span>
-        <span class="c1"># count still benefits from cluster awareness.</span>
+        <span class="c1"># Align the partition count with the real cluster topology. This also</span>
+        <span class="c1"># applies to configured fallback counts when optimization is unavailable.</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_apply_cluster_partition_bounds</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -1142,6 +1161,16 @@
             <span class="c1"># a no-op once the value is no longer "auto".</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_max_concurrent_partitions</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_configure_auto_partitioning</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">ops</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># split_at_indices() materializes the input too. Retaining that</span>
+            <span class="c1"># materialization here lets counting and splitting share one stable</span>
+            <span class="c1"># snapshot instead of executing the lazy input plan repeatedly.</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">materialize</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_count_from_size</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Manual sample-based partitioning: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2"> partitions "</span>
+                <span class="sa">f</span><span class="s2">"for a target of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span><span class="si">}</span><span class="s2"> samples each"</span>
+            <span class="p">)</span>
 
         <span class="c1"># Record explicit actor-pool budgets and calculate automatic Ray</span>
         <span class="c1"># operator parallelism once on the driver. Every partition shares the</span>
@@ -1166,11 +1195,12 @@
             <span class="o">**</span><span class="n">dataset_info</span><span class="p">,</span>
             <span class="s2">"work_dir"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">work_dir</span><span class="p">,</span>
             <span class="s2">"executor_type"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">executor_type</span><span class="p">,</span>
+            <span class="s2">"partition"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"size"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span><span class="p">},</span>
             <span class="s2">"dag_node_count"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipeline_dag</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline_dag</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
             <span class="s2">"dag_edge_count"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipeline_dag</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline_dag</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
             <span class="s2">"parallel_groups_count"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipeline_dag</span><span class="o">.</span><span class="n">parallel_groups</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline_dag</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">log_job_start</span><span class="p">(</span><span class="n">job_config</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ops</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_job_start</span><span class="p">(</span><span class="n">job_config</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="p">)</span>
 
         <span class="c1"># Detect convergence points for global operations</span>
         <span class="n">convergence_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detect_convergence_points</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">)</span>
@@ -2074,10 +2104,24 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Saved partition hashes validated successfully - resuming checkpoints"</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">partitions</span><span class="p">,</span> <span class="n">saved_info</span>
 
-        <span class="c1"># Split the dataset</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Splitting dataset into </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="si">}</span><span class="s2"> partitions (deterministic mode)..."</span><span class="p">)</span>
-        <span class="n">partitions</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">partitions</span><span class="p">)</span><span class="si">}</span><span class="s2"> partitions"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_mode</span> <span class="o">==</span> <span class="s2">"manual"</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">partitions</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">materialize</span><span class="p">()]</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Created 1 materialized partition"</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Use the configured sample target as each boundary. The final</span>
+                <span class="c1"># partition absorbs the remainder implied by nearest-count</span>
+                <span class="c1"># planning and is the only partition that can differ in size.</span>
+                <span class="n">split_indices</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span> <span class="o">*</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="p">)]</span>
+                <span class="n">partitions</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">split_at_indices</span><span class="p">(</span><span class="n">split_indices</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">partitions</span><span class="p">)</span><span class="si">}</span><span class="s2"> partitions via row-based splitting "</span>
+                    <span class="sa">f</span><span class="s2">"(target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_size_cfg</span><span class="si">}</span><span class="s2"> samples each)"</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">partitions</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">partitions</span><span class="p">)</span><span class="si">}</span><span class="s2"> partitions"</span><span class="p">)</span>
 
         <span class="c1"># If resuming, validate partitions match</span>
         <span class="k">if</span> <span class="n">saved_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

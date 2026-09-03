@@ -369,7 +369,7 @@
 
 
 <div class="viewcode-block" id="VideoAspectRatioFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_aspect_ratio_filter.html#data_juicer.ops.filter.video_aspect_ratio_filter.VideoAspectRatioFilter">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoAspectRatioFilter">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"video_aspect_ratio_filter"</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"video_aspect_ratio_filter"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoAspectRatioFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -384,7 +384,7 @@
 <span class="sd">    and stored in the 'video_aspect_ratios' field of the sample's stats."""</span>
 
 <div class="viewcode-block" id="VideoAspectRatioFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_aspect_ratio_filter.html#data_juicer.ops.filter.video_aspect_ratio_filter.VideoAspectRatioFilter.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoAspectRatioFilter.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_ratio</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"9/21"</span><span class="p">,</span> <span class="n">max_ratio</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"21/9"</span><span class="p">,</span> <span class="n">any_or_all</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"any"</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -409,7 +409,7 @@
 
 
 <div class="viewcode-block" id="VideoAspectRatioFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_aspect_ratio_filter.html#data_juicer.ops.filter.video_aspect_ratio_filter.VideoAspectRatioFilter.compute_stats_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoAspectRatioFilter.compute_stats_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_aspect_ratios</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -438,7 +438,7 @@
 
 
 <div class="viewcode-block" id="VideoAspectRatioFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_aspect_ratio_filter.html#data_juicer.ops.filter.video_aspect_ratio_filter.VideoAspectRatioFilter.process_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoAspectRatioFilter.process_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="n">video_aspect_ratios</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_aspect_ratios</span><span class="p">]</span>
 

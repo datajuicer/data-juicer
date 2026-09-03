@@ -935,12 +935,14 @@
         <span class="k">if</span> <span class="s2">"dataset"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
             <span class="n">dataset_info</span><span class="p">[</span><span class="s2">"dataset"</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"dataset"</span><span class="p">)</span>
 
+        <span class="n">partition_cfg</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"partition"</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">partition_size</span> <span class="o">=</span> <span class="n">partition_cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"size"</span><span class="p">)</span> <span class="k">if</span> <span class="n">partition_cfg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"total_partitions"</span><span class="p">:</span> <span class="n">total_partitions</span><span class="p">,</span>
             <span class="s2">"config_summary"</span><span class="p">:</span> <span class="p">{</span>
                 <span class="o">**</span><span class="n">dataset_info</span><span class="p">,</span>
                 <span class="s2">"executor_type"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"executor_type"</span><span class="p">),</span>
-                <span class="s2">"partition_size"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"partition_size"</span><span class="p">),</span>
+                <span class="s2">"partition_size"</span><span class="p">:</span> <span class="n">partition_size</span><span class="p">,</span>
                 <span class="s2">"checkpoint_strategy"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"checkpoint_strategy"</span><span class="p">),</span>
                 <span class="s2">"storage_format"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"storage_format"</span><span class="p">),</span>
                 <span class="s2">"compression"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"compression"</span><span class="p">),</span>

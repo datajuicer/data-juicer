@@ -452,9 +452,8 @@
 <span class="nt">partition</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">"auto"</span>
 <span class="w">  </span><span class="nt">max_concurrent_partitions</span><span class="p">:</span><span class="w"> </span><span class="s">"auto"</span><span class="w">  </span><span class="c1"># 资源感知的 Driver 并发上限</span>
-<span class="w">  </span><span class="nt">target_size_mb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span><span class="w">    </span><span class="c1"># 目标分区大小（128、256、512 或 1024）</span>
-<span class="w">  </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span><span class="w">             </span><span class="c1"># 自动分析失败时的回退值</span>
-<span class="w">  </span><span class="nt">max_size_mb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span><span class="w">       </span><span class="c1"># 回退最大大小</span>
+<span class="w">  </span><span class="nt">target_size_mb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span><span class="w">    </span><span class="c1"># 自动模式规划使用的目标大小（MB）</span>
+<span class="w">  </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">             </span><span class="c1"># 可选：优化器无法给出有效建议时使用的样本数回退值</span>
 </pre></div>
 </div>
 <p><strong>手动模式</strong> - 指定确切的分区数量：</p>
@@ -464,6 +463,18 @@
 <span class="w">  </span><span class="nt">max_concurrent_partitions</span><span class="p">:</span><span class="w"> </span><span class="s">"auto"</span>
 </pre></div>
 </div>
+<p>手动模式也可以通过样本数目标推导最接近的分区数量。手动模式下，<code class="docutils literal notranslate"><span class="pre">size</span></code> 与
+<code class="docutils literal notranslate"><span class="pre">num_of_partitions</span></code> 互斥。执行器会物化一次输入数据，再按照行边界切分。除最后
+一个分区吸收按最接近数量规划产生的余数外，其余分区各包含 <code class="docutils literal notranslate"><span class="pre">size</span></code> 条样本。如果
+推导结果为一个分区，则整个数据集作为一个已物化分区处理：</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">partition</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">"manual"</span>
+<span class="w">  </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">target_size_mb</span></code> 是优化器的规划输入，并非内存或输出文件大小的硬限制。该参数
+接受 0 和负数；如果据此算出的建议低于优化器内部下限，Data-Juicer 会应用下限
+并记录 warning。</p>
 <p><code class="docutils literal notranslate"><span class="pre">max_concurrent_partitions:</span> <span class="pre">&quot;auto&quot;</span></code> 是默认值。该值会在 Operator 资源规划完成后解析：含 GPU Operator 的 pipeline 根据 Ray 集群可容纳的最小 CPU/GPU worker 数确定，纯 CPU pipeline 的外层并发保守限制为 4。实际并发还会受到 Partition 数量和显式全局 Actor <code class="docutils literal notranslate"><span class="pre">num_proc</span></code> 预算的限制。需要手动调优时，可将其设置为正整数来覆盖自动值。</p>
 </section>
 <section id="id6">

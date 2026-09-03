@@ -1114,18 +1114,11 @@
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--ray_address"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"The address of the Ray cluster."</span><span class="p">)</span>
 
     <span class="c1"># Partitioning configuration for PartitionedRayExecutor</span>
-    <span class="c1"># Support both flat and nested partition configuration</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--partition_size"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Number of samples per partition for PartitionedRayExecutor (legacy flat config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--max_partition_size_mb"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Maximum partition size in MB for PartitionedRayExecutor (legacy flat config)"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">],</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Deprecated; use --partition.size. Number of samples per partition."</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -1144,11 +1137,21 @@
         <span class="n">help</span><span class="o">=</span><span class="s2">"Partition mode: manual (specify num_of_partitions) or auto (use partition size optimizer)"</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--partition.num_of_partitions"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">Union</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">,</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"auto"</span><span class="p">]],</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="s2">"--partition.size"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">],</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">"Number of partitions for manual mode (ignored in auto mode). "</span>
+            <span class="s2">"Optional samples-per-partition target. In manual mode, the executor derives the partition count "</span>
+            <span class="s2">"after loading the dataset. In auto mode, this is used only when the optimizer cannot recommend "</span>
+            <span class="s2">"a valid sample count."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--partition.num_of_partitions"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">,</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"auto"</span><span class="p">]]],</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Number of partitions for manual mode (default: 4 when neither this nor partition.size is set). "</span>
             <span class="s2">"In auto mode, 'auto' derives a cluster-aware count; a positive "</span>
             <span class="s2">"integer acts as the data-driven ceiling for the cluster-aware "</span>
             <span class="s2">"adjustment."</span>
@@ -1179,9 +1182,9 @@
         <span class="s2">"--partition.target_size_mb"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Target partition size in MB for auto mode (128, 256, 512, or 1024). "</span>
-        <span class="s2">"Controls how large each partition should be. Smaller = more checkpoints &amp; better recovery, "</span>
-        <span class="s2">"larger = less overhead. Default 256MB balances memory safety and efficiency."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Target partition size in MB for the auto-mode optimizer, e.g. 128, 256, 512 or 1024. "</span>
+        <span class="s2">"Values that produce a recommendation below an optimizer minimum are accepted and clamped with a warning. "</span>
+        <span class="s2">"This is an estimate used for planning, not a hard memory or output-file size limit."</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Resource optimization configuration</span>
@@ -1266,6 +1269,58 @@
 
     <span class="k">return</span> <span class="n">parser</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_partition_size_config</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Validate partition-size choices and bridge the deprecated flat field."""</span>
+    <span class="n">flat_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"partition_size"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">partition_cfg</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"partition"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">partition_cfg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">partition_cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"mode"</span><span class="p">,</span> <span class="s2">"auto"</span><span class="p">)</span>
+        <span class="n">nested_size</span> <span class="o">=</span> <span class="n">partition_cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"size"</span><span class="p">)</span>
+        <span class="n">configured_count</span> <span class="o">=</span> <span class="n">partition_cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"num_of_partitions"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">,</span> <span class="s2">"auto"</span><span class="p">)</span>
+        <span class="n">nested_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">configured_count</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="s2">"num_of_partitions"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">manual_count_mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"manual"</span> <span class="ow">and</span> <span class="n">configured_count</span> <span class="o">!=</span> <span class="s2">"auto"</span>
+    <span class="k">if</span> <span class="n">manual_count_mode</span> <span class="ow">and</span> <span class="n">nested_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">configured_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"partition.size and partition.num_of_partitions are mutually exclusive in manual mode; "</span>
+            <span class="s2">"configure either a samples-per-partition target or an explicit partition count."</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">flat_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">"--partition_size is deprecated and will be removed in a future version. Use --partition.size instead."</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">manual_count_mode</span> <span class="ow">and</span> <span class="n">configured_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nested_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"Ignoring deprecated partition_size because partition.num_of_partitions is explicitly configured "</span>
+                <span class="s2">"in manual mode."</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">nested_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nested_size</span> <span class="o">=</span> <span class="n">flat_size</span>
+
+    <span class="n">should_default_count</span> <span class="o">=</span> <span class="n">configured_count</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"manual"</span> <span class="ow">and</span> <span class="n">nested_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">partition_cfg</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">partition_cfg</span><span class="p">[</span><span class="s2">"size"</span><span class="p">]</span> <span class="o">=</span> <span class="n">nested_size</span>
+        <span class="k">if</span> <span class="n">should_default_count</span><span class="p">:</span>
+            <span class="n">partition_cfg</span><span class="p">[</span><span class="s2">"num_of_partitions"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">partition_cfg</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">nested_size</span>
+        <span class="k">if</span> <span class="n">should_default_count</span><span class="p">:</span>
+            <span class="n">partition_cfg</span><span class="o">.</span><span class="n">num_of_partitions</span> <span class="o">=</span> <span class="mi">4</span>
 
 
 <div class="viewcode-block" id="init_configs">
@@ -1368,6 +1423,8 @@
                     <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">"--auto argument can only be used for analyzer!"</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
                     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+                <span class="n">_normalize_partition_size_config</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
 
         <span class="k">with</span> <span class="n">timing_context</span><span class="p">(</span><span class="s2">"Initializing setup from config"</span><span class="p">):</span>
             <span class="n">cfg</span> <span class="o">=</span> <span class="n">init_setup_from_cfg</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">load_configs_only</span><span class="p">)</span>

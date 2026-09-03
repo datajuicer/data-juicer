@@ -450,9 +450,8 @@
 <span class="nt">partition</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">"auto"</span>
 <span class="w">  </span><span class="nt">max_concurrent_partitions</span><span class="p">:</span><span class="w"> </span><span class="s">"auto"</span><span class="w">  </span><span class="c1"># Resource-aware driver concurrency</span>
-<span class="w">  </span><span class="nt">target_size_mb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span><span class="w">    </span><span class="c1"># Target partition size (128, 256, 512, or 1024)</span>
-<span class="w">  </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span><span class="w">             </span><span class="c1"># Fallback if auto-analysis fails</span>
-<span class="w">  </span><span class="nt">max_size_mb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span><span class="w">       </span><span class="c1"># Fallback max size</span>
+<span class="w">  </span><span class="nt">target_size_mb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span><span class="w">    </span><span class="c1"># Target size in MB used for auto-mode planning</span>
+<span class="w">  </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">             </span><span class="c1"># Optional sample-count fallback when optimization cannot recommend a valid size</span>
 </pre></div>
 </div>
 <p><strong>Manual mode</strong> - specify exact partition count:</p>
@@ -462,6 +461,21 @@
 <span class="w">  </span><span class="nt">max_concurrent_partitions</span><span class="p">:</span><span class="w"> </span><span class="s">"auto"</span>
 </pre></div>
 </div>
+<p>Manual mode can instead derive the nearest partition count from a sample
+target. <code class="docutils literal notranslate"><span class="pre">size</span></code> and <code class="docutils literal notranslate"><span class="pre">num_of_partitions</span></code> are mutually exclusive in manual mode.
+The executor materializes the input once and splits it at row boundaries. Each
+partition contains <code class="docutils literal notranslate"><span class="pre">size</span></code> samples except for the final partition, which absorbs
+the remainder from nearest-count planning. If the derived count is one, the
+whole dataset is processed as one materialized partition:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">partition</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">"manual"</span>
+<span class="w">  </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">target_size_mb</span></code> is an optimizer input rather than a hard memory or output-file
+limit. Zero and negative values are accepted; when the resulting recommendation
+falls below an optimizer minimum, Data-Juicer applies that minimum and logs a
+warning.</p>
 <p><code class="docutils literal notranslate"><span class="pre">max_concurrent_partitions:</span> <span class="pre">&quot;auto&quot;</span></code> is the default. It is resolved after
 operator resource planning: GPU pipelines use the tightest CPU/GPU worker
 capacity reported by the Ray cluster, while CPU-only pipelines use a

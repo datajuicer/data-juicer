@@ -39,9 +39,8 @@ executor_type: ray_partitioned
 partition:
   mode: "auto"
   max_concurrent_partitions: "auto"  # Resource-aware driver concurrency
-  target_size_mb: 256    # Target partition size (128, 256, 512, or 1024)
-  size: 5000             # Fallback if auto-analysis fails
-  max_size_mb: 256       # Fallback max size
+  target_size_mb: 256    # Target size in MB used for auto-mode planning
+  size: null             # Optional sample-count fallback when optimization cannot recommend a valid size
 ```
 
 **Manual mode** - specify exact partition count:
@@ -52,6 +51,24 @@ partition:
   num_of_partitions: 8
   max_concurrent_partitions: "auto"
 ```
+
+Manual mode can instead derive the nearest partition count from a sample
+target. `size` and `num_of_partitions` are mutually exclusive in manual mode.
+The executor materializes the input once and splits it at row boundaries. Each
+partition contains `size` samples except for the final partition, which absorbs
+the remainder from nearest-count planning. If the derived count is one, the
+whole dataset is processed as one materialized partition:
+
+```yaml
+partition:
+  mode: "manual"
+  size: 5000
+```
+
+`target_size_mb` is an optimizer input rather than a hard memory or output-file
+limit. Zero and negative values are accepted; when the resulting recommendation
+falls below an optimizer minimum, Data-Juicer applies that minimum and logs a
+warning.
 
 `max_concurrent_partitions: "auto"` is the default. It is resolved after
 operator resource planning: GPU pipelines use the tightest CPU/GPU worker

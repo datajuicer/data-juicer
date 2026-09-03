@@ -498,15 +498,10 @@
 <a class="viewcode-back" href="../../../../api/data_juicer.core.executor.partition_size_optimizer.html#data_juicer.core.executor.partition_size_optimizer.ModalityConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ModalityConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Configuration for a specific modality."""</span>
+<span class="w">    </span><span class="sd">"""Sample-count fallback and upper bound for a data modality."""</span>
 
-    <span class="n">modality</span><span class="p">:</span> <span class="n">ModalityType</span>
     <span class="n">default_partition_size</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="n">max_partition_size</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="n">max_partition_size_mb</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="n">memory_multiplier</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Memory usage multiplier compared to text</span>
-    <span class="n">complexity_multiplier</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Processing complexity multiplier</span>
-    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span></div>
+    <span class="n">max_partition_size</span><span class="p">:</span> <span class="nb">int</span></div>
 
 
 
@@ -691,49 +686,24 @@
     <span class="c1"># Default configurations for different modalities</span>
     <span class="n">MODALITY_CONFIGS</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">ModalityType</span><span class="o">.</span><span class="n">TEXT</span><span class="p">:</span> <span class="n">ModalityConfig</span><span class="p">(</span>
-            <span class="n">modality</span><span class="o">=</span><span class="n">ModalityType</span><span class="o">.</span><span class="n">TEXT</span><span class="p">,</span>
-            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Increased for 256MB target</span>
-            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>  <span class="c1"># Increased for larger partitions</span>
-            <span class="n">max_partition_size_mb</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># Default 256MB per partition (configurable)</span>
-            <span class="n">memory_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">complexity_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">description</span><span class="o">=</span><span class="s2">"Text data - efficient processing, low memory usage, target 256MB partitions (configurable)"</span><span class="p">,</span>
+            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ModalityType</span><span class="o">.</span><span class="n">IMAGE</span><span class="p">:</span> <span class="n">ModalityConfig</span><span class="p">(</span>
-            <span class="n">modality</span><span class="o">=</span><span class="n">ModalityType</span><span class="o">.</span><span class="n">IMAGE</span><span class="p">,</span>
-            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>  <span class="c1"># Increased for 256MB target</span>
-            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Increased for larger partitions</span>
-            <span class="n">max_partition_size_mb</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># Default 256MB per partition (configurable)</span>
-            <span class="n">memory_multiplier</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-            <span class="n">complexity_multiplier</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
-            <span class="n">description</span><span class="o">=</span><span class="s2">"Image data - moderate memory usage, target 256MB partitions (configurable)"</span><span class="p">,</span>
+            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ModalityType</span><span class="o">.</span><span class="n">AUDIO</span><span class="p">:</span> <span class="n">ModalityConfig</span><span class="p">(</span>
-            <span class="n">modality</span><span class="o">=</span><span class="n">ModalityType</span><span class="o">.</span><span class="n">AUDIO</span><span class="p">,</span>
-            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>  <span class="c1"># Increased for 256MB target</span>
-            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span>  <span class="c1"># Increased for larger partitions</span>
-            <span class="n">max_partition_size_mb</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># Default 256MB per partition (configurable)</span>
-            <span class="n">memory_multiplier</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
-            <span class="n">complexity_multiplier</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-            <span class="n">description</span><span class="o">=</span><span class="s2">"Audio data - high memory usage, target 256MB partitions (configurable)"</span><span class="p">,</span>
+            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ModalityType</span><span class="o">.</span><span class="n">VIDEO</span><span class="p">:</span> <span class="n">ModalityConfig</span><span class="p">(</span>
-            <span class="n">modality</span><span class="o">=</span><span class="n">ModalityType</span><span class="o">.</span><span class="n">VIDEO</span><span class="p">,</span>
-            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>  <span class="c1"># Increased for 256MB target</span>
-            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>  <span class="c1"># Increased for larger partitions</span>
-            <span class="n">max_partition_size_mb</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># Default 256MB per partition (configurable)</span>
-            <span class="n">memory_multiplier</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
-            <span class="n">complexity_multiplier</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span>
-            <span class="n">description</span><span class="o">=</span><span class="s2">"Video data - very high memory usage, target 256MB partitions (configurable)"</span><span class="p">,</span>
+            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ModalityType</span><span class="o">.</span><span class="n">MULTIMODAL</span><span class="p">:</span> <span class="n">ModalityConfig</span><span class="p">(</span>
-            <span class="n">modality</span><span class="o">=</span><span class="n">ModalityType</span><span class="o">.</span><span class="n">MULTIMODAL</span><span class="p">,</span>
-            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">1600</span><span class="p">,</span>  <span class="c1"># Increased for 256MB target</span>
-            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">6000</span><span class="p">,</span>  <span class="c1"># Increased for larger partitions</span>
-            <span class="n">max_partition_size_mb</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># Default 256MB per partition (configurable)</span>
-            <span class="n">memory_multiplier</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-            <span class="n">complexity_multiplier</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
-            <span class="n">description</span><span class="o">=</span><span class="s2">"Multimodal data - combination of multiple modalities, target 256MB partitions (configurable)"</span><span class="p">,</span>
+            <span class="n">default_partition_size</span><span class="o">=</span><span class="mi">1600</span><span class="p">,</span>
+            <span class="n">max_partition_size</span><span class="o">=</span><span class="mi">6000</span><span class="p">,</span>
         <span class="p">),</span>
     <span class="p">}</span>
 
@@ -1101,6 +1071,11 @@
                 <span class="n">target_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">target_memory_mb</span> <span class="o">/</span> <span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">memory_per_sample_mb</span> <span class="o">*</span> <span class="n">complexity_multiplier</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">target_size</span> <span class="o">=</span> <span class="n">base_config</span><span class="o">.</span><span class="n">default_partition_size</span>
+            <span class="k">if</span> <span class="n">target_size</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Calculated </span><span class="si">{</span><span class="n">characteristics</span><span class="o">.</span><span class="n">primary_modality</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2"> partition size </span><span class="si">{</span><span class="n">target_size</span><span class="si">}</span><span class="s2"> samples; "</span>
+                    <span class="s2">"applying the optimizer minimum of 10 samples."</span>
+                <span class="p">)</span>
             <span class="n">target_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">target_size</span><span class="p">,</span> <span class="n">base_config</span><span class="o">.</span><span class="n">max_partition_size</span><span class="p">))</span>
 
         <span class="c1"># Step 2: Check if this fits in available memory</span>
@@ -1188,6 +1163,11 @@
 
         <span class="c1"># Apply bounds from MODALITY_CONFIGS</span>
         <span class="n">text_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODALITY_CONFIGS</span><span class="p">[</span><span class="n">ModalityType</span><span class="o">.</span><span class="n">TEXT</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">target_samples</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Calculated text partition size </span><span class="si">{</span><span class="n">target_samples</span><span class="si">}</span><span class="s2"> samples; "</span>
+                <span class="s2">"applying the optimizer minimum of 100 samples."</span>
+            <span class="p">)</span>
         <span class="n">target_samples</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">target_samples</span><span class="p">,</span> <span class="n">text_config</span><span class="o">.</span><span class="n">max_partition_size</span><span class="p">))</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Text partition calculation:"</span><span class="p">)</span>
@@ -1223,6 +1203,11 @@
 
         <span class="c1"># Apply bounds</span>
         <span class="n">optimal_max_size_mb</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">complexity_adjusted_size</span><span class="p">,</span> <span class="n">max_size_by_memory</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optimal_max_size_mb</span> <span class="o">&lt;</span> <span class="mi">32</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Calculated maximum partition size </span><span class="si">{</span><span class="n">optimal_max_size_mb</span><span class="si">}</span><span class="s2"> MB; "</span>
+                <span class="s2">"applying the optimizer minimum of 32 MB."</span>
+            <span class="p">)</span>
         <span class="n">optimal_max_size_mb</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">optimal_max_size_mb</span><span class="p">)</span>
         <span class="n">optimal_max_size_mb</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">optimal_max_size_mb</span><span class="p">)</span>  <span class="c1"># Increased max from 128MB</span>
 
@@ -1293,8 +1278,6 @@
                 <span class="n">modality</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="p">{</span>
                     <span class="s2">"default_size"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">default_partition_size</span><span class="p">,</span>
                     <span class="s2">"max_size"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">max_partition_size</span><span class="p">,</span>
-                    <span class="s2">"max_size_mb"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">max_partition_size_mb</span><span class="p">,</span>
-                    <span class="s2">"description"</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
                 <span class="p">}</span>
                 <span class="k">for</span> <span class="n">modality</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODALITY_CONFIGS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">},</span>
@@ -1327,7 +1310,7 @@
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Resource optimization completed:"</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Recommended partition.size: </span><span class="si">{</span><span class="n">recommendations</span><span class="p">[</span><span class="s1">'recommended_partition_size'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Recommended partition.max_size_mb: </span><span class="si">{</span><span class="n">recommendations</span><span class="p">[</span><span class="s1">'recommended_max_size_mb'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Estimated maximum partition size: </span><span class="si">{</span><span class="n">recommendations</span><span class="p">[</span><span class="s1">'recommended_max_size_mb'</span><span class="p">]</span><span class="si">}</span><span class="s2"> MB"</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Recommended worker count: </span><span class="si">{</span><span class="n">recommendations</span><span class="p">[</span><span class="s1">'recommended_worker_count'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">recommendations</span></div>

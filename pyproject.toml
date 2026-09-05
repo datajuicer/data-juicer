@@ -187,6 +187,7 @@ all = [
 
 [project.scripts]
 dj-process = "data_juicer.tools.process_data:main"
+dj-process-sharded = "data_juicer.tools.elastic_sharding:main"
 dj-analyze = "data_juicer.tools.analyze_data:main"
 dj-install = "data_juicer.tools.dj_install:main"
 dj-mcp = "data_juicer.tools.mcp_server:main"

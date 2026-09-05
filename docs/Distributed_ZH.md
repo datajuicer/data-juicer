@@ -25,6 +25,26 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 
 这种默认执行计划可能非常低效，尤其是在节点数量较多的情况下。为了优化此类情况的性能，我们考虑到 Ray 和 Arrow 的特性，提前将原始数据集自动拆分为较小的文件。当用户遇到此类性能问题时，他们可以利用此功能或根据偏好自己拆分数据集。在我们的自动拆分策略中，单个文件大小设置为 128MB，且结果应确保 拆分后的子文件数量 至少是 集群中可用CPU核心总数 的两倍。对应工具可在tools/data_resplit.py获取。
 
+#### 共享存储弹性分片
+
+如果多个节点共享 POSIX/NAS/CPFS，但不希望建立跨节点 Ray 集群，可以在每个节点
+执行相同的命令：
+
+```shell
+dj-process-sharded run --config recipe.yaml \
+  --job-dir /shared/dj-jobs/job-001 --num-shards 32 --run-id submission-001
+```
+
+各节点通过 `job-dir` 动态认领固定分片，并在节点内使用独立 Ray executor；完成后由
+一个节点校验并按原始顺序合并结果。当前分片模式要求本地 JSONL 输入输出，且 recipe
+只包含 Mapper/Filter。其他算子或输入输出会自动降级为单次原始 `dj-process`，并打印
+降级原因。可用 `status` 查看状态、用 `retry` 重新入队失败分片；详细限制和调度器示例
+见 [`demos/elastic_sharding`](../demos/elastic_sharding/README_ZH.md)。
+
+为获得最佳吞吐，建议 `num_shards` 不大于 Worker 节点数，最好两者相等（每节点一个
+分片）。只有在负载明显不均衡或需要更细重试粒度时才增加额外分片，因为同一 Worker
+会顺序处理认领的分片，并为每个分片启动新的 Data-Juicer 进程。
+
 
 ### JSON 文件的流式读取
 

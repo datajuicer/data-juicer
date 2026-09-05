@@ -94,7 +94,7 @@ for s in res_ds:
 * 🧩 *External OP Plugins* — Third-party operators can now be shipped as standalone pip packages and auto-registered via Python entry points.
 * 🗄️ *HDFS I/O* — Added `hdfs://` support for dataset loading and exporting, aligned with the existing S3 path.
 * ⚡ *Ray Data Optimizations* — Removed eager actions that forced premature execution, migrated to the public `TaskPoolStrategy`/`ActorPoolStrategy` APIs, parallelized partitioned execution, preserved elastic actor pool concurrency, and kept partition checkpoints valid across block-layout changes.
-* 🌐 *Elastic Multi-node Sharding* — New runnable reference workflow under `demos/elastic_sharding/` that shards large JSONL datasets across nodes via node-local Ray executors, with retries and ordered merge.
+* 🌐 *Elastic Multi-node Sharding* — `dj-process-sharded` processes large JSONL datasets elastically across node-local Ray executors, with automatic safe fallback, retries, and ordered merge; see `demos/elastic_sharding/` for scheduler examples.
 * 📊 *Distributed RayAnalyzer* — New `RayAnalyzer` computes and aggregates dataset stats with Ray native operators, avoiding pandas materialization.
 * 🧮 *Memory Optimizations* — Streamed n-gram counting in repetition filters and block-wise MinHash permutations cut peak memory (768 → 272 MiB RSS) without changing results.
 * 🔧 *Robustness & Dependency Fixes* — Fixed `text_chunk_mapper` delimiter leakage, `calibrate_response_mapper` `output_pattern` handling, and null captions in `image_diffusion_mapper`; added membership operators to `general_field_filter`; relaxed `numpy`/`fsspec`/`pandas` bounds for Python 3.13+ and pyarrow>=17.

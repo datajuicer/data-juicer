@@ -25,6 +25,30 @@ When dealing with tens of thousands of nodes but only a few dataset files, Ray w
 
 This default execution plan can be quite inefficient especially for scenarios with large number of nodes. To optimize performance for such cases, we automatically splitting the original dataset into smaller files in advance, taking into consideration the features of Ray and Arrow. When users encounter such performance issues, they can utilize this feature or split the dataset according to their own preferences. In our auto-split strategy, the single file size is set to 128MB, and the result should ensure that the number of sub-files after splitting is at least twice the total number of CPU cores available in the cluster. The corresponding tool can be obtained in tools/data_resplit.py.
 
+#### Elastic sharding on shared storage
+
+When multiple nodes share POSIX/NAS/CPFS storage but should not form a
+cross-node Ray cluster, run the same command on every node:
+
+```shell
+dj-process-sharded run --config recipe.yaml \
+  --job-dir /shared/dj-jobs/job-001 --num-shards 32 --run-id submission-001
+```
+
+Nodes dynamically claim deterministic shards through `job-dir` and use an
+independent Ray executor inside each node. One node validates and merges the
+results in original order. Sharded mode currently requires local JSONL input
+and output and a Mapper/Filter-only recipe. Other operators or I/O settings
+automatically fall back to one original `dj-process` invocation with a clear
+reason. Use `status` to inspect the job and `retry` to requeue failed shards.
+See [`demos/elastic_sharding`](../demos/elastic_sharding/README.md) for detailed
+constraints and scheduler examples.
+
+For best throughput, keep `num_shards` no greater than the Worker node count,
+ideally equal to it (one shard per node). Add extra shards only for significant
+workload skew or finer retry granularity: a Worker processes its claimed shards
+sequentially and starts another Data-Juicer process for each shard.
+
 ### Streaming Reading of JSON Files
 
 Streaming reading of JSON files is a common requirement in data processing for foundation models, as many datasets are stored in JSONL format and in huge sizes. 

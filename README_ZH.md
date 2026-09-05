@@ -93,7 +93,7 @@ for s in res_ds:
 * 🧩 外部算子插件 — 第三方算子现在可作为独立 pip 包分发，并通过 Python entry points 自动注册。
 * 🗄️ HDFS I/O — 新增 `hdfs://` 支持，可用于数据集加载与导出，与现有 S3 路径对齐。
 * ⚡ Ray Data 优化 — 移除会强制提前执行的急切操作，迁移至公开的 `TaskPoolStrategy`/`ActorPoolStrategy` API，并行化分区执行，保留弹性 actor pool 并发度，并使分区检查点在 block 布局变化后仍然有效。
-* 🌐 多节点弹性分片 — 新增位于 `demos/elastic_sharding/` 的可运行参考工作流，通过节点本地 Ray 执行器将大型 JSONL 数据集跨节点分片处理，支持重试与有序合并。
+* 🌐 多节点弹性分片 — `dj-process-sharded` 通过节点本地 Ray 将大型 JSONL 数据集跨节点弹性处理，支持自动安全降级、重试与有序合并；调度示例见 `demos/elastic_sharding/`。
 * 📊 分布式 RayAnalyzer — 新增 `RayAnalyzer`，以 Ray 原生算子计算并汇总数据集统计量，避免 pandas 物化。
 * 🧮 内存优化 — 重复度过滤器的流式 n-gram 计数与分块式 MinHash 置换降低了内存峰值（RSS 768 → 272 MiB），且结果不变。
 * 🔧 健壮性与依赖修复 — 修复 `text_chunk_mapper` 分隔符泄漏、`calibrate_response_mapper` 的 `output_pattern` 处理以及 `image_diffusion_mapper` 的空 caption 问题；为 `general_field_filter` 增加成员运算符；放宽 `numpy`/`fsspec`/`pandas` 版本约束以兼容 Python 3.13+ 与 pyarrow>=17。

@@ -242,15 +242,14 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
             prepare_api_model('test_model', endpoint='/unsupported/endpoint')
         self.assertIn('Unsupported endpoint', str(context.exception))
 
-    # Isolate from ambient OPENAI_*/DASHSCOPE_* env so credential-omission
-    # assertions are hermetic.
-    @patch('data_juicer.utils.model_utils._merge_openai_compatible_env_into_model_params',
-           side_effect=lambda p: p)
+    # Set ambient OPENAI_* env to prove the litellm backend does NOT merge it
+    # into the request (the openai_compatible path still does; asserted below).
+    @patch.dict(os.environ, {'OPENAI_API_KEY': 'env-openai-key', 'OPENAI_BASE_URL': 'http://env-base'}, clear=False)
     @patch('data_juicer.utils.model_utils.litellm')
-    def test_prepare_api_model_litellm(self, mock_litellm, _mock_merge):
+    def test_prepare_api_model_litellm(self, mock_litellm):
         # Chat dispatch: routes through litellm.completion with drop_params
-        # defaulted and the credential forwarded.
-        chat = prepare_api_model('anthropic/claude-opus-4-8', use_litellm=True, api_key='secret')
+        # defaulted and the explicit credential forwarded.
+        chat = prepare_api_model('anthropic/claude-opus-4-8', api_backend='litellm', api_key='secret')
         self.assertIsInstance(chat, LiteLLMChatAPIModel)
         self.assertEqual(chat.model, 'anthropic/claude-opus-4-8')
 
@@ -265,15 +264,17 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         self.assertTrue(call_kwargs['drop_params'])
         self.assertEqual(call_kwargs['api_key'], 'secret')
 
-        # Credentials omitted when blank -> LiteLLM falls back to provider env vars.
-        bare = prepare_api_model('gpt-4o-mini', use_litellm=True)
+        # Ordering fix: with no explicit key, the litellm path must NOT leak the
+        # ambient OPENAI_API_KEY / OPENAI_BASE_URL (each provider reads its own
+        # env via LiteLLM). This is the bug the maintainer flagged.
+        bare = prepare_api_model('gpt-4o-mini', api_backend='litellm')
         bare([{'role': 'user', 'content': 'hi'}])
         _, bare_kwargs = mock_litellm.completion.call_args
         self.assertNotIn('api_key', bare_kwargs)
         self.assertNotIn('api_base', bare_kwargs)
 
         # Embedding dispatch via litellm.embedding.
-        embed = prepare_api_model('text-embedding-3-small', endpoint='/embeddings', use_litellm=True)
+        embed = prepare_api_model('text-embedding-3-small', endpoint='/embeddings', api_backend='litellm')
         self.assertIsInstance(embed, LiteLLMEmbeddingAPIModel)
         emb_resp = MagicMock()
         emb_resp.model_dump.return_value = {'data': [{'embedding': [0.1, 0.2]}]}
@@ -281,7 +282,7 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         self.assertEqual(embed('some text'), [0.1, 0.2])
 
         # Responses dispatch via litellm.responses.
-        responses = prepare_api_model('gpt-5-mini', endpoint='/responses', use_litellm=True)
+        responses = prepare_api_model('gpt-5-mini', endpoint='/responses', api_backend='litellm')
         self.assertIsInstance(responses, LiteLLMResponsesAPIModel)
         resp_resp = MagicMock()
         resp_resp.model_dump.return_value = {'output': [{'content': [{'text': 'hi'}]}]}
@@ -291,9 +292,18 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         self.assertTrue(resp_kwargs['drop_params'])
         self.assertEqual(resp_kwargs['input'], 'say hi')
 
+        # api_backend can also arrive through operator model_params (YAML) which
+        # is splatted as **model_params; it still selects the litellm backend.
+        via_params = prepare_api_model('gpt-4o-mini', **{'api_backend': 'litellm'})
+        self.assertIsInstance(via_params, LiteLLMChatAPIModel)
+
         # A model id is required for the LiteLLM backend.
         with self.assertRaises(ValueError):
-            prepare_api_model(None, use_litellm=True)
+            prepare_api_model(None, api_backend='litellm')
+
+        # An unknown backend is rejected explicitly.
+        with self.assertRaises(ValueError):
+            prepare_api_model('gpt-4o-mini', api_backend='bogus')
 
     @patch('data_juicer.utils.model_utils.transformers')
     def test_prepare_huggingface_model(self, mock_transformers):

@@ -603,7 +603,7 @@ def prepare_api_model(
     response_path=None,
     return_processor=False,
     processor_config=None,
-    use_litellm=False,
+    api_backend=None,
     **model_params,
 ):
     """Creates a callable API model for interacting with OpenAI-compatible API.
@@ -629,30 +629,49 @@ def prepare_api_model(
     :param processor_config: A dictionary containing configuration parameters
         for initializing a Hugging Face processor. It is only relevant if
         `return_processor` is set to True.
-    :param use_litellm: If True, route chat/embedding calls through the LiteLLM
-        SDK (``litellm.completion`` / ``litellm.embedding``) instead of a raw
-        OpenAI-compatible POST. This reaches 100+ providers from one
-        ``provider/model`` string, including providers whose auth is not
-        OpenAI-compatible (Bedrock, Vertex, Azure AD). Defaults to False.
+    :param api_backend: Which request backend to use. ``"openai_compatible"``
+        (default) uses the existing direct OpenAI-compatible POST path.
+        ``"litellm"`` routes chat/embedding calls through the LiteLLM SDK
+        (``litellm.completion`` / ``litellm.embedding``), reaching 100+
+        providers from one ``provider/model`` string, including providers whose
+        auth is not OpenAI-compatible (Bedrock, Vertex, Azure AD). It can also
+        be supplied through operator ``model_params`` (e.g. ``api_backend:
+        litellm`` in a YAML config). The default keeps existing configurations
+        unchanged.
     :param model_params: Additional parameters for configuring the API model.
-        Environment variables ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and
-        ``OPENAI_API_KEY`` / ``DASHSCOPE_API_KEY`` are merged when not set here
-        (OpenAI-compatible / DashScope REST).
+        On the ``openai_compatible`` backend, environment variables
+        ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and ``OPENAI_API_KEY`` /
+        ``DASHSCOPE_API_KEY`` are merged when not set here (OpenAI-compatible /
+        DashScope REST). On the ``litellm`` backend this env merging is skipped
+        so it never leaks OpenAI/DashScope credentials onto another provider;
+        explicit ``api_key`` / ``base_url`` in ``model_params`` are still
+        honored, and every other provider reads its own env var via LiteLLM.
     :return: A callable APIModel instance, and optionally a processor
         if `return_processor` is True.
     """
-    model_params = _merge_openai_compatible_env_into_model_params(model_params)
+    # Select the backend first (explicit arg wins over an operator model_params
+    # entry), so the OpenAI/DashScope env merging below is scoped to the
+    # openai_compatible path only.
+    api_backend = api_backend or model_params.pop("api_backend", None) or "openai_compatible"
+    if api_backend not in ("openai_compatible", "litellm"):
+        raise ValueError(f"Unsupported api_backend: {api_backend!r} (expected 'openai_compatible' or 'litellm')")
+
     endpoint = endpoint or "/chat/completions"
 
-    if use_litellm:
-        # LiteLLM routes by the ``provider/model`` string, so the DashScope
-        # base-url remap (which rewrites the model id) must not apply here.
+    if api_backend == "litellm":
+        # LiteLLM routes by the ``provider/model`` string and each provider
+        # reads its own credentials, so we must NOT merge OpenAI/DashScope env
+        # vars into the params here (that would leak one provider's key/base_url
+        # onto another). Explicit api_key/base_url in model_params are honored.
+        # The DashScope base-url remap (which rewrites the model id) is likewise
+        # skipped on this path.
         ENDPOINT_CLASS_MAP = {
             "chat": LiteLLMChatAPIModel,
             "embeddings": LiteLLMEmbeddingAPIModel,
             "responses": LiteLLMResponsesAPIModel,
         }
     else:
+        model_params = _merge_openai_compatible_env_into_model_params(model_params)
         model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)
         ENDPOINT_CLASS_MAP = {
             "chat": ChatAPIModel,

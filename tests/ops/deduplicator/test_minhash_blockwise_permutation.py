@@ -13,6 +13,7 @@ from data_juicer.ops.deduplicator.document_minhash_deduplicator import (
     sha1_hash32,
 )
 from data_juicer.utils.constant import HashKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
 class _FakeSentencePieceTokenizer:
@@ -22,7 +23,7 @@ class _FakeSentencePieceTokenizer:
         return list(text)
 
 
-class MinhashBlockwisePermutationTest(unittest.TestCase):
+class MinhashBlockwisePermutationTest(DataJuicerTestCaseBase):
     @staticmethod
     def _new_op(**kwargs):
         defaults = {
@@ -169,14 +170,17 @@ class MinhashBlockwisePermutationTest(unittest.TestCase):
                 self.assertEqual(returned["marker"], b"\x00\xff")
                 self.assertEqual(sample, original)
 
-    def test_empty_shingles_preserve_legacy_reduction_error(self):
+    def test_empty_shingles_produce_max_hash_signature(self):
         op = self._new_op(window_size=5, num_permutations=16, num_bands=4, num_rows_per_band=4)
 
-        with self.assertRaisesRegex(
-            ValueError,
-            "zero-size array to reduction operation minimum which has no identity",
-        ):
-            op.compute_hash({"text": "too short"})
+        # Each band contains four big-endian uint64 MAX_HASH values.
+        expected = [int(MAX_HASH).to_bytes(8, "big") * 4] * 4
+        for text in ("", "too short"):
+            with self.subTest(text=text):
+                sample = {"text": text, "ordinal": 17}
+                result = op.compute_hash(sample)
+                self.assertEqual(result, {"text": text, "ordinal": 17, HashKeys.minhash: expected})
+                self.assertEqual(sample, {"text": text, "ordinal": 17})
 
     def test_randomized_blockwise_hash_matches_full_matrix(self):
         generator = random.Random(20260728)

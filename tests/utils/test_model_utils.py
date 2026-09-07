@@ -733,5 +733,60 @@ class DashScopeOpenAICompatTest(DataJuicerTestCaseBase):
             )
 
 
+class OrcaRouterOpenAICompatTest(DataJuicerTestCaseBase):
+    """Env merge for OrcaRouter as a named OpenAI-compatible provider."""
+
+    def test_merge_env_from_orcarouter(self):
+        from data_juicer.utils.model_utils import _merge_openai_compatible_env_into_model_params
+
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "",
+                "DASHSCOPE_API_KEY": "",
+                "ORCAROUTER_API_KEY": "sk-orca-test",
+                "ORCAROUTER_BASE_URL": "https://api.orcarouter.ai/v1/",
+            },
+            clear=False,
+        ):
+            m = _merge_openai_compatible_env_into_model_params({})
+        self.assertEqual(m.get("api_key"), "sk-orca-test")
+        self.assertEqual(m["base_url"], "https://api.orcarouter.ai/v1")
+
+    def test_orcarouter_explicit_params_take_precedence(self):
+        from data_juicer.utils.model_utils import _merge_openai_compatible_env_into_model_params
+
+        with patch.dict(
+            os.environ,
+            {
+                "ORCAROUTER_API_KEY": "sk-orca-env",
+                "ORCAROUTER_BASE_URL": "https://api.orcarouter.ai/v1",
+            },
+            clear=False,
+        ):
+            m = _merge_openai_compatible_env_into_model_params(
+                {"api_key": "explicit-key", "base_url": "https://example.com/v1"}
+            )
+        self.assertEqual(m.get("api_key"), "explicit-key")
+        self.assertEqual(m["base_url"], "https://example.com/v1")
+
+    def test_orcarouter_env_ignored_when_openai_set(self):
+        from data_juicer.utils.model_utils import _merge_openai_compatible_env_into_model_params
+
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "openai-key",
+                "OPENAI_BASE_URL": "https://api.openai.com/v1",
+                "ORCAROUTER_API_KEY": "sk-orca-env",
+                "ORCAROUTER_BASE_URL": "https://api.orcarouter.ai/v1",
+            },
+            clear=False,
+        ):
+            m = _merge_openai_compatible_env_into_model_params({})
+        self.assertEqual(m.get("api_key"), "openai-key")
+        self.assertEqual(m["base_url"], "https://api.openai.com/v1")
+
+
 if __name__ == '__main__':
     unittest.main()

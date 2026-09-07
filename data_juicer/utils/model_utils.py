@@ -42,6 +42,7 @@ diffusers = LazyLoader("diffusers")
 ram = LazyLoader("ram", "git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf")
 cv2 = LazyLoader("cv2", "opencv-contrib-python")
 openai = LazyLoader("openai")
+litellm = LazyLoader("litellm")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
@@ -352,6 +353,175 @@ class ResponsesAPIModel:
             return ""
 
 
+def _split_litellm_credentials(kwargs):
+    """Pull out credential kwargs, keeping the rest as completion params.
+
+    Credentials are returned separately so callers can forward them only when
+    set; when blank, LiteLLM falls back to each provider's own environment
+    variable (e.g. ``ANTHROPIC_API_KEY``, ``GEMINI_API_KEY``, AWS credentials).
+    ``base_url`` is accepted as an alias for LiteLLM's ``api_base``.
+    """
+    call_kwargs = dict(kwargs)
+    api_key = call_kwargs.pop("api_key", None) or None
+    api_base = call_kwargs.pop("api_base", None) or call_kwargs.pop("base_url", None) or None
+    return api_key, api_base, call_kwargs
+
+
+class LiteLLMChatAPIModel:
+    """Chat model backed by the LiteLLM SDK (https://github.com/BerriAI/litellm).
+
+    Unlike :class:`ChatAPIModel`, which raw-POSTs an OpenAI-format body to a
+    ``base_url``, this routes through ``litellm.completion`` so a single
+    ``provider/model`` string reaches 100+ providers - including ones whose auth
+    is not OpenAI-compatible (Amazon Bedrock SigV4, Google Vertex service
+    accounts, Azure AD), which a base-url override alone cannot reach. LiteLLM
+    returns an OpenAI-shaped response, so the existing ``response_path`` parsing
+    is unchanged.
+    """
+
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        :param model: The LiteLLM model string, e.g. ``gpt-4o-mini``,
+            ``anthropic/claude-opus-4-8``, ``gemini/gemini-2.5-flash``,
+            ``bedrock/anthropic.claude-3-5-sonnet-...``. Required.
+        :param endpoint: Kept for interface parity; unused by LiteLLM routing.
+        :param response_path: Dot-separated path to the content. Defaults to
+            ``choices.0.message.content`` (the OpenAI/LiteLLM response shape).
+        :param kwargs: Credentials (``api_key``, ``base_url``/``api_base``) and
+            default completion params (e.g. ``temperature``).
+        """
+        if model is None:
+            raise ValueError(
+                "`model` is required for the LiteLLM API backend, e.g. "
+                "'gpt-4o-mini', 'anthropic/claude-opus-4-8', 'bedrock/...'."
+            )
+        self.model = model
+        self.endpoint = endpoint or "/chat/completions"
+        self.response_path = response_path or "choices.0.message.content"
+        self.last_response = None  # last completion dump (for usage / debugging)
+        self.api_key, self.api_base, self.default_params = _split_litellm_credentials(kwargs)
+
+    def __call__(self, messages, **kwargs):
+        """
+        :param messages: OpenAI-style list of ``{'role', 'content'}`` dicts.
+        :param kwargs: Per-call overrides (merged over the defaults).
+        :return: Parsed response content, or an empty string on error.
+        """
+        # drop_params lets LiteLLM silently drop kwargs a given provider does
+        # not support (e.g. Anthropic rejecting seed/frequency_penalty), so one
+        # call path works across providers.
+        call_kwargs = {"model": self.model, "messages": messages, "drop_params": True}
+        if self.api_key:
+            call_kwargs["api_key"] = self.api_key
+        if self.api_base:
+            call_kwargs["api_base"] = self.api_base
+        call_kwargs.update(self.default_params)
+        call_kwargs.update(kwargs)
+
+        try:
+            response = litellm.completion(**call_kwargs)
+            result = response.model_dump()
+            self.last_response = result
+            return nested_access(result, self.response_path) or ""
+        except Exception as e:
+            logger.exception(e)
+            self.last_response = None
+            return ""
+
+
+class LiteLLMEmbeddingAPIModel:
+    """Embedding model backed by ``litellm.embedding``.
+
+    Mirrors :class:`EmbeddingAPIModel` but routes through LiteLLM, unlocking
+    embedding providers (Voyage, Cohere, Bedrock, Vertex, ...) via one API.
+    """
+
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        :param model: The LiteLLM embedding model string. Required.
+        :param endpoint: Kept for interface parity; unused by LiteLLM routing.
+        :param response_path: Defaults to ``data.0.embedding``.
+        :param kwargs: Credentials and default params (see chat model).
+        """
+        if model is None:
+            raise ValueError("`model` is required for the LiteLLM embedding backend.")
+        self.model = model
+        self.endpoint = endpoint or "/embeddings"
+        self.response_path = response_path or "data.0.embedding"
+        self.api_key, self.api_base, self.default_params = _split_litellm_credentials(kwargs)
+
+    def __call__(self, input, **kwargs):
+        """
+        :param input: Text or list of texts to embed.
+        :param kwargs: Per-call overrides.
+        :return: Extracted embeddings, or an empty list on error.
+        """
+        call_kwargs = {"model": self.model, "input": input, "drop_params": True}
+        if self.api_key:
+            call_kwargs["api_key"] = self.api_key
+        if self.api_base:
+            call_kwargs["api_base"] = self.api_base
+        call_kwargs.update(self.default_params)
+        call_kwargs.update(kwargs)
+
+        try:
+            response = litellm.embedding(**call_kwargs)
+            result = response.model_dump()
+            return nested_access(result, self.response_path) or []
+        except Exception as e:
+            logger.exception(f"LiteLLM embedding API error: {e}")
+            return []
+
+
+class LiteLLMResponsesAPIModel:
+    """Responses-API model backed by ``litellm.responses``.
+
+    Mirrors :class:`ResponsesAPIModel` but routes through LiteLLM, so a single
+    provider/model string reaches every provider LiteLLM exposes through the
+    OpenAI Responses API. LiteLLM returns a Responses-shaped object, so the
+    existing ``output.0.content.0.text`` extraction is unchanged.
+    """
+
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        :param model: The LiteLLM model string. Required.
+        :param endpoint: Kept for interface parity; unused by LiteLLM routing.
+        :param response_path: Defaults to ``output.0.content.0.text``.
+        :param kwargs: Credentials and default params (see the chat model).
+        """
+        if model is None:
+            raise ValueError("`model` is required for the LiteLLM responses backend.")
+        self.model = model
+        self.endpoint = endpoint or "/responses"
+        self.response_path = response_path or "output.0.content.0.text"
+        self.last_response = None
+        self.api_key, self.api_base, self.default_params = _split_litellm_credentials(kwargs)
+
+    def __call__(self, input, **kwargs):
+        """
+        :param input: The input text/content to send to the Responses API.
+        :param kwargs: Per-call overrides.
+        :return: Parsed response content, or an empty string on error.
+        """
+        call_kwargs = {"model": self.model, "input": input, "drop_params": True}
+        if self.api_key:
+            call_kwargs["api_key"] = self.api_key
+        if self.api_base:
+            call_kwargs["api_base"] = self.api_base
+        call_kwargs.update(self.default_params)
+        call_kwargs.update(kwargs)
+
+        try:
+            response = litellm.responses(**call_kwargs)
+            result = response.model_dump()
+            self.last_response = result
+            return nested_access(result, self.response_path) or ""
+        except Exception as e:
+            logger.exception(f"LiteLLM responses API error: {e}")
+            self.last_response = None
+            return ""
+
+
 def _merge_openai_compatible_env_into_model_params(model_params):
     """Fill OpenAI client kwargs from environment (DashScope REST / OpenAI-compatible).
 
@@ -428,7 +598,14 @@ def _maybe_remap_model_for_dashscope(
 
 
 def prepare_api_model(
-    model, *, endpoint=None, response_path=None, return_processor=False, processor_config=None, **model_params
+    model,
+    *,
+    endpoint=None,
+    response_path=None,
+    return_processor=False,
+    processor_config=None,
+    api_backend=None,
+    **model_params,
 ):
     """Creates a callable API model for interacting with OpenAI-compatible API.
     The callable supports custom response parsing and works with proxy servers
@@ -453,22 +630,57 @@ def prepare_api_model(
     :param processor_config: A dictionary containing configuration parameters
         for initializing a Hugging Face processor. It is only relevant if
         `return_processor` is set to True.
+    :param api_backend: Which request backend to use. ``"openai_compatible"``
+        (default) uses the existing direct OpenAI-compatible POST path.
+        ``"litellm"`` routes chat/embedding calls through the LiteLLM SDK
+        (``litellm.completion`` / ``litellm.embedding``), reaching 100+
+        providers from one ``provider/model`` string, including providers whose
+        auth is not OpenAI-compatible (Bedrock, Vertex, Azure AD). It can also
+        be supplied through operator ``model_params`` (e.g. ``api_backend:
+        litellm`` in a YAML config). The default keeps existing configurations
+        unchanged.
     :param model_params: Additional parameters for configuring the API model.
-        Environment variables ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and
-        ``OPENAI_API_KEY`` / ``DASHSCOPE_API_KEY`` are merged when not set here
-        (OpenAI-compatible / DashScope REST).
+        On the ``openai_compatible`` backend, environment variables
+        ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and ``OPENAI_API_KEY`` /
+        ``DASHSCOPE_API_KEY`` are merged when not set here (OpenAI-compatible /
+        DashScope REST). On the ``litellm`` backend this env merging is skipped
+        so it never leaks OpenAI/DashScope credentials onto another provider;
+        explicit ``api_key`` / ``base_url`` in ``model_params`` are still
+        honored, and every other provider reads its own env var via LiteLLM.
     :return: A callable APIModel instance, and optionally a processor
         if `return_processor` is True.
     """
-    model_params = _merge_openai_compatible_env_into_model_params(model_params)
-    endpoint = endpoint or "/chat/completions"
-    model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)
+    # Select the backend first (explicit arg wins over an operator model_params
+    # entry), so the OpenAI/DashScope env merging below is scoped to the
+    # openai_compatible path only.
+    api_backend = api_backend or model_params.pop("api_backend", None) or "openai_compatible"
+    if api_backend not in ("openai_compatible", "litellm"):
+        raise ValueError(f"Unsupported api_backend: {api_backend!r} (expected 'openai_compatible' or 'litellm')")
 
-    ENDPOINT_CLASS_MAP = {
-        "chat": ChatAPIModel,
-        "embeddings": EmbeddingAPIModel,
-        "responses": ResponsesAPIModel,
-    }
+    endpoint = endpoint or "/chat/completions"
+
+    if api_backend == "litellm":
+        # get_model() supplies the local execution device, not an API parameter.
+        model_params.pop("device", None)
+        # LiteLLM routes by the ``provider/model`` string and each provider
+        # reads its own credentials, so we must NOT merge OpenAI/DashScope env
+        # vars into the params here (that would leak one provider's key/base_url
+        # onto another). Explicit api_key/base_url in model_params are honored.
+        # The DashScope base-url remap (which rewrites the model id) is likewise
+        # skipped on this path.
+        ENDPOINT_CLASS_MAP = {
+            "chat": LiteLLMChatAPIModel,
+            "embeddings": LiteLLMEmbeddingAPIModel,
+            "responses": LiteLLMResponsesAPIModel,
+        }
+    else:
+        model_params = _merge_openai_compatible_env_into_model_params(model_params)
+        model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)
+        ENDPOINT_CLASS_MAP = {
+            "chat": ChatAPIModel,
+            "embeddings": EmbeddingAPIModel,
+            "responses": ResponsesAPIModel,
+        }
 
     API_Class = next((cls for keyword, cls in ENDPOINT_CLASS_MAP.items() if keyword in endpoint.lower()), None)
 

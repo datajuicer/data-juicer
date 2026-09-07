@@ -15,6 +15,9 @@ from data_juicer.utils.model_utils import (
     get_backup_model_link,
     prepare_simple_aesthetics_model,
     prepare_api_model,
+    LiteLLMChatAPIModel,
+    LiteLLMEmbeddingAPIModel,
+    LiteLLMResponsesAPIModel,
     prepare_huggingface_model,
     prepare_vllm_model,
     prepare_embedding_model,
@@ -38,10 +41,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_fro
 
 
 # ---------------------------------------------------------------------------
-# Mock Server for API client error-path testing.
-# Kept intentionally: real APIs cannot reliably reproduce broken JSON, 404,
-# or connection errors.  This server is NOT for happy-path testing — happy
-# paths should be covered by real API tests with @skip_if_from_fork.
+# Local server for API client error paths and request serialization.
+# Provider behavior is covered by real API tests with @skip_if_from_fork.
 # ---------------------------------------------------------------------------
 
 class LocalAPIHandler(BaseHTTPRequestHandler):
@@ -238,6 +239,69 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         with self.assertRaises(ValueError) as context:
             prepare_api_model('test_model', endpoint='/unsupported/endpoint')
         self.assertIn('Unsupported endpoint', str(context.exception))
+
+    # Set ambient OPENAI_* env to prove the litellm backend does NOT merge it
+    # into the request (the openai_compatible path still does; asserted below).
+    @patch.dict(os.environ, {'OPENAI_API_KEY': 'env-openai-key', 'OPENAI_BASE_URL': 'http://env-base'}, clear=False)
+    @patch('data_juicer.utils.model_utils.litellm')
+    def test_prepare_api_model_litellm(self, mock_litellm):
+        # Chat dispatch: routes through litellm.completion with drop_params
+        # defaulted and the explicit credential forwarded.
+        chat = prepare_api_model('anthropic/claude-opus-4-8', api_backend='litellm', api_key='secret')
+        self.assertIsInstance(chat, LiteLLMChatAPIModel)
+        self.assertEqual(chat.model, 'anthropic/claude-opus-4-8')
+
+        completion = MagicMock()
+        completion.model_dump.return_value = {'choices': [{'message': {'content': '4'}}]}
+        mock_litellm.completion.return_value = completion
+
+        result = chat([{'role': 'user', 'content': 'What is 2+2?'}])
+        self.assertEqual(result, '4')
+        _, call_kwargs = mock_litellm.completion.call_args
+        self.assertEqual(call_kwargs['model'], 'anthropic/claude-opus-4-8')
+        self.assertTrue(call_kwargs['drop_params'])
+        self.assertEqual(call_kwargs['api_key'], 'secret')
+
+        # Ordering fix: with no explicit key, the litellm path must NOT leak the
+        # ambient OPENAI_API_KEY / OPENAI_BASE_URL (each provider reads its own
+        # env via LiteLLM). This is the bug the maintainer flagged.
+        bare = prepare_api_model('gpt-4o-mini', api_backend='litellm')
+        bare([{'role': 'user', 'content': 'hi'}])
+        _, bare_kwargs = mock_litellm.completion.call_args
+        self.assertNotIn('api_key', bare_kwargs)
+        self.assertNotIn('api_base', bare_kwargs)
+
+        # Embedding dispatch via litellm.embedding.
+        embed = prepare_api_model('text-embedding-3-small', endpoint='/embeddings', api_backend='litellm')
+        self.assertIsInstance(embed, LiteLLMEmbeddingAPIModel)
+        emb_resp = MagicMock()
+        emb_resp.model_dump.return_value = {'data': [{'embedding': [0.1, 0.2]}]}
+        mock_litellm.embedding.return_value = emb_resp
+        self.assertEqual(embed('some text'), [0.1, 0.2])
+
+        # Responses dispatch via litellm.responses.
+        responses = prepare_api_model('gpt-5-mini', endpoint='/responses', api_backend='litellm')
+        self.assertIsInstance(responses, LiteLLMResponsesAPIModel)
+        resp_resp = MagicMock()
+        resp_resp.model_dump.return_value = {'output': [{'content': [{'text': 'hi'}]}]}
+        mock_litellm.responses.return_value = resp_resp
+        self.assertEqual(responses('say hi'), 'hi')
+        _, resp_kwargs = mock_litellm.responses.call_args
+        self.assertTrue(resp_kwargs['drop_params'])
+        self.assertEqual(resp_kwargs['input'], 'say hi')
+
+        # api_backend can also arrive through operator model_params (YAML) which
+        # is splatted as **model_params; it still selects the litellm backend.
+        via_params = prepare_api_model('gpt-4o-mini', **{'api_backend': 'litellm'})
+        self.assertIsInstance(via_params, LiteLLMChatAPIModel)
+
+        # A model id is required for the LiteLLM backend.
+        with self.assertRaises(ValueError):
+            prepare_api_model(None, api_backend='litellm')
+
+        # An unknown backend is rejected explicitly.
+        with self.assertRaises(ValueError):
+            prepare_api_model('gpt-4o-mini', api_backend='bogus')
 
     @patch('data_juicer.utils.model_utils.transformers')
     def test_prepare_huggingface_model(self, mock_transformers):
@@ -687,6 +751,31 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
             self.assertIsNone(get_model(None))
         finally:
             free_models()
+
+    @patch.dict(os.environ, {"LITELLM_LOCAL_MODEL_COST_MAP": "True"})
+    def test_get_model_litellm_excludes_device_from_request(self):
+        """Exercise real SDK serialization; only the provider is a local server."""
+        base_url = self._start_local_api_server()
+        model_key = prepare_model(
+            "api",
+            model="openai/gpt-4o-mini",
+            api_backend="litellm",
+            temperature=0.25,
+            num_retries=0,
+            timeout=5,
+            **self._local_client_params(base_url),
+        )
+        self.addCleanup(free_models)
+        model = get_model(model_key)
+        result = model([{"role": "user", "content": "hello"}], max_tokens=8)
+
+        self.assertEqual(result, "chat:hello")
+        self.assertEqual(len(LocalAPIHandler.requests), 1)
+        path, body = LocalAPIHandler.requests[0]
+        self.assertEqual(path, "/chat/completions")
+        self.assertNotIn("device", body)
+        self.assertEqual(body["temperature"], 0.25)
+        self.assertEqual(body["max_tokens"], 8)
 
 
 # ===================================================================

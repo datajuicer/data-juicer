@@ -542,9 +542,92 @@ Defaults to 'output.0.content.0.text'.</p></li>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.LiteLLMChatAPIModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">LiteLLMChatAPIModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#LiteLLMChatAPIModel"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.LiteLLMChatAPIModel" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Chat model backed by the LiteLLM SDK (<a class="reference external" href="https://github.com/BerriAI/litellm">https://github.com/BerriAI/litellm</a>).</p>
+<p>Unlike <a class="reference internal" href="#data_juicer.utils.model_utils.ChatAPIModel" title="data_juicer.utils.model_utils.ChatAPIModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatAPIModel</span></code></a>, which raw-POSTs an OpenAI-format body to a
+<code class="docutils literal notranslate"><span class="pre">base_url</span></code>, this routes through <code class="docutils literal notranslate"><span class="pre">litellm.completion</span></code> so a single
+<code class="docutils literal notranslate"><span class="pre">provider/model</span></code> string reaches 100+ providers - including ones whose auth
+is not OpenAI-compatible (Amazon Bedrock SigV4, Google Vertex service
+accounts, Azure AD), which a base-url override alone cannot reach. LiteLLM
+returns an OpenAI-shaped response, so the existing <code class="docutils literal notranslate"><span class="pre">response_path</span></code> parsing
+is unchanged.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.LiteLLMChatAPIModel.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#LiteLLMChatAPIModel.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.LiteLLMChatAPIModel.__init__" title="链接到此定义。">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> -- The LiteLLM model string, e.g. <code class="docutils literal notranslate"><span class="pre">gpt-4o-mini</span></code>,
+<code class="docutils literal notranslate"><span class="pre">anthropic/claude-opus-4-8</span></code>, <code class="docutils literal notranslate"><span class="pre">gemini/gemini-2.5-flash</span></code>,
+<code class="docutils literal notranslate"><span class="pre">bedrock/anthropic.claude-3-5-sonnet-...</span></code>. Required.</p></li>
+<li><p><strong>endpoint</strong> -- Kept for interface parity; unused by LiteLLM routing.</p></li>
+<li><p><strong>response_path</strong> -- Dot-separated path to the content. Defaults to
+<code class="docutils literal notranslate"><span class="pre">choices.0.message.content</span></code> (the OpenAI/LiteLLM response shape).</p></li>
+<li><p><strong>kwargs</strong> -- Credentials (<code class="docutils literal notranslate"><span class="pre">api_key</span></code>, <code class="docutils literal notranslate"><span class="pre">base_url</span></code>/<code class="docutils literal notranslate"><span class="pre">api_base</span></code>) and
+default completion params (e.g. <code class="docutils literal notranslate"><span class="pre">temperature</span></code>).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">LiteLLMEmbeddingAPIModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#LiteLLMEmbeddingAPIModel"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Embedding model backed by <code class="docutils literal notranslate"><span class="pre">litellm.embedding</span></code>.</p>
+<p>Mirrors <a class="reference internal" href="#data_juicer.utils.model_utils.EmbeddingAPIModel" title="data_juicer.utils.model_utils.EmbeddingAPIModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmbeddingAPIModel</span></code></a> but routes through LiteLLM, unlocking
+embedding providers (Voyage, Cohere, Bedrock, Vertex, ...) via one API.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#LiteLLMEmbeddingAPIModel.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel.__init__" title="链接到此定义。">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> -- The LiteLLM embedding model string. Required.</p></li>
+<li><p><strong>endpoint</strong> -- Kept for interface parity; unused by LiteLLM routing.</p></li>
+<li><p><strong>response_path</strong> -- Defaults to <code class="docutils literal notranslate"><span class="pre">data.0.embedding</span></code>.</p></li>
+<li><p><strong>kwargs</strong> -- Credentials and default params (see chat model).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.LiteLLMResponsesAPIModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">LiteLLMResponsesAPIModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#LiteLLMResponsesAPIModel"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.LiteLLMResponsesAPIModel" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Responses-API model backed by <code class="docutils literal notranslate"><span class="pre">litellm.responses</span></code>.</p>
+<p>Mirrors <a class="reference internal" href="#data_juicer.utils.model_utils.ResponsesAPIModel" title="data_juicer.utils.model_utils.ResponsesAPIModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResponsesAPIModel</span></code></a> but routes through LiteLLM, so a single
+provider/model string reaches every provider LiteLLM exposes through the
+OpenAI Responses API. LiteLLM returns a Responses-shaped object, so the
+existing <code class="docutils literal notranslate"><span class="pre">output.0.content.0.text</span></code> extraction is unchanged.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.LiteLLMResponsesAPIModel.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#LiteLLMResponsesAPIModel.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.LiteLLMResponsesAPIModel.__init__" title="链接到此定义。">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> -- The LiteLLM model string. Required.</p></li>
+<li><p><strong>endpoint</strong> -- Kept for interface parity; unused by LiteLLM routing.</p></li>
+<li><p><strong>response_path</strong> -- Defaults to <code class="docutils literal notranslate"><span class="pre">output.0.content.0.text</span></code>.</p></li>
+<li><p><strong>kwargs</strong> -- Credentials and default params (see the chat model).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="data_juicer.utils.model_utils.prepare_api_model">
-<span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">prepare_api_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="仅关键字参数分隔符 (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_processor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processor_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#prepare_api_model"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.prepare_api_model" title="链接到此定义。">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">prepare_api_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="仅关键字参数分隔符 (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_processor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processor_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#prepare_api_model"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.prepare_api_model" title="链接到此定义。">¶</a></dt>
 <dd><p>Creates a callable API model for interacting with OpenAI-compatible API.
 The callable supports custom response parsing and works with proxy servers
 that may be incompatible.</p>
@@ -570,10 +653,23 @@ like tokenization or encoding. Defaults to False.</p></li>
 <li><p><strong>processor_config</strong> -- A dictionary containing configuration parameters
 for initializing a Hugging Face processor. It is only relevant if
 <cite>return_processor</cite> is set to True.</p></li>
+<li><p><strong>api_backend</strong> -- Which request backend to use. <code class="docutils literal notranslate"><span class="pre">&quot;openai_compatible&quot;</span></code>
+(default) uses the existing direct OpenAI-compatible POST path.
+<code class="docutils literal notranslate"><span class="pre">&quot;litellm&quot;</span></code> routes chat/embedding calls through the LiteLLM SDK
+(<code class="docutils literal notranslate"><span class="pre">litellm.completion</span></code> / <code class="docutils literal notranslate"><span class="pre">litellm.embedding</span></code>), reaching 100+
+providers from one <code class="docutils literal notranslate"><span class="pre">provider/model</span></code> string, including providers whose
+auth is not OpenAI-compatible (Bedrock, Vertex, Azure AD). It can also
+be supplied through operator <code class="docutils literal notranslate"><span class="pre">model_params</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">api_backend:</span>
+<span class="pre">litellm</span></code> in a YAML config). The default keeps existing configurations
+unchanged.</p></li>
 <li><p><strong>model_params</strong> -- Additional parameters for configuring the API model.
-Environment variables <code class="docutils literal notranslate"><span class="pre">OPENAI_BASE_URL</span></code> / <code class="docutils literal notranslate"><span class="pre">OPENAI_API_URL</span></code> and
-<code class="docutils literal notranslate"><span class="pre">OPENAI_API_KEY</span></code> / <code class="docutils literal notranslate"><span class="pre">DASHSCOPE_API_KEY</span></code> are merged when not set here
-(OpenAI-compatible / DashScope REST).</p></li>
+On the <code class="docutils literal notranslate"><span class="pre">openai_compatible</span></code> backend, environment variables
+<code class="docutils literal notranslate"><span class="pre">OPENAI_BASE_URL</span></code> / <code class="docutils literal notranslate"><span class="pre">OPENAI_API_URL</span></code> and <code class="docutils literal notranslate"><span class="pre">OPENAI_API_KEY</span></code> /
+<code class="docutils literal notranslate"><span class="pre">DASHSCOPE_API_KEY</span></code> are merged when not set here (OpenAI-compatible /
+DashScope REST). On the <code class="docutils literal notranslate"><span class="pre">litellm</span></code> backend this env merging is skipped
+so it never leaks OpenAI/DashScope credentials onto another provider;
+explicit <code class="docutils literal notranslate"><span class="pre">api_key</span></code> / <code class="docutils literal notranslate"><span class="pre">base_url</span></code> in <code class="docutils literal notranslate"><span class="pre">model_params</span></code> are still
+honored, and every other provider reads its own env var via LiteLLM.</p></li>
 </ul>
 </dd>
 <dt class="field-even">返回<span class="colon">:</span></dt>
@@ -1027,6 +1123,18 @@ It is used to load a mmdeploy model and run inference on given images.</p>
 </li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.ResponsesAPIModel"><code class="docutils literal notranslate"><span class="pre">ResponsesAPIModel</span></code></a><ul>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.ResponsesAPIModel.__init__"><code class="docutils literal notranslate"><span class="pre">ResponsesAPIModel.__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.LiteLLMChatAPIModel"><code class="docutils literal notranslate"><span class="pre">LiteLLMChatAPIModel</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.LiteLLMChatAPIModel.__init__"><code class="docutils literal notranslate"><span class="pre">LiteLLMChatAPIModel.__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel"><code class="docutils literal notranslate"><span class="pre">LiteLLMEmbeddingAPIModel</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel.__init__"><code class="docutils literal notranslate"><span class="pre">LiteLLMEmbeddingAPIModel.__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.LiteLLMResponsesAPIModel"><code class="docutils literal notranslate"><span class="pre">LiteLLMResponsesAPIModel</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.LiteLLMResponsesAPIModel.__init__"><code class="docutils literal notranslate"><span class="pre">LiteLLMResponsesAPIModel.__init__()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_api_model"><code class="docutils literal notranslate"><span class="pre">prepare_api_model()</span></code></a></li>

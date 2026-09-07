@@ -395,16 +395,16 @@
 
 
 <div class="viewcode-block" id="DedupSet">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.DedupSet">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.DedupSet">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DedupSet</span><span class="p">:</span>
 <div class="viewcode-block" id="DedupSet.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.DedupSet.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.DedupSet.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hash_record</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="DedupSet.is_unique">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.DedupSet.is_unique">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.DedupSet.is_unique">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash_record</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">hash_record</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
@@ -416,7 +416,7 @@
 
 
 <div class="viewcode-block" id="get_remote_dedup_set">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.get_remote_dedup_set">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.get_remote_dedup_set">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_remote_dedup_set</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">"""Get the remote version of DedupSet with Ray decorator applied at runtime."""</span>
     <span class="k">return</span> <span class="n">ray</span><span class="o">.</span><span class="n">remote</span><span class="p">(</span><span class="n">scheduling_strategy</span><span class="o">=</span><span class="s2">"SPREAD"</span><span class="p">)(</span><span class="n">DedupSet</span><span class="p">)</span></div>
@@ -424,21 +424,21 @@
 
 
 <div class="viewcode-block" id="Backend">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.Backend">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.Backend">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Backend</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Backend for deduplicator.</span>
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="Backend.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.Backend.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.Backend.__init__">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="Backend.is_unique">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.Backend.is_unique">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.Backend.is_unique">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">md5_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">pass</span></div>
@@ -447,7 +447,7 @@
 
 
 <div class="viewcode-block" id="ActorBackend">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ActorBackend">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.ActorBackend">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ActorBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Ray actor backend for deduplicator.</span>
@@ -456,7 +456,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="ActorBackend.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ActorBackend.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.ActorBackend.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dedup_set_num</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">RemoteDedupSet</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># Store config but don't create actors yet</span>
         <span class="c1"># dedup_set_num can be int or "auto"</span>
@@ -483,7 +483,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_dedup_sets</span> <span class="o">=</span> <span class="p">[</span><span class="n">RemoteDedupSet</span><span class="o">.</span><span class="n">remote</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dedup_set_num</span><span class="p">)]</span>
 
 <div class="viewcode-block" id="ActorBackend.is_unique">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ActorBackend.is_unique">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.ActorBackend.is_unique">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">md5_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_actors</span><span class="p">()</span>
         <span class="n">dedup_set_id</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">md5_value</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">"little"</span><span class="p">)</span> <span class="o">%</span> <span class="n">MERSENNE_PRIME</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">dedup_set_num</span>
@@ -493,14 +493,14 @@
 
 
 <div class="viewcode-block" id="RedisBackend">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.RedisBackend">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RedisBackend">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RedisBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Redis backend for deduplicator.</span>
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="RedisBackend.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.RedisBackend.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RedisBackend.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">redis_address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">redis_address</span> <span class="o">=</span> <span class="n">redis_address</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">redis_client</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">redis_address</span><span class="p">)</span>
@@ -508,7 +508,7 @@
 
 
 <div class="viewcode-block" id="RedisBackend.is_unique">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.RedisBackend.is_unique">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RedisBackend.is_unique">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">md5_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">redis_client</span><span class="o">.</span><span class="n">setnx</span><span class="p">(</span><span class="n">md5_value</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
 </div>
@@ -516,7 +516,7 @@
 
 
 <div class="viewcode-block" id="RayBasicDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBasicDeduplicator">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RayBasicDeduplicator</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    A basic exact matching deduplicator for RAY.</span>
@@ -528,7 +528,7 @@
     <span class="n">EMPTY_HASH_VALUE</span> <span class="o">=</span> <span class="s2">"EMPTY"</span>
 
 <div class="viewcode-block" id="RayBasicDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBasicDeduplicator.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"ray_actor"</span><span class="p">,</span>
@@ -560,14 +560,14 @@
 
 
 <div class="viewcode-block" id="RayBasicDeduplicator.calculate_hash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBasicDeduplicator.calculate_hash">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator.calculate_hash">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Calculate hash value for the sample."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 
 <div class="viewcode-block" id="RayBasicDeduplicator.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBasicDeduplicator.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># compute hash</span>
         <span class="n">md5_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_hash</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
@@ -577,7 +577,7 @@
 
 
 <div class="viewcode-block" id="RayBasicDeduplicator.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBasicDeduplicator.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">sample</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">is_unique</span><span class="p">]</span></div>
 </div>

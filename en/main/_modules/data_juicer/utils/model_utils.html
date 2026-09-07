@@ -455,6 +455,7 @@
 <span class="n">ram</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"ram"</span><span class="p">,</span> <span class="s2">"git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf"</span><span class="p">)</span>
 <span class="n">cv2</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"cv2"</span><span class="p">,</span> <span class="s2">"opencv-contrib-python"</span><span class="p">)</span>
 <span class="n">openai</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"openai"</span><span class="p">)</span>
+<span class="n">litellm</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"litellm"</span><span class="p">)</span>
 <span class="n">ultralytics</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"ultralytics"</span><span class="p">)</span>
 <span class="n">tiktoken</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"tiktoken"</span><span class="p">)</span>
 <span class="n">dashscope</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"dashscope"</span><span class="p">)</span>
@@ -795,6 +796,193 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_litellm_credentials</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Pull out credential kwargs, keeping the rest as completion params.</span>
+
+<span class="sd">    Credentials are returned separately so callers can forward them only when</span>
+<span class="sd">    set; when blank, LiteLLM falls back to each provider's own environment</span>
+<span class="sd">    variable (e.g. ``ANTHROPIC_API_KEY``, ``GEMINI_API_KEY``, AWS credentials).</span>
+<span class="sd">    ``base_url`` is accepted as an alias for LiteLLM's ``api_base``.</span>
+<span class="sd">    """</span>
+    <span class="n">call_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">api_key</span> <span class="o">=</span> <span class="n">call_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"api_key"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+    <span class="n">api_base</span> <span class="o">=</span> <span class="n">call_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"api_base"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">call_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"base_url"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">api_base</span><span class="p">,</span> <span class="n">call_kwargs</span>
+
+
+<div class="viewcode-block" id="LiteLLMChatAPIModel">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.LiteLLMChatAPIModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LiteLLMChatAPIModel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Chat model backed by the LiteLLM SDK (https://github.com/BerriAI/litellm).</span>
+
+<span class="sd">    Unlike :class:`ChatAPIModel`, which raw-POSTs an OpenAI-format body to a</span>
+<span class="sd">    ``base_url``, this routes through ``litellm.completion`` so a single</span>
+<span class="sd">    ``provider/model`` string reaches 100+ providers - including ones whose auth</span>
+<span class="sd">    is not OpenAI-compatible (Amazon Bedrock SigV4, Google Vertex service</span>
+<span class="sd">    accounts, Azure AD), which a base-url override alone cannot reach. LiteLLM</span>
+<span class="sd">    returns an OpenAI-shaped response, so the existing ``response_path`` parsing</span>
+<span class="sd">    is unchanged.</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="LiteLLMChatAPIModel.__init__">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.LiteLLMChatAPIModel.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">response_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        :param model: The LiteLLM model string, e.g. ``gpt-4o-mini``,</span>
+<span class="sd">            ``anthropic/claude-opus-4-8``, ``gemini/gemini-2.5-flash``,</span>
+<span class="sd">            ``bedrock/anthropic.claude-3-5-sonnet-...``. Required.</span>
+<span class="sd">        :param endpoint: Kept for interface parity; unused by LiteLLM routing.</span>
+<span class="sd">        :param response_path: Dot-separated path to the content. Defaults to</span>
+<span class="sd">            ``choices.0.message.content`` (the OpenAI/LiteLLM response shape).</span>
+<span class="sd">        :param kwargs: Credentials (``api_key``, ``base_url``/``api_base``) and</span>
+<span class="sd">            default completion params (e.g. ``temperature``).</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"`model` is required for the LiteLLM API backend, e.g. "</span>
+                <span class="s2">"'gpt-4o-mini', 'anthropic/claude-opus-4-8', 'bedrock/...'."</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endpoint</span> <span class="o">=</span> <span class="n">endpoint</span> <span class="ow">or</span> <span class="s2">"/chat/completions"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span> <span class="o">=</span> <span class="n">response_path</span> <span class="ow">or</span> <span class="s2">"choices.0.message.content"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_response</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># last completion dump (for usage / debugging)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="n">_split_litellm_credentials</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        :param messages: OpenAI-style list of ``{'role', 'content'}`` dicts.</span>
+<span class="sd">        :param kwargs: Per-call overrides (merged over the defaults).</span>
+<span class="sd">        :return: Parsed response content, or an empty string on error.</span>
+<span class="sd">        """</span>
+        <span class="c1"># drop_params lets LiteLLM silently drop kwargs a given provider does</span>
+        <span class="c1"># not support (e.g. Anthropic rejecting seed/frequency_penalty), so one</span>
+        <span class="c1"># call path works across providers.</span>
+        <span class="n">call_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">"messages"</span><span class="p">:</span> <span class="n">messages</span><span class="p">,</span> <span class="s2">"drop_params"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">:</span>
+            <span class="n">call_kwargs</span><span class="p">[</span><span class="s2">"api_key"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span><span class="p">:</span>
+            <span class="n">call_kwargs</span><span class="p">[</span><span class="s2">"api_base"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span>
+        <span class="n">call_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">)</span>
+        <span class="n">call_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">litellm</span><span class="o">.</span><span class="n">completion</span><span class="p">(</span><span class="o">**</span><span class="n">call_kwargs</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_response</span> <span class="o">=</span> <span class="n">result</span>
+            <span class="k">return</span> <span class="n">nested_access</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_response</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="s2">""</span></div>
+
+
+
+<div class="viewcode-block" id="LiteLLMEmbeddingAPIModel">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LiteLLMEmbeddingAPIModel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Embedding model backed by ``litellm.embedding``.</span>
+
+<span class="sd">    Mirrors :class:`EmbeddingAPIModel` but routes through LiteLLM, unlocking</span>
+<span class="sd">    embedding providers (Voyage, Cohere, Bedrock, Vertex, ...) via one API.</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="LiteLLMEmbeddingAPIModel.__init__">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.LiteLLMEmbeddingAPIModel.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">response_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        :param model: The LiteLLM embedding model string. Required.</span>
+<span class="sd">        :param endpoint: Kept for interface parity; unused by LiteLLM routing.</span>
+<span class="sd">        :param response_path: Defaults to ``data.0.embedding``.</span>
+<span class="sd">        :param kwargs: Credentials and default params (see chat model).</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"`model` is required for the LiteLLM embedding backend."</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endpoint</span> <span class="o">=</span> <span class="n">endpoint</span> <span class="ow">or</span> <span class="s2">"/embeddings"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span> <span class="o">=</span> <span class="n">response_path</span> <span class="ow">or</span> <span class="s2">"data.0.embedding"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="n">_split_litellm_credentials</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        :param input: Text or list of texts to embed.</span>
+<span class="sd">        :param kwargs: Per-call overrides.</span>
+<span class="sd">        :return: Extracted embeddings, or an empty list on error.</span>
+<span class="sd">        """</span>
+        <span class="n">call_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">"input"</span><span class="p">:</span> <span class="nb">input</span><span class="p">,</span> <span class="s2">"drop_params"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">:</span>
+            <span class="n">call_kwargs</span><span class="p">[</span><span class="s2">"api_key"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span><span class="p">:</span>
+            <span class="n">call_kwargs</span><span class="p">[</span><span class="s2">"api_base"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span>
+        <span class="n">call_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">)</span>
+        <span class="n">call_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">litellm</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="o">**</span><span class="n">call_kwargs</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">nested_access</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">"LiteLLM embedding API error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span></div>
+
+
+
+<div class="viewcode-block" id="LiteLLMResponsesAPIModel">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.LiteLLMResponsesAPIModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LiteLLMResponsesAPIModel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Responses-API model backed by ``litellm.responses``.</span>
+
+<span class="sd">    Mirrors :class:`ResponsesAPIModel` but routes through LiteLLM, so a single</span>
+<span class="sd">    provider/model string reaches every provider LiteLLM exposes through the</span>
+<span class="sd">    OpenAI Responses API. LiteLLM returns a Responses-shaped object, so the</span>
+<span class="sd">    existing ``output.0.content.0.text`` extraction is unchanged.</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="LiteLLMResponsesAPIModel.__init__">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.LiteLLMResponsesAPIModel.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">response_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        :param model: The LiteLLM model string. Required.</span>
+<span class="sd">        :param endpoint: Kept for interface parity; unused by LiteLLM routing.</span>
+<span class="sd">        :param response_path: Defaults to ``output.0.content.0.text``.</span>
+<span class="sd">        :param kwargs: Credentials and default params (see the chat model).</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"`model` is required for the LiteLLM responses backend."</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endpoint</span> <span class="o">=</span> <span class="n">endpoint</span> <span class="ow">or</span> <span class="s2">"/responses"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span> <span class="o">=</span> <span class="n">response_path</span> <span class="ow">or</span> <span class="s2">"output.0.content.0.text"</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_response</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_params</span> <span class="o">=</span> <span class="n">_split_litellm_credentials</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        :param input: The input text/content to send to the Responses API.</span>
+<span class="sd">        :param kwargs: Per-call overrides.</span>
+<span class="sd">        :return: Parsed response content, or an empty string on error.</span>
+<span class="sd">        """</span>
+        <span class="n">call_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">"input"</span><span class="p">:</span> <span class="nb">input</span><span class="p">,</span> <span class="s2">"drop_params"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">:</span>
+            <span class="n">call_kwargs</span><span class="p">[</span><span class="s2">"api_key"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span><span class="p">:</span>
+            <span class="n">call_kwargs</span><span class="p">[</span><span class="s2">"api_base"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_base</span>
+        <span class="n">call_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_params</span><span class="p">)</span>
+        <span class="n">call_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">litellm</span><span class="o">.</span><span class="n">responses</span><span class="p">(</span><span class="o">**</span><span class="n">call_kwargs</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_response</span> <span class="o">=</span> <span class="n">result</span>
+            <span class="k">return</span> <span class="n">nested_access</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">"LiteLLM responses API error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_response</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="s2">""</span></div>
+
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_merge_openai_compatible_env_into_model_params</span><span class="p">(</span><span class="n">model_params</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Fill OpenAI client kwargs from environment (DashScope REST / OpenAI-compatible).</span>
 
@@ -873,7 +1061,14 @@
 <div class="viewcode-block" id="prepare_api_model">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_api_model">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_api_model</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">response_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_processor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">processor_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">endpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">response_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_processor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">processor_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">api_backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">model_params</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Creates a callable API model for interacting with OpenAI-compatible API.</span>
 <span class="sd">    The callable supports custom response parsing and works with proxy servers</span>
@@ -898,22 +1093,57 @@
 <span class="sd">    :param processor_config: A dictionary containing configuration parameters</span>
 <span class="sd">        for initializing a Hugging Face processor. It is only relevant if</span>
 <span class="sd">        `return_processor` is set to True.</span>
+<span class="sd">    :param api_backend: Which request backend to use. ``"openai_compatible"``</span>
+<span class="sd">        (default) uses the existing direct OpenAI-compatible POST path.</span>
+<span class="sd">        ``"litellm"`` routes chat/embedding calls through the LiteLLM SDK</span>
+<span class="sd">        (``litellm.completion`` / ``litellm.embedding``), reaching 100+</span>
+<span class="sd">        providers from one ``provider/model`` string, including providers whose</span>
+<span class="sd">        auth is not OpenAI-compatible (Bedrock, Vertex, Azure AD). It can also</span>
+<span class="sd">        be supplied through operator ``model_params`` (e.g. ``api_backend:</span>
+<span class="sd">        litellm`` in a YAML config). The default keeps existing configurations</span>
+<span class="sd">        unchanged.</span>
 <span class="sd">    :param model_params: Additional parameters for configuring the API model.</span>
-<span class="sd">        Environment variables ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and</span>
-<span class="sd">        ``OPENAI_API_KEY`` / ``DASHSCOPE_API_KEY`` are merged when not set here</span>
-<span class="sd">        (OpenAI-compatible / DashScope REST).</span>
+<span class="sd">        On the ``openai_compatible`` backend, environment variables</span>
+<span class="sd">        ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and ``OPENAI_API_KEY`` /</span>
+<span class="sd">        ``DASHSCOPE_API_KEY`` are merged when not set here (OpenAI-compatible /</span>
+<span class="sd">        DashScope REST). On the ``litellm`` backend this env merging is skipped</span>
+<span class="sd">        so it never leaks OpenAI/DashScope credentials onto another provider;</span>
+<span class="sd">        explicit ``api_key`` / ``base_url`` in ``model_params`` are still</span>
+<span class="sd">        honored, and every other provider reads its own env var via LiteLLM.</span>
 <span class="sd">    :return: A callable APIModel instance, and optionally a processor</span>
 <span class="sd">        if `return_processor` is True.</span>
 <span class="sd">    """</span>
-    <span class="n">model_params</span> <span class="o">=</span> <span class="n">_merge_openai_compatible_env_into_model_params</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
-    <span class="n">endpoint</span> <span class="o">=</span> <span class="n">endpoint</span> <span class="ow">or</span> <span class="s2">"/chat/completions"</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">_maybe_remap_model_for_dashscope</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">model_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"base_url"</span><span class="p">),</span> <span class="n">endpoint</span><span class="p">)</span>
+    <span class="c1"># Select the backend first (explicit arg wins over an operator model_params</span>
+    <span class="c1"># entry), so the OpenAI/DashScope env merging below is scoped to the</span>
+    <span class="c1"># openai_compatible path only.</span>
+    <span class="n">api_backend</span> <span class="o">=</span> <span class="n">api_backend</span> <span class="ow">or</span> <span class="n">model_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"api_backend"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"openai_compatible"</span>
+    <span class="k">if</span> <span class="n">api_backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"openai_compatible"</span><span class="p">,</span> <span class="s2">"litellm"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported api_backend: </span><span class="si">{</span><span class="n">api_backend</span><span class="si">!r}</span><span class="s2"> (expected 'openai_compatible' or 'litellm')"</span><span class="p">)</span>
 
-    <span class="n">ENDPOINT_CLASS_MAP</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">"chat"</span><span class="p">:</span> <span class="n">ChatAPIModel</span><span class="p">,</span>
-        <span class="s2">"embeddings"</span><span class="p">:</span> <span class="n">EmbeddingAPIModel</span><span class="p">,</span>
-        <span class="s2">"responses"</span><span class="p">:</span> <span class="n">ResponsesAPIModel</span><span class="p">,</span>
-    <span class="p">}</span>
+    <span class="n">endpoint</span> <span class="o">=</span> <span class="n">endpoint</span> <span class="ow">or</span> <span class="s2">"/chat/completions"</span>
+
+    <span class="k">if</span> <span class="n">api_backend</span> <span class="o">==</span> <span class="s2">"litellm"</span><span class="p">:</span>
+        <span class="c1"># get_model() supplies the local execution device, not an API parameter.</span>
+        <span class="n">model_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"device"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># LiteLLM routes by the ``provider/model`` string and each provider</span>
+        <span class="c1"># reads its own credentials, so we must NOT merge OpenAI/DashScope env</span>
+        <span class="c1"># vars into the params here (that would leak one provider's key/base_url</span>
+        <span class="c1"># onto another). Explicit api_key/base_url in model_params are honored.</span>
+        <span class="c1"># The DashScope base-url remap (which rewrites the model id) is likewise</span>
+        <span class="c1"># skipped on this path.</span>
+        <span class="n">ENDPOINT_CLASS_MAP</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"chat"</span><span class="p">:</span> <span class="n">LiteLLMChatAPIModel</span><span class="p">,</span>
+            <span class="s2">"embeddings"</span><span class="p">:</span> <span class="n">LiteLLMEmbeddingAPIModel</span><span class="p">,</span>
+            <span class="s2">"responses"</span><span class="p">:</span> <span class="n">LiteLLMResponsesAPIModel</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model_params</span> <span class="o">=</span> <span class="n">_merge_openai_compatible_env_into_model_params</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">_maybe_remap_model_for_dashscope</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">model_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"base_url"</span><span class="p">),</span> <span class="n">endpoint</span><span class="p">)</span>
+        <span class="n">ENDPOINT_CLASS_MAP</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"chat"</span><span class="p">:</span> <span class="n">ChatAPIModel</span><span class="p">,</span>
+            <span class="s2">"embeddings"</span><span class="p">:</span> <span class="n">EmbeddingAPIModel</span><span class="p">,</span>
+            <span class="s2">"responses"</span><span class="p">:</span> <span class="n">ResponsesAPIModel</span><span class="p">,</span>
+        <span class="p">}</span>
 
     <span class="n">API_Class</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="bp">cls</span> <span class="k">for</span> <span class="n">keyword</span><span class="p">,</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">ENDPOINT_CLASS_MAP</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span> <span class="kc">None</span><span class="p">)</span>
 

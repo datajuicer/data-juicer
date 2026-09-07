@@ -4,7 +4,7 @@
 
 # global parameters
 project_name: 'all'                                         # project name for distinguish your configs
-dataset_path: '/path/to/your/dataset'                       # path to your dataset directory or file with weights(0.0-1.0), 1.0 as default.
+dataset_path: '/path/to/your/dataset'                       # path to your dataset directory or file with nonnegative relative weights, 1.0 as default.
                                                             # accepted format: 'weight1(optional) dataset1-path weight2(optional) dataset2-path'
 
 dataset:                                                    # dataset is another way to specify the input dataset.
@@ -38,7 +38,7 @@ export_extra_args: {}                                       # Other optional arg
 # Per-line tolerance (stdlib json, skip bad lines; jsonl-only inputs), see DatasetCfg:
 #   load_jsonl_lenient: true
 #   # or: DATA_JUICER_JSONL_LENIENT=1
-load_dataset_kwargs: {}                                     # extra kwargs passed to datasets.load_dataset(). Useful for format-specific options, e.g. chunksize (JSON), columns (Parquet), delimiter (CSV).
+load_dataset_kwargs: {}                                     # reader defaults for the default executor and Analyzer: e.g. columns (Parquet), delimiter (CSV), or num_proc to load with a parallelism other than np. Explicit DatasetBuilder call arguments take precedence.
 load_jsonl_lenient: false                                    # if true, stream jsonl* shards with stdlib json and skip bad lines; other suffixes in the same folder are ignored (not HF fallback). Confirm logs contain "[lenient jsonl] ACTIVE".
 
 auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.
@@ -51,7 +51,7 @@ skip_op_error: true                                         # Skip errors in OPs
 use_cache: true                                             # whether to use the cache management of Hugging Face datasets. It might take up lots of disk space when using cache
 ds_cache_dir: null                                          # cache dir for Hugging Face datasets. In default, it\'s the same as the environment variable `HF_DATASETS_CACHE`, whose default value is usually "~/.cache/huggingface/datasets". If this argument is set to a valid path by users, it will override the default cache dir
 open_monitor: false                                         # Whether to open the monitor to trace resource utilization for each OP during data processing. It\'s True in default.
-use_checkpoint: false                                       # whether to use the checkpoint management to save the latest version of dataset to work dir when processing. Rerun the same config will reload the checkpoint and skip ops before it. Cache will be disabled when using checkpoint. If args of ops before the checkpoint are changed, all ops will be rerun from the beginning.
+use_checkpoint: false                                       # default-executor checkpoints under the resolved job work_dir/ckpt; reuse that directory to resume. Disables the HuggingFace cache.
 temp_dir: null                                              # the path to the temp directory to store intermediate caches when cache is disabled, these cache files will be removed on-the-fly. In default, it's None, so the temp dir will be specified by system. NOTICE: you should be caution when setting this argument because it might cause unexpected program behaviors when this path is set to an unsafe directory.
 open_tracer: false                                          # whether to open the tracer to trace the changes during process. It might take more time when opening tracer
 op_list_to_trace: []                                        # only ops in this list will be traced by tracer. If it's empty, all ops will be traced. Only available when tracer is opened.
@@ -60,7 +60,7 @@ trace_keys: []                                              # list of field name
 op_fusion: false                                            # whether to fuse operators that share the same intermediate variables automatically. Op fusion might reduce the memory requirements slightly but speed up the whole process.
 fusion_strategy: 'probe'                                    # OP fusion strategy. Support ['greedy', 'probe'] now. 'greedy' means keep the basic OP order and put the fused OP to the last of each fused OP group. 'probe' means Data-Juicer will probe the running speed for each OP at the beginning and reorder the OPs and fused OPs according to their probed speed (fast to slow). It's 'probe' in default.
 cache_compress: null                                        # the compression method of the cache file, which can be specified in ['gzip', 'zstd', 'lz4']. If this parameter is None, the cache file will not be compressed. We recommend you turn on this argument when your input dataset is larger than tens of GB and your disk space is not enough.
-adaptive_batch_size: false                                  # whether to use adaptive batch sizes for each OP according to the probed results. It's False in default.
+adaptive_batch_size: false                                  # adjust batch sizes for batched operators using probes in the default executor.
 
 # for data encryption / decryption
 decrypt_after_reading: false                                # whether to decrypt input files after reading. Each file is decrypted in-memory (plaintext never written to disk). HF cache is automatically disabled. Requires encryption_key_path or DJ_ENCRYPTION_KEY env var.
@@ -79,7 +79,9 @@ video_special_token: '<__dj__video>'                        # the special token 
 eoc_special_token: '<|__dj__eoc|>'                          # the special token that represents the end of a chunk in the text. In default, it's "<|__dj__eoc|>". You can specify your own special token according to your input dataset.
 
 # for distributed processing
-executor_type: default                                      # type of executor, support "default" or "ray" for now.
+executor_type: default                                      # executor: "default", "ray", or "ray_partitioned".
+use_dag: null                                               # executor default: enabled for ray/ray_partitioned; disabled for default. Set true/false to override.
+read_options: {}                                           # PyArrow JSON ReadOptions for Ray input, e.g. {block_size: 268435456}.
 ray_address: auto                                           # the address of the Ray cluster.
 override_num_blocks: null                                   # override the number of output blocks for Ray Data read operations. Useful for controlling parallelism when reading large datasets. Default is null (no override).
 
@@ -92,16 +94,44 @@ partition:
   max_concurrent_partitions: auto                           # resource-aware driver concurrency; set a positive integer to override
   target_size_mb: 256                                       # target size in MB for auto-mode planning; results below optimizer minimums are clamped with a warning
 
+# checkpoint configuration (ray_partitioned executor)
+checkpoint:
+  enabled: true
+  strategy: every_n_ops                                     # every_op, every_n_ops, manual or disabled
+  n_ops: 5                                                 # positive interval for every_n_ops
+  op_names: []                                             # operator names for manual strategy
+
 # only for data analysis
 percentiles: [0.25, 0.5, 0.75]                              # percentiles to analyze the dataset distribution
 export_original_dataset: false                              # whether to export the original dataset with stats. If you only need the stats of the dataset, setting it to false could speed up the exporting.
 save_stats_in_one_file: false                               # whether to store all stats result into one file
 
 # for sandbox or hpo
-data_probe_algo: 'uniform'                                  # sampling algorithm for dataset. Should be one of ["uniform", "frequency_specified_field_selector", "topk_specified_field_selector"]. It's "uniform" in default. Only used for dataset sampling.
-data_probe_ratio: 1.0                                       # the sampling ratio to the original dataset size. It's 1.0 in default. Only used for dataset sampling.
+data_probe_algo: 'uniform'                                  # sampling algorithm for dataset. Should be one of ["uniform", "frequency_specified_field_selector", "topk_specified_field_selector"]. It's "uniform" in default. Consumed by the external Sandbox model probe.
+data_probe_ratio: 1.0                                       # the sampling ratio to the original dataset size. It's 1.0 in default. Consumed by the external Sandbox model probe.
 hpo_config: null                                            # path to a configuration file when using auto-HPO tool.
 custom_operator_paths: []                                   # Paths to custom operator scripts or directories.
+
+# Additional global controls
+work_dir: null                                             # base job directory; job_id is appended during setup
+job_id: null                                               # auto-generated unless explicitly provided
+resume: null                                               # existing ray_partitioned job ID for explicit resumption
+strict_preflight: true                                     # validate pipeline before execution
+event_logging:
+  enabled: true                                           # JSONL event tracking under the job work_dir
+event_log_dir: null                                        # human-readable logs; default job work_dir/logs
+checkpoint_dir: null                                       # ray_partitioned checkpoint directory
+partition_dir: null                                        # resolved path for external integrations; no built-in partition-file writer
+generated_dataset_config: null                             # formatter constructor configuration, including type
+export_aws_credentials: null                               # optional S3 export credentials
+mapper_fusion: true                                        # fuse eligible GPU mappers when op_fusion is enabled
+mapper_fusion_vram_limit: 0.9                               # aggregate estimated VRAM fraction per fused group
+min_common_dep_num_to_combine: -1                           # Ray operator environment merging disabled by default
+conflict_resolve_strategy: split                            # split, overwrite or latest when merging environments
+open_insight_mining: false                                  # default-executor operator insight mining
+op_list_to_mine: []                                         # eligible operators to include in insight mining
+auto_num: 1000                                             # sample limit for --auto analysis
+debug: false                                               # enable debug logging
 
 # process schedule: a list of several process operators with their arguments
 process:
@@ -1331,45 +1361,5 @@ process:
       model_params: {}                                        # Parameters for initializing the API model.
       sampling_params: {}                                     # Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95}
 
-# Notification configurations
-notification:
-  email:
-    smtp_server: "smtp.example.com"
-    smtp_port: 587
-    sender_email: "notifications@example.com"
-    sender_password: ""  # Fill in your password or app-specific password
-    recipients: ["user@example.com"]
-    subject: "Data Juicer Notification"
-
-  slack:
-    webhook_url: ""  # Fill in your Slack webhook URL
-    channel: "#data-juicer-notifications"
-    username: "Data Juicer Bot"
-
-  dingtalk:
-    access_token: ""  # Fill in your DingTalk access token
-    secret: ""  # Fill in your DingTalk secret (optional)
-
-# Human annotation configurations
-annotation:
-  label_studio:
-    api_url: "http://localhost:8080"
-    api_key: ""  # Fill in your Label Studio API key
-    project_name: "Data Annotation Project"
-    label_config: |
-      <View>
-        <Text name="text" value="$text"/>
-        <Choices name="sentiment" toName="text" choice="single">
-          <Choice value="Positive"/>
-          <Choice value="Neutral"/>
-          <Choice value="Negative"/>
-        </Choices>
-      </View>
-    wait_for_annotations: false
-    timeout: 3600
-    poll_interval: 60
-    notification:
-      on_task_created: true
-      on_annotation_completed: true
-      on_project_completed: true
-      on_error: true
+# Notification and annotation settings belong to individual operators.
+# Configure notification_config / notification_events on the relevant mapper.

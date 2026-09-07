@@ -1,7 +1,7 @@
 import json
 import unittest
 import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
@@ -214,6 +214,88 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
         self.assertEqual(len(result), 100)
         self.assertEqual(result[0]["id"], 0)
         self.assertEqual(result[99]["meta"]["url"], "https://example.com/99")
+
+    def _write_rows(self, filename, rows):
+        path = os.path.join(self.tmp_dir, filename)
+        with open(path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        return path
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_read_options_dict_and_unset(self):
+        """read_options accepts dicts, and unset values keep the reader default."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+
+        rows = [{"id": i, "text": f"row {i}"} for i in range(20)]
+        jsonl_path = self._write_rows("read_options_forms.jsonl", rows)
+
+        # A dict is converted to ReadOptions; an empty dict and None are treated
+        # as unset so Ray's ReadOptions(use_threads=False) default still applies.
+        for read_options in ({"block_size": 1 << 20}, {}, None):
+            with self.subTest(read_options=read_options):
+                dataset = read_json_stream(jsonl_path, read_options=read_options)
+                result = dataset.take_all()
+                self.assertEqual(len(result), 20)
+                self.assertEqual(result[0]["text"], "row 0")
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_read_options_keeps_use_threads_disabled(self):
+        """use_threads defaults to False, and an explicit value is preserved."""
+        import pyarrow.json as js
+
+        from data_juicer.core.data import ray_dataset
+
+        real_read_options = js.ReadOptions
+        calls = []
+
+        def _capture(**kwargs):
+            calls.append(kwargs)
+            return real_read_options(**kwargs)
+
+        rows = [{"id": i} for i in range(5)]
+        jsonl_path = self._write_rows("read_options_threads.jsonl", rows)
+
+        # Ray's datasource also builds a ReadOptions(use_threads=False) default
+        # eagerly, so only the first call comes from read_json_stream itself.
+        for read_options, expected in (
+            ({"block_size": 4096}, {"block_size": 4096, "use_threads": False}),
+            ({"use_threads": True}, {"use_threads": True}),
+        ):
+            with self.subTest(read_options=read_options):
+                calls.clear()
+                with patch.object(js, "ReadOptions", _capture):
+                    ray_dataset.read_json_stream(jsonl_path, read_options=read_options)
+                self.assertEqual(calls[0], expected)
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_old_pyarrow_fallback(self):
+        """Regression test: the pre-20.0.0 PyArrow fallback must materialize.
+
+        The fallback delegates to ray.data.read_json, which has no meta_provider
+        parameter and rejects read_options=None. Both failures only surface when
+        the blocks are read, so this test takes rows rather than just building
+        the dataset.
+        """
+        import pyarrow.json as js
+
+        from data_juicer.core.data.ray_dataset import read_json_stream
+
+        rows = [{"id": i, "text": f"row {i}"} for i in range(10)]
+        jsonl_path = self._write_rows("old_pyarrow_fallback.jsonl", rows)
+
+        # Hide open_json so read_json_stream takes the older-PyArrow branch.
+        open_json = js.__dict__.pop("open_json")
+        try:
+            self.assertFalse(hasattr(js, "open_json"))
+            for read_options in (None, {}, {"block_size": 1 << 20}):
+                with self.subTest(read_options=read_options):
+                    dataset = read_json_stream(jsonl_path, read_options=read_options)
+                    result = dataset.take_all()
+                    self.assertEqual(len(result), 10)
+                    self.assertEqual(result[0]["text"], "row 0")
+        finally:
+            js.__dict__["open_json"] = open_json
 
 
 class TestRayDataset(DataJuicerTestCaseBase):

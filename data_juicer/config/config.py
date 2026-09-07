@@ -119,7 +119,7 @@ def build_base_parser() -> ArgumentParser:
         "--auto_num",
         type=PositiveInt,
         default=1000,
-        help="The number of samples to be analyzed " "automatically. It's 1000 in default.",
+        help="Maximum number of input samples analyzed in Analyzer auto mode (--auto).",
     )
 
     parser.add_argument(
@@ -129,28 +129,34 @@ def build_base_parser() -> ArgumentParser:
         "--data_probe_algo",
         type=str,
         default="uniform",
-        help='Sampling algorithm to use. Options are "uniform", '
-        '"frequency_specified_field_selector", or '
-        '"topk_specified_field_selector". Default is "uniform". Only '
-        "used for dataset sampling",
+        help="Sampling algorithm consumed by the external Data-Juicer Sandbox model probe. Options: uniform, "
+        "frequency_specified_field_selector, topk_specified_field_selector.",
         required=False,
     )
     parser.add_argument(
         "--data_probe_ratio",
         type=ClosedUnitInterval,
         default=1.0,
-        help="The ratio of the sample size to the original dataset size. "  # noqa: E251
-        "Default is 1.0 (no sampling). Only used for dataset sampling",
+        help="Sampling ratio consumed by the external Data-Juicer Sandbox model probe. Default 1.0 uses the "
+        "full input for that probe.",
         required=False,
     )
 
-    # basic global paras with extended type hints
-    # e.g., files can be mode include flags
-    # "fr": "path to a file that exists and is readable")
-    # "fc": "path to a file that can be created if it does not exist")
-    # "dw": "path to a directory that exists and is writeable")
-    # "dc": "path to a directory that can be created if it does not exist")
-    # "drw": "path to a directory that exists and is readable and writeable")
+    parser.add_argument(
+        "--load_jsonl_lenient",
+        type=bool,
+        default=False,
+        help="Use the default executor/Analyzer's lenient JSONL loader to skip malformed lines. "
+        "Supports .jsonl, .jsonl.gz and .jsonl.zst; when these are present, other JSON files are skipped. "
+        "DATA_JUICER_JSONL_LENIENT=1 also enables this loader.",
+    )
+    parser.add_argument(
+        "--use_dag",
+        type=Optional[bool],
+        default=None,
+        help="Enable execution-plan generation and DAG monitoring. None uses the executor default: "
+        "enabled for ray and ray_partitioned, disabled for default.",
+    )
     parser.add_argument("--project_name", type=str, default="hello_world", help="Name of your data process project.")
     parser.add_argument(
         "--executor_type",
@@ -170,26 +176,23 @@ def build_base_parser() -> ArgumentParser:
         "--dataset_path",
         type=str,
         default="",
-        help="Path to datasets with optional weights(0.0-1.0), 1.0 as "
-        "default. Accepted format:<w1> dataset1-path <w2> dataset2-path "
-        "<w3> dataset3-path ...",
+        help="Local file/directory or HuggingFace dataset path. Legacy syntax accepts optional nonnegative "
+        "relative weights: <w1> <path1> <w2> <path2>. Use dataset.configs with dataset.max_sample_num "
+        "to configure weighted sampling.",
     )
     parser.add_argument(
         "--dataset",
         type=Union[List[Dict], Dict],
         default=[],
-        help="Dataset setting to define local/remote datasets; could be a "  # noqa: E251
-        "dict or a list of dicts; refer to "
-        "https://datajuicer.github.io/data-juicer/en/main/docs/DatasetCfg.html for more "
-        "detailed examples",
+        help="Dataset configuration mapping with a configs list and optional max_sample_num sampling budget. "
+        "See the DatasetCfg documentation for local and remote source fields.",
     )
     parser.add_argument(
         "--generated_dataset_config",
         type=Dict,
         default=None,
-        help="Configuration used to create a dataset. "  # noqa: E251
-        "The dataset will be created from this configuration if provided. "
-        "It must contain the `--type` field to specify the dataset name.",
+        help="Configuration for generating a dataset. The type field selects a registered formatter; other "
+        "fields are passed to its constructor.",
     )
     parser.add_argument(
         "--validators",
@@ -202,23 +205,20 @@ def build_base_parser() -> ArgumentParser:
         "--load_dataset_kwargs",
         type=Dict,
         default={},
-        help="Extra keyword arguments passed through to the underlying "  # noqa: E251
-        "datasets.load_dataset() call. Useful for format-specific "
-        "options such as chunksize (JSON), columns (Parquet), or "
-        "delimiter (CSV). See the HuggingFace Datasets docs for "
-        "available options.",
+        help="Extra keyword arguments for HuggingFace dataset loading in the default executor and Analyzer, "
+        "such as columns (Parquet) or delimiter (CSV), or num_proc to load with a parallelism other than "
+        "np. Explicit DatasetBuilder.load_dataset() arguments override these defaults.",
     )
     parser.add_argument(
         "--read_options",
         type=Dict,
         default={},
-        help="Read options passed through to PyArrow reading functions "
-        "(e.g., block_size for JSON reading). This configuration is "
-        "especially useful when reading large JSON files.",
+        help="PyArrow JSON ReadOptions for Ray JSON input, including block_size. Used by ray, ray_partitioned "
+        "and RayAnalyzer.",
     )
     parser.add_argument(
         "--override_num_blocks",
-        type=Optional[int],
+        type=Optional[PositiveInt],
         default=None,
         help="Override the number of output blocks for Ray Data read "
         "operations. Useful for controlling parallelism when reading "
@@ -228,16 +228,15 @@ def build_base_parser() -> ArgumentParser:
         "--work_dir",
         type=str,
         default=None,
-        help="Path to a work directory to store outputs during Data-Juicer "  # noqa: E251
-        "running. It's the directory where export_path is at in default.",
+        help="Base directory for job artifacts. A job_id suffix is appended unless already present. Defaults "
+        "to the local export directory, or ./outputs for S3/HDFS exports.",
     )
     parser.add_argument(
         "--export_path",
         type=str,
         default="./outputs/hello_world/hello_world.jsonl",
-        help="Path to export and save the output processed dataset. The "  # noqa: E251
-        "directory to store the processed dataset will be the work "
-        "directory of this process.",
+        help="Output dataset path. When work_dir is omitted, its local parent directory is used as the base "
+        "work directory.",
     )
     parser.add_argument(
         "--export_type",
@@ -251,24 +250,16 @@ def build_base_parser() -> ArgumentParser:
         "--export_shard_size",
         type=NonNegativeInt,
         default=0,
-        help="Shard size of exported dataset in Byte. In default, it's 0, "  # noqa: E251
-        "which means export the whole dataset into only one file. If "
-        "it's set a positive number, the exported dataset will be split "
-        "into several sub-dataset shards, and the max size of each shard "
-        "won't larger than the export_shard_size",
+        help="Target output shard size in bytes. The default 0 exports one file in standalone mode; Ray uses "
+        "its dataset block layout. Positive values guide shard sizing; encoded file sizes can differ from "
+        "estimates.",
     )
     parser.add_argument(
         "--export_in_parallel",
         type=bool,
         default=False,
-        help="Whether to export the result dataset in parallel to a single "  # noqa: E251
-        "file, which usually takes less time. It only works when "
-        "export_shard_size is 0, and its default number of processes is "
-        "the same as the argument np. **Notice**: If it's True, "
-        "sometimes exporting in parallel might require much more time "
-        "due to the IO blocking, especially for very large datasets. "
-        "When this happens, False is a better choice, although it takes "
-        "more time.",
+        help="Export a standalone dataset to a single file using parallel workers. Used by the default "
+        "executor and Analyzer when export_shard_size is 0; worker count follows np.",
     )
     parser.add_argument(
         "--export_extra_args",
@@ -281,9 +272,9 @@ def build_base_parser() -> ArgumentParser:
         "--export_aws_credentials",
         type=Dict,
         default=None,
-        help="Export-specific AWS credentials for S3 export. If export_path is S3 and this is not provided, "
-        "an error will be raised. Should contain aws_access_key_id, aws_secret_access_key, aws_region, "
-        "and optionally aws_session_token and endpoint_url.",
+        help="Optional AWS credentials for S3 export: aws_access_key_id, aws_secret_access_key, aws_region, "
+        "and optionally aws_session_token and endpoint_url. Exporters can also use dataset credentials or "
+        "the AWS default credential chain.",
     )
     parser.add_argument(
         "--decrypt_after_reading",
@@ -454,12 +445,9 @@ def build_base_parser() -> ArgumentParser:
         "--use_checkpoint",
         type=bool,
         default=False,
-        help="Whether to use the checkpoint management to save the latest "  # noqa: E251
-        "version of dataset to work dir when processing. Rerun the same "
-        "config will reload the checkpoint and skip ops before it. Cache "
-        "will be disabled when it is true . If args of ops before the "
-        "checkpoint are changed, all ops will be rerun from the "
-        "beginning.",
+        help="Enable checkpointing in the default executor. Saves the latest dataset under work_dir/ckpt and "
+        "disables the HuggingFace cache. Reusing the same job directory reloads the checkpoint and skips "
+        "unchanged completed operators.",
     )
     # Enhanced checkpoint configuration for PartitionedRayExecutor
     parser.add_argument(
@@ -472,13 +460,13 @@ def build_base_parser() -> ArgumentParser:
         "--checkpoint.strategy",
         type=str,
         default="every_n_ops",
-        choices=["every_op", "every_partition", "every_n_ops", "manual", "disabled"],
+        choices=["every_op", "every_n_ops", "manual", "disabled"],
         help="Checkpoint strategy: every_n_ops (default, balanced), every_op (max protection), "
         "manual (after specific ops), disabled (best performance)",
     )
     parser.add_argument(
         "--checkpoint.n_ops",
-        type=int,
+        type=PositiveInt,
         default=5,
         help="Number of operations between checkpoints for every_n_ops strategy. "
         "Default 5 balances fault tolerance with Ray optimization.",
@@ -496,31 +484,20 @@ def build_base_parser() -> ArgumentParser:
         default=True,
         help="Enable event logging for job tracking and resumption",
     )
-    # Logging configuration
-    parser.add_argument(
-        "--max_log_size_mb",
-        type=int,
-        default=100,
-        help="Maximum log file size in MB before rotation",
-    )
-    parser.add_argument(
-        "--backup_count",
-        type=int,
-        default=5,
-        help="Number of backup log files to keep",
-    )
     # Storage configuration
     parser.add_argument(
         "--event_log_dir",
         type=str,
         default=None,
-        help="Separate directory for event logs (fast storage)",
+        help="Directory for human-readable application logs. Defaults to work_dir/logs after job directory "
+        "resolution. Machine-readable event JSONL files are written directly under work_dir.",
     )
     parser.add_argument(
         "--checkpoint_dir",
         type=str,
         default=None,
-        help="Separate directory for checkpoints (large storage)",
+        help="Directory for ray_partitioned Parquet checkpoints. Defaults to work_dir/checkpoints after job "
+        "directory resolution.",
     )
     # Job management
     parser.add_argument(
@@ -658,8 +635,7 @@ def build_base_parser() -> ArgumentParser:
         "--adaptive_batch_size",
         type=bool,
         default=False,
-        help="Whether to use adaptive batch sizes for each OP according to "  # noqa: E251
-        "the probed results. It's False in default.",
+        help="Use probe results to adjust batch sizes for batched operators in the default executor.",
     )
     parser.add_argument(
         "--process",
@@ -696,13 +672,6 @@ def build_base_parser() -> ArgumentParser:
         type=Optional[PositiveInt],
         default=None,
         help="Deprecated; use --partition.size. Number of samples per partition.",
-    )
-
-    parser.add_argument(
-        "--preserve_intermediate_data",
-        type=bool,
-        default=False,
-        help="Preserve intermediate data for debugging (legacy flat config)",
     )
 
     # partition configuration
@@ -764,75 +733,13 @@ def build_base_parser() -> ArgumentParser:
         "This is an estimate used for planning, not a hard memory or output-file size limit.",
     )
 
-    # Resource optimization configuration
-    parser.add_argument(
-        "--resource_optimization.auto_configure",
-        type=bool,
-        default=False,
-        help="Enable automatic optimization of partition size, worker count, and other resource-dependent settings (nested resource_optimization config)",
-    )
-
-    # Intermediate storage configuration
-    parser.add_argument(
-        "--intermediate_storage.preserve_intermediate_data",
-        type=bool,
-        default=False,
-        help="Preserve intermediate data for debugging (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.cleanup_temp_files",
-        type=bool,
-        default=True,
-        help="Clean up temporary files after processing (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.cleanup_on_success",
-        type=bool,
-        default=False,
-        help="Clean up intermediate files even on successful completion (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.retention_policy",
-        type=str,
-        default="keep_all",
-        choices=["keep_all", "keep_failed_only", "cleanup_all"],
-        help="File retention policy (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.max_retention_days",
-        type=int,
-        default=7,
-        help="Maximum retention days for files (nested intermediate_storage config)",
-    )
-
-    # Intermediate storage format configuration
-    parser.add_argument(
-        "--intermediate_storage.format",
-        type=str,
-        default="parquet",
-        choices=["parquet", "arrow", "jsonl"],
-        help="Storage format for checkpoints and intermediate data (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.compression",
-        type=str,
-        default="snappy",
-        choices=["snappy", "gzip", "none"],
-        help="Compression format for storage files (nested intermediate_storage config)",
-    )
-
-    parser.add_argument(
-        "--intermediate_storage.write_partitions",
-        type=bool,
-        default=True,
-        help="Whether to write intermediate partition files to disk (nested intermediate_storage config). Set to false for better performance when intermediate files aren't needed.",
-    )
-
     parser.add_argument(
         "--partition_dir",
         type=str,
         default=None,
-        help="Directory to store partition files. Supports {work_dir} placeholder. If not set, defaults to {work_dir}/partitions.",
+        help="Resolved path recorded for partition metadata and external integrations. Defaults to "
+        "work_dir/partitions. The built-in ray_partitioned executor splits Ray datasets directly and does "
+        "not write input partition files here.",
     )
 
     parser.add_argument("--custom-operator-paths", nargs="+", help="Paths to custom operator scripts or directories.")

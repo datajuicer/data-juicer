@@ -8,7 +8,10 @@ from jsonargparse import Namespace
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
@@ -145,7 +148,9 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         """
         Running the dataset process pipeline
 
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated, and never applied here: no Ray load
+            strategy reads `num_proc`. Use `override_num_blocks` to control
+            read parallelism.
         :param skip_export: whether export the results into disk
         :param skip_return: skip return for API called.
         :return: processed dataset.
@@ -161,13 +166,10 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         # 'straddling object straddles two block boundaries' ArrowInvalid error.
         #
 
-        read_opts = self.cfg.get("read_options")
-        override_num_blocks = getattr(self.cfg, "override_num_blocks", None)
-
         # 1. load data
         logger.info("Loading dataset with Ray...")
         dataset = self.datasetbuilder.load_dataset(
-            num_proc=load_data_np, read_options=read_opts, override_num_blocks=override_num_blocks
+            **deprecated_load_data_np_kwargs(load_data_np, self.datasetbuilder.executor_type)
         )
         columns = dataset.data.columns()
 

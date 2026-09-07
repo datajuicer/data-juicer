@@ -12,7 +12,10 @@ from data_juicer.analysis import (
     OverallAnalysis,
 )
 from data_juicer.config import init_configs
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.ops import NON_STATS_FILTERS, TAGGING_OPS, Filter, load_ops
 from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.utils import cache_utils
@@ -83,17 +86,20 @@ class Analyzer:
         Running the dataset analysis pipeline.
 
         :param dataset: a Dataset object to be analyzed.
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated; number of workers when loading the
+            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in
+            the configuration instead, or `np` to load with the same
+            parallelism as processing.
         :param skip_export: whether export the results into disk
         :param skip_return: skip return for API called.
         :return: analyzed dataset.
         """
         # 1. format data
-        if load_data_np is None:
-            load_data_np = self.cfg.np
         if dataset is None:
             logger.info("Loading dataset from data formatter...")
-            dataset = self.dataset_builder.load_dataset(num_proc=load_data_np)
+            dataset = self.dataset_builder.load_dataset(
+                **deprecated_load_data_np_kwargs(load_data_np, self.dataset_builder.executor_type)
+            )
         else:
             logger.info(f"Using existing dataset {dataset}")
         if self.cfg.auto:

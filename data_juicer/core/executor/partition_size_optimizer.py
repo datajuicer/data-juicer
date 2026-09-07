@@ -17,6 +17,8 @@ import psutil
 import ray
 from loguru import logger
 
+from data_juicer.core.data.dj_dataset import nested_query
+
 
 class ModalityType(Enum):
     """Supported data modalities."""
@@ -265,7 +267,15 @@ class PartitionSizeOptimizer:
     def __init__(self, cfg):
         """Initialize the optimizer with configuration."""
         self.cfg = cfg
-        self.text_key = getattr(cfg, "text_key", "text")
+        text_keys = getattr(cfg, "text_keys", None)
+        if text_keys is None:
+            # Preserve the legacy programmatic interface when no global keys
+            # are provided. YAML/CLI use text_keys, as do the operators.
+            self.text_key = getattr(cfg, "text_key", "text")
+        elif isinstance(text_keys, str):
+            self.text_key = text_keys
+        else:
+            self.text_key = text_keys[0] if text_keys else None
         self.image_key = getattr(cfg, "image_key", "images")
         self.audio_key = getattr(cfg, "audio_key", "audios")
         self.video_key = getattr(cfg, "video_key", "videos")
@@ -276,7 +286,7 @@ class PartitionSizeOptimizer:
         modalities = []
 
         # Check for text
-        if self.text_key in sample and sample[self.text_key]:
+        if self.text_key and nested_query(sample, self.text_key):
             modalities.append(ModalityType.TEXT)
 
         # Check for images
@@ -381,11 +391,11 @@ class PartitionSizeOptimizer:
 
             # Analyze text
             text_length = 0
-            if self.text_key in sample and sample[self.text_key]:
-                if isinstance(sample[self.text_key], str):
-                    text_length = len(sample[self.text_key])
-                elif isinstance(sample[self.text_key], list):
-                    text_length = sum(len(t) for t in sample[self.text_key])
+            text = nested_query(sample, self.text_key) if self.text_key else None
+            if isinstance(text, str):
+                text_length = len(text)
+            elif isinstance(text, list):
+                text_length = sum(len(t) for t in text)
             text_lengths.append(text_length)
 
             # Count media files

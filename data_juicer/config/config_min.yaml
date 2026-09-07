@@ -10,4 +10,3 @@ audio_key: 'audios'
 executor_type: default                                      # type of executor, support "default" or "ray" for now.
 ray_address: auto                                           # the address of the Ray cluster.
 suffixes: null
-add_suffix: false

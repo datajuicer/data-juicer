@@ -405,13 +405,7 @@ class RayDataset(DJDataset):
     def read_json(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
         # Note: a temp solution for reading json stream
         # TODO: replace with ray.data.read_json_stream once it is available
-        import pyarrow.json as js
-
-        try:
-            js.open_json
-            return read_json_stream(paths, **kwargs)
-        except AttributeError:
-            return ray.data.read_json(paths, **kwargs)
+        return read_json_stream(paths, **kwargs)
 
     @classmethod
     def read_webdataset(cls, paths: Union[str, List[str]], **kwargs) -> ray.data.Dataset:
@@ -530,16 +524,52 @@ def read_json_stream(
     override_num_blocks: Optional[int] = None,
     **arrow_json_args,
 ) -> ray.data.Dataset:
+    import pyarrow.json as js
+
+    # Normalize read_options before it reaches PyArrow or Ray's JSON datasource:
+    #   - YAML/CLI supply a dictionary, but PyArrow expects a ReadOptions object.
+    #   - An unconfigured option arrives as an empty dictionary or None. Ray's
+    #     datasource pops this key using ReadOptions(use_threads=False) as its
+    #     default, so passing either through would replace that default instead
+    #     of falling back to it. Drop the key so Ray's default applies.
+    #   - Keep use_threads disabled unless explicitly requested: each Ray read
+    #     task is already parallel, so threading inside one oversubscribes CPU.
+    if "read_options" in arrow_json_args:
+        read_options = arrow_json_args["read_options"]
+        if isinstance(read_options, dict):
+            if read_options:
+                read_options = dict(read_options)
+                read_options.setdefault("use_threads", False)
+                arrow_json_args["read_options"] = js.ReadOptions(**read_options)
+            else:
+                del arrow_json_args["read_options"]
+        elif read_options is None:
+            del arrow_json_args["read_options"]
+
     # Check if open_json is available (PyArrow 20.0.0+)
     # If not, fall back to ray.data.read_json which works with older PyArrow
-    try:
-        import pyarrow.json as js
-
-        js.open_json  # Check if attribute exists
-    except (ImportError, AttributeError):
-        # Fall back to standard ray.data.read_json for older PyArrow versions
-        # This works with filesystem parameter for S3
-        return ray.data.read_json(paths, filesystem=filesystem)
+    if not hasattr(js, "open_json"):
+        # Fall back to standard ray.data.read_json for older PyArrow versions.
+        # This works with filesystem parameter for S3.
+        # meta_provider is intentionally not forwarded: ray.data.read_json has no
+        # such parameter, so it would be absorbed by **arrow_json_args, reach
+        # PyArrow, and fail once the blocks are materialized.
+        return ray.data.read_json(
+            paths,
+            filesystem=filesystem,
+            parallelism=parallelism,
+            ray_remote_args=ray_remote_args,
+            arrow_open_stream_args=arrow_open_stream_args,
+            partition_filter=partition_filter,
+            partitioning=partitioning,
+            include_paths=include_paths,
+            ignore_missing_paths=ignore_missing_paths,
+            shuffle=shuffle,
+            file_extensions=file_extensions,
+            concurrency=concurrency,
+            override_num_blocks=override_num_blocks,
+            **arrow_json_args,
+        )
 
     if meta_provider is None:
         meta_provider = ray.data.read_api.DefaultFileMetadataProvider()

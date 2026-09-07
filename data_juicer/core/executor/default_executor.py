@@ -10,7 +10,10 @@ from pydantic import PositiveInt
 
 from data_juicer.core.adapter import Adapter
 from data_juicer.core.data import NestedDataset
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
@@ -144,7 +147,10 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         Running the dataset process pipeline.
 
         :param dataset: a Dataset object to be executed.
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated; number of workers when loading the
+            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in
+            the configuration instead, or `np` to load with the same
+            parallelism as processing.
         :param skip_export: whether export the results into disk
         :param skip_return: skip return for API called.
         :return: processed dataset.
@@ -163,12 +169,9 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             dataset = self.ckpt_manager.load_ckpt()
         else:
             logger.info("Loading dataset from dataset builder...")
-            if load_data_np is None:
-                load_data_np = self.np
-            load_kwargs = {"num_proc": load_data_np}
-            if getattr(self.cfg, "load_dataset_kwargs", None):
-                load_kwargs.update(dict(self.cfg.load_dataset_kwargs))
-            dataset = self.dataset_builder.load_dataset(**load_kwargs)
+            dataset = self.dataset_builder.load_dataset(
+                **deprecated_load_data_np_kwargs(load_data_np, self.dataset_builder.executor_type)
+            )
 
         # 2. extract processes and optimize their orders
         logger.info("Preparing process operators...")
@@ -295,7 +298,10 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
         :param dataset_to_sample: Dataset to sample from. If None, will use
             the formatter linked by the executor. Default is None.
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated; number of workers when loading the
+            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in
+            the configuration instead, or `np` to load with the same
+            parallelism as processing.
         :param sample_ratio: The ratio of the sample size to the original
             dataset size. Default is 1.0 (no sampling).
         :param sample_algo: Sampling algorithm to use. Options are "uniform",
@@ -312,12 +318,9 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             dataset = self.ckpt_manager.load_ckpt()
         else:
             logger.info("Loading dataset from dataset builder...")
-            if load_data_np is None:
-                load_data_np = self.np
-            load_kwargs = {"num_proc": load_data_np}
-            if getattr(self.cfg, "load_dataset_kwargs", None):
-                load_kwargs.update(dict(self.cfg.load_dataset_kwargs))
-            dataset = self.dataset_builder.load_dataset(**load_kwargs)
+            dataset = self.dataset_builder.load_dataset(
+                **deprecated_load_data_np_kwargs(load_data_np, self.dataset_builder.executor_type)
+            )
 
         # Perform sampling based on the specified algorithm
         if sample_algo == "uniform":

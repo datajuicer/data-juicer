@@ -421,13 +421,11 @@ class ConfigTest(DataJuicerTestCaseBase):
         self.assertEqual(cfg.executor_type, 'default')
         self.assertEqual(cfg.ray_address, 'auto')
         self.assertEqual(cfg.text_keys, 'text')
-        self.assertEqual(cfg.add_suffix, False)
         self.assertEqual(cfg.export_path, './outputs/')
         self.assertEqual(cfg.suffixes, None)
         
         # Test default values are of correct type
         self.assertIsInstance(cfg.executor_type, str)
-        self.assertIsInstance(cfg.add_suffix, bool)
         self.assertIsInstance(cfg.export_path, str)
 
     def test_cli_override(self):
@@ -1066,6 +1064,145 @@ from . import new_op4
                 
         finally:
             os.unlink(temp_config_path)
+
+
+class ConfigRuntimeConsistencyTest(DataJuicerTestCaseBase):
+
+    def test_removed_settings_are_rejected_in_cli_and_yaml(self):
+        from data_juicer.config.config import build_base_parser
+
+        removed = {
+            'intermediate_storage.preserve_intermediate_data': True,
+            'intermediate_storage.cleanup_temp_files': False,
+            'intermediate_storage.cleanup_on_success': True,
+            'intermediate_storage.retention_policy': 'keep_all',
+            'intermediate_storage.max_retention_days': 7,
+            'intermediate_storage.format': 'jsonl',
+            'intermediate_storage.compression': 'gzip',
+            'intermediate_storage.write_partitions': True,
+            'preserve_intermediate_data': True,
+            'resource_optimization.auto_configure': True,
+            'max_log_size_mb': 1,
+            'backup_count': 2,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'config.yaml')
+            for name, value in removed.items():
+                for source in ('cli', 'yaml'):
+                    with self.subTest(name=name, source=source):
+                        config = {'process': []}
+                        args = ['--config', path]
+                        if source == 'yaml':
+                            parent = config
+                            parts = name.split('.')
+                            for part in parts[:-1]:
+                                parent = parent.setdefault(part, {})
+                            parent[parts[-1]] = value
+                        else:
+                            args += ['--' + name, str(value).lower()]
+                        with open(path, 'w') as stream:
+                            yaml.safe_dump(config, stream)
+                        error = StringIO()
+                        with redirect_stderr(error), self.assertRaises(SystemExit) as caught:
+                            build_base_parser().parse_args(args)
+                        self.assertEqual(caught.exception.code, 2)
+                        self.assertIn(name.split('.')[0], error.getvalue())
+
+    def test_invalid_checkpoint_and_read_settings_fail_at_parse_time(self):
+        from data_juicer.config.config import build_base_parser
+
+        for name, value in [
+            ('checkpoint.strategy', 'every_partition'),
+            ('checkpoint.n_ops', '0'),
+            ('checkpoint.n_ops', '-1'),
+            ('override_num_blocks', '0'),
+            ('override_num_blocks', '-1'),
+        ]:
+            with self.subTest(name=name, value=value):
+                with redirect_stderr(StringIO()), self.assertRaises(SystemExit) as caught:
+                    build_base_parser().parse_args(['--auto', '--' + name, value])
+                self.assertEqual(caught.exception.code, 2)
+
+    def test_parsed_checkpoint_strategies_select_expected_operations(self):
+        from data_juicer.config.config import build_base_parser
+        from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
+
+        expected = {
+            'every_op': [0, 1, 2, 3, 4],
+            'every_n_ops': [2],
+            'manual': [1],
+            'disabled': [],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            for strategy, indices in expected.items():
+                with self.subTest(strategy=strategy):
+                    cfg = build_base_parser().parse_args([
+                        '--auto', '--checkpoint.strategy', strategy,
+                        '--checkpoint.n_ops', '3', '--checkpoint.op_names', '[op_1]',
+                    ])
+                    manager = RayCheckpointManager(
+                        tmp, checkpoint_enabled=cfg.checkpoint.enabled,
+                        checkpoint_strategy=CheckpointStrategy(cfg.checkpoint.strategy),
+                        checkpoint_n_ops=cfg.checkpoint.n_ops,
+                        checkpoint_op_names=cfg.checkpoint.op_names,
+                    )
+                    actual = [i for i in range(5) if manager.should_checkpoint(i, f'op_{i}')]
+                    self.assertEqual(actual, indices)
+
+    def test_lenient_jsonl_yaml_controls_real_loading(self):
+        from datasets.exceptions import DatasetGenerationError
+        from data_juicer.core.data.dataset_builder import DatasetBuilder
+
+        old_env = os.environ.pop('DATA_JUICER_JSONL_LENIENT', None)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                data_path = os.path.join(tmp, 'data.jsonl')
+                path = os.path.join(tmp, 'config.yaml')
+                with open(data_path, 'w') as stream:
+                    stream.write('{"text": "first"}\nnot json\n{"text": "last"}\n')
+                for enabled in (False, True):
+                    with self.subTest(enabled=enabled):
+                        with open(path, 'w') as stream:
+                            yaml.safe_dump({
+                                'dataset_path': data_path, 'np': 1,
+                                'load_jsonl_lenient': enabled, 'process': [],
+                                'work_dir': tmp, 'export_path': os.path.join(tmp, 'result.jsonl'),
+                            }, stream)
+                        cfg = init_configs(['--config', path], load_configs_only=True)
+                        builder = DatasetBuilder(cfg)
+                        if enabled:
+                            self.assertEqual(list(builder.load_dataset(num_proc=1)['text']), ['first', 'last'])
+                        else:
+                            with self.assertRaises(DatasetGenerationError):
+                                builder.load_dataset(num_proc=1)
+        finally:
+            if old_env is not None:
+                os.environ['DATA_JUICER_JSONL_LENIENT'] = old_env
+
+    def test_use_dag_yaml_controls_plan_without_changing_processing(self):
+        from data_juicer.core.executor.default_executor import DefaultExecutor
+
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, 'data.jsonl')
+            with open(data_path, 'w') as stream:
+                stream.write('{"text": "hello\\u3000world"}\n')
+            for enabled in (None, False, True):
+                with self.subTest(enabled=enabled):
+                    path = os.path.join(tmp, f'config-{enabled}.yaml')
+                    with open(path, 'w') as stream:
+                        yaml.safe_dump({
+                            'dataset_path': data_path, 'np': 1, 'use_dag': enabled,
+                            'work_dir': os.path.join(tmp, str(enabled)),
+                            'export_path': os.path.join(tmp, str(enabled), 'result.jsonl'),
+                            'process': [{'whitespace_normalization_mapper': {}}],
+                        }, stream)
+                    cfg = init_configs(['--config', path], load_configs_only=True)
+                    executor = DefaultExecutor(cfg)
+                    result = executor.run()
+                    self.assertEqual(list(result['text']), ['hello world'])
+                    self.assertEqual(executor.pipeline_dag is not None, enabled is True)
+                    self.assertEqual(os.path.isfile(os.path.join(cfg.work_dir, 'dag_execution_plan.json')),
+                                     enabled is True)
 
 
 class EncryptionConfigTest(DataJuicerTestCaseBase):

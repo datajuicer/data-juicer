@@ -659,6 +659,8 @@ def prepare_api_model(
     endpoint = endpoint or "/chat/completions"
 
     if api_backend == "litellm":
+        # get_model() supplies the local execution device, not an API parameter.
+        model_params.pop("device", None)
         # LiteLLM routes by the ``provider/model`` string and each provider
         # reads its own credentials, so we must NOT merge OpenAI/DashScope env
         # vars into the params here (that would leak one provider's key/base_url

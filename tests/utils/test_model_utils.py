@@ -41,10 +41,8 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_fro
 
 
 # ---------------------------------------------------------------------------
-# Mock Server for API client error-path testing.
-# Kept intentionally: real APIs cannot reliably reproduce broken JSON, 404,
-# or connection errors.  This server is NOT for happy-path testing — happy
-# paths should be covered by real API tests with @skip_if_from_fork.
+# Local server for API client error paths and request serialization.
+# Provider behavior is covered by real API tests with @skip_if_from_fork.
 # ---------------------------------------------------------------------------
 
 class LocalAPIHandler(BaseHTTPRequestHandler):
@@ -753,6 +751,31 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
             self.assertIsNone(get_model(None))
         finally:
             free_models()
+
+    @patch.dict(os.environ, {"LITELLM_LOCAL_MODEL_COST_MAP": "True"})
+    def test_get_model_litellm_excludes_device_from_request(self):
+        """Exercise real SDK serialization; only the provider is a local server."""
+        base_url = self._start_local_api_server()
+        model_key = prepare_model(
+            "api",
+            model="openai/gpt-4o-mini",
+            api_backend="litellm",
+            temperature=0.25,
+            num_retries=0,
+            timeout=5,
+            **self._local_client_params(base_url),
+        )
+        self.addCleanup(free_models)
+        model = get_model(model_key)
+        result = model([{"role": "user", "content": "hello"}], max_tokens=8)
+
+        self.assertEqual(result, "chat:hello")
+        self.assertEqual(len(LocalAPIHandler.requests), 1)
+        path, body = LocalAPIHandler.requests[0]
+        self.assertEqual(path, "/chat/completions")
+        self.assertNotIn("device", body)
+        self.assertEqual(body["temperature"], 0.25)
+        self.assertEqual(body["max_tokens"], 8)
 
 
 # ===================================================================

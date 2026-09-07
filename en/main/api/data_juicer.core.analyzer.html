@@ -442,7 +442,10 @@ dataset better.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dataset</strong> – a Dataset object to be analyzed.</p></li>
-<li><p><strong>load_data_np</strong> – number of workers when loading the dataset.</p></li>
+<li><p><strong>load_data_np</strong> – deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
 <li><p><strong>skip_export</strong> – whether export the results into disk</p></li>
 <li><p><strong>skip_return</strong> – skip return for API called.</p></li>
 </ul>

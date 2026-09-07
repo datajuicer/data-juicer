@@ -427,7 +427,10 @@
     <span class="n">OverallAnalysis</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_configs</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatasetBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DatasetBuilder</span><span class="p">,</span>
+    <span class="n">deprecated_load_data_np_kwargs</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">NON_STATS_FILTERS</span><span class="p">,</span> <span class="n">TAGGING_OPS</span><span class="p">,</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">load_ops</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops.op_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">fuse_operators</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">cache_utils</span>
@@ -505,17 +508,20 @@
 <span class="sd">        Running the dataset analysis pipeline.</span>
 
 <span class="sd">        :param dataset: a Dataset object to be analyzed.</span>
-<span class="sd">        :param load_data_np: number of workers when loading the dataset.</span>
+<span class="sd">        :param load_data_np: deprecated; number of workers when loading the</span>
+<span class="sd">            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in</span>
+<span class="sd">            the configuration instead, or `np` to load with the same</span>
+<span class="sd">            parallelism as processing.</span>
 <span class="sd">        :param skip_export: whether export the results into disk</span>
 <span class="sd">        :param skip_return: skip return for API called.</span>
 <span class="sd">        :return: analyzed dataset.</span>
 <span class="sd">        """</span>
         <span class="c1"># 1. format data</span>
-        <span class="k">if</span> <span class="n">load_data_np</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">load_data_np</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">np</span>
         <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Loading dataset from data formatter..."</span><span class="p">)</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="n">num_proc</span><span class="o">=</span><span class="n">load_data_np</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">deprecated_load_data_np_kwargs</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">executor_type</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Using existing dataset </span><span class="si">{</span><span class="n">dataset</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">auto</span><span class="p">:</span>

@@ -430,6 +430,41 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.sample</span><span class="w"> </span><span class="kn">import</span> <span class="n">random_sample</span>
 
 
+<div class="viewcode-block" id="deprecated_load_data_np_kwargs">
+<a class="viewcode-back" href="../../../../api/data_juicer.core.data.dataset_builder.html#data_juicer.core.data.dataset_builder.deprecated_load_data_np_kwargs">[文档]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">deprecated_load_data_np_kwargs</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="n">executor_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Translate the deprecated ``load_data_np`` run argument into loader kwargs.</span>
+
+<span class="sd">    ``load_data_np`` predates the global configuration for loader parallelism and</span>
+<span class="sd">    is declared on every ``run()`` signature, but only the default executor and</span>
+<span class="sd">    the Analyzer ever acted on it: ``num_proc`` is read by the ``Default*`` load</span>
+<span class="sd">    strategies alone, so the Ray executors silently dropped it. The warning says</span>
+<span class="sd">    which of the two happened, since a caller cannot tell from the argument.</span>
+
+<span class="sd">    :param load_data_np: the value received by ``run()``, or None when unset.</span>
+<span class="sd">    :param executor_type: the type the ``DatasetBuilder`` was created with, which</span>
+<span class="sd">        is what decides whether ``num_proc`` reaches a load strategy that reads it.</span>
+<span class="sd">    :return: keyword arguments to forward to ``DatasetBuilder.load_dataset()``.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">load_data_np</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">executor_type</span> <span class="o">==</span> <span class="s2">"default"</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"The `load_data_np` argument will be deprecated; loading with "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">load_data_np</span><span class="si">}</span><span class="s2"> processes as requested. Set "</span>
+            <span class="sa">f</span><span class="s2">"`load_dataset_kwargs.num_proc` in the configuration instead, or "</span>
+            <span class="sa">f</span><span class="s2">"`np` to load with the same parallelism as processing."</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"The `load_data_np` argument will be deprecated, and the Ray load "</span>
+            <span class="s2">"strategies have never applied it: read parallelism comes from "</span>
+            <span class="s2">"`override_num_blocks` and the cluster. Remove the argument."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"num_proc"</span><span class="p">:</span> <span class="n">load_data_np</span><span class="p">}</span></div>
+
+
+
 <div class="viewcode-block" id="DatasetBuilder">
 <a class="viewcode-back" href="../../../../api/data_juicer.core.data.dataset_builder.html#data_juicer.core.data.dataset_builder.DatasetBuilder">[文档]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DatasetBuilder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -541,11 +576,30 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_generated_dataset_config</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">DatasetBuilder</span><span class="o">.</span><span class="n">load_dataset_by_generated_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generated_dataset_config</span><span class="p">)</span>
 
+        <span class="c1"># Apply global reader defaults here so execution and analysis share the</span>
+        <span class="c1"># same loading behavior. Explicit call arguments take precedence.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">executor_type</span> <span class="o">==</span> <span class="s2">"default"</span><span class="p">:</span>
+            <span class="n">load_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"load_dataset_kwargs"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">load_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"read_options"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"read_options"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="s2">"override_num_blocks"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"override_num_blocks"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="n">load_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># `np` is the global default for loader parallelism, so seed it last and</span>
+        <span class="c1"># only when nothing more specific asked for a value: the `Default*` load</span>
+        <span class="c1"># strategies fall back to a single process, not to `np`. Callers keep the</span>
+        <span class="c1"># final say through an explicit argument, and a recipe can decouple</span>
+        <span class="c1"># loading from processing through `load_dataset_kwargs.num_proc`.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">executor_type</span> <span class="o">==</span> <span class="s2">"default"</span><span class="p">:</span>
+            <span class="n">load_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"num_proc"</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"np"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span>
+
         <span class="n">_datasets</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="c1"># load datasets with sample numbers</span>
         <span class="k">for</span> <span class="n">stra</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">sample_num</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">load_strategies</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_numbers</span><span class="p">):</span>
             <span class="c1"># load dataset with its load strategy</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="n">stra</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">stra</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="o">**</span><span class="n">load_kwargs</span><span class="p">)</span>
 
             <span class="c1"># do data validation</span>
             <span class="k">for</span> <span class="n">validator</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">validators</span><span class="p">:</span>

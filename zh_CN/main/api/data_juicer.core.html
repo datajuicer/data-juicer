@@ -572,7 +572,10 @@ dataset better.</p>
 <dt class="field-odd">参数<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dataset</strong> -- a Dataset object to be analyzed.</p></li>
-<li><p><strong>load_data_np</strong> -- number of workers when loading the dataset.</p></li>
+<li><p><strong>load_data_np</strong> -- deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
 <li><p><strong>skip_export</strong> -- whether export the results into disk</p></li>
 <li><p><strong>skip_return</strong> -- skip return for API called.</p></li>
 </ul>
@@ -778,6 +781,15 @@ dataset will not be copied in-memory unless explicitly enabled by setting
 <dt class="sig sig-object py" id="data_juicer.core.ExecutorBase.run">
 <span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_data_np</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_return</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/base.html#ExecutorBase.run"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.core.ExecutorBase.run" title="链接到此定义。">¶</a></dt>
 <dd><p>Abstract method for ExecutorBase.run</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>load_data_np</strong> -- deprecated; number of workers when loading the
+dataset. Still applied by the default executor and the Analyzer,
+which is where <cite>np</cite> and <cite>load_dataset_kwargs.num_proc</cite> replace it.
+The Ray executors have never applied it; their read parallelism
+comes from <cite>override_num_blocks</cite> and the cluster.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -819,7 +831,10 @@ ops in the config file in order and generate a processed dataset.</p>
 <dt class="field-odd">参数<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dataset</strong> -- a Dataset object to be executed.</p></li>
-<li><p><strong>load_data_np</strong> -- number of workers when loading the dataset.</p></li>
+<li><p><strong>load_data_np</strong> -- deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
 <li><p><strong>skip_export</strong> -- whether export the results into disk</p></li>
 <li><p><strong>skip_return</strong> -- skip return for API called.</p></li>
 </ul>
@@ -840,7 +855,10 @@ TODO add support other than LocalExecutor</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dataset_to_sample</strong> -- Dataset to sample from. If None, will use
 the formatter linked by the executor. Default is None.</p></li>
-<li><p><strong>load_data_np</strong> -- number of workers when loading the dataset.</p></li>
+<li><p><strong>load_data_np</strong> -- deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
 <li><p><strong>sample_ratio</strong> -- The ratio of the sample size to the original
 dataset size. Default is 1.0 (no sampling).</p></li>
 <li><p><strong>sample_algo</strong> -- Sampling algorithm to use. Options are &quot;uniform&quot;,

@@ -424,7 +424,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">PositiveInt</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_configs</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatasetBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DatasetBuilder</span><span class="p">,</span>
+    <span class="n">deprecated_load_data_np_kwargs</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.ray_exporter</span><span class="w"> </span><span class="kn">import</span> <span class="n">RayExporter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">NON_STATS_FILTERS</span><span class="p">,</span> <span class="n">TAGGING_OPS</span><span class="p">,</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">load_ops</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops.op_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">fuse_operators</span>
@@ -507,7 +510,9 @@
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Loading dataset via Ray..."</span><span class="p">)</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">()</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">deprecated_load_data_np_kwargs</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">executor_type</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Using existing dataset </span><span class="si">{</span><span class="n">dataset</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 

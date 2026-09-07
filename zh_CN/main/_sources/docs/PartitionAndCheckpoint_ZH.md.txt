@@ -22,7 +22,6 @@
 ├── checkpoints/                  # 检查点数据
 │   ├── partitioning_info.json    # 保存的行号边界和分区内容 hash
 │   └── checkpoint_op_*.parquet/  # 各操作、各分区的检查点
-├── partitions/                   # 输入分区
 ├── logs/                         # 人类可读日志
 └── metadata/                     # 作业元数据
 ```
@@ -81,6 +80,8 @@ checkpoint:
     - embedding_mapper
 ```
 
+`strategy` 只接受 `every_op`、`every_n_ops`、`manual` 和 `disabled`，其他取值（包括 `every_partition`）会在解析配置时被拒绝。`n_ops` 必须为正整数。
+
 启用检查点后，首次运行会保存
 `checkpoints/partitioning_info.json`。该文件为每个逻辑分区记录：
 
@@ -91,15 +92,11 @@ checkpoint:
 
 即使新进程中的 Ray 物理 block 布局发生变化，显式续跑也可以用这些信息重建首次运行的逻辑分区。完整分区 hash 对样本顺序敏感、不依赖 Ray batch 边界，并且会在复用任何 checkpoint 前完成校验。
 
-### 中间存储
+### 检查点与临时文件
 
-```yaml
-intermediate_storage:
-  format: "parquet"              # parquet, arrow, jsonl
-  compression: "snappy"          # snappy, gzip, none
-  preserve_intermediate_data: true
-  retention_policy: "keep_all"   # keep_all, keep_failed_only, cleanup_all
-```
+检查点由 `checkpoint.enabled`、`checkpoint.strategy`、`checkpoint.n_ops` 和 `checkpoint.op_names` 控制，保存为 Parquet，压缩使用底层写入器的默认设置。分区通过 Ray Dataset 拆分；检查点记录所选算子执行后的数据。
+
+执行器退出运行上下文时会尝试清理 `work_dir/.tmp/<Ray job id>`，正常完成和异常退出都会触发。检查点保存在单独的目录中，可用于续跑。
 
 ## 使用方法
 

@@ -423,7 +423,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">loguru</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">PositiveInt</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatasetBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DatasetBuilder</span><span class="p">,</span>
+    <span class="n">deprecated_load_data_np_kwargs</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecutorBase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.dag_execution_mixin</span><span class="w"> </span><span class="kn">import</span> <span class="n">DAGExecutionMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.event_logging_mixin</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventLoggingMixin</span>
@@ -573,7 +576,9 @@
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Running the dataset process pipeline</span>
 
-<span class="sd">        :param load_data_np: number of workers when loading the dataset.</span>
+<span class="sd">        :param load_data_np: deprecated, and never applied here: no Ray load</span>
+<span class="sd">            strategy reads `num_proc`. Use `override_num_blocks` to control</span>
+<span class="sd">            read parallelism.</span>
 <span class="sd">        :param skip_export: whether export the results into disk</span>
 <span class="sd">        :param skip_return: skip return for API called.</span>
 <span class="sd">        :return: processed dataset.</span>
@@ -589,13 +594,10 @@
         <span class="c1"># 'straddling object straddles two block boundaries' ArrowInvalid error.</span>
         <span class="c1">#</span>
 
-        <span class="n">read_opts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"read_options"</span><span class="p">)</span>
-        <span class="n">override_num_blocks</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"override_num_blocks"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
         <span class="c1"># 1. load data</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Loading dataset with Ray..."</span><span class="p">)</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetbuilder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
-            <span class="n">num_proc</span><span class="o">=</span><span class="n">load_data_np</span><span class="p">,</span> <span class="n">read_options</span><span class="o">=</span><span class="n">read_opts</span><span class="p">,</span> <span class="n">override_num_blocks</span><span class="o">=</span><span class="n">override_num_blocks</span>
+            <span class="o">**</span><span class="n">deprecated_load_data_np_kwargs</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetbuilder</span><span class="o">.</span><span class="n">executor_type</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">columns</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">()</span>
 

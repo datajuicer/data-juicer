@@ -433,6 +433,14 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
 <li><p>Timing information</p></li>
 </ul>
 </section>
+<section id="execution-plan-and-dag-monitoring">
+<h2>Execution Plan and DAG Monitoring<a class="headerlink" href="#execution-plan-and-dag-monitoring" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">use_dag</span></code> controls execution-plan generation and DAG monitoring, which produce the DAG structure the snapshot analyzer reads.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">use_dag</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">   </span><span class="c1"># null keeps the executor default</span>
+</pre></div>
+</div>
+<p>The default <code class="docutils literal notranslate"><span class="pre">null</span></code> preserves each executor’s behavior: enabled for <code class="docutils literal notranslate"><span class="pre">ray</span></code> and <code class="docutils literal notranslate"><span class="pre">ray_partitioned</span></code>, disabled for <code class="docutils literal notranslate"><span class="pre">default</span></code>. Set <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code> to override it.</p>
+</section>
 <section id="resource-aware-partitioning">
 <h2>Resource-Aware Partitioning<a class="headerlink" href="#resource-aware-partitioning" title="Link to this heading">¶</a></h2>
 <p>The system automatically optimizes partition sizes based on cluster resources and data characteristics.</p>
@@ -451,7 +459,7 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
 </section>
 <section id="logging">
 <h2>Logging<a class="headerlink" href="#logging" title="Link to this heading">¶</a></h2>
-<p>Logs are organized per job with rotation and retention:</p>
+<p>Logs are organized per job:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>{job_dir}/
 ├── events_{timestamp}.jsonl   # Machine-readable events
 ├── logs/
@@ -468,8 +476,8 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
 <span class="n">setup_logger</span><span class="p">(</span>
     <span class="n">save_dir</span><span class="o">=</span><span class="s2">"./outputs"</span><span class="p">,</span>
     <span class="n">filename</span><span class="o">=</span><span class="s2">"log.txt"</span><span class="p">,</span>
-    <span class="n">max_log_size_mb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">backup_count</span><span class="o">=</span><span class="mi">5</span>
+    <span class="n">level</span><span class="o">=</span><span class="s2">"INFO"</span><span class="p">,</span>
+    <span class="n">redirect</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -532,6 +540,7 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
             <ul>
 <li><a class="reference internal" href="#">Job Management</a><ul>
 <li><a class="reference internal" href="#processing-snapshot">Processing Snapshot</a></li>
+<li><a class="reference internal" href="#execution-plan-and-dag-monitoring">Execution Plan and DAG Monitoring</a></li>
 <li><a class="reference internal" href="#resource-aware-partitioning">Resource-Aware Partitioning</a></li>
 <li><a class="reference internal" href="#logging">Logging</a></li>
 <li><a class="reference internal" href="#api-reference">API Reference</a><ul>

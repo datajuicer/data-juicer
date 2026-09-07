@@ -858,13 +858,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">read_json</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
         <span class="c1"># Note: a temp solution for reading json stream</span>
         <span class="c1"># TODO: replace with ray.data.read_json_stream once it is available</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">js</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">js</span><span class="o">.</span><span class="n">open_json</span>
-            <span class="k">return</span> <span class="n">read_json_stream</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">read_json_stream</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="RayDataset.read_webdataset">
@@ -996,16 +990,52 @@
     <span class="n">override_num_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">arrow_json_args</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">js</span>
+
+    <span class="c1"># Normalize read_options before it reaches PyArrow or Ray's JSON datasource:</span>
+    <span class="c1">#   - YAML/CLI supply a dictionary, but PyArrow expects a ReadOptions object.</span>
+    <span class="c1">#   - An unconfigured option arrives as an empty dictionary or None. Ray's</span>
+    <span class="c1">#     datasource pops this key using ReadOptions(use_threads=False) as its</span>
+    <span class="c1">#     default, so passing either through would replace that default instead</span>
+    <span class="c1">#     of falling back to it. Drop the key so Ray's default applies.</span>
+    <span class="c1">#   - Keep use_threads disabled unless explicitly requested: each Ray read</span>
+    <span class="c1">#     task is already parallel, so threading inside one oversubscribes CPU.</span>
+    <span class="k">if</span> <span class="s2">"read_options"</span> <span class="ow">in</span> <span class="n">arrow_json_args</span><span class="p">:</span>
+        <span class="n">read_options</span> <span class="o">=</span> <span class="n">arrow_json_args</span><span class="p">[</span><span class="s2">"read_options"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">read_options</span><span class="p">:</span>
+                <span class="n">read_options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">read_options</span><span class="p">)</span>
+                <span class="n">read_options</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"use_threads"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">arrow_json_args</span><span class="p">[</span><span class="s2">"read_options"</span><span class="p">]</span> <span class="o">=</span> <span class="n">js</span><span class="o">.</span><span class="n">ReadOptions</span><span class="p">(</span><span class="o">**</span><span class="n">read_options</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">arrow_json_args</span><span class="p">[</span><span class="s2">"read_options"</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">read_options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">arrow_json_args</span><span class="p">[</span><span class="s2">"read_options"</span><span class="p">]</span>
+
     <span class="c1"># Check if open_json is available (PyArrow 20.0.0+)</span>
     <span class="c1"># If not, fall back to ray.data.read_json which works with older PyArrow</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">js</span>
-
-        <span class="n">js</span><span class="o">.</span><span class="n">open_json</span>  <span class="c1"># Check if attribute exists</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">ImportError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
-        <span class="c1"># Fall back to standard ray.data.read_json for older PyArrow versions</span>
-        <span class="c1"># This works with filesystem parameter for S3</span>
-        <span class="k">return</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">filesystem</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="s2">"open_json"</span><span class="p">):</span>
+        <span class="c1"># Fall back to standard ray.data.read_json for older PyArrow versions.</span>
+        <span class="c1"># This works with filesystem parameter for S3.</span>
+        <span class="c1"># meta_provider is intentionally not forwarded: ray.data.read_json has no</span>
+        <span class="c1"># such parameter, so it would be absorbed by **arrow_json_args, reach</span>
+        <span class="c1"># PyArrow, and fail once the blocks are materialized.</span>
+        <span class="k">return</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span>
+            <span class="n">paths</span><span class="p">,</span>
+            <span class="n">filesystem</span><span class="o">=</span><span class="n">filesystem</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">ray_remote_args</span><span class="o">=</span><span class="n">ray_remote_args</span><span class="p">,</span>
+            <span class="n">arrow_open_stream_args</span><span class="o">=</span><span class="n">arrow_open_stream_args</span><span class="p">,</span>
+            <span class="n">partition_filter</span><span class="o">=</span><span class="n">partition_filter</span><span class="p">,</span>
+            <span class="n">partitioning</span><span class="o">=</span><span class="n">partitioning</span><span class="p">,</span>
+            <span class="n">include_paths</span><span class="o">=</span><span class="n">include_paths</span><span class="p">,</span>
+            <span class="n">ignore_missing_paths</span><span class="o">=</span><span class="n">ignore_missing_paths</span><span class="p">,</span>
+            <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span>
+            <span class="n">file_extensions</span><span class="o">=</span><span class="n">file_extensions</span><span class="p">,</span>
+            <span class="n">concurrency</span><span class="o">=</span><span class="n">concurrency</span><span class="p">,</span>
+            <span class="n">override_num_blocks</span><span class="o">=</span><span class="n">override_num_blocks</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">arrow_json_args</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">meta_provider</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">meta_provider</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read_api</span><span class="o">.</span><span class="n">DefaultFileMetadataProvider</span><span class="p">()</span>

@@ -425,7 +425,10 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Adapter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedDataset</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatasetBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DatasetBuilder</span><span class="p">,</span>
+    <span class="n">deprecated_load_data_np_kwargs</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecutorBase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.dag_execution_mixin</span><span class="w"> </span><span class="kn">import</span> <span class="n">DAGExecutionMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.event_logging_mixin</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventLoggingMixin</span>
@@ -566,7 +569,10 @@
 <span class="sd">        Running the dataset process pipeline.</span>
 
 <span class="sd">        :param dataset: a Dataset object to be executed.</span>
-<span class="sd">        :param load_data_np: number of workers when loading the dataset.</span>
+<span class="sd">        :param load_data_np: deprecated; number of workers when loading the</span>
+<span class="sd">            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in</span>
+<span class="sd">            the configuration instead, or `np` to load with the same</span>
+<span class="sd">            parallelism as processing.</span>
 <span class="sd">        :param skip_export: whether export the results into disk</span>
 <span class="sd">        :param skip_return: skip return for API called.</span>
 <span class="sd">        :return: processed dataset.</span>
@@ -585,12 +591,9 @@
             <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ckpt_manager</span><span class="o">.</span><span class="n">load_ckpt</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Loading dataset from dataset builder..."</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">load_data_np</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">load_data_np</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">np</span>
-            <span class="n">load_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"num_proc"</span><span class="p">:</span> <span class="n">load_data_np</span><span class="p">}</span>
-            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"load_dataset_kwargs"</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
-                <span class="n">load_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">load_dataset_kwargs</span><span class="p">))</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="o">**</span><span class="n">load_kwargs</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">deprecated_load_data_np_kwargs</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">executor_type</span><span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="c1"># 2. extract processes and optimize their orders</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Preparing process operators..."</span><span class="p">)</span>
@@ -720,7 +723,10 @@
 
 <span class="sd">        :param dataset_to_sample: Dataset to sample from. If None, will use</span>
 <span class="sd">            the formatter linked by the executor. Default is None.</span>
-<span class="sd">        :param load_data_np: number of workers when loading the dataset.</span>
+<span class="sd">        :param load_data_np: deprecated; number of workers when loading the</span>
+<span class="sd">            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in</span>
+<span class="sd">            the configuration instead, or `np` to load with the same</span>
+<span class="sd">            parallelism as processing.</span>
 <span class="sd">        :param sample_ratio: The ratio of the sample size to the original</span>
 <span class="sd">            dataset size. Default is 1.0 (no sampling).</span>
 <span class="sd">        :param sample_algo: Sampling algorithm to use. Options are "uniform",</span>
@@ -737,12 +743,9 @@
             <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ckpt_manager</span><span class="o">.</span><span class="n">load_ckpt</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Loading dataset from dataset builder..."</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">load_data_np</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">load_data_np</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">np</span>
-            <span class="n">load_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"num_proc"</span><span class="p">:</span> <span class="n">load_data_np</span><span class="p">}</span>
-            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"load_dataset_kwargs"</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
-                <span class="n">load_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">load_dataset_kwargs</span><span class="p">))</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="o">**</span><span class="n">load_kwargs</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">deprecated_load_data_np_kwargs</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_builder</span><span class="o">.</span><span class="n">executor_type</span><span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="c1"># Perform sampling based on the specified algorithm</span>
         <span class="k">if</span> <span class="n">sample_algo</span> <span class="o">==</span> <span class="s2">"uniform"</span><span class="p">:</span>

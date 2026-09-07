@@ -455,7 +455,9 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>load_data_np</strong> – number of workers when loading the dataset.</p></li>
+<li><p><strong>load_data_np</strong> – deprecated, and never applied here: no Ray load
+strategy reads <cite>num_proc</cite>. Use <cite>override_num_blocks</cite> to control
+read parallelism.</p></li>
 <li><p><strong>skip_export</strong> – whether export the results into disk</p></li>
 <li><p><strong>skip_return</strong> – skip return for API called.</p></li>
 </ul>

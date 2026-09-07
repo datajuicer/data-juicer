@@ -607,7 +607,9 @@ on resume produces identical partitions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>load_data_np</strong> – Number of workers for loading dataset</p></li>
+<li><p><strong>load_data_np</strong> – deprecated, and never applied here: no Ray load
+strategy reads <cite>num_proc</cite>. Use <cite>override_num_blocks</cite> to
+control read parallelism.</p></li>
 <li><p><strong>skip_return</strong> – Whether to skip returning the dataset</p></li>
 <li><p><strong>job_id</strong> – Optional job ID to resume from checkpoints</p></li>
 </ul>

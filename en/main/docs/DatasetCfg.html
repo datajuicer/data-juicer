@@ -515,6 +515,34 @@ Refer to <a class="reference external" href="https://github.com/datajuicer/data-
 </pre></div>
 </div>
 </section>
+<section id="reader-options">
+<h3>Reader options<a class="headerlink" href="#reader-options" title="Link to this heading">¶</a></h3>
+<p>Global reader options are applied by <code class="docutils literal notranslate"><span class="pre">DatasetBuilder</span></code>, so processing, analysis and direct <code class="docutils literal notranslate"><span class="pre">DatasetBuilder</span></code> calls load data the same way. Explicit <code class="docutils literal notranslate"><span class="pre">DatasetBuilder.load_dataset(...)</span></code> keyword arguments override the corresponding global default.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># DefaultExecutor and Analyzer: HuggingFace reader defaults</span>
+<span class="nt">load_dataset_kwargs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">columns</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">'text'</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">'meta'</span><span class="p p-Indicator">]</span><span class="w">   </span><span class="c1"># Parquet</span>
+<span class="w">  </span><span class="nt">delimiter</span><span class="p">:</span><span class="w"> </span><span class="s">"\t"</span><span class="w">             </span><span class="c1"># CSV</span>
+
+<span class="c1"># ray, ray_partitioned and RayAnalyzer: PyArrow JSON reading</span>
+<span class="nt">read_options</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">block_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">268435456</span><span class="w">       </span><span class="c1"># 256MB; raise it for very large JSON records</span>
+<span class="nt">override_num_blocks</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span><span class="w">       </span><span class="c1"># requested Ray read block count; must be positive</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">read_options</span></code> accepts the fields of <code class="docutils literal notranslate"><span class="pre">pyarrow.json.ReadOptions</span></code>. Leave it empty to keep the reader’s own defaults, which disable PyArrow’s internal threading because each Ray read task is already parallel.</p>
+<section id="loader-parallelism">
+<h4>Loader parallelism<a class="headerlink" href="#loader-parallelism" title="Link to this heading">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">np</span></code> is the global default for the number of loader processes. Set <code class="docutils literal notranslate"><span class="pre">load_dataset_kwargs.num_proc</span></code> to decouple loading from processing parallelism:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">np</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span><span class="w">                        </span><span class="c1"># processing parallelism, and the loading default</span>
+<span class="nt">load_dataset_kwargs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">num_proc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">                 </span><span class="c1"># load with 4 processes instead of 16</span>
+</pre></div>
+</div>
+<p>Three layers apply, from weakest to strongest: <code class="docutils literal notranslate"><span class="pre">np</span></code>, then <code class="docutils literal notranslate"><span class="pre">load_dataset_kwargs.num_proc</span></code>, then an explicit <code class="docutils literal notranslate"><span class="pre">DatasetBuilder.load_dataset(num_proc=...)</span></code> argument. Only the default executor and the Analyzer read this value; the Ray executors derive their read parallelism from <code class="docutils literal notranslate"><span class="pre">override_num_blocks</span></code> and the cluster instead.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">load_data_np</span></code> argument of <code class="docutils literal notranslate"><span class="pre">run()</span></code> will be deprecated. It resolves to the same <code class="docutils literal notranslate"><span class="pre">num_proc</span></code>, but it is reachable only from Python. Passing it still applies the value on the default executor and the Analyzer, and logs a warning naming the parallelism used; on the Ray executors it has never had any effect, and the warning says so instead.</p>
+<p><code class="docutils literal notranslate"><span class="pre">generated_dataset_config</span></code> is unaffected: it continues to use its own formatter constructor arguments.</p>
+</section>
+</section>
 <section id="jsonl-per-line-fault-tolerance-skip-bad-lines">
 <h3>JSONL per-line fault tolerance (skip bad lines)<a class="headerlink" href="#jsonl-per-line-fault-tolerance-skip-bad-lines" title="Link to this heading">¶</a></h3>
 <p>For a few corrupted lines or parser failures in the HuggingFace JSON/ujson path, enable <strong>lenient JSONL loading</strong>: read with stdlib :func:<code class="docutils literal notranslate"><span class="pre">json.loads</span></code> <strong>line by line</strong>, <strong>skip</strong> lines that fail parsing (with warnings), and keep the rest. The result is still a HuggingFace <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>, so downstream ops behave like normal JSONL.</p>
@@ -582,6 +610,10 @@ dj-process<span class="w"> </span>--dataset_path<span class="w"> </span><span cl
 <li><a class="reference internal" href="#other-features">Other features</a><ul>
 <li><a class="reference internal" href="#data-mixture">Data Mixture</a></li>
 <li><a class="reference internal" href="#data-validation">Data Validation</a></li>
+<li><a class="reference internal" href="#reader-options">Reader options</a><ul>
+<li><a class="reference internal" href="#loader-parallelism">Loader parallelism</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#jsonl-per-line-fault-tolerance-skip-bad-lines">JSONL per-line fault tolerance (skip bad lines)</a></li>
 <li><a class="reference internal" href="#json-jsonl-load-error-value-is-too-big">JSON / JSONL load error: <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">is</span> <span class="pre">too</span> <span class="pre">big!</span></code></a></li>
 <li><a class="reference internal" href="#legacy-dataset-path-configuration">Legacy dataset_path Configuration</a></li>

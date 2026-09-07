@@ -435,6 +435,14 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
 <li><p>时间信息</p></li>
 </ul>
 </section>
+<section id="dag">
+<h2>执行计划与 DAG 监控<a class="headerlink" href="#dag" title="链接到此标题。">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">use_dag</span></code> 控制执行计划生成和 DAG 监控，处理快照分析器读取的 DAG 结构正是由它产出。</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">use_dag</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">   </span><span class="c1"># null 表示沿用执行器默认值</span>
+</pre></div>
+</div>
+<p>默认 <code class="docutils literal notranslate"><span class="pre">null</span></code> 保持各执行器原有行为：<code class="docutils literal notranslate"><span class="pre">ray</span></code> 和 <code class="docutils literal notranslate"><span class="pre">ray_partitioned</span></code> 开启，<code class="docutils literal notranslate"><span class="pre">default</span></code> 关闭。可设为 <code class="docutils literal notranslate"><span class="pre">true</span></code> 或 <code class="docutils literal notranslate"><span class="pre">false</span></code> 覆盖。</p>
+</section>
 <section id="id3">
 <h2>资源感知分区<a class="headerlink" href="#id3" title="链接到此标题。">¶</a></h2>
 <p>系统根据集群资源和数据特征自动优化分区大小。</p>
@@ -453,7 +461,7 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
 </section>
 <section id="id4">
 <h2>日志<a class="headerlink" href="#id4" title="链接到此标题。">¶</a></h2>
-<p>日志按作业组织，支持轮转和保留：</p>
+<p>日志按作业组织：</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>{job_dir}/
 ├── events_{timestamp}.jsonl   # 机器可读事件
 ├── logs/
@@ -470,8 +478,8 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
 <span class="n">setup_logger</span><span class="p">(</span>
     <span class="n">save_dir</span><span class="o">=</span><span class="s2">"./outputs"</span><span class="p">,</span>
     <span class="n">filename</span><span class="o">=</span><span class="s2">"log.txt"</span><span class="p">,</span>
-    <span class="n">max_log_size_mb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">backup_count</span><span class="o">=</span><span class="mi">5</span>
+    <span class="n">level</span><span class="o">=</span><span class="s2">"INFO"</span><span class="p">,</span>
+    <span class="n">redirect</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -534,6 +542,7 @@ python<span class="w"> </span>-m<span class="w"> </span>data_juicer.utils.job.sn
             <ul>
 <li><a class="reference internal" href="#">作业管理</a><ul>
 <li><a class="reference internal" href="#id2">处理快照</a></li>
+<li><a class="reference internal" href="#dag">执行计划与 DAG 监控</a></li>
 <li><a class="reference internal" href="#id3">资源感知分区</a></li>
 <li><a class="reference internal" href="#id4">日志</a></li>
 <li><a class="reference internal" href="#api">API 参考</a><ul>

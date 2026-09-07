@@ -415,6 +415,29 @@
         <article class="article" role="main">
   <section id="module-data_juicer.core.data.dataset_builder">
 <span id="data-juicer-core-data-dataset-builder-module"></span><h1>data_juicer.core.data.dataset_builder module<a class="headerlink" href="#module-data_juicer.core.data.dataset_builder" title="链接到此标题。">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.core.data.dataset_builder.deprecated_load_data_np_kwargs">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.core.data.dataset_builder.</span></span><span class="sig-name descname"><span class="pre">deprecated_load_data_np_kwargs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_data_np</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">executor_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dataset_builder.html#deprecated_load_data_np_kwargs"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.core.data.dataset_builder.deprecated_load_data_np_kwargs" title="链接到此定义。">¶</a></dt>
+<dd><p>Translate the deprecated <code class="docutils literal notranslate"><span class="pre">load_data_np</span></code> run argument into loader kwargs.</p>
+<p><code class="docutils literal notranslate"><span class="pre">load_data_np</span></code> predates the global configuration for loader parallelism and
+is declared on every <code class="docutils literal notranslate"><span class="pre">run()</span></code> signature, but only the default executor and
+the Analyzer ever acted on it: <code class="docutils literal notranslate"><span class="pre">num_proc</span></code> is read by the <code class="docutils literal notranslate"><span class="pre">Default*</span></code> load
+strategies alone, so the Ray executors silently dropped it. The warning says
+which of the two happened, since a caller cannot tell from the argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>load_data_np</strong> -- the value received by <code class="docutils literal notranslate"><span class="pre">run()</span></code>, or None when unset.</p></li>
+<li><p><strong>executor_type</strong> -- the type the <code class="docutils literal notranslate"><span class="pre">DatasetBuilder</span></code> was created with, which
+is what decides whether <code class="docutils literal notranslate"><span class="pre">num_proc</span></code> reaches a load strategy that reads it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p>keyword arguments to forward to <code class="docutils literal notranslate"><span class="pre">DatasetBuilder.load_dataset()</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="data_juicer.core.data.dataset_builder.DatasetBuilder">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.data.dataset_builder.</span></span><span class="sig-name descname"><span class="pre">DatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">executor_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'default'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dataset_builder.html#DatasetBuilder"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.core.data.dataset_builder.DatasetBuilder" title="链接到此定义。">¶</a></dt>
@@ -487,6 +510,7 @@ them, e.g. <cite>&lt;w1&gt; ds1.jsonl &lt;w2&gt; ds2_dir &lt;w3&gt; ds3_file.jso
             <p class="toc-title">On this page</p>
             <ul>
 <li><a class="reference internal" href="#">data_juicer.core.data.dataset_builder module</a><ul>
+<li><a class="reference internal" href="#data_juicer.core.data.dataset_builder.deprecated_load_data_np_kwargs"><code class="docutils literal notranslate"><span class="pre">deprecated_load_data_np_kwargs()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.dataset_builder.DatasetBuilder"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder</span></code></a><ul>
 <li><a class="reference internal" href="#data_juicer.core.data.dataset_builder.DatasetBuilder.__init__"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.__init__()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.core.data.dataset_builder.DatasetBuilder.load_dataset"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.load_dataset()</span></code></a></li>

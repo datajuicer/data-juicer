@@ -436,7 +436,6 @@
 ├── checkpoints/                  # 检查点数据
 │   ├── partitioning_info.json    # 保存的行号边界和分区内容 hash
 │   └── checkpoint_op_*.parquet/  # 各操作、各分区的检查点
-├── partitions/                   # 输入分区
 ├── logs/                         # 人类可读日志
 └── metadata/                     # 作业元数据
 </pre></div>
@@ -488,6 +487,7 @@
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">embedding_mapper</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">strategy</span></code> 只接受 <code class="docutils literal notranslate"><span class="pre">every_op</span></code>、<code class="docutils literal notranslate"><span class="pre">every_n_ops</span></code>、<code class="docutils literal notranslate"><span class="pre">manual</span></code> 和 <code class="docutils literal notranslate"><span class="pre">disabled</span></code>，其他取值（包括 <code class="docutils literal notranslate"><span class="pre">every_partition</span></code>）会在解析配置时被拒绝。<code class="docutils literal notranslate"><span class="pre">n_ops</span></code> 必须为正整数。</p>
 <p>启用检查点后，首次运行会保存
 <code class="docutils literal notranslate"><span class="pre">checkpoints/partitioning_info.json</span></code>。该文件为每个逻辑分区记录：</p>
 <ul class="simple">
@@ -499,14 +499,9 @@
 <p>即使新进程中的 Ray 物理 block 布局发生变化，显式续跑也可以用这些信息重建首次运行的逻辑分区。完整分区 hash 对样本顺序敏感、不依赖 Ray batch 边界，并且会在复用任何 checkpoint 前完成校验。</p>
 </section>
 <section id="id7">
-<h3>中间存储<a class="headerlink" href="#id7" title="链接到此标题。">¶</a></h3>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">intermediate_storage</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="s">"parquet"</span><span class="w">              </span><span class="c1"># parquet, arrow, jsonl</span>
-<span class="w">  </span><span class="nt">compression</span><span class="p">:</span><span class="w"> </span><span class="s">"snappy"</span><span class="w">          </span><span class="c1"># snappy, gzip, none</span>
-<span class="w">  </span><span class="nt">preserve_intermediate_data</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">retention_policy</span><span class="p">:</span><span class="w"> </span><span class="s">"keep_all"</span><span class="w">   </span><span class="c1"># keep_all, keep_failed_only, cleanup_all</span>
-</pre></div>
-</div>
+<h3>检查点与临时文件<a class="headerlink" href="#id7" title="链接到此标题。">¶</a></h3>
+<p>检查点由 <code class="docutils literal notranslate"><span class="pre">checkpoint.enabled</span></code>、<code class="docutils literal notranslate"><span class="pre">checkpoint.strategy</span></code>、<code class="docutils literal notranslate"><span class="pre">checkpoint.n_ops</span></code> 和 <code class="docutils literal notranslate"><span class="pre">checkpoint.op_names</span></code> 控制，保存为 Parquet，压缩使用底层写入器的默认设置。分区通过 Ray Dataset 拆分；检查点记录所选算子执行后的数据。</p>
+<p>执行器退出运行上下文时会尝试清理 <code class="docutils literal notranslate"><span class="pre">work_dir/.tmp/&lt;Ray</span> <span class="pre">job</span> <span class="pre">id&gt;</span></code>，正常完成和异常退出都会触发。检查点保存在单独的目录中，可用于续跑。</p>
 </section>
 </section>
 <section id="id8">
@@ -823,7 +818,7 @@ tail<span class="w"> </span>-f<span class="w"> </span>./outputs/<span class="o">
 <li><a class="reference internal" href="#id4">配置</a><ul>
 <li><a class="reference internal" href="#id5">分区模式</a></li>
 <li><a class="reference internal" href="#id6">检查点</a></li>
-<li><a class="reference internal" href="#id7">中间存储</a></li>
+<li><a class="reference internal" href="#id7">检查点与临时文件</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#id8">使用方法</a><ul>

@@ -743,7 +743,14 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Loading </span><span class="si">{</span><span class="n">data_format</span><span class="si">}</span><span class="s2"> data."</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="n">RayDataset</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">data_format</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">override_num_blocks</span><span class="o">=</span><span class="n">override_num_blocks</span><span class="p">)</span>
+            <span class="n">read_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"override_num_blocks"</span><span class="p">:</span> <span class="n">override_num_blocks</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">data_format</span> <span class="o">==</span> <span class="s2">"json"</span><span class="p">:</span>
+                <span class="c1"># Only forward a configured value: an unset option must leave</span>
+                <span class="c1"># the reader's own default in place.</span>
+                <span class="n">read_options</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"read_options"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">read_options</span><span class="p">:</span>
+                    <span class="n">read_kwargs</span><span class="p">[</span><span class="s2">"read_options"</span><span class="p">]</span> <span class="o">=</span> <span class="n">read_options</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">RayDataset</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">data_format</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">read_kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">RayDataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">dataset_path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">cfg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">auto_detect</span><span class="p">:</span>
@@ -1405,14 +1412,8 @@
             <span class="k">if</span> <span class="n">data_format</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"json"</span><span class="p">,</span> <span class="s2">"jsonl"</span><span class="p">,</span> <span class="s2">"json.gz"</span><span class="p">,</span> <span class="s2">"jsonl.gz"</span><span class="p">,</span> <span class="s2">"json.zst"</span><span class="p">,</span> <span class="s2">"jsonl.zst"</span><span class="p">}:</span>
                 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.ray_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_json_stream</span>
 
+                <span class="c1"># read_json_stream normalizes dict/None read_options itself.</span>
                 <span class="n">read_options</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"read_options"</span><span class="p">)</span>
-                <span class="c1"># PyArrow's open_json/read_json require a pyarrow.json.ReadOptions</span>
-                <span class="c1"># object, but read_options is passed in as a dict (its default value</span>
-                <span class="c1"># is an empty dict {}). Convert it here so HDFS JSON reading works.</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.json</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">paj</span>
-
-                    <span class="n">read_options</span> <span class="o">=</span> <span class="n">paj</span><span class="o">.</span><span class="n">ReadOptions</span><span class="p">(</span><span class="o">**</span><span class="n">read_options</span><span class="p">)</span>
                 <span class="n">dataset</span> <span class="o">=</span> <span class="n">read_json_stream</span><span class="p">(</span>
                     <span class="n">fs_path</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">hdfs_fs</span><span class="p">,</span> <span class="n">read_options</span><span class="o">=</span><span class="n">read_options</span><span class="p">,</span> <span class="n">override_num_blocks</span><span class="o">=</span><span class="n">override_num_blocks</span>
                 <span class="p">)</span>

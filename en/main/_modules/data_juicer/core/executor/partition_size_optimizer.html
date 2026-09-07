@@ -430,6 +430,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">ray</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">loguru</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dj_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">nested_query</span>
+
 
 <div class="viewcode-block" id="ModalityType">
 <a class="viewcode-back" href="../../../../api/data_juicer.core.executor.partition_size_optimizer.html#data_juicer.core.executor.partition_size_optimizer.ModalityType">[docs]</a>
@@ -712,7 +714,15 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize the optimizer with configuration."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">cfg</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"text_key"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">)</span>
+        <span class="n">text_keys</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"text_keys"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">text_keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Preserve the legacy programmatic interface when no global keys</span>
+            <span class="c1"># are provided. YAML/CLI use text_keys, as do the operators.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"text_key"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text_keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="o">=</span> <span class="n">text_keys</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="o">=</span> <span class="n">text_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">text_keys</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">image_key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"image_key"</span><span class="p">,</span> <span class="s2">"images"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">audio_key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"audio_key"</span><span class="p">,</span> <span class="s2">"audios"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">video_key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"video_key"</span><span class="p">,</span> <span class="s2">"videos"</span><span class="p">)</span>
@@ -726,7 +736,7 @@
         <span class="n">modalities</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="c1"># Check for text</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="ow">and</span> <span class="n">nested_query</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">):</span>
             <span class="n">modalities</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ModalityType</span><span class="o">.</span><span class="n">TEXT</span><span class="p">)</span>
 
         <span class="c1"># Check for images</span>
@@ -834,11 +844,11 @@
 
             <span class="c1"># Analyze text</span>
             <span class="n">text_length</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">text_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">])</span>
-                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
-                    <span class="n">text_length</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">])</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">nested_query</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">text_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">text_length</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">text</span><span class="p">)</span>
             <span class="n">text_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text_length</span><span class="p">)</span>
 
             <span class="c1"># Count media files</span>

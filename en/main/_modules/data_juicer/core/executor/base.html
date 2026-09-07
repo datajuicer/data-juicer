@@ -435,7 +435,14 @@
 <a class="viewcode-back" href="../../../../api/data_juicer.core.executor.base.html#data_juicer.core.ExecutorBase.run">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_data_np</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">skip_return</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Abstract method for ExecutorBase.run"""</span></div>
+<span class="w">        </span><span class="sd">"""Abstract method for ExecutorBase.run</span>
+
+<span class="sd">        :param load_data_np: deprecated; number of workers when loading the</span>
+<span class="sd">            dataset. Still applied by the default executor and the Analyzer,</span>
+<span class="sd">            which is where `np` and `load_dataset_kwargs.num_proc` replace it.</span>
+<span class="sd">            The Ray executors have never applied it; their read parallelism</span>
+<span class="sd">            comes from `override_num_blocks` and the cluster.</span>
+<span class="sd">        """</span></div>
 </div>
 
 </pre></div>

@@ -22,7 +22,6 @@ The `ray_partitioned` executor splits datasets into partitions and processes the
 ├── checkpoints/                  # Checkpoint data
 │   ├── partitioning_info.json    # Saved row boundaries and partition hashes
 │   └── checkpoint_op_*.parquet/  # Per-operation partition checkpoints
-├── partitions/                   # Input partitions
 ├── logs/                         # Human-readable logs
 └── metadata/                     # Job metadata
 ```
@@ -89,6 +88,10 @@ checkpoint:
     - embedding_mapper
 ```
 
+`strategy` accepts only `every_op`, `every_n_ops`, `manual`, and `disabled`;
+any other value, including `every_partition`, is rejected while the
+configuration is parsed. `n_ops` must be a positive integer.
+
 When checkpointing is enabled, the initial run saves
 `checkpoints/partitioning_info.json`. For every logical partition, this file
 records:
@@ -103,15 +106,11 @@ partitions even when Ray produces a different physical block layout in the new
 process. Complete partition hashes are sensitive to row order, independent of
 Ray batch boundaries, and validated before any checkpoint is reused.
 
-### Intermediate Storage
+### Checkpoints and Temporary Files
 
-```yaml
-intermediate_storage:
-  format: "parquet"              # parquet, arrow, jsonl
-  compression: "snappy"          # snappy, gzip, none
-  preserve_intermediate_data: true
-  retention_policy: "keep_all"   # keep_all, keep_failed_only, cleanup_all
-```
+`checkpoint.enabled`, `checkpoint.strategy`, `checkpoint.n_ops`, and `checkpoint.op_names` control checkpoint creation. Checkpoints use Parquet with the underlying writer's default compression. Ray Dataset splitting creates the partitions; checkpoints capture data after the selected operations.
+
+On normal or exceptional exit from its run context, the executor attempts to remove `work_dir/.tmp/<Ray job id>`. Checkpoints live in a separate directory for resumption.
 
 ## Usage
 

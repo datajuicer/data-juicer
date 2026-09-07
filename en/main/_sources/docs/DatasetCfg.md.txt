@@ -109,6 +109,40 @@ validators:
 ```
 
 
+### Reader options
+
+Global reader options are applied by `DatasetBuilder`, so processing, analysis and direct `DatasetBuilder` calls load data the same way. Explicit `DatasetBuilder.load_dataset(...)` keyword arguments override the corresponding global default.
+
+```yaml
+# DefaultExecutor and Analyzer: HuggingFace reader defaults
+load_dataset_kwargs:
+  columns: ['text', 'meta']   # Parquet
+  delimiter: "\t"             # CSV
+
+# ray, ray_partitioned and RayAnalyzer: PyArrow JSON reading
+read_options:
+  block_size: 268435456       # 256MB; raise it for very large JSON records
+override_num_blocks: 64       # requested Ray read block count; must be positive
+```
+
+`read_options` accepts the fields of `pyarrow.json.ReadOptions`. Leave it empty to keep the reader's own defaults, which disable PyArrow's internal threading because each Ray read task is already parallel.
+
+#### Loader parallelism
+
+`np` is the global default for the number of loader processes. Set `load_dataset_kwargs.num_proc` to decouple loading from processing parallelism:
+
+```yaml
+np: 16                        # processing parallelism, and the loading default
+load_dataset_kwargs:
+  num_proc: 4                 # load with 4 processes instead of 16
+```
+
+Three layers apply, from weakest to strongest: `np`, then `load_dataset_kwargs.num_proc`, then an explicit `DatasetBuilder.load_dataset(num_proc=...)` argument. Only the default executor and the Analyzer read this value; the Ray executors derive their read parallelism from `override_num_blocks` and the cluster instead.
+
+The `load_data_np` argument of `run()` will be deprecated. It resolves to the same `num_proc`, but it is reachable only from Python. Passing it still applies the value on the default executor and the Analyzer, and logs a warning naming the parallelism used; on the Ray executors it has never had any effect, and the warning says so instead.
+
+`generated_dataset_config` is unaffected: it continues to use its own formatter constructor arguments.
+
 ### JSONL per-line fault tolerance (skip bad lines)
 
 For a few corrupted lines or parser failures in the HuggingFace JSON/ujson path, enable **lenient JSONL loading**: read with stdlib :func:`json.loads` **line by line**, **skip** lines that fail parsing (with warnings), and keep the rest. The result is still a HuggingFace ``Dataset``, so downstream ops behave like normal JSONL.

@@ -106,6 +106,40 @@ validators:
       language: "str"
 ```
 
+### 读取选项
+
+全局读取选项由 `DatasetBuilder` 统一应用，因此数据处理、分析和直接调用 `DatasetBuilder` 的加载行为一致。显式传给 `DatasetBuilder.load_dataset(...)` 的同名参数优先于对应的全局默认值。
+
+```yaml
+# DefaultExecutor 和 Analyzer：HuggingFace 读取默认参数
+load_dataset_kwargs:
+  columns: ['text', 'meta']   # Parquet
+  delimiter: "\t"             # CSV
+
+# ray、ray_partitioned 和 RayAnalyzer：PyArrow JSON 读取
+read_options:
+  block_size: 268435456       # 256MB；JSON 单条记录很大时可调高
+override_num_blocks: 64       # Ray 读取请求的 block 数，必须为正整数
+```
+
+`read_options` 接受 `pyarrow.json.ReadOptions` 的字段。留空则保持读取器自身的默认值——其中 PyArrow 内部多线程是关闭的，因为每个 Ray 读取任务本身已经是并行的。
+
+#### 加载并行度
+
+`np` 是加载进程数的全局默认值。若需要让加载并行度与处理并行度解耦，设置 `load_dataset_kwargs.num_proc`：
+
+```yaml
+np: 16                        # 处理并行度，同时作为加载的默认值
+load_dataset_kwargs:
+  num_proc: 4                 # 用 4 个进程加载，而非 16
+```
+
+优先级由低到高共三层：`np`、`load_dataset_kwargs.num_proc`、显式传入的 `DatasetBuilder.load_dataset(num_proc=...)`。该值仅对 default 执行器和 Analyzer 生效；Ray 执行器的读取并行度由 `override_num_blocks` 和集群资源决定。
+
+`run()` 的 `load_data_np` 参数将被废弃。它解析到的是同一个 `num_proc`，但只能从 Python 传入。在默认执行器和 Analyzer 上传入该参数仍然生效，并会输出一条警告说明实际采用的并行度；在 Ray 执行器上它从来没有生效过，警告会改为说明这一点。
+
+`generated_dataset_config` 不受影响，它继续使用自己的 formatter 构造参数。
+
 ### JSONL 样本级容错（跳过坏行）
 
 若少数行损坏、或整行无法被 HF/ujson 解析，可使用 **宽松 JSONL 加载**：用标准库逐行 ``json.loads``，解析失败 **仅跳过该行** 并打日志，其余样本照常进入流水线（下游算子仍面对与普通 JSONL 一致的 ``datasets.Dataset``）。

@@ -540,7 +540,7 @@
         <span class="s2">"--auto_num"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">PositiveInt</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"The number of samples to be analyzed "</span> <span class="s2">"automatically. It's 1000 in default."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Maximum number of input samples analyzed in Analyzer auto mode (--auto)."</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -550,28 +550,34 @@
         <span class="s2">"--data_probe_algo"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">"uniform"</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s1">'Sampling algorithm to use. Options are "uniform", '</span>
-        <span class="s1">'"frequency_specified_field_selector", or '</span>
-        <span class="s1">'"topk_specified_field_selector". Default is "uniform". Only '</span>
-        <span class="s2">"used for dataset sampling"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Sampling algorithm consumed by the external Data-Juicer Sandbox model probe. Options: uniform, "</span>
+        <span class="s2">"frequency_specified_field_selector, topk_specified_field_selector."</span><span class="p">,</span>
         <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--data_probe_ratio"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">ClosedUnitInterval</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"The ratio of the sample size to the original dataset size. "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"Default is 1.0 (no sampling). Only used for dataset sampling"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Sampling ratio consumed by the external Data-Juicer Sandbox model probe. Default 1.0 uses the "</span>
+        <span class="s2">"full input for that probe."</span><span class="p">,</span>
         <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c1"># basic global paras with extended type hints</span>
-    <span class="c1"># e.g., files can be mode include flags</span>
-    <span class="c1"># "fr": "path to a file that exists and is readable")</span>
-    <span class="c1"># "fc": "path to a file that can be created if it does not exist")</span>
-    <span class="c1"># "dw": "path to a directory that exists and is writeable")</span>
-    <span class="c1"># "dc": "path to a directory that can be created if it does not exist")</span>
-    <span class="c1"># "drw": "path to a directory that exists and is readable and writeable")</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--load_jsonl_lenient"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Use the default executor/Analyzer's lenient JSONL loader to skip malformed lines. "</span>
+        <span class="s2">"Supports .jsonl, .jsonl.gz and .jsonl.zst; when these are present, other JSON files are skipped. "</span>
+        <span class="s2">"DATA_JUICER_JSONL_LENIENT=1 also enables this loader."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--use_dag"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Enable execution-plan generation and DAG monitoring. None uses the executor default: "</span>
+        <span class="s2">"enabled for ray and ray_partitioned, disabled for default."</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--project_name"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"hello_world"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Name of your data process project."</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--executor_type"</span><span class="p">,</span>
@@ -591,26 +597,23 @@
         <span class="s2">"--dataset_path"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Path to datasets with optional weights(0.0-1.0), 1.0 as "</span>
-        <span class="s2">"default. Accepted format:&lt;w1&gt; dataset1-path &lt;w2&gt; dataset2-path "</span>
-        <span class="s2">"&lt;w3&gt; dataset3-path ..."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Local file/directory or HuggingFace dataset path. Legacy syntax accepts optional nonnegative "</span>
+        <span class="s2">"relative weights: &lt;w1&gt; &lt;path1&gt; &lt;w2&gt; &lt;path2&gt;. Use dataset.configs with dataset.max_sample_num "</span>
+        <span class="s2">"to configure weighted sampling."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--dataset"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">Dict</span><span class="p">],</span>
         <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Dataset setting to define local/remote datasets; could be a "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"dict or a list of dicts; refer to "</span>
-        <span class="s2">"https://datajuicer.github.io/data-juicer/en/main/docs/DatasetCfg.html for more "</span>
-        <span class="s2">"detailed examples"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Dataset configuration mapping with a configs list and optional max_sample_num sampling budget. "</span>
+        <span class="s2">"See the DatasetCfg documentation for local and remote source fields."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--generated_dataset_config"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">Dict</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Configuration used to create a dataset. "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"The dataset will be created from this configuration if provided. "</span>
-        <span class="s2">"It must contain the `--type` field to specify the dataset name."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Configuration for generating a dataset. The type field selects a registered formatter; other "</span>
+        <span class="s2">"fields are passed to its constructor."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--validators"</span><span class="p">,</span>
@@ -623,23 +626,20 @@
         <span class="s2">"--load_dataset_kwargs"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">Dict</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="p">{},</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Extra keyword arguments passed through to the underlying "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"datasets.load_dataset() call. Useful for format-specific "</span>
-        <span class="s2">"options such as chunksize (JSON), columns (Parquet), or "</span>
-        <span class="s2">"delimiter (CSV). See the HuggingFace Datasets docs for "</span>
-        <span class="s2">"available options."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Extra keyword arguments for HuggingFace dataset loading in the default executor and Analyzer, "</span>
+        <span class="s2">"such as columns (Parquet) or delimiter (CSV), or num_proc to load with a parallelism other than "</span>
+        <span class="s2">"np. Explicit DatasetBuilder.load_dataset() arguments override these defaults."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--read_options"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">Dict</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="p">{},</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Read options passed through to PyArrow reading functions "</span>
-        <span class="s2">"(e.g., block_size for JSON reading). This configuration is "</span>
-        <span class="s2">"especially useful when reading large JSON files."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"PyArrow JSON ReadOptions for Ray JSON input, including block_size. Used by ray, ray_partitioned "</span>
+        <span class="s2">"and RayAnalyzer."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--override_num_blocks"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">],</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">"Override the number of output blocks for Ray Data read "</span>
         <span class="s2">"operations. Useful for controlling parallelism when reading "</span>
@@ -649,16 +649,15 @@
         <span class="s2">"--work_dir"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Path to a work directory to store outputs during Data-Juicer "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"running. It's the directory where export_path is at in default."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Base directory for job artifacts. A job_id suffix is appended unless already present. Defaults "</span>
+        <span class="s2">"to the local export directory, or ./outputs for S3/HDFS exports."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--export_path"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">"./outputs/hello_world/hello_world.jsonl"</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Path to export and save the output processed dataset. The "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"directory to store the processed dataset will be the work "</span>
-        <span class="s2">"directory of this process."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Output dataset path. When work_dir is omitted, its local parent directory is used as the base "</span>
+        <span class="s2">"work directory."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--export_type"</span><span class="p">,</span>
@@ -672,24 +671,16 @@
         <span class="s2">"--export_shard_size"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">NonNegativeInt</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Shard size of exported dataset in Byte. In default, it's 0, "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"which means export the whole dataset into only one file. If "</span>
-        <span class="s2">"it's set a positive number, the exported dataset will be split "</span>
-        <span class="s2">"into several sub-dataset shards, and the max size of each shard "</span>
-        <span class="s2">"won't larger than the export_shard_size"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Target output shard size in bytes. The default 0 exports one file in standalone mode; Ray uses "</span>
+        <span class="s2">"its dataset block layout. Positive values guide shard sizing; encoded file sizes can differ from "</span>
+        <span class="s2">"estimates."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--export_in_parallel"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Whether to export the result dataset in parallel to a single "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"file, which usually takes less time. It only works when "</span>
-        <span class="s2">"export_shard_size is 0, and its default number of processes is "</span>
-        <span class="s2">"the same as the argument np. **Notice**: If it's True, "</span>
-        <span class="s2">"sometimes exporting in parallel might require much more time "</span>
-        <span class="s2">"due to the IO blocking, especially for very large datasets. "</span>
-        <span class="s2">"When this happens, False is a better choice, although it takes "</span>
-        <span class="s2">"more time."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Export a standalone dataset to a single file using parallel workers. Used by the default "</span>
+        <span class="s2">"executor and Analyzer when export_shard_size is 0; worker count follows np."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--export_extra_args"</span><span class="p">,</span>
@@ -702,9 +693,9 @@
         <span class="s2">"--export_aws_credentials"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">Dict</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Export-specific AWS credentials for S3 export. If export_path is S3 and this is not provided, "</span>
-        <span class="s2">"an error will be raised. Should contain aws_access_key_id, aws_secret_access_key, aws_region, "</span>
-        <span class="s2">"and optionally aws_session_token and endpoint_url."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Optional AWS credentials for S3 export: aws_access_key_id, aws_secret_access_key, aws_region, "</span>
+        <span class="s2">"and optionally aws_session_token and endpoint_url. Exporters can also use dataset credentials or "</span>
+        <span class="s2">"the AWS default credential chain."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--decrypt_after_reading"</span><span class="p">,</span>
@@ -875,12 +866,9 @@
         <span class="s2">"--use_checkpoint"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Whether to use the checkpoint management to save the latest "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"version of dataset to work dir when processing. Rerun the same "</span>
-        <span class="s2">"config will reload the checkpoint and skip ops before it. Cache "</span>
-        <span class="s2">"will be disabled when it is true . If args of ops before the "</span>
-        <span class="s2">"checkpoint are changed, all ops will be rerun from the "</span>
-        <span class="s2">"beginning."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Enable checkpointing in the default executor. Saves the latest dataset under work_dir/ckpt and "</span>
+        <span class="s2">"disables the HuggingFace cache. Reusing the same job directory reloads the checkpoint and skips "</span>
+        <span class="s2">"unchanged completed operators."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="c1"># Enhanced checkpoint configuration for PartitionedRayExecutor</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -893,13 +881,13 @@
         <span class="s2">"--checkpoint.strategy"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">"every_n_ops"</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"every_op"</span><span class="p">,</span> <span class="s2">"every_partition"</span><span class="p">,</span> <span class="s2">"every_n_ops"</span><span class="p">,</span> <span class="s2">"manual"</span><span class="p">,</span> <span class="s2">"disabled"</span><span class="p">],</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"every_op"</span><span class="p">,</span> <span class="s2">"every_n_ops"</span><span class="p">,</span> <span class="s2">"manual"</span><span class="p">,</span> <span class="s2">"disabled"</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">"Checkpoint strategy: every_n_ops (default, balanced), every_op (max protection), "</span>
         <span class="s2">"manual (after specific ops), disabled (best performance)"</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--checkpoint.n_ops"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">PositiveInt</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">"Number of operations between checkpoints for every_n_ops strategy. "</span>
         <span class="s2">"Default 5 balances fault tolerance with Ray optimization."</span><span class="p">,</span>
@@ -917,31 +905,20 @@
         <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">"Enable event logging for job tracking and resumption"</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="c1"># Logging configuration</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--max_log_size_mb"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Maximum log file size in MB before rotation"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--backup_count"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Number of backup log files to keep"</span><span class="p">,</span>
-    <span class="p">)</span>
     <span class="c1"># Storage configuration</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--event_log_dir"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Separate directory for event logs (fast storage)"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Directory for human-readable application logs. Defaults to work_dir/logs after job directory "</span>
+        <span class="s2">"resolution. Machine-readable event JSONL files are written directly under work_dir."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--checkpoint_dir"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Separate directory for checkpoints (large storage)"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Directory for ray_partitioned Parquet checkpoints. Defaults to work_dir/checkpoints after job "</span>
+        <span class="s2">"directory resolution."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="c1"># Job management</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -1079,8 +1056,7 @@
         <span class="s2">"--adaptive_batch_size"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Whether to use adaptive batch sizes for each OP according to "</span>  <span class="c1"># noqa: E251</span>
-        <span class="s2">"the probed results. It's False in default."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Use probe results to adjust batch sizes for batched operators in the default executor."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--process"</span><span class="p">,</span>
@@ -1117,13 +1093,6 @@
         <span class="nb">type</span><span class="o">=</span><span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">],</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">"Deprecated; use --partition.size. Number of samples per partition."</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--preserve_intermediate_data"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Preserve intermediate data for debugging (legacy flat config)"</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># partition configuration</span>
@@ -1185,75 +1154,13 @@
         <span class="s2">"This is an estimate used for planning, not a hard memory or output-file size limit."</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c1"># Resource optimization configuration</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--resource_optimization.auto_configure"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Enable automatic optimization of partition size, worker count, and other resource-dependent settings (nested resource_optimization config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Intermediate storage configuration</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.preserve_intermediate_data"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Preserve intermediate data for debugging (nested intermediate_storage config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.cleanup_temp_files"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Clean up temporary files after processing (nested intermediate_storage config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.cleanup_on_success"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Clean up intermediate files even on successful completion (nested intermediate_storage config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.retention_policy"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">"keep_all"</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"keep_all"</span><span class="p">,</span> <span class="s2">"keep_failed_only"</span><span class="p">,</span> <span class="s2">"cleanup_all"</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"File retention policy (nested intermediate_storage config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.max_retention_days"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Maximum retention days for files (nested intermediate_storage config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Intermediate storage format configuration</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.format"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">"parquet"</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"parquet"</span><span class="p">,</span> <span class="s2">"arrow"</span><span class="p">,</span> <span class="s2">"jsonl"</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Storage format for checkpoints and intermediate data (nested intermediate_storage config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.compression"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">"snappy"</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"snappy"</span><span class="p">,</span> <span class="s2">"gzip"</span><span class="p">,</span> <span class="s2">"none"</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Compression format for storage files (nested intermediate_storage config)"</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--intermediate_storage.write_partitions"</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Whether to write intermediate partition files to disk (nested intermediate_storage config). Set to false for better performance when intermediate files aren't needed."</span><span class="p">,</span>
-    <span class="p">)</span>
-
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--partition_dir"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Directory to store partition files. Supports </span><span class="si">{work_dir}</span><span class="s2"> placeholder. If not set, defaults to </span><span class="si">{work_dir}</span><span class="s2">/partitions."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Resolved path recorded for partition metadata and external integrations. Defaults to "</span>
+        <span class="s2">"work_dir/partitions. The built-in ray_partitioned executor splits Ray datasets directly and does "</span>
+        <span class="s2">"not write input partition files here."</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--custom-operator-paths"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Paths to custom operator scripts or directories."</span><span class="p">)</span>

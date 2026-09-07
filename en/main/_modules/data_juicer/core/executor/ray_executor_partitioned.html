@@ -438,7 +438,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">loguru</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">PositiveInt</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatasetBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.dataset_builder</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DatasetBuilder</span><span class="p">,</span>
+    <span class="n">deprecated_load_data_np_kwargs</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.ray_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RayDataset</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecutorBase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.dag_execution_mixin</span><span class="w"> </span><span class="kn">import</span> <span class="n">DAGExecutionMixin</span>
@@ -1037,7 +1040,9 @@
 <span class="sd">        Run the simplified partitioned dataset processing pipeline.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            load_data_np: Number of workers for loading dataset</span>
+<span class="sd">            load_data_np: deprecated, and never applied here: no Ray load</span>
+<span class="sd">                strategy reads `num_proc`. Use `override_num_blocks` to</span>
+<span class="sd">                control read parallelism.</span>
 <span class="sd">            skip_return: Whether to skip returning the dataset</span>
 <span class="sd">            job_id: Optional job ID to resume from checkpoints</span>
 
@@ -1126,8 +1131,9 @@
         <span class="c1"># must therefore happen before DatasetBuilder.load_dataset() so saved</span>
         <span class="c1"># row boundaries have the same meaning when a job is resumed.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_enable_deterministic_execution</span><span class="p">()</span>
-        <span class="n">override_num_blocks</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"override_num_blocks"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetbuilder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="n">num_proc</span><span class="o">=</span><span class="n">load_data_np</span><span class="p">,</span> <span class="n">override_num_blocks</span><span class="o">=</span><span class="n">override_num_blocks</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetbuilder</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">deprecated_load_data_np_kwargs</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetbuilder</span><span class="o">.</span><span class="n">executor_type</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">dataset_schema</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">schema</span><span class="p">()</span>
         <span class="n">columns</span> <span class="o">=</span> <span class="n">dataset_schema</span><span class="o">.</span><span class="n">columns</span>
 

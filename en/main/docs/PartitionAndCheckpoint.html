@@ -434,7 +434,6 @@
 ├── checkpoints/                  # Checkpoint data
 │   ├── partitioning_info.json    # Saved row boundaries and partition hashes
 │   └── checkpoint_op_*.parquet/  # Per-operation partition checkpoints
-├── partitions/                   # Input partitions
 ├── logs/                         # Human-readable logs
 └── metadata/                     # Job metadata
 </pre></div>
@@ -494,6 +493,9 @@ positive integer to override the automatic limit.</p>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">embedding_mapper</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">strategy</span></code> accepts only <code class="docutils literal notranslate"><span class="pre">every_op</span></code>, <code class="docutils literal notranslate"><span class="pre">every_n_ops</span></code>, <code class="docutils literal notranslate"><span class="pre">manual</span></code>, and <code class="docutils literal notranslate"><span class="pre">disabled</span></code>;
+any other value, including <code class="docutils literal notranslate"><span class="pre">every_partition</span></code>, is rejected while the
+configuration is parsed. <code class="docutils literal notranslate"><span class="pre">n_ops</span></code> must be a positive integer.</p>
 <p>When checkpointing is enabled, the initial run saves
 <code class="docutils literal notranslate"><span class="pre">checkpoints/partitioning_info.json</span></code>. For every logical partition, this file
 records:</p>
@@ -508,15 +510,10 @@ partitions even when Ray produces a different physical block layout in the new
 process. Complete partition hashes are sensitive to row order, independent of
 Ray batch boundaries, and validated before any checkpoint is reused.</p>
 </section>
-<section id="intermediate-storage">
-<h3>Intermediate Storage<a class="headerlink" href="#intermediate-storage" title="Link to this heading">¶</a></h3>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">intermediate_storage</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="s">"parquet"</span><span class="w">              </span><span class="c1"># parquet, arrow, jsonl</span>
-<span class="w">  </span><span class="nt">compression</span><span class="p">:</span><span class="w"> </span><span class="s">"snappy"</span><span class="w">          </span><span class="c1"># snappy, gzip, none</span>
-<span class="w">  </span><span class="nt">preserve_intermediate_data</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">retention_policy</span><span class="p">:</span><span class="w"> </span><span class="s">"keep_all"</span><span class="w">   </span><span class="c1"># keep_all, keep_failed_only, cleanup_all</span>
-</pre></div>
-</div>
+<section id="checkpoints-and-temporary-files">
+<h3>Checkpoints and Temporary Files<a class="headerlink" href="#checkpoints-and-temporary-files" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">checkpoint.enabled</span></code>, <code class="docutils literal notranslate"><span class="pre">checkpoint.strategy</span></code>, <code class="docutils literal notranslate"><span class="pre">checkpoint.n_ops</span></code>, and <code class="docutils literal notranslate"><span class="pre">checkpoint.op_names</span></code> control checkpoint creation. Checkpoints use Parquet with the underlying writer’s default compression. Ray Dataset splitting creates the partitions; checkpoints capture data after the selected operations.</p>
+<p>On normal or exceptional exit from its run context, the executor attempts to remove <code class="docutils literal notranslate"><span class="pre">work_dir/.tmp/&lt;Ray</span> <span class="pre">job</span> <span class="pre">id&gt;</span></code>. Checkpoints live in a separate directory for resumption.</p>
 </section>
 </section>
 <section id="usage">
@@ -846,7 +843,7 @@ tail<span class="w"> </span>-f<span class="w"> </span>./outputs/<span class="o">
 <li><a class="reference internal" href="#configuration">Configuration</a><ul>
 <li><a class="reference internal" href="#partition-modes">Partition Modes</a></li>
 <li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
-<li><a class="reference internal" href="#intermediate-storage">Intermediate Storage</a></li>
+<li><a class="reference internal" href="#checkpoints-and-temporary-files">Checkpoints and Temporary Files</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#usage">Usage</a><ul>

@@ -439,7 +439,10 @@ ops in the config file in order and generate a processed dataset.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dataset</strong> – a Dataset object to be executed.</p></li>
-<li><p><strong>load_data_np</strong> – number of workers when loading the dataset.</p></li>
+<li><p><strong>load_data_np</strong> – deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
 <li><p><strong>skip_export</strong> – whether export the results into disk</p></li>
 <li><p><strong>skip_return</strong> – skip return for API called.</p></li>
 </ul>
@@ -460,7 +463,10 @@ TODO add support other than LocalExecutor</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dataset_to_sample</strong> – Dataset to sample from. If None, will use
 the formatter linked by the executor. Default is None.</p></li>
-<li><p><strong>load_data_np</strong> – number of workers when loading the dataset.</p></li>
+<li><p><strong>load_data_np</strong> – deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
 <li><p><strong>sample_ratio</strong> – The ratio of the sample size to the original
 dataset size. Default is 1.0 (no sampling).</p></li>
 <li><p><strong>sample_algo</strong> – Sampling algorithm to use. Options are “uniform”,

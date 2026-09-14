@@ -27,6 +27,9 @@ class ClusterTopology:
     total_gpus: float
     available_cpus: float
     available_gpus: float
+    # Exact node capacities are needed for a multi-GPU actor: Ray cannot
+    # combine devices from different nodes for one actor's reservation.
+    gpu_devices_per_node: tuple = ()
 
     @property
     def gpus_per_node(self) -> float:
@@ -67,6 +70,9 @@ def detect_cluster_topology() -> ClusterTopology:
             total_gpus=float(cluster_resources.get("GPU", 0)),
             available_cpus=float(available_resources.get("CPU", 0)),
             available_gpus=float(available_resources.get("GPU", 0)),
+            gpu_devices_per_node=tuple(
+                int(float(node.get("Resources", {}).get("GPU", 0))) for node in nodes if node.get("Alive")
+            ),
         )
     except Exception as e:
         logger.warning(f"Could not detect Ray cluster topology, using single-node fallback: {e}")

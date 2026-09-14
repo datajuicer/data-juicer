@@ -756,8 +756,8 @@ def test_ordered_replay_uses_front_sample_and_refills_after_filter(tmp_path):
     assert first_gpu._op_cfg["first_gpu"]["memory"] == 111 / 1024
 
     report = json.loads((tmp_path / "gpu_probe_results.json").read_text())
-    assert report["version"] == 5
-    assert report["observability_version"] == 4
+    assert report["version"] == 6
+    assert report["observability_version"] == 5
     assert report["memory_headroom"] == 1.1
     assert report["max_gpu_workers_per_device"] == 5
     assert report["warmup_batches"] == 1
@@ -939,6 +939,20 @@ def test_hardware_mismatch_reprobes(tmp_path):
     assert replayed == ["gpu"]
     assert fresh_op.num_gpus == 0.2
     assert fresh_op._gpu_memory_fraction == 0.03
+
+
+def test_old_profile_schema_is_reprobed(tmp_path):
+    op = FakeOp("gpu", accelerator="cuda")
+    runner = lambda op, rows, measure: {"rows": rows, "metrics": metrics()}
+    GPUMemoryProbe(str(tmp_path), stage_runner=runner).resolve(FakeDataset([{"id": 1}]), [op])
+    path = tmp_path / "gpu_probe_results.json"
+    report = json.loads(path.read_text())
+    report["version"] = 5
+    path.write_text(json.dumps(report))
+    dataset = FakeDataset([{"id": 2}])
+    GPUMemoryProbe(str(tmp_path), stage_runner=runner).resolve(dataset, [FakeOp("gpu", accelerator="cuda")])
+    assert dataset.requested == [1]
+    assert json.loads(path.read_text())["version"] == 6
 
 
 def test_worker_cap_change_invalidates_cached_plan(tmp_path):

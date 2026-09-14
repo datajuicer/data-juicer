@@ -1116,7 +1116,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         except Exception:
             names = set()
         if _LOGICAL_PARTITION_COLUMN in names:
-            raise RuntimeError(f"Input dataset contains reserved execution-group column {_LOGICAL_PARTITION_COLUMN!r}.")
+            raise RuntimeError(
+                f"Input dataset contains reserved execution-group column {_LOGICAL_PARTITION_COLUMN!r}."
+            )
         return True
 
     def _resolve_execution_group_size(
@@ -1440,7 +1442,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         self._configure_operator_parallelism(ops)
 
     @staticmethod
-    def _gpu_actor_requests_fit(stage_specs: List[Dict[str, Any]], counts: List[int], total_gpus: float) -> bool:
+    def _gpu_actor_requests_fit(
+        stage_specs: List[Dict[str, Any]], counts: List[int], total_gpus: float, gpu_devices_per_node=None
+    ) -> bool:
         """Check scheduling and measured-memory fractions on individual GPUs."""
         device_count = int(math.floor(total_gpus + 1e-9))
         if device_count < 1:
@@ -1449,8 +1453,26 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         for spec, count in zip(stage_specs, counts):
             requests.extend([(spec["num_gpus"], spec["memory_fraction"], spec["max_per_device"])] * count)
         requests.sort(key=lambda item: (max(item[0], item[1]), item[1]), reverse=True)
-        devices = [{"gpu": 0.0, "memory": 0.0, "workers": 0} for _ in range(device_count)]
+        node_sizes = gpu_devices_per_node if gpu_devices_per_node is not None else (device_count,)
+        devices = [
+            {"gpu": 0.0, "memory": 0.0, "workers": 0, "node": node}
+            for node, size in enumerate(node_sizes)
+            for _ in range(size)
+        ]
         for gpu_fraction, memory_fraction, max_per_device in requests:
+            if gpu_fraction > 1:
+                if not float(gpu_fraction).is_integer():
+                    return False
+                # Ray reserves whole, same-node devices for integer requests.
+                for node in range(len(node_sizes)):
+                    free = [device for device in devices if device["node"] == node and device["workers"] == 0]
+                    if len(free) >= int(gpu_fraction):
+                        for device in free[: int(gpu_fraction)]:
+                            device.update(gpu=1.0, memory=1.0, workers=1)
+                        break
+                else:
+                    return False
+                continue
             placed = False
             for device in sorted(devices, key=lambda item: (item["gpu"], item["memory"], item["workers"])):
                 if (
@@ -1492,7 +1514,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         if not candidates:
             self._resolved_throughput_actor_plan = None
             self._throughput_planned_op_ids = set()
-            profiled_cuda_ops = [op for op in ops if self._is_cuda_operator(op) and hasattr(op, "_gpu_rows_per_second")]
+            profiled_cuda_ops = [
+                op for op in ops if self._is_cuda_operator(op) and hasattr(op, "_gpu_rows_per_second")
+            ]
             if profiled_cuda_ops:
                 skipped = ", ".join(
                     f"{getattr(op, '_name', type(op).__name__)}=" f"{getattr(op, 'num_proc', None)}"
@@ -1508,7 +1532,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         from data_juicer.utils.ray_cluster_utils import detect_cluster_topology
 
         topology = detect_cluster_topology()
-        cpu_budget = max(1.0, math.floor(topology.total_cpus * _AUTO_GPU_PIPELINE_CPU_FRACTION))
         max_per_device = getattr(
             self,
             "max_gpu_workers_per_device",
@@ -1516,17 +1539,19 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         )
 
         candidate_ids = {id(op) for op in candidates}
-        explicit_ids = getattr(self, "_explicit_actor_op_ids", set())
-        fixed_gpu_ops = [
-            op for op in ops if id(op) in explicit_ids and id(op) not in candidate_ids and self._is_cuda_operator(op)
-        ]
+        # All other actor pools keep their existing plan, including CPU pools
+        # and unprofiled GPU stages. Their resources remain resident alongside
+        # the candidates in Ray's streaming pipeline.
+        fixed_actor_ops = [op for op in ops if id(op) not in candidate_ids and op.use_ray_actor()]
         fixed_specs = []
         fixed_counts = []
         fixed_cpu = 0.0
-        for op in fixed_gpu_ops:
+        for op in fixed_actor_ops:
             count = self._actor_pool_capacity(op.num_proc) or 1
-            fixed_counts.append(count)
             fixed_cpu += count * float(getattr(op, "num_cpus", None) or 1.0)
+            if not self._is_cuda_operator(op):
+                continue
+            fixed_counts.append(count)
             fixed_specs.append(
                 {
                     "num_gpus": float(getattr(op, "num_gpus", None) or 1.0),
@@ -1536,6 +1561,19 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     "max_per_device": max_per_device,
                 }
             )
+
+        # Apply the input-pipeline reserve to the remaining capacity, so an
+        # explicit CPU actor budget is counted without being silently reduced.
+        remaining_cpus = max(0.0, topology.total_cpus - fixed_cpu)
+        cpu_budget = min(
+            topology.total_cpus,
+            fixed_cpu + max(1.0, math.floor(remaining_cpus * _AUTO_GPU_PIPELINE_CPU_FRACTION)),
+        )
+        gpu_nodes = getattr(topology, "gpu_devices_per_node", ())
+        if not gpu_nodes:
+            if getattr(topology, "num_nodes", 1) > 1 and any(spec["num_gpus"] > 1 for spec in fixed_specs):
+                raise RuntimeError("Multi-GPU actor planning requires the GPU capacity of each Ray node.")
+            gpu_nodes = None
 
         source_ratio = 1.0
         stage_specs = []
@@ -1575,6 +1613,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 fixed_specs + stage_specs,
                 fixed_counts + values,
                 topology.total_gpus,
+                gpu_nodes,
             )
 
         if not resources_fit(counts):

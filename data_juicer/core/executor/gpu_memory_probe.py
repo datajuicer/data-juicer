@@ -8,6 +8,7 @@ import math
 import os
 import tempfile
 import time
+from copy import deepcopy
 from fnmatch import fnmatchcase
 from itertools import cycle, islice
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple
@@ -19,8 +20,8 @@ from data_juicer.utils.lazy_loader import LazyLoader
 
 ray = LazyLoader("ray")
 
-_REPORT_VERSION = 5
-_OBSERVABILITY_VERSION = 4
+_REPORT_VERSION = 6
+_OBSERVABILITY_VERSION = 5
 _REPORT_NAME = "gpu_probe_results.json"
 _MEMORY_HEADROOM = 1.10
 _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE = 5
@@ -516,10 +517,13 @@ def _run_constructed_probe_op_rows(op, rows: Sequence[Dict]) -> List[Dict]:
     """Run rows through an already initialized operator instance."""
     from data_juicer.ops.fused_batch_executor import execute_sequential_batch
 
-    batch_size = _normalized_batch_size(op)
+    batch_size = _normalized_batch_size(op) if op.is_batched_op() else 1
     output_rows: List[Dict] = []
     for offset in range(0, len(rows), batch_size):
-        batch = _rows_to_batch(rows[offset : offset + batch_size])
+        # A fresh copy per row also breaks aliases introduced by fill_to_batch.
+        # Otherwise warmup can populate shared stats and make steady sampling
+        # measure only the operator's already-computed fast path.
+        batch = _rows_to_batch([deepcopy(row) for row in rows[offset : offset + batch_size]])
         result = execute_sequential_batch(
             batch,
             [op],
@@ -580,7 +584,10 @@ def _profile_probe_target(
     input_rows = len(rows) * steady_batches
     output_count = sum(steady_outputs)
     profile = {
-        "initialization": initialization,
+        # Warmup excess over an ordinary batch includes lazy model loading.
+        # With no warmup there is no separate observation of this overhead.
+        "construction": initialization,
+        "initialization": initialization + max(0.0, warmup - warmup_batches * steady_total / steady_batches),
         "warmup": warmup,
         "steady_total": steady_total,
         "steady_batch_seconds": steady_total / steady_batches,
@@ -784,7 +791,8 @@ def _run_probe_stage(
             steady_total = sum(durations)
             input_count = len(rows) * repeats
             return output_rows, {
-                "initialization": initialization,
+                "construction": initialization,
+                "initialization": initialization + max(0.0, warmup - warmup_batches * steady_total / repeats),
                 "warmup": warmup,
                 "steady_total": steady_total,
                 "steady_batch_seconds": steady_total / repeats,
@@ -1171,6 +1179,7 @@ class GPUMemoryProbe:
         }
         if isinstance(profile, Mapping):
             record["profile"] = {
+                "construction": float(profile.get("construction", profile.get("initialization", 0)) or 0),
                 "initialization": float(profile.get("initialization", 0) or 0),
                 "warmup": float(profile.get("warmup", 0) or 0),
                 "steady_total": float(profile.get("steady_total", 0) or 0),
@@ -1302,7 +1311,9 @@ class GPUMemoryProbe:
 
                 if self.probe_timeout_seconds is not None:
                     overdue = [
-                        state for state in running.values() if now - state["submitted_at"] >= self.probe_timeout_seconds
+                        state
+                        for state in running.values()
+                        if now - state["submitted_at"] >= self.probe_timeout_seconds
                     ]
                     if overdue:
                         state = max(overdue, key=lambda item: now - item["submitted_at"])

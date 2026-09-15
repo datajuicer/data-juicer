@@ -1443,7 +1443,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     def _gpu_actor_requests_fit(
         stage_specs: List[Dict[str, Any]], counts: List[int], total_gpus: float, gpu_devices_per_node=None
     ) -> bool:
-        """Check scheduling and measured-memory fractions on individual GPUs."""
+        """Check scheduling and measured-memory fractions on individual GPUs.
+
+        Requests are processed largest first and placed with a best-fit policy,
+        preserving the largest remaining contiguous shares for later requests.
+        """
         device_count = int(math.floor(total_gpus + 1e-9))
         if device_count < 1:
             return False
@@ -1471,20 +1475,31 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 else:
                     return False
                 continue
-            placed = False
-            for device in sorted(devices, key=lambda item: (item["gpu"], item["memory"], item["workers"])):
+            eligible = [
+                device
+                for device in devices
                 if (
                     device["gpu"] + gpu_fraction <= 1.0 + 1e-9
                     and device["memory"] + memory_fraction <= 1.0 + 1e-9
                     and device["workers"] < max_per_device
-                ):
-                    device["gpu"] += gpu_fraction
-                    device["memory"] += memory_fraction
-                    device["workers"] += 1
-                    placed = True
-                    break
-            if not placed:
+                )
+            ]
+            if not eligible:
                 return False
+
+            # Best fit avoids fragmenting devices by putting the request in the
+            # eligible device with the least remaining dominant resource share.
+            device = min(
+                eligible,
+                key=lambda item: (
+                    max(1.0 - item["gpu"] - gpu_fraction, 1.0 - item["memory"] - memory_fraction),
+                    2.0 - item["gpu"] - gpu_fraction - item["memory"] - memory_fraction,
+                    max_per_device - item["workers"] - 1,
+                ),
+            )
+            device["gpu"] += gpu_fraction
+            device["memory"] += memory_fraction
+            device["workers"] += 1
         return True
 
     def _configure_throughput_aware_gpu_parallelism(
@@ -1541,6 +1556,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         fixed_actor_ops = [op for op in ops if id(op) not in candidate_ids and op.use_ray_actor()]
         fixed_specs = []
         fixed_counts = []
+        fixed_gpu_counts_by_id = {}
         fixed_cpu = 0.0
         for op in fixed_actor_ops:
             count = self._actor_pool_capacity(op.num_proc) or 1
@@ -1548,6 +1564,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             if not self._is_cuda_operator(op):
                 continue
             fixed_counts.append(count)
+            fixed_gpu_counts_by_id[id(op)] = count
             fixed_specs.append(
                 {
                     "num_gpus": float(getattr(op, "num_gpus", None) or 1.0),
@@ -1621,8 +1638,18 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             )
 
         while True:
+            current_capacities = [
+                value * item["throughput"] / item["source_ratio"] for value, item in zip(counts, stage_specs)
+            ]
+            bottleneck_capacity = min(current_capacities)
             feasible = []
             for index, spec in enumerate(stage_specs):
+                # Scaling a stage that is already faster than the bottleneck
+                # cannot improve pipeline throughput. Once no bottleneck stage
+                # can grow, retain the available GPU capacity instead of loading
+                # unnecessary model replicas.
+                if current_capacities[index] > bottleneck_capacity + 1e-9:
+                    continue
                 if spec["data_cap"] is not None and counts[index] >= spec["data_cap"]:
                     continue
                 trial = list(counts)
@@ -1641,6 +1668,37 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             spec["op"].num_proc = count
         self._throughput_planned_op_ids = {id(spec["op"]) for spec in stage_specs}
 
+        actor_counts_by_id = {id(spec["op"]): count for count, spec in zip(counts, stage_specs)}
+        actor_counts_by_id.update(fixed_gpu_counts_by_id)
+        profiled_stages = []
+        source_ratio = 1.0
+        for op in ops:
+            throughput = float(getattr(op, "_gpu_rows_per_second", 0) or 0)
+            count = actor_counts_by_id.get(id(op))
+            if count is not None and self._is_cuda_operator(op) and op.use_ray_actor() and throughput > 0:
+                profiled_stages.append(
+                    {
+                        "name": getattr(op, "_name", type(op).__name__),
+                        "actors": count,
+                        "steady_rows_per_second": throughput,
+                        "source_input_ratio": max(source_ratio, 1e-9),
+                        "source_equivalent_rows_per_second": count * throughput / max(source_ratio, 1e-9),
+                        "data_cap": next(
+                            (spec["data_cap"] for spec in stage_specs if spec["op"] is op),
+                            None,
+                        ),
+                        "num_cpus": float(getattr(op, "num_cpus", None) or 1.0),
+                        "num_gpus": float(getattr(op, "num_gpus", None) or 1.0),
+                        "memory_fraction": float(
+                            getattr(op, "_gpu_memory_fraction", 0) or getattr(op, "num_gpus", None) or 1.0
+                        ),
+                        "initialization_seconds": float(getattr(op, "_gpu_init_seconds", 0) or 0),
+                    }
+                )
+            measured_ratio = getattr(op, "_gpu_output_ratio", None)
+            if measured_ratio is not None and float(measured_ratio) >= 0:
+                source_ratio *= float(measured_ratio)
+
         plan = {
             "policy": "balanced_source_throughput",
             "total_samples": total_samples,
@@ -1648,21 +1706,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             "cluster_gpus": topology.total_gpus,
             "cpu_budget": cpu_budget,
             "cpu_used": cpu_used(counts),
-            "operators": [
-                {
-                    "name": spec["name"],
-                    "actors": count,
-                    "steady_rows_per_second": spec["throughput"],
-                    "source_input_ratio": spec["source_ratio"],
-                    "source_equivalent_rows_per_second": count * spec["throughput"] / spec["source_ratio"],
-                    "data_cap": spec["data_cap"],
-                    "num_cpus": spec["num_cpus"],
-                    "num_gpus": spec["num_gpus"],
-                    "memory_fraction": spec["memory_fraction"],
-                    "initialization_seconds": float(getattr(spec["op"], "_gpu_init_seconds", 0) or 0),
-                }
-                for count, spec in zip(counts, stage_specs)
-            ],
+            "operators": profiled_stages,
         }
         self._resolved_throughput_actor_plan = plan
         try:

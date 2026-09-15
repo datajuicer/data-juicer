@@ -1311,9 +1311,7 @@ class GPUMemoryProbe:
 
                 if self.probe_timeout_seconds is not None:
                     overdue = [
-                        state
-                        for state in running.values()
-                        if now - state["submitted_at"] >= self.probe_timeout_seconds
+                        state for state in running.values() if now - state["submitted_at"] >= self.probe_timeout_seconds
                     ]
                     if overdue:
                         state = max(overdue, key=lambda item: now - item["submitted_at"])

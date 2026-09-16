@@ -29,10 +29,10 @@ jobs:
   pages:
     runs-on: ubuntu-latest
     concurrency:
-      # 正式构建从恢复缓存到发布全程串行；PR 使用独立组。
+      # 同组内同一时刻只允许一个正式发布在跑，避免并发发布互相覆盖；
+      # PR 使用独立组，互不影响。（GitHub 无 FIFO 队列，仅保留最新 pending run。）
       group: ${{ github.repository }}-pages-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'publish' }}
       cancel-in-progress: false
-      queue: max
     strategy:
       matrix:
         python-version: ["3.11"]

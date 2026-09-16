@@ -399,6 +399,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             _DEFAULT_GPU_PROBE_STEADY_BATCHES,
         )
         gpu_probe_sample_offset = ConfigAccessor.get(partition_cfg, "gpu_probe_sample_offset", 0)
+        self.gpu_probe_resource_sampling = ConfigAccessor.get(partition_cfg, "gpu_probe_resource_sampling", False)
         gpu_probe_sample_shuffle = ConfigAccessor.get(partition_cfg, "gpu_probe_sample_shuffle", False)
         gpu_probe_sample_seed = ConfigAccessor.get(
             partition_cfg,
@@ -1416,6 +1417,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 _DEFAULT_GPU_PROBE_STEADY_BATCHES,
             ),
             sample_offset=getattr(self, "gpu_probe_sample_offset", 0),
+            resource_sampling=getattr(self, "gpu_probe_resource_sampling", False),
             sample_shuffle=getattr(self, "gpu_probe_sample_shuffle", False),
             sample_seed=getattr(self, "gpu_probe_sample_seed", _DEFAULT_GPU_PROBE_SAMPLE_SEED),
         ).resolve(dataset, ops)

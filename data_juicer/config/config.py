@@ -780,6 +780,15 @@ def build_base_parser() -> ArgumentParser:
         help="Number of batches used to estimate steady-state GPU operator throughput.",
     )
     parser.add_argument(
+        "--partition.gpu_probe_resource_sampling",
+        type=bool,
+        default=False,
+        help=(
+            "Record per-phase worker CPU/RSS and process CUDA allocator counters during GPU preflight. "
+            "Optional diagnostics; CUDA peaks remain cumulative and no extra synchronization is added."
+        ),
+    )
+    parser.add_argument(
         "--partition.gpu_probe_sample_offset",
         type=NonNegativeInt,
         default=0,

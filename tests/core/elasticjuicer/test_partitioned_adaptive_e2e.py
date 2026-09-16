@@ -13,7 +13,7 @@ from data_juicer.config import init_configs
 from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
 from data_juicer.ops.base_op import OPERATORS
-from tests.core.elasticjuicer.test_ray_adaptive_mapper import ThresholdMapper
+from core.elasticjuicer.test_ray_adaptive_mapper import ThresholdMapper
 
 
 def test_public_partitioned_run_and_checkpoint_reuse(tmp_path, monkeypatch):

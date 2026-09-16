@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.annotation.human\_preference\_annotation\_mapper module
+===============================================================================
+
+.. automodule:: data_juicer.ops.mapper.annotation.human_preference_annotation_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

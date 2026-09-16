@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_active\_speaker\_detect\_mapper module
+=====================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_active_speaker_detect_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

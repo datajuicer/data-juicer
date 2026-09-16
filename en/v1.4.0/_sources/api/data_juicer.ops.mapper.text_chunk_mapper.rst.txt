@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.text\_chunk\_mapper module
+==================================================
+
+.. automodule:: data_juicer.ops.mapper.text_chunk_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

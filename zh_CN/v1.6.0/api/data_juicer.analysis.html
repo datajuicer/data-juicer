@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.analysis — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index_ZH.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index_ZH.html" class="navbar-link">Doc</a>
+        <a href="../api.html" class="navbar-link active" aria-current="page">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">zh-CN</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/api/data_juicer.analysis.html" class="dropdown-item">English</a>
+            <a href="../../../zh_CN/v1.6.0/api/data_juicer.analysis.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="api/data_juicer.analysis"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/api/data_juicer.analysis.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index_ZH.html">首页</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../api.html">API</a></p>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.core.html">data_juicer.core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.html">data_juicer.ops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.filter.html">data_juicer.ops.filter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.mapper.html">data_juicer.ops.mapper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.deduplicator.html">data_juicer.ops.deduplicator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.selector.html">data_juicer.ops.selector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.aggregator.html">data_juicer.ops.aggregator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.grouper.html">data_juicer.ops.grouper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.pipeline.html">data_juicer.ops.pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.common.html">data_juicer.ops.common</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">data_juicer.analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.config.html">data_juicer.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.format.html">data_juicer.format</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="相关项目">
+          <p class="sidebar-projects-title">相关项目</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="module-data_juicer.analysis">
+<span id="data-juicer-analysis"></span><h1>data_juicer.analysis<a class="headerlink" href="#module-data_juicer.analysis" title="链接到此标题。">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.analysis.ColumnWiseAnalysis">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.analysis.</span></span><span class="sig-name descname"><span class="pre">ColumnWiseAnalysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overall_result</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_stats_in_one_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/column_wise_analysis.html#ColumnWiseAnalysis"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.ColumnWiseAnalysis" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Apply analysis on each column of stats respectively.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.ColumnWiseAnalysis.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overall_result</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_stats_in_one_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/column_wise_analysis.html#ColumnWiseAnalysis.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.ColumnWiseAnalysis.__init__" title="链接到此定义。">¶</a></dt>
+<dd><p>Initialization method</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> -- the dataset to be analyzed</p></li>
+<li><p><strong>output_path</strong> -- path to store the analysis results</p></li>
+<li><p><strong>overall_result</strong> -- optional precomputed overall stats result</p></li>
+<li><p><strong>save_stats_in_one_file</strong> -- whether save all analysis figures of all
+stats into one image file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.ColumnWiseAnalysis.analyze">
+<span class="sig-name descname"><span class="pre">analyze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">show_percentiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_export</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/column_wise_analysis.html#ColumnWiseAnalysis.analyze"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.ColumnWiseAnalysis.analyze" title="链接到此定义。">¶</a></dt>
+<dd><p>Apply analysis and draw the analysis figure for stats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>show_percentiles</strong> -- whether to show the percentile line in
+each sub-figure. If it's true, there will be several red
+lines to indicate the quantiles of the stats distributions</p></li>
+<li><p><strong>show</strong> -- whether to show in a single window after drawing</p></li>
+<li><p><strong>skip_export</strong> -- whether save the results into disk</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.ColumnWiseAnalysis.draw_hist">
+<span class="sig-name descname"><span class="pre">draw_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percentiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/column_wise_analysis.html#ColumnWiseAnalysis.draw_hist"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.ColumnWiseAnalysis.draw_hist" title="链接到此定义。">¶</a></dt>
+<dd><p>Draw the histogram for the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> -- the axes to draw</p></li>
+<li><p><strong>data</strong> -- data to draw</p></li>
+<li><p><strong>save_path</strong> -- the path to save the histogram figure</p></li>
+<li><p><strong>percentiles</strong> -- the overall analysis result of the data
+including percentile information</p></li>
+<li><p><strong>show</strong> -- whether to show in a single window after drawing</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.ColumnWiseAnalysis.draw_box">
+<span class="sig-name descname"><span class="pre">draw_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percentiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/column_wise_analysis.html#ColumnWiseAnalysis.draw_box"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.ColumnWiseAnalysis.draw_box" title="链接到此定义。">¶</a></dt>
+<dd><p>Draw the box plot for the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> -- the axes to draw</p></li>
+<li><p><strong>data</strong> -- data to draw</p></li>
+<li><p><strong>save_path</strong> -- the path to save the box figure</p></li>
+<li><p><strong>percentiles</strong> -- the overall analysis result of the data
+including percentile information</p></li>
+<li><p><strong>show</strong> -- whether to show in a single window after drawing</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.ColumnWiseAnalysis.draw_wordcloud">
+<span class="sig-name descname"><span class="pre">draw_wordcloud</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/column_wise_analysis.html#ColumnWiseAnalysis.draw_wordcloud"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.ColumnWiseAnalysis.draw_wordcloud" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.analysis.CorrelationAnalysis">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.analysis.</span></span><span class="sig-name descname"><span class="pre">CorrelationAnalysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/correlation_analysis.html#CorrelationAnalysis"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.CorrelationAnalysis" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Analyze the correlations among different stats. Only for numerical stats.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.CorrelationAnalysis.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/correlation_analysis.html#CorrelationAnalysis.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.CorrelationAnalysis.__init__" title="链接到此定义。">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> -- the dataset to be analyzed</p></li>
+<li><p><strong>output_path</strong> -- path to store the analysis results</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.CorrelationAnalysis.analyze">
+<span class="sig-name descname"><span class="pre">analyze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pearson'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_export</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/correlation_analysis.html#CorrelationAnalysis.analyze"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.CorrelationAnalysis.analyze" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.analysis.DiversityAnalysis">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.analysis.</span></span><span class="sig-name descname"><span class="pre">DiversityAnalysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang_or_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'en'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/diversity_analysis.html#DiversityAnalysis"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.DiversityAnalysis" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Apply diversity analysis for each sample and get an overall analysis
+result.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.DiversityAnalysis.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang_or_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'en'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/diversity_analysis.html#DiversityAnalysis.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.DiversityAnalysis.__init__" title="链接到此定义。">¶</a></dt>
+<dd><p>Initialization method :param dataset: the dataset to be analyzed
+:param output_path: path to store the analysis results :param
+lang_or_model: the diversity model or a specific language used to load
+the diversity model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.DiversityAnalysis.compute">
+<span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lang_or_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'text'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/diversity_analysis.html#DiversityAnalysis.compute"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.DiversityAnalysis.compute" title="链接到此定义。">¶</a></dt>
+<dd><p>Apply lexical tree analysis on each sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lang_or_model</strong> -- the diversity model or a specific language
+used to load the diversity model</p></li>
+<li><p><strong>column_name</strong> -- the name of column to be analyzed</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p>the analysis result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.DiversityAnalysis.analyze">
+<span class="sig-name descname"><span class="pre">analyze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lang_or_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'text'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postproc_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">get_diversity&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**postproc_kwarg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/diversity_analysis.html#DiversityAnalysis.analyze"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.DiversityAnalysis.analyze" title="链接到此定义。">¶</a></dt>
+<dd><p>Apply diversity analysis on the whole dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lang_or_model</strong> -- the diversity model or a specific language
+used to load the diversity model</p></li>
+<li><p><strong>column_name</strong> -- the name of column to be analyzed</p></li>
+<li><p><strong>postproc_func</strong> -- function to analyze diversity. In default,
+it's function get_diversity</p></li>
+<li><p><strong>postproc_kwarg</strong> -- arguments of the postproc_func</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.analysis.OverallAnalysis">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.analysis.</span></span><span class="sig-name descname"><span class="pre">OverallAnalysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/overall_analysis.html#OverallAnalysis"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.OverallAnalysis" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Apply analysis on the overall stats, including mean, std, quantiles,
+etc.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.OverallAnalysis.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/overall_analysis.html#OverallAnalysis.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.OverallAnalysis.__init__" title="链接到此定义。">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> -- the dataset to be analyzed</p></li>
+<li><p><strong>output_path</strong> -- path to store the analysis results.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.OverallAnalysis.refine_single_column">
+<span class="sig-name descname"><span class="pre">refine_single_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/overall_analysis.html#OverallAnalysis.refine_single_column"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.OverallAnalysis.refine_single_column" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.analysis.OverallAnalysis.analyze">
+<span class="sig-name descname"><span class="pre">analyze</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">percentiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_proc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_export</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/analysis/overall_analysis.html#OverallAnalysis.analyze"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.analysis.OverallAnalysis.analyze" title="链接到此定义。">¶</a></dt>
+<dd><p>Apply overall analysis on the whole dataset based on the describe
+method of pandas.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>percentiles</strong> -- percentiles to analyze</p></li>
+<li><p><strong>num_proc</strong> -- number of processes to analyze the dataset</p></li>
+<li><p><strong>skip_export</strong> -- whether export the results to disk</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p>the overall analysis result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">data_juicer.analysis</a><ul>
+<li><a class="reference internal" href="#data_juicer.analysis.ColumnWiseAnalysis"><code class="docutils literal notranslate"><span class="pre">ColumnWiseAnalysis</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.analysis.ColumnWiseAnalysis.__init__"><code class="docutils literal notranslate"><span class="pre">ColumnWiseAnalysis.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.ColumnWiseAnalysis.analyze"><code class="docutils literal notranslate"><span class="pre">ColumnWiseAnalysis.analyze()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.ColumnWiseAnalysis.draw_hist"><code class="docutils literal notranslate"><span class="pre">ColumnWiseAnalysis.draw_hist()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.ColumnWiseAnalysis.draw_box"><code class="docutils literal notranslate"><span class="pre">ColumnWiseAnalysis.draw_box()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.ColumnWiseAnalysis.draw_wordcloud"><code class="docutils literal notranslate"><span class="pre">ColumnWiseAnalysis.draw_wordcloud()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.analysis.CorrelationAnalysis"><code class="docutils literal notranslate"><span class="pre">CorrelationAnalysis</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.analysis.CorrelationAnalysis.__init__"><code class="docutils literal notranslate"><span class="pre">CorrelationAnalysis.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.CorrelationAnalysis.analyze"><code class="docutils literal notranslate"><span class="pre">CorrelationAnalysis.analyze()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.analysis.DiversityAnalysis"><code class="docutils literal notranslate"><span class="pre">DiversityAnalysis</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.analysis.DiversityAnalysis.__init__"><code class="docutils literal notranslate"><span class="pre">DiversityAnalysis.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.DiversityAnalysis.compute"><code class="docutils literal notranslate"><span class="pre">DiversityAnalysis.compute()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.DiversityAnalysis.analyze"><code class="docutils literal notranslate"><span class="pre">DiversityAnalysis.analyze()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.analysis.OverallAnalysis"><code class="docutils literal notranslate"><span class="pre">OverallAnalysis</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.analysis.OverallAnalysis.__init__"><code class="docutils literal notranslate"><span class="pre">OverallAnalysis.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.OverallAnalysis.refine_single_column"><code class="docutils literal notranslate"><span class="pre">OverallAnalysis.refine_single_column()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.analysis.OverallAnalysis.analyze"><code class="docutils literal notranslate"><span class="pre">OverallAnalysis.analyze()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="data_juicer.ops.common.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">data_juicer.ops.common</span>
+        </a>
+        <a href="data_juicer.config.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">data_juicer.config</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="../_static/translations.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

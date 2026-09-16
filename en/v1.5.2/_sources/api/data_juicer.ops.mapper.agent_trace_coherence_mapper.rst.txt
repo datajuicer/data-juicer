@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.agent\_trace\_coherence\_mapper module
+==============================================================
+
+.. automodule:: data_juicer.ops.mapper.agent_trace_coherence_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

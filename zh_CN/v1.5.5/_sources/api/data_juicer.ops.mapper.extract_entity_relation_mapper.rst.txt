@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.extract\_entity\_relation\_mapper module
+================================================================
+
+.. automodule:: data_juicer.ops.mapper.extract_entity_relation_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

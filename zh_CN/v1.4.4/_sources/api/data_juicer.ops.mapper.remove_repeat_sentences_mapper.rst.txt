@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.remove\_repeat\_sentences\_mapper module
+================================================================
+
+.. automodule:: data_juicer.ops.mapper.remove_repeat_sentences_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

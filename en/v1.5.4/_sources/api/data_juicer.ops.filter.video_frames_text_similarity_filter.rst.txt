@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.video\_frames\_text\_similarity\_filter module
+======================================================================
+
+.. automodule:: data_juicer.ops.filter.video_frames_text_similarity_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

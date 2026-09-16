@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Awesome Data-Model Co-Development of MLLMs — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/docs/awesome_llm_data.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.6.0/docs/awesome_llm_data.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="docs/awesome_llm_data"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/docs/awesome_llm_data.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../docs_index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/QuickStart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ProcessData.html">Processing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AnalyzeData.html">Data Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Playground.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DatasetCfg.html">Dataset Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Export.html">Dataset Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cache.html">Cache Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tracing.html">Data Tracing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Lookup Materials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="GlobalConfig.html">Global Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Distributed Processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PartitionAndCheckpoint.html">Partitioned Processing with Checkpointing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="JobManagement.html">Job Management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extension &amp; Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="OperatorPlugins.html">Operator Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_service.html">DJ Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Juicer.html">Juicer: Natural-Language Data Refinement Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide.html">How-to Guide for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Resources</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">operators</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/elastic_sharding/README.html">Elastic Multi-Node Sharding on Shared Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/video_humanvbench_simple/README.html">HumanVBench Operators Demo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="awesome-data-model-co-development-of-mllms">
+<h1>Awesome Data-Model Co-Development of MLLMs <a class="reference external" href="https://awesome.re"><img alt="Awesome" src="https://awesome.re/badge.svg" /></a><a class="headerlink" href="#awesome-data-model-co-development-of-mllms" title="Link to this heading">¶</a></h1>
+<p>Welcome to the “Awesome List” for data-model co-development of Multi-Modal Large Language Models (MLLMs), a continually updated resource tailored for the open-source community. This compilation features cutting-edge research, insightful articles focusing on improving MLLMs involving with the data-model co-development of MLLMs, and  tagged based on the proposed <strong>taxonomy</strong> from our data-model co-development <a class="reference external" href="https://arxiv.org/abs/2407.08583">survey</a>, as illustrated below.</p>
+<p><img alt="Overview of Our Taxonomy" src="https://img.alicdn.com/imgextra/i1/O1CN01aN3TVo1mgGZAuSHJ4_!!6000000004983-2-tps-3255-1327.png" />
+Due to the rapid development in the field, this repository and our paper are continuously being updated and synchronized with each other. <strong>Please feel free to make pull requests or open issues to <a class="reference internal" href="#contribution-to-this-survey">contribute to</a> this list and add more related resources!</strong> We will periodically update our <a class="reference external" href="https://arxiv.org/abs/2407.08583">arXiv version</a> according to this repository.</p>
+<section id="news">
+<h2>News<a class="headerlink" href="#news" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>🎉 [2025-06-04] Our <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/docs/hhttps:/ieeexplore.ieee.org/document/11027559">Data-Model Co-development Survey</a> has been accepted by IEEE Transactions on Pattern Analysis and Machine Intelligence (<strong>TPAMI</strong>)! Welcome to explore and contribute this awesome-list.</p></li>
+<li><p>[2025-05-25] We added 20 academic papers related to this survey.</p></li>
+<li><p><img alt="new" src="https://img.alicdn.com/imgextra/i4/O1CN01kUiDtl1HVxN6G56vN_!!6000000000764-2-tps-43-19.png" /> [2024-10-23] We built a <a class="reference external" href="https://datajuicer.github.io/data-juicer/en/main/_static/awesome-list.html">dynamic table</a> based on the <a class="reference internal" href="#paper-list">paper list</a> that supports filtering and searching.</p></li>
+<li><p><img alt="new" src="https://img.alicdn.com/imgextra/i4/O1CN01kUiDtl1HVxN6G56vN_!!6000000000764-2-tps-43-19.png" /> [2024-10-22] We restructured our <a class="reference internal" href="#paper-list">paper list</a> to provide more streamlined information.</p></li>
+</ul>
+</section>
+<section id="candidate-co-development-tags">
+<h2>Candidate Co-Development Tags<a class="headerlink" href="#candidate-co-development-tags" title="Link to this heading">¶</a></h2>
+<p>These tags correspond to the taxonomy in our paper, and each work may be assigned with more than one tags.</p>
+<section id="data4model-scaling">
+<h3>Data4Model: Scaling<a class="headerlink" href="#data4model-scaling" title="Link to this heading">¶</a></h3>
+<section id="for-scaling-up-of-mllms-larger-datasets">
+<h4>For Scaling Up of MLLMs: Larger Datasets<a class="headerlink" href="#for-scaling-up-of-mllms-larger-datasets" title="Link to this heading">¶</a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Data Acquisition</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Data Augmentation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Data Diversity</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="for-scaling-effectiveness-of-mllms-better-subsets">
+<h4>For Scaling Effectiveness of MLLMs: Better Subsets<a class="headerlink" href="#for-scaling-effectiveness-of-mllms-better-subsets" title="Link to this heading">¶</a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Data Condensation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Data Mixture</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Data Packing</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Packing-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Cross-Modal Alignment</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="data4model-usability">
+<h3>Data4Model: Usability<a class="headerlink" href="#data4model-usability" title="Link to this heading">¶</a></h3>
+<section id="for-instruction-responsiveness-of-mllms">
+<h4>For Instruction Responsiveness of MLLMs<a class="headerlink" href="#for-instruction-responsiveness-of-mllms" title="Link to this heading">¶</a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Prompt Design</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>ICL Data</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Human-Behavior Alignment Data</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="for-reasoning-ability-of-mllms">
+<h4>For Reasoning Ability of MLLMs<a class="headerlink" href="#for-reasoning-ability-of-mllms" title="Link to this heading">¶</a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Data for Single-Hop Reasoning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--SingleHop-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Data for Multi-Hop Reasoning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="for-ethics-of-mllms">
+<h4>For Ethics of MLLMs<a class="headerlink" href="#for-ethics-of-mllms" title="Link to this heading">¶</a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Data Toxicity</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Data Privacy and Intellectual Property</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Privacy&amp;IP-d3f0aa" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="for-evaluation-of-mllms">
+<h4>For Evaluation of MLLMs<a class="headerlink" href="#for-evaluation-of-mllms" title="Link to this heading">¶</a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Benchmarks for Multi-Modal Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Benchmarks for Multi-Modal Generation:</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Benchmarks for Multi-Modal Retrieval:</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Retrieval-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Benchmarks for Multi-Modal Reasoning:</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Reasoning-d3f0aa" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="model4data-synthesis">
+<h3>Model4Data: Synthesis<a class="headerlink" href="#model4data-synthesis" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Model as a Data Creator</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Model as a Data Mapper</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Model as a Data Filter</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Model as a Data Evaluator</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="model4data-insights">
+<h3>Model4Data: Insights<a class="headerlink" href="#model4data-insights" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section Title</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Model as a Data Navigator</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Navigator-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Model as a Data Extractor</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Extractor-f2c0c6" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Model as a Data Analyzer</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Analyzer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Model as a Data Visualizer</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Visualizer-f2c0c6" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="paper-list">
+<h2>Paper List<a class="headerlink" href="#paper-list" title="Link to this heading">¶</a></h2>
+<p>Below is a paper list summarized based on our survey. Additionally, we have provided a <a class="reference external" href="https://datajuicer.github.io/data-juicer/_static/awesome-list.html">dynamic table</a> that supports filtering and searching, with the data source same as the list below.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Title</p></th>
+<th class="head"><p>Tags</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>What Makes for Good Visual Instructions? Synthesizing Complex Visual Reasoning Instructions for Visual Instruction Tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Med-MMHL: A Multi-Modal Dataset for Detecting Human- and LLM-Generated Misinformation in the Medical Domain</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Probing Heterogeneous Pretraining Datasets with Small Curated Datasets</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>ChartLlama: A Multimodal LLM for Chart Understanding and Generation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Visualizer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>VideoChat: Chat-Centric Video Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Aligned with LLM: a new multi-modal training paradigm for encoding fMRI activity in visual cortex</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>3DMIT: 3D Multi-modal Instruction Tuning for Scene Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>GPT4MTS: Prompt-based Large Language Model for Multimodal Time-series Forecasting</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Large-scale Contrastive Language-Audio Pretraining with Feature Fusion and Keyword-to-Caption Augmentation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Audio Retrieval with WavText5K and CLAP Training</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Retrieval-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>The Devil is in the Details: A Deep Dive into the Rabbit Hole of Data Filtering</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Demystifying CLIP Data</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Learning Transferable Visual Models From Natural Language Supervision</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>DataComp: In search of the next generation of multimodal datasets</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Beyond neural scaling laws: beating power law scaling via data pruning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Flamingo: a visual language model for few-shot learning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Quality not quantity: On the interaction between dataset design and robustness of clip</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>VBench: Comprehensive Benchmark Suite for Video Generative Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>EvalCraftr: Benchmarking and Evaluating Large Video Generation Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Training Compute-Optimal Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>NExT-GPT: Any-to-Any Multimodal LLM</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>ChartThinker: A Contextual Chain-of-Thought Approach to Optimized Chart Summarization</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>ChartReformer: Natural Language-Driven Chart Image Editing</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Visualizer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-even"><td><p>GroundingGPT: Language Enhanced Multi-modal Grounding Model</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Shikra: Unleashing Multimodal LLM’s Referential Dialogue Magic</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Kosmos-2: Grounding Multimodal Large Language Models to the World</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Finetuned Multimodal Language Models Are High-Quality Image-Text Data Filters</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Filtering, Distillation, and Hard Negatives for Vision-Language Pre-Training</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>3DBench: A Scalable 3D Benchmark and Instruction-Tuning Dataset</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Structured Packing in LLM Training Improves Long Context Utilization</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Packing-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Packing-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>MoDE: CLIP Data Experts via Clustering</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Packing-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Efficient Multimodal Learning from Data-centric Perspective</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Improved Baselines for Data-efficient Perceptual Augmentation of LLMs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MVBench: A Comprehensive Multi-modal Video Understanding Benchmark</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>SEED-Bench: Benchmarking Multimodal LLMs with Generative Comprehension</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Video-ChatGPT: Towards Detailed Video Understanding via Large Vision and Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Perception Test: A Diagnostic Benchmark for Multimodal Video Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>FunQA: Towards Surprising Video ComprehensionFunQA: Towards Surprising Video Comprehension</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Reasoning-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>OneChart: Purify the Chart Structural Extraction via One Auxiliary Token</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>ChartQA: A Benchmark for Question Answering about Charts with Visual and Logical Reasoning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Reasoning-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>StructChart: Perception, Structuring, Reasoning for Visual Chart Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--SingleHop-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MMC: Advancing Multimodal Chart Understanding with Large-scale Instruction Tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>ChartX &amp; ChartVLM: A Versatile Benchmark and Foundation Model for Complicated Chart Reasoning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>WorldGPT: Empowering LLM as Multimodal World Model</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>List Items One by One: A New Data Source and Learning Paradigm for Multimodal LLMs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>TextSquare: Scaling up Text-Centric Visual Instruction Tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>ImplicitAVE: An Open-Source Dataset and Multimodal LLMs Benchmark for Implicit Attribute Value Extraction</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>How Does the Textual Information Affect the Retrieval of Multimodal In-Context Learning?</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Navigator-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Draw-and-Understand: Leveraging Visual Prompts to Enable MLLMs to Comprehend What You Want</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Patch n’ Pack: NaViT, a Vision Transformer for any Aspect Ratio and Resolution</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Packing-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Fewer Truncations Improve Language Modeling</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Packing-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MedThink: Explaining Medical Visual Question Answering via Multimodal Decision-Making Rationale</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>AesExpert: Towards Multi-modality Foundation Model for Image Aesthetics Perception</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>UNIAA: A Unified Multi-modal Image Aesthetic Data AugmentationAssessment Baseline and Benchmark</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Improving Composed Image Retrieval via Contrastive Learning with Scaling Positives and Negatives</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Eyes Closed, Safety On: Protecting Multimodal LLMs via Image-to-Text Transformation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>TextHawk: Exploring Efficient Fine-Grained Perception of Multimodal Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>The Wolf Within: Covert Injection of Malice into MLLM Societies via an MLLM Operative</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>BuboGPT: Enabling Visual Grounding in Multi-Modal LLMs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MLLM-Bench: Evaluating Multimodal LLMs with Per-sample Criteria</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>MM-SafetyBench: A Benchmark for Safety Evaluation of Multimodal Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Retrieval-augmented Multi-modal Chain-of-Thoughts Reasoning for Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>M3DBench: Let’s Instruct Large Models with Multi-modal 3D Prompts</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MoqaGPT: Zero-Shot Multi-modal Open-domain Question Answering with Large Language Model</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Analyzer-f2c0c6" /><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>mPLUG-DocOwl: Modularized Multimodal Large Language Model for Document Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Analyzer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-even"><td><p>mPLUG-DocOwl 1.5: Unified Structure Learning for OCR-free Document Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Analyzer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>mPLUG-Owl2: Revolutionizing Multi-modal Large Language Model with Modality Collaboration</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>mPLUG-PaperOwl: Scientific Diagram Analysis with the Multimodal Large Language Model</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Analyzer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Open-TransMind: A New Baseline and Benchmark for 1st Foundation Model Challenge of Intelligent Transportation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Retrieval-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>On the Adversarial Robustness of Multi-Modal Foundation Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>What If the TV Was Off? Examining Counterfactual Reasoning Abilities of Multi-modal Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--SingleHop-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>ShareGPT4V: Improving Large Multi-Modal Models with Better Captions</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>PaLM-E: An Embodied Multimodal Language Model</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Multimodal Data Curation via Object Detection and Filter Ensembles</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Sieve: Multimodal Dataset Pruning Using Image Captioning Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Towards a statistical theory of data selection under weak supervision</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>𝐷2 Pruning: Message Passing for Balancing Diversity &amp; Difficulty in Data Pruning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>UIClip: A Data-driven Model for Assessing User Interface Design</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>CapsFusion: Rethinking Image-Text Data at Scale</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Improving CLIP Training with Language Rewrites</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>OpenLEAF: Open-Domain Interleaved Image-Text Generation and Evaluation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>A Decade’s Battle on Dataset Bias: Are We There Yet?</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Stable Video Diffusion: Scaling Latent Video Diffusion Models to Large Datasets</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Data Filtering Networks</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>T-MARS: Improving Visual Representations by Circumventing Text Feature Learning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>InstructionGPT-4: A 200-Instruction Paradigm for Fine-Tuning MiniGPT-4</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Align and Attend: Multimodal Summarization with Dual Contrastive Losses</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MathVerse: Does Your Multi-modal LLM Truly See the Diagrams in Visual Math Problems?</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--SingleHop-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Reasoning-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Text-centric Alignment for Multi-Modality Learning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Noisy Correspondence Learning with Meta Similarity Correction</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Grounding-Prompter: Prompting LLM with Multimodal Information for Temporal Sentence Grounding in Long Videos</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Language-Image Models with 3D Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--SingleHop-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Scaling Laws for Generative Mixed-Modal Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>BLINK: Multimodal Large Language Models Can See but Not Perceive</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Visual Hallucinations of Multi-modal Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>DDCoT: Duty-Distinct Chain-of-Thought Prompting for Multimodal Reasoning in Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>EmbodiedGPT: Vision-Language Pre-Training via Embodied Chain of Thought</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Learn to Explain: Multimodal Reasoning via Thought Chains for Science Question Answering</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Visual Instruction Tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Time-LLM: Time Series Forecasting by Reprogramming Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>On the De-duplication of LAION-2B</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Hunyuan-DiT: A Powerful Multi-Resolution Diffusion Transformer with Fine-Grained Chinese Understanding</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>LAMM: Language-Assisted Multi-Modal Instruction-Tuning Dataset, Framework, and Benchmark</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>LLMs as Bridges: Reformulating Grounded Multimodal Named Entity Recognition</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Data Augmentation for Text-based Person Retrieval Using Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Aligning Actions and Walking to LLM-Generated Textual Descriptions</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>GPT4Tools: Teaching Large Language Model to Use Tools via Self-instruction</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>SPHINX-X: Scaling Data and Parameters for a Family of Multi-modal Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>AlignGPT: Multi-modal Large Language Models with Adaptive Alignment Capability</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>AnyGPT: Unified Multimodal LLM with Discrete Sequence Modeling</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Probing Multimodal LLMs as World Models for Driving</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Reasoning-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Unified Hallucination Detection for Multimodal Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Extractor-f2c0c6" /><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Semdedup: Data-efficient learning at web-scale through semantic deduplication</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Automated Multi-level Preference for MLLMs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Silkie: Preference distillation for large visual language models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Mitigating Hallucination in Large Multi-Modal Models via Robust Instruction Tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>M3it: A large-scale dataset towards multi-modal multilingual instruction tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Aligning Large Multimodal Models with Factually Augmented RLHF</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>DRESS: Instructing Large Vision-Language Models to Align and Interact with Humans via Natural Language Feedback</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>RLHF-V: Towards Trustworthy MLLMs via Behavior Alignment from Fine-grained Correctional Human Feedback</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MLLM-as-a-Judge: Assessing Multimodal LLM-as-a-Judge with Vision-Language Benchmark</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>MMT-Bench: A Comprehensive Multimodal Benchmark for Evaluating Large Vision-Language Models Towards Multitask AGI</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Retrieval-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>M3CoT: A Novel Benchmark for Multi-Domain Multi-step Multi-modal Chain-of-Thought</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Reasoning-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>ImgTrojan: Jailbreaking Vision-Language Models with ONE Image</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>VL-Trojan: Multimodal Instruction Backdoor Attacks against Autoregressive Visual Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Jailbreaking GPT-4V via Self-Adversarial Attacks with System Prompts</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Improving Multimodal Datasets with Image Captioning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Bridging Research and Readers: A Multi-Modal Automated Academic Papers Interpretation System</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Analyzer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-even"><td><p>LLMs as Bridges: Reformulating Grounded Multimodal Named Entity Recognition</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Extractor-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>PDFChatAnnotator: A Human-LLM Collaborative Multi-Modal Data Annotation Tool for PDF-Format Catalogs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Extractor-f2c0c6" /><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>CiT: Curation in Training for Effective Vision-Language Data</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>InstructPix2Pix: Learning to Follow Image Editing Instructions</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Automated Data Visualization from Natural Language via Large Language Models: An Exploratory Study</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Visualizer-f2c0c6" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>ModelGo: A Practical Tool for Machine Learning License Analysis</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Privacy&amp;IP-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Scaling Laws of Synthetic Images for Model Training … for Now</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Cambrian-1: A Fully Open, Vision-Centric Exploration of Multimodal LLMs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Set-of-Mark Prompting Unleashes Extraordinary Visual Grounding in GPT-4V</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Segment Anything</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>AIM: Let Any Multi-modal Large Language Models Embrace Efficient In-Context Learning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>MMICL: Empowering Vision-language Model with Multi-Modal In-Context Learning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /></p></td>
+</tr>
+<tr class="row-even"><td><p>All in an Aggregated Image for In-Image Learning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Panda-70m: Captioning 70m videos with multiple cross-modality teachers</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Multimodal C4: An Open, Billion-scale Corpus of Images Interleaved With Text</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>ChartAssisstant: A Universal Chart Multimodal Language Model via Chart-to-Table Pre-training and Multitask Instruction Tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Imagebind: One embedding space to bind them all</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>UniBind: LLM-Augmented Unified and Balanced Representation Space to Bind Them All</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>FreeBind: Free Lunch in Unified Multimodal Space via Knowledge Fusion</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>LanguageBind: Extending Video-Language Pretraining to N-modality by Language-based Semantic Alignment</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Binding Touch to Everything: Learning Unified Multimodal Tactile Representations</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Genixer: Empowering Multimodal Large Language Model as a Powerful Data Generator</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>ZooProbe: A Data Engine for Evaluating, Exploring, and Evolving Large-scale Training Data for Multimodal LLMs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>MiniGPT-4: Enhancing Vision-Language Understanding with Advanced Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MMEvol: Empowering Multimodal Large Language Models with Evol-Instruct</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>World to Code: Multi-modal Data Generation via Self-Instructed Compositional Captioning and Filtering</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>Model-in-the-Loop (MILO): Accelerating Multimodal AI Data Annotation with LLMs</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>FM2DS: Few-Shot Multimodal Multihop Data Synthesis with Knowledge Distillation for Question Answering</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>MiniCPM-V: A GPT-4V Level MLLM on Your Phone</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Descriptive Caption Enhancement with Visual Specialists for Multimodal Perception</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>REFINESUMM: Self-Refining MLLM for Generating a Multimodal Summarization Dataset</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>FakeShield: Explainable Image Forgery Detection and Localization via Multi-modal Large Language Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>A Comprehensive Study of Multimodal Large Language Models for Image Quality Assessment</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Inst-IT: Boosting Multimodal Instance Understanding via Explicit Visual Prompt Instruction Tuning</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-even"><td><p>LLaVA-Grounding: Grounded Visual Chat with Large Multimodal Models</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /> <img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p></td>
+</tr>
+<tr class="row-odd"><td><p>Scaling Text-Rich Image Understanding via Code-Guided Synthetic Multimodal Data Generation</p></td>
+<td><p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="contribution-to-this-survey">
+<h2>Contribution to This Survey<a class="headerlink" href="#contribution-to-this-survey" title="Link to this heading">¶</a></h2>
+<p>Due to the rapid development in the field, this repository and our paper are continuously being updated and synchronized with each other. Please feel free to make pull requests or open issues to contribute to this list and add more related resources!
+<strong>You can add the titles of relevant papers to the table above, and (optionally) provide suggested tags along with the corresponding sections if possible.</strong>
+We will attempt to complete the remaining information and periodically update our survey based on the updated content of this document.</p>
+<section id="references">
+<h3>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h3>
+<p>If you find our work useful for your research or development, please kindly cite the following <a class="reference external" href="https://arxiv.org/abs/2407.08583">paper</a>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@article</span><span class="p">{</span><span class="n">qin2024synergy</span><span class="p">,</span>
+  <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">The</span> <span class="n">Synergy</span> <span class="n">between</span> <span class="n">Data</span> <span class="ow">and</span> <span class="n">Multi</span><span class="o">-</span><span class="n">Modal</span> <span class="n">Large</span> <span class="n">Language</span> <span class="n">Models</span><span class="p">:</span> <span class="n">A</span> <span class="n">Survey</span> <span class="kn">from</span><span class="w"> </span><span class="nn">Co</span><span class="o">-</span><span class="n">Development</span> <span class="n">Perspective</span><span class="p">},</span>
+  <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Qin</span><span class="p">,</span> <span class="n">Zhen</span> <span class="ow">and</span> <span class="n">Chen</span><span class="p">,</span> <span class="n">Daoyuan</span> <span class="ow">and</span> <span class="n">Zhang</span><span class="p">,</span> <span class="n">Wenhao</span> <span class="ow">and</span> <span class="n">Liuyi</span><span class="p">,</span> <span class="n">Yao</span> <span class="ow">and</span> <span class="n">Yilun</span><span class="p">,</span> <span class="n">Huang</span> <span class="ow">and</span> <span class="n">Ding</span><span class="p">,</span> <span class="n">Bolin</span> <span class="ow">and</span> <span class="n">Li</span><span class="p">,</span> <span class="n">Yaliang</span> <span class="ow">and</span> <span class="n">Deng</span><span class="p">,</span> <span class="n">Shuiguang</span><span class="p">},</span>
+  <span class="n">journal</span><span class="o">=</span><span class="p">{</span><span class="n">arXiv</span> <span class="n">preprint</span> <span class="n">arXiv</span><span class="p">:</span><span class="mf">2407.08583</span><span class="p">},</span>
+  <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2024</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="section-mentioned-papers-retrieval-list">
+<h2>“Section - Mentioned Papers” Retrieval List<a class="headerlink" href="#section-mentioned-papers-retrieval-list" title="Link to this heading">¶</a></h2>
+<p>We provide a collapsible list of back reference, allowing readers to see which (sub)section mention the papers from the table above.
+The collapsible list of back reference will be periodically updated based on the content of the table and our paper.</p>
+<details>
+<summary>Sec. 3.1  For Scaling of MLLMs: Larger Datasets</summary>
+<ul class="simple">
+<li><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></li>
+<li><p>Training Compute-Optimal Large Language Models</p></li>
+</ul>
+<details>
+<summary>Sec. 3.1.1  Data Acquisition</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Acquisition-f1db9d" /></p>
+<ul class="simple">
+<li><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></li>
+<li><p>GPT4MTS: Prompt-based Large Language Model for Multimodal Time-series Forecasting</p></li>
+<li><p>Large-scale Contrastive Language-Audio Pretraining with Feature Fusion and Keyword-to-Caption Augmentation</p></li>
+<li><p>Audio Retrieval with WavText5K and CLAP Training</p></li>
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+<li><p>Learning Transferable Visual Models From Natural Language Supervision</p></li>
+<li><p>NExT-GPT: Any-to-Any Multimodal LLM</p></li>
+<li><p>ChartThinker: A Contextual Chain-of-Thought Approach to Optimized Chart Summarization</p></li>
+<li><p>ChartReformer: Natural Language-Driven Chart Image Editing</p></li>
+<li><p>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</p></li>
+<li><p>Video-ChatGPT: Towards Detailed Video Understanding via Large Vision and Language Models</p></li>
+<li><p>StructChart: Perception, Structuring, Reasoning for Visual Chart Understanding</p></li>
+<li><p>MMC: Advancing Multimodal Chart Understanding with Large-scale Instruction Tuning</p></li>
+<li><p>List Items One by One: A New Data Source and Learning Paradigm for Multimodal LLMs</p></li>
+<li><p>TextSquare: Scaling up Text-Centric Visual Instruction Tuning</p></li>
+<li><p>ImplicitAVE: An Open-Source Dataset and Multimodal LLMs Benchmark for Implicit Attribute Value Extraction</p></li>
+<li><p>TextHawk: Exploring Efficient Fine-Grained Perception of Multimodal Large Language Models</p></li>
+<li><p>BuboGPT: Enabling Visual Grounding in Multi-Modal LLMs</p></li>
+<li><p>ShareGPT4V: Improving Large Multi-Modal Models with Better Captions</p></li>
+<li><p>UIClip: A Data-driven Model for Assessing User Interface Design</p></li>
+<li><p>EmbodiedGPT: Vision-Language Pre-Training via Embodied Chain of Thought</p></li>
+<li><p>Learn to Explain: Multimodal Reasoning via Thought Chains for Science Question Answering</p></li>
+<li><p>Visual Instruction Tuning</p></li>
+<li><p>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</p></li>
+<li><p>Hunyuan-DiT: A Powerful Multi-Resolution Diffusion Transformer with Fine-Grained Chinese Understanding</p></li>
+<li><p>Probing Multimodal LLMs as World Models for Driving</p></li>
+<li><p>Genixer: Empowering Multimodal Large Language Model as a Powerful Data Generator</p></li>
+<li><p>MiniGPT-4: Enhancing Vision-Language Understanding with Advanced Large Language Models</p></li>
+<li><p>MiniCPM-V: A GPT-4V Level MLLM on Your Phone</p></li>
+<li><p>Descriptive Caption Enhancement with Visual Specialists for Multimodal Perception</p></li>
+<li><p>Inst-IT: Boosting Multimodal Instance Understanding via Explicit Visual Prompt Instruction Tuning</p></li>
+<li><p>LLaVA-Grounding: Grounded Visual Chat with Large Multimodal Models</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 3.1.2  Data Augmentation</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Augmentation-f1db9d" /></p>
+<ul class="simple">
+<li><p>Improved Baselines for Data-efficient Perceptual Augmentation of LLMs</p></li>
+<li><p>mPLUG-Owl2: Revolutionizing Multi-modal Large Language Model with Modality Collaboration</p></li>
+<li><p>Improving Composed Image Retrieval via Contrastive Learning with Scaling Positives and Negatives</p></li>
+<li><p>mPLUG-DocOwl: Modularized Multimodal Large Language Model for Document Understanding</p></li>
+<li><p>CapsFusion: Rethinking Image-Text Data at Scale</p></li>
+<li><p>Improving CLIP Training with Language Rewrites</p></li>
+<li><p>Data Augmentation for Text-based Person Retrieval Using Large Language Models</p></li>
+<li><p>Aligning Actions and Walking to LLM-Generated Textual Descriptions</p></li>
+<li><p>GPT4Tools: Teaching Large Language Model to Use Tools via Self-instruction</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 3.1.3  Data Diversity</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Up--Diversity-f1db9d" /></p>
+<ul class="simple">
+<li><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></li>
+<li><p>Audio Retrieval with WavText5K and CLAP Training</p></li>
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+<li><p>Flamingo: a visual language model for few-shot learning</p></li>
+<li><p>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</p></li>
+<li><p>ChartX &amp; ChartVLM: A Versatile Benchmark and Foundation Model for Complicated Chart Reasoning</p></li>
+<li><p>Retrieval-augmented Multi-modal Chain-of-Thoughts Reasoning for Large Language Models</p></li>
+<li><p>PaLM-E: An Embodied Multimodal Language Model</p></li>
+<li><p>SPHINX-X: Scaling Data and Parameters for a Family of Multi-modal Large Language Models</p></li>
+<li><p>Cambrian-1: A Fully Open, Vision-Centric Exploration of Multimodal LLMs</p></li>
+<li><p>MMEvol: Empowering Multimodal Large Language Models with Evol-Instruct</p></li>
+</ul>
+</details>
+</details>
+<details>
+<summary>Sec. 3.2  For Scaling Effectiveness of MLLMs: Better Subsets</summary>
+<ul class="simple">
+<li><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></li>
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+</ul>
+<details>
+<summary>Sec. 3.2.1  Data Condensation</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Condensation-f1db9d" /></p>
+<ul class="simple">
+<li><p>The Devil is in the Details: A Deep Dive into the Rabbit Hole of Data Filtering</p></li>
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+<li><p>Beyond neural scaling laws: beating power law scaling via data pruning</p></li>
+<li><p>Finetuned Multimodal Language Models Are High-Quality Image-Text Data Filters</p></li>
+<li><p>Filtering, Distillation, and Hard Negatives for Vision-Language Pre-Training</p></li>
+<li><p>Efficient Multimodal Learning from Data-centric Perspective</p></li>
+<li><p>Multimodal Data Curation via Object Detection and Filter Ensembles</p></li>
+<li><p>Sieve: Multimodal Dataset Pruning Using Image Captioning Models</p></li>
+<li><p>Towards a statistical theory of data selection under weak supervision</p></li>
+<li><p>Data Filtering Networks</p></li>
+<li><p>T-MARS: Improving Visual Representations by Circumventing Text Feature Learning</p></li>
+<li><p>InstructionGPT-4: A 200-Instruction Paradigm for Fine-Tuning MiniGPT-4</p></li>
+<li><p>Semdedup: Data-efficient learning at web-scale through semantic deduplication</p></li>
+<li><p>On the De-duplication of LAION-2B</p></li>
+<li><p>Improving Multimodal Datasets with Image Captioning</p></li>
+<li><p>MiniGPT-4: Enhancing Vision-Language Understanding with Advanced Large Language Models</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 3.2.2  Data Mixture</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Mixture-f1db9d" /></p>
+<ul class="simple">
+<li><p>Learning Transferable Visual Models From Natural Language Supervision</p></li>
+<li><p>Flamingo: a visual language model for few-shot learning</p></li>
+<li><p>Quality not quantity: On the interaction between dataset design and robustness of clip</p></li>
+<li><p>List Items One by One: A New Data Source and Learning Paradigm for Multimodal LLMs</p></li>
+<li><p>A Decade’s Battle on Dataset Bias: Are We There Yet?</p></li>
+<li><p>Hunyuan-DiT: A Powerful Multi-Resolution Diffusion Transformer with Fine-Grained Chinese Understanding</p></li>
+<li><p>Demystifying CLIP Data</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 3.2.3  Data Packing</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--Packing-f1db9d" /></p>
+<ul class="simple">
+<li><p>Structured Packing in LLM Training Improves Long Context Utilization</p></li>
+<li><p>Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models</p></li>
+<li><p>MoDE: CLIP Data Experts via Clustering</p></li>
+<li><p>Patch n’ Pack: NaViT, a Vision Transformer for any Aspect Ratio and Resolution</p></li>
+<li><p>Fewer Truncations Improve Language Modeling</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 3.2.4 Cross-Modal Alignment</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Scaling--Effectiveness--CrossModalAlignment-f1db9d" /></p>
+<ul class="simple">
+<li><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></li>
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+<li><p>Multimodal Data Curation via Object Detection and Filter Ensembles</p></li>
+<li><p>Sieve: Multimodal Dataset Pruning Using Image Captioning Models</p></li>
+<li><p>ChartThinker: A Contextual Chain-of-Thought Approach to Optimized Chart Summarization</p></li>
+<li><p>Data Filtering Networks</p></li>
+<li><p>T-MARS: Improving Visual Representations by Circumventing Text Feature Learning</p></li>
+<li><p>Text-centric Alignment for Multi-Modality Learning</p></li>
+<li><p>Noisy Correspondence Learning with Meta Similarity Correction</p></li>
+<li><p>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</p></li>
+<li><p>Semdedup: Data-efficient learning at web-scale through semantic deduplication</p></li>
+<li><p>Stable Video Diffusion: Scaling Latent Video Diffusion Models to Large Datasets</p></li>
+<li><p>AlignGPT: Multi-modal Large Language Models with Adaptive Alignment Capability</p></li>
+<li><p>Improving Multimodal Datasets with Image Captioning</p></li>
+<li><p>Imagebind: One embedding space to bind them all</p></li>
+<li><p>UniBind: LLM-Augmented Unified and Balanced Representation Space to Bind Them All</p></li>
+<li><p>FreeBind: Free Lunch in Unified Multimodal Space via Knowledge Fusion</p></li>
+<li><p>LanguageBind: Extending Video-Language Pretraining to N-modality by Language-based Semantic Alignment</p></li>
+<li><p>Binding Touch to Everything: Learning Unified Multimodal Tactile Representations</p></li>
+</ul>
+</details>
+</details>
+<details>
+<summary>Sec. 4.1  For Instruction Responsiveness of MLLMs</summary>
+<ul class="simple">
+<li><p>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</p></li>
+</ul>
+<details>
+<summary>Sec. 4.1.1  Prompt Design</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--Prompt-d3f0aa" /></p>
+<ul class="simple">
+<li><p>Shikra: Unleashing Multimodal LLM’s Referential Dialogue Magic</p></li>
+<li><p>Kosmos-2: Grounding Multimodal Large Language Models to the World</p></li>
+<li><p>Draw-and-Understand: Leveraging Visual Prompts to Enable MLLMs to Comprehend What You Want</p></li>
+<li><p>Eyes Closed, Safety On: Protecting Multimodal LLMs via Image-to-Text Transformation</p></li>
+<li><p>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</p></li>
+<li><p>Time-LLM: Time Series Forecasting by Reprogramming Large Language Models|</p></li>
+<li><p>Set-of-Mark Prompting Unleashes Extraordinary Visual Grounding in GPT-4V</p></li>
+<li><p>Scaling Laws of Synthetic Images for Model Training … for Now</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 4.1.2  ICL Data</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--ICL-d3f0aa" /></p>
+<ul class="simple">
+<li><p>GroundingGPT: Language Enhanced Multi-modal Grounding Model</p></li>
+<li><p>List Items One by One: A New Data Source and Learning Paradigm for Multimodal LLMs</p></li>
+<li><p>Retrieval-augmented Multi-modal Chain-of-Thoughts Reasoning for Large Language Models</p></li>
+<li><p>All in an Aggregated Image for In-Image Learning</p></li>
+<li><p>AIM: Let Any Multi-modal Large Language Models Embrace Efficient In-Context Learning</p></li>
+<li><p>MMICL: Empowering Vision-language Model with Multi-Modal In-Context Learning</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 4.1.3  Human-Behavior Alignment Data</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Following--HumanBehavior-d3f0aa" /></p>
+<ul class="simple">
+<li><p>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</p></li>
+<li><p>MLLM-Bench: Evaluating Multimodal LLMs with Per-sample Criteria</p></li>
+<li><p>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</p></li>
+<li><p>LAMM: Language-Assisted Multi-Modal Instruction-Tuning Dataset, Framework, and Benchmark</p></li>
+<li><p>Automated Multi-level Preference for MLLMs</p></li>
+<li><p>Silkie: Preference distillation for large visual language models</p></li>
+<li><p>Mitigating Hallucination in Large Multi-Modal Models via Robust Instruction Tuning</p></li>
+<li><p>Aligning Large Multimodal Models with Factually Augmented RLHF</p></li>
+<li><p>DRESS: Instructing Large Vision-Language Models to Align and Interact with Humans via Natural Language Feedback</p></li>
+<li><p>RLHF-V: Towards Trustworthy MLLMs via Behavior Alignment from Fine-grained Correctional Human Feedback</p></li>
+</ul>
+</details>
+</details>
+<details>
+<summary>Sec. 4.2  For Reasoning Ability of MLLMs</summary>
+<details>
+<summary>Sec. 4.2.1  Data for Single-Hop Reasoning</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--SingleHop-d3f0aa" /></p>
+<ul class="simple">
+<li><p>FunQA: Towards Surprising Video ComprehensionFunQA: Towards Surprising Video Comprehension</p></li>
+<li><p>StructChart: Perception, Structuring, Reasoning for Visual Chart Understanding</p></li>
+<li><p>What If the TV Was Off? Examining Counterfactual Reasoning Abilities of Multi-modal Language Models</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 4.2.2  Data for Multi-Hop Reasoning</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Reasoning--MultiHop-d3f0aa" /></p>
+<ul class="simple">
+<li><p>MedThink: Explaining Medical Visual Question Answering via Multimodal Decision-Making Rationale</p></li>
+<li><p>Grounding-Prompter: Prompting LLM with Multimodal Information for Temporal Sentence Grounding in Long Videos</p></li>
+<li><p>Language-Image Models with 3D Understanding</p></li>
+<li><p>DDCoT: Duty-Distinct Chain-of-Thought Prompting for Multimodal Reasoning in Language Models</p></li>
+<li><p>EmbodiedGPT: Vision-Language Pre-Training via Embodied Chain of Thought</p></li>
+<li><p>Learn to Explain: Multimodal Reasoning via Thought Chains for Science Question Answering</p></li>
+<li><p>Retrieval-augmented Multi-modal Chain-of-Thoughts Reasoning for Large Language Models</p></li>
+</ul>
+</details>
+</details>
+<details>
+<summary>Sec. 4.3  For Ethics of MLLMs</summary>
+<details>
+<summary>Sec. 4.3.1  Data Toxicity</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Toxicity-d3f0aa" /></p>
+<ul class="simple">
+<li><p>Med-MMHL: A Multi-Modal Dataset for Detecting Human- and LLM-Generated Misinformation in the Medical Domain</p></li>
+<li><p>Eyes Closed, Safety On: Protecting Multimodal LLMs via Image-to-Text Transformation</p></li>
+<li><p>The Wolf Within: Covert Injection of Malice into MLLM Societies via an MLLM Operative</p></li>
+<li><p>MM-SafetyBench: A Benchmark for Safety Evaluation of Multimodal Large Language Models</p></li>
+<li><p>ImgTrojan: Jailbreaking Vision-Language Models with ONE Image</p></li>
+<li><p>VL-Trojan: Multimodal Instruction Backdoor Attacks against Autoregressive Visual Language Models</p></li>
+<li><p>Jailbreaking GPT-4V via Self-Adversarial Attacks with System Prompts</p></li>
+<li><p>On the Adversarial Robustness of Multi-Modal Foundation Models</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 4.3.2  Data Privacy and Intellectual Property</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Ethic--Privacy&amp;IP-d3f0aa" /></p>
+<ul class="simple">
+<li><p>ModelGo: A Practical Tool for Machine Learning License Analysis</p></li>
+</ul>
+</details>
+</details>
+<details>
+<summary>Sec. 4.4 For Evaluation of MLLMs</summary>
+<details>
+<summary>Sec. 4.4.1  Benchmarks for Multi-Modal Understanding</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Understanding-d3f0aa" /></p>
+<ul class="simple">
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+<li><p>3DBench: A Scalable 3D Benchmark and Instruction-Tuning Dataset</p></li>
+<li><p>MVBench: A Comprehensive Multi-modal Video Understanding Benchmark</p></li>
+<li><p>SEED-Bench: Benchmarking Multimodal LLMs with Generative Comprehension</p></li>
+<li><p>OneChart: Purify the Chart Structural Extraction via One Auxiliary Token</p></li>
+<li><p>MMC: Advancing Multimodal Chart Understanding with Large-scale Instruction Tuning</p></li>
+<li><p>ImplicitAVE: An Open-Source Dataset and Multimodal LLMs Benchmark for Implicit Attribute Value Extraction</p></li>
+<li><p>UNIAA: A Unified Multi-modal Image Aesthetic Data AugmentationAssessment Baseline and Benchmark</p></li>
+<li><p>M3DBench: Let’s Instruct Large Models with Multi-modal 3D Prompts</p></li>
+<li><p>Open-TransMind: A New Baseline and Benchmark for 1st Foundation Model Challenge of Intelligent Transportation</p></li>
+<li><p>BLINK: Multimodal Large Language Models Can See but Not Perceive</p></li>
+<li><p>LAMM: Language-Assisted Multi-Modal Instruction-Tuning Dataset, Framework, and Benchmark</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 4.4.2 Benchmarks for Multi-Modal Generation</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Generation-d3f0aa" /></p>
+<ul class="simple">
+<li><p>VBench: Comprehensive Benchmark Suite for Video Generative Models</p></li>
+<li><p>EvalCraftr: Benchmarking and Evaluating Large Video Generation Models</p></li>
+<li><p>Perception Test: A Diagnostic Benchmark for Multimodal Video Models</p></li>
+<li><p>WorldGPT: Empowering LLM as Multimodal World Model</p></li>
+<li><p>MLLM-Bench: Evaluating Multimodal LLMs with Per-sample Criteria</p></li>
+<li><p>MM-SafetyBench: A Benchmark for Safety Evaluation of Multimodal Large Language Models</p></li>
+<li><p>OpenLEAF: Open-Domain Interleaved Image-Text Generation and Evaluation</p></li>
+<li><p>Visual Hallucinations of Multi-modal Large Language Models</p></li>
+<li><p>Unified Hallucination Detection for Multimodal Large Language Models</p></li>
+<li><p>MLLM-as-a-Judge: Assessing Multimodal LLM-as-a-Judge with Vision-Language Benchmark</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 4.4.3  Benchmarks for Multi-Modal Retrieval</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Retrieval-d3f0aa" /></p>
+<ul class="simple">
+<li><p>Audio Retrieval with WavText5K and CLAP Training</p></li>
+<li><p>MMT-Bench: A Comprehensive Multimodal Benchmark for Evaluating Large Vision-Language Models Towards Multitask AGI</p></li>
+<li><p>Open-TransMind: A New Baseline and Benchmark for 1st Foundation Model Challenge of Intelligent Transportation</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 4.4.4  Benchmarks for Multi-Modal Reasoning</summary>
+<p><img alt="" src="https://img.shields.io/badge/Data4Model--Usability--Eval--Reasoning-d3f0aa" /></p>
+<ul class="simple">
+<li><p>FunQA: Towards Surprising Video ComprehensionFunQA: Towards Surprising Video Comprehension</p></li>
+<li><p>ChartQA: A Benchmark for Question Answering about Charts with Visual and Logical Reasoning</p></li>
+<li><p>ChartX &amp; ChartVLM: A Versatile Benchmark and Foundation Model for Complicated Chart Reasoning</p></li>
+<li><p>Probing Multimodal LLMs as World Models for Driving</p></li>
+<li><p>M3CoT: A Novel Benchmark for Multi-Domain Multi-step Multi-modal Chain-of-Thought</p></li>
+</ul>
+</details>
+</details>
+<details>
+<summary>Sec. 5.1  Model as a Data Creator</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Creator-b4d4fb" /></p>
+<ul class="simple">
+<li><p>What Makes for Good Visual Instructions? Synthesizing Complex Visual Reasoning Instructions for Visual Instruction Tuning</p></li>
+<li><p>ChartLlama: A Multimodal LLM for Chart Understanding and Generation</p></li>
+<li><p>VideoChat: Chat-Centric Video Understanding</p></li>
+<li><p>3DMIT: 3D Multi-modal Instruction Tuning for Scene Understanding</p></li>
+<li><p>Finetuned Multimodal Language Models Are High-Quality Image-Text Data Filters</p></li>
+<li><p>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</p></li>
+<li><p>OneChart: Purify the Chart Structural Extraction via One Auxiliary Token</p></li>
+<li><p>ChartX &amp; ChartVLM: A Versatile Benchmark and Foundation Model for Complicated Chart Reasoning</p></li>
+<li><p>TextSquare: Scaling up Text-Centric Visual Instruction Tuning</p></li>
+<li><p>UNIAA: A Unified Multi-modal Image Aesthetic Data AugmentationAssessment Baseline and Benchmark</p></li>
+<li><p>Improving Composed Image Retrieval via Contrastive Learning with Scaling Positives and Negatives</p></li>
+<li><p>What If the TV Was Off? Examining Counterfactual Reasoning Abilities of Multi-modal Language Models</p></li>
+<li><p>EmbodiedGPT: Vision-Language Pre-Training via Embodied Chain of Thought</p></li>
+<li><p>AnyGPT: Unified Multimodal LLM with Discrete Sequence Modeling</p></li>
+<li><p>InstructPix2Pix: Learning to Follow Image Editing Instructions</p></li>
+<li><p>Genixer: Empowering Multimodal Large Language Model as a Powerful Data Generator</p></li>
+<li><p>World to Code: Multi-modal Data Generation via Self-Instructed Compositional Captioning and Filtering</p></li>
+<li><p>Scaling Text-Rich Image Understanding via Code-Guided Synthetic Multimodal Data Generation</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 5.2 Model as a Data Mapper</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Mapper-b4d4fb" /></p>
+<ul class="simple">
+<li><p>VideoChat: Chat-Centric Video Understanding</p></li>
+<li><p>Aligned with LLM: a new multi-modal training paradigm for encoding fMRI activity in visual cortex</p></li>
+<li><p>GPT4MTS: Prompt-based Large Language Model for Multimodal Time-series Forecasting</p></li>
+<li><p>MedThink: Explaining Medical Visual Question Answering via Multimodal Decision-Making Rationale</p></li>
+<li><p>AesExpert: Towards Multi-modality Foundation Model for Image Aesthetics Perception</p></li>
+<li><p>BuboGPT: Enabling Visual Grounding in Multi-Modal LLMs</p></li>
+<li><p>MoqaGPT: Zero-Shot Multi-modal Open-domain Question Answering with Large Language Model</p></li>
+<li><p>Improving CLIP Training with Language Rewrites</p></li>
+<li><p>Data Augmentation for Text-based Person Retrieval Using Large Language Models</p></li>
+<li><p>Aligning Actions and Walking to LLM-Generated Textual Descriptions</p></li>
+<li><p>Unified Hallucination Detection for Multimodal Large Language Models</p></li>
+<li><p>PDFChatAnnotator: A Human-LLM Collaborative Multi-Modal Data Annotation Tool for PDF-Format Catalogs</p></li>
+<li><p>MiniGPT-4: Enhancing Vision-Language Understanding with Advanced Large Language Models</p></li>
+<li><p>MMEvol: Empowering Multimodal Large Language Models with Evol-Instruct</p></li>
+<li><p>Model-in-the-Loop (MILO): Accelerating Multimodal AI Data Annotation with LLMs</p></li>
+<li><p>MiniCPM-V: A GPT-4V Level MLLM on Your Phone</p></li>
+<li><p>Descriptive Caption Enhancement with Visual Specialists for Multimodal Perception</p></li>
+<li><p>REFINESUMM: Self-Refining MLLM for Generating a Multimodal Summarization Dataset</p></li>
+<li><p>Inst-IT: Boosting Multimodal Instance Understanding via Explicit Visual Prompt Instruction Tuning</p></li>
+<li><p>LLaVA-Grounding: Grounded Visual Chat with Large Multimodal Models</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 5.3  Model as a Data Filter</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Filter-b4d4fb" /></p>
+<ul class="simple">
+<li><p>The Devil is in the Details: A Deep Dive into the Rabbit Hole of Data Filtering</p></li>
+<li><p>Finetuned Multimodal Language Models Are High-Quality Image-Text Data Filters</p></li>
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+<li><p>TextSquare: Scaling up Text-Centric Visual Instruction Tuning</p></li>
+<li><p>What If the TV Was Off? Examining Counterfactual Reasoning Abilities of Multi-modal Language Models</p></li>
+<li><p>Towards a statistical theory of data selection under weak supervision</p></li>
+<li><p>Visual Hallucinations of Multi-modal Large Language Models</p></li>
+<li><p>MiniGPT-4: Enhancing Vision-Language Understanding with Advanced Large Language Models</p></li>
+<li><p>FM2DS: Few-Shot Multimodal Multihop Data Synthesis with Knowledge Distillation for Question Answering</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 5.4  Model as a Data Evaluator</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Synthesis--Evaluator-b4d4fb" /></p>
+<ul class="simple">
+<li><p>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</p></li>
+<li><p>TextSquare: Scaling up Text-Centric Visual Instruction Tuning</p></li>
+<li><p>Eyes Closed, Safety On: Protecting Multimodal LLMs via Image-to-Text Transformation</p></li>
+<li><p>MLLM-Bench: Evaluating Multimodal LLMs with Per-sample Criteria</p></li>
+<li><p>MLLM-as-a-Judge: Assessing Multimodal LLM-as-a-Judge with Vision-Language Benchmark</p></li>
+<li><p>ImgTrojan: Jailbreaking Vision-Language Models with ONE Image</p></li>
+<li><p>ZooProbe: A Data Engine for Evaluating, Exploring, and Evolving Large-scale Training Data for Multimodal LLMs</p></li>
+<li><p>FakeShield: Explainable Image Forgery Detection and Localization via Multi-modal Large Language Models</p></li>
+<li><p>A Comprehensive Study of Multimodal Large Language Models for Image Quality Assessment</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 6.1  Model as a Data Navigator</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Navigator-f2c0c6" /></p>
+<ul class="simple">
+<li><p>How Does the Textual Information Affect the Retrieval of Multimodal In-Context Learning?</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 6.2  Model as a Data Extractor</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Extractor-f2c0c6" /></p>
+<ul class="simple">
+<li><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></li>
+<li><p>LLMs as Bridges: Reformulating Grounded Multimodal Named Entity Recognition</p></li>
+<li><p>Unified Hallucination Detection for Multimodal Large Language Models</p></li>
+<li><p>LLMs as Bridges: Reformulating Grounded Multimodal Named Entity Recognition</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 6.3  Model as a Data Analyzer</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Analyzer-f2c0c6" /></p>
+<ul class="simple">
+<li><p>ChartLlama: A Multimodal LLM for Chart Understanding and Generation</p></li>
+<li><p>OneChart: Purify the Chart Structural Extraction via One Auxiliary Token</p></li>
+<li><p>ChartQA: A Benchmark for Question Answering about Charts with Visual and Logical Reasoning</p></li>
+<li><p>StructChart: Perception, Structuring, Reasoning for Visual Chart Understanding</p></li>
+<li><p>ChartX &amp; ChartVLM: A Versatile Benchmark and Foundation Model for Complicated Chart Reasoning</p></li>
+<li><p>mPLUG-DocOwl: Modularized Multimodal Large Language Model for Document Understanding</p></li>
+<li><p>mPLUG-DocOwl 1.5: Unified Structure Learning for OCR-free Document Understanding</p></li>
+<li><p>mPLUG-PaperOwl: Scientific Diagram Analysis with the Multimodal Large Language Model</p></li>
+<li><p>Bridging Research and Readers: A Multi-Modal Automated Academic Papers Interpretation System</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 6.4  Model as a Data Visualizer</summary>
+<p><img alt="" src="https://img.shields.io/badge/Model4Data--Insights--Visualizer-f2c0c6" /></p>
+<ul class="simple">
+<li><p>ChartLlama: A Multimodal LLM for Chart Understanding and Generation</p></li>
+<li><p>ChartReformer: Natural Language-Driven Chart Image Editing</p></li>
+<li><p>Automated Data Visualization from Natural Language via Large Language Models: An Exploratory Study</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 8.1  Data-Model Co-Development Infrastructures</summary>
+<ul class="simple">
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 8.2  Externally-Boosted MLLM Development</summary>
+<details>
+<summary>Sec. 8.2.1  MLLM-Based Data Discovery</summary> 
+<ul class="simple">
+<li><p>No “Zero-Shot” Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance</p></li>
+<li><p>ModelGo: A Practical Tool for Machine Learning License Analysis</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 8.2.2  Modality-Compatibility Detection with MLLMs</summary>
+<ul class="simple">
+<li><p>Improving Multimodal Datasets with Image Captioning</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 8.2.3  Automatic Knowledge Transfer for MLLMs</summary> 
+- Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation
+- MLLM-Bench: Evaluating Multimodal LLMs with Per-sample Criteria
+</details>
+</details>
+<details>
+<summary>Sec. 8.3  Self-Boosted MLLM Development</summary>
+<details>
+<summary>Sec. 8.3.1  Self Data Scaling with MLLMs</summary> 
+<ul class="simple">
+<li><p>Sieve: Multimodal Dataset Pruning Using Image Captioning Models</p></li>
+<li><p>ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model</p></li>
+<li><p>Segment Anything</p></li>
+</ul>
+</details>
+<details>
+<summary>Sec. 8.3.2  Self Data Condensation with MLLMs</summary>
+</details>
+<details>
+<summary>Sec. 8.3.3  RL from Self Feedback of MLLMs</summary>
+<ul class="simple">
+<li><p>The Devil is in the Details: A Deep Dive into the Rabbit Hole of Data Filtering</p></li>
+<li><p>DataComp: In search of the next generation of multimodal datasets</p></li>
+<li><p>Finetuned Multimodal Language Models Are High-Quality Image-Text Data Filters</p></li>
+<li><p>Filtering, Distillation, and Hard Negatives for Vision-Language Pre-Training</p></li>
+<li><p>Multimodal Large Language Model is a Human-Aligned Annotator for Text-to-Image Generation</p></li>
+<li><p>TextSquare: Scaling up Text-Centric Visual Instruction Tuning</p></li>
+<li><p>Multimodal Data Curation via Object Detection and Filter Ensembles</p></li>
+<li><p>Sieve: Multimodal Dataset Pruning Using Image Captioning Models</p></li>
+<li><p>Data Filtering Networks</p></li>
+<li><p>T-MARS: Improving Visual Representations by Circumventing Text Feature Learning</p></li>
+<li><p>Semdedup: Data-efficient learning at web-scale through semantic deduplication</p></li>
+<li><p>MLLM-as-a-Judge: Assessing Multimodal LLM-as-a-Judge with Vision-Language Benchmark</p></li>
+<li><p>CiT: Curation in Training for Effective Vision-Language Data</p></li>
+<li><p>Improving Multimodal Datasets with Image Captioning</p></li>
+</ul>
+</details>
+</details>
+<details>
+<summary>Tab. 2</summary>
+- No "Zero-Shot" Without Exponential Data: Pretraining Concept Frequency Determines Multimodal Model Performance
+- DataComp: In search of the next generation of multimodal datasets
+- TextSquare: Scaling up Text-Centric Visual Instruction Tuning
+- MLLM-Bench: Evaluating Multimodal LLMs with Per-sample Criteria
+- Align and Attend: Multimodal Summarization with Dual Contrastive Losses
+- MathVerse: Does Your Multi-modal LLM Truly See the Diagrams in Visual Math Problems?
+- BLINK: Multimodal Large Language Models Can See but Not Perceive
+- Learn to Explain: Multimodal Reasoning via Thought Chains for Science Question Answering
+- ALLaVA: Harnessing GPT4V-synthesized Data for A Lite Vision-Language Model
+- LAMM: Language-Assisted Multi-Modal Instruction-Tuning Dataset, Framework, and Benchmark
+- Unified Hallucination Detection for Multimodal Large Language Models
+- Mitigating Hallucination in Large Multi-Modal Models via Robust Instruction Tuning
+- M3it: A large-scale dataset towards multi-modal multilingual instruction tuning
+- MLLM-as-a-Judge: Assessing Multimodal LLM-as-a-Judge with Vision-Language Benchmark
+- MMT-Bench: A Comprehensive Multimodal Benchmark for Evaluating Large Vision-Language Models Towards Multitask AGI
+- M3CoT: A Novel Benchmark for Multi-Domain Multi-step Multi-modal Chain-of-Thought
+- Panda-70m: Captioning 70m videos with multiple cross-modality teachers
+- Multimodal C4: An Open, Billion-scale Corpus of Images Interleaved With Text
+- ChartAssisstant: A Universal Chart Multimodal Language Model via Chart-to-Table Pre-training and Multitask Instruction Tuning
+</details>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Awesome Data-Model Co-Development of MLLMs </a><ul>
+<li><a class="reference internal" href="#news">News</a></li>
+<li><a class="reference internal" href="#candidate-co-development-tags">Candidate Co-Development Tags</a><ul>
+<li><a class="reference internal" href="#data4model-scaling">Data4Model: Scaling</a><ul>
+<li><a class="reference internal" href="#for-scaling-up-of-mllms-larger-datasets">For Scaling Up of MLLMs: Larger Datasets</a></li>
+<li><a class="reference internal" href="#for-scaling-effectiveness-of-mllms-better-subsets">For Scaling Effectiveness of MLLMs: Better Subsets</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data4model-usability">Data4Model: Usability</a><ul>
+<li><a class="reference internal" href="#for-instruction-responsiveness-of-mllms">For Instruction Responsiveness of MLLMs</a></li>
+<li><a class="reference internal" href="#for-reasoning-ability-of-mllms">For Reasoning Ability of MLLMs</a></li>
+<li><a class="reference internal" href="#for-ethics-of-mllms">For Ethics of MLLMs</a></li>
+<li><a class="reference internal" href="#for-evaluation-of-mllms">For Evaluation of MLLMs</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#model4data-synthesis">Model4Data: Synthesis</a></li>
+<li><a class="reference internal" href="#model4data-insights">Model4Data: Insights</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#paper-list">Paper List</a></li>
+<li><a class="reference internal" href="#contribution-to-this-survey">Contribution to This Survey</a><ul>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#section-mentioned-papers-retrieval-list">“Section - Mentioned Papers” Retrieval List</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="DeveloperGuide.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">How-to Guide for Developers</span>
+        </a>
+        <a href="BadDataExhibition.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">“Bad” Data Exhibition</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

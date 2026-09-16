@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.utils.constant — data-juicer</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../../../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../../../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../../../index_ZH.html" class="navbar-brand">
+          <img src="../../../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../../../docs_index_ZH.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../../../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">zh-CN</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../../en/v1.6.0/_modules/data_juicer/utils/constant.html" class="dropdown-item">English</a>
+            <a href="../../../../../zh_CN/v1.6.0/_modules/data_juicer/utils/constant_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../../../"
+             data-page="_modules/data_juicer/utils/constant"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../v1.6.0/_modules/data_juicer/utils/constant.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../../../index_ZH.html">首页</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../../../docs_index_ZH.html">文档</a></p>
+          <p class="caption" role="heading"><span class="caption-text">入门</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/Installation_ZH.html">安装</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/QuickStart_ZH.html">快速上手</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/DJ-Cookbook_ZH.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">使用指南</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/ProcessData_ZH.html">数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/AnalyzeData_ZH.html">数据分析</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Playground_ZH.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DatasetCfg_ZH.html">数据集配置</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Export_ZH.html">数据集导出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Cache_ZH.html">缓存管理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Tracing_ZH.html">数据追踪</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">速查手册</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/GlobalConfig_ZH.html">全局配置参数速查</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">分布式处理</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Distributed_ZH.html">Data-Juicer 分布式数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/PartitionAndCheckpoint_ZH.html">分区处理与检查点</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/JobManagement_ZH.html">作业管理</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">扩展与开发</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/OperatorPlugins_ZH.html">算子插件</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DJ_service_ZH.html">DJ 服务化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DJ_SORA_ZH.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Juicer_ZH.html">Juicer：自然语言数据精炼模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DeveloperGuide_ZH.html">开发者指南</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">资源</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/BadDataExhibition_ZH.html">“坏”数据展览</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">算子</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/README_ZH.html">演示</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/BAD_CASE_INSIGHTS_ZH.html">Agent 交互数据：Bad case 洞察</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/BAD_CASE_REPORT_ZH.html">Bad case 自助报告（简化入口）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/PERFORMANCE_LLM_ZH.html">Agent 流水线里 LLM 算子：加速与超参</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/QUICKSTART_BAD_CASE_ZH.html">Bad case 流水线：一键运行与端到端指南</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/minimal_configs/README_ZH.html">Agent 流水线最小可运行配置（便于逐项调试）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/scripts/README_ZH.html">Agent pipeline 后分析脚本</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/auto_evaluation_helm/README_ZH.html">自动化评测：HELM 评测及可视化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/elastic_sharding/README_ZH.html">基于共享存储的多机弹性分片</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/role_playing_system_prompt/README_ZH.html">为LLM构造角色扮演的system prompt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/video_humanvbench_simple/README_ZH.html">HumanVBench 算子演示</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">工具</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/distributed_deduplication/README_ZH.html">分布式模糊去重工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/README_ZH.html">自动评测工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/gpt_eval/README_ZH.html">GPT EVAL：使用 OpenAI API 评测大模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/recorder/README_ZH.html">评测结果记录器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/README_ZH.html">格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/multimodal/README_ZH.html">多模态格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/post_tuning_dialog/README_ZH.html">后微调工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/mm_eval/inception_metrics/README_ZH.html">视频生成测评工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/mm_eval/vbench_metrics/README_ZH.html">VBench 视频质量指标</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/postprocess/README_ZH.html">后处理工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/preprocess/README_ZH.html">预处理工具</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">第三方</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/LLM_ecosystems/README_ZH.html">大语言模型生态</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/models/README_ZH.html">第三方模型库</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="相关项目">
+          <p class="sidebar-projects-title">相关项目</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <h1>data_juicer.utils.constant 源代码</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">zstandard</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">zstd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">loguru</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
+
+<span class="n">RAY_JOB_ENV_VAR</span> <span class="o">=</span> <span class="s2">"RAY_JOB"</span>
+<span class="n">SPECIAL_TOKEN_ENV_PREFIX</span> <span class="o">=</span> <span class="s2">"_DJ_SPECIAL_TOKEN_"</span>
+<span class="n">DEFAULT_PREFIX</span> <span class="o">=</span> <span class="s2">"__dj__"</span>
+
+<span class="c1"># Default model names used across tests, docs and demos.</span>
+<span class="n">DEFAULT_API_MODEL</span> <span class="o">=</span> <span class="s2">"qwen3.7-max"</span>
+<span class="n">DEFAULT_VL_API_MODEL</span> <span class="o">=</span> <span class="s2">"qwen3-vl-8b-instruct"</span>
+
+
+<div class="viewcode-block" id="Fields">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.Fields">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Fields</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># for storing stats generated by filter op</span>
+    <span class="n">stats</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"stats__"</span>
+    <span class="c1"># for storing metas generated by mapper op</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"meta__"</span>
+    <span class="c1"># for storing metas of batch samples generated by aggregator op</span>
+    <span class="n">batch_meta</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"batch_meta__"</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"context__"</span>
+    <span class="n">suffix</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"suffix__"</span>
+
+    <span class="c1"># text_tags</span>
+    <span class="n">text_tags</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"text_tags__"</span>
+
+    <span class="c1"># the name of the original file from which this sample was derived.</span>
+    <span class="n">source_file</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"source_file__"</span>
+
+    <span class="c1"># the name of directory to store the produced multimodal data</span>
+    <span class="n">multimodal_data_output_dir</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"produced_data__"</span></div>
+
+
+
+<div class="viewcode-block" id="BatchMetaKeys">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.BatchMetaKeys">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BatchMetaKeys</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">entity_attribute</span> <span class="o">=</span> <span class="s2">"entity_attribute"</span>
+    <span class="n">most_relevant_entities</span> <span class="o">=</span> <span class="s2">"most_relevant_entities"</span></div>
+
+
+
+<div class="viewcode-block" id="MetaKeys">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MetaKeys</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># === text related tags ===</span>
+
+    <span class="c1"># # humanvbench related tags (CVPR'26)</span>
+    <span class="n">active_speaker_flag</span> <span class="o">=</span> <span class="s2">"active_speaker_flag"</span>
+    <span class="n">audio_speech_attribute</span> <span class="o">=</span> <span class="s2">"audio_speech_attribute"</span>
+    <span class="n">speech_ASR</span> <span class="o">=</span> <span class="s2">"speech_ASR"</span>
+    <span class="n">speech_emotion</span> <span class="o">=</span> <span class="s2">"speech_emotion"</span>
+    <span class="n">video_facetrack_attribute_demographic</span> <span class="o">=</span> <span class="s2">"video_facetrack_attribute_demographic"</span>
+    <span class="n">video_facetrack_attribute_emotion</span> <span class="o">=</span> <span class="s2">"video_facetrack_attribute_emotion"</span>
+    <span class="n">track_video_caption</span> <span class="o">=</span> <span class="s2">"track_video_caption"</span>
+    <span class="n">video_track_is_child</span> <span class="o">=</span> <span class="s2">"video_track_is_child"</span>
+    <span class="n">human_track_data_path</span> <span class="o">=</span> <span class="s2">"human_track_data_path"</span>
+    <span class="n">number_people_in_video</span> <span class="o">=</span> <span class="s2">"number_people_in_video"</span>
+
+    <span class="c1"># # sentiment</span>
+    <span class="n">dialog_sentiment_intensity</span> <span class="o">=</span> <span class="s2">"dialog_sentiment_intensity"</span>
+    <span class="n">dialog_sentiment_intensity_analysis</span> <span class="o">=</span> <span class="s2">"dialog_sentiment_intensity_analysis"</span>
+    <span class="n">query_sentiment_label</span> <span class="o">=</span> <span class="s2">"query_sentiment_label"</span>
+    <span class="n">query_sentiment_score</span> <span class="o">=</span> <span class="s2">"query_sentiment_label_score"</span>
+    <span class="n">dialog_sentiment_labels</span> <span class="o">=</span> <span class="s2">"dialog_sentiment_labels"</span>
+    <span class="n">dialog_sentiment_labels_analysis</span> <span class="o">=</span> <span class="s2">"dialog_sentiment_labels_analysis"</span>
+    <span class="c1"># # intent</span>
+    <span class="n">dialog_intent_labels</span> <span class="o">=</span> <span class="s2">"dialog_intent_labels"</span>
+    <span class="n">dialog_intent_labels_analysis</span> <span class="o">=</span> <span class="s2">"dialog_intent_labels_analysis"</span>
+    <span class="n">query_intent_label</span> <span class="o">=</span> <span class="s2">"query_intent_label"</span>
+    <span class="n">query_intent_score</span> <span class="o">=</span> <span class="s2">"query_intent_label_score"</span>
+    <span class="c1"># # topic</span>
+    <span class="n">dialog_topic_labels</span> <span class="o">=</span> <span class="s2">"dialog_topic_labels"</span>
+    <span class="n">dialog_topic_labels_analysis</span> <span class="o">=</span> <span class="s2">"dialog_topic_labels_analysis"</span>
+    <span class="n">query_topic_label</span> <span class="o">=</span> <span class="s2">"query_topic_label"</span>
+    <span class="n">query_topic_score</span> <span class="o">=</span> <span class="s2">"query_topic_label_score"</span>
+
+    <span class="c1"># === multi-modal related tags ===</span>
+    <span class="c1"># # video-frame tags</span>
+    <span class="n">video_frame_tags</span> <span class="o">=</span> <span class="s2">"video_frame_tags"</span>
+    <span class="c1"># # video-audio tags</span>
+    <span class="n">video_audio_tags</span> <span class="o">=</span> <span class="s2">"video_audio_tags"</span>
+    <span class="c1"># # video frames</span>
+    <span class="n">video_frames</span> <span class="o">=</span> <span class="s2">"video_frames"</span>
+    <span class="c1"># # object segment info in video</span>
+    <span class="n">video_object_segment_tags</span> <span class="o">=</span> <span class="s2">"video_object_segment_tags"</span>
+    <span class="c1"># # depth info in video</span>
+    <span class="n">video_depth_tags</span> <span class="o">=</span> <span class="s2">"video_depth_tags"</span>
+    <span class="c1"># # video optical flow</span>
+    <span class="n">video_optical_flow</span> <span class="o">=</span> <span class="s2">"video_optical_flow"</span>
+    <span class="c1"># # info extracted by VGGT</span>
+    <span class="n">vggt_tags</span> <span class="o">=</span> <span class="s2">"vggt_tags"</span>
+    <span class="c1"># # image tags</span>
+    <span class="n">image_tags</span> <span class="o">=</span> <span class="s2">"image_tags"</span>
+    <span class="c1"># # hand reconstruction</span>
+    <span class="n">hand_reconstruction_tags</span> <span class="o">=</span> <span class="s2">"hand_reconstruction_tags"</span>
+    <span class="n">hand_reconstruction_hawor_tags</span> <span class="o">=</span> <span class="s2">"hand_reconstruction_hawor_tags"</span>
+    <span class="c1"># # bounding box tag</span>
+    <span class="n">bbox_tag</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"bbox__"</span>
+    <span class="c1"># # class label (from detection) tag</span>
+    <span class="n">class_label_tag</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"class_label__"</span>
+    <span class="c1"># # 2D whole-body pose estimation</span>
+    <span class="n">pose_estimation_tags</span> <span class="o">=</span> <span class="s2">"pose_estimation_tags"</span>
+
+    <span class="c1"># # pose information</span>
+    <span class="n">pose_info</span> <span class="o">=</span> <span class="s2">"pose_info"</span>
+    <span class="c1"># # Camera Calibration Info (for DeepCalib)</span>
+    <span class="n">camera_calibration_deepcalib_tags</span> <span class="o">=</span> <span class="s2">"camera_calibration_deepcalib_tags"</span>
+    <span class="c1"># # Camera Calibration Info (for Moge-2)</span>
+    <span class="n">camera_calibration_moge_tags</span> <span class="o">=</span> <span class="s2">"camera_calibration_moge_tags"</span>
+    <span class="c1"># # Video Undistortion Info</span>
+    <span class="n">undistorted_video</span> <span class="o">=</span> <span class="s2">"undistorted_video"</span>
+    <span class="c1"># # Camera Pose Info</span>
+    <span class="n">video_camera_pose_tags</span> <span class="o">=</span> <span class="s2">"video_camera_pose_tags"</span>
+    <span class="c1"># # Camera Calibration Info (for DroidCalib)</span>
+    <span class="n">camera_calibration_droidcalib_tags</span> <span class="o">=</span> <span class="s2">"camera_calibration_droidcalib_tags"</span>
+    <span class="c1"># # Hand action (state + action) computed from hand recon + camera pose</span>
+    <span class="n">hand_action_tags</span> <span class="o">=</span> <span class="s2">"hand_action_tags"</span>
+
+    <span class="c1"># === info extraction related tags ===</span>
+    <span class="c1"># # for event extraction</span>
+    <span class="n">event_description</span> <span class="o">=</span> <span class="s2">"event_description"</span>
+    <span class="c1"># # a list of characters relevant to the event</span>
+    <span class="n">relevant_characters</span> <span class="o">=</span> <span class="s2">"relevant_characters"</span>
+    <span class="c1"># # the given main entities for attribute extraction</span>
+    <span class="n">main_entities</span> <span class="o">=</span> <span class="s2">"main_entities"</span>
+    <span class="c1"># # the given attributes to be extracted</span>
+    <span class="n">attributes</span> <span class="o">=</span> <span class="s2">"attributes"</span>
+    <span class="c1"># # the extracted attribute descriptions</span>
+    <span class="n">attribute_descriptions</span> <span class="o">=</span> <span class="s2">"attribute_descriptions"</span>
+    <span class="c1"># # extract from raw data for support the attribute</span>
+    <span class="n">attribute_support_texts</span> <span class="o">=</span> <span class="s2">"attribute_support_texts"</span>
+    <span class="c1"># # the nickname relationship</span>
+    <span class="n">nickname</span> <span class="o">=</span> <span class="s2">"nickname"</span>
+    <span class="c1"># # the entity for knowledge graph</span>
+    <span class="n">entity</span> <span class="o">=</span> <span class="s2">"entity"</span>
+    <span class="c1"># # # the name of entity</span>
+    <span class="n">entity_name</span> <span class="o">=</span> <span class="s2">"entity_name"</span>
+    <span class="c1"># # # the type of entity</span>
+    <span class="n">entity_type</span> <span class="o">=</span> <span class="s2">"entity_type"</span>
+    <span class="c1"># # # the description of entity</span>
+    <span class="n">entity_description</span> <span class="o">=</span> <span class="s2">"entity_entity_description"</span>
+    <span class="c1"># # the relationship for knowledge graph</span>
+    <span class="n">relation</span> <span class="o">=</span> <span class="s2">"relation"</span>
+    <span class="c1"># # # the source entity of the relation</span>
+    <span class="n">source_entity</span> <span class="o">=</span> <span class="s2">"relation_source_entity"</span>
+    <span class="c1"># # # the target entity of the relation</span>
+    <span class="n">target_entity</span> <span class="o">=</span> <span class="s2">"relation_target_entity"</span>
+    <span class="c1"># # # the description of the relation</span>
+    <span class="n">relation_description</span> <span class="o">=</span> <span class="s2">"relation_description"</span>
+    <span class="c1"># # # the keywords of the relation</span>
+    <span class="n">relation_keywords</span> <span class="o">=</span> <span class="s2">"relation_keywords"</span>
+    <span class="c1"># # # the strength of the relation</span>
+    <span class="n">relation_strength</span> <span class="o">=</span> <span class="s2">"relation_strength"</span>
+    <span class="c1"># # the keyword in a text</span>
+    <span class="n">keyword</span> <span class="o">=</span> <span class="s2">"keyword"</span>
+    <span class="c1"># # support text</span>
+    <span class="n">support_text</span> <span class="o">=</span> <span class="s2">"support_text"</span>
+    <span class="c1"># # role relation</span>
+    <span class="n">role_relation</span> <span class="o">=</span> <span class="s2">"role_relation"</span>
+    <span class="c1"># # html tables</span>
+    <span class="n">html_tables</span> <span class="o">=</span> <span class="s2">"html_tables"</span>
+    <span class="c1"># # LLM-based structured extraction (user-configurable output_schema)</span>
+    <span class="n">llm_extract</span> <span class="o">=</span> <span class="s2">"llm_extract"</span>
+    <span class="c1"># # LLM semantic ops: token/cost usage per call (prompt_tokens, completion_tokens, total_tokens, cost_estimate)</span>
+    <span class="n">llm_semantic_usage</span> <span class="o">=</span> <span class="s2">"llm_semantic_usage"</span>
+
+    <span class="c1"># === agent / dialog quality analysis tags ===</span>
+    <span class="c1"># # from agent_dialog_normalize_mapper</span>
+    <span class="n">agent_tool_types</span> <span class="o">=</span> <span class="s2">"agent_tool_types"</span>
+    <span class="n">agent_skill_types</span> <span class="o">=</span> <span class="s2">"agent_skill_types"</span>
+    <span class="n">agent_skill_insights</span> <span class="o">=</span> <span class="s2">"agent_skill_insights"</span>
+    <span class="n">agent_turn_count</span> <span class="o">=</span> <span class="s2">"agent_turn_count"</span>
+    <span class="c1"># # lineage / cohort fields (copied from raw agent JSON e.g. request_model, pt)</span>
+    <span class="n">agent_request_model</span> <span class="o">=</span> <span class="s2">"agent_request_model"</span>
+    <span class="n">agent_pt</span> <span class="o">=</span> <span class="s2">"agent_pt"</span>
+    <span class="n">agent_total_cost_time_ms</span> <span class="o">=</span> <span class="s2">"agent_total_cost_time_ms"</span>
+    <span class="c1"># # stable ids / message indices (for reports, showcase, log correlation)</span>
+    <span class="n">agent_request_id</span> <span class="o">=</span> <span class="s2">"agent_request_id"</span>
+    <span class="n">agent_last_user_msg_idx</span> <span class="o">=</span> <span class="s2">"agent_last_user_msg_idx"</span>
+    <span class="n">agent_last_assistant_msg_idx</span> <span class="o">=</span> <span class="s2">"agent_last_assistant_msg_idx"</span>
+    <span class="c1"># # True if dialog_history / text / query / response were shrunk via head+tail cap</span>
+    <span class="n">agent_dialog_history_compressed</span> <span class="o">=</span> <span class="s2">"agent_dialog_history_compressed"</span>
+    <span class="c1"># # from agent_bad_case_signal_mapper — structured, conservatively triaged</span>
+    <span class="n">agent_bad_case_signals</span> <span class="o">=</span> <span class="s2">"agent_bad_case_signals"</span>
+    <span class="n">agent_bad_case_tier</span> <span class="o">=</span> <span class="s2">"agent_bad_case_tier"</span>
+    <span class="c1"># # from agent_insight_llm_mapper — LLM synthesis for attribution / dashboards</span>
+    <span class="n">agent_insight_llm</span> <span class="o">=</span> <span class="s2">"agent_insight_llm"</span>
+    <span class="n">agent_insight_llm_raw</span> <span class="o">=</span> <span class="s2">"agent_insight_llm_raw"</span>
+    <span class="c1"># last writer (e.g. agent_insight_llm_mapper) records pipeline UI / report locale hint</span>
+    <span class="n">agent_pipeline_output_lang</span> <span class="o">=</span> <span class="s2">"agent_pipeline_output_lang"</span>
+    <span class="c1"># # from pii_llm_suspect_mapper — optional LLM audit for missed regex PII</span>
+    <span class="n">pii_llm_suspect</span> <span class="o">=</span> <span class="s2">"pii_llm_suspect"</span>
+    <span class="n">pii_llm_suspect_raw</span> <span class="o">=</span> <span class="s2">"pii_llm_suspect_raw"</span>
+    <span class="c1"># # dialog/agent turn-quality LLM mappers (see dialog_* / agent_* mapper files)</span>
+    <span class="n">dialog_memory_consistency</span> <span class="o">=</span> <span class="s2">"dialog_memory_consistency"</span>
+    <span class="n">dialog_coreference</span> <span class="o">=</span> <span class="s2">"dialog_coreference"</span>
+    <span class="n">dialog_topic_shift</span> <span class="o">=</span> <span class="s2">"dialog_topic_shift"</span>
+    <span class="n">dialog_error_recovery</span> <span class="o">=</span> <span class="s2">"dialog_error_recovery"</span>
+    <span class="n">dialog_clarification_quality</span> <span class="o">=</span> <span class="s2">"dialog_clarification_quality"</span>
+    <span class="n">dialog_proactivity</span> <span class="o">=</span> <span class="s2">"dialog_proactivity"</span>
+    <span class="n">dialog_non_repetition</span> <span class="o">=</span> <span class="s2">"dialog_non_repetition"</span>
+    <span class="n">agent_trace_coherence</span> <span class="o">=</span> <span class="s2">"agent_trace_coherence"</span>
+    <span class="n">agent_tool_relevance</span> <span class="o">=</span> <span class="s2">"agent_tool_relevance"</span>
+    <span class="c1"># # from agent_tool_type_mapper</span>
+    <span class="n">primary_tool_type</span> <span class="o">=</span> <span class="s2">"primary_tool_type"</span>
+    <span class="n">dominant_tool_types</span> <span class="o">=</span> <span class="s2">"dominant_tool_types"</span>
+    <span class="c1"># # from usage_counter_mapper</span>
+    <span class="n">prompt_tokens</span> <span class="o">=</span> <span class="s2">"prompt_tokens"</span>
+    <span class="n">completion_tokens</span> <span class="o">=</span> <span class="s2">"completion_tokens"</span>
+    <span class="n">total_tokens</span> <span class="o">=</span> <span class="s2">"total_tokens"</span>
+    <span class="c1"># # from tool_success_tagger_mapper</span>
+    <span class="n">tool_success_count</span> <span class="o">=</span> <span class="s2">"tool_success_count"</span>
+    <span class="n">tool_fail_count</span> <span class="o">=</span> <span class="s2">"tool_fail_count"</span>
+    <span class="n">tool_unknown_count</span> <span class="o">=</span> <span class="s2">"tool_unknown_count"</span>
+    <span class="n">tool_success_ratio</span> <span class="o">=</span> <span class="s2">"tool_success_ratio"</span>
+    <span class="n">tool_results</span> <span class="o">=</span> <span class="s2">"tool_results"</span></div>
+
+
+
+<div class="viewcode-block" id="StatsKeysMeta">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysMeta">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatsKeysMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    a helper class to track the mapping from OP's name to its used stats_keys</span>
+
+<span class="sd">    e.g., # once the AlphanumericFilter's compute_stats method has been called</span>
+<span class="sd">    res = TrackingDescriptor.get_access_log()</span>
+<span class="sd">    print(res) # {"AlphanumericFilter": ["alnum_ratio", "alpha_token_ratio"]}</span>
+<span class="sd">    """</span>
+
+    <span class="n">_accessed_by</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="n">caller_class</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">currentframe</span><span class="p">()</span><span class="o">.</span><span class="n">f_back</span><span class="o">.</span><span class="n">f_globals</span><span class="p">[</span><span class="s2">"__name__"</span><span class="p">]</span>
+        <span class="c1"># no need to track the parent classes</span>
+        <span class="n">caller_class</span> <span class="o">=</span> <span class="n">caller_class</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">stat_key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_constants_class</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">caller_class</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_accessed_by</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_accessed_by</span><span class="p">[</span><span class="n">caller_class</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">stat_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_accessed_by</span><span class="p">[</span><span class="n">caller_class</span><span class="p">]:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_accessed_by</span><span class="p">[</span><span class="n">caller_class</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">stat_key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stat_key</span>
+
+<div class="viewcode-block" id="StatsKeysMeta.get_access_log">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysMeta.get_access_log">[文档]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_access_log</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dj_cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_accessed_by</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_accessed_by</span>
+        <span class="k">elif</span> <span class="n">dj_cfg</span> <span class="ow">and</span> <span class="n">dataset</span><span class="p">:</span>
+            <span class="n">tmp_dj_cfg</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">dj_cfg</span><span class="p">)</span>
+            <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">use_cache</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">use_checkpoint</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">auto_op_parallelism</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Disable auto parallelism to track StatsKeys access</span>
+            <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">np</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Disable multiprocessing to track StatsKeys access</span>
+            <span class="c1"># Force disable multiprocessing for each op to track StatsKeys access</span>
+            <span class="k">for</span> <span class="n">op_config</span> <span class="ow">in</span> <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">process</span><span class="p">:</span>
+                <span class="n">op_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">op_config</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">op_config</span><span class="p">[</span><span class="n">op_name</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">op_config</span><span class="p">[</span><span class="n">op_name</span><span class="p">][</span><span class="s2">"auto_op_parallelism"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">op_config</span><span class="p">[</span><span class="n">op_name</span><span class="p">][</span><span class="s2">"num_proc"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_init_configs</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Analyzer</span>
+
+            <span class="n">tmp_analyzer</span> <span class="o">=</span> <span class="n">Analyzer</span><span class="p">(</span><span class="n">get_init_configs</span><span class="p">(</span><span class="n">tmp_dj_cfg</span><span class="p">))</span>
+
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># do not overwrite the true analysis results</span>
+            <span class="n">tmp_analyzer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">skip_export</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">dj_cfg</span><span class="p">:</span>
+            <span class="n">tmp_dj_cfg</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">dj_cfg</span><span class="p">)</span>
+            <span class="c1"># the access has been skipped due to the use of cache</span>
+            <span class="c1"># we will using a temp data sample to get the access log</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span>
+                <span class="p">(</span><span class="s2">".jsonl.zst"</span><span class="p">,</span> <span class="s2">".jsonl.gz"</span><span class="p">,</span> <span class="s2">".jsonl"</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Begin to track the usage of ops with a dummy data sample"</span><span class="p">)</span>
+
+                <span class="c1"># load the first line as tmp_data</span>
+                <span class="n">tmp_f_name</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">first_line</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".jsonl.zst"</span><span class="p">):</span>
+                    <span class="n">tmp_f_name</span> <span class="o">=</span> <span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">".jsonl.zst"</span><span class="p">,</span> <span class="s2">".tmp.jsonl"</span><span class="p">)</span>
+                    <span class="c1"># Open the file in binary mode and</span>
+                    <span class="c1"># create a Zstandard decompression context</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">compressed_file</span><span class="p">:</span>
+                        <span class="n">dctx</span> <span class="o">=</span> <span class="n">zstd</span><span class="o">.</span><span class="n">ZstdDecompressor</span><span class="p">()</span>
+                        <span class="c1"># Create a stream reader for the file and decode the</span>
+                        <span class="c1"># first line</span>
+                        <span class="k">with</span> <span class="n">dctx</span><span class="o">.</span><span class="n">stream_reader</span><span class="p">(</span><span class="n">compressed_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">reader</span><span class="p">:</span>
+                            <span class="n">text_stream</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+                            <span class="n">first_line</span> <span class="o">=</span> <span class="n">text_stream</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".jsonl.gz"</span><span class="p">):</span>
+                    <span class="n">tmp_f_name</span> <span class="o">=</span> <span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">".jsonl.gz"</span><span class="p">,</span> <span class="s2">".tmp.jsonl"</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="p">,</span> <span class="s2">"rt"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">orig_file</span><span class="p">:</span>
+                        <span class="n">first_line</span> <span class="o">=</span> <span class="n">orig_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".jsonl"</span><span class="p">):</span>
+                    <span class="n">tmp_f_name</span> <span class="o">=</span> <span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">".jsonl"</span><span class="p">,</span> <span class="s2">".tmp.jsonl"</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">orig_file</span><span class="p">:</span>
+                        <span class="n">first_line</span> <span class="o">=</span> <span class="n">orig_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+                <span class="k">assert</span> <span class="n">tmp_f_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">first_line</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="s2">"error when loading the first line, when "</span> <span class="sa">f</span><span class="s2">"dj_cfg.dataset_path=</span><span class="si">{</span><span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_f_name</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp_file</span><span class="p">:</span>
+                    <span class="n">tmp_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">first_line</span><span class="p">)</span>
+
+                <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span> <span class="o">=</span> <span class="n">tmp_f_name</span>
+                <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">use_cache</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">use_checkpoint</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">auto_op_parallelism</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Disable auto parallelism to track StatsKeys access</span>
+                <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">np</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Disable multiprocessing to track StatsKeys access</span>
+                <span class="c1"># Force disable multiprocessing for each op to track StatsKeys access</span>
+                <span class="k">for</span> <span class="n">op_config</span> <span class="ow">in</span> <span class="n">tmp_dj_cfg</span><span class="o">.</span><span class="n">process</span><span class="p">:</span>
+                    <span class="n">op_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">op_config</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">op_config</span><span class="p">[</span><span class="n">op_name</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">op_config</span><span class="p">[</span><span class="n">op_name</span><span class="p">][</span><span class="s2">"auto_op_parallelism"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="n">op_config</span><span class="p">[</span><span class="n">op_name</span><span class="p">][</span><span class="s2">"num_proc"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_init_configs</span>
+                    <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Analyzer</span>
+
+                    <span class="n">tmp_analyzer</span> <span class="o">=</span> <span class="n">Analyzer</span><span class="p">(</span><span class="n">get_init_configs</span><span class="p">(</span><span class="n">tmp_dj_cfg</span><span class="p">))</span>
+                    <span class="c1"># do not overwrite the true analysis results</span>
+                    <span class="n">tmp_analyzer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">skip_export</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">finally</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tmp_f_name</span><span class="p">):</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmp_f_name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"For now, the dummy data is supported for only jsonl type"</span>
+                    <span class="sa">f</span><span class="s2">". Please check your config as </span><span class="si">{</span><span class="n">dj_cfg</span><span class="o">.</span><span class="n">dataset_path</span><span class="si">}</span><span class="s2"> is "</span>
+                    <span class="sa">f</span><span class="s2">"either not existed or in jsonl type."</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_accessed_by</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="StatsKeysConstant">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatsKeysConstant</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1">#  === text ===</span>
+    <span class="n">alpha_token_ratio</span> <span class="o">=</span> <span class="s2">"alpha_token_ratio"</span>
+    <span class="n">alnum_ratio</span> <span class="o">=</span> <span class="s2">"alnum_ratio"</span>
+    <span class="n">avg_line_length</span> <span class="o">=</span> <span class="s2">"avg_line_length"</span>
+    <span class="n">char_rep_ratio</span> <span class="o">=</span> <span class="s2">"char_rep_ratio"</span>
+    <span class="n">flagged_words_ratio</span> <span class="o">=</span> <span class="s2">"flagged_words_ratio"</span>
+    <span class="n">in_context_influence</span> <span class="o">=</span> <span class="s2">"in_context_influence"</span>
+    <span class="n">ifd_score</span> <span class="o">=</span> <span class="s2">"ifd_score"</span>
+    <span class="n">lang</span> <span class="o">=</span> <span class="s2">"lang"</span>
+    <span class="n">lang_score</span> <span class="o">=</span> <span class="s2">"lang_score"</span>
+    <span class="n">max_line_length</span> <span class="o">=</span> <span class="s2">"max_line_length"</span>
+    <span class="n">perplexity</span> <span class="o">=</span> <span class="s2">"perplexity"</span>
+    <span class="n">special_char_ratio</span> <span class="o">=</span> <span class="s2">"special_char_ratio"</span>
+    <span class="n">stopwords_ratio</span> <span class="o">=</span> <span class="s2">"stopwords_ratio"</span>
+    <span class="n">text_len</span> <span class="o">=</span> <span class="s2">"text_len"</span>
+    <span class="n">text_embd_similarity</span> <span class="o">=</span> <span class="s2">"text_embd_similarity"</span>
+    <span class="n">text_pair_similarity</span> <span class="o">=</span> <span class="s2">"text_pair_similarity"</span>
+    <span class="n">num_action</span> <span class="o">=</span> <span class="s2">"num_action"</span>
+    <span class="n">num_dependency_edges</span> <span class="o">=</span> <span class="s2">"num_dependency_edges"</span>
+    <span class="n">num_token</span> <span class="o">=</span> <span class="s2">"num_token"</span>
+    <span class="n">num_words</span> <span class="o">=</span> <span class="s2">"num_words"</span>
+    <span class="n">word_rep_ratio</span> <span class="o">=</span> <span class="s2">"word_rep_ratio"</span>
+    <span class="n">llm_analysis_score</span> <span class="o">=</span> <span class="s2">"llm_analysis_score"</span>
+    <span class="n">llm_analysis_record</span> <span class="o">=</span> <span class="s2">"llm_analysis_record"</span>
+    <span class="n">llm_analysis_tags</span> <span class="o">=</span> <span class="s2">"llm_analysis_tags"</span>
+    <span class="n">llm_quality_score</span> <span class="o">=</span> <span class="s2">"llm_quality_score"</span>
+    <span class="n">llm_quality_record</span> <span class="o">=</span> <span class="s2">"llm_quality_record"</span>
+    <span class="n">llm_quality_tags</span> <span class="o">=</span> <span class="s2">"llm_quality_tags"</span>
+    <span class="n">llm_difficulty_score</span> <span class="o">=</span> <span class="s2">"llm_difficulty_score"</span>
+    <span class="n">llm_difficulty_record</span> <span class="o">=</span> <span class="s2">"llm_difficulty_record"</span>
+    <span class="n">llm_difficulty_tags</span> <span class="o">=</span> <span class="s2">"llm_difficulty_tags"</span>
+    <span class="n">llm_perplexity</span> <span class="o">=</span> <span class="s2">"llm_perplexity"</span>
+    <span class="n">llm_task_relevance</span> <span class="o">=</span> <span class="s2">"llm_task_relevance"</span>
+    <span class="n">llm_task_relevance_record</span> <span class="o">=</span> <span class="s2">"llm_task_relevance_record"</span>
+    <span class="n">llm_task_relevance_tags</span> <span class="o">=</span> <span class="s2">"llm_task_relevance_tags"</span>
+    <span class="c1"># llm_condition_filter: True if sample satisfies the user-given condition</span>
+    <span class="n">llm_condition_filter_result</span> <span class="o">=</span> <span class="s2">"llm_condition_filter_result"</span>
+    <span class="c1"># llm_* semantic ops: token/cost usage (dict with prompt_tokens, completion_tokens, total_tokens, cost_estimate)</span>
+    <span class="n">llm_semantic_usage</span> <span class="o">=</span> <span class="s2">"llm_semantic_usage"</span>
+
+    <span class="c1">#  === image ===</span>
+    <span class="n">aspect_ratios</span> <span class="o">=</span> <span class="s2">"aspect_ratios"</span>
+    <span class="n">image_width</span> <span class="o">=</span> <span class="s2">"image_width"</span>
+    <span class="n">image_height</span> <span class="o">=</span> <span class="s2">"image_height"</span>
+    <span class="n">image_sizes</span> <span class="o">=</span> <span class="s2">"image_sizes"</span>
+    <span class="n">face_ratios</span> <span class="o">=</span> <span class="s2">"face_ratios"</span>
+    <span class="n">face_detections</span> <span class="o">=</span> <span class="s2">"face_detections"</span>
+    <span class="n">face_counts</span> <span class="o">=</span> <span class="s2">"face_counts"</span>
+    <span class="n">image_aesthetics_scores</span> <span class="o">=</span> <span class="s2">"image_aesthetics_scores"</span>
+    <span class="n">image_nsfw_score</span> <span class="o">=</span> <span class="s2">"image_nsfw_score"</span>
+    <span class="n">image_watermark_prob</span> <span class="o">=</span> <span class="s2">"image_watermark_prob"</span>
+    <span class="n">image_pair_similarity</span> <span class="o">=</span> <span class="s2">"image_pair_similarity"</span>
+    <span class="n">image_subplot_confidence</span> <span class="o">=</span> <span class="s2">"image_subplot_confidence"</span>
+    <span class="n">horizontal_peak_count</span> <span class="o">=</span> <span class="s2">"horizontal_peak_count"</span>
+    <span class="n">vertical_peak_count</span> <span class="o">=</span> <span class="s2">"vertical_peak_count"</span>
+    <span class="n">subplot_detected</span> <span class="o">=</span> <span class="s2">"subplot_detected"</span>
+
+    <span class="c1">#  === audios ===</span>
+    <span class="n">audio_duration</span> <span class="o">=</span> <span class="s2">"audio_duration"</span>
+    <span class="n">audio_nmf_snr</span> <span class="o">=</span> <span class="s2">"audio_nmf_snr"</span>
+    <span class="n">audio_sizes</span> <span class="o">=</span> <span class="s2">"audio_sizes"</span>
+
+    <span class="c1">#  === videos ===</span>
+    <span class="n">video_duration</span> <span class="o">=</span> <span class="s2">"video_duration"</span>
+    <span class="n">video_aspect_ratios</span> <span class="o">=</span> <span class="s2">"video_aspect_ratios"</span>
+    <span class="n">video_width</span> <span class="o">=</span> <span class="s2">"video_width"</span>
+    <span class="n">video_height</span> <span class="o">=</span> <span class="s2">"video_height"</span>
+    <span class="n">video_ocr_area_ratio</span> <span class="o">=</span> <span class="s2">"video_ocr_area_ratio"</span>
+    <span class="n">video_aesthetic_score</span> <span class="o">=</span> <span class="s2">"video_aesthetic_score"</span>
+    <span class="n">video_frames_aesthetics_score</span> <span class="o">=</span> <span class="s2">"video_frames_aesthetics_score"</span>
+    <span class="n">video_motion_score</span> <span class="o">=</span> <span class="s2">"video_motion_score"</span>
+    <span class="n">video_nsfw_score</span> <span class="o">=</span> <span class="s2">"video_nsfw_score"</span>
+    <span class="n">video_watermark_prob</span> <span class="o">=</span> <span class="s2">"video_watermark_prob"</span>
+
+    <span class="c1">#  === multimodal ===</span>
+    <span class="c1"># image-text</span>
+    <span class="n">image_text_similarity</span> <span class="o">=</span> <span class="s2">"image_text_similarity"</span>
+    <span class="n">image_text_matching_score</span> <span class="o">=</span> <span class="s2">"image_text_matching_score"</span>
+    <span class="n">phrase_grounding_recall</span> <span class="o">=</span> <span class="s2">"phrase_grounding_recall"</span>
+
+    <span class="c1"># video-text</span>
+    <span class="n">video_frames_text_similarity</span> <span class="o">=</span> <span class="s2">"video_frames_text_similarity"</span>
+
+    <span class="c1"># general-field-filter</span>
+    <span class="n">general_field_filter_condition</span> <span class="o">=</span> <span class="s2">"general_field_filter_condition"</span>
+
+    <span class="c1"># video-face-ratio</span>
+    <span class="n">video_face_exist</span> <span class="o">=</span> <span class="s2">"video_face_exist"</span></div>
+
+
+
+<div class="viewcode-block" id="StatsKeys">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeys">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatsKeys</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">StatsKeysMeta</span><span class="p">):</span>
+    <span class="n">_constants_class</span> <span class="o">=</span> <span class="n">StatsKeysConstant</span></div>
+
+
+
+<div class="viewcode-block" id="HashKeys">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.HashKeys">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HashKeys</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">uid</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"uid"</span>
+    <span class="nb">hash</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"hash"</span>
+    <span class="n">minhash</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"minhash"</span>
+    <span class="n">simhash</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"simhash"</span>
+    <span class="n">line_hashes</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"line_hashes"</span>
+
+    <span class="c1"># image</span>
+    <span class="n">imagehash</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"imagehash"</span>
+
+    <span class="c1"># video</span>
+    <span class="n">videohash</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"videohash"</span>
+
+    <span class="c1"># duplicate flag</span>
+    <span class="n">is_unique</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"is_unique"</span></div>
+
+
+
+<div class="viewcode-block" id="InterVars">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.InterVars">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InterVars</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1">#  === text ===</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"lines"</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"words"</span>
+    <span class="n">refined_words</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"refined_words"</span>
+
+    <span class="c1">#  === image ===</span>
+    <span class="n">loaded_images</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"loaded_images"</span>  <span class="c1"># Image</span>
+
+    <span class="c1">#  === audios ===</span>
+    <span class="n">loaded_audios</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"loaded_audios"</span>  <span class="c1"># (data, sampling_rate)</span>
+
+    <span class="c1">#  === videos ===</span>
+    <span class="c1"># # InputContainer from av.</span>
+    <span class="c1"># # Key: {video_path}</span>
+    <span class="n">loaded_videos</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"loaded_videos"</span>
+    <span class="c1"># sampled frames.</span>
+    <span class="c1"># # Key: {video_path}-{frame_sampling_method}[-{frame_num}]</span>
+    <span class="c1"># #   {frame_num} is only used when {frame_sampling_method} is "uniform"</span>
+    <span class="n">sampled_frames</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s2">"sampled_frames"</span></div>
+
+
+
+<div class="viewcode-block" id="JobRequiredKeys">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.JobRequiredKeys">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">JobRequiredKeys</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">hook</span> <span class="o">=</span> <span class="s2">"hook"</span>
+    <span class="n">meta_name</span> <span class="o">=</span> <span class="s2">"meta_name"</span>
+    <span class="nb">input</span> <span class="o">=</span> <span class="s2">"input"</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="s2">"output"</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="s2">"local"</span>
+    <span class="n">dj_configs</span> <span class="o">=</span> <span class="s2">"dj_configs"</span>
+    <span class="n">extra_configs</span> <span class="o">=</span> <span class="s2">"extra_configs"</span></div>
+
+
+
+<div class="viewcode-block" id="CameraCalibrationKeys">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.constant.html#data_juicer.utils.constant.CameraCalibrationKeys">[文档]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CameraCalibrationKeys</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">intrinsics</span> <span class="o">=</span> <span class="s2">"intrinsics"</span>
+    <span class="n">xi</span> <span class="o">=</span> <span class="s2">"xi"</span>
+    <span class="n">hfov</span> <span class="o">=</span> <span class="s2">"hfov"</span>
+    <span class="n">vfov</span> <span class="o">=</span> <span class="s2">"vfov"</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="s2">"points"</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="s2">"mask"</span>
+    <span class="n">depth</span> <span class="o">=</span> <span class="s2">"depth"</span>
+    <span class="n">cam_c2w</span> <span class="o">=</span> <span class="s2">"cam_c2w"</span>
+    <span class="n">dist_coeffs</span> <span class="o">=</span> <span class="s2">"dist_coeffs"</span>
+    <span class="n">rectify_R</span> <span class="o">=</span> <span class="s2">"rectify_R"</span>  <span class="c1"># or "rotation_matrix"</span>
+    <span class="n">new_intrinsics</span> <span class="o">=</span> <span class="s2">"new_intrinsics"</span></div>
+
+</pre></div>
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../../../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../../../_static/documentation_options.js"></script>
+  <script src="../../../_static/doctools.js"></script>
+  <script src="../../../_static/sphinx_highlight.js"></script>
+  <script src="../../../_static/clipboard.min.js"></script>
+  <script src="../../../_static/copybutton.js"></script>
+  <script src="../../../_static/translations.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../../../_static/ask-ai-widget.js"></script>
+</body>
+</html>

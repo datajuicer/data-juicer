@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>llm_difficulty_score_filter — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../../../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../../../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../../../index.html" class="navbar-brand">
+          <img src="../../../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../../../docs_index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../../../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../../en/v1.6.0/docs/operators/filter/llm_difficulty_score_filter.html" class="dropdown-item active">English</a>
+            <a href="../../../../../zh_CN/v1.6.0/docs/operators/filter/llm_difficulty_score_filter.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../../../"
+             data-page="docs/operators/filter/llm_difficulty_score_filter"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../v1.6.0/docs/operators/filter/llm_difficulty_score_filter.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../../../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../../../docs_index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/QuickStart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../ProcessData.html">Processing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../AnalyzeData.html">Data Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Playground.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../DatasetCfg.html">Dataset Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Export.html">Dataset Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Cache.html">Cache Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Tracing.html">Data Tracing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Lookup Materials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../GlobalConfig.html">Global Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Distributed Processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../PartitionAndCheckpoint.html">Partitioned Processing with Checkpointing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../JobManagement.html">Job Management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extension &amp; Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../OperatorPlugins.html">Operator Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../DJ_service.html">DJ Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Juicer.html">Juicer: Natural-Language Data Refinement Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../DeveloperGuide.html">How-to Guide for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Resources</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">operators</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Filter</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/elastic_sharding/README.html">Elastic Multi-Node Sharding on Shared Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/video_humanvbench_simple/README.html">HumanVBench Operators Demo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="llm-difficulty-score-filter">
+<h1>llm_difficulty_score_filter<a class="headerlink" href="#llm-difficulty-score-filter" title="Link to this heading">¶</a></h1>
+<p>Filter to keep samples with high difficulty scores estimated by an LLM.</p>
+<p>This operator uses a Hugging Face LLM to evaluate the difficulty of each sample. The LLM analyzes the sample across multiple dimensions, including linguistic complexity, conceptual depth, prior knowledge, step complexity, and ambiguity. Each dimension is scored on a 1-5 scale, with 5 being the highest difficulty. The final difficulty score is computed as the average of these dimension scores. Samples are kept if their difficulty score falls within the specified range (min_score to max_score). The key metric ‘llm_difficulty_score’ is stored in the sample’s stats, along with detailed records and flags.</p>
+<p>用于保留由大型语言模型估计出高难度分数的样本的过滤器。</p>
+<p>该算子使用Hugging Face的大型语言模型评估每个样本的难度。LLM从多个维度分析样本，包括语言复杂性、概念深度、先验知识、步骤复杂性和模糊性。每个维度的评分范围为1-5分，5分为最高难度。最终的难度分数是这些维度分数的平均值。如果样本的难度分数在指定范围内（min_score到max_score），则保留该样本。关键指标’llm_difficulty_score’存储在样本的stats中，同时还有详细的记录和标志。</p>
+<p>Type 算子类型: <strong>filter</strong></p>
+<p>Tags 标签: gpu, vllm, hf, api</p>
+<section id="parameter-configuration">
+<h2>🔧 Parameter Configuration 参数配置<a class="headerlink" href="#parameter-configuration" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>name 参数名</p></th>
+<th class="head"><p>type 类型</p></th>
+<th class="head"><p>default 默认值</p></th>
+<th class="head"><p>desc 说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">api_or_hf_model</span></code></p></td>
+<td><p>&lt;class ‘str’&gt;</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'gpt-4o'</span></code></p></td>
+<td><p>API or huggingface model name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">min_score</span></code></p></td>
+<td><p>&lt;class ‘float’&gt;</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.5</span></code></p></td>
+<td><p>The min score threshold to keep the sample.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_score</span></code></p></td>
+<td><p>&lt;class ‘float’&gt;</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.0</span></code></p></td>
+<td><p>The max score threshold to keep the sample.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_hf_model</span></code></p></td>
+<td><p>&lt;class ‘bool’&gt;</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>If true, use Transformers for loading hugging face or local llm.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">api_endpoint</span></code></p></td>
+<td><p>typing.Optional[str]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>URL endpoint for the API.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">response_path</span></code></p></td>
+<td><p>typing.Optional[str]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Path to extract content from the API response. Defaults to ‘choices.0.message.content’.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">input_keys</span></code></p></td>
+<td><p>typing.List[str]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">['text']</span></code></p></td>
+<td><p>Sub set of keys in the sample. Support data with multi fields such as ‘query’, ‘analysis’ and ‘answer’ in RFT data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">field_names</span></code></p></td>
+<td><p>typing.List[str]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">['Text']</span></code></p></td>
+<td><p>Corresponding field names for input keys.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">system_prompt</span></code></p></td>
+<td><p>typing.Optional[str]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>System prompt for the task.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">input_template</span></code></p></td>
+<td><p>typing.Optional[str]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Template for building the model input.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">field_template</span></code></p></td>
+<td><p>typing.Optional[str]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Template for each field in the prompt.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">try_num</span></code></p></td>
+<td><p>typing.Annotated[int, Gt(gt=0)]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3</span></code></p></td>
+<td><p>The number of retry attempts when there is an API call error or output parsing error.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enable_vllm</span></code></p></td>
+<td><p>&lt;class ‘bool’&gt;</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>If true, use VLLM for loading hugging face or local llm.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">model_params</span></code></p></td>
+<td><p>typing.Dict</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>Parameters for initializing the API model.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sampling_params</span></code></p></td>
+<td><p>typing.Dict</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>Extra parameters passed to the API call. e.g {‘temperature’: 0.9, ‘top_p’: 0.95}</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dim_required_keys</span></code></p></td>
+<td><p>typing.Optional[typing.List[str]]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>A list of keys used to calculate the average dimension score, only the dimension scores associated with these keys are used in the average calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kwargs</span></code></p></td>
+<td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">''</span></code></p></td>
+<td><p>Extra keyword arguments.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="effect-demonstration">
+<h2>📊 Effect demonstration 效果演示<a class="headerlink" href="#effect-demonstration" title="Link to this heading">¶</a></h2>
+<section id="test-default-case">
+<h3>test_default_case<a class="headerlink" href="#test-default-case" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">LLMDifficultyScoreFilter</span><span class="p">(</span><span class="n">api_or_hf_model</span><span class="o">=</span><span class="s1">'qwen3.7-max'</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="input-data">
+<h4>📥 input data 输入数据<a class="headerlink" href="#input-data" title="Link to this heading">¶</a></h4>
+<div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 1:</strong> text</div><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">The cat sleeps on the mat. It is a sunny day, and the cat feels warm. Cats like to rest when they are not playing.</pre></div><div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 2:</strong> text</div><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Photosynthesis is a process where plants convert sunlight into energy. Chlorophyll absorbs light, which triggers chemical reactions that produce glucose. This mechanism sustains ecosystems by providing food for herbivores and indirectly for carnivores.</pre></div><div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 3:</strong> text</div><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">In quantum field theory, renormalization addresses infinities arising from loop integrals in Feynman diagrams. By redefining parameters such as mass and charge, physicists ensure finite predictions align with experimental observations. However, this procedure raises philosophical questions about whe...</pre><details style='margin:6px 0;'><summary style='cursor:pointer; color:#0366d6;'>Show more 展开更多 (84 more chars)</summary><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">In quantum field theory, renormalization addresses infinities arising from loop integrals in Feynman diagrams. By redefining parameters such as mass and charge, physicists ensure finite predictions align with experimental observations. However, this procedure raises philosophical questions about whether these adjustments reflect physical reality or merely mathematical conveniences.</pre></details></div>
+</section>
+<section id="output-data">
+<h4>📤 output data 输出数据<a class="headerlink" href="#output-data" title="Link to this heading">¶</a></h4>
+<div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 1:</strong> text</div><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">In quantum field theory, renormalization addresses infinities arising from loop integrals in Feynman diagrams. By redefining parameters such as mass and charge, physicists ensure finite predictions align with experimental observations. However, this procedure raises philosophical questions about whe...</pre><details style='margin:6px 0;'><summary style='cursor:pointer; color:#0366d6;'>Show more 展开更多 (84 more chars)</summary><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">In quantum field theory, renormalization addresses infinities arising from loop integrals in Feynman diagrams. By redefining parameters such as mass and charge, physicists ensure finite predictions align with experimental observations. However, this procedure raises philosophical questions about whether these adjustments reflect physical reality or merely mathematical conveniences.</pre></details><div class='meta' style='margin:6px 0;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><th colspan='2' style='text-align:left; vertical-align:top; padding:6px 8px; font-weight:600; border-bottom:1px solid #e3e3e3;'>__dj__stats__</th></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:22px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>llm_difficulty_record</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'><div style='margin:2px 0 6px 0; padding-left:8px;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>dimension_scores</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'><div style='margin:2px 0 6px 0; padding-left:8px;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>ambiguity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>3</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>conceptual_depth</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>5</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>linguistic_complexity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>4</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>prior_knowledge</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>5</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>step_complexity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>4</td></tr></table></div></td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>flags</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>[&#x27;philosophical_implications&#x27;, &#x27;cross_domain_synthesis&#x27;, &#x27;time_sensitive&#x27;]</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>rationale</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>The text exhibits high linguistic complexity with sophisticated vocabulary and syntactic structures typical of advanced scientific literature. The conceptual depth is very high, delving into the intricacies of quantum field theory and the philosophical implications of renormalization. Prior knowledge is extensive, requiring a solid understanding of quantum mechanics, field theory, and some philosophy. The step complexity involves several layers of reasoning, from understanding the technical aspects of renormalization to grappling with its philosophical implications. The ambiguity is moderate, as the text leaves room for interpretation regarding the nature of the adjustments made in renormalization—whether they are physical realities or mathematical conveniences.</td></tr></table></div></td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:22px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>llm_difficulty_score</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>0.8400000000000001</td></tr></table></div></div>
+</section>
+<section id="explanation">
+<h4>✨ explanation 解释<a class="headerlink" href="#explanation" title="Link to this heading">¶</a></h4>
+<p>This test uses the LLMDifficultyScoreFilter to filter out text samples based on their difficulty. The operator evaluates each text sample and assigns a difficulty score. Samples with higher scores, indicating more complex content, are kept. In this case, the first sample about a cat is simpler and likely to be filtered out, while the third sample, which discusses quantum field theory, is more complex and would be kept.
+此测试使用LLMDifficultyScoreFilter根据难度筛选文本样本。算子会评估每个文本样本并分配一个难度分数。得分较高的样本，表示内容更复杂，会被保留。在这种情况下，关于猫的第一条样本较为简单，可能会被过滤掉，而讨论量子场论的第三条样本更为复杂，会被保留。</p>
+</section>
+</section>
+<section id="test-rft-data">
+<h3>test_rft_data<a class="headerlink" href="#test-rft-data" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">LLMDifficultyScoreFilter</span><span class="p">(</span><span class="n">api_or_hf_model</span><span class="o">=</span><span class="s1">'qwen3.7-max'</span><span class="p">,</span> <span class="n">input_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">'text'</span><span class="p">,</span> <span class="s1">'analysis'</span><span class="p">,</span> <span class="s1">'answer'</span><span class="p">],</span> <span class="n">field_names</span><span class="o">=</span><span class="p">[</span><span class="s1">'Query'</span><span class="p">,</span> <span class="s1">'Analysis'</span><span class="p">,</span> <span class="s1">'Answer'</span><span class="p">])</span>
+</pre></div>
+</div>
+<section id="id1">
+<h4>📥 input data 输入数据<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
+<div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 1:</strong> text | answer</div><div class="qa" style="margin-bottom:6px;"><div><strong>Q:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">What is the capital of France?</pre></div><div><strong>A:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">The capital of France is Paris.</pre></div></div><div class='meta' style='margin:6px 0;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:8px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>analysis</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>The question asks for a factual piece of information about the capital city of France. The answer is straightforward and does not require any specialized knowledge or complex reasoning.</td></tr></table></div></div><div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 2:</strong> text | answer</div><div class="qa" style="margin-bottom:6px;"><div><strong>Q:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">How does photosynthesis contribute to the carbon cycle?</pre></div><div><strong>A:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Photosynthesis contributes to the carbon cycle by absorbing carbon dioxide from the atmosphere. Plants use sunlight to convert this carbon dioxide into glucose and other organic compounds, storing carbon in their biomass. When plants die or are consumed, the carbon is released back into the environm...</pre><details style='margin:6px 0;'><summary style='cursor:pointer; color:#0366d6;'>Show more 展开更多 (63 more chars)</summary><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Photosynthesis contributes to the carbon cycle by absorbing carbon dioxide from the atmosphere. Plants use sunlight to convert this carbon dioxide into glucose and other organic compounds, storing carbon in their biomass. When plants die or are consumed, the carbon is released back into the environment through decomposition or respiration, completing the cycle.</pre></details></div></div><div class='meta' style='margin:6px 0;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:8px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>analysis</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>This question requires an understanding of both photosynthesis and the carbon cycle. It involves explaining how plants absorb carbon dioxide during photosynthesis, convert it into organic matter, and release oxygen, thus influencing atmospheric carbon levels. The explanation requires linking two scientific concepts.</td></tr></table></div></div><div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 3:</strong> text | answer</div><div class="qa" style="margin-bottom:6px;"><div><strong>Q:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">What are the implications of Gödel&#x27;s incompleteness theorems for formal systems in mathematics?</pre></div><div><strong>A:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Gödel&#x27;s incompleteness theorems imply that no formal system capable of expressing arithmetic can be both consistent and complete. There will always exist true statements that cannot be derived from the axioms of the system. This challenges the notion of a single, all-encompassing formal system for m...</pre><details style='margin:6px 0;'><summary style='cursor:pointer; color:#0366d6;'>Show more 展开更多 (214 more chars)</summary><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Gödel&#x27;s incompleteness theorems imply that no formal system capable of expressing arithmetic can be both consistent and complete. There will always exist true statements that cannot be derived from the axioms of the system. This challenges the notion of a single, all-encompassing formal system for mathematics and highlights the inherent limitations of logical reasoning. Philosophically, it raises questions about whether mathematical truth is independent of human construction or if it is inherently incomplete.</pre></details></div></div><div class='meta' style='margin:6px 0;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:8px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>analysis</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>This question delves into advanced theoretical mathematics and philosophy. Gödel&#x27;s incompleteness theorems state that in any sufficiently powerful formal system, there will always be true statements that cannot be proven within the system. This has profound implications for the limits of mathematical reasoning and the nature of truth. To address this, one must understand formal logic, axiomatic systems, and the philosophical debates surrounding mathematical foundations.</td></tr></table></div></div>
+</section>
+<section id="id2">
+<h4>📤 output data 输出数据<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
+<div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 1:</strong> text | answer</div><div class="qa" style="margin-bottom:6px;"><div><strong>Q:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">How does photosynthesis contribute to the carbon cycle?</pre></div><div><strong>A:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Photosynthesis contributes to the carbon cycle by absorbing carbon dioxide from the atmosphere. Plants use sunlight to convert this carbon dioxide into glucose and other organic compounds, storing carbon in their biomass. When plants die or are consumed, the carbon is released back into the environm...</pre><details style='margin:6px 0;'><summary style='cursor:pointer; color:#0366d6;'>Show more 展开更多 (63 more chars)</summary><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Photosynthesis contributes to the carbon cycle by absorbing carbon dioxide from the atmosphere. Plants use sunlight to convert this carbon dioxide into glucose and other organic compounds, storing carbon in their biomass. When plants die or are consumed, the carbon is released back into the environment through decomposition or respiration, completing the cycle.</pre></details></div></div><div class='meta' style='margin:6px 0;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:8px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>analysis</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>This question requires an understanding of both photosynthesis and the carbon cycle. It involves explaining how plants absorb carbon dioxide during photosynthesis, convert it into organic matter, and release oxygen, thus influencing atmospheric carbon levels. The explanation requires linking two scientific concepts.</td></tr><tr><th colspan='2' style='text-align:left; vertical-align:top; padding:6px 8px; font-weight:600; border-bottom:1px solid #e3e3e3;'>__dj__stats__</th></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:22px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>llm_difficulty_record</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'><div style='margin:2px 0 6px 0; padding-left:8px;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>dimension_scores</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'><div style='margin:2px 0 6px 0; padding-left:8px;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>ambiguity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>2</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>conceptual_depth</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>3</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>linguistic_complexity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>2</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>prior_knowledge</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>3</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>step_complexity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>3</td></tr></table></div></td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>flags</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>[&#x27;cross_domain_synthesis&#x27;, &#x27;scientific_concepts&#x27;]</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>rationale</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>The query and answer have moderate linguistic complexity, using standard scientific terminology that is accessible but not overly sophisticated. The conceptual depth is intermediate, as it requires understanding the processes of photosynthesis and the carbon cycle and how they interrelate. Prior knowledge of basic biology and ecology is necessary. The step complexity is also intermediate, involving several linked steps in the explanation. There is minimal ambiguity, as the relationship between photosynthesis and the carbon cycle is well-defined in scientific literature.</td></tr></table></div></td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:22px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>llm_difficulty_score</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>0.52</td></tr></table></div></div><div class="sample-card" style="border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:6px; background:#fafafa; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><div class="sample-header" style="background:#f8f9fa; padding:4px 8px; margin-bottom:6px; border-radius:3px; font-size:0.9em; color:#666; border-left:3px solid #007acc;"><strong>Sample 2:</strong> text | answer</div><div class="qa" style="margin-bottom:6px;"><div><strong>Q:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">What are the implications of Gödel&#x27;s incompleteness theorems for formal systems in mathematics?</pre></div><div><strong>A:</strong> <pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Gödel&#x27;s incompleteness theorems imply that no formal system capable of expressing arithmetic can be both consistent and complete. There will always exist true statements that cannot be derived from the axioms of the system. This challenges the notion of a single, all-encompassing formal system for m...</pre><details style='margin:6px 0;'><summary style='cursor:pointer; color:#0366d6;'>Show more 展开更多 (214 more chars)</summary><pre style="padding:6px; background:#f6f8fa; border-radius:4px; overflow-x:auto; white-space:pre; word-wrap:normal;">Gödel&#x27;s incompleteness theorems imply that no formal system capable of expressing arithmetic can be both consistent and complete. There will always exist true statements that cannot be derived from the axioms of the system. This challenges the notion of a single, all-encompassing formal system for mathematics and highlights the inherent limitations of logical reasoning. Philosophically, it raises questions about whether mathematical truth is independent of human construction or if it is inherently incomplete.</pre></details></div></div><div class='meta' style='margin:6px 0;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:8px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>analysis</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>This question delves into advanced theoretical mathematics and philosophy. Gödel&#x27;s incompleteness theorems state that in any sufficiently powerful formal system, there will always be true statements that cannot be proven within the system. This has profound implications for the limits of mathematical reasoning and the nature of truth. To address this, one must understand formal logic, axiomatic systems, and the philosophical debates surrounding mathematical foundations.</td></tr><tr><th colspan='2' style='text-align:left; vertical-align:top; padding:6px 8px; font-weight:600; border-bottom:1px solid #e3e3e3;'>__dj__stats__</th></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:22px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>llm_difficulty_record</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'><div style='margin:2px 0 6px 0; padding-left:8px;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>dimension_scores</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'><div style='margin:2px 0 6px 0; padding-left:8px;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>ambiguity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>3</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>conceptual_depth</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>5</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>linguistic_complexity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>4</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>prior_knowledge</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>5</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:50px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>step_complexity</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>4</td></tr></table></div></td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>flags</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>[&#x27;philosophical_debate&#x27;, &#x27;cross_domain_synthesis&#x27;, &#x27;theoretical_requirements&#x27;]</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:36px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>rationale</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>The query and answer require a high level of prior knowledge in formal logic, axiomatic systems, and the philosophy of mathematics. The conceptual depth is very high, as it deals with fundamental questions about the nature of mathematical truth and the limits of formal systems. The linguistic complexity is moderate to high due to the use of specialized terminology and abstract concepts. The step complexity involves multiple layers of reasoning, including understanding the theorems themselves and their implications. The ambiguity is moderate, as the interpretation of the philosophical implications can vary among experts.</td></tr></table></div></td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:22px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>llm_difficulty_score</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>0.8400000000000001</td></tr></table></div></div>
+</section>
+<section id="id3">
+<h4>✨ explanation 解释<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h4>
+<p>This test demonstrates how the LLMDifficultyScoreFilter works with a dataset that includes both questions and their analyses. The operator evaluates the difficulty of each question, considering factors like conceptual depth and prior knowledge. Questions with higher difficulty scores, such as the one about Gödel’s incompleteness theorems, are kept, while simpler questions, like the one about the capital of France, are likely to be filtered out.
+此测试展示了LLMDifficultyScoreFilter如何处理包含问题及其分析的数据集。算子会评估每个问题的难度，考虑因素如概念深度和先验知识。难度分数较高的问题，例如关于哥德尔不完备定理的问题，会被保留，而较简单的问题，例如关于法国首都的问题，则可能被过滤掉。</p>
+</section>
+</section>
+</section>
+<section id="related-links">
+<h2>🔗 related links 相关链接<a class="headerlink" href="#related-links" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/data_juicer/ops/filter/llm_difficulty_score_filter.py">source code 源代码</a></p></li>
+<li><p><a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/tests/ops/filter/test_llm_difficulty_score_filter.py">unit test 单元测试</a></p></li>
+<li><p><a class="reference internal" href="../../Operators.html"><span class="std std-doc">Return operator list 返回算子列表</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">llm_difficulty_score_filter</a><ul>
+<li><a class="reference internal" href="#parameter-configuration">🔧 Parameter Configuration 参数配置</a></li>
+<li><a class="reference internal" href="#effect-demonstration">📊 Effect demonstration 效果演示</a><ul>
+<li><a class="reference internal" href="#test-default-case">test_default_case</a><ul>
+<li><a class="reference internal" href="#input-data">📥 input data 输入数据</a></li>
+<li><a class="reference internal" href="#output-data">📤 output data 输出数据</a></li>
+<li><a class="reference internal" href="#explanation">✨ explanation 解释</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#test-rft-data">test_rft_data</a><ul>
+<li><a class="reference internal" href="#id1">📥 input data 输入数据</a></li>
+<li><a class="reference internal" href="#id2">📤 output data 输出数据</a></li>
+<li><a class="reference internal" href="#id3">✨ explanation 解释</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#related-links">🔗 related links 相关链接</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="llm_condition_filter.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">llm_condition_filter</span>
+        </a>
+        <a href="llm_perplexity_filter.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">llm_perplexity_filter</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../../../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../../../_static/documentation_options.js"></script>
+  <script src="../../../_static/doctools.js"></script>
+  <script src="../../../_static/sphinx_highlight.js"></script>
+  <script src="../../../_static/clipboard.min.js"></script>
+  <script src="../../../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../../../_static/ask-ai-widget.js"></script>
+</body>
+</html>

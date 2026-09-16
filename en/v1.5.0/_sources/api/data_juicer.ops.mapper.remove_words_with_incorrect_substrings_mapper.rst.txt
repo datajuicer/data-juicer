@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.remove\_words\_with\_incorrect\_substrings\_mapper module
+=================================================================================
+
+.. automodule:: data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

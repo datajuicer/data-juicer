@@ -1,0 +1,7 @@
+data\_juicer.ops.fused\_sequential\_batch\_op module
+====================================================
+
+.. automodule:: data_juicer.ops.fused_sequential_batch_op
+   :members:
+   :show-inheritance:
+   :undoc-members:

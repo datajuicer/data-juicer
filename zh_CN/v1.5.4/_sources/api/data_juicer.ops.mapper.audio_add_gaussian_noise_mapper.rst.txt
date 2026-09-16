@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.audio\_add\_gaussian\_noise\_mapper module
+==================================================================
+
+.. automodule:: data_juicer.ops.mapper.audio_add_gaussian_noise_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

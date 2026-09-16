@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DataJuicer Agents — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.4.4/docs/DJ_agents.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.4.4/docs/DJ_agents_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="docs/DJ_agents"
+             data-current="v1.4.4">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.4.4</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../main/docs/DJ_agents.html" class="dropdown-item">main</a>
+            <a href="../../v1.5.5/docs/DJ_agents.html" class="dropdown-item">v1.5.5</a>
+            <a href="../../v1.5.4/docs/DJ_agents.html" class="dropdown-item">v1.5.4</a>
+            <a href="../../v1.5.3/docs/DJ_agents.html" class="dropdown-item">v1.5.3</a>
+            <a href="../../v1.5.2/docs/DJ_agents.html" class="dropdown-item">v1.5.2</a>
+            <a href="../../v1.5.1/docs/DJ_agents.html" class="dropdown-item">v1.5.1</a>
+            <a href="../../v1.5.0/docs/DJ_agents.html" class="dropdown-item">v1.5.0</a>
+            <a href="../../v1.4.6/docs/DJ_agents.html" class="dropdown-item">v1.4.6</a>
+            <a href="../../v1.4.5/docs/DJ_agents.html" class="dropdown-item">v1.4.5</a>
+            <a href="../../v1.4.4/docs/DJ_agents.html" class="dropdown-item active">v1.4.4</a>
+            <a href="../../v1.4.3/docs/DJ_agents.html" class="dropdown-item">v1.4.3</a>
+            <a href="../../v1.4.2/docs/DJ_agents.html" class="dropdown-item">v1.4.2</a>
+            <a href="../../v1.4.1/docs/DJ_agents.html" class="dropdown-item">v1.4.1</a>
+            <a href="../../v1.4.0/docs/DJ_agents.html" class="dropdown-item">v1.4.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/QuickStart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Operators.html">Operator Schemas 算子提要</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DatasetCfg.html">Dataset Configuration Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">DataJuicer Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_service.html">DJ_service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide.html">How-to Guide for Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Sandbox.html">Sandbox</a></li>
+<li class="toctree-l1"><a class="reference internal" href="awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">hub</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="hub/RecipeGallery.html">Data Recipe Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/AlpacaCOT.html">Refine Alpaca-CoT Config Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/AnnotationNotificationSystem.html">Notification System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/BLOOM.html">BLOOM Config Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/RedPajama.html">Redpajama Config Files</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="datajuicer-agents">
+<h1>DataJuicer Agents<a class="headerlink" href="#datajuicer-agents" title="Link to this heading">¶</a></h1>
+<p>A multi-agent data processing system built on <a class="reference external" href="https://github.com/agentscope-ai/agentscope">AgentScope</a> and <a class="reference external" href="https://github.com/datajuicer/data-juicer">Data-Juicer (DJ)</a>. This project demonstrates how to leverage the natural language understanding capabilities of large language models, enabling non-expert users to easily harness the powerful data processing capabilities of Data-Juicer.</p>
+<section id="why-datajuicer-agents">
+<h2>🎯 Why DataJuicer Agents?<a class="headerlink" href="#why-datajuicer-agents" title="Link to this heading">¶</a></h2>
+<p>In the actual work of large model R&amp;D and applications, <strong>data processing remains a high-cost, low-efficiency, and hard-to-reproduce process</strong>. Many teams spend more time on data analysis, cleaning and synthesis than on model training, requirement alignment and app development.</p>
+<p>We hope to liberate developers from tedious script assembly through agent technology, making data R&amp;D closer to a “think and get” experience.</p>
+<p><strong>Data directly defines the upper limit of model capabilities</strong>. What truly determines model performance are multiple dimensions such as <strong>quality, diversity, harmfulness control, and task matching</strong> of data. Optimizing data is essentially optimizing the model itself. To do this efficiently, we need a systematic toolset.</p>
+<p>DataJuicer Agents is designed to support the new paradigm of <strong>data-model co-optimization</strong> as an intelligent collaboration system.</p>
+</section>
+<section id="table-of-contents">
+<h2>📋 Table of Contents<a class="headerlink" href="#table-of-contents" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#why-datajuicer-agents">🎯 Why DataJuicer Agents?</a></p></li>
+<li><p><a class="reference internal" href="#table-of-contents">📋 Table of Contents</a></p></li>
+<li><p><a class="reference internal" href="#what-does-this-agent-do">What Does This Agent Do?</a></p></li>
+<li><p><a class="reference internal" href="#architecture">Architecture</a></p>
+<ul>
+<li><p><a class="reference internal" href="#multi-agent-routing-architecture">Multi-Agent Routing Architecture</a></p></li>
+<li><p><a class="reference internal" href="#two-integration-modes">Two Integration Modes</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#quick-start">Quick Start</a></p>
+<ul>
+<li><p><a class="reference internal" href="#system-requirements">System Requirements</a></p></li>
+<li><p><a class="reference internal" href="#installation">Installation</a></p></li>
+<li><p><a class="reference internal" href="#configuration">Configuration</a></p></li>
+<li><p><a class="reference internal" href="#usage">Usage</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#agent-introduction">Agent Introduction</a></p>
+<ul>
+<li><p><a class="reference internal" href="#data-processing-agent">Data Processing Agent</a></p></li>
+<li><p><a class="reference internal" href="#code-development-agent-dj-dev-agent">Code Development Agent (DJ Dev Agent)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#advanced-features">Advanced Features</a></p>
+<ul>
+<li><p><a class="reference internal" href="#operator-retrieval">Operator Retrieval</a></p>
+<ul>
+<li><p><a class="reference internal" href="#retrieval-modes">Retrieval Modes</a></p></li>
+<li><p><a class="reference internal" href="#id1">Usage</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#mcp-agent">MCP Agent</a></p>
+<ul>
+<li><p><a class="reference internal" href="#mcp-server-types">MCP Server Types</a></p></li>
+<li><p><a class="reference internal" href="#configuration-1"><span class="xref myst">Configuration</span></a></p></li>
+<li><p><a class="reference internal" href="#usage-methods">Usage Methods</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#customization-and-extension">Customization and Extension</a></p>
+<ul>
+<li><p><a class="reference internal" href="#custom-prompts">Custom Prompts</a></p></li>
+<li><p><a class="reference internal" href="#model-replacement">Model Replacement</a></p></li>
+<li><p><a class="reference internal" href="#extending-new-agents">Extending New Agents</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#roadmap">Roadmap</a></p>
+<ul>
+<li><p><a class="reference internal" href="#data-juicer-q-a-agent-demo-available">Data-Juicer Q&amp;A Agent (Demo Available)</a></p></li>
+<li><p><a class="reference internal" href="#interactive-data-analysis-and-visualization-agent-in-development">Interactive Data Analysis and Visualization Agent (In Development)</a></p></li>
+<li><p><a class="reference internal" href="#other-directions">Other Directions</a></p></li>
+<li><p><a class="reference internal" href="#common-issues">Common Issues</a></p></li>
+<li><p><a class="reference internal" href="#optimization-recommendations">Optimization Recommendations</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#related-resources">Related Resources</a></p></li>
+</ul>
+</section>
+<section id="what-does-this-agent-do">
+<h2>What Does This Agent Do?<a class="headerlink" href="#what-does-this-agent-do" title="Link to this heading">¶</a></h2>
+<p>Data-Juicer (DJ) is an <strong>open-source processing system covering the full lifecycle of large model data</strong>, providing four core capabilities:</p>
+<ul class="simple">
+<li><p><strong>Full-Stack Operator Library (DJ-OP)</strong>: Nearly 200 high-performance, reusable multimodal operators covering text, images, and audio/video</p></li>
+<li><p><strong>High-Performance Engine (DJ-Core)</strong>: Built on Ray, supporting TB-level data, 10K-core distributed computing, with operator fusion and multi-granularity fault tolerance</p></li>
+<li><p><strong>Collaborative Development Platform (DJ-Sandbox)</strong>: Introduces A/B Test and Scaling Law concepts, using small-scale experiments to drive large-scale optimization</p></li>
+<li><p><strong>Natural Language Interaction Layer (DJ-Agents)</strong>: Enables developers to build data pipelines through conversational interfaces using Agent technology</p></li>
+</ul>
+<p>DataJuicer Agents is not a simple Q&amp;A bot, but an <strong>intelligent collaborator for data processing</strong>. Specifically, it can:</p>
+<ul class="simple">
+<li><p><strong>Intelligent Query</strong>: Automatically match the most suitable operators based on natural language descriptions (precisely locating from nearly 200 operators)</p></li>
+<li><p><strong>Automated Pipeline</strong>: Describe data processing needs, automatically generate Data-Juicer YAML configurations and execute them</p></li>
+<li><p><strong>Custom Extension</strong>: Help users develop custom operators and seamlessly integrate them into local environments</p></li>
+</ul>
+<p><strong>Our goal: Let developers focus on “what to do” rather than “how to do it”</strong>.</p>
+</section>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">¶</a></h2>
+<section id="multi-agent-routing-architecture">
+<h3>Multi-Agent Routing Architecture<a class="headerlink" href="#multi-agent-routing-architecture" title="Link to this heading">¶</a></h3>
+<p>DataJuicer Agents adopts a <strong>multi-agent routing architecture</strong>, which is key to system scalability. When a user inputs a natural language request, the <strong>Router Agent</strong> first performs task triage to determine whether it’s a standard data processing task or a custom requirement that needs new capabilities.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>User Query  
+  ↓  
+Router Agent (Filtering &amp; Decision) ← query_dj_operators (operator retrieval)  
+  │  
+  ├─ High-match operator found  
+  │  ↓  
+  │  DJ Agent (Standard Data Processing Task)  
+  |  ├── Preview data samples (confirm field names and data formats)  
+  │  ├── get_ops_signature (retrieve full parameter signatures)  
+  │  ├── Generate YAML configuration  
+  │  └── execute_safe_command (run dj-process, dj-analyze)  
+  │  
+  └─ No high-match operator found  
+     ↓  
+     Dev Agent (Custom Operator Development &amp; Integration)  
+     ├── get_basic_files (retrieve base classes and registration mechanism)  
+     ├── get_operator_example (retrieve similar operator examples)  
+     └── Generate compliant operator code  
+     └── Local integration (register to user-specified path)
+</pre></div>
+</div>
+</section>
+<section id="two-integration-modes">
+<h3>Two Integration Modes<a class="headerlink" href="#two-integration-modes" title="Link to this heading">¶</a></h3>
+<p>Agent integration with DataJuicer has two modes to adapt to different usage scenarios:</p>
+<ul class="simple">
+<li><p><strong>Tool Binding Mode</strong>: Agent calls DataJuicer command-line tools (such as <code class="docutils literal notranslate"><span class="pre">dj-analyze</span></code>, <code class="docutils literal notranslate"><span class="pre">dj-process</span></code>), compatible with existing user habits, low migration cost</p></li>
+<li><p><strong>MCP Binding Mode</strong>: Agent directly calls DataJuicer’s MCP (Model Context Protocol) interface, no need to generate intermediate YAML files, directly run operators or data recipes, better performance</p></li>
+</ul>
+<p>These two modes are automatically selected by the Agent based on task complexity and performance requirements, ensuring both flexibility and efficiency.</p>
+</section>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h2>
+<section id="system-requirements">
+<h3>System Requirements<a class="headerlink" href="#system-requirements" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Python 3.10+</p></li>
+<li><p>Valid DashScope API key</p></li>
+<li><p>Optional: Data-Juicer source code (for custom operator development)</p></li>
+</ul>
+</section>
+<section id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install uv (if not already)</span>
+curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+
+<span class="c1"># Installation using uv</span>
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<blockquote>
+<div><p><strong>Note for Custom Operator Development</strong>:</p>
+<p>For a better custom operator development experience, you should also download and install Data-Juicer from source:</p>
+<ol class="arabic">
+<li><p>Clone the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/datajuicer/data-juicer.git
+</pre></div>
+</div>
+</li>
+<li><p>Install it in editable mode:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>/path/to/data-juicer
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>/path/to/data-juicer
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Editable mode installation is essential to ensure the agent can access real-time operator updates.</p>
+</div></blockquote>
+<ol class="arabic simple">
+<li><p><strong>Set API Key</strong></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">DASHSCOPE_API_KEY</span><span class="o">=</span><span class="s2">"your-dashscope-key"</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>Optional: Configure Data-Juicer Path (for custom operator development)</strong></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">DATA_JUICER_PATH</span><span class="o">=</span><span class="s2">"your-data-juicer-path"</span>
+</pre></div>
+</div>
+<blockquote>
+<div><p><strong>Tip</strong>: You can also set this during runtime through conversation, for example:</p>
+<ul class="simple">
+<li><p>“Help me set the DataJuicer path: /path/to/data-juicer”</p></li>
+<li><p>“Help me update the DataJuicer path: /path/to/data-juicer”</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
+<p>Choose the running mode using the <code class="docutils literal notranslate"><span class="pre">-u</span></code> or <code class="docutils literal notranslate"><span class="pre">--use-studio</span></code> parameter:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use AgentScope Studio's interactive interface (please install and start AgentScope Studio first)</span>
+dj-agents<span class="w"> </span>--use-studio
+
+<span class="c1"># Or use command line mode directly (default)</span>
+dj-agents
+</pre></div>
+</div>
+<p>Note:</p>
+<p>Install AgentScope Studio via npm:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>@agentscope/studio
+</pre></div>
+</div>
+<p>Start Studio with the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>as_studio
+</pre></div>
+</div>
+</section>
+</section>
+<section id="agent-introduction">
+<h2>Agent Introduction<a class="headerlink" href="#agent-introduction" title="Link to this heading">¶</a></h2>
+<section id="data-processing-agent">
+<h3>Data Processing Agent<a class="headerlink" href="#data-processing-agent" title="Link to this heading">¶</a></h3>
+<p>Responsible for interacting with Data-Juicer and executing actual data processing tasks. Supports automatic operator recommendation from natural language descriptions, configuration generation, and execution.</p>
+<p><strong>Workflow:</strong></p>
+<p>When a user says: “My data is saved in xxx, please clean entries with text length less than 5 and image size less than 10MB”, the Agent doesn’t blindly execute, but proceeds step by step:</p>
+<ol class="arabic simple">
+<li><p><strong>Data Preview</strong>: Preview the first 5–10 data samples to confirm field names and data format—this is a crucial step to avoid configuration errors</p></li>
+<li><p><strong>Get signature</strong>: Call the <code class="docutils literal notranslate"><span class="pre">get_ops_signature</span></code> tool to obtain the operator’s parameter signatures and brief descriptions.</p></li>
+<li><p><strong>Parameter Decision</strong>: LLM autonomously decides global parameters (such as dataset_path, export_path) and specific operator configurations</p></li>
+<li><p><strong>Configuration Generation</strong>: Generate standard YAML configuration files</p></li>
+<li><p><strong>Execute Processing</strong>: Call the <code class="docutils literal notranslate"><span class="pre">dj-process</span></code> command to execute actual processing</p></li>
+</ol>
+<p>The entire process is both automated and explainable. Users can intervene at any stage to ensure results meet expectations.</p>
+<p><strong>Typical Use Cases:</strong></p>
+<ul class="simple">
+<li><p><strong>Data Cleaning</strong>: Deduplication, removal of low-quality samples, format standardization</p></li>
+<li><p><strong>Multimodal Processing</strong>: Process text, image, and video data simultaneously</p></li>
+<li><p><strong>Batch Conversion</strong>: Format conversion, data augmentation, feature extraction</p></li>
+</ul>
+<details>
+<summary>View Complete Example Log (from AgentScope Studio)</summary>
+<img src="imgs/dj_agent_image.png" width="100%">
+</details>
+<p><strong>Example Execution Flow:</strong></p>
+<p>User input: “The data in ./data/demo-dataset-images.jsonl, remove samples with text field length less than 5 and image size less than 100Kb…”</p>
+<p>Routing: Call <code class="docutils literal notranslate"><span class="pre">query_dj_operators</span></code> to precisely return two operators: <code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code> and <code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code>.</p>
+<p>Data Processing Agent Execution Steps:</p>
+<ol class="arabic simple">
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">get_ops_signature</span></code> to retrieve the parameter signatures of <code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code> and <code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code>.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">view_text_file</span></code> tool to preview raw data, confirming fields are indeed ‘text’ and ‘image’</p></li>
+<li><p>Generate YAML configuration and save to temporary path via <code class="docutils literal notranslate"><span class="pre">write_text_file</span></code></p></li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">execute_safe_command</span></code> to execute <code class="docutils literal notranslate"><span class="pre">dj-process</span></code>, returning result path</p></li>
+</ol>
+<p>The entire process requires no manual intervention, but every step is traceable and verifiable. <strong>This is exactly the “automated but not out of control” data processing experience we pursue</strong>.</p>
+</section>
+<section id="code-development-agent-dj-dev-agent">
+<h3>Code Development Agent (DJ Dev Agent)<a class="headerlink" href="#code-development-agent-dj-dev-agent" title="Link to this heading">¶</a></h3>
+<p>When built-in operators cannot meet requirements, the traditional approach is: check documentation, copy code, adjust parameters, write tests—this process can take hours.</p>
+<p>The goal of Operator Development Agent is to compress this process to minutes while ensuring code quality. Powered by the <code class="docutils literal notranslate"><span class="pre">qwen3-coder-480b-a35b-instruct</span></code> model by default.</p>
+<p><strong>Workflow:</strong></p>
+<p>When a user requests: “Help me create an operator that reverses word order and generate unit test files”, the Router routes it to DJ Dev Agent.</p>
+<p>The Agent’s execution process consists of four steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Get Reference Operators</strong>: Search for existing operators with similar functionality as references.</p></li>
+<li><p><strong>Get Templates</strong>: Pull base class files and typical examples to ensure consistent code style</p></li>
+<li><p><strong>Generate Code</strong>: Based on the function prototype provided by the user, generate operator classes compliant with DataJuicer specifications</p></li>
+<li><p><strong>Local Integration</strong>: Register the new operator to the user-specified local codebase path</p></li>
+</ol>
+<p>The entire process transforms vague requirements into runnable, testable, and reusable modules.</p>
+<p><strong>Generated Content:</strong></p>
+<ul class="simple">
+<li><p><strong>Implement Operator</strong>: Create operator class file, inherit from Mapper/Filter base class, register using <code class="docutils literal notranslate"><span class="pre">&#64;OPERATORS.register_module</span></code> decorator</p></li>
+<li><p><strong>Update Registration</strong>: Modify <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code>, add new class to <code class="docutils literal notranslate"><span class="pre">__all__</span></code> list</p></li>
+<li><p><strong>Write Tests</strong>: Generate unit tests covering multiple scenarios, including edge cases, ensuring robustness</p></li>
+</ul>
+<p><strong>Typical Use Cases:</strong></p>
+<ul class="simple">
+<li><p><strong>Develop domain-specific filter or transformation operators</strong></p></li>
+<li><p><strong>Integrate proprietary data processing logic</strong></p></li>
+<li><p><strong>Extend Data-Juicer capabilities for specific scenarios</strong></p></li>
+</ul>
+<details>
+<summary>View Complete Example Log (from AgentScope Studio)</summary>
+<img src="imgs/dj_dev_agent_image.png" width="100%">
+</details>
+</section>
+</section>
+<section id="advanced-features">
+<h2>Advanced Features<a class="headerlink" href="#advanced-features" title="Link to this heading">¶</a></h2>
+<section id="operator-retrieval">
+<h3>Operator Retrieval<a class="headerlink" href="#operator-retrieval" title="Link to this heading">¶</a></h3>
+<p>Operator retrieval is the core of whether the Agent can work accurately. DJ Agent implements an intelligent operator retrieval tool that quickly finds the most relevant operators from Data-Juicer’s nearly 200 operators through an independent LLM query process. This is a key component enabling the data processing agent and code development agent to run accurately.</p>
+<p>We don’t use a single solution, but provide three modes that can be flexibly selected via the <code class="docutils literal notranslate"><span class="pre">-r</span></code> parameter:</p>
+<section id="retrieval-modes">
+<h4>Retrieval Modes<a class="headerlink" href="#retrieval-modes" title="Link to this heading">¶</a></h4>
+<p><strong>LLM Retrieval (default)</strong></p>
+<ul class="simple">
+<li><p>Uses Qwen-Turbo to understand user requirements from a semantic level, suitable for complex and vague descriptions</p></li>
+<li><p>Provides detailed matching reasons and relevance scores</p></li>
+<li><p>Higher token consumption, but highest matching accuracy</p></li>
+</ul>
+<p><strong>Vector Retrieval (vector)</strong></p>
+<ul class="simple">
+<li><p>Based on DashScope text embedding + FAISS similarity search</p></li>
+<li><p>Fast, suitable for batch tasks or rapid prototyping</p></li>
+<li><p>No need to call LLM, lower cost</p></li>
+</ul>
+<p><strong>Auto Mode (auto)</strong></p>
+<ul class="simple">
+<li><p>Prioritizes LLM retrieval, automatically falls back to vector retrieval on failure</p></li>
+</ul>
+</section>
+<section id="id1">
+<h4>Usage<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
+<p>Specify the retrieval mode using the <code class="docutils literal notranslate"><span class="pre">-r</span></code> or <code class="docutils literal notranslate"><span class="pre">--retrieval-mode</span></code> parameter:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dj-agents<span class="w"> </span>--retrieval-mode<span class="w"> </span>vector
+</pre></div>
+</div>
+<p>For more parameter descriptions, see <code class="docutils literal notranslate"><span class="pre">dj-agents</span> <span class="pre">--help</span></code></p>
+</section>
+</section>
+<section id="mcp-agent">
+<h3>MCP Agent<a class="headerlink" href="#mcp-agent" title="Link to this heading">¶</a></h3>
+<p>In addition to command-line tools, DataJuicer also natively supports MCP services, which is an important means to improve performance. MCP services can directly obtain operator information and execute data processing through native interfaces, making it easy to migrate and integrate without separate LLM queries and command-line calls.</p>
+<section id="mcp-server-types">
+<h4>MCP Server Types<a class="headerlink" href="#mcp-server-types" title="Link to this heading">¶</a></h4>
+<p>Data-Juicer provides two types of MCP:</p>
+<p><strong>Recipe-Flow MCP (Data Recipe)</strong></p>
+<ul class="simple">
+<li><p>Provides two tools: <code class="docutils literal notranslate"><span class="pre">get_data_processing_ops</span></code> and <code class="docutils literal notranslate"><span class="pre">run_data_recipe</span></code></p></li>
+<li><p>Retrieves by operator type, applicable modalities, and other tags, <strong>no need to call LLM or vector models</strong></p></li>
+<li><p>Suitable for standardized, high-frequency scenarios with better performance</p></li>
+</ul>
+<p><strong>Granular-Operators MCP (Fine-grained Operators)</strong></p>
+<ul class="simple">
+<li><p>Wraps each built-in operator as an independent tool, runs on call</p></li>
+<li><p>Returns all operators by default, but can control visible scope through environment variables</p></li>
+<li><p>Suitable for fine-grained control, building fully customized data processing pipelines</p></li>
+</ul>
+<p>This means that in some scenarios, the Agent’s call path can be <em>shorter, faster, and more direct</em> than manually writing YAML.</p>
+<p>For detailed information, please refer to: <a class="reference external" href="https://datajuicer.github.io/data-juicer/en/main/docs/DJ_service.html#mcp-server">Data-Juicer MCP Service Documentation</a></p>
+<blockquote>
+<div><p><strong>Note</strong>: The Data-Juicer MCP server is currently in early development, and features and tools may change with ongoing development.</p>
+</div></blockquote>
+</section>
+<section id="configuration">
+<h4>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h4>
+<p>Configure the service address in <code class="docutils literal notranslate"><span class="pre">configs/mcp_config.json</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"mcpServers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"DJ_recipe_flow"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://127.0.0.1:8080/sse"</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="usage-methods">
+<h4>Usage Methods<a class="headerlink" href="#usage-methods" title="Link to this heading">¶</a></h4>
+<p>Enable MCP Agent to replace Data Processing Agent:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Enable MCP Agent and Dev Agent</span>
+dj-agents<span class="w"> </span>--agents<span class="w"> </span>dj_mcp<span class="w"> </span>dj_dev
+
+<span class="c1"># Or use shorthand</span>
+dj-agents<span class="w"> </span>-a<span class="w"> </span>dj_mcp<span class="w"> </span>dj_dev
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="customization-and-extension">
+<h2>Customization and Extension<a class="headerlink" href="#customization-and-extension" title="Link to this heading">¶</a></h2>
+<section id="custom-prompts">
+<h3>Custom Prompts<a class="headerlink" href="#custom-prompts" title="Link to this heading">¶</a></h3>
+<p>All Agent system prompts are defined in the <code class="docutils literal notranslate"><span class="pre">prompts.py</span></code> file.</p>
+</section>
+<section id="model-replacement">
+<h3>Model Replacement<a class="headerlink" href="#model-replacement" title="Link to this heading">¶</a></h3>
+<p>You can specify different models for different Agents in <code class="docutils literal notranslate"><span class="pre">main.py</span></code>. For example:</p>
+<ul class="simple">
+<li><p>Main Agent uses <code class="docutils literal notranslate"><span class="pre">qwen-max</span></code> for complex reasoning</p></li>
+<li><p>Development Agent uses <code class="docutils literal notranslate"><span class="pre">qwen3-coder-480b-a35b-instruct</span></code> to optimize code generation quality</p></li>
+</ul>
+<p>At the same time, Formatter and Memory can also be replaced. This design allows the system to be both out-of-the-box and adaptable to enterprise-level requirements.</p>
+</section>
+<section id="extending-new-agents">
+<h3>Extending New Agents<a class="headerlink" href="#extending-new-agents" title="Link to this heading">¶</a></h3>
+<p>DataJuicer Agents is an open framework. The core is the <code class="docutils literal notranslate"><span class="pre">agents2toolkit</span></code> function—it can automatically wrap any Agent as a tool callable by the Router.</p>
+<p>Simply add your Agent instance to the <code class="docutils literal notranslate"><span class="pre">agents</span></code> list, and the Router will dynamically generate corresponding tools at runtime and automatically route based on task semantics.</p>
+<p>This means you can quickly build domain-specific data agents based on this framework.</p>
+<p><em>Extensibility is an important design principle</em>.</p>
+</section>
+</section>
+<section id="roadmap">
+<h2>Roadmap<a class="headerlink" href="#roadmap" title="Link to this heading">¶</a></h2>
+<p>The Data-Juicer agent ecosystem is rapidly expanding. Here are the new agents currently in development or planned:</p>
+<section id="data-juicer-q-a-agent-demo-available">
+<h3>Data-Juicer Q&amp;A Agent (Demo Available)<a class="headerlink" href="#data-juicer-q-a-agent-demo-available" title="Link to this heading">¶</a></h3>
+<p>Provides users with detailed answers about Data-Juicer operators, concepts, and best practices.</p>
+<video controls width="100%" height="auto" playsinline>
+    <source src="https://github.com/user-attachments/assets/a8392691-81cf-4a25-94da-967dcf92c685" type="video/mp4">
+    Your browser does not support the video tag.
+</video>
+<p>The Q&amp;A agent can currently be viewed and tried out <a class="reference external" href="https://github.com/datajuicer/data-juicer-agents/blob/main/interactive_recipe/qa-copilot">here</a>.</p>
+</section>
+<section id="interactive-data-analysis-and-visualization-agent-in-development">
+<h3>Interactive Data Analysis and Visualization Agent (In Development)<a class="headerlink" href="#interactive-data-analysis-and-visualization-agent-in-development" title="Link to this heading">¶</a></h3>
+<p>We are building a more advanced <strong>human-machine collaborative data optimization workflow</strong> that introduces human feedback:</p>
+<ul class="simple">
+<li><p>Users can view statistics, attribution analysis, and visualization results</p></li>
+<li><p>Dynamically edit recipes, approve or reject suggestions</p></li>
+<li><p>Underpinned by <code class="docutils literal notranslate"><span class="pre">dj.analyzer</span></code> (data analysis), <code class="docutils literal notranslate"><span class="pre">dj.attributor</span></code> (effect attribution), and <code class="docutils literal notranslate"><span class="pre">dj.sandbox</span></code> (experiment management)</p></li>
+<li><p>Supports closed-loop optimization based on validation tasks</p></li>
+</ul>
+<p>This interactive recipe can currently be viewed and tried out <a class="reference external" href="https://github.com/datajuicer/data-juicer-agents/blob/main/interactive_recipe/README.md">here</a>.</p>
+</section>
+<section id="other-directions">
+<h3>Other Directions<a class="headerlink" href="#other-directions" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Data Processing Agent Benchmarking</strong>: Quantify the performance of different Agents in terms of accuracy, efficiency, and robustness</p></li>
+<li><p><strong>Data “Health Check Report” &amp; Data Intelligent Recommendation</strong>: Automatically diagnose data problems and recommend optimization solutions</p></li>
+<li><p><strong>Router Agent Enhancement</strong>: More seamless, e.g., when operators are lacking → Code Development Agent → Data Processing Agent</p></li>
+<li><p><strong>MCP Further Optimization</strong>: Embedded LLM, users can directly use MCP connected to their local environment (e.g., IDE) to get an experience similar to current data processing agents</p></li>
+<li><p><strong>Knowledge Base and RAG-oriented Data Agents</strong></p></li>
+<li><p><strong>Better Automatic Processing Solution Generation</strong>: Less token usage, more efficient, higher quality processing results</p></li>
+<li><p><strong>Data Workflow Template Reuse and Automatic Tuning</strong>: Based on DataJuicer community data recipes</p></li>
+<li><p>……</p></li>
+</ul>
+</section>
+<section id="common-issues">
+<h3>Common Issues<a class="headerlink" href="#common-issues" title="Link to this heading">¶</a></h3>
+<p><strong>Q: How to get DashScope API key?</strong>
+A: Visit <a class="reference external" href="https://dashscope.aliyun.com/">DashScope official website</a> to register an account and apply for an API key.</p>
+<p><strong>Q: Why does operator retrieval fail?</strong>
+A: Please check network connection and API key configuration, or try switching to vector retrieval mode.</p>
+<p><strong>Q: How to debug custom operators?</strong>
+A: Ensure Data-Juicer path is configured correctly and check the example code provided by the code development agent.</p>
+<p><strong>Q: What to do if MCP service connection fails?</strong>
+A: Check if the MCP server is running and confirm the URL address in the configuration file is correct.</p>
+<p><strong>Q: Error: requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: <a class="reference external" href="http://localhost:3000/trpc/pushMessage">http://localhost:3000/trpc/pushMessage</a></strong>
+A: Agents handle data via file references (paths) rather than direct uploads. Please confirm whether any non-text files were submitted.</p>
+</section>
+<section id="optimization-recommendations">
+<h3>Optimization Recommendations<a class="headerlink" href="#optimization-recommendations" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>For large-scale data processing, it is recommended to use DataJuicer’s distributed mode</p></li>
+<li><p>Set batch size appropriately to balance memory usage and processing speed</p></li>
+<li><p>For more advanced data processing features (synthesis, Data-Model Co-Development), please refer to DataJuicer <a class="reference external" href="https://datajuicer.github.io/data-juicer/en/main/index.html">documentation</a></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="related-resources">
+<h2>Related Resources<a class="headerlink" href="#related-resources" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>DataJuicer has been used by a large number of Tongyi and Alibaba Cloud internal and external users, and has facilitated many research works. All code is continuously maintained and enhanced.</p></li>
+</ul>
+<p><em>Welcome to visit GitHub, Star, Fork, submit Issues, and join the community!</em></p>
+<ul class="simple">
+<li><p><strong>Project Repositories</strong>:</p>
+<ul>
+<li><p><a class="reference external" href="https://github.com/agentscope-ai/agentscope">AgentScope</a></p></li>
+<li><p><a class="reference external" href="https://github.com/datajuicer/data-juicer">DataJuicer</a></p></li>
+</ul>
+</li>
+</ul>
+<p><strong>Contributing</strong>: Welcome to submit Issues and Pull Requests to improve AgentScope, DataJuicer Agents, and DataJuicer. If you encounter problems during use or have feature suggestions, please feel free to contact us.</p>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">DataJuicer Agents</a><ul>
+<li><a class="reference internal" href="#why-datajuicer-agents">🎯 Why DataJuicer Agents?</a></li>
+<li><a class="reference internal" href="#table-of-contents">📋 Table of Contents</a></li>
+<li><a class="reference internal" href="#what-does-this-agent-do">What Does This Agent Do?</a></li>
+<li><a class="reference internal" href="#architecture">Architecture</a><ul>
+<li><a class="reference internal" href="#multi-agent-routing-architecture">Multi-Agent Routing Architecture</a></li>
+<li><a class="reference internal" href="#two-integration-modes">Two Integration Modes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#quick-start">Quick Start</a><ul>
+<li><a class="reference internal" href="#system-requirements">System Requirements</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#agent-introduction">Agent Introduction</a><ul>
+<li><a class="reference internal" href="#data-processing-agent">Data Processing Agent</a></li>
+<li><a class="reference internal" href="#code-development-agent-dj-dev-agent">Code Development Agent (DJ Dev Agent)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#advanced-features">Advanced Features</a><ul>
+<li><a class="reference internal" href="#operator-retrieval">Operator Retrieval</a><ul>
+<li><a class="reference internal" href="#retrieval-modes">Retrieval Modes</a></li>
+<li><a class="reference internal" href="#id1">Usage</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mcp-agent">MCP Agent</a><ul>
+<li><a class="reference internal" href="#mcp-server-types">MCP Server Types</a></li>
+<li><a class="reference internal" href="#configuration">Configuration</a></li>
+<li><a class="reference internal" href="#usage-methods">Usage Methods</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#customization-and-extension">Customization and Extension</a><ul>
+<li><a class="reference internal" href="#custom-prompts">Custom Prompts</a></li>
+<li><a class="reference internal" href="#model-replacement">Model Replacement</a></li>
+<li><a class="reference internal" href="#extending-new-agents">Extending New Agents</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#roadmap">Roadmap</a><ul>
+<li><a class="reference internal" href="#data-juicer-q-a-agent-demo-available">Data-Juicer Q&amp;A Agent (Demo Available)</a></li>
+<li><a class="reference internal" href="#interactive-data-analysis-and-visualization-agent-in-development">Interactive Data Analysis and Visualization Agent (In Development)</a></li>
+<li><a class="reference internal" href="#other-directions">Other Directions</a></li>
+<li><a class="reference internal" href="#common-issues">Common Issues</a></li>
+<li><a class="reference internal" href="#optimization-recommendations">Optimization Recommendations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#related-resources">Related Resources</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="DJ_SORA.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">DJ-SORA</span>
+        </a>
+        <a href="DJ_service.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">DJ_service</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_tagging\_from\_frames\_mapper module
+===================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_tagging_from_frames_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

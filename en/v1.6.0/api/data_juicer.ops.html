@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.ops — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index.html" class="navbar-link">Doc</a>
+        <a href="../api.html" class="navbar-link active" aria-current="page">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/api/data_juicer.ops.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.6.0/api/data_juicer.ops.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="api/data_juicer.ops"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/api/data_juicer.ops.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../api.html">API</a></p>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.core.html">data_juicer.core</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">data_juicer.ops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.filter.html">data_juicer.ops.filter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.mapper.html">data_juicer.ops.mapper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.deduplicator.html">data_juicer.ops.deduplicator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.selector.html">data_juicer.ops.selector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.aggregator.html">data_juicer.ops.aggregator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.grouper.html">data_juicer.ops.grouper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.pipeline.html">data_juicer.ops.pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.common.html">data_juicer.ops.common</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.analysis.html">data_juicer.analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.config.html">data_juicer.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.format.html">data_juicer.format</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="module-data_juicer.ops">
+<span id="data-juicer-ops"></span><h1>data_juicer.ops<a class="headerlink" href="#module-data_juicer.ops" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.ops.load_ops">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">load_ops</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op_env_manager</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/load.html#load_ops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.load_ops" title="Link to this definition">¶</a></dt>
+<dd><p>Load op list according to the process list from config file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>process_list</strong> – A process list. Each item is an op name and its
+arguments.</p></li>
+<li><p><strong>op_env_manager</strong> – The OPEnvManager to try to merge environment specs of different OPs that have common
+dependencies. Only available when min_common_dep_num_to_combine &gt;= 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The op instance list.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.ops.load_op_plugins">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">load_op_plugins</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'data_juicer.ops'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops.html#load_op_plugins"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.load_op_plugins" title="Link to this definition">¶</a></dt>
+<dd><p>Discover and import external operator plugin packages.</p>
+<p>Any installed distribution that declares an entry point under <code class="docutils literal notranslate"><span class="pre">group</span></code>
+(default <code class="docutils literal notranslate"><span class="pre">data_juicer.ops</span></code>) is imported here, which triggers the module
+level <code class="docutils literal notranslate"><span class="pre">OPERATORS.register_module(...)</span></code> calls in those packages so that
+their operators become visible in the global <code class="docutils literal notranslate"><span class="pre">OPERATORS</span></code> registry just
+like the built-in ones.</p>
+<p>A failing plugin (e.g. broken import, missing dependency) only emits a
+warning and is skipped, so a single bad plugin never breaks the whole
+pipeline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>group</strong> – the entry point group to scan.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the list of successfully loaded plugin entry point names.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">Filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP" title="data_juicer.ops.base_op.OP"><code class="xref py py-class docutils literal notranslate"><span class="pre">OP</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Base class that removes specific info.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_key</strong> – the key name of field that stores sample texts
+to be processed</p></li>
+<li><p><strong>image_key</strong> – the key name of field that stores sample image list
+to be processed</p></li>
+<li><p><strong>audio_key</strong> – the key name of field that stores sample audio list
+to be processed</p></li>
+<li><p><strong>video_key</strong> – the key name of field that stores sample video list
+to be processed</p></li>
+<li><p><strong>image_bytes_key</strong> – the key name of field that stores sample image bytes list
+to be processed</p></li>
+<li><p><strong>query_key</strong> – the key name of field that stores sample queries</p></li>
+<li><p><strong>response_key</strong> – the key name of field that stores responses</p></li>
+<li><p><strong>history_key</strong> – the key name of field that stores history of
+queries and responses</p></li>
+<li><p><strong>min_closed_interval</strong> – whether the min_val of the specified filter range is a closed interval. It’s True
+by default.</p></li>
+<li><p><strong>max_closed_interval</strong> – whether the max_val of the specified filter range is a closed interval. It’s True
+by default.</p></li>
+<li><p><strong>reversed_range</strong> – whether to reverse the target range [min_val, max_val] to (-∞, min_val) or (max_val, +∞).
+It’s False by default.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter.get_keep_boolean">
+<span class="sig-name descname"><span class="pre">get_keep_boolean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter.get_keep_boolean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter.get_keep_boolean" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter.compute_stats_batched">
+<span class="sig-name descname"><span class="pre">compute_stats_batched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter.compute_stats_batched"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter.compute_stats_batched" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter.process_batched">
+<span class="sig-name descname"><span class="pre">process_batched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter.process_batched"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter.process_batched" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter.compute_stats_single">
+<span class="sig-name descname"><span class="pre">compute_stats_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter.compute_stats_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter.compute_stats_single" title="Link to this definition">¶</a></dt>
+<dd><p>Compute stats for the sample which is used as a metric to decide
+whether to filter this sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample</strong> – input sample.</p></li>
+<li><p><strong>context</strong> – whether to store context information of intermediate
+vars in the sample temporarily.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>sample with computed stats</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, sample –&gt; Boolean.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – sample to decide whether to filter</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true for keeping and false for filtering</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Filter.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exporter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Filter.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Filter.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.Mapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">Mapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Mapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Mapper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP" title="data_juicer.ops.base_op.OP"><code class="xref py py-class docutils literal notranslate"><span class="pre">OP</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Mapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Mapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Mapper.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Base class that conducts data editing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_key</strong> – the key name of field that stores sample texts
+to be processed.</p></li>
+<li><p><strong>image_key</strong> – the key name of field that stores sample image list
+to be processed</p></li>
+<li><p><strong>audio_key</strong> – the key name of field that stores sample audio list
+to be processed</p></li>
+<li><p><strong>video_key</strong> – the key name of field that stores sample video list
+to be processed</p></li>
+<li><p><strong>image_bytes_key</strong> – the key name of field that stores sample image bytes list
+to be processed</p></li>
+<li><p><strong>query_key</strong> – the key name of field that stores sample queries</p></li>
+<li><p><strong>response_key</strong> – the key name of field that stores responses</p></li>
+<li><p><strong>history_key</strong> – the key name of field that stores history of
+queries and responses</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Mapper.process_batched">
+<span class="sig-name descname"><span class="pre">process_batched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Mapper.process_batched"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Mapper.process_batched" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Mapper.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Mapper.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Mapper.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, sample –&gt; sample</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – sample to process</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>processed sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Mapper.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exporter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Mapper.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Mapper.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.Deduplicator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">Deduplicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Deduplicator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Deduplicator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP" title="data_juicer.ops.base_op.OP"><code class="xref py py-class docutils literal notranslate"><span class="pre">OP</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Deduplicator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Deduplicator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Deduplicator.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Base class that conducts deduplication.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_key</strong> – the key name of field that stores sample texts
+to be processed</p></li>
+<li><p><strong>image_key</strong> – the key name of field that stores sample image list
+to be processed</p></li>
+<li><p><strong>audio_key</strong> – the key name of field that stores sample audio list
+to be processed</p></li>
+<li><p><strong>video_key</strong> – the key name of field that stores sample video list
+to be processed</p></li>
+<li><p><strong>image_bytes_key</strong> – the key name of field that stores sample image bytes list
+to be processed</p></li>
+<li><p><strong>query_key</strong> – the key name of field that stores sample queries</p></li>
+<li><p><strong>response_key</strong> – the key name of field that stores responses</p></li>
+<li><p><strong>history_key</strong> – the key name of field that stores history of
+queries and responses</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Deduplicator.compute_hash">
+<span class="sig-name descname"><span class="pre">compute_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Deduplicator.compute_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Deduplicator.compute_hash" title="Link to this definition">¶</a></dt>
+<dd><p>Compute hash values for the sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – input sample</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>sample with computed hash value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Deduplicator.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Deduplicator.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Deduplicator.process" title="Link to this definition">¶</a></dt>
+<dd><p>For doc-level, dataset –&gt; dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – input dataset</p></li>
+<li><p><strong>show_num</strong> – number of traced samples used when tracer is
+open.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>deduplicated dataset and the sampled duplicate pairs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Deduplicator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exporter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Deduplicator.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Deduplicator.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.Selector">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">Selector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Selector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Selector" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP" title="data_juicer.ops.base_op.OP"><code class="xref py py-class docutils literal notranslate"><span class="pre">OP</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Selector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Selector.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Selector.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Base class that conducts selection in dataset-level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_key</strong> – the key name of field that stores sample texts
+to be processed</p></li>
+<li><p><strong>image_key</strong> – the key name of field that stores sample image list
+to be processed</p></li>
+<li><p><strong>audio_key</strong> – the key name of field that stores sample audio list
+to be processed</p></li>
+<li><p><strong>video_key</strong> – the key name of field that stores sample video list
+to be processed</p></li>
+<li><p><strong>image_bytes_key</strong> – the key name of field that stores sample image bytes list
+to be processed</p></li>
+<li><p><strong>query_key</strong> – the key name of field that stores sample queries</p></li>
+<li><p><strong>response_key</strong> – the key name of field that stores responses</p></li>
+<li><p><strong>history_key</strong> – the key name of field that stores history of
+queries and responses</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Selector.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Selector.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Selector.process" title="Link to this definition">¶</a></dt>
+<dd><p>Dataset –&gt; dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataset</strong> – input dataset</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>selected dataset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Selector.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exporter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Selector.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Selector.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.Grouper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">Grouper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Grouper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Grouper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP" title="data_juicer.ops.base_op.OP"><code class="xref py py-class docutils literal notranslate"><span class="pre">OP</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Grouper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Grouper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Grouper.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Base class that group samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_key</strong> – the key name of field that stores sample texts
+to be processed</p></li>
+<li><p><strong>image_key</strong> – the key name of field that stores sample image list
+to be processed</p></li>
+<li><p><strong>audio_key</strong> – the key name of field that stores sample audio list
+to be processed</p></li>
+<li><p><strong>video_key</strong> – the key name of field that stores sample video list
+to be processed</p></li>
+<li><p><strong>image_bytes_key</strong> – the key name of field that stores sample image bytes list
+to be processed</p></li>
+<li><p><strong>query_key</strong> – the key name of field that stores sample queries</p></li>
+<li><p><strong>response_key</strong> – the key name of field that stores responses</p></li>
+<li><p><strong>history_key</strong> – the key name of field that stores history of
+queries and responses</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Grouper.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Grouper.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Grouper.process" title="Link to this definition">¶</a></dt>
+<dd><p>Dataset –&gt; dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataset</strong> – input dataset</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dataset of batched samples.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Grouper.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exporter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Grouper.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Grouper.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.Aggregator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">Aggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Aggregator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP" title="data_juicer.ops.base_op.OP"><code class="xref py py-class docutils literal notranslate"><span class="pre">OP</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Aggregator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Aggregator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Aggregator.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Base class that group samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_key</strong> – the key name of field that stores sample texts
+to be processed</p></li>
+<li><p><strong>image_key</strong> – the key name of field that stores sample image list
+to be processed</p></li>
+<li><p><strong>audio_key</strong> – the key name of field that stores sample audio list
+to be processed</p></li>
+<li><p><strong>video_key</strong> – the key name of field that stores sample video list
+to be processed</p></li>
+<li><p><strong>image_bytes_key</strong> – the key name of field that stores sample image bytes list
+to be processed</p></li>
+<li><p><strong>query_key</strong> – the key name of field that stores sample queries</p></li>
+<li><p><strong>response_key</strong> – the key name of field that stores responses</p></li>
+<li><p><strong>history_key</strong> – the key name of field that stores history of
+queries and responses</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Aggregator.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Aggregator.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Aggregator.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, batched sample –&gt; sample,
+the input must be the output of some Grouper OP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – batched sample to aggregate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>aggregated sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Aggregator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exporter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Aggregator.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Aggregator.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.Pipeline">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">Pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Pipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Pipeline" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.OP" title="data_juicer.ops.base_op.OP"><code class="xref py py-class docutils literal notranslate"><span class="pre">OP</span></code></a></p>
+<p>Base class for Operators that represent a data processing pipeline.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Pipeline.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Pipeline.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Pipeline.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Base class of operators.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_key</strong> – the key name of field that stores sample texts
+to be processed.</p></li>
+<li><p><strong>image_key</strong> – the key name of field that stores sample image list
+to be processed</p></li>
+<li><p><strong>audio_key</strong> – the key name of field that stores sample audio list
+to be processed</p></li>
+<li><p><strong>video_key</strong> – the key name of field that stores sample video list
+to be processed</p></li>
+<li><p><strong>image_bytes_key</strong> – the key name of field that stores sample image bytes list
+to be processed</p></li>
+<li><p><strong>query_key</strong> – the key name of field that stores sample queries</p></li>
+<li><p><strong>response_key</strong> – the key name of field that stores responses</p></li>
+<li><p><strong>history_key</strong> – the key name of field that stores history of
+queries and responses</p></li>
+<li><p><strong>index_key</strong> – index the samples before process if not None</p></li>
+<li><p><strong>batch_size</strong> – the batch size for processing</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.Pipeline.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/base_op.html#Pipeline.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.Pipeline.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvSpec">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">OPEnvSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pip_pkgs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_vars</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'uv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_env_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parsed_requirements</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.Requirement" title="data_juicer.ops.op_env.Requirement"><span class="pre">Requirement</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvSpec" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Specification of the environment dependencies for an operator.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvSpec.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pip_pkgs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_vars</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'uv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_env_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parsed_requirements</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.Requirement" title="data_juicer.ops.op_env.Requirement"><span class="pre">Requirement</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvSpec.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvSpec.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialize an OPEnvSpec instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pip_pkgs</strong> – Pip packages to install, default is None. Could be a list or a str path to the requirement file</p></li>
+<li><p><strong>env_vars</strong> – Dictionary of environment variables, default is None</p></li>
+<li><p><strong>working_dir</strong> – Path to the working directory, default is None</p></li>
+<li><p><strong>backend</strong> – Package management backend, default is “uv”. Should be one of [“pip”, “uv”].</p></li>
+<li><p><strong>extra_env_params</strong> – Additional parameters dictionary passed to the ray runtime environment, default is None</p></li>
+<li><p><strong>parsed_requirements</strong> – a resolved version of requirements. It’s a dict of req_name-resolved_info, where
+the parsed package info includes version/url/…</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvSpec.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvSpec.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvSpec.to_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the OPEnvSpec instance to a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary representation of the OPEnvSpec instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvSpec.get_hash">
+<span class="sig-name descname"><span class="pre">get_hash</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvSpec.get_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvSpec.get_hash" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvSpec.get_requirement_name_list">
+<span class="sig-name descname"><span class="pre">get_requirement_name_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvSpec.get_requirement_name_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvSpec.get_requirement_name_list" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.ops.op_requirements_to_op_env_spec">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">op_requirements_to_op_env_spec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requirements</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_recommended_requirements</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#op_requirements_to_op_env_spec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.op_requirements_to_op_env_spec" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">OPEnvManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_common_dep_num_to_combine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conflict_resolve_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.ConflictResolveStrategy" title="data_juicer.ops.op_env.ConflictResolveStrategy"><span class="pre">ConflictResolveStrategy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ConflictResolveStrategy.SPLIT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>OPEnvManager is a class that manages the environment dependencies for operators,
+including recording OP dependencies, resolving dependency conflicts, merging OP environments, and so on.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_common_dep_num_to_combine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conflict_resolve_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.ConflictResolveStrategy" title="data_juicer.ops.op_env.ConflictResolveStrategy"><span class="pre">ConflictResolveStrategy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ConflictResolveStrategy.SPLIT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialize OPEnvManager instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>min_common_dep_num_to_combine</strong> – The minimum number of common dependencies required to
+determine whether to merge two operation environment specifications.
+If set to -1, it means no combination of operation environments.</p></li>
+<li><p><strong>conflict_resolve_strategy</strong> – Strategy for resolving dependency conflicts, default is SPLIT strategy.
+SPLIT: Keep the two specs split when there is a conflict.
+OVERWRITE: Overwrite the existing dependency with one from the later OP.
+LATEST: Use the latest version of all specified dependency versions.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager.print_the_current_states">
+<span class="sig-name descname"><span class="pre">print_the_current_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager.print_the_current_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager.print_the_current_states" title="Link to this definition">¶</a></dt>
+<dd><p>Get the current states of OPEnvManager, including:
+- number of recorded OPs
+- number of used env specs
+- what OPs share the same env spec</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the current states of OPEnvManager</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager.record_op_env_spec">
+<span class="sig-name descname"><span class="pre">record_op_env_spec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op_env_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager.record_op_env_spec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager.record_op_env_spec" title="Link to this definition">¶</a></dt>
+<dd><p>Record the OP environment specification for an operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>op_name</strong> – Name of the operator</p></li>
+<li><p><strong>op_env_spec</strong> – OP environment specification</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager.merge_op_env_specs">
+<span class="sig-name descname"><span class="pre">merge_op_env_specs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_env_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager.merge_op_env_specs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager.merge_op_env_specs" title="Link to this definition">¶</a></dt>
+<dd><p>Merge the OP environment specification for an operator with existing OP environment specification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_env_spec</strong> – OP environment specification</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager.can_combine_op_env_specs">
+<span class="sig-name descname"><span class="pre">can_combine_op_env_specs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first_env_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_env_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager.can_combine_op_env_specs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager.can_combine_op_env_specs" title="Link to this definition">¶</a></dt>
+<dd><p>Check if two OP environment specifications can be combined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>first_env_spec</strong> – Existing OP environment specification</p></li>
+<li><p><strong>second_env_spec</strong> – New OP environment specification</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the two specifications can be combined, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager.try_to_combine_op_env_specs">
+<span class="sig-name descname"><span class="pre">try_to_combine_op_env_specs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first_env_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_env_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager.try_to_combine_op_env_specs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager.try_to_combine_op_env_specs" title="Link to this definition">¶</a></dt>
+<dd><p>Try to combine the OP environment specification for an operator with existing OP environment specification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>first_env_spec</strong> – Name of the operator</p></li>
+<li><p><strong>second_env_spec</strong> – OP environment specification</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the two specifications can be combined, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.OPEnvManager.get_op_env_spec">
+<span class="sig-name descname"><span class="pre">get_op_env_spec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="data_juicer.ops.op_env.html#data_juicer.ops.op_env.OPEnvSpec" title="data_juicer.ops.op_env.OPEnvSpec"><span class="pre">OPEnvSpec</span></a></span></span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#OPEnvManager.get_op_env_spec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.OPEnvManager.get_op_env_spec" title="Link to this definition">¶</a></dt>
+<dd><p>Get the OP environment specification for an operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>op_name</strong> – Name of the operator</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>OP environment specification</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.ops.analyze_lazy_loaded_requirements">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">analyze_lazy_loaded_requirements</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code_content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#analyze_lazy_loaded_requirements"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.analyze_lazy_loaded_requirements" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.ops.analyze_lazy_loaded_requirements_for_code_file">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.ops.</span></span><span class="sig-name descname"><span class="pre">analyze_lazy_loaded_requirements_for_code_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data_juicer/ops/op_env.html#analyze_lazy_loaded_requirements_for_code_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.analyze_lazy_loaded_requirements_for_code_file" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">data_juicer.ops</a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.load_ops"><code class="docutils literal notranslate"><span class="pre">load_ops()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.load_op_plugins"><code class="docutils literal notranslate"><span class="pre">load_op_plugins()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Filter"><code class="docutils literal notranslate"><span class="pre">Filter</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.Filter.__init__"><code class="docutils literal notranslate"><span class="pre">Filter.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Filter.get_keep_boolean"><code class="docutils literal notranslate"><span class="pre">Filter.get_keep_boolean()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Filter.compute_stats_batched"><code class="docutils literal notranslate"><span class="pre">Filter.compute_stats_batched()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Filter.process_batched"><code class="docutils literal notranslate"><span class="pre">Filter.process_batched()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Filter.compute_stats_single"><code class="docutils literal notranslate"><span class="pre">Filter.compute_stats_single()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Filter.process_single"><code class="docutils literal notranslate"><span class="pre">Filter.process_single()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Filter.run"><code class="docutils literal notranslate"><span class="pre">Filter.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.Mapper"><code class="docutils literal notranslate"><span class="pre">Mapper</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.Mapper.__init__"><code class="docutils literal notranslate"><span class="pre">Mapper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Mapper.process_batched"><code class="docutils literal notranslate"><span class="pre">Mapper.process_batched()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Mapper.process_single"><code class="docutils literal notranslate"><span class="pre">Mapper.process_single()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Mapper.run"><code class="docutils literal notranslate"><span class="pre">Mapper.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.Deduplicator"><code class="docutils literal notranslate"><span class="pre">Deduplicator</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.Deduplicator.__init__"><code class="docutils literal notranslate"><span class="pre">Deduplicator.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Deduplicator.compute_hash"><code class="docutils literal notranslate"><span class="pre">Deduplicator.compute_hash()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Deduplicator.process"><code class="docutils literal notranslate"><span class="pre">Deduplicator.process()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Deduplicator.run"><code class="docutils literal notranslate"><span class="pre">Deduplicator.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.Selector"><code class="docutils literal notranslate"><span class="pre">Selector</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.Selector.__init__"><code class="docutils literal notranslate"><span class="pre">Selector.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Selector.process"><code class="docutils literal notranslate"><span class="pre">Selector.process()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Selector.run"><code class="docutils literal notranslate"><span class="pre">Selector.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.Grouper"><code class="docutils literal notranslate"><span class="pre">Grouper</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.Grouper.__init__"><code class="docutils literal notranslate"><span class="pre">Grouper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Grouper.process"><code class="docutils literal notranslate"><span class="pre">Grouper.process()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Grouper.run"><code class="docutils literal notranslate"><span class="pre">Grouper.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.Aggregator"><code class="docutils literal notranslate"><span class="pre">Aggregator</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.Aggregator.__init__"><code class="docutils literal notranslate"><span class="pre">Aggregator.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Aggregator.process_single"><code class="docutils literal notranslate"><span class="pre">Aggregator.process_single()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Aggregator.run"><code class="docutils literal notranslate"><span class="pre">Aggregator.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.Pipeline"><code class="docutils literal notranslate"><span class="pre">Pipeline</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.Pipeline.__init__"><code class="docutils literal notranslate"><span class="pre">Pipeline.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.Pipeline.run"><code class="docutils literal notranslate"><span class="pre">Pipeline.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvSpec"><code class="docutils literal notranslate"><span class="pre">OPEnvSpec</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvSpec.__init__"><code class="docutils literal notranslate"><span class="pre">OPEnvSpec.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvSpec.to_dict"><code class="docutils literal notranslate"><span class="pre">OPEnvSpec.to_dict()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvSpec.get_hash"><code class="docutils literal notranslate"><span class="pre">OPEnvSpec.get_hash()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvSpec.get_requirement_name_list"><code class="docutils literal notranslate"><span class="pre">OPEnvSpec.get_requirement_name_list()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.op_requirements_to_op_env_spec"><code class="docutils literal notranslate"><span class="pre">op_requirements_to_op_env_spec()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager"><code class="docutils literal notranslate"><span class="pre">OPEnvManager</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager.__init__"><code class="docutils literal notranslate"><span class="pre">OPEnvManager.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager.print_the_current_states"><code class="docutils literal notranslate"><span class="pre">OPEnvManager.print_the_current_states()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager.record_op_env_spec"><code class="docutils literal notranslate"><span class="pre">OPEnvManager.record_op_env_spec()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager.merge_op_env_specs"><code class="docutils literal notranslate"><span class="pre">OPEnvManager.merge_op_env_specs()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager.can_combine_op_env_specs"><code class="docutils literal notranslate"><span class="pre">OPEnvManager.can_combine_op_env_specs()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager.try_to_combine_op_env_specs"><code class="docutils literal notranslate"><span class="pre">OPEnvManager.try_to_combine_op_env_specs()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.OPEnvManager.get_op_env_spec"><code class="docutils literal notranslate"><span class="pre">OPEnvManager.get_op_env_spec()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.analyze_lazy_loaded_requirements"><code class="docutils literal notranslate"><span class="pre">analyze_lazy_loaded_requirements()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.analyze_lazy_loaded_requirements_for_code_file"><code class="docutils literal notranslate"><span class="pre">analyze_lazy_loaded_requirements_for_code_file()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="data_juicer.core.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">data_juicer.core</span>
+        </a>
+        <a href="data_juicer.ops.filter.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">data_juicer.ops.filter</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

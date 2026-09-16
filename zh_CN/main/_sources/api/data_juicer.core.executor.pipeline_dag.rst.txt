@@ -1,0 +1,7 @@
+data\_juicer.core.executor.pipeline\_dag module
+===============================================
+
+.. automodule:: data_juicer.core.executor.pipeline_dag
+   :members:
+   :show-inheritance:
+   :undoc-members:

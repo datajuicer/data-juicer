@@ -1,0 +1,7 @@
+data\_juicer.ops.common.prompt2prompt\_pipeline module
+======================================================
+
+.. automodule:: data_juicer.ops.common.prompt2prompt_pipeline
+   :members:
+   :show-inheritance:
+   :undoc-members:

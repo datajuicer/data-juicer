@@ -1,0 +1,7 @@
+data\_juicer.analysis.measure module
+====================================
+
+.. automodule:: data_juicer.analysis.measure
+   :members:
+   :show-inheritance:
+   :undoc-members:

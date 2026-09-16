@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_depth\_estimation\_mapper module
+===============================================================
+
+.. automodule:: data_juicer.ops.mapper.video_depth_estimation_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

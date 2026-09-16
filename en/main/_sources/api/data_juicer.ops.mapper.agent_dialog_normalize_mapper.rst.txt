@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.agent\_dialog\_normalize\_mapper module
+===============================================================
+
+.. automodule:: data_juicer.ops.mapper.agent_dialog_normalize_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

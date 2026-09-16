@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_hand\_motion\_smooth\_mapper module
+==================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_hand_motion_smooth_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

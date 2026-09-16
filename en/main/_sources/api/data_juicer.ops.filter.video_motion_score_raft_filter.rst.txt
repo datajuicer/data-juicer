@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.video\_motion\_score\_raft\_filter module
+=================================================================
+
+.. automodule:: data_juicer.ops.filter.video_motion_score_raft_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

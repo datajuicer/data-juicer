@@ -1,0 +1,7 @@
+data\_juicer.format.json\_formatter module
+==========================================
+
+.. automodule:: data_juicer.format.json_formatter
+   :members:
+   :show-inheritance:
+   :undoc-members:

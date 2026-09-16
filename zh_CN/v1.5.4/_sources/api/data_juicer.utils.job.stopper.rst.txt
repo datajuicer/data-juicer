@@ -1,0 +1,7 @@
+data\_juicer.utils.job.stopper module
+=====================================
+
+.. automodule:: data_juicer.utils.job.stopper
+   :members:
+   :show-inheritance:
+   :undoc-members:

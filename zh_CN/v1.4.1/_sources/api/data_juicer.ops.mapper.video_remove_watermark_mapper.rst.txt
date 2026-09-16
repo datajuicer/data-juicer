@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_remove\_watermark\_mapper module
+===============================================================
+
+.. automodule:: data_juicer.ops.mapper.video_remove_watermark_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

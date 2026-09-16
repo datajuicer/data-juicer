@@ -1,0 +1,7 @@
+data\_juicer.ops.selector.frequency\_specified\_field\_selector module
+======================================================================
+
+.. automodule:: data_juicer.ops.selector.frequency_specified_field_selector
+   :members:
+   :show-inheritance:
+   :undoc-members:

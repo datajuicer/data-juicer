@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.remove\_non\_chinese\_character\_mapper module
+======================================================================
+
+.. automodule:: data_juicer.ops.mapper.remove_non_chinese_character_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

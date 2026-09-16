@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.clean\_html\_mapper module
+==================================================
+
+.. automodule:: data_juicer.ops.mapper.clean_html_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.ops.mapper.agent_dialog_normalize_mapper — data-juicer</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../../../../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../../../../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../../../../index_ZH.html" class="navbar-brand">
+          <img src="../../../../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../../../../docs_index_ZH.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../../../../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">zh-CN</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../../../en/v1.6.0/_modules/data_juicer/ops/mapper/agent_dialog_normalize_mapper.html" class="dropdown-item">English</a>
+            <a href="../../../../../../zh_CN/v1.6.0/_modules/data_juicer/ops/mapper/agent_dialog_normalize_mapper_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../../../../"
+             data-page="_modules/data_juicer/ops/mapper/agent_dialog_normalize_mapper"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../../v1.6.0/_modules/data_juicer/ops/mapper/agent_dialog_normalize_mapper.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../../../../index_ZH.html">首页</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../../../../docs_index_ZH.html">文档</a></p>
+          <p class="caption" role="heading"><span class="caption-text">入门</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/tutorial/Installation_ZH.html">安装</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/tutorial/QuickStart_ZH.html">快速上手</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/tutorial/DJ-Cookbook_ZH.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">使用指南</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/ProcessData_ZH.html">数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/AnalyzeData_ZH.html">数据分析</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/Playground_ZH.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/DatasetCfg_ZH.html">数据集配置</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/Export_ZH.html">数据集导出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/Cache_ZH.html">缓存管理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/Tracing_ZH.html">数据追踪</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">速查手册</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/GlobalConfig_ZH.html">全局配置参数速查</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">分布式处理</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/Distributed_ZH.html">Data-Juicer 分布式数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/PartitionAndCheckpoint_ZH.html">分区处理与检查点</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/JobManagement_ZH.html">作业管理</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">扩展与开发</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/OperatorPlugins_ZH.html">算子插件</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/DJ_service_ZH.html">DJ 服务化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/DJ_SORA_ZH.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/Juicer_ZH.html">Juicer：自然语言数据精炼模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/DeveloperGuide_ZH.html">开发者指南</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">资源</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/BadDataExhibition_ZH.html">“坏”数据展览</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">算子</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs/operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/README_ZH.html">演示</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/agent/BAD_CASE_INSIGHTS_ZH.html">Agent 交互数据：Bad case 洞察</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/agent/BAD_CASE_REPORT_ZH.html">Bad case 自助报告（简化入口）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/agent/PERFORMANCE_LLM_ZH.html">Agent 流水线里 LLM 算子：加速与超参</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/agent/QUICKSTART_BAD_CASE_ZH.html">Bad case 流水线：一键运行与端到端指南</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/agent/minimal_configs/README_ZH.html">Agent 流水线最小可运行配置（便于逐项调试）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/agent/scripts/README_ZH.html">Agent pipeline 后分析脚本</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/auto_evaluation_helm/README_ZH.html">自动化评测：HELM 评测及可视化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/elastic_sharding/README_ZH.html">基于共享存储的多机弹性分片</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/role_playing_system_prompt/README_ZH.html">为LLM构造角色扮演的system prompt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../demos/video_humanvbench_simple/README_ZH.html">HumanVBench 算子演示</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">工具</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/distributed_deduplication/README_ZH.html">分布式模糊去重工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/evaluator/README_ZH.html">自动评测工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/evaluator/gpt_eval/README_ZH.html">GPT EVAL：使用 OpenAI API 评测大模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/evaluator/recorder/README_ZH.html">评测结果记录器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/fmt_conversion/README_ZH.html">格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/fmt_conversion/multimodal/README_ZH.html">多模态格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/fmt_conversion/post_tuning_dialog/README_ZH.html">后微调工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/mm_eval/inception_metrics/README_ZH.html">视频生成测评工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/mm_eval/vbench_metrics/README_ZH.html">VBench 视频质量指标</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/postprocess/README_ZH.html">后处理工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/preprocess/README_ZH.html">预处理工具</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">第三方</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../thirdparty/LLM_ecosystems/README_ZH.html">大语言模型生态</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../thirdparty/models/README_ZH.html">第三方模型库</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="相关项目">
+          <p class="sidebar-projects-title">相关项目</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <h1>data_juicer.ops.mapper.agent_dialog_normalize_mapper 源代码</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2025 The Data-Juicer Authors. All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Normalize agent interaction format (messages + choices) to DJ fields for</span>
+<span class="c1"># dialog/text ops. Supports multi-platform, multi-agent tool formats.</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops.base_op</span><span class="w"> </span><span class="kn">import</span> <span class="n">OPERATORS</span><span class="p">,</span> <span class="n">TAGGING_OPS</span><span class="p">,</span> <span class="n">Mapper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.constant</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fields</span><span class="p">,</span> <span class="n">MetaKeys</span>
+
+<span class="n">OP_NAME</span> <span class="o">=</span> <span class="s2">"agent_dialog_normalize_mapper"</span>
+
+<span class="c1"># Default labels for flattened dialog (override for i18n, e.g. 用户 / 助手)</span>
+<span class="n">DEFAULT_USER_LABEL</span> <span class="o">=</span> <span class="s2">"User"</span>
+<span class="n">DEFAULT_ASSISTANT_LABEL</span> <span class="o">=</span> <span class="s2">"Assistant"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_coerce_content_fragment</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Turn a content block's text-ish field into a single flat string (no .strip on dict)."""</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">val</span> <span class="ow">and</span> <span class="n">val</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">""</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">_coerce_content_fragment</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_coerce_content_fragment</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">val</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_content_to_text</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Extract plain text from message.content.</span>
+<span class="sd">    Supports: str, list of {type, text} (OpenAI multimodal), list of str.</span>
+<span class="sd">    ``text`` may be nested (dict/list); Qwen-style ``thinking`` blocks are included.</span>
+<span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
+    <span class="k">if</span> <span class="n">content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">content</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">btype</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
+                    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_coerce_content_fragment</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)))</span>
+                <span class="k">elif</span> <span class="n">btype</span> <span class="o">==</span> <span class="s2">"input_text"</span> <span class="ow">or</span> <span class="p">(</span><span class="n">btype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"reasoning"</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"text"</span> <span class="ow">in</span> <span class="n">block</span><span class="p">):</span>
+                    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_coerce_content_fragment</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)))</span>
+                <span class="k">elif</span> <span class="n">btype</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"reasoning"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"thinking"</span> <span class="ow">in</span> <span class="n">block</span> <span class="ow">or</span> <span class="s2">"reasoning_content"</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
+                    <span class="c1"># Qwen / DeepSeek / DashScope style reasoning (may omit type)</span>
+                    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">_coerce_content_fragment</span><span class="p">(</span>
+                            <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"thinking"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoning"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoning_content"</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parts</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_coerce_content_fragment</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">content</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_tool_name_from_call</span><span class="p">(</span><span class="n">tc</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Get tool/function name from one tool_call item.</span>
+<span class="sd">    Supports OpenAI (function.name), Anthropic (name), generic.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">tc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">tc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function_call"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">fn</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fn</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">tc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tc</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_tool_calls_summary</span><span class="p">(</span>
+    <span class="n">tool_calls</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">max_names</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Summarize tool_calls for history; multi-format."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tool_calls</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_calls</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">tc</span> <span class="ow">in</span> <span class="n">tool_calls</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">_get_tool_name_from_call</span><span class="p">(</span><span class="n">tc</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="ow">and</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="n">display</span> <span class="o">=</span> <span class="n">names</span><span class="p">[:</span><span class="n">max_names</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_names</span><span class="p">:</span>
+        <span class="n">display</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"...+</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">max_names</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"[Tool calls: "</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">display</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"]"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_list_str_for_hf_meta</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return ``list[str]`` with Arrow-friendly element type for HuggingFace ``datasets``.</span>
+
+<span class="sd">    An empty ``[]`` is often inferred as ``list&lt;null&gt;`` while non-empty lists use</span>
+<span class="sd">    ``list&lt;string&gt;``, which breaks multi-process ``map`` when rows differ; storing a</span>
+<span class="sd">    single empty string keeps dtype stable. Downstream should drop falsy entries.</span>
+<span class="sd">    """</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">values</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+    <span class="k">return</span> <span class="n">out</span> <span class="k">if</span> <span class="n">out</span> <span class="k">else</span> <span class="p">[</span><span class="s2">""</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_compress_head_tail</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_chars</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">head_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.62</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""If ``text`` exceeds ``max_chars``, keep head + tail with an explicit middle marker.</span>
+
+<span class="sd">    Designed for **write-back** to ``dialog_history`` / ``text`` so downstream sees the</span>
+<span class="sd">    same bounded view as prompt-side caps, while preserving error prefixes and trailing</span>
+<span class="sd">    stack/summary when possible. Middle is dropped (lossy); marker states that clearly.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">max_chars</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">text</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_chars</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">text</span>
+    <span class="n">head_ratio</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">0.85</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.35</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">head_ratio</span><span class="p">)))</span>
+    <span class="n">marker_reserve</span> <span class="o">=</span> <span class="mi">128</span>
+    <span class="n">budget</span> <span class="o">=</span> <span class="n">max_chars</span> <span class="o">-</span> <span class="n">marker_reserve</span>
+    <span class="k">if</span> <span class="n">budget</span> <span class="o">&lt;</span> <span class="mi">400</span><span class="p">:</span>
+        <span class="n">cut</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_chars</span> <span class="o">-</span> <span class="mi">48</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">text</span><span class="p">[:</span><span class="n">cut</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">…[truncated — agent_dialog_normalize_mapper]…"</span>
+
+    <span class="n">head_n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">budget</span> <span class="o">*</span> <span class="n">head_ratio</span><span class="p">))</span>
+    <span class="n">tail_n</span> <span class="o">=</span> <span class="n">budget</span> <span class="o">-</span> <span class="n">head_n</span>
+    <span class="k">if</span> <span class="n">tail_n</span> <span class="o">&lt;</span> <span class="mi">200</span><span class="p">:</span>
+        <span class="n">tail_n</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="n">head_n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="n">budget</span> <span class="o">-</span> <span class="n">tail_n</span><span class="p">)</span>
+    <span class="n">omitted</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">-</span> <span class="n">head_n</span> <span class="o">-</span> <span class="n">tail_n</span>
+    <span class="k">if</span> <span class="n">omitted</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">text</span>
+    <span class="n">marker</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">[··· </span><span class="si">{</span><span class="n">omitted</span><span class="si">}</span><span class="s2"> chars omitted from middle; "</span> <span class="s2">"head+tail preserved — agent_dialog_normalize_mapper]</span><span class="se">\n\n</span><span class="s2">"</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">head_n</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span> <span class="o">+</span> <span class="n">tail_n</span> <span class="o">&gt;</span> <span class="n">max_chars</span><span class="p">:</span>
+        <span class="n">over</span> <span class="o">=</span> <span class="n">head_n</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span> <span class="o">+</span> <span class="n">tail_n</span> <span class="o">-</span> <span class="n">max_chars</span>
+        <span class="n">head_n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="n">head_n</span> <span class="o">-</span> <span class="n">over</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">text</span><span class="p">[:</span><span class="n">head_n</span><span class="p">]</span> <span class="o">+</span> <span class="n">marker</span> <span class="o">+</span> <span class="n">text</span><span class="p">[</span><span class="o">-</span><span class="n">tail_n</span><span class="p">:]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply_char_cap</span><span class="p">(</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">max_chars</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">head_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">compressed_ref</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Apply :func:`_compress_head_tail` when ``max_chars`` &gt; 0 and text is too long."""</span>
+    <span class="k">if</span> <span class="n">max_chars</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">text</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_chars</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">text</span>
+    <span class="k">if</span> <span class="n">compressed_ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">compressed_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">_compress_head_tail</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">max_chars</span><span class="p">,</span> <span class="n">head_ratio</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_tool_types</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Collect unique tool/function names from messages (multi-format)."""</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">tc</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_calls"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_use"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">_get_tool_name_from_call</span><span class="p">(</span><span class="n">tc</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="c1"># Skill patterns: only structured identifiers to avoid fragment noise.</span>
+<span class="c1"># - Path: xxx/SKILL.md or xxx\SKILL.md -&gt; capture segment (ASCII identifier)</span>
+<span class="c1"># - ## header: only English identifiers (## cron), not doc headings (## 记忆).</span>
+<span class="n">_SKILL_PATTERNS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[/</span><span class="se">\\</span><span class="s2">]([a-zA-Z][a-zA-Z0-9_]*)[/</span><span class="se">\\</span><span class="s2">]SKILL\.md"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">),</span>
+    <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"##\s+([a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)?)\s*(?:\n|$)"</span><span class="p">),</span>
+    <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="sa">r</span><span class="s2">"Check\s+[</span><span class="se">\"</span><span class="s2">'].*?([a-zA-Z][a-zA-Z0-9_]*)/SKILL\.md"</span><span class="p">,</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_skill_types</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Extract skill names (paths + ## English headers only)."""</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">_content_to_text</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="n">_SKILL_PATTERNS</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">mo</span> <span class="ow">in</span> <span class="n">pat</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="p">(</span><span class="n">mo</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                    <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_messages_to_history</span><span class="p">(</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+    <span class="n">include_system_in_first_user</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">history_tool_result_max_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">history_max_assistant_trace_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">history_max_user_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">history_compress_head_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.62</span><span class="p">,</span>
+    <span class="n">compressed_ref</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Convert messages to [(query, response), ...]. User/assistant only.</span>
+
+<span class="sd">    Agent/tool note: within one user turn, the model may emit **multiple**</span>
+<span class="sd">    ``assistant`` messages (tool calls → ``tool`` → assistant again). Earlier</span>
+<span class="sd">    implementations **replaced** the assistant side each time, dropping</span>
+<span class="sd">    intermediate reasoning and tool traces. We **accumulate** consecutive</span>
+<span class="sd">    assistant segments (and still append each ``tool`` result onto the same</span>
+<span class="sd">    pair) so ``query`` / ``response`` / ``text`` match multi-step agent runs.</span>
+
+<span class="sd">    Optional caps: ``history_tool_result_max_chars`` per tool payload (default</span>
+<span class="sd">    ``10000``, same order as the old hard-coded slice; use ``0`` for unlimited);</span>
+<span class="sd">    ``history_max_assistant_trace_chars`` on the **whole** assistant side after</span>
+<span class="sd">    each update (``0`` = off); ``history_max_user_chars`` on user text.</span>
+<span class="sd">    When a cap applies, middle is omitted with an explicit marker</span>
+<span class="sd">    (head+tail). Set ``compressed_ref`` to a one-element list ``[False]`` to</span>
+<span class="sd">    record whether any compression ran.</span>
+<span class="sd">    """</span>
+    <span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pending_system</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ratio</span> <span class="o">=</span> <span class="n">history_compress_head_ratio</span>
+
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+        <span class="n">role</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">_content_to_text</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">))</span>
+        <span class="n">tool_calls</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_calls"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_use"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"system"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">include_system_in_first_user</span> <span class="ow">and</span> <span class="n">content</span><span class="p">:</span>
+                <span class="n">pending_system</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"user"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pending_system</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pending_system</span> <span class="o">+</span> <span class="p">[</span><span class="n">content</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">pending_system</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">_apply_char_cap</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">history_max_user_chars</span><span class="p">,</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">compressed_ref</span><span class="p">)</span>
+            <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">content</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"assistant"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span> <span class="ow">and</span> <span class="n">tool_calls</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">_tool_calls_summary</span><span class="p">(</span><span class="n">tool_calls</span><span class="p">)</span>
+            <span class="n">piece</span> <span class="o">=</span> <span class="n">content</span> <span class="ow">or</span> <span class="s2">""</span>
+            <span class="k">if</span> <span class="n">history</span><span class="p">:</span>
+                <span class="n">prev_q</span><span class="p">,</span> <span class="n">prev_r</span> <span class="o">=</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">prev_r</span> <span class="ow">and</span> <span class="n">piece</span><span class="p">:</span>
+                    <span class="n">new_r</span> <span class="o">=</span> <span class="n">prev_r</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">piece</span>
+                <span class="k">elif</span> <span class="n">piece</span><span class="p">:</span>
+                    <span class="n">new_r</span> <span class="o">=</span> <span class="n">piece</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_r</span> <span class="o">=</span> <span class="n">prev_r</span>
+                <span class="n">new_r</span> <span class="o">=</span> <span class="n">_apply_char_cap</span><span class="p">(</span>
+                    <span class="n">new_r</span><span class="p">,</span>
+                    <span class="n">history_max_assistant_trace_chars</span><span class="p">,</span>
+                    <span class="n">ratio</span><span class="p">,</span>
+                    <span class="n">compressed_ref</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">prev_q</span><span class="p">,</span> <span class="n">new_r</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">piece_capped</span> <span class="o">=</span> <span class="n">_apply_char_cap</span><span class="p">(</span>
+                    <span class="n">piece</span><span class="p">,</span>
+                    <span class="n">history_max_assistant_trace_chars</span><span class="p">,</span>
+                    <span class="n">ratio</span><span class="p">,</span>
+                    <span class="n">compressed_ref</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">""</span><span class="p">,</span> <span class="n">piece_capped</span><span class="p">))</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"tool"</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="n">_apply_char_cap</span><span class="p">(</span>
+                <span class="n">content</span><span class="p">,</span>
+                <span class="n">history_tool_result_max_chars</span><span class="p">,</span>
+                <span class="n">ratio</span><span class="p">,</span>
+                <span class="n">compressed_ref</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Append tool result to last assistant response for context</span>
+            <span class="k">if</span> <span class="n">history</span> <span class="ow">and</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">new_r</span> <span class="o">=</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">[Tool result]</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">body</span>
+                <span class="n">new_r</span> <span class="o">=</span> <span class="n">_apply_char_cap</span><span class="p">(</span>
+                    <span class="n">new_r</span><span class="p">,</span>
+                    <span class="n">history_max_assistant_trace_chars</span><span class="p">,</span>
+                    <span class="n">ratio</span><span class="p">,</span>
+                    <span class="n">compressed_ref</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">new_r</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">history</span><span class="p">:</span>
+                <span class="n">lone</span> <span class="o">=</span> <span class="s2">"[Tool result]</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">body</span>
+                <span class="n">lone</span> <span class="o">=</span> <span class="n">_apply_char_cap</span><span class="p">(</span>
+                    <span class="n">lone</span><span class="p">,</span>
+                    <span class="n">history_max_assistant_trace_chars</span><span class="p">,</span>
+                    <span class="n">ratio</span><span class="p">,</span>
+                    <span class="n">compressed_ref</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">lone</span><span class="p">)</span>
+            <span class="k">continue</span>
+    <span class="k">return</span> <span class="n">history</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_last_user_assistant_msg_indices</span><span class="p">(</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""0-based indices in ``messages`` of the last user / assistant turns."""</span>
+    <span class="n">last_u</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_a</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">role</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"user"</span><span class="p">:</span>
+            <span class="n">last_u</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="k">elif</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"assistant"</span><span class="p">:</span>
+            <span class="n">last_a</span> <span class="o">=</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="n">last_u</span><span class="p">,</span> <span class="n">last_a</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_first_non_empty_str</span><span class="p">(</span><span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">s</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_choices_to_text</span><span class="p">(</span><span class="n">choices</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Extract reply text from choices (OpenAI / Anthropic / generic)."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">choices</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">choices</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"message"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">c</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"delta"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">c</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">_content_to_text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">t</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">t</span>
+    <span class="k">return</span> <span class="s2">""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_flatten_history_to_text</span><span class="p">(</span>
+    <span class="n">history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">user_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_USER_LABEL</span><span class="p">,</span>
+    <span class="n">assistant_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_ASSISTANT_LABEL</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Flatten history to one text for text-based ops."""</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">history</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">q</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">user_label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">assistant_label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="AgentDialogNormalizeMapper">
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_dialog_normalize_mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper">[文档]</a>
+<span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentDialogNormalizeMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Normalize agent format (messages + choices) to DJ fields.</span>
+
+<span class="sd">    Outputs: text, dialog_history, query, response; optionally meta tags</span>
+<span class="sd">    agent_tool_types, agent_skill_types, agent_turn_count. When</span>
+<span class="sd">    ``copy_lineage_fields`` is True, also copies request_model, pt,</span>
+<span class="sd">    total_cost_time, and (when ``copy_request_id``) the first non-empty</span>
+<span class="sd">    id among ``request_id_keys`` from the sample root into meta for cohort</span>
+<span class="sd">    analysis and stable drill-down links. Always records last user/assistant</span>
+<span class="sd">    message indices (in the raw ``messages`` list) when present.</span>
+<span class="sd">    Supports multi-format tool_calls (e.g. tool_calls[].function.name as in</span>
+<span class="sd">    OpenAI / demos/local/demo-agent-data-content.json) and configurable</span>
+<span class="sd">    user/assistant labels.</span>
+<span class="sd">    Optional ``history_*_max_chars`` caps keep head+tail with an explicit</span>
+<span class="sd">    middle-omitted marker so ``dialog_history``, flattened ``text``, and last</span>
+<span class="sd">    ``query`` / ``response`` stay aligned; ``meta.agent_dialog_history_compressed``</span>
+<span class="sd">    is set when any cap fires.</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="AgentDialogNormalizeMapper.__init__">
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_dialog_normalize_mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper.__init__">[文档]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"messages"</span><span class="p">,</span>
+        <span class="n">choices_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"choices"</span><span class="p">,</span>
+        <span class="n">text_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"text"</span><span class="p">,</span>
+        <span class="n">history_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"dialog_history"</span><span class="p">,</span>
+        <span class="n">query_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"query"</span><span class="p">,</span>
+        <span class="n">response_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"response"</span><span class="p">,</span>
+        <span class="n">extract_tool_skill_tags</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">include_system_in_first_user</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">user_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_USER_LABEL</span><span class="p">,</span>
+        <span class="n">assistant_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_ASSISTANT_LABEL</span><span class="p">,</span>
+        <span class="n">copy_lineage_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">copy_request_id</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">request_id_keys</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">"request_id"</span><span class="p">,</span>
+            <span class="s2">"trace_id"</span><span class="p">,</span>
+            <span class="s2">"id"</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">history_tool_result_max_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+        <span class="n">history_max_assistant_trace_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">history_max_user_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">history_compress_head_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.62</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">text_key</span><span class="o">=</span><span class="n">text_key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">messages_key</span> <span class="o">=</span> <span class="n">messages_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">choices_key</span> <span class="o">=</span> <span class="n">choices_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_key</span> <span class="o">=</span> <span class="n">history_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query_key</span> <span class="o">=</span> <span class="n">query_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response_key</span> <span class="o">=</span> <span class="n">response_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extract_tool_skill_tags</span> <span class="o">=</span> <span class="n">extract_tool_skill_tags</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_system_in_first_user</span> <span class="o">=</span> <span class="n">include_system_in_first_user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_label</span> <span class="o">=</span> <span class="n">user_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assistant_label</span> <span class="o">=</span> <span class="n">assistant_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_lineage_fields</span> <span class="o">=</span> <span class="n">copy_lineage_fields</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_request_id</span> <span class="o">=</span> <span class="n">copy_request_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request_id_keys</span> <span class="o">=</span> <span class="n">request_id_keys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_tool_result_max_chars</span> <span class="o">=</span> <span class="n">history_tool_result_max_chars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_max_assistant_trace_chars</span> <span class="o">=</span> <span class="n">history_max_assistant_trace_chars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_max_user_chars</span> <span class="o">=</span> <span class="n">history_max_user_chars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_compress_head_ratio</span> <span class="o">=</span> <span class="n">history_compress_head_ratio</span></div>
+
+
+<div class="viewcode-block" id="AgentDialogNormalizeMapper.process_single">
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_dialog_normalize_mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper.process_single">[文档]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">messages_key</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">choices_key</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">compressed_ref</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span>
+        <span class="n">history</span> <span class="o">=</span> <span class="n">_messages_to_history</span><span class="p">(</span>
+            <span class="n">messages</span><span class="p">,</span>
+            <span class="n">include_system_in_first_user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">include_system_in_first_user</span><span class="p">,</span>
+            <span class="n">history_tool_result_max_chars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">history_tool_result_max_chars</span><span class="p">,</span>
+            <span class="n">history_max_assistant_trace_chars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">history_max_assistant_trace_chars</span><span class="p">,</span>
+            <span class="n">history_max_user_chars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">history_max_user_chars</span><span class="p">,</span>
+            <span class="n">history_compress_head_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">history_compress_head_ratio</span><span class="p">,</span>
+            <span class="n">compressed_ref</span><span class="o">=</span><span class="n">compressed_ref</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">flat_text</span> <span class="o">=</span> <span class="n">_flatten_history_to_text</span><span class="p">(</span>
+            <span class="n">history</span><span class="p">,</span>
+            <span class="n">user_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_label</span><span class="p">,</span>
+            <span class="n">assistant_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">assistant_label</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">last_query</span> <span class="o">=</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">history</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="n">last_response</span> <span class="o">=</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">history</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">last_response</span> <span class="ow">and</span> <span class="n">choices</span><span class="p">:</span>
+            <span class="n">last_response</span> <span class="o">=</span> <span class="n">_choices_to_text</span><span class="p">(</span><span class="n">choices</span><span class="p">)</span>
+
+        <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">flat_text</span>
+        <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">history_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">history</span>
+        <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_query</span>
+        <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">response_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_response</span>
+
+        <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
+            <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]</span>
+        <span class="c1"># Always set bool so HF Arrow struct schema matches across rows (num_proc&gt;1)</span>
+        <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_dialog_history_compressed</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">compressed_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_turn_count</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_tool_skill_tags</span><span class="p">:</span>
+            <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_tool_types</span><span class="p">]</span> <span class="o">=</span> <span class="n">_list_str_for_hf_meta</span><span class="p">(</span><span class="n">_extract_tool_types</span><span class="p">(</span><span class="n">messages</span><span class="p">))</span>
+            <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_skill_types</span><span class="p">]</span> <span class="o">=</span> <span class="n">_list_str_for_hf_meta</span><span class="p">(</span><span class="n">_extract_skill_types</span><span class="p">(</span><span class="n">messages</span><span class="p">))</span>
+
+        <span class="n">last_u_idx</span><span class="p">,</span> <span class="n">last_a_idx</span> <span class="o">=</span> <span class="n">_last_user_assistant_msg_indices</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">last_u_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_last_user_msg_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_u_idx</span>
+        <span class="k">if</span> <span class="n">last_a_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_last_assistant_msg_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_a_idx</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy_request_id</span><span class="p">:</span>
+            <span class="n">rid</span> <span class="o">=</span> <span class="n">_first_non_empty_str</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_id_keys</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_request_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">rid</span>
+
+        <span class="c1"># Cohort fields for bad-case / A-B analysis (request_model, date bucket, latency)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy_lineage_fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"request_model"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_request_model</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">"request_model"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pt"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_pt</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">"pt"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"total_cost_time"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_total_cost_time_ms</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">"total_cost_time"</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">sample</span></div>
+</div>
+
+</pre></div>
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../../../../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../../../../_static/documentation_options.js"></script>
+  <script src="../../../../_static/doctools.js"></script>
+  <script src="../../../../_static/sphinx_highlight.js"></script>
+  <script src="../../../../_static/clipboard.min.js"></script>
+  <script src="../../../../_static/copybutton.js"></script>
+  <script src="../../../../_static/translations.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../../../../_static/ask-ai-widget.js"></script>
+</body>
+</html>

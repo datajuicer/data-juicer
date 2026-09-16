@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.remove\_bibliography\_mapper module
+===========================================================
+
+.. automodule:: data_juicer.ops.mapper.remove_bibliography_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

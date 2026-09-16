@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.query\_topic\_detection\_mapper module
+==============================================================
+
+.. automodule:: data_juicer.ops.mapper.query_topic_detection_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

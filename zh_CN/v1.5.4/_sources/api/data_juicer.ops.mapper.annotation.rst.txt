@@ -1,0 +1,7 @@
+data_juicer.ops.mapper.annotation
+=================================
+
+.. automodule:: data_juicer.ops.mapper.annotation
+   :members:
+   :show-inheritance:
+   :undoc-members:

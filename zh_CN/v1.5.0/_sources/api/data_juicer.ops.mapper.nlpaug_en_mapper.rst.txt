@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.nlpaug\_en\_mapper module
+=================================================
+
+.. automodule:: data_juicer.ops.mapper.nlpaug_en_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

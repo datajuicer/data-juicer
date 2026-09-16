@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.ops.mapper.extract_entity_relation_mapper module — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index_ZH.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index_ZH.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">zh-CN</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/api/data_juicer.ops.mapper.extract_entity_relation_mapper.html" class="dropdown-item">English</a>
+            <a href="../../../zh_CN/v1.6.0/api/data_juicer.ops.mapper.extract_entity_relation_mapper.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="api/data_juicer.ops.mapper.extract_entity_relation_mapper"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/api/data_juicer.ops.mapper.extract_entity_relation_mapper.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index_ZH.html">首页</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../docs_index_ZH.html">文档</a></p>
+          <p class="caption" role="heading"><span class="caption-text">入门</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/tutorial/Installation_ZH.html">安装</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/tutorial/QuickStart_ZH.html">快速上手</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/tutorial/DJ-Cookbook_ZH.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">使用指南</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/ProcessData_ZH.html">数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/AnalyzeData_ZH.html">数据分析</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Playground_ZH.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DatasetCfg_ZH.html">数据集配置</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Export_ZH.html">数据集导出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Cache_ZH.html">缓存管理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Tracing_ZH.html">数据追踪</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">速查手册</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/GlobalConfig_ZH.html">全局配置参数速查</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">分布式处理</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Distributed_ZH.html">Data-Juicer 分布式数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/PartitionAndCheckpoint_ZH.html">分区处理与检查点</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/JobManagement_ZH.html">作业管理</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">扩展与开发</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/OperatorPlugins_ZH.html">算子插件</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DJ_service_ZH.html">DJ 服务化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DJ_SORA_ZH.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Juicer_ZH.html">Juicer：自然语言数据精炼模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DeveloperGuide_ZH.html">开发者指南</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">资源</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/BadDataExhibition_ZH.html">“坏”数据展览</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">算子</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README_ZH.html">演示</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/BAD_CASE_INSIGHTS_ZH.html">Agent 交互数据：Bad case 洞察</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/BAD_CASE_REPORT_ZH.html">Bad case 自助报告（简化入口）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/PERFORMANCE_LLM_ZH.html">Agent 流水线里 LLM 算子：加速与超参</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/QUICKSTART_BAD_CASE_ZH.html">Bad case 流水线：一键运行与端到端指南</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/minimal_configs/README_ZH.html">Agent 流水线最小可运行配置（便于逐项调试）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/scripts/README_ZH.html">Agent pipeline 后分析脚本</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/auto_evaluation_helm/README_ZH.html">自动化评测：HELM 评测及可视化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/elastic_sharding/README_ZH.html">基于共享存储的多机弹性分片</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/role_playing_system_prompt/README_ZH.html">为LLM构造角色扮演的system prompt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/video_humanvbench_simple/README_ZH.html">HumanVBench 算子演示</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">工具</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README_ZH.html">分布式模糊去重工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README_ZH.html">自动评测工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README_ZH.html">GPT EVAL：使用 OpenAI API 评测大模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README_ZH.html">评测结果记录器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README_ZH.html">格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README_ZH.html">多模态格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README_ZH.html">后微调工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README_ZH.html">视频生成测评工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README_ZH.html">VBench 视频质量指标</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README_ZH.html">后处理工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README_ZH.html">预处理工具</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">第三方</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README_ZH.html">大语言模型生态</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README_ZH.html">第三方模型库</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="相关项目">
+          <p class="sidebar-projects-title">相关项目</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="module-data_juicer.ops.mapper.extract_entity_relation_mapper">
+<span id="data-juicer-ops-mapper-extract-entity-relation-mapper-module"></span><h1>data_juicer.ops.mapper.extract_entity_relation_mapper module<a class="headerlink" href="#module-data_juicer.ops.mapper.extract_entity_relation_mapper" title="链接到此标题。">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.extract_entity_relation_mapper.</span></span><span class="sig-name descname"><span class="pre">ExtractEntityRelationMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/extract_entity_relation_mapper.html#ExtractEntityRelationMapper"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
+<p>Extracts entities and relations from text to build a knowledge graph.</p>
+<ul class="simple">
+<li><p>Identifies entities based on specified types and extracts their names, types, and
+descriptions.</p></li>
+<li><p>Identifies relationships between the entities, including source and target entities,
+relationship descriptions, keywords, and strength scores.</p></li>
+<li><p>Uses a Hugging Face tokenizer and a predefined prompt template to guide the extraction
+process.</p></li>
+<li><p>Outputs entities and relations in a structured format, using delimiters for
+separation.</p></li>
+<li><p>Caches the results in the sample's metadata under the keys 'entity' and 'relation'.</p></li>
+<li><p>Supports multiple retries and gleaning to ensure comprehensive extraction.</p></li>
+<li><p>The default entity types include 'organization', 'person', 'geo', and 'event'.</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_PROMPT_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_PROMPT_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'-Goal-\nGiven</span> <span class="pre">a</span> <span class="pre">text</span> <span class="pre">document</span> <span class="pre">that</span> <span class="pre">is</span> <span class="pre">potentially</span> <span class="pre">relevant</span> <span class="pre">to</span> <span class="pre">this</span> <span class="pre">activity</span> <span class="pre">and</span> <span class="pre">a</span> <span class="pre">list</span> <span class="pre">of</span> <span class="pre">entity</span> <span class="pre">types,</span> <span class="pre">identify</span> <span class="pre">all</span> <span class="pre">entities</span> <span class="pre">of</span> <span class="pre">those</span> <span class="pre">types</span> <span class="pre">from</span> <span class="pre">the</span> <span class="pre">text</span> <span class="pre">and</span> <span class="pre">all</span> <span class="pre">relationships</span> <span class="pre">among</span> <span class="pre">the</span> <span class="pre">identified</span> <span class="pre">entities.\n\n-Steps-\n1.</span> <span class="pre">Identify</span> <span class="pre">all</span> <span class="pre">entities.</span> <span class="pre">For</span> <span class="pre">each</span> <span class="pre">identified</span> <span class="pre">entity,</span> <span class="pre">extract</span> <span class="pre">the</span> <span class="pre">following</span> <span class="pre">information:\n-</span> <span class="pre">entity_name:</span> <span class="pre">Name</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">entity\n-</span> <span class="pre">entity_type:</span> <span class="pre">One</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">following</span> <span class="pre">types:</span> <span class="pre">[{entity_types}]\n-</span> <span class="pre">entity_description:</span> <span class="pre">Comprehensive</span> <span class="pre">description</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">entity\'s</span> <span class="pre">attributes</span> <span class="pre">and</span> <span class="pre">activities\nFormat</span> <span class="pre">each</span> <span class="pre">entity</span> <span class="pre">as</span> <span class="pre">(&quot;entity&quot;{tuple_delimiter}&lt;entity_name&gt;{tuple_delimiter}&lt;entity_type&gt;{tuple_delimiter}&lt;entity_description&gt;\n\n2.</span> <span class="pre">From</span> <span class="pre">the</span> <span class="pre">entities</span> <span class="pre">identified</span> <span class="pre">in</span> <span class="pre">step</span> <span class="pre">1,</span> <span class="pre">identify</span> <span class="pre">all</span> <span class="pre">pairs</span> <span class="pre">of</span> <span class="pre">(source_entity,</span> <span class="pre">target_entity)</span> <span class="pre">that</span> <span class="pre">are</span> <span class="pre">*clearly</span> <span class="pre">related*</span> <span class="pre">to</span> <span class="pre">each</span> <span class="pre">other.\nFor</span> <span class="pre">each</span> <span class="pre">pair</span> <span class="pre">of</span> <span class="pre">related</span> <span class="pre">entities,</span> <span class="pre">extract</span> <span class="pre">the</span> <span class="pre">following</span> <span class="pre">information:\n-</span> <span class="pre">source_entity:</span> <span class="pre">name</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">source</span> <span class="pre">entity,</span> <span class="pre">as</span> <span class="pre">identified</span> <span class="pre">in</span> <span class="pre">step</span> <span class="pre">1\n-</span> <span class="pre">target_entity:</span> <span class="pre">name</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">target</span> <span class="pre">entity,</span> <span class="pre">as</span> <span class="pre">identified</span> <span class="pre">in</span> <span class="pre">step</span> <span class="pre">1\n-</span> <span class="pre">relationship_description:</span> <span class="pre">explanation</span> <span class="pre">as</span> <span class="pre">to</span> <span class="pre">why</span> <span class="pre">you</span> <span class="pre">think</span> <span class="pre">the</span> <span class="pre">source</span> <span class="pre">entity</span> <span class="pre">and</span> <span class="pre">the</span> <span class="pre">target</span> <span class="pre">entity</span> <span class="pre">are</span> <span class="pre">related</span> <span class="pre">to</span> <span class="pre">each</span> <span class="pre">other\n-</span> <span class="pre">relationship_strength:</span> <span class="pre">a</span> <span class="pre">numeric</span> <span class="pre">score</span> <span class="pre">indicating</span> <span class="pre">strength</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">relationship</span> <span class="pre">between</span> <span class="pre">the</span> <span class="pre">source</span> <span class="pre">entity</span> <span class="pre">and</span> <span class="pre">target</span> <span class="pre">entity\n-</span> <span class="pre">relationship_keywords:</span> <span class="pre">one</span> <span class="pre">or</span> <span class="pre">more</span> <span class="pre">high-level</span> <span class="pre">key</span> <span class="pre">words</span> <span class="pre">that</span> <span class="pre">summarize</span> <span class="pre">the</span> <span class="pre">overarching</span> <span class="pre">nature</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">relationship,</span> <span class="pre">focusing</span> <span class="pre">on</span> <span class="pre">concepts</span> <span class="pre">or</span> <span class="pre">themes</span> <span class="pre">rather</span> <span class="pre">than</span> <span class="pre">specific</span> <span class="pre">details\nFormat</span> <span class="pre">each</span> <span class="pre">relationship</span> <span class="pre">as</span> <span class="pre">(&quot;relationship&quot;{tuple_delimiter}&lt;source_entity&gt;{tuple_delimiter}&lt;target_entity&gt;{tuple_delimiter}&lt;relationship_description&gt;{tuple_delimiter}&lt;relationship_keywords&gt;{tuple_delimiter}&lt;relationship_strength&gt;)\n\n3.</span> <span class="pre">Return</span> <span class="pre">output</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">language</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">given</span> <span class="pre">text</span> <span class="pre">as</span> <span class="pre">a</span> <span class="pre">single</span> <span class="pre">list</span> <span class="pre">of</span> <span class="pre">all</span> <span class="pre">the</span> <span class="pre">entities</span> <span class="pre">and</span> <span class="pre">relationships</span> <span class="pre">identified</span> <span class="pre">in</span> <span class="pre">steps</span> <span class="pre">1</span> <span class="pre">and</span> <span class="pre">2.</span> <span class="pre">Use</span> <span class="pre">**{record_delimiter}**</span> <span class="pre">as</span> <span class="pre">the</span> <span class="pre">list</span> <span class="pre">delimiter.\n\n4.</span> <span class="pre">When</span> <span class="pre">finished,</span> <span class="pre">output</span> <span class="pre">{completion_delimiter}\n\n######################\n-Examples-\n######################\nExample</span> <span class="pre">1:\n\nEntity_types:</span> <span class="pre">[person,</span> <span class="pre">technology,</span> <span class="pre">mission,</span> <span class="pre">organization,</span> <span class="pre">location]\nText:\n```\nwhile</span> <span class="pre">Alex</span> <span class="pre">clenched</span> <span class="pre">his</span> <span class="pre">jaw,</span> <span class="pre">the</span> <span class="pre">buzz</span> <span class="pre">of</span> <span class="pre">frustration</span> <span class="pre">dull</span> <span class="pre">against</span> <span class="pre">the</span> <span class="pre">backdrop</span> <span class="pre">of</span> <span class="pre">Taylor\'s</span> <span class="pre">authoritarian</span> <span class="pre">certainty.</span> <span class="pre">It</span> <span class="pre">was</span> <span class="pre">this</span> <span class="pre">competitive</span> <span class="pre">undercurrent</span> <span class="pre">that</span> <span class="pre">kept</span> <span class="pre">him</span> <span class="pre">alert,</span> <span class="pre">the</span> <span class="pre">sense</span> <span class="pre">that</span> <span class="pre">his</span> <span class="pre">and</span> <span class="pre">Jordan\'s</span> <span class="pre">shared</span> <span class="pre">commitment</span> <span class="pre">to</span> <span class="pre">discovery</span> <span class="pre">was</span> <span class="pre">an</span> <span class="pre">unspoken</span> <span class="pre">rebellion</span> <span class="pre">against</span> <span class="pre">Cruz\'s</span> <span class="pre">narrowing</span> <span class="pre">vision</span> <span class="pre">of</span> <span class="pre">control</span> <span class="pre">and</span> <span class="pre">order.\n\nThen</span> <span class="pre">Taylor</span> <span class="pre">did</span> <span class="pre">something</span> <span class="pre">unexpected.</span> <span class="pre">They</span> <span class="pre">paused</span> <span class="pre">beside</span> <span class="pre">Jordan</span> <span class="pre">and,</span> <span class="pre">for</span> <span class="pre">a</span> <span class="pre">moment,</span> <span class="pre">observed</span> <span class="pre">the</span> <span class="pre">device</span> <span class="pre">with</span> <span class="pre">something</span> <span class="pre">akin</span> <span class="pre">to</span> <span class="pre">reverence.</span> <span class="pre">“If</span> <span class="pre">this</span> <span class="pre">tech</span> <span class="pre">can</span> <span class="pre">be</span> <span class="pre">understood...&quot;</span> <span class="pre">Taylor</span> <span class="pre">said,</span> <span class="pre">their</span> <span class="pre">voice</span> <span class="pre">quieter,</span> <span class="pre">&quot;It</span> <span class="pre">could</span> <span class="pre">change</span> <span class="pre">the</span> <span class="pre">game</span> <span class="pre">for</span> <span class="pre">us.</span> <span class="pre">For</span> <span class="pre">all</span> <span class="pre">of</span> <span class="pre">us.”\n\nThe</span> <span class="pre">underlying</span> <span class="pre">dismissal</span> <span class="pre">earlier</span> <span class="pre">seemed</span> <span class="pre">to</span> <span class="pre">falter,</span> <span class="pre">replaced</span> <span class="pre">by</span> <span class="pre">a</span> <span class="pre">glimpse</span> <span class="pre">of</span> <span class="pre">reluctant</span> <span class="pre">respect</span> <span class="pre">for</span> <span class="pre">the</span> <span class="pre">gravity</span> <span class="pre">of</span> <span class="pre">what</span> <span class="pre">lay</span> <span class="pre">in</span> <span class="pre">their</span> <span class="pre">hands.</span> <span class="pre">Jordan</span> <span class="pre">looked</span> <span class="pre">up,</span> <span class="pre">and</span> <span class="pre">for</span> <span class="pre">a</span> <span class="pre">fleeting</span> <span class="pre">heartbeat,</span> <span class="pre">their</span> <span class="pre">eyes</span> <span class="pre">locked</span> <span class="pre">with</span> <span class="pre">Taylor\'s,</span> <span class="pre">a</span> <span class="pre">wordless</span> <span class="pre">clash</span> <span class="pre">of</span> <span class="pre">wills</span> <span class="pre">softening</span> <span class="pre">into</span> <span class="pre">an</span> <span class="pre">uneasy</span> <span class="pre">truce.\n\nIt</span> <span class="pre">was</span> <span class="pre">a</span> <span class="pre">small</span> <span class="pre">transformation,</span> <span class="pre">barely</span> <span class="pre">perceptible,</span> <span class="pre">but</span> <span class="pre">one</span> <span class="pre">that</span> <span class="pre">Alex</span> <span class="pre">noted</span> <span class="pre">with</span> <span class="pre">an</span> <span class="pre">inward</span> <span class="pre">nod.</span> <span class="pre">They</span> <span class="pre">had</span> <span class="pre">all</span> <span class="pre">been</span> <span class="pre">brought</span> <span class="pre">here</span> <span class="pre">by</span> <span class="pre">different</span> <span class="pre">paths\n```\n################\nOutput:\n(&quot;entity&quot;{tuple_delimiter}&quot;Alex&quot;{tuple_delimiter}&quot;person&quot;{tuple_delimiter}&quot;Alex</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">character</span> <span class="pre">who</span> <span class="pre">experiences</span> <span class="pre">frustration</span> <span class="pre">and</span> <span class="pre">is</span> <span class="pre">observant</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">dynamics</span> <span class="pre">among</span> <span class="pre">other</span> <span class="pre">characters.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;Taylor&quot;{tuple_delimiter}&quot;person&quot;{tuple_delimiter}&quot;Taylor</span> <span class="pre">is</span> <span class="pre">portrayed</span> <span class="pre">with</span> <span class="pre">authoritarian</span> <span class="pre">certainty</span> <span class="pre">and</span> <span class="pre">shows</span> <span class="pre">a</span> <span class="pre">moment</span> <span class="pre">of</span> <span class="pre">reverence</span> <span class="pre">towards</span> <span class="pre">a</span> <span class="pre">device,</span> <span class="pre">indicating</span> <span class="pre">a</span> <span class="pre">change</span> <span class="pre">in</span> <span class="pre">perspective.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;Jordan&quot;{tuple_delimiter}&quot;person&quot;{tuple_delimiter}&quot;Jordan</span> <span class="pre">shares</span> <span class="pre">a</span> <span class="pre">commitment</span> <span class="pre">to</span> <span class="pre">discovery</span> <span class="pre">and</span> <span class="pre">has</span> <span class="pre">a</span> <span class="pre">significant</span> <span class="pre">interaction</span> <span class="pre">with</span> <span class="pre">Taylor</span> <span class="pre">regarding</span> <span class="pre">a</span> <span class="pre">device.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;Cruz&quot;{tuple_delimiter}&quot;person&quot;{tuple_delimiter}&quot;Cruz</span> <span class="pre">is</span> <span class="pre">associated</span> <span class="pre">with</span> <span class="pre">a</span> <span class="pre">vision</span> <span class="pre">of</span> <span class="pre">control</span> <span class="pre">and</span> <span class="pre">order,</span> <span class="pre">influencing</span> <span class="pre">the</span> <span class="pre">dynamics</span> <span class="pre">among</span> <span class="pre">other</span> <span class="pre">characters.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;The</span> <span class="pre">Device&quot;{tuple_delimiter}&quot;technology&quot;{tuple_delimiter}&quot;The</span> <span class="pre">Device</span> <span class="pre">is</span> <span class="pre">central</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">story,</span> <span class="pre">with</span> <span class="pre">potential</span> <span class="pre">game-changing</span> <span class="pre">implications,</span> <span class="pre">and</span> <span class="pre">is</span> <span class="pre">reversed</span> <span class="pre">by</span> <span class="pre">Taylor.&quot;){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Alex&quot;{tuple_delimiter}&quot;Taylor&quot;{tuple_delimiter}&quot;Alex</span> <span class="pre">is</span> <span class="pre">affected</span> <span class="pre">by</span> <span class="pre">Taylor\'s</span> <span class="pre">authoritarian</span> <span class="pre">certainty</span> <span class="pre">and</span> <span class="pre">observes</span> <span class="pre">changes</span> <span class="pre">in</span> <span class="pre">Taylor\'s</span> <span class="pre">attitude</span> <span class="pre">towards</span> <span class="pre">the</span> <span class="pre">device.&quot;{tuple_delimiter}&quot;power</span> <span class="pre">dynamics,</span> <span class="pre">perspective</span> <span class="pre">shift&quot;{tuple_delimiter}7){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Alex&quot;{tuple_delimiter}&quot;Jordan&quot;{tuple_delimiter}&quot;Alex</span> <span class="pre">and</span> <span class="pre">Jordan</span> <span class="pre">share</span> <span class="pre">a</span> <span class="pre">commitment</span> <span class="pre">to</span> <span class="pre">discovery,</span> <span class="pre">which</span> <span class="pre">contrasts</span> <span class="pre">with</span> <span class="pre">Cruz\'s</span> <span class="pre">vision.&quot;{tuple_delimiter}&quot;shared</span> <span class="pre">goals,</span> <span class="pre">rebellion&quot;{tuple_delimiter}6){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Taylor&quot;{tuple_delimiter}&quot;Jordan&quot;{tuple_delimiter}&quot;Taylor</span> <span class="pre">and</span> <span class="pre">Jordan</span> <span class="pre">interact</span> <span class="pre">directly</span> <span class="pre">regarding</span> <span class="pre">the</span> <span class="pre">device,</span> <span class="pre">leading</span> <span class="pre">to</span> <span class="pre">a</span> <span class="pre">moment</span> <span class="pre">of</span> <span class="pre">mutual</span> <span class="pre">respect</span> <span class="pre">and</span> <span class="pre">an</span> <span class="pre">uneasy</span> <span class="pre">truce.&quot;{tuple_delimiter}&quot;conflict</span> <span class="pre">resolution,</span> <span class="pre">mutual</span> <span class="pre">respect&quot;{tuple_delimiter}8){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Jordan&quot;{tuple_delimiter}&quot;Cruz&quot;{tuple_delimiter}&quot;Jordan\'s</span> <span class="pre">commitment</span> <span class="pre">to</span> <span class="pre">discovery</span> <span class="pre">is</span> <span class="pre">in</span> <span class="pre">rebellion</span> <span class="pre">against</span> <span class="pre">Cruz\'s</span> <span class="pre">vision</span> <span class="pre">of</span> <span class="pre">control</span> <span class="pre">and</span> <span class="pre">order.&quot;{tuple_delimiter}&quot;ideological</span> <span class="pre">conflict,</span> <span class="pre">rebellion&quot;{tuple_delimiter}5){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Taylor&quot;{tuple_delimiter}&quot;The</span> <span class="pre">Device&quot;{tuple_delimiter}&quot;Taylor</span> <span class="pre">shows</span> <span class="pre">reverence</span> <span class="pre">towards</span> <span class="pre">the</span> <span class="pre">device,</span> <span class="pre">indicating</span> <span class="pre">its</span> <span class="pre">importance</span> <span class="pre">and</span> <span class="pre">potential</span> <span class="pre">impact.&quot;{tuple_delimiter}&quot;reverence,</span> <span class="pre">technological</span> <span class="pre">significance&quot;{tuple_delimiter}9){record_delimiter}\n#############################\nExample</span> <span class="pre">2:\n\nEntity_types:</span> <span class="pre">[人物,</span> <span class="pre">技术,</span> <span class="pre">任务,</span> <span class="pre">组织,</span> <span class="pre">地点]\nText:\n```\n他们不再是单纯的执行者；他们已成为某个超越星辰与条纹的领域的信息守护者。这一使命的提升不能被规则和既定协议所束缚——它需要一种新的视角，一种新的决心。\n\n随着与华盛顿的通讯在背景中嗡嗡作响，对话中的紧张情绪通过嘟嘟声和静电噪音贯穿始终。团队站立着，一股不祥的气息笼罩着他们。显然，他们在接下来几个小时内做出的决定可能会重新定义人类在宇宙中的位置，或者将他们置于无知和潜在危险之中。\n\n随着与星辰的联系变得更加牢固，小组开始处理逐渐成形的警告，从被动接受者转变为积极参与者。梅瑟后来的直觉占据了上风——团队的任务已经演变，不再仅仅是观察和报告，而是互动和准备。一场蜕变已经开始，而“杜尔塞行动”则以他们大胆的新频率震动，这种基调不是由世俗设定的\n```\n#############\nOutput:\n(&quot;entity&quot;{tuple_delimiter}&quot;华盛顿&quot;{tuple_delimiter}&quot;地点&quot;{tuple_delimiter}&quot;华盛顿是正在接收通讯的地方，表明其在决策过程中的重要性。&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;杜尔塞行动&quot;{tuple_delimiter}&quot;任务&quot;{tuple_delimiter}&quot;杜尔塞行动被描述为一项已演变为互动和准备的任务，显示出目标和活动的重大转变。&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;团队&quot;{tuple_delimiter}&quot;组织&quot;{tuple_delimiter}&quot;团队被描绘成一群从被动观察者转变为积极参与者的人，展示了他们角色的动态变化。&quot;){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;团队&quot;{tuple_delimiter}&quot;华盛顿&quot;{tuple_delimiter}&quot;团队收到来自华盛顿的通讯，这影响了他们的决策过程。&quot;{tuple_delimiter}&quot;决策、外部影响&quot;{tuple_delimiter}7){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;团队&quot;{tuple_delimiter}&quot;杜尔塞行动&quot;{tuple_delimiter}&quot;团队直接参与杜尔塞行动，执行其演变后的目标和活动。&quot;{tuple_delimiter}&quot;任务演变、积极参与&quot;{tuple_delimiter}9){completion_delimiter}\n#############################\nExample</span> <span class="pre">3:\n\nEntity_types:</span> <span class="pre">[person,</span> <span class="pre">role,</span> <span class="pre">technology,</span> <span class="pre">organization,</span> <span class="pre">event,</span> <span class="pre">location,</span> <span class="pre">concept]\nText:\n```\ntheir</span> <span class="pre">voice</span> <span class="pre">slicing</span> <span class="pre">through</span> <span class="pre">the</span> <span class="pre">buzz</span> <span class="pre">of</span> <span class="pre">activity.</span> <span class="pre">&quot;Control</span> <span class="pre">may</span> <span class="pre">be</span> <span class="pre">an</span> <span class="pre">illusion</span> <span class="pre">when</span> <span class="pre">facing</span> <span class="pre">an</span> <span class="pre">intelligence</span> <span class="pre">that</span> <span class="pre">literally</span> <span class="pre">writes</span> <span class="pre">its</span> <span class="pre">own</span> <span class="pre">rules,&quot;</span> <span class="pre">they</span> <span class="pre">stated</span> <span class="pre">stoically,</span> <span class="pre">casting</span> <span class="pre">a</span> <span class="pre">watchful</span> <span class="pre">eye</span> <span class="pre">over</span> <span class="pre">the</span> <span class="pre">flurry</span> <span class="pre">of</span> <span class="pre">data.\n\n&quot;It\'s</span> <span class="pre">like</span> <span class="pre">it\'s</span> <span class="pre">learning</span> <span class="pre">to</span> <span class="pre">communicate,&quot;</span> <span class="pre">offered</span> <span class="pre">Sam</span> <span class="pre">Rivera</span> <span class="pre">from</span> <span class="pre">a</span> <span class="pre">nearby</span> <span class="pre">interface,</span> <span class="pre">their</span> <span class="pre">youthful</span> <span class="pre">energy</span> <span class="pre">boding</span> <span class="pre">a</span> <span class="pre">mix</span> <span class="pre">of</span> <span class="pre">awe</span> <span class="pre">and</span> <span class="pre">anxiety.</span> <span class="pre">&quot;This</span> <span class="pre">gives</span> <span class="pre">talking</span> <span class="pre">to</span> <span class="pre">strangers\'</span> <span class="pre">a</span> <span class="pre">whole</span> <span class="pre">new</span> <span class="pre">meaning.&quot;\n\nAlex</span> <span class="pre">surveyed</span> <span class="pre">his</span> <span class="pre">team—each</span> <span class="pre">face</span> <span class="pre">a</span> <span class="pre">study</span> <span class="pre">in</span> <span class="pre">concentration,</span> <span class="pre">determination,</span> <span class="pre">and</span> <span class="pre">not</span> <span class="pre">a</span> <span class="pre">small</span> <span class="pre">measure</span> <span class="pre">of</span> <span class="pre">trepidation.</span> <span class="pre">&quot;This</span> <span class="pre">might</span> <span class="pre">well</span> <span class="pre">be</span> <span class="pre">our</span> <span class="pre">first</span> <span class="pre">contact,&quot;</span> <span class="pre">he</span> <span class="pre">acknowledged,</span> <span class="pre">&quot;And</span> <span class="pre">we</span> <span class="pre">need</span> <span class="pre">to</span> <span class="pre">be</span> <span class="pre">ready</span> <span class="pre">for</span> <span class="pre">whatever</span> <span class="pre">answers</span> <span class="pre">back.&quot;\n\nTogether,</span> <span class="pre">they</span> <span class="pre">stood</span> <span class="pre">on</span> <span class="pre">the</span> <span class="pre">edge</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">unknown,</span> <span class="pre">forging</span> <span class="pre">humanity\'s</span> <span class="pre">response</span> <span class="pre">to</span> <span class="pre">a</span> <span class="pre">message</span> <span class="pre">from</span> <span class="pre">the</span> <span class="pre">heavens.</span> <span class="pre">The</span> <span class="pre">ensuing</span> <span class="pre">silence</span> <span class="pre">was</span> <span class="pre">palpable—a</span> <span class="pre">collective</span> <span class="pre">introspection</span> <span class="pre">about</span> <span class="pre">their</span> <span class="pre">role</span> <span class="pre">in</span> <span class="pre">this</span> <span class="pre">grand</span> <span class="pre">cosmic</span> <span class="pre">play,</span> <span class="pre">one</span> <span class="pre">that</span> <span class="pre">could</span> <span class="pre">rewrite</span> <span class="pre">human</span> <span class="pre">history.\n\nThe</span> <span class="pre">encrypted</span> <span class="pre">dialogue</span> <span class="pre">continued</span> <span class="pre">to</span> <span class="pre">unfold,</span> <span class="pre">its</span> <span class="pre">intricate</span> <span class="pre">patterns</span> <span class="pre">showing</span> <span class="pre">an</span> <span class="pre">almost</span> <span class="pre">uncanny</span> <span class="pre">anticipation\n```\n#############\nOutput:\n(&quot;entity&quot;{tuple_delimiter}&quot;Sam</span> <span class="pre">Rivera&quot;{tuple_delimiter}&quot;person&quot;{tuple_delimiter}&quot;Sam</span> <span class="pre">Rivera</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">member</span> <span class="pre">of</span> <span class="pre">a</span> <span class="pre">team</span> <span class="pre">working</span> <span class="pre">on</span> <span class="pre">communicating</span> <span class="pre">with</span> <span class="pre">an</span> <span class="pre">unknown</span> <span class="pre">intelligence,</span> <span class="pre">showing</span> <span class="pre">a</span> <span class="pre">mix</span> <span class="pre">of</span> <span class="pre">awe</span> <span class="pre">and</span> <span class="pre">anxiety.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;Alex&quot;{tuple_delimiter}&quot;person&quot;{tuple_delimiter}&quot;Alex</span> <span class="pre">is</span> <span class="pre">the</span> <span class="pre">leader</span> <span class="pre">of</span> <span class="pre">a</span> <span class="pre">team</span> <span class="pre">attempting</span> <span class="pre">first</span> <span class="pre">contact</span> <span class="pre">with</span> <span class="pre">an</span> <span class="pre">unknown</span> <span class="pre">intelligence,</span> <span class="pre">acknowledging</span> <span class="pre">the</span> <span class="pre">significance</span> <span class="pre">of</span> <span class="pre">their</span> <span class="pre">task.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;Control&quot;{tuple_delimiter}&quot;concept&quot;{tuple_delimiter}&quot;Control</span> <span class="pre">refers</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">ability</span> <span class="pre">to</span> <span class="pre">manage</span> <span class="pre">or</span> <span class="pre">govern,</span> <span class="pre">which</span> <span class="pre">is</span> <span class="pre">challenged</span> <span class="pre">by</span> <span class="pre">an</span> <span class="pre">intelligence</span> <span class="pre">that</span> <span class="pre">writes</span> <span class="pre">its</span> <span class="pre">own</span> <span class="pre">rules.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;Intelligence&quot;{tuple_delimiter}&quot;concept&quot;{tuple_delimiter}&quot;Intelligence</span> <span class="pre">here</span> <span class="pre">refers</span> <span class="pre">to</span> <span class="pre">an</span> <span class="pre">unknown</span> <span class="pre">entity</span> <span class="pre">capable</span> <span class="pre">of</span> <span class="pre">writing</span> <span class="pre">its</span> <span class="pre">own</span> <span class="pre">rules</span> <span class="pre">and</span> <span class="pre">learning</span> <span class="pre">to</span> <span class="pre">communicate.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;First</span> <span class="pre">Contact&quot;{tuple_delimiter}&quot;event&quot;{tuple_delimiter}&quot;First</span> <span class="pre">Contact</span> <span class="pre">is</span> <span class="pre">the</span> <span class="pre">potential</span> <span class="pre">initial</span> <span class="pre">communication</span> <span class="pre">between</span> <span class="pre">humanity</span> <span class="pre">and</span> <span class="pre">an</span> <span class="pre">unknown</span> <span class="pre">intelligence.&quot;){record_delimiter}\n(&quot;entity&quot;{tuple_delimiter}&quot;Humanity\'s</span> <span class="pre">Response&quot;{tuple_delimiter}&quot;event&quot;{tuple_delimiter}&quot;Humanity\'s</span> <span class="pre">Response</span> <span class="pre">is</span> <span class="pre">the</span> <span class="pre">collective</span> <span class="pre">action</span> <span class="pre">taken</span> <span class="pre">by</span> <span class="pre">Alex\'s</span> <span class="pre">team</span> <span class="pre">in</span> <span class="pre">response</span> <span class="pre">to</span> <span class="pre">a</span> <span class="pre">message</span> <span class="pre">from</span> <span class="pre">an</span> <span class="pre">unknown</span> <span class="pre">intelligence.&quot;){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Sam</span> <span class="pre">Rivera&quot;{tuple_delimiter}&quot;Intelligence&quot;{tuple_delimiter}&quot;Sam</span> <span class="pre">Rivera</span> <span class="pre">is</span> <span class="pre">directly</span> <span class="pre">involved</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">process</span> <span class="pre">of</span> <span class="pre">learning</span> <span class="pre">to</span> <span class="pre">communicate</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">unknown</span> <span class="pre">intelligence.&quot;{tuple_delimiter}&quot;communication,</span> <span class="pre">learning</span> <span class="pre">process&quot;{tuple_delimiter}9){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Alex&quot;{tuple_delimiter}&quot;First</span> <span class="pre">Contact&quot;{tuple_delimiter}&quot;Alex</span> <span class="pre">leads</span> <span class="pre">the</span> <span class="pre">team</span> <span class="pre">that</span> <span class="pre">might</span> <span class="pre">be</span> <span class="pre">making</span> <span class="pre">the</span> <span class="pre">First</span> <span class="pre">Contact</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">unknown</span> <span class="pre">intelligence.&quot;{tuple_delimiter}&quot;leadership,</span> <span class="pre">exploration&quot;{tuple_delimiter}10){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Alex&quot;{tuple_delimiter}&quot;Humanity\'s</span> <span class="pre">Response&quot;{tuple_delimiter}&quot;Alex</span> <span class="pre">and</span> <span class="pre">his</span> <span class="pre">team</span> <span class="pre">are</span> <span class="pre">the</span> <span class="pre">key</span> <span class="pre">figures</span> <span class="pre">in</span> <span class="pre">Humanity\'s</span> <span class="pre">Response</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">unknown</span> <span class="pre">intelligence.&quot;{tuple_delimiter}&quot;collective</span> <span class="pre">action,</span> <span class="pre">cosmic</span> <span class="pre">significance&quot;{tuple_delimiter}8){record_delimiter}\n(&quot;relationship&quot;{tuple_delimiter}&quot;Control&quot;{tuple_delimiter}&quot;Intelligence&quot;{tuple_delimiter}&quot;The</span> <span class="pre">concept</span> <span class="pre">of</span> <span class="pre">Control</span> <span class="pre">is</span> <span class="pre">challenged</span> <span class="pre">by</span> <span class="pre">the</span> <span class="pre">Intelligence</span> <span class="pre">that</span> <span class="pre">writes</span> <span class="pre">its</span> <span class="pre">own</span> <span class="pre">rules.&quot;{tuple_delimiter}&quot;power</span> <span class="pre">dynamics,</span> <span class="pre">autonomy&quot;{tuple_delimiter}7){record_delimiter}\n#############################\n-Real</span> <span class="pre">Data-\n######################\nEntity_types:</span> <span class="pre">[{entity_types}]\nText:\n```\n{input_text}\n```\n######################\nOutput:\n'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_PROMPT_TEMPLATE" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_CONTINUE_PROMPT">
+<span class="sig-name descname"><span class="pre">DEFAULT_CONTINUE_PROMPT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'MANY</span> <span class="pre">entities</span> <span class="pre">were</span> <span class="pre">missed</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">last</span> <span class="pre">extraction.</span>&#160; <span class="pre">Add</span> <span class="pre">them</span> <span class="pre">below</span> <span class="pre">using</span> <span class="pre">the</span> <span class="pre">same</span> <span class="pre">format:\n'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_CONTINUE_PROMPT" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_IF_LOOP_PROMPT">
+<span class="sig-name descname"><span class="pre">DEFAULT_IF_LOOP_PROMPT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'It</span> <span class="pre">appears</span> <span class="pre">some</span> <span class="pre">entities</span> <span class="pre">may</span> <span class="pre">have</span> <span class="pre">still</span> <span class="pre">been</span> <span class="pre">missed.</span>&#160; <span class="pre">Answer</span> <span class="pre">YES</span> <span class="pre">|</span> <span class="pre">NO</span> <span class="pre">if</span> <span class="pre">there</span> <span class="pre">are</span> <span class="pre">still</span> <span class="pre">entities</span> <span class="pre">that</span> <span class="pre">need</span> <span class="pre">to</span> <span class="pre">be</span> <span class="pre">added.\n'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_IF_LOOP_PROMPT" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_ENTITY_TYPES">
+<span class="sig-name descname"><span class="pre">DEFAULT_ENTITY_TYPES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['organization',</span> <span class="pre">'person',</span> <span class="pre">'geo',</span> <span class="pre">'event']</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_ENTITY_TYPES" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_TUPLE_DELIMITER">
+<span class="sig-name descname"><span class="pre">DEFAULT_TUPLE_DELIMITER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'&lt;|&gt;'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_TUPLE_DELIMITER" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_RECORD_DELIMITER">
+<span class="sig-name descname"><span class="pre">DEFAULT_RECORD_DELIMITER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'##'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_RECORD_DELIMITER" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_COMPLETION_DELIMITER">
+<span class="sig-name descname"><span class="pre">DEFAULT_COMPLETION_DELIMITER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'&lt;|COMPLETE|&gt;'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_COMPLETION_DELIMITER" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_ENTITY_PATTERN">
+<span class="sig-name descname"><span class="pre">DEFAULT_ENTITY_PATTERN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\\(&quot;entity&quot;(.*?)\\)'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_ENTITY_PATTERN" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_RELATION_PATTERN">
+<span class="sig-name descname"><span class="pre">DEFAULT_RELATION_PATTERN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\\(&quot;relationship&quot;(.*?)\\)'</span></span><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_RELATION_PATTERN" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gpt-4o'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="仅关键字参数分隔符 (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'entity'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relation_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'relation'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tuple_delimiter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_delimiter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">completion_delimiter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_gleaning</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">continue_prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">if_loop_prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relation_pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/extract_entity_relation_mapper.html#ExtractEntityRelationMapper.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.__init__" title="链接到此定义。">¶</a></dt>
+<dd><p>Initialization method.
+:param api_model: API model name.
+:param entity_types: Pre-defined entity types for knowledge graph.
+:param entity_key: The key name to store the entities in the meta</p>
+<blockquote>
+<div><p>field. It's &quot;entity&quot; in default.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>relation_key</strong> -- The field name to store the relations between
+entities. It's &quot;relation&quot; in default.</p></li>
+<li><p><strong>api_endpoint</strong> -- URL endpoint for the API.</p></li>
+<li><p><strong>response_path</strong> -- Path to extract content from the API response.
+Defaults to 'choices.0.message.content'.</p></li>
+<li><p><strong>prompt_template</strong> -- The template of input prompt.</p></li>
+<li><p><strong>tuple_delimiter</strong> -- Delimiter to separate items in outputs.</p></li>
+<li><p><strong>record_delimiter</strong> -- Delimiter to separate records in outputs.</p></li>
+<li><p><strong>completion_delimiter</strong> -- To mark the end of the output.</p></li>
+<li><p><strong>max_gleaning</strong> -- the extra max num to call LLM to glean entities
+and relations.</p></li>
+<li><p><strong>continue_prompt</strong> -- the prompt for gleaning entities and
+relations.</p></li>
+<li><p><strong>if_loop_prompt</strong> -- the prompt to determine whether to stop
+gleaning.</p></li>
+<li><p><strong>entity_pattern</strong> -- Regular expression for parsing entity record.</p></li>
+<li><p><strong>relation_pattern</strong> -- Regular expression for parsing relation
+record.</p></li>
+<li><p><strong>try_num</strong> -- The number of retry attempts when there is an API
+call error or output parsing error.</p></li>
+<li><p><strong>drop_text</strong> -- If drop the text in the output.</p></li>
+<li><p><strong>model_params</strong> -- Parameters for initializing the API model.</p></li>
+<li><p><strong>sampling_params</strong> -- Extra parameters passed to the API call.
+e.g {'temperature': 0.9, 'top_p': 0.95}</p></li>
+<li><p><strong>kwargs</strong> -- Extra keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.parse_output">
+<span class="sig-name descname"><span class="pre">parse_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/extract_entity_relation_mapper.html#ExtractEntityRelationMapper.parse_output"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.parse_output" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.add_message">
+<span class="sig-name descname"><span class="pre">add_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">role</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/extract_entity_relation_mapper.html#ExtractEntityRelationMapper.add_message"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.add_message" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.light_rag_extraction">
+<span class="sig-name descname"><span class="pre">light_rag_extraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/extract_entity_relation_mapper.html#ExtractEntityRelationMapper.light_rag_extraction"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.light_rag_extraction" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/extract_entity_relation_mapper.html#ExtractEntityRelationMapper.process_single"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.process_single" title="链接到此定义。">¶</a></dt>
+<dd><p>For sample level, sample --&gt; sample</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> -- sample to process</p>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p>processed sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">data_juicer.ops.mapper.extract_entity_relation_mapper module</a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_PROMPT_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_PROMPT_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_CONTINUE_PROMPT"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_CONTINUE_PROMPT</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_IF_LOOP_PROMPT"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_IF_LOOP_PROMPT</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_ENTITY_TYPES"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_ENTITY_TYPES</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_TUPLE_DELIMITER"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_TUPLE_DELIMITER</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_RECORD_DELIMITER"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_RECORD_DELIMITER</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_COMPLETION_DELIMITER"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_COMPLETION_DELIMITER</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_ENTITY_PATTERN"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_ENTITY_PATTERN</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.DEFAULT_RELATION_PATTERN"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.DEFAULT_RELATION_PATTERN</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.__init__"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.parse_output"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.parse_output()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.add_message"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.add_message()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.light_rag_extraction"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.light_rag_extraction()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.process_single"><code class="docutils literal notranslate"><span class="pre">ExtractEntityRelationMapper.process_single()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="../_static/translations.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

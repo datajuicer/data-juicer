@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_captioning\_face\_attribute\_emotion\_mapper module
+==================================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_captioning_face_attribute_emotion_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

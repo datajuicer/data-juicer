@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Multimodal Tools — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../../../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../../../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../../../index.html" class="navbar-brand">
+          <img src="../../../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../../../docs_index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../../../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../../en/v1.6.0/tools/fmt_conversion/multimodal/README.html" class="dropdown-item active">English</a>
+            <a href="../../../../../zh_CN/v1.6.0/tools/fmt_conversion/multimodal/README_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../../../"
+             data-page="tools/fmt_conversion/multimodal/README"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../v1.6.0/tools/fmt_conversion/multimodal/README.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../../../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../../../docs_index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/QuickStart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/ProcessData.html">Processing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/AnalyzeData.html">Data Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Playground.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DatasetCfg.html">Dataset Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Export.html">Dataset Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Cache.html">Cache Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Tracing.html">Data Tracing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Lookup Materials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/GlobalConfig.html">Global Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Distributed Processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/PartitionAndCheckpoint.html">Partitioned Processing with Checkpointing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/JobManagement.html">Job Management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extension &amp; Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/OperatorPlugins.html">Operator Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DJ_service.html">DJ Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Juicer.html">Juicer: Natural-Language Data Refinement Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DeveloperGuide.html">How-to Guide for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Resources</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">operators</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/elastic_sharding/README.html">Elastic Multi-Node Sharding on Shared Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/video_humanvbench_simple/README.html">HumanVBench Operators Demo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="multimodal-tools">
+<h1>Multimodal Tools<a class="headerlink" href="#multimodal-tools" title="Link to this heading">¶</a></h1>
+<p><a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/tools/fmt_conversion/multimodal"><code class="docutils literal notranslate"><span class="pre">tools/fmt_conversion/multimodal</span></code></a> provides bidirectional conversion between multimodal datasets and the Data-Juicer intermediate format, as well as post-processing path management.</p>
+<section id="convert-absolute-path-to-relative-path">
+<h2>Convert Absolute Path to Relative Path<a class="headerlink" href="#convert-absolute-path-to-relative-path" title="Link to this heading">¶</a></h2>
+<p>After being processed by Data-Juicer, the output multimodal data paths are absolute and could originate from diverse sources, being stored under various root directories.
+To convert absolute paths to relative paths and facilitate data migration, we provide a tool to carry out this transformation. This tool also supports copying related multimodal data from multiple sources into a single directory.
+Both input and output of this utility conform to Data-Juicer’s data format. If you wish to convert the data into another format while maintaining relative paths, please run this tool before proceeding with the dataset format conversion in the following section.
+To learn more about the usage of the absolute to relative path conversion tool, you can execute the following command:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/fmt_conversion/multimodal/absolute_path_to_relative_path.py<span class="w"> </span>--help
+</pre></div>
+</div>
+</section>
+<section id="dataset-format-conversion">
+<h2>Dataset Format Conversion<a class="headerlink" href="#dataset-format-conversion" title="Link to this heading">¶</a></h2>
+<p>Due to large format diversity among different multimodal datasets and works,
+Data-Juicer propose a novel intermediate text-based interleaved data format for multimodal dataset, which
+is based on chunk-wise formats such MMC4 dataset.</p>
+<p>In the Data-Juicer format, a multimodal sample or document is based on a text,
+which consists of several text chunks. Each chunk is a semantic unit, and all the
+multimodal information in a chunk should talk about the same thing and be aligned
+with each other.</p>
+<p>Here is a multimodal sample example in Data-Juicer format below.</p>
+<ul class="simple">
+<li><p>It includes 4 chunks split by the special token <code class="docutils literal notranslate"><span class="pre">&lt;|__dj__eoc|&gt;</span></code>.</p></li>
+<li><p>In addition to texts, there are 3 other modalities: images, audios, videos.
+They are stored on the disk and their paths are
+listed in the corresponding first-level fields in the sample.</p></li>
+<li><p>Other modalities are represented as special tokens in the text (e.g. image – <code class="docutils literal notranslate"><span class="pre">&lt;__dj__image&gt;</span></code>).
+The special tokens of each modality correspond to the paths in the order of appearance.
+(e.g. the two image tokens in the third chunk are images of antarctica_map and europe_map respectively)</p></li>
+<li><p>There could be multiple types of modalities and multiple modality special tokens in a single chunk,
+and they are semantically aligned with each other and text in this chunk.
+The position of special tokens can be random in a chunk. (In general, they are usually before or after the text.)</p></li>
+<li><p>For multimodal samples, unlike text-only samples, the computed stats for other
+modalities could be a list of stats for the list of multimodal data (e.g. image_widths in this sample).</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"&lt;__dj__image&gt; Antarctica is Earth's southernmost and least-populated continent. &lt;|__dj__eoc|&gt; "</span>
+          <span class="s2">"&lt;__dj__video&gt; &lt;__dj__audio&gt; Situated almost entirely south of the Antarctic Circle and surrounded by the "</span>
+          <span class="s2">"Southern Ocean (also known as the Antarctic Ocean), it contains the geographic South Pole. &lt;|__dj__eoc|&gt; "</span>
+          <span class="s2">"Antarctica is the fifth-largest continent, being about 40</span><span class="si">% la</span><span class="s2">rger than Europe, "</span>
+          <span class="s2">"and has an area of 14,200,000 km2 (5,500,000 sq mi). &lt;__dj__image&gt; &lt;__dj__image&gt; &lt;|__dj__eoc|&gt; "</span>
+          <span class="s2">"Most of Antarctica is covered by the Antarctic ice sheet, "</span>
+          <span class="s2">"with an average thickness of 1.9 km (1.2 mi). &lt;|__dj__eoc|&gt;"</span><span class="p">,</span>
+  <span class="s2">"images"</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"path/to/the/image/of/antarctica_snowfield"</span><span class="p">,</span>
+    <span class="s2">"path/to/the/image/of/antarctica_map"</span><span class="p">,</span>
+    <span class="s2">"path/to/the/image/of/europe_map"</span>
+  <span class="p">],</span>
+  <span class="s2">"audios"</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"path/to/the/audio/of/sound_of_waves_in_Antarctic_Ocean"</span>
+  <span class="p">],</span>
+  <span class="s2">"videos"</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">"path/to/the/video/of/remote_sensing_view_of_antarctica"</span>
+  <span class="p">],</span>
+  <span class="s2">"meta"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"src"</span><span class="p">:</span> <span class="s2">"customized"</span><span class="p">,</span>
+    <span class="s2">"version"</span><span class="p">:</span> <span class="s2">"0.1"</span><span class="p">,</span>
+    <span class="s2">"author"</span><span class="p">:</span> <span class="s2">"xxx"</span>
+  <span class="p">},</span>
+  <span class="s2">"stats"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"lang"</span><span class="p">:</span> <span class="s2">"en"</span><span class="p">,</span>
+    <span class="s2">"image_widths"</span><span class="p">:</span> <span class="p">[</span><span class="mi">224</span><span class="p">,</span> <span class="mi">336</span><span class="p">,</span> <span class="mi">512</span><span class="p">],</span>
+    <span class="o">...</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>According to this format, Data-Juicer provided several dataset format conversion tools for some popular multimodal
+works.</p>
+<p>These tools consist of two types:</p>
+<ul class="simple">
+<li><p>Other format to Data-Juicer format: These tools are in <code class="docutils literal notranslate"><span class="pre">source_format_to_data_juicer_format</span></code> directory. They help to convert datasets in other formats to target datasets in Data-Juicer format.</p></li>
+<li><p>Data-Juicer format to other format: These tools are in <code class="docutils literal notranslate"><span class="pre">data_juicer_format_to_target_format</span></code> directory. They help to convert datasets in Data-Juicer formats to target datasets in target format.</p></li>
+</ul>
+<p>For now, dataset formats that are supported by Data-Juicer are listed in the following table.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Format</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>source_format_to_data_juicer_format</p></th>
+<th class="head"><p>data_juicer_format_to_target_format</p></th>
+<th class="head"><p>Ref.</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LLaVA-like</p></td>
+<td><p>image-text</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">llava_to_dj.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dj_to_llava.py</span></code></p></td>
+<td><p><a class="reference external" href="https://github.com/haotian-liu/LLaVA/blob/main/docs/Finetune_Custom_Data.md#dataset-format">Format Description</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MMC4-like</p></td>
+<td><p>image-text</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mmc4_to_dj.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dj_to_mmc4.py</span></code></p></td>
+<td><p><a class="reference external" href="https://github.com/allenai/mmc4#documents">Format Description</a></p></td>
+</tr>
+<tr class="row-even"><td><p>WavCaps-like</p></td>
+<td><p>audio-text</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wavcaps_to_dj.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dj_to_wavcaps.py</span></code></p></td>
+<td><p><a class="reference external" href="https://github.com/XinhaoMei/WavCaps#table-of-contents">Format Description</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Video-ChatGPT-like</p></td>
+<td><p>video-text</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">video_chatgpt_to_dj.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dj_to_video_chatgpt.py</span></code></p></td>
+<td><p>[Format Description](<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/tools/fmt_conversion/multimodal/">https://github.com/datajuicer/data-juicer/blob/v1.6.0/tools/fmt_conversion/multimodal/</a> https:/github.com/mbzuai-oryx/Video-ChatGPT/tree/main/data)</p></td>
+</tr>
+<tr class="row-even"><td><p>Youku-mPLUG-like</p></td>
+<td><p>video-text</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">youku_to_dj.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dj_to_youku.py</span></code></p></td>
+<td><p><a class="reference external" href="https://modelscope.cn/datasets/modelscope/Youku-AliceMind/summary">Format Description</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>InternVid-like</p></td>
+<td><p>video-text</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">internvid_to_dj.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dj_to_internvid.py</span></code></p></td>
+<td><p><a class="reference external" href="https://huggingface.co/datasets/OpenGVLab/InternVid">Format Description</a></p></td>
+</tr>
+</tbody>
+</table>
+<p>For all tools, you can run the following command to find out the usage of them:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g. llava_to_dj.py</span>
+python<span class="w"> </span>tools/fmt_conversion/multimodal/source_format_to_data_juicer_format/llava_to_dj.py<span class="w"> </span>--help
+</pre></div>
+</div>
+<p>Before using these tools, you might need to take a glance at the reference
+materials in the above tables for each format, to better know the detail format
+information and understand the arguments for each tool.</p>
+<section id="notice">
+<h3>Notice<a class="headerlink" href="#notice" title="Link to this heading">¶</a></h3>
+<p>There might be some tiny differences after converting a source dataset to Data-Juicer
+format and convert it back. However, these differences have nearly no effects
+on the semantics of datasets. Here we will show these tiny differences in detail
+for each source format.</p>
+<section id="llava-like">
+<h4>LLaVA-like<a class="headerlink" href="#llava-like" title="Link to this heading">¶</a></h4>
+<p>The format of LLaVA-like datasets are defined <a class="reference external" href="https://github.com/haotian-liu/LLaVA/blob/main/docs/Finetune_Custom_Data.md#dataset-format">here</a>.
+Although it’s simple, but in real scenarios, there might be some slight variations
+in some samples.</p>
+<p>Here we take the <a class="reference external" href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/blob/main/llava_v1_5_mix665k.json">visual instruction tuning dataset</a> as an example,
+and show how these variations influence the dataset format. The table below
+shows the number of different samples between the original dataset and the
+dataset after processing. There are 665,298 samples in the original dataset.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>process</p></th>
+<th class="head"><p># of diff.</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1. apply <code class="docutils literal notranslate"><span class="pre">llava_to_dj.py</span></code> and <code class="docutils literal notranslate"><span class="pre">dj_to_llava.py</span></code></p></td>
+<td><p>113,501</p></td>
+</tr>
+<tr class="row-odd"><td><p>2. convert integer ids to string ids in the original dataset</p></td>
+<td><p>41,361</p></td>
+</tr>
+<tr class="row-even"><td><p>3. strip whitespaces before and after values of conversations in the original dataset</p></td>
+<td><p>40,688</p></td>
+</tr>
+<tr class="row-odd"><td><p>4. add <code class="docutils literal notranslate"><span class="pre">'model':</span> <span class="pre">''</span></code> fields in the converted dataset</p></td>
+<td><p>1</p></td>
+</tr>
+</tbody>
+</table>
+<p>It’s worth noticing that processes 2-4 won’t influence the semantics of sample conversations in the dataset.
+Thus we think the dataset after conversion can align with the original dataset.</p>
+<p>Finally, the only 1 sample is different because there are some extra useless fields (“text”, “markdown”)
+in the conversations, which is shown below. But the “from” and “value” fields are the same between original
+and converted datasets, so we can regard this sample is aligned with the original one as well.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="err">#</span><span class="w"> </span><span class="err">origi</span><span class="kc">nal</span><span class="w"> </span><span class="err">co</span><span class="kc">n</span><span class="err">versa</span><span class="kc">t</span><span class="err">io</span><span class="kc">ns</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"from"</span><span class="p">:</span><span class="s2">"human"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"value"</span><span class="p">:</span><span class="s2">"sentry self hosted api 504"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"from"</span><span class="p">:</span><span class="s2">"gpt"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"text"</span><span class="p">:</span><span class="s2">"A 504 error when using the Sentry self-hosted API typically indicates that the API request timed out. This means that the server hosting the API did not receive a response from the client within the expected time frame.\n\nHere are a few possible reasons for a 504 error when using the Sentry self-hosted API:\n\nSlow network connection: The API request may be taking longer than expected due to a slow network connection. Check your network connection and try again.\n\nServer overload: The server hosting the API may be overloaded with requests. Try again later when the server load has decreased.\n\nLarge dataset: If you are trying to retrieve a large amount of data, the API request may take longer than expected. Try breaking up the request into smaller chunks or optimizing the query to retrieve only the necessary data.\n\nAPI endpoint issues: There may be issues with the specific API endpoint you are using. Try using a different endpoint or contact the Sentry support team for assistance.\n\nTo resolve a 504 error when using the Sentry self-hosted API, try the following:\n\nCheck your network connection and ensure that it is stable.\n\nVerify that the server hosting the API is not overloaded with requests.\n\nOptimize the query to retrieve only the necessary data.\n\nTry using a different API endpoint.\n\nIf the issue persists, contact the Sentry support team for assistance."</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"value"</span><span class="p">:</span><span class="s2">"A 504 error when using the Sentry self-hosted API typically indicates that the API request timed out. This means that the server hosting the API did not receive a response from the client within the expected time frame.\n\nHere are a few possible reasons for a 504 error when using the Sentry self-hosted API:\n\n1. Slow network connection: The API request may be taking longer than expected due to a slow network connection. Check your network connection and try again.\n2. Server overload: The server hosting the API may be overloaded with requests. Try again later when the server load has decreased.\n3. Large dataset: If you are trying to retrieve a large amount of data, the API request may take longer than expected. Try breaking up the request into smaller chunks or optimizing the query to retrieve only the necessary data.\n4. API endpoint issues: There may be issues with the specific API endpoint you are using. Try using a different endpoint or contact the Sentry support team for assistance.\n\nTo resolve a 504 error when using the Sentry self-hosted API, try the following:\n\n1. Check your network connection and ensure that it is stable.\n2. Verify that the server hosting the API is not overloaded with requests.\n3. Optimize the query to retrieve only the necessary data.\n4. Try using a different API endpoint.\n\nIf the issue persists, contact the Sentry support team for assistance."</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"markdown"</span><span class="p">:{</span>
+<span class="w">            </span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"answer-markdown"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"index"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"answer"</span><span class="p">:</span><span class="s2">"A 504 error when using the Sentry self-hosted API typically indicates that the API request timed out. This means that the server hosting the API did not receive a response from the client within the expected time frame.\n\nHere are a few possible reasons for a 504 error when using the Sentry self-hosted API:\n\n1. Slow network connection: The API request may be taking longer than expected due to a slow network connection. Check your network connection and try again.\n\n2. Server overload: The server hosting the API may be overloaded with requests. Try again later when the server load has decreased.\n\n3. Large dataset: If you are trying to retrieve a large amount of data, the API request may take longer than expected. Try breaking up the request into smaller chunks or optimizing the query to retrieve only the necessary data.\n\n4. API endpoint issues: There may be issues with the specific API endpoint you are using. Try using a different endpoint or contact the Sentry support team for assistance.\n\nTo resolve a 504 error when using the Sentry self-hosted API, try the following:\n\n1. Check your network connection and ensure that it is stable.\n\n2. Verify that the server hosting the API is not overloaded with requests.\n\n3. Optimize the query to retrieve only the necessary data.\n\n4. Try using a different API endpoint.\n\nIf the issue persists, contact the Sentry support team for assistance."</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">]</span>
+
+<span class="err">#</span><span class="w"> </span><span class="err">co</span><span class="kc">n</span><span class="err">ver</span><span class="kc">te</span><span class="err">d</span><span class="w"> </span><span class="err">co</span><span class="kc">n</span><span class="err">versa</span><span class="kc">t</span><span class="err">io</span><span class="kc">ns</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"from"</span><span class="p">:</span><span class="s2">"human"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"value"</span><span class="p">:</span><span class="s2">"sentry self hosted api 504"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"from"</span><span class="p">:</span><span class="s2">"gpt"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"value"</span><span class="p">:</span><span class="s2">"A 504 error when using the Sentry self-hosted API typically indicates that the API request timed out. This means that the server hosting the API did not receive a response from the client within the expected time frame.\n\nHere are a few possible reasons for a 504 error when using the Sentry self-hosted API:\n\n1. Slow network connection: The API request may be taking longer than expected due to a slow network connection. Check your network connection and try again.\n2. Server overload: The server hosting the API may be overloaded with requests. Try again later when the server load has decreased.\n3. Large dataset: If you are trying to retrieve a large amount of data, the API request may take longer than expected. Try breaking up the request into smaller chunks or optimizing the query to retrieve only the necessary data.\n4. API endpoint issues: There may be issues with the specific API endpoint you are using. Try using a different endpoint or contact the Sentry support team for assistance.\n\nTo resolve a 504 error when using the Sentry self-hosted API, try the following:\n\n1. Check your network connection and ensure that it is stable.\n2. Verify that the server hosting the API is not overloaded with requests.\n3. Optimize the query to retrieve only the necessary data.\n4. Try using a different API endpoint.\n\nIf the issue persists, contact the Sentry support team for assistance."</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="mmc4-like">
+<h4>MMC4-like<a class="headerlink" href="#mmc4-like" title="Link to this heading">¶</a></h4>
+<p>The format of MMC4-like datasets are defined <a class="reference external" href="https://github.com/allenai/mmc4#documents">here</a>. Except <code class="docutils literal notranslate"><span class="pre">image_info</span></code> and <code class="docutils literal notranslate"><span class="pre">text_list</span></code>,
+which are used when converting them to Data-Juicer format, there is an important field <code class="docutils literal notranslate"><span class="pre">similarity_matrix</span></code>. Similarity matrix is
+a matrix of shape <code class="docutils literal notranslate"><span class="pre">len(image_info)</span> <span class="pre">x</span> <span class="pre">len(text_list)</span></code>, which means it highly depends on the numbers of images and text sentences and their
+orders.</p>
+<p>However, when processing such datasets with Data-Juicer, images or sentences might be removed from a sample by Filters, and they could be
+modified by some Mappers. Thus, after processing, this similarity matrix might be no longer aligned with <code class="docutils literal notranslate"><span class="pre">image_info</span></code> or <code class="docutils literal notranslate"><span class="pre">text_list</span></code>.
+Users should be cautious about this point if you need this matrix in later usages.</p>
+<p>Despite these extra fields, tools for MMC4 can perfectly convert MMC4-like datasets to Data-Juicer-format datasets and convert them back~</p>
+</section>
+<section id="wavcaps-like">
+<h4>WavCaps-like<a class="headerlink" href="#wavcaps-like" title="Link to this heading">¶</a></h4>
+<p>The <a class="reference external" href="https://github.com/XinhaoMei/WavCaps#dataset">WavCaps</a> is composed of four sub-datasets: <a class="reference external" href="https://freesound.org/">FreeSound</a>, <a class="reference external" href="https://sound-effects.bbcrewind.co.uk/">BBC Sound Effects</a>,<a class="reference external" href="https://soundbible.com/">SoundBible</a> and <a class="reference external" href="https://research.google.com/audioset/download_strong.html">AudioSet Strongly-labelled Subset</a>. Each sub-dataset has different fields. For example, the ‘description’ field is included in SoundBible, but does not exist in AudioSet. To ensure that the different sub-datasets can be properly merged after conversion, the union of all fields from the sub-datasets is used during the wavcaps_to_dj stage, and all fields are fully retained during the dj_to_wavcaps stage.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="err">#</span><span class="w"> </span><span class="err">origi</span><span class="kc">nal</span><span class="w"> </span><span class="err">da</span><span class="kc">taset</span>
+<span class="p">{</span><span class="w"> </span><span class="nt">"num_captions_per_audio"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">        </span><span class="nt">"title"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Airplane Landing Airport"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Large commercial airplane landing at an airport runway."</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"author"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Daniel Simion"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"href"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2219-Airplane-Landing-Airport.html"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"caption"</span><span class="p">:</span><span class="w"> </span><span class="s2">"An airplane is landing."</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2219"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"duration"</span><span class="p">:</span><span class="w"> </span><span class="mf">14.1424375</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"audio"</span><span class="p">:</span><span class="w"> </span><span class="s2">"wav_path"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"download_link"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://soundbible.com/grab.php?id=2219&amp;type=wav"</span><span class="p">}]</span>
+<span class="p">}</span>
+
+<span class="err">#</span><span class="w"> </span><span class="err">co</span><span class="kc">n</span><span class="err">ver</span><span class="kc">te</span><span class="err">d</span><span class="w"> </span><span class="err">da</span><span class="kc">taset</span>
+<span class="p">{</span><span class="w"> </span><span class="nt">"num_captions_per_audio"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">        </span><span class="nt">"title"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Airplane Landing Airport"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Large commercial airplane landing at an airport runway."</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"author"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Daniel Simion"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"href"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2219-Airplane-Landing-Airport.html"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"caption"</span><span class="p">:</span><span class="w"> </span><span class="s2">"An airplane is landing."</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2219"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"duration"</span><span class="p">:</span><span class="w"> </span><span class="mf">14.1424375</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"audio"</span><span class="p">:</span><span class="w"> </span><span class="s2">"wav_path"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"download_link"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://soundbible.com/grab.php?id=2219&amp;type=wav"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"category"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"tags"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w"> </span><span class="p">}]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="video-chatgpt-like">
+<h4>Video-ChatGPT-like<a class="headerlink" href="#video-chatgpt-like" title="Link to this heading">¶</a></h4>
+<p>The Video-ChatGPT dataset contains 3 types of data with unified format:</p>
+<ul class="simple">
+<li><p>Topics for Video summarization</p></li>
+<li><p>Description-based question-answers (exploring spatial, temporal, relationships, and reasoning concepts);</p></li>
+<li><p>and Creative/generative question-answers.
+They all obey the <code class="docutils literal notranslate"><span class="pre">&lt;question,</span> <span class="pre">answer,</span> <span class="pre">video_id&gt;</span></code> format, where the <code class="docutils literal notranslate"><span class="pre">video_id</span></code> is in the form “v_youtube_id”. We suppose that users have downloaded these videos already, and they need to specify the corresponding storage directory when using the converter tool.</p></li>
+</ul>
+</section>
+<section id="youku-mplug-like">
+<h4>Youku-mPLUG-like<a class="headerlink" href="#youku-mplug-like" title="Link to this heading">¶</a></h4>
+<p>The Youku-mPLUG dataset contains 4 types of format: pretrain, classification, retrieval, captioning.
+They are slightly different from each other in field name or other attributes, but all of them obey the <code class="docutils literal notranslate"><span class="pre">&lt;video,</span> <span class="pre">caption&gt;</span></code> format.</p>
+</section>
+<section id="internvid-like">
+<h4>InternVid-like<a class="headerlink" href="#internvid-like" title="Link to this heading">¶</a></h4>
+<p>The InternVid dataset contains 4 fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">YoutubeID</span></code>: the Youtube ID of the video used in the sample.
+We suppose that users have downloaded these videos already
+and this field is replaced with its storage path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Start_timestamp</span></code>: the start timestamp in string of the video clip for the
+corresponding caption.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">End_timestamp</span></code>: the end timestamp in string of the video clip for the
+corresponding caption.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Caption</span></code>: the corresponding caption for the video clip.</p></li>
+</ul>
+<p>As we can see, the caption in this dataset corresponds to the video clip
+specified by the start/end timestamps instead of the whole video. So the
+conversion tool will cut the specified video clip for you if the argument
+<code class="docutils literal notranslate"><span class="pre">cut_videos</span></code> is set to True. You can cut before conversion by yourself as well.</p>
+</section>
+<section id="msr-vtt-like">
+<h4>MSR-VTT-like<a class="headerlink" href="#msr-vtt-like" title="Link to this heading">¶</a></h4>
+<p>MSR-VTT dataset contains multiple fields, here we use 2 fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">video_id</span></code>: the video file name without suffix used in the sample.
+We suppose that users have downloaded these videos already。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">caption</span></code>: the corresponding caption for the video.</p></li>
+</ul>
+</section>
+</section>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Multimodal Tools</a><ul>
+<li><a class="reference internal" href="#convert-absolute-path-to-relative-path">Convert Absolute Path to Relative Path</a></li>
+<li><a class="reference internal" href="#dataset-format-conversion">Dataset Format Conversion</a><ul>
+<li><a class="reference internal" href="#notice">Notice</a><ul>
+<li><a class="reference internal" href="#llava-like">LLaVA-like</a></li>
+<li><a class="reference internal" href="#mmc4-like">MMC4-like</a></li>
+<li><a class="reference internal" href="#wavcaps-like">WavCaps-like</a></li>
+<li><a class="reference internal" href="#video-chatgpt-like">Video-ChatGPT-like</a></li>
+<li><a class="reference internal" href="#youku-mplug-like">Youku-mPLUG-like</a></li>
+<li><a class="reference internal" href="#internvid-like">InternVid-like</a></li>
+<li><a class="reference internal" href="#msr-vtt-like">MSR-VTT-like</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="../README.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">Format Conversion Tools</span>
+        </a>
+        <a href="../post_tuning_dialog/README.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">Post Tuning Tools</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../../../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../../../_static/documentation_options.js"></script>
+  <script src="../../../_static/doctools.js"></script>
+  <script src="../../../_static/sphinx_highlight.js"></script>
+  <script src="../../../_static/clipboard.min.js"></script>
+  <script src="../../../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../../../_static/ask-ai-widget.js"></script>
+</body>
+</html>

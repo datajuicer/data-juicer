@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.extract\_support\_text\_mapper module
+=============================================================
+
+.. automodule:: data_juicer.ops.mapper.extract_support_text_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

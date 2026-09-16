@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.optimize\_prompt\_mapper module
+=======================================================
+
+.. automodule:: data_juicer.ops.mapper.optimize_prompt_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Elastic Multi-Node Sharding on Shared Storage — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../../index.html" class="navbar-brand">
+          <img src="../../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../../docs_index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../en/v1.6.0/demos/elastic_sharding/README.html" class="dropdown-item active">English</a>
+            <a href="../../../../zh_CN/v1.6.0/demos/elastic_sharding/README_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../../"
+             data-page="demos/elastic_sharding/README"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../v1.6.0/demos/elastic_sharding/README.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../../docs_index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/tutorial/QuickStart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/ProcessData.html">Processing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/AnalyzeData.html">Data Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/Playground.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/DatasetCfg.html">Dataset Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/Export.html">Dataset Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/Cache.html">Cache Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/Tracing.html">Data Tracing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Lookup Materials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/GlobalConfig.html">Global Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Distributed Processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/PartitionAndCheckpoint.html">Partitioned Processing with Checkpointing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/JobManagement.html">Job Management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extension &amp; Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/OperatorPlugins.html">Operator Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/DJ_service.html">DJ Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/Juicer.html">Juicer: Natural-Language Data Refinement Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/DeveloperGuide.html">How-to Guide for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Resources</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">operators</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../docs/operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Elastic Multi-Node Sharding on Shared Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../video_humanvbench_simple/README.html">HumanVBench Operators Demo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="elastic-multi-node-sharding-on-shared-storage">
+<h1>Elastic Multi-Node Sharding on Shared Storage<a class="headerlink" href="#elastic-multi-node-sharding-on-shared-storage" title="Link to this heading">¶</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p>This demo adds a “shard across nodes, use Ray inside each node” execution mode
+for large JSONL datasets:</p>
+<ol class="arabic simple">
+<li><p>Pre-split the complete input into a fixed, deterministic set of JSONL
+shards.</p></li>
+<li><p>Let independent Workers dynamically claim shards through a shared
+POSIX/NAS/CPFS directory.</p></li>
+<li><p>Process each claimed shard with Data-Juicer’s <code class="docutils literal notranslate"><span class="pre">ray</span></code> executor on the claiming
+node.</p></li>
+<li><p>Publish validated completion metadata and let an idle Worker claim another
+shard.</p></li>
+<li><p>Validate and merge all successful shard outputs in their original order.</p></li>
+</ol>
+<p>This design does not require a cross-node Ray cluster. The shared filesystem
+coordinates nodes, while every node has its own independent Ray runtime.</p>
+<blockquote>
+<div><p><strong>DLC launch topology matters.</strong> <code class="docutils literal notranslate"><span class="pre">dlc_job.py</span> <span class="pre">dlc</span></code> requires a job type that
+broadcasts the configured startup command to every Worker. A PAI-DLC MPIJob
+does not do that: its command runs on the Launcher, which must use <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>
+and DLC’s <code class="docutils literal notranslate"><span class="pre">/etc/mpi/hostfile</span></code> to start one process on every GPU Worker. In
+both cases each GPU Worker still uses its own node-local Ray runtime.</p>
+</div></blockquote>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>                 Worker-broadcast DLC job submission
+                                  |
+             +--------------------+--------------------+
+             |                    |                    |
+       DLC Worker 0         DLC Worker 1         DLC Worker N
+       claim shard A        claim shard B        claim shard C
+       node-local Ray       node-local Ray       node-local Ray
+             |                    |                    |
+             +--------------------+--------------------+
+                                  |
+                        shared NAS/CPFS job-dir
+                manifest / shards / locks / done / attempts
+                                  |
+                       validate and ordered merge
+</pre></div>
+</div>
+</section>
+<section id="key-advantages">
+<h2>Key advantages<a class="headerlink" href="#key-advantages" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>One submission for multiple nodes</strong>: use either Worker broadcast or an
+MPIJob Launcher with <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>; neither requires logging in to every machine.</p></li>
+<li><p><strong>Dynamic load balancing</strong>: a Worker claims another shard after finishing its
+current one, so faster nodes naturally process more work.</p></li>
+<li><p><strong>Ray remains available inside every node</strong>: every shard is processed by the
+Data-Juicer Ray executor using that node’s CPU/GPU resources.</p></li>
+<li><p><strong>No rank dependency</strong>: coordination does not require <code class="docutils literal notranslate"><span class="pre">RANK</span></code>, <code class="docutils literal notranslate"><span class="pre">WORLD_SIZE</span></code>,
+or a static hostname-to-file mapping.</p></li>
+<li><p><strong>Auditable and reproducible</strong>: the manifest records input fingerprints,
+recipe hash, Data-Juicer commit, Ray configuration, and shard order.</p></li>
+<li><p><strong>Exclusive claims</strong>: POSIX <code class="docutils literal notranslate"><span class="pre">O_CREAT|O_EXCL</span></code> prevents two active Workers from
+normally owning the same shard.</p></li>
+<li><p><strong>Failure handling</strong>: failed attempts can retry, and expired claims can be
+reclaimed by another Worker.</p></li>
+<li><p><strong>Integrity validation</strong>: row counts, byte counts, and SHA256 values are
+checked before a result is accepted and merged.</p></li>
+<li><p><strong>Deterministic order</strong>: directory inputs are sorted, shards are contiguous,
+and merge follows manifest order.</p></li>
+<li><p><strong>Low integration risk</strong>: the implementation lives under <code class="docutils literal notranslate"><span class="pre">demos</span></code> and does
+not modify existing executors or operators.</p></li>
+</ul>
+</section>
+<section id="comparison-with-existing-approaches">
+<h2>Comparison with existing approaches<a class="headerlink" href="#comparison-with-existing-approaches" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Approach</p></th>
+<th class="head"><p>Splitting</p></th>
+<th class="head"><p>Dynamic claims</p></th>
+<th class="head"><p>Recovery</p></th>
+<th class="head"><p>Ray inside node</p></th>
+<th class="head"><p>Cross-node Ray</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tools/data_resplit.py</span></code></p></td>
+<td><p>Pre-split</p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+<td><p>User-managed</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ray_partitioned</span></code></p></td>
+<td><p>Runtime</p></td>
+<td><p>Ray scheduling</p></td>
+<td><p>Ray job</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p>This demo</p></td>
+<td><p>Pre-split</p></td>
+<td><p>Shared filesystem</p></td>
+<td><p>Timeout/retry</p></td>
+<td><p>Yes</p></td>
+<td><p>No</p></td>
+</tr>
+</tbody>
+</table>
+<p>This demo is useful when:</p>
+<ul class="simple">
+<li><p>the input is large and fixed, inspectable shards are desirable;</p></li>
+<li><p>DLC Workers share NAS/CPFS but should not form one Ray cluster;</p></li>
+<li><p>nodes have different speeds or may be restarted;</p></li>
+<li><p>per-shard logs, attempts, ownership, and verifiable outputs are required.</p></li>
+</ul>
+</section>
+<section id="files">
+<h2>Files<a class="headerlink" href="#files" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>demos/elastic_sharding/
+├── shard_job.py             # Generic prepare/worker/status/retry/merge CLI
+├── dlc_job.py               # Launcher for DLC job types that broadcast to Workers
+├── two_node_test.py         # Backward-compatible strict two-node wrapper
+├── configs/
+│   ├── demo.yaml            # CPU-only Mapper/Filter recipe
+│   ├── gpu_demo.yaml        # One-GPU-per-node CPU + GPU smoke test
+│   └── gpu_demo_4gpu.yaml   # Single-node, four-GPU smoke test
+├── data/
+│   └── gpu-demo-dataset.jsonl
+├── README.md
+└── README_ZH.md
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">shard_job.py</span></code> contains the shared-storage shard state machine. For
+Worker-broadcast job types, <code class="docutils literal notranslate"><span class="pre">dlc_job.py</span></code> coordinates one-time preparation and
+finalization around any number of DLC Workers. <code class="docutils literal notranslate"><span class="pre">two_node_test.py</span></code> keeps the
+original strict two-node defaults for backward compatibility. An MPIJob
+Launcher should instead call the lower-level <code class="docutils literal notranslate"><span class="pre">prepare</span></code>, <code class="docutils literal notranslate"><span class="pre">worker</span></code>, and <code class="docutils literal notranslate"><span class="pre">merge</span></code>
+commands around an <code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">-np</span> <span class="pre">N</span> <span class="pre">-npernode</span> <span class="pre">1</span></code> worker launch.</p>
+</section>
+<section id="important-path-concepts">
+<h2>Important path concepts<a class="headerlink" href="#important-path-concepts" title="Link to this heading">¶</a></h2>
+<p>Do not confuse these three paths:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--config</span></code>: the Data-Juicer YAML recipe.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dataset-path</span></code>: the JSONL file or directory to pre-split. When specified,
+it overrides <code class="docutils literal notranslate"><span class="pre">dataset_path</span></code> in the recipe.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code>: the shared working directory containing shards, locks, attempts,
+logs, states, and results. It is not the original dataset directory.</p></li>
+</ul>
+<p>Example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--config<span class="w"> </span>/mnt/shared/recipes/my_process.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dataset-path<span class="w"> </span>/mnt/shared/input/my_dataset.jsonl<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--nodes<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">16</span>
+</pre></div>
+</div>
+</section>
+<section id="requirements-and-current-scope">
+<h2>Requirements and current scope<a class="headerlink" href="#requirements-and-current-scope" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>All Workers must run the same Data-Juicer version and dependencies.</p></li>
+<li><p>The job directory must be on a shared POSIX filesystem supporting atomic
+create, atomic rename, hard links, and <code class="docutils literal notranslate"><span class="pre">fcntl</span></code> advisory locks, such as a
+normally configured NAS/NFS/CPFS.</p></li>
+<li><p>Every Worker must see the job directory, input JSONL, and local media at
+identical paths.</p></li>
+<li><p>Inputs are local <code class="docutils literal notranslate"><span class="pre">.jsonl</span></code> files or local directories recursively containing
+<code class="docutils literal notranslate"><span class="pre">.jsonl</span></code> files.</p></li>
+<li><p>Every line must be a UTF-8 JSON object. Blank lines, JSON arrays as rows, and
+malformed JSON are rejected.</p></li>
+<li><p>Only shard-independent Mapper and Filter operators are currently accepted.</p></li>
+<li><p>Deduplicators, Selectors, Groupers, Aggregators, Pipelines, and other
+whole-dataset operations are rejected during <code class="docutils literal notranslate"><span class="pre">prepare</span></code>.</p></li>
+<li><p>Claims use a static timeout without a heartbeat. The timeout must be longer
+than the longest expected shard runtime.</p></li>
+<li><p>The job directory stores normalized shards and attempt results, so reserve
+enough capacity. Media files are referenced by path and are not copied.</p></li>
+</ul>
+</section>
+<section id="pai-dlc-worker-broadcast-quick-start">
+<h2>PAI-DLC Worker-broadcast quick start<a class="headerlink" href="#pai-dlc-worker-broadcast-quick-start" title="Link to this heading">¶</a></h2>
+<p>This section is <strong>not</strong> the MPIJob launch procedure. Use it only after
+confirming that the selected DLC job type runs the startup command on every
+Worker. For MPIJob, configure the command once on the Launcher and have that
+command run preparation, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> one process per Worker, and merge.</p>
+<section id="configure-the-dlc-job">
+<h3>1. Configure the DLC job<a class="headerlink" href="#configure-the-dlc-job" title="Link to this heading">¶</a></h3>
+<p>Create one DLC job with:</p>
+<ul class="simple">
+<li><p>Framework: a <code class="docutils literal notranslate"><span class="pre">PyTorch</span></code>-style job that starts the user command on every
+Worker, without <code class="docutils literal notranslate"><span class="pre">torchrun</span></code>.</p></li>
+<li><p>Worker count: any positive number, for example <code class="docutils literal notranslate"><span class="pre">4</span></code>, with one script process
+per Worker.</p></li>
+<li><p>Do not select DLC’s <code class="docutils literal notranslate"><span class="pre">Ray</span></code> framework for this demo. DLC Ray creates a
+cross-node Ray cluster, while this design intentionally uses independent
+node-local Ray runtimes.</p></li>
+<li><p>Mount the same Data-Juicer code at the same path on all Workers, for example
+<code class="docutils literal notranslate"><span class="pre">/mnt/data/data-juicer</span></code>.</p></li>
+<li><p>Mount the same read-write NAS/CPFS at the same path, for example
+<code class="docutils literal notranslate"><span class="pre">/mnt/shared</span></code>.</p></li>
+<li><p>Use the same image with Data-Juicer’s Ray dependencies on all Workers.</p></li>
+</ul>
+<p>Only one startup command and a Worker count are configured on the PAI-DLC job
+page; the selected job type must dispatch that command to every Worker. See the official
+<a class="reference external" href="https://help.aliyun.com/zh/pai/create-a-training-task">Create a training job</a>
+guide.</p>
+</section>
+<section id="enter-one-startup-command">
+<h3>2. Enter one startup command<a class="headerlink" href="#enter-one-startup-command" title="Link to this heading">¶</a></h3>
+<p>Enter this command once in the DLC job configuration:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/mnt/data/data-juicer<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/multi-node-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--nodes<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span>
+</pre></div>
+</div>
+<p>The defaults are:</p>
+<ul class="simple">
+<li><p>recipe: <code class="docutils literal notranslate"><span class="pre">demos/elastic_sharding/configs/demo.yaml</span></code>;</p></li>
+<li><p>input: <code class="docutils literal notranslate"><span class="pre">demos/data/demo-dataset.jsonl</span></code> from that recipe;</p></li>
+<li><p>shard count: 4 unless explicitly set;</p></li>
+<li><p>expected DLC Workers: not enforced in the default elastic mode;</p></li>
+<li><p>Ray: independent <code class="docutils literal notranslate"><span class="pre">local</span></code> mode on every node;</p></li>
+<li><p>merged result: <code class="docutils literal notranslate"><span class="pre">&lt;job-dir&gt;/merged.jsonl</span></code>.</p></li>
+</ul>
+</section>
+<section id="automatic-workflow">
+<h3>3. Automatic workflow<a class="headerlink" href="#automatic-workflow" title="Link to this heading">¶</a></h3>
+<p>The selected Worker-broadcast job type runs the same <code class="docutils literal notranslate"><span class="pre">dlc</span></code> entry point on
+every Worker:</p>
+<ol class="arabic simple">
+<li><p>Atomically elect one prepare coordinator through shared storage.</p></li>
+<li><p>Validate the input and recipe, then pre-split exactly once.</p></li>
+<li><p>Let every live Worker claim shards without a per-Worker cap.</p></li>
+<li><p>Process each shard through <code class="docutils literal notranslate"><span class="pre">tools/process_data.py</span></code> with
+<code class="docutils literal notranslate"><span class="pre">--executor_type</span> <span class="pre">ray</span> <span class="pre">--ray_address</span> <span class="pre">local</span></code>.</p></li>
+<li><p>Wait for all shards to complete or reach terminal failure.</p></li>
+<li><p>Atomically elect one finalize coordinator.</p></li>
+<li><p>Report participating hostnames, validate outputs, and merge.</p></li>
+<li><p>Let every other instance read the same final result and exit with the same
+code.</p></li>
+</ol>
+<p>Useful successful log messages include:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>elected as DLC prepare coordinator
+Starting DLC worker on hostname=...
+elected as DLC finalize coordinator
+PASS: 16 shards were completed by 4 node(s)
+</pre></div>
+</div>
+<p>Inspect status from any environment that mounts the job directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>status<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/multi-node-job-001
+</pre></div>
+</div>
+<p>The merged output is:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/mnt/shared/data-juicer-jobs/multi-node-job-001/merged.jsonl
+</pre></div>
+</div>
+</section>
+<section id="elastic-mode-and-strict-participation-mode">
+<h3>Elastic mode and strict participation mode<a class="headerlink" href="#elastic-mode-and-strict-participation-mode" title="Link to this heading">¶</a></h3>
+<p>The default is <strong>elastic mode</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--nodes</span></code> is optional and informational;</p></li>
+<li><p>Workers have no claim cap;</p></li>
+<li><p>if fewer Workers start than requested, the live Workers can still claim all
+remaining shards;</p></li>
+<li><p>finalization requires completed shards, not a specific Worker count.</p></li>
+</ul>
+<p>This is the recommended production behavior:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/elastic-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span>
+</pre></div>
+</div>
+<p>Use <strong>strict participation mode</strong> only when testing that every configured DLC
+Worker actually processed at least one shard:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/strict-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--nodes<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--require-all-nodes<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span>
+</pre></div>
+</div>
+<p>Strict mode sets a per-Worker claim cap and verifies at least <code class="docutils literal notranslate"><span class="pre">--nodes</span></code>
+distinct completion hostnames. A missing Worker therefore causes the strict
+job to wait and eventually fail. Use a shard count that is a multiple of the
+node count.</p>
+</section>
+</section>
+<section id="gpu-smoke-test-one-recipe-with-cpu-and-gpu-operators">
+<h2>GPU smoke test: one recipe with CPU and GPU operators<a class="headerlink" href="#gpu-smoke-test-one-recipe-with-cpu-and-gpu-operators" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">configs/gpu_demo.yaml</span></code> verifies that a claimed shard can move through both
+CPU and GPU operators inside the node-local Ray executor:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Order</p></th>
+<th class="head"><p>Operator</p></th>
+<th class="head"><p>Resource requested from Ray</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">whitespace_normalization_mapper</span></code></p></td>
+<td><p>1 CPU</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">query_sentiment_detection_mapper</span></code></p></td>
+<td><p>1 CPU + 1 GPU</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">query_topic_detection_mapper</span></code></p></td>
+<td><p>1 CPU + 1 GPU</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">text_pair_similarity_filter</span></code></p></td>
+<td><p>1 CPU + 1 GPU</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code></p></td>
+<td><p>1 CPU</p></td>
+</tr>
+</tbody>
+</table>
+<p>The two GPU Mappers write sentiment and topic labels into <code class="docutils literal notranslate"><span class="pre">meta</span></code>. The GPU
+Filter uses <code class="docutils literal notranslate"><span class="pre">openai/clip-vit-base-patch32</span></code> and writes
+<code class="docutils literal notranslate"><span class="pre">text_pair_similarity</span></code> into <code class="docutils literal notranslate"><span class="pre">__dj__stats__</span></code>. All three GPU operators set
+<code class="docutils literal notranslate"><span class="pre">num_gpus:</span> <span class="pre">1</span></code>, so Ray must schedule their tasks on a real GPU; this is not a
+CPU-fallback test.</p>
+<p>Before submitting the job:</p>
+<ul class="simple">
+<li><p>give every DLC Worker at least one visible NVIDIA GPU;</p></li>
+<li><p>install the CUDA-enabled PyTorch, Ray, Transformers, and Data-Juicer
+dependencies in the image;</p></li>
+<li><p>make these three models available to every Worker:
+<code class="docutils literal notranslate"><span class="pre">mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dstefa/roberta-base_topic_classification_nyt_news</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">openai/clip-vit-base-patch32</span></code>;</p></li>
+<li><p>the first run downloads the models from Hugging Face unless the corresponding
+recipe fields are changed to pre-downloaded paths;</p></li>
+<li><p>prefer models baked into the image or a pre-populated cache for a
+multi-node test, rather than making all Workers download them concurrently.</p></li>
+</ul>
+<p>Check one Worker image first:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import torch; assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))"</span>
+</pre></div>
+</div>
+<section id="single-node-four-gpu-command">
+<h3>Single-node, four-GPU command<a class="headerlink" href="#single-node-four-gpu-command" title="Link to this heading">¶</a></h3>
+<p>Use <code class="docutils literal notranslate"><span class="pre">gpu_demo_4gpu.yaml</span></code> when one machine has four visible GPUs:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/mnt/data/data-juicer<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1,2,3<span class="w"> </span><span class="se">\</span>
+python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--config<span class="w"> </span>demos/elastic_sharding/configs/gpu_demo_4gpu.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/gpu-4card-smoke-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--nodes<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>/mnt/shared/data-juicer-jobs/gpu-4card-smoke-001/merged.jsonl
+</pre></div>
+</div>
+<p>The four-GPU recipe uses <code class="docutils literal notranslate"><span class="pre">override_num_blocks:</span> <span class="pre">4</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_size:</span> <span class="pre">1</span></code>,
+<code class="docutils literal notranslate"><span class="pre">num_proc:</span> <span class="pre">4</span></code>, and <code class="docutils literal notranslate"><span class="pre">num_gpus:</span> <span class="pre">1</span></code> for each GPU operator. One node-local Ray
+runtime can therefore schedule four one-GPU tasks concurrently.</p>
+<p>Keep <code class="docutils literal notranslate"><span class="pre">--num-shards</span> <span class="pre">1</span></code> for this four-row smoke test. A single DLC Worker claims
+shards sequentially, so <code class="docutils literal notranslate"><span class="pre">--num-shards</span> <span class="pre">4</span></code> would create four one-row Ray jobs and
+would normally exercise only one GPU at a time. For a larger input, keep each
+shard large enough to contain at least four Ray blocks.</p>
+<p>You can observe placement in another terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>watch<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>nvidia-smi
+</pre></div>
+</div>
+<p>Because the bundled input is tiny, GPU utilization may be brief. A larger
+<code class="docutils literal notranslate"><span class="pre">--dataset-path</span></code> is better for sustained utilization and throughput
+measurements.</p>
+</section>
+<section id="multi-node-one-gpu-per-node-command">
+<h3>Multi-node, one-GPU-per-node command<a class="headerlink" href="#multi-node-one-gpu-per-node-command" title="Link to this heading">¶</a></h3>
+<p>For a strict two-GPU-node DLC smoke test, configure two Workers and enter this
+single startup command once:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/mnt/data/data-juicer<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--config<span class="w"> </span>demos/elastic_sharding/configs/gpu_demo.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/gpu-smoke-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--nodes<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--require-all-nodes<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>/mnt/shared/data-juicer-jobs/gpu-smoke-001/merged.jsonl
+</pre></div>
+</div>
+<p>The bundled dataset has four rows, so it supports at most four non-empty
+shards. To test more nodes or realistic throughput, pass a larger JSONL with
+both <code class="docutils literal notranslate"><span class="pre">text</span></code> and <code class="docutils literal notranslate"><span class="pre">target_text</span></code> fields:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--config<span class="w"> </span>demos/elastic_sharding/configs/gpu_demo.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dataset-path<span class="w"> </span>/mnt/shared/input/text-pairs.jsonl<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/gpu-large-smoke-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--nodes<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--require-all-nodes<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span>
+</pre></div>
+</div>
+<p>After completion, verify ownership and the GPU-generated metadata/statistics:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>status<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/gpu-smoke-001
+
+rg<span class="w"> </span>-n<span class="w"> </span><span class="s1">'query_(sentiment|topic)_label|text_pair_similarity'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>/mnt/shared/data-juicer-jobs/gpu-smoke-001/merged.jsonl
+</pre></div>
+</div>
+<p>Each Worker handles one shard attempt at a time. The bundled recipe deliberately
+sets <code class="docutils literal notranslate"><span class="pre">ray_execution_mode:</span> <span class="pre">task</span></code>, <code class="docutils literal notranslate"><span class="pre">num_proc:</span> <span class="pre">1</span></code>, and <code class="docutils literal notranslate"><span class="pre">num_gpus:</span> <span class="pre">1</span></code> for every GPU
+operator. Their Ray tasks can therefore reuse a single GPU on each node instead
+of requiring three GPUs concurrently. For a production recipe, tune operator
+concurrency, GPU fractions, batch size, model size, and shard size for the
+hardware.</p>
+</section>
+</section>
+<section id="important-use-an-existing-mapper-filter-recipe-and-your-own-jsonl">
+<h2>Important: use an existing Mapper/Filter recipe and your own JSONL<a class="headerlink" href="#important-use-an-existing-mapper-filter-recipe-and-your-own-jsonl" title="Link to this heading">¶</a></h2>
+<p>The demo is not limited to the bundled recipe. The intended real-world usage is
+to reuse an existing Data-Juicer Mapper/Filter recipe and point
+<code class="docutils literal notranslate"><span class="pre">--dataset-path</span></code> at a large user-owned JSONL dataset.</p>
+<section id="recipe-compatibility-rules">
+<h3>Recipe compatibility rules<a class="headerlink" href="#recipe-compatibility-rules" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">executor_type</span></code> may be <code class="docutils literal notranslate"><span class="pre">default</span></code> or <code class="docutils literal notranslate"><span class="pre">ray</span></code>; Workers always override it with
+<code class="docutils literal notranslate"><span class="pre">ray</span></code>.</p></li>
+<li><p>The recipe must contain an explicit <code class="docutils literal notranslate"><span class="pre">process</span></code> list.</p></li>
+<li><p>Every operator must resolve to a Mapper or Filter and must not be a global
+operation.</p></li>
+<li><p>Operators must not set <code class="docutils literal notranslate"><span class="pre">stats_export_path</span></code>, because different shards would
+collide on the same statistics file.</p></li>
+<li><p>A fixed <code class="docutils literal notranslate"><span class="pre">save_dir</span></code> is allowed with a warning; users must ensure generated
+filenames cannot collide across shards.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">custom_operator_paths</span></code> is supported. Relative paths resolve from the
+Data-Juicer repository root, and custom operators must still inherit Mapper
+or Filter.</p></li>
+<li><p>When an operator declares <code class="docutils literal notranslate"><span class="pre">index_key</span></code>, preparation fills missing values
+with the global input row index. Existing values remain unchanged.</p></li>
+</ol>
+<p>Generally suitable operations include:</p>
+<ul class="simple">
+<li><p>per-sample text cleanup Mappers;</p></li>
+<li><p>per-sample text, image, audio, or video property Mappers;</p></li>
+<li><p>Filters based only on the current sample and its computed statistics;</p></li>
+<li><p>custom Mappers/Filters with no cross-sample state or shared fixed outputs.</p></li>
+</ul>
+<p>Operations that are not directly shard-safe include:</p>
+<ul class="simple">
+<li><p>global deduplication;</p></li>
+<li><p>Selectors requiring global ordering or sampling;</p></li>
+<li><p>Groupers, Aggregators, and Pipelines;</p></li>
+<li><p>operators with cross-sample state or one global output.</p></li>
+</ul>
+<p>Example recipe:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">project_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-elastic-job</span>
+<span class="nt">dataset_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/mnt/shared/input/default.jsonl</span>
+<span class="nt">export_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/mnt/shared/output/ignored-by-shard-worker.jsonl</span>
+<span class="nt">executor_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ray</span>
+<span class="nt">ray_address</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>
+
+<span class="nt">text_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span>
+<span class="nt">image_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">images</span>
+<span class="nt">audio_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">audios</span>
+<span class="nt">video_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">videos</span>
+
+<span class="nt">process</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">whitespace_normalization_mapper</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">text_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">text_length_filter</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">text_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span>
+<span class="w">      </span><span class="nt">min_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">      </span><span class="nt">max_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span>
+</pre></div>
+</div>
+<p>For every claim, the Worker overrides the recipe’s <code class="docutils literal notranslate"><span class="pre">dataset_path</span></code> with the
+current shard and overrides <code class="docutils literal notranslate"><span class="pre">export_path</span></code> with the isolated attempt output.
+The same recipe can therefore be safely reused for all shards.</p>
+</section>
+<section id="requirements-for-your-jsonl">
+<h3>Requirements for your JSONL<a class="headerlink" href="#requirements-for-your-jsonl" title="Link to this heading">¶</a></h3>
+<p>Single-file input:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/mnt/shared/input/my_dataset.jsonl
+</pre></div>
+</div>
+<p>Directory input:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/mnt/shared/input/my_dataset/
+├── 000.jsonl
+├── 001.jsonl
+└── nested/
+    └── 002.jsonl
+</pre></div>
+</div>
+<p>Directories are scanned recursively and sorted by relative path. Each line
+must be an object:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"text"</span><span class="p">:</span><span class="w"> </span><span class="s2">"example"</span><span class="p">,</span><span class="w"> </span><span class="nt">"images"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"media/1.jpg"</span><span class="p">]}</span>
+</pre></div>
+</div>
+<p>Media path behavior:</p>
+<ul class="simple">
+<li><p>absolute paths are preserved;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">http://</span></code>, <code class="docutils literal notranslate"><span class="pre">https://</span></code>, <code class="docutils literal notranslate"><span class="pre">s3://</span></code>, <code class="docutils literal notranslate"><span class="pre">gs://</span></code>, and <code class="docutils literal notranslate"><span class="pre">hdfs://</span></code> values are preserved;</p></li>
+<li><p>relative paths become absolute:</p>
+<ul>
+<li><p>relative to the JSONL’s parent for single-file input;</p></li>
+<li><p>relative to the dataset root for directory input;</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">images</span></code>, <code class="docutils literal notranslate"><span class="pre">audios</span></code>, and <code class="docutils literal notranslate"><span class="pre">videos</span></code> must be string lists or <code class="docutils literal notranslate"><span class="pre">null</span></code>. Change their
+names through <code class="docutils literal notranslate"><span class="pre">image_key</span></code>, <code class="docutils literal notranslate"><span class="pre">audio_key</span></code>, and <code class="docutils literal notranslate"><span class="pre">video_key</span></code> in the recipe.</p></li>
+</ul>
+</section>
+<section id="run-your-recipe-and-input-on-any-number-of-broadcast-started-dlc-workers">
+<h3>Run your recipe and input on any number of broadcast-started DLC Workers<a class="headerlink" href="#run-your-recipe-and-input-on-any-number-of-broadcast-started-dlc-workers" title="Link to this heading">¶</a></h3>
+<p>The Worker-broadcast DLC job still contains only one configured startup
+command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/mnt/data/data-juicer<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+python<span class="w"> </span>demos/elastic_sharding/dlc_job.py<span class="w"> </span>dlc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--config<span class="w"> </span>/mnt/shared/recipes/my_process.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dataset-path<span class="w"> </span>/mnt/shared/input/my_dataset.jsonl<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-dataset-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--nodes<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>/mnt/shared/output/my_dataset.processed.jsonl
+</pre></div>
+</div>
+<p>In this command:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--config</span></code> reuses the existing Mapper/Filter recipe;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dataset-path</span></code> overrides the recipe’s original input;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code> stores all state and intermediate results for this run;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--output</span></code> selects the final merged JSONL;</p></li>
+<li><p>any live Workers dynamically claim sixteen shards and use Ray inside each
+node.</p></li>
+</ul>
+<p>Start with a small sample and at least a few shards per node, then scale the
+input and shard count after the smoke test succeeds.</p>
+</section>
+<section id="choosing-the-shard-count">
+<h3>Choosing the shard count<a class="headerlink" href="#choosing-the-shard-count" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;=</span> <span class="pre">num_shards</span> <span class="pre">&lt;=</span> <span class="pre">total</span> <span class="pre">JSONL</span> <span class="pre">rows</span></code> must hold.</p></li>
+<li><p>More shards than nodes improve work stealing and reduce skew.</p></li>
+<li><p>Start with <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">×</span> <span class="pre">node_count</span></code> or <code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">×</span> <span class="pre">node_count</span></code>.</p></li>
+<li><p>A shard should complete well before <code class="docutils literal notranslate"><span class="pre">lock_timeout_secs</span></code>.</p></li>
+<li><p>Too few shards reduce load balancing; too many increase Ray startup,
+metadata, and small-file overhead.</p></li>
+<li><p>Default elastic mode has no per-Worker cap, so the shard count does not need
+to be a multiple of the Worker count.</p></li>
+<li><p>With <code class="docutils literal notranslate"><span class="pre">--require-all-nodes</span></code>, a multiple of <code class="docutils literal notranslate"><span class="pre">--nodes</span></code> is the simplest choice
+and guarantees a clean equal upper bound.</p></li>
+</ul>
+</section>
+<section id="when-the-recipe-or-input-changes">
+<h3>When the recipe or input changes<a class="headerlink" href="#when-the-recipe-or-input-changes" title="Link to this heading">¶</a></h3>
+<p>Preparation records the recipe SHA256, input file SHA256 values, sizes, mtimes,
+row counts, normalized-content SHA256, and Data-Juicer commit.</p>
+<ul class="simple">
+<li><p>Repeating an identical request is an idempotent no-op.</p></li>
+<li><p>Do not reuse an old job directory after changing the recipe, input, shard
+count, or Ray address.</p></li>
+<li><p>Use a new directory for each independent run, such as <code class="docutils literal notranslate"><span class="pre">my-dataset-001</span></code> and
+<code class="docutils literal notranslate"><span class="pre">my-dataset-002</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<section id="dlc-job-py-parameter-reference">
+<h2><code class="docutils literal notranslate"><span class="pre">dlc_job.py</span></code> parameter reference<a class="headerlink" href="#dlc-job-py-parameter-reference" title="Link to this heading">¶</a></h2>
+<section id="dlc">
+<h3><code class="docutils literal notranslate"><span class="pre">dlc</span></code><a class="headerlink" href="#dlc" title="Link to this heading">¶</a></h3>
+<p>Runs the complete Worker-broadcast DLC workflow.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Shared job directory used by every Worker</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--config</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">configs/demo.yaml</span></code></p></td>
+<td><p>Existing shard-safe Data-Juicer recipe</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--dataset-path</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Recipe value</p></td>
+<td><p>Override with a JSONL file or directory</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--nodes</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Not enforced</p></td>
+<td><p>Informational in elastic mode; required in strict mode</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--num-shards</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">4</span></code></p></td>
+<td><p>Exact number of non-empty shards</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--require-all-nodes</span></code></p></td>
+<td><p>No</p></td>
+<td><p>false</p></td>
+<td><p>Cap claims and require all <code class="docutils literal notranslate"><span class="pre">--nodes</span></code> hostnames</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--ray-address</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">local</span></code></p></td>
+<td><p>Ray address used independently in each node</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--output</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&lt;job-dir&gt;/merged.jsonl</span></code></p></td>
+<td><p>Final merged JSONL</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--run-id</span></code></p></td>
+<td><p>No</p></td>
+<td><p>DLC Job ID</p></td>
+<td><p>Identifier shared by Workers in one submission</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--wait-timeout-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">126000</span></code> (35h)</p></td>
+<td><p>Maximum prepare/completion/finalize wait</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--poll-interval-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>DLC coordination polling interval</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">--wait-timeout-secs</span></code> controls cross-instance DLC coordination. It is different
+from the per-shard claim timeout.</p>
+<p>The launcher reads the submission identity from <code class="docutils literal notranslate"><span class="pre">PAI_JOB_ID</span></code>, <code class="docutils literal notranslate"><span class="pre">DLC_JOB_ID</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">JOB_ID</span></code>. Outside DLC, pass the same <code class="docutils literal notranslate"><span class="pre">--run-id</span></code> to every Worker and use a new
+value for each new submission. This keeps terminal coordination state from one
+submission out of later submissions that reuse the same <code class="docutils literal notranslate"><span class="pre">job-dir</span></code>.</p>
+</section>
+<section id="other-wrapper-subcommands">
+<h3>Other wrapper subcommands<a class="headerlink" href="#other-wrapper-subcommands" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Option</p></th>
+<th class="head"><p>Default and meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prepare</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Required shared directory</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--config</span></code></p></td>
+<td><p>Bundled demo recipe</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--dataset-path</span></code></p></td>
+<td><p>Optional recipe input override</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--num-shards</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">4</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--ray-address</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">local</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">worker</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Required</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--max-shards</span></code></p></td>
+<td><p>Unlimited unless explicitly set</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--ray-address</span></code></p></td>
+<td><p>Optional manifest override</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Required; prints all shards</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">verify</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Required</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--output</span></code></p></td>
+<td><p>Defaults inside the job directory</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--expect-nodes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code>; minimum distinct completion hostnames</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="complete-shard-job-py-parameter-reference">
+<h2>Complete <code class="docutils literal notranslate"><span class="pre">shard_job.py</span></code> parameter reference<a class="headerlink" href="#complete-shard-job-py-parameter-reference" title="Link to this heading">¶</a></h2>
+<section id="prepare">
+<h3><code class="docutils literal notranslate"><span class="pre">prepare</span></code><a class="headerlink" href="#prepare" title="Link to this heading">¶</a></h3>
+<p>Validate the recipe, scan the input, and atomically publish a prepared job.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--config</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Data-Juicer YAML recipe</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--dataset-path</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Recipe value</p></td>
+<td><p>Override input JSONL file/directory</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>New shared POSIX job directory</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--num-shards</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Exact number of non-empty shards</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--lock-timeout-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">126000</span></code></p></td>
+<td><p>Per-shard claim timeout stored in manifest</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--max-retries</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3</span></code></p></td>
+<td><p>Retries after the first failure; four total failures</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--poll-interval-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p>Worker wait when no claim is available</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--ray-address</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">local</span></code></p></td>
+<td><p>Ray address stored for Workers</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="worker">
+<h3><code class="docutils literal notranslate"><span class="pre">worker</span></code><a class="headerlink" href="#worker" title="Link to this heading">¶</a></h3>
+<p>Continuously claim and process shards.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Shared directory created by prepare</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--max-shards</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Unlimited</p></td>
+<td><p>Maximum claims; failed attempts also count</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--lock-timeout-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Manifest value</p></td>
+<td><p>Override claim timeout for this Worker</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--max-retries</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Manifest value</p></td>
+<td><p>Override failure retries for this Worker</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--poll-interval-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Manifest value</p></td>
+<td><p>Override no-claim polling interval</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--ray-address</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Manifest value</p></td>
+<td><p>Override Ray address for this Worker</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--allow-version-mismatch</span></code></p></td>
+<td><p>No</p></td>
+<td><p>false</p></td>
+<td><p>Allow a Worker commit mismatch intentionally</p></td>
+</tr>
+</tbody>
+</table>
+<p>Without <code class="docutils literal notranslate"><span class="pre">--max-shards</span></code>, a Worker keeps claiming until all shards complete or
+the job reaches terminal failure.</p>
+</section>
+<section id="status">
+<h3><code class="docutils literal notranslate"><span class="pre">status</span></code><a class="headerlink" href="#status" title="Link to this heading">¶</a></h3>
+<p>Read job state without changing it.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Job directory</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--lock-timeout-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Manifest value</p></td>
+<td><p>Only affects whether locks display as stale</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--json</span></code></p></td>
+<td><p>No</p></td>
+<td><p>false</p></td>
+<td><p>Print machine-readable JSON</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--all</span></code></p></td>
+<td><p>No</p></td>
+<td><p>false</p></td>
+<td><p>Print every shard and owner in text mode</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="retry">
+<h3><code class="docutils literal notranslate"><span class="pre">retry</span></code><a class="headerlink" href="#retry" title="Link to this heading">¶</a></h3>
+<p>Archive terminal failure state and requeue shards. Select exactly one mode:
+<code class="docutils literal notranslate"><span class="pre">--all-failed</span></code> or one or more <code class="docutils literal notranslate"><span class="pre">--shard-id</span></code> options.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Job directory</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--all-failed</span></code></p></td>
+<td><p>Conditional</p></td>
+<td><p>false</p></td>
+<td><p>Requeue every failed shard</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--shard-id</span></code></p></td>
+<td><p>Conditional</p></td>
+<td><p>None</p></td>
+<td><p>Requeue this ID; may be repeated</p></td>
+</tr>
+</tbody>
+</table>
+<p>Old failure metadata and attempts move into <code class="docutils literal notranslate"><span class="pre">state/history</span></code>; retry does not
+overwrite history.</p>
+</section>
+<section id="merge">
+<h3><code class="docutils literal notranslate"><span class="pre">merge</span></code><a class="headerlink" href="#merge" title="Link to this heading">¶</a></h3>
+<p>Revalidate and merge all completed results in manifest order.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--job-dir</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Fully completed job</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--output</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>None</p></td>
+<td><p>Final JSONL path</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--lock-timeout-secs</span></code></p></td>
+<td><p>No</p></td>
+<td><p>Manifest value</p></td>
+<td><p>Used while calculating pre-merge status</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--overwrite</span></code></p></td>
+<td><p>No</p></td>
+<td><p>false</p></td>
+<td><p>Replace an existing output</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="generic-manual-or-scheduler-workflow">
+<h2>Generic manual or scheduler workflow<a class="headerlink" href="#generic-manual-or-scheduler-workflow" title="Link to this heading">¶</a></h2>
+<p>Use the lower-level CLI when a scheduler other than DLC launches the Workers.</p>
+<section id="id1">
+<h3>1. Prepare<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>prepare<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--config<span class="w"> </span>/mnt/shared/recipes/my_process.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dataset-path<span class="w"> </span>/mnt/shared/input/my_dataset.jsonl<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--num-shards<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--lock-timeout-secs<span class="w"> </span><span class="m">126000</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--max-retries<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--poll-interval-secs<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span><span class="nb">local</span>
+</pre></div>
+</div>
+<p>Preparation uses two streaming passes:</p>
+<ul class="simple">
+<li><p>pass one validates JSONL, fingerprints inputs, normalizes media paths, and
+assigns missing global <code class="docutils literal notranslate"><span class="pre">index_key</span></code> values;</p></li>
+<li><p>pass two writes contiguous, non-empty shards approximately balanced by
+normalized bytes;</p></li>
+<li><p>input changes between passes are detected;</p></li>
+<li><p>the complete stage directory is atomically renamed to <code class="docutils literal notranslate"><span class="pre">job-dir</span></code>.</p></li>
+</ul>
+</section>
+<section id="start-a-worker-on-each-node">
+<h3>2. Start a Worker on each node<a class="headerlink" href="#start-a-worker-on-each-node" title="Link to this heading">¶</a></h3>
+<p>Have the scheduler start this on every node:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>worker<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001
+</pre></div>
+</div>
+</section>
+<section id="inspect-status">
+<h3>3. Inspect status<a class="headerlink" href="#inspect-status" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>status<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span>--all
+
+python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>status<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span>--json
+</pre></div>
+</div>
+<p>States are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pending</span></code>: not claimed;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">running</span></code>: has a non-expired claim;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stale</span></code>: claim age exceeds the timeout and the next claimant may reclaim it;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">done</span></code>: validated completion metadata is published;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">failed</span></code>: terminal failure after the retry limit.</p></li>
+</ul>
+</section>
+<section id="requeue-failures">
+<h3>4. Requeue failures<a class="headerlink" href="#requeue-failures" title="Link to this heading">¶</a></h3>
+<p>After fixing the root cause:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>retry<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--all-failed
+</pre></div>
+</div>
+<p>Or select shards:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>retry<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--shard-id<span class="w"> </span>part-00003-of-00016<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--shard-id<span class="w"> </span>part-00007-of-00016
+</pre></div>
+</div>
+<p>Then start Workers again.</p>
+</section>
+<section id="id2">
+<h3>5. Merge<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>merge<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>/mnt/shared/output/my_dataset.processed.jsonl
+</pre></div>
+</div>
+<p>Merge parses every JSONL row again and checks the row count and SHA256 from
+completion metadata. It refuses an existing output unless <code class="docutils literal notranslate"><span class="pre">--overwrite</span></code> is
+explicit.</p>
+</section>
+</section>
+<section id="ray-execution-modes">
+<h2>Ray execution modes<a class="headerlink" href="#ray-execution-modes" title="Link to this heading">¶</a></h2>
+<section id="default-local-ray-per-attempt">
+<h3>Default: local Ray per attempt<a class="headerlink" href="#default-local-ray-per-attempt" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--ray-address<span class="w"> </span><span class="nb">local</span>
+</pre></div>
+</div>
+<p>Every shard attempt starts an independent Ray instance, which is cleaned up
+when the Data-Juicer process exits. This is simple and isolated, but adds a Ray
+startup cost per attempt.</p>
+</section>
+<section id="optional-persistent-ray-head-on-each-node">
+<h3>Optional: persistent Ray head on each node<a class="headerlink" href="#optional-persistent-ray-head-on-each-node" title="Link to this heading">¶</a></h3>
+<p>If the scheduler guarantees one Worker per node, run separately on each node:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ray<span class="w"> </span>start<span class="w"> </span>--head
+python<span class="w"> </span>demos/elastic_sharding/shard_job.py<span class="w"> </span>worker<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--job-dir<span class="w"> </span>/mnt/shared/data-juicer-jobs/my-job-001<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--ray-address<span class="w"> </span>auto
+ray<span class="w"> </span>stop
+</pre></div>
+</div>
+<p>Do not let every node’s <code class="docutils literal notranslate"><span class="pre">auto</span></code> resolve to one shared Ray cluster; that changes
+the intended topology.</p>
+</section>
+</section>
+<section id="job-directory-layout">
+<h2>Job directory layout<a class="headerlink" href="#job-directory-layout" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>my-job-001/
+├── manifest.json
+├── recipe.yaml
+├── shards/
+│   └── part-xxxxx-of-xxxxx.jsonl
+├── cache/
+├── attempts/&lt;shard-id&gt;/&lt;attempt-id&gt;/
+│   ├── attempt.json
+│   ├── process.log
+│   ├── logs/
+│   ├── checkpoints/
+│   ├── partitions/
+│   ├── ray-output.jsonl/
+│   └── processed.jsonl
+├── state/
+│   ├── locks/
+│   ├── stale_locks/
+│   ├── done/
+│   ├── failed/
+│   └── history/
+└── merge.json
+</pre></div>
+</div>
+<p>The one-command DLC entry point also creates a sibling directory:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>.&lt;job-dir-name&gt;.dlc-coordination/
+└── &lt;submission-id-hash&gt;/
+    ├── prepare.lock
+    ├── prepare-result.json
+    ├── abort.lock
+    ├── abort.json
+    ├── finalize.lock
+    └── finalize-result.json
+</pre></div>
+</div>
+<p>If <code class="docutils literal notranslate"><span class="pre">XDG_CACHE_HOME</span></code> or <code class="docutils literal notranslate"><span class="pre">HF_HOME</span></code> is not explicitly set, Workers use
+<code class="docutils literal notranslate"><span class="pre">&lt;job-dir&gt;/cache</span></code>.</p>
+</section>
+<section id="failure-semantics">
+<h2>Failure semantics<a class="headerlink" href="#failure-semantics" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>A shard has one visible claim, although stale takeover can briefly overlap
+an old attempt and a new attempt.</p></li>
+<li><p>Every attempt has an isolated directory and cannot overwrite another result.</p></li>
+<li><p>Only the first successful atomic done publication is accepted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_retries=3</span></code> means three retries after the initial failure, allowing four
+failed attempts before terminal state.</p></li>
+<li><p>A shard reaching the retry limit publishes <code class="docutils literal notranslate"><span class="pre">state/failed</span></code>, and the job exits
+with code 2.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">retry</span></code> only after confirming there is no active claim and fixing the
+root cause.</p></li>
+<li><p>Input or recipe changes require a new job directory, not <code class="docutils literal notranslate"><span class="pre">retry</span></code>.</p></li>
+<li><p>If a DLC prepare/finalize coordinator is killed before publishing its phase
+result, other instances wait until <code class="docutils literal notranslate"><span class="pre">wait_timeout_secs</span></code> and then fail. A new
+submission uses a new coordination generation and can safely retry with the
+same unchanged <code class="docutils literal notranslate"><span class="pre">job-dir</span></code>.</p></li>
+</ul>
+</section>
+<section id="exit-codes">
+<h2>Exit codes<a class="headerlink" href="#exit-codes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: success; for a Worker, it may also mean <code class="docutils literal notranslate"><span class="pre">--max-shards</span></code> was reached.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: <code class="docutils literal notranslate"><span class="pre">status</span></code> found an incomplete job without terminal failure.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">2</span></code>: parameter, input, recipe, version, or runtime error, or terminal shard
+failure.</p></li>
+</ul>
+<p>Any nonzero Worker exit should fail the DLC job.</p>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
+<section id="preparation-fails">
+<h3>Preparation fails<a class="headerlink" href="#preparation-fails" title="Link to this heading">¶</a></h3>
+<p>Check:</p>
+<ul class="simple">
+<li><p>JSONL is UTF-8, contains one object per line, and has no blank lines;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_shards</span></code> does not exceed the row count;</p></li>
+<li><p>the recipe has no global operator or <code class="docutils literal notranslate"><span class="pre">stats_export_path</span></code>;</p></li>
+<li><p>recipe and data relative paths resolve from the Data-Juicer repository root;</p></li>
+<li><p>a mismatched request is not reusing an old job directory.</p></li>
+</ul>
+</section>
+<section id="worker-or-ray-fails">
+<h3>Worker or Ray fails<a class="headerlink" href="#worker-or-ray-fails" title="Link to this heading">¶</a></h3>
+<p>Inspect:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;job-dir&gt;/attempts/&lt;shard-id&gt;/&lt;attempt-id&gt;/process.log
+&lt;job-dir&gt;/attempts/&lt;shard-id&gt;/&lt;attempt-id&gt;/attempt.json
+</pre></div>
+</div>
+<p>Also check:</p>
+<ul class="simple">
+<li><p>Ray dependencies in the image;</p></li>
+<li><p>node CPU, GPU, shared memory, and temporary storage;</p></li>
+<li><p>the intended <code class="docutils literal notranslate"><span class="pre">local</span></code> or node-local <code class="docutils literal notranslate"><span class="pre">auto</span></code> Ray address;</p></li>
+<li><p>whether <code class="docutils literal notranslate"><span class="pre">lock_timeout_secs</span></code> is shorter than real shard runtime;</p></li>
+<li><p>whether every Worker uses the same Data-Juicer commit.</p></li>
+</ul>
+</section>
+<section id="dlc-keeps-waiting">
+<h3>DLC keeps waiting<a class="headerlink" href="#dlc-keeps-waiting" title="Link to this heading">¶</a></h3>
+<p>Check:</p>
+<ul class="simple">
+<li><p>this is a Worker-broadcast job type, not an MPIJob whose command ran only on
+the Launcher;</p></li>
+<li><p>in strict mode, DLC Worker count equals <code class="docutils literal notranslate"><span class="pre">--nodes</span></code>; in elastic mode,
+<code class="docutils literal notranslate"><span class="pre">--nodes</span></code> may be omitted;</p></li>
+<li><p>every Worker started the same command;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">job-dir</span></code> is one shared mount, not separate local directories with the same
+path string;</p></li>
+<li><p>every Worker resolved the same <code class="docutils literal notranslate"><span class="pre">--run-id</span></code> or DLC Job ID;</p></li>
+<li><p>the current generation’s <code class="docutils literal notranslate"><span class="pre">prepare-result.json</span></code>, <code class="docutils literal notranslate"><span class="pre">abort.json</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">finalize-result.json</span></code> below the sibling coordination directory;</p></li>
+<li><p>with <code class="docutils literal notranslate"><span class="pre">--require-all-nodes</span></code>, failed attempts did not consume the strict
+mode’s per-Worker claim cap.</p></li>
+</ul>
+</section>
+</section>
+<section id="tests">
+<h2>Tests<a class="headerlink" href="#tests" title="Link to this heading">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>tests/demos/test_elastic_sharding.py
+</pre></div>
+</div>
+<p>Coverage includes:</p>
+<ul class="simple">
+<li><p>deterministic splitting, input ordering, and media path normalization;</p></li>
+<li><p>recipe safety validation and default-to-Ray override;</p></li>
+<li><p>concurrent exclusive claims and stale-lock takeover;</p></li>
+<li><p>isolated attempts, Ray command construction, and multi-file output
+materialization;</p></li>
+<li><p>retry limits, selected retry, and ordered merge;</p></li>
+<li><p>distinct two-host ownership verification;</p></li>
+<li><p>DLC prepare/finalize election and failure propagation.</p></li>
+</ul>
+<p>See <span class="xref myst">README_ZH.md</span> for the Chinese guide.</p>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Elastic Multi-Node Sharding on Shared Storage</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#key-advantages">Key advantages</a></li>
+<li><a class="reference internal" href="#comparison-with-existing-approaches">Comparison with existing approaches</a></li>
+<li><a class="reference internal" href="#files">Files</a></li>
+<li><a class="reference internal" href="#important-path-concepts">Important path concepts</a></li>
+<li><a class="reference internal" href="#requirements-and-current-scope">Requirements and current scope</a></li>
+<li><a class="reference internal" href="#pai-dlc-worker-broadcast-quick-start">PAI-DLC Worker-broadcast quick start</a><ul>
+<li><a class="reference internal" href="#configure-the-dlc-job">1. Configure the DLC job</a></li>
+<li><a class="reference internal" href="#enter-one-startup-command">2. Enter one startup command</a></li>
+<li><a class="reference internal" href="#automatic-workflow">3. Automatic workflow</a></li>
+<li><a class="reference internal" href="#elastic-mode-and-strict-participation-mode">Elastic mode and strict participation mode</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#gpu-smoke-test-one-recipe-with-cpu-and-gpu-operators">GPU smoke test: one recipe with CPU and GPU operators</a><ul>
+<li><a class="reference internal" href="#single-node-four-gpu-command">Single-node, four-GPU command</a></li>
+<li><a class="reference internal" href="#multi-node-one-gpu-per-node-command">Multi-node, one-GPU-per-node command</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#important-use-an-existing-mapper-filter-recipe-and-your-own-jsonl">Important: use an existing Mapper/Filter recipe and your own JSONL</a><ul>
+<li><a class="reference internal" href="#recipe-compatibility-rules">Recipe compatibility rules</a></li>
+<li><a class="reference internal" href="#requirements-for-your-jsonl">Requirements for your JSONL</a></li>
+<li><a class="reference internal" href="#run-your-recipe-and-input-on-any-number-of-broadcast-started-dlc-workers">Run your recipe and input on any number of broadcast-started DLC Workers</a></li>
+<li><a class="reference internal" href="#choosing-the-shard-count">Choosing the shard count</a></li>
+<li><a class="reference internal" href="#when-the-recipe-or-input-changes">When the recipe or input changes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dlc-job-py-parameter-reference"><code class="docutils literal notranslate"><span class="pre">dlc_job.py</span></code> parameter reference</a><ul>
+<li><a class="reference internal" href="#dlc"><code class="docutils literal notranslate"><span class="pre">dlc</span></code></a></li>
+<li><a class="reference internal" href="#other-wrapper-subcommands">Other wrapper subcommands</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#complete-shard-job-py-parameter-reference">Complete <code class="docutils literal notranslate"><span class="pre">shard_job.py</span></code> parameter reference</a><ul>
+<li><a class="reference internal" href="#prepare"><code class="docutils literal notranslate"><span class="pre">prepare</span></code></a></li>
+<li><a class="reference internal" href="#worker"><code class="docutils literal notranslate"><span class="pre">worker</span></code></a></li>
+<li><a class="reference internal" href="#status"><code class="docutils literal notranslate"><span class="pre">status</span></code></a></li>
+<li><a class="reference internal" href="#retry"><code class="docutils literal notranslate"><span class="pre">retry</span></code></a></li>
+<li><a class="reference internal" href="#merge"><code class="docutils literal notranslate"><span class="pre">merge</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#generic-manual-or-scheduler-workflow">Generic manual or scheduler workflow</a><ul>
+<li><a class="reference internal" href="#id1">1. Prepare</a></li>
+<li><a class="reference internal" href="#start-a-worker-on-each-node">2. Start a Worker on each node</a></li>
+<li><a class="reference internal" href="#inspect-status">3. Inspect status</a></li>
+<li><a class="reference internal" href="#requeue-failures">4. Requeue failures</a></li>
+<li><a class="reference internal" href="#id2">5. Merge</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ray-execution-modes">Ray execution modes</a><ul>
+<li><a class="reference internal" href="#default-local-ray-per-attempt">Default: local Ray per attempt</a></li>
+<li><a class="reference internal" href="#optional-persistent-ray-head-on-each-node">Optional: persistent Ray head on each node</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#job-directory-layout">Job directory layout</a></li>
+<li><a class="reference internal" href="#failure-semantics">Failure semantics</a></li>
+<li><a class="reference internal" href="#exit-codes">Exit codes</a></li>
+<li><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li><a class="reference internal" href="#preparation-fails">Preparation fails</a></li>
+<li><a class="reference internal" href="#worker-or-ray-fails">Worker or Ray fails</a></li>
+<li><a class="reference internal" href="#dlc-keeps-waiting">DLC keeps waiting</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tests">Tests</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="../ego_hand_action_annotation/README.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">VLA Visualization Demo</span>
+        </a>
+        <a href="../process_video_on_ray/data/Note.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">Note for dataset path</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../../_static/documentation_options.js"></script>
+  <script src="../../_static/doctools.js"></script>
+  <script src="../../_static/sphinx_highlight.js"></script>
+  <script src="../../_static/clipboard.min.js"></script>
+  <script src="../../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../../_static/ask-ai-widget.js"></script>
+</body>
+</html>

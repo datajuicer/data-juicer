@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.image\_captioning\_from\_gpt4v\_mapper module
+=====================================================================
+
+.. automodule:: data_juicer.ops.mapper.image_captioning_from_gpt4v_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

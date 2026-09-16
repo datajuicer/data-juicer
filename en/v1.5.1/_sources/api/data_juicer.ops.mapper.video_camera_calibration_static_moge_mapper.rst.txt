@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_camera\_calibration\_static\_moge\_mapper module
+===============================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_camera_calibration_static_moge_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.imgdiff\_difference\_caption\_generator\_mapper module
+==============================================================================
+
+.. automodule:: data_juicer.ops.mapper.imgdiff_difference_caption_generator_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

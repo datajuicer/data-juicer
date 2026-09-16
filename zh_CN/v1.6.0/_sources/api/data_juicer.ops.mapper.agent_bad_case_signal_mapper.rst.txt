@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.agent\_bad\_case\_signal\_mapper module
+===============================================================
+
+.. automodule:: data_juicer.ops.mapper.agent_bad_case_signal_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

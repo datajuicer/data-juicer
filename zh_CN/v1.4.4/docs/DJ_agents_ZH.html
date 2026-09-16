@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DataJuicer 智能体 — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index_ZH.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../index_ZH.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">zh-CN</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.4.4/docs/DJ_agents.html" class="dropdown-item">English</a>
+            <a href="../../../zh_CN/v1.4.4/docs/DJ_agents_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="docs/DJ_agents_ZH"
+             data-current="v1.4.4">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.4.4</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../main/docs/DJ_agents_ZH.html" class="dropdown-item">main</a>
+            <a href="../../v1.5.5/docs/DJ_agents_ZH.html" class="dropdown-item">v1.5.5</a>
+            <a href="../../v1.5.4/docs/DJ_agents_ZH.html" class="dropdown-item">v1.5.4</a>
+            <a href="../../v1.5.3/docs/DJ_agents_ZH.html" class="dropdown-item">v1.5.3</a>
+            <a href="../../v1.5.2/docs/DJ_agents_ZH.html" class="dropdown-item">v1.5.2</a>
+            <a href="../../v1.5.1/docs/DJ_agents_ZH.html" class="dropdown-item">v1.5.1</a>
+            <a href="../../v1.5.0/docs/DJ_agents_ZH.html" class="dropdown-item">v1.5.0</a>
+            <a href="../../v1.4.6/docs/DJ_agents_ZH.html" class="dropdown-item">v1.4.6</a>
+            <a href="../../v1.4.5/docs/DJ_agents_ZH.html" class="dropdown-item">v1.4.5</a>
+            <a href="../../v1.4.4/docs/DJ_agents_ZH.html" class="dropdown-item active">v1.4.4</a>
+            <a href="../../v1.4.3/docs/DJ_agents_ZH.html" class="dropdown-item">v1.4.3</a>
+            <a href="../../v1.4.2/docs/DJ_agents_ZH.html" class="dropdown-item">v1.4.2</a>
+            <a href="../../v1.4.1/docs/DJ_agents_ZH.html" class="dropdown-item">v1.4.1</a>
+            <a href="../../v1.4.0/docs/DJ_agents_ZH.html" class="dropdown-item">v1.4.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index_ZH.html">首页</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../index_ZH.html">文档</a></p>
+          <p class="caption" role="heading"><span class="caption-text">教程</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/DJ-Cookbook_ZH.html">DJ-Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/Installation_ZH.html">安装</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/QuickStart_ZH.html">快速上手</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">帮助文档</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Operators.html">Operator Schemas 算子提要</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DatasetCfg_ZH.html">数据集配置指南</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BadDataExhibition_ZH.html">“坏”数据展览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_SORA_ZH.html">DJ-SORA</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">DataJuicer 智能体</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_service_ZH.html">DJ_服务化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide_ZH.html">开发者指南</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Distributed_ZH.html">Data-Juicer 分布式数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Sandbox_ZH.html">沙盒实验室</a></li>
+<li class="toctree-l1"><a class="reference internal" href="awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README_ZH.html">演示</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/auto_evaluation_helm/README_ZH.html">自动化评测：HELM 评测及可视化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/role_playing_system_prompt/README_ZH.html">为LLM构造角色扮演的system prompt</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">hub</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="hub/RecipeGallery_ZH.html">数据菜谱Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/AlpacaCOT_ZH.html">Alpaca-CoT 完善配置文件</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/AnnotationNotificationSystem.html">Notification System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/BLOOM_ZH.html">BLOOM 配置文件</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hub/RedPajama_ZH.html">Redpajama 配置文件</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">工具</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README_ZH.html">分布式模糊去重工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README_ZH.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README_ZH.html">GPT EVAL：使用 OpenAI API 评测大模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README_ZH.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README_ZH.html">格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README_ZH.html">多模态工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README_ZH.html">后微调工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README_ZH.html">视频生成测评工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README_ZH.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README_ZH.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README_ZH.html">预处理工具</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">第三方</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README_ZH.html">大语言模型生态</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README_ZH.html">第三方模型库</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="相关项目">
+          <p class="sidebar-projects-title">相关项目</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="datajuicer">
+<h1>DataJuicer 智能体<a class="headerlink" href="#datajuicer" title="链接到此标题。">¶</a></h1>
+<p>基于 <a class="reference external" href="https://github.com/agentscope-ai/agentscope">AgentScope</a> 和 <a class="reference external" href="https://github.com/datajuicer/data-juicer">Data-Juicer (DJ)</a> 构建的数据处理多智能体系统。该项目展示了如何利用大模型的自然语言理解能力，让非专家用户也能轻松使用 Data-Juicer 的强大数据处理能力。</p>
+<section id="datajuicer-agents">
+<h2>🎯 为什么需要 DataJuicer Agents？<a class="headerlink" href="#datajuicer-agents" title="链接到此标题。">¶</a></h2>
+<p>在大模型研发和应用的实际工作中，<strong>数据处理仍然是一个高成本、低效率、难复现的环节</strong>。很多团队花在数据分析、清洗、合成等阶段的时间，往往超过模型训练、需求对齐、应用功能开发。</p>
+<p>我们希望通过智能体技术，把开发者从繁琐的脚本拼凑中解放出来，让数据研发更接近&quot;所想即所得&quot;的体验。</p>
+<p><strong>数据直接定义了模型能力的上限</strong>。真正决定模型表现的，是数据的<strong>质量、多样性、有害性控制、任务匹配度</strong>等多个维度。优化数据，本质上就是在优化模型本身。而要高效地做这件事，我们需要一套系统化的工具。</p>
+<p>DataJuicer Agents 正是为支撑<strong>数据与模型协同优化</strong>这一新范式而设计的智能协作系统。</p>
+</section>
+<section id="id1">
+<h2>📋 目录<a class="headerlink" href="#id1" title="链接到此标题。">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#datajuicer-agents">🎯 为什么需要 DataJuicer Agents？</a></p></li>
+<li><p><a class="reference internal" href="#id1">📋 目录</a></p></li>
+<li><p><a class="reference internal" href="#id2">这个智能体做了什么？</a></p></li>
+<li><p><a class="reference internal" href="#id3">架构</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id4">多智能体路由架构</a></p></li>
+<li><p><a class="reference internal" href="#id5">两种集成方式</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id6">快速开始</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id7">系统要求</a></p></li>
+<li><p><a class="reference internal" href="#id8">安装</a></p></li>
+<li><p><a class="reference internal" href="#id9">配置</a></p></li>
+<li><p><a class="reference internal" href="#id10">使用</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id11">智能体介绍</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id12">数据处理智能体</a></p></li>
+<li><p><a class="reference internal" href="#id13">代码开发智能体</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id14">高级功能</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id15">算子检索</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id16">检索模式</a></p></li>
+<li><p><a class="reference internal" href="#id17">使用</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#mcp">MCP 智能体</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id18">MCP 服务器类型</a></p></li>
+<li><p><a class="reference internal" href="#id19">配置</a></p></li>
+<li><p><a class="reference internal" href="#id20">使用方法</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id21">定制化与扩展</a></p>
+<ul>
+<li><p><a class="reference internal" href="#prompts">自定义 Prompts</a></p></li>
+<li><p><a class="reference internal" href="#id22">更换模型</a></p></li>
+<li><p><a class="reference internal" href="#id23">扩展新智能体</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#roadmap">Roadmap</a></p>
+<ul>
+<li><p><a class="reference internal" href="#data-juicer">Data-Juicer 问答智能体 (演示可用)</a></p></li>
+<li><p><a class="reference internal" href="#id24">交互式数据分析与可视化智能体 (开发中)</a></p></li>
+<li><p><a class="reference internal" href="#id25">其它方向</a></p></li>
+<li><p><a class="reference internal" href="#id26">常见问题</a></p></li>
+<li><p><a class="reference internal" href="#id27">优化建议</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id28">相关资源</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h2>这个智能体做了什么？<a class="headerlink" href="#id2" title="链接到此标题。">¶</a></h2>
+<p>Data-Juicer (DJ) 是一个<strong>覆盖大模型数据全生命周期的开源处理系统</strong>，提供四个核心能力：</p>
+<ul class="simple">
+<li><p><strong>全栈算子库（DJ-OP）</strong>：近 200 个高性能、可复用的多模态算子，覆盖文本、图像、音视频</p></li>
+<li><p><strong>高性能引擎（DJ-Core）</strong>：基于 Ray 构建，支持 TB 级数据、万核分布式计算，具备算子融合与多粒度容错</p></li>
+<li><p><strong>协同开发平台（DJ-Sandbox）</strong>：引入 A/B Test 与 Scaling Law 思想，用小规模实验驱动大规模优化</p></li>
+<li><p><strong>自然语言交互层（DJ-Agents）</strong>：通过 Agent 技术，让开发者用对话方式构建数据流水线</p></li>
+</ul>
+<p>DataJuicer Agents 不是一个简单的问答机器人，而是一个<strong>数据处理的智能协作者</strong>。具体来说，它能：</p>
+<ul class="simple">
+<li><p><strong>智能查询</strong>：根据自然语言描述，自动匹配最合适的算子（从近200个算子中精准定位）</p></li>
+<li><p><strong>自动化流程</strong>：描述数据处理需求，自动生成 Data-Juicer YAML 配置并执行</p></li>
+<li><p><strong>自定义扩展</strong>：帮助用户开发自定义算子，无缝集成到本地环境</p></li>
+</ul>
+<p><strong>我们的目标是：让开发者专注于&quot;做什么&quot;，而不是&quot;怎么做&quot;</strong>。</p>
+</section>
+<section id="id3">
+<h2>架构<a class="headerlink" href="#id3" title="链接到此标题。">¶</a></h2>
+<section id="id4">
+<h3>多智能体路由架构<a class="headerlink" href="#id4" title="链接到此标题。">¶</a></h3>
+<p>DataJuicer Agents 采用<strong>多智能体路由架构</strong>，当用户输入一个自然语言请求，首先由 <strong>Router Agent</strong> 进行任务分诊，判断这是标准的数据处理任务，还是需要开发新能力的定制需求。</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>用户查询
+  ↓
+Router Agent (筛选&amp;决策) ← query_dj_operators （算子检索）
+  │
+  ├─ 找到高匹配算子
+  │  ↓
+  │  DJ Agent (标准数据处理任务)
+  |  ├── 预览数据样本（确认字段名和数据格式）
+  │  ├── get_ops_signature（获取完整参数签名）
+  │  ├── 生成 YAML 配置
+  │  └── execute_safe_command (执行 dj-process, dj-analyze)
+  │
+  └─ 未找到高匹配算子
+     ↓
+     Dev Agent (自定义算子开发集成)
+     ├── get_basic_files (获取基类和注册机制)
+     ├── get_operator_example (获取相似算子示例)
+     └── 生成符合规范的算子代码
+     └── 本地集成（注册到用户指定路径）
+</pre></div>
+</div>
+</section>
+<section id="id5">
+<h3>两种集成方式<a class="headerlink" href="#id5" title="链接到此标题。">¶</a></h3>
+<p>Agent 与 DataJuicer 的集成有两种方式，以适应不同使用场景：</p>
+<ul class="simple">
+<li><p><strong>绑定工具模式</strong>：Agent 调用 DataJuicer 的命令行工具（如 <code class="docutils literal notranslate"><span class="pre">dj-analyze</span></code>、<code class="docutils literal notranslate"><span class="pre">dj-process</span></code>），兼容现有用户习惯，迁移成本低</p></li>
+<li><p><strong>绑定 MCP 模式</strong>：Agent 直接调用 DataJuicer 的 MCP（Model Context Protocol）接口，无需生成中间 YAML 文件，直接运行算子或数据菜谱，性能更优</p></li>
+</ul>
+<p>这两种方式由 Agent 根据任务复杂度和性能需求自动选择，确保灵活性与效率兼得。</p>
+</section>
+</section>
+<section id="id6">
+<h2>快速开始<a class="headerlink" href="#id6" title="链接到此标题。">¶</a></h2>
+<section id="id7">
+<h3>系统要求<a class="headerlink" href="#id7" title="链接到此标题。">¶</a></h3>
+<ul class="simple">
+<li><p>Python 3.10+</p></li>
+<li><p>有效的 DashScope API 密钥</p></li>
+<li><p>可选：Data-Juicer 源码（用于自定义算子开发）</p></li>
+</ul>
+</section>
+<section id="id8">
+<h3>安装<a class="headerlink" href="#id8" title="链接到此标题。">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 安装 uv（如果还没有）</span>
+curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+
+<span class="c1"># 使用 uv 安装</span>
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<blockquote>
+<div><p><strong>自定义算子开发提示</strong>：</p>
+<p>为了获得更好的自定义算子开发体验，您还应该从源码下载并安装 Data-Juicer：</p>
+<ol class="arabic">
+<li><p>克隆代码仓库：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/datajuicer/data-juicer.git
+</pre></div>
+</div>
+</li>
+<li><p>以可编辑模式安装：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>/path/to/data-juicer
+</pre></div>
+</div>
+<p>或</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>/path/to/data-juicer
+</pre></div>
+</div>
+</li>
+</ol>
+<p>可编辑模式安装对于确保 Agent 可以实时访问算子更新非常重要。</p>
+</div></blockquote>
+</section>
+<section id="id9">
+<h3>配置<a class="headerlink" href="#id9" title="链接到此标题。">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>设置 API 密钥</strong></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">DASHSCOPE_API_KEY</span><span class="o">=</span><span class="s2">"your-dashscope-key"</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>可选：配置 Data-Juicer 路径（用于自定义算子开发）</strong></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">DATA_JUICER_PATH</span><span class="o">=</span><span class="s2">"your-data-juicer-path"</span>
+</pre></div>
+</div>
+<blockquote>
+<div><p><strong>提示</strong>：也可以在运行时通过对话设置，例如：</p>
+<ul class="simple">
+<li><p>&quot;帮我设置 DataJuicer 路径：/path/to/data-juicer&quot;</p></li>
+<li><p>&quot;帮我更新 DataJuicer 路径：/path/to/data-juicer&quot;</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="id10">
+<h3>使用<a class="headerlink" href="#id10" title="链接到此标题。">¶</a></h3>
+<p>通过 <code class="docutils literal notranslate"><span class="pre">-u</span></code> 或 <code class="docutils literal notranslate"><span class="pre">--use-studio</span></code> 参数选择运行方式：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 使用 AgentScope Studio 的交互式界面（请先安装并启动 AgentScope Studio）</span>
+dj-agents<span class="w"> </span>--use-studio
+
+<span class="c1"># 或直接使用命令行模式（默认）</span>
+dj-agents
+</pre></div>
+</div>
+<p>注：</p>
+<p>AgentScope Studio 通过 npm 安装：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>@agentscope/studio
+</pre></div>
+</div>
+<p>使用以下命令启动 Studio：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>as_studio
+</pre></div>
+</div>
+</section>
+</section>
+<section id="id11">
+<h2>智能体介绍<a class="headerlink" href="#id11" title="链接到此标题。">¶</a></h2>
+<section id="id12">
+<h3>数据处理智能体<a class="headerlink" href="#id12" title="链接到此标题。">¶</a></h3>
+<p>负责与 Data-Juicer 交互，执行实际的数据处理任务。支持从自然语言描述自动推荐算子、生成配置并执行。</p>
+<p><strong>工作流程：</strong></p>
+<p>当用户说：&quot;我的数据保存在 xxx，请清理其中文本长度小于5、图片大小小于10MB的条目&quot;，Agent 并不会盲目执行，而是按步骤推进：</p>
+<ol class="arabic simple">
+<li><p><strong>数据预览</strong>：预览前 5–10 个数据样本，确认字段名和数据格式——这是避免配置错误的关键一步</p></li>
+<li><p><strong>获取签名</strong>：调用 <code class="docutils literal notranslate"><span class="pre">get_ops_signature</span></code> 工具，获取算子参数签名及简单描述</p></li>
+<li><p><strong>参数决策</strong>：LLM 自主决定全局参数（如 dataset_path、export_path）和算子具体配置</p></li>
+<li><p><strong>配置生成</strong>：生成标准的 YAML 配置文件</p></li>
+<li><p><strong>执行处理</strong>：调用 <code class="docutils literal notranslate"><span class="pre">dj-process</span></code> 命令执行实际处理</p></li>
+</ol>
+<p>整个过程既自动化，又具备可解释性。用户可以在任何环节介入干预，确保结果符合预期。</p>
+<p><strong>典型用途：</strong></p>
+<ul class="simple">
+<li><p><strong>数据清洗</strong>：去重、移除低质量样本、格式标准化</p></li>
+<li><p><strong>多模态处理</strong>：同时处理文本、图像、视频数据</p></li>
+<li><p><strong>批量转换</strong>：格式转换、数据增强、特征提取</p></li>
+</ul>
+<details>
+<summary>查看完整示例日志（from AgentScope Studio）</summary>
+<img src="imgs/dj_agent_image.png" width="100%">
+</details>
+<p><strong>示例执行流程：</strong></p>
+<p>用户输入：&quot;The data in ./data/demo-dataset-images.jsonl, remove samples with text field length less than 5 and image size less than 100Kb...&quot;</p>
+<p>路由：调用 <code class="docutils literal notranslate"><span class="pre">query_dj_operators</span></code>，精准返回两个算子 <code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code> 和 <code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code></p>
+<p>数据处理 Agent 执行步骤：</p>
+<ol class="arabic simple">
+<li><p>调用 <code class="docutils literal notranslate"><span class="pre">get_ops_signature</span></code>，获取 <code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code> 和 <code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code> 的参数签名</p></li>
+<li><p>用 <code class="docutils literal notranslate"><span class="pre">view_text_file</span></code> 工具预览原始数据，确认字段确实是 'text' 和 'image'</p></li>
+<li><p>生成 YAML 配置，并通过 <code class="docutils literal notranslate"><span class="pre">write_text_file</span></code> 保存到临时路径</p></li>
+<li><p>调用 <code class="docutils literal notranslate"><span class="pre">execute_safe_command</span></code> 执行 <code class="docutils literal notranslate"><span class="pre">dj-process</span></code>，返回结果路径</p></li>
+</ol>
+<p>整个过程没有人工干预，但每一步都可追溯、可验证。<strong>这正是我们追求的&quot;自动化但不失控&quot;的数据处理体验</strong>。</p>
+</section>
+<section id="id13">
+<h3>代码开发智能体<a class="headerlink" href="#id13" title="链接到此标题。">¶</a></h3>
+<p>当内置算子无法满足需求时，传统做法是：查文档、抄代码、调参数、写测试——整个过程可能耗时数小时。</p>
+<p>Operator Development Agent 的目标，是将这个过程压缩到几分钟，并保证代码质量。默认使用 <code class="docutils literal notranslate"><span class="pre">qwen3-coder-480b-a35b-instruct</span></code> 模型驱动。</p>
+<p><strong>工作流程：</strong></p>
+<p>当用户提出：&quot;帮我创建一个将单词倒序排列的算子，并生成单元测试文件&quot;，Router 会将其路由至 DJ Dev Agent。</p>
+<p>该 Agent 的执行流程分为四步：</p>
+<ol class="arabic simple">
+<li><p><strong>获取参考算子</strong>：查找功能相似的现有算子作为参考</p></li>
+<li><p><strong>获取模板</strong>：拉取基类文件和典型示例，确保代码风格一致</p></li>
+<li><p><strong>生成代码</strong>：基于用户提供的函数原型，生成符合 DataJuicer 规范的算子类</p></li>
+<li><p><strong>本地集成</strong>：将新算子注册到用户指定的本地代码库路径</p></li>
+</ol>
+<p>整个过程将模糊需求转化为可运行、可测试、可复用的模块。</p>
+<p><strong>生成内容：</strong></p>
+<ul class="simple">
+<li><p><strong>实现算子</strong>：创建算子类文件，继承 Mapper/Filter 基类，使用 <code class="docutils literal notranslate"><span class="pre">&#64;OPERATORS.register_module</span></code> 装饰器注册</p></li>
+<li><p><strong>更新注册</strong>：修改 <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code>，将新类加入 <code class="docutils literal notranslate"><span class="pre">__all__</span></code> 列表</p></li>
+<li><p><strong>编写测试</strong>：生成覆盖多种场景的单元测试，包括边缘 case，确保鲁棒性</p></li>
+</ul>
+<p><strong>典型用途：</strong></p>
+<ul class="simple">
+<li><p><strong>开发领域特定的过滤或转换算子</strong></p></li>
+<li><p><strong>集成自有的数据处理逻辑</strong></p></li>
+<li><p><strong>为特定场景扩展 Data-Juicer 能力</strong></p></li>
+</ul>
+<details>
+<summary>查看完整示例日志（from AgentScope Studio）</summary>
+<img src="imgs/dj_dev_agent_image.png" width="100%">
+</details>
+</section>
+</section>
+<section id="id14">
+<h2>高级功能<a class="headerlink" href="#id14" title="链接到此标题。">¶</a></h2>
+<section id="id15">
+<h3>算子检索<a class="headerlink" href="#id15" title="链接到此标题。">¶</a></h3>
+<p>算子检索是 Agent 能否精准工作的核心。DJ 智能体实现了一个智能算子检索工具，通过独立的 LLM 查询环节从 Data-Juicer 的近200个算子中快速找到最相关的算子。这是数据处理智能体和代码开发智能体能够准确运行的关键组件。</p>
+<p>我们没有采用单一方案，而是提供了三种模式，通过 <code class="docutils literal notranslate"><span class="pre">-r</span></code> 参数灵活选择：</p>
+<section id="id16">
+<h4>检索模式<a class="headerlink" href="#id16" title="链接到此标题。">¶</a></h4>
+<p><strong>LLM 检索 (默认)</strong></p>
+<ul class="simple">
+<li><p>使用 Qwen-Turbo 从语义层面理解用户需求，适合复杂、模糊的描述</p></li>
+<li><p>提供详细的匹配理由和相关性评分</p></li>
+<li><p>Token 消耗较高，但匹配精度最高</p></li>
+</ul>
+<p><strong>向量检索 (vector)</strong></p>
+<ul class="simple">
+<li><p>基于 DashScope 文本嵌入 + FAISS 相似度搜索</p></li>
+<li><p>速度快，适合批量任务或快速原型</p></li>
+<li><p>无需调用 LLM，成本更低</p></li>
+</ul>
+<p><strong>自动模式 (auto)</strong></p>
+<ul class="simple">
+<li><p>优先尝试 LLM 检索，失败时自动降级到向量检索</p></li>
+</ul>
+</section>
+<section id="id17">
+<h4>使用<a class="headerlink" href="#id17" title="链接到此标题。">¶</a></h4>
+<p>通过 <code class="docutils literal notranslate"><span class="pre">-r</span></code> 或 <code class="docutils literal notranslate"><span class="pre">--retrieval-mode</span></code> 参数指定检索模式：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dj-agents<span class="w"> </span>--retrieval-mode<span class="w"> </span>vector
+</pre></div>
+</div>
+<p>更多参数说明见 <code class="docutils literal notranslate"><span class="pre">dj-agents</span> <span class="pre">--help</span></code></p>
+</section>
+</section>
+<section id="mcp">
+<h3>MCP 智能体<a class="headerlink" href="#mcp" title="链接到此标题。">¶</a></h3>
+<p>除了命令行，DataJuicer 还原生支持 MCP 服务，这是提升性能的重要手段。MCP 服务可直接通过原生接口获取算子信息、执行数据处理，易于迁移和集成，无需单独的 LLM 查询和命令行调用。</p>
+<section id="id18">
+<h4>MCP 服务器类型<a class="headerlink" href="#id18" title="链接到此标题。">¶</a></h4>
+<p>Data-Juicer 提供两类 MCP：</p>
+<p><strong>Recipe-Flow MCP（数据菜谱）</strong></p>
+<ul class="simple">
+<li><p>提供 <code class="docutils literal notranslate"><span class="pre">get_data_processing_ops</span></code> 和 <code class="docutils literal notranslate"><span class="pre">run_data_recipe</span></code> 两个工具</p></li>
+<li><p>通过算子类型、适用模态等标签进行检索，<strong>无需调用 LLM 或向量模型</strong></p></li>
+<li><p>适合标准化、高频场景，性能更优</p></li>
+</ul>
+<p><strong>Granular-Operators MCP（细粒度算子）</strong></p>
+<ul class="simple">
+<li><p>将每个内置算子包装为独立工具，调用即运行</p></li>
+<li><p>默认返回所有算子，但可通过环境变量控制可见范围</p></li>
+<li><p>适合精细化控制，构建完全定制化的数据处理管道</p></li>
+</ul>
+<p>这意味着，在某些场景下，Agent 的调用路径可以比手动写 YAML <em>更短、更快、更直接</em>。</p>
+<p>详细信息请参考：<a class="reference external" href="https://datajuicer.github.io/data-juicer/zh_CN/main/docs/DJ_service_ZH.html#mcp">Data-Juicer MCP 服务文档</a></p>
+<blockquote>
+<div><p><strong>注意</strong>：Data-Juicer MCP 服务器目前处于早期开发阶段，功能和工具可能会随着持续开发而变化。</p>
+</div></blockquote>
+</section>
+<section id="id19">
+<h4>配置<a class="headerlink" href="#id19" title="链接到此标题。">¶</a></h4>
+<p>在 <code class="docutils literal notranslate"><span class="pre">configs/mcp_config.json</span></code> 中配置服务地址：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"mcpServers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"DJ_recipe_flow"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://127.0.0.1:8080/sse"</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="id20">
+<h4>使用方法<a class="headerlink" href="#id20" title="链接到此标题。">¶</a></h4>
+<p>启用 MCP 智能体替代数据处理智能体：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 启用 MCP 智能体和开发智能体</span>
+dj-agents<span class="w"> </span>--agents<span class="w"> </span>dj_mcp<span class="w"> </span>dj_dev
+
+<span class="c1"># 或使用简写</span>
+dj-agents<span class="w"> </span>-a<span class="w"> </span>dj_mcp<span class="w"> </span>dj_dev
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="id21">
+<h2>定制化与扩展<a class="headerlink" href="#id21" title="链接到此标题。">¶</a></h2>
+<section id="prompts">
+<h3>自定义 Prompts<a class="headerlink" href="#prompts" title="链接到此标题。">¶</a></h3>
+<p>所有 Agent 的系统提示词都定义在 <code class="docutils literal notranslate"><span class="pre">prompts.py</span></code> 文件中。</p>
+</section>
+<section id="id22">
+<h3>更换模型<a class="headerlink" href="#id22" title="链接到此标题。">¶</a></h3>
+<p>你可以在 <code class="docutils literal notranslate"><span class="pre">main.py</span></code> 中为不同 Agent 指定不同模型。例如：</p>
+<ul class="simple">
+<li><p>主 Agent 使用 <code class="docutils literal notranslate"><span class="pre">qwen-max</span></code> 处理复杂推理</p></li>
+<li><p>开发 Agent 使用 <code class="docutils literal notranslate"><span class="pre">qwen3-coder-480b-a35b-instruct</span></code> 优化代码生成质量</p></li>
+</ul>
+<p>同时，Formatter 和 Memory 也可替换。这种设计让系统既能开箱即用，又能适配企业级需求。</p>
+</section>
+<section id="id23">
+<h3>扩展新智能体<a class="headerlink" href="#id23" title="链接到此标题。">¶</a></h3>
+<p>DataJuicer Agents 是一个开放框架。核心在于 <code class="docutils literal notranslate"><span class="pre">agents2toolkit</span></code> 函数——它能将任意 Agent 自动包装为 Router 可调用的工具。</p>
+<p>只需将你的 Agent 实例加入 <code class="docutils literal notranslate"><span class="pre">agents</span></code> 列表，Router 就会在运行时动态生成对应工具，并根据任务语义自动路由。</p>
+<p>这意味着，你可以基于此框架，快速构建领域专属的数据智能体。</p>
+<p><em>扩展性，是我们设计的重要原则</em>。</p>
+</section>
+</section>
+<section id="roadmap">
+<h2>Roadmap<a class="headerlink" href="#roadmap" title="链接到此标题。">¶</a></h2>
+<p>Data-Juicer 智能体生态系统正在快速扩展，以下是当前正在开发或计划中的新智能体：</p>
+<section id="data-juicer">
+<h3>Data-Juicer 问答智能体 (演示可用)<a class="headerlink" href="#data-juicer" title="链接到此标题。">¶</a></h3>
+<p>为用户提供关于 Data-Juicer 算子、概念和最佳实践的详细解答。</p>
+<video controls width="100%" height="auto" playsinline>
+    <source src="https://github.com/user-attachments/assets/a8392691-81cf-4a25-94da-967dcf92c685" type="video/mp4">
+    您的浏览器不支持视频标签。
+</video>
+<p>问答智能体目前可在<a class="reference external" href="https://github.com/datajuicer/data-juicer-agents/blob/main/interactive_recipe/qa-copilot">此处</a>查看并试用。</p>
+</section>
+<section id="id24">
+<h3>交互式数据分析与可视化智能体 (开发中)<a class="headerlink" href="#id24" title="链接到此标题。">¶</a></h3>
+<p>我们正在构建更高级的<strong>人机协同数据优化工作流</strong>，引入人类反馈：</p>
+<ul class="simple">
+<li><p>用户可查看统计、归因分析以及可视化结果</p></li>
+<li><p>动态编辑菜谱，批准或拒绝建议</p></li>
+<li><p>底层由 <code class="docutils literal notranslate"><span class="pre">dj.analyzer</span></code>（数据分析）、<code class="docutils literal notranslate"><span class="pre">dj.attributor</span></code>（效果归因）、<code class="docutils literal notranslate"><span class="pre">dj.sandbox</span></code>（实验管理）共同支撑</p></li>
+<li><p>支持基于验证任务的闭环优化</p></li>
+</ul>
+<p>该交互式菜谱目前可在<a class="reference external" href="https://github.com/datajuicer/data-juicer-agents/blob/main/interactive_recipe/README_ZH.md">此处</a>查看并试用。</p>
+</section>
+<section id="id25">
+<h3>其它方向<a class="headerlink" href="#id25" title="链接到此标题。">¶</a></h3>
+<ul class="simple">
+<li><p><strong>数据处理智能体 Benchmarking</strong>：量化不同 Agent 在准确性、效率、鲁棒性上的表现</p></li>
+<li><p><strong>数据&quot;体检报告&quot; &amp; 数据智能推荐</strong>：自动诊断数据问题并推荐优化方案</p></li>
+<li><p><strong>Router Agent 增强</strong>：更无感丝滑，譬如当缺乏算子时→代码开发Agent→数据处理agent</p></li>
+<li><p><strong>MCP 进一步优化</strong>：内嵌 LLM，用户可直接使用 MCP 链接自己本地环境如IDE，获得目前数据处理 agent 类似的体验</p></li>
+<li><p><strong>面向知识库、RAG 的数据智能体</strong></p></li>
+<li><p><strong>更好的处理方案自动生成</strong>：更少 token 用量，更高效，更优质处理结果</p></li>
+<li><p><strong>数据工作流模版复用及自动调优</strong>：基于 DataJuicer 社区数据菜谱</p></li>
+<li><p>......</p></li>
+</ul>
+</section>
+<section id="id26">
+<h3>常见问题<a class="headerlink" href="#id26" title="链接到此标题。">¶</a></h3>
+<p><strong>Q: 如何获取 DashScope API 密钥？</strong>
+A: 访问 <a class="reference external" href="https://dashscope.aliyun.com/">DashScope 官网</a> 注册账号并申请 API 密钥。</p>
+<p><strong>Q: 为什么算子检索失败？</strong>
+A: 请检查网络连接和 API 密钥配置，或尝试切换到向量检索模式。</p>
+<p><strong>Q: 如何调试自定义算子？</strong>
+A: 确保 Data-Juicer 路径配置正确，并查看代码开发智能体提供的示例代码。</p>
+<p><strong>Q: MCP 服务连接失败怎么办？</strong>
+A: 检查 MCP 服务器是否正在运行，确认配置文件中的 URL 地址正确。</p>
+<p><strong>Q: 报错requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: <a class="reference external" href="http://localhost:3000/trpc/pushMessage">http://localhost:3000/trpc/pushMessage</a></strong>
+A: 请检查是否在agentscope studio中上传了非文本信息（例如数据文件），agent通过文件路径等进行数据处理，暂不接受直接上传文件。</p>
+</section>
+<section id="id27">
+<h3>优化建议<a class="headerlink" href="#id27" title="链接到此标题。">¶</a></h3>
+<ul class="simple">
+<li><p>对于大规模数据处理，建议使用DataJuicer提供的分布式模式</p></li>
+<li><p>合理设置批处理大小以平衡内存使用和处理速度</p></li>
+<li><p>更多进阶数据处理（合成、Data-Model Co-Development）等特性能力请参考DataJuicer<a class="reference external" href="https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH">文档页</a></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id28">
+<h2>相关资源<a class="headerlink" href="#id28" title="链接到此标题。">¶</a></h2>
+<ul class="simple">
+<li><p>DataJuicer 已经被用于大量通义和阿里云内外部用户，背后也衍生了多项研究。所有代码持续维护增强中。</p></li>
+</ul>
+<p><em>欢迎访问 GitHub，Star、Fork、提 Issue，以及加入社区共建！</em></p>
+<ul class="simple">
+<li><p><strong>项目地址</strong>：</p>
+<ul>
+<li><p><a class="reference external" href="https://github.com/agentscope-ai/agentscope">AgentScope</a></p></li>
+<li><p><a class="reference external" href="https://github.com/datajuicer/data-juicer">DataJuicer</a></p></li>
+</ul>
+</li>
+</ul>
+<p><strong>贡献指南</strong>：欢迎提交 Issue 和 Pull Request 来改进 agentscope、DataJuicer Agents 及 DataJuicer。如果您在使用过程中遇到问题或有功能建议，请随时联系我们。</p>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">DataJuicer 智能体</a><ul>
+<li><a class="reference internal" href="#datajuicer-agents">🎯 为什么需要 DataJuicer Agents？</a></li>
+<li><a class="reference internal" href="#id1">📋 目录</a></li>
+<li><a class="reference internal" href="#id2">这个智能体做了什么？</a></li>
+<li><a class="reference internal" href="#id3">架构</a><ul>
+<li><a class="reference internal" href="#id4">多智能体路由架构</a></li>
+<li><a class="reference internal" href="#id5">两种集成方式</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id6">快速开始</a><ul>
+<li><a class="reference internal" href="#id7">系统要求</a></li>
+<li><a class="reference internal" href="#id8">安装</a></li>
+<li><a class="reference internal" href="#id9">配置</a></li>
+<li><a class="reference internal" href="#id10">使用</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id11">智能体介绍</a><ul>
+<li><a class="reference internal" href="#id12">数据处理智能体</a></li>
+<li><a class="reference internal" href="#id13">代码开发智能体</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id14">高级功能</a><ul>
+<li><a class="reference internal" href="#id15">算子检索</a><ul>
+<li><a class="reference internal" href="#id16">检索模式</a></li>
+<li><a class="reference internal" href="#id17">使用</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mcp">MCP 智能体</a><ul>
+<li><a class="reference internal" href="#id18">MCP 服务器类型</a></li>
+<li><a class="reference internal" href="#id19">配置</a></li>
+<li><a class="reference internal" href="#id20">使用方法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id21">定制化与扩展</a><ul>
+<li><a class="reference internal" href="#prompts">自定义 Prompts</a></li>
+<li><a class="reference internal" href="#id22">更换模型</a></li>
+<li><a class="reference internal" href="#id23">扩展新智能体</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#roadmap">Roadmap</a><ul>
+<li><a class="reference internal" href="#data-juicer">Data-Juicer 问答智能体 (演示可用)</a></li>
+<li><a class="reference internal" href="#id24">交互式数据分析与可视化智能体 (开发中)</a></li>
+<li><a class="reference internal" href="#id25">其它方向</a></li>
+<li><a class="reference internal" href="#id26">常见问题</a></li>
+<li><a class="reference internal" href="#id27">优化建议</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id28">相关资源</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="DJ_SORA_ZH.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">DJ-SORA</span>
+        </a>
+        <a href="DJ_service_ZH.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">DJ_服务化</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="../_static/translations.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

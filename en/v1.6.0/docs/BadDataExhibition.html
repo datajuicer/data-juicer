@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>“Bad” Data Exhibition — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/docs/BadDataExhibition.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.6.0/docs/BadDataExhibition_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="docs/BadDataExhibition"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/docs/BadDataExhibition.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../docs_index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/QuickStart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ProcessData.html">Processing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AnalyzeData.html">Data Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Playground.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DatasetCfg.html">Dataset Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Export.html">Dataset Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cache.html">Cache Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tracing.html">Data Tracing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Lookup Materials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="GlobalConfig.html">Global Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Distributed Processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PartitionAndCheckpoint.html">Partitioned Processing with Checkpointing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="JobManagement.html">Job Management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extension &amp; Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="OperatorPlugins.html">Operator Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_service.html">DJ Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Juicer.html">Juicer: Natural-Language Data Refinement Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide.html">How-to Guide for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Resources</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">“Bad” Data Exhibition</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">operators</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/elastic_sharding/README.html">Elastic Multi-Node Sharding on Shared Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/video_humanvbench_simple/README.html">HumanVBench Operators Demo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="bad-data-exhibition">
+<h1>“Bad” Data Exhibition<a class="headerlink" href="#bad-data-exhibition" title="Link to this heading">¶</a></h1>
+<p>This document is a exhibition that shows those so-called “bad” data from diverse datasets during we use our Data-Juicer
+to process them. The motivations of this exhibition include:</p>
+<ul class="simple">
+<li><p>It can help users to better understand how each OP in Data-juicer finds these “bad” data
+to improve the “quality” of datasets.</p></li>
+<li><p>There might be non-negligible differences between diverse datasets. So
+some OPs work well on some datasets but might be useless on others.</p></li>
+<li><p>No matter how high-quality people consider a dataset to be
+(e.g. Wikipedia, Books, …), there are always some “bad” data hidden in it.</p></li>
+</ul>
+<section id="table-of-contents">
+<h2>Table of Contents<a class="headerlink" href="#table-of-contents" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#involved-ops">Involved OPs</a></p></li>
+<li><p><a class="reference internal" href="#multimodal-datasets">Multimodal Datasets</a></p>
+<ul>
+<li><p><a class="reference internal" href="#lcs-558k">LCS-558K</a></p></li>
+<li><p><a class="reference internal" href="#mmc4">MMC4</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#text-only-datasets">Text-only Datasets</a></p>
+<ul>
+<li><p><a class="reference internal" href="#wikipedia">Wikipedia</a></p></li>
+<li><p><a class="reference internal" href="#books">Books</a></p></li>
+<li><p><a class="reference internal" href="#stack-exchange">Stack Exchange</a></p></li>
+<li><p><a class="reference internal" href="#arxiv">ArXiv</a></p></li>
+<li><p><a class="reference internal" href="#github-code">Github Code</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="involved-ops">
+<h2>Involved OPs<a class="headerlink" href="#involved-ops" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>OP</p></th>
+<th class="head"><p>Datasets</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alphanumeric_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a>, <a class="reference internal" href="#wikipedia">Wikipedia</a>, <a class="reference internal" href="#books">Books</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">average_line_length_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#github-code">Github Code</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">character_repetition_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a>, <a class="reference internal" href="#wikipedia">Wikipedia</a>, <a class="reference internal" href="#books">Books</a>, <a class="reference internal" href="#stack-exchange">Stack Exchange</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">flagged_words_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">image_aspect_ratio_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a>, <a class="reference internal" href="#mmc4">MMC4</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">image_deduplicator</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">image_shape_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a>, <a class="reference internal" href="#mmc4">MMC4</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">image_text_matching_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a>, <a class="reference internal" href="#mmc4">MMC4</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">language_id_score_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#books">Books</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">perplexity_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#llava-15-pretrain-dataset"><span class="xref myst">LCS-558K</span></a>, <a class="reference internal" href="#books">Books</a>, <a class="reference internal" href="#arxiv">ArXiv</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">special_characters_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#wikipedia">Wikipedia</a>, <a class="reference internal" href="#books">Books</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#wikipedia">Wikipedia</a>, <a class="reference internal" href="#arxiv">ArXiv</a>, <a class="reference internal" href="#github-code">Github Code</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">words_num_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#stack-exchange">Stack Exchange</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">word_repetition_filter</span></code></p></td>
+<td><p><a class="reference internal" href="#mmc4">MMC4</a>, <a class="reference internal" href="#wikipedia">Wikipedia</a></p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Everyone from community is welcome to continue to add examples to this table.</p></li>
+</ul>
+</section>
+<section id="multimodal-datasets">
+<h2>Multimodal Datasets<a class="headerlink" href="#multimodal-datasets" title="Link to this heading">¶</a></h2>
+<section id="lcs-558k">
+<h3>LCS-558K<a class="headerlink" href="#lcs-558k" title="Link to this heading">¶</a></h3>
+<p>The pretraining dataset of LLaVA-1.5</p>
+<details>
+<summary> LCS-558K </summary>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_aspect_ratio_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>004436823</p></td>
+</tr>
+<tr class="row-even"><td><p>aspect_ratio</p></td>
+<td><p>36.2857142857</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>the timber in honey amber</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i1/O1CN01YcwVSa1KBIUm0iXD7_!!6000000001125-0-tps-12192-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Unaligned image and caption contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_shape_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>005568917</p></td>
+</tr>
+<tr class="row-even"><td><p>image_height</p></td>
+<td><p>5177</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>the us coast guard’s top five most popular aircrafts infographic</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i3/O1CN01zQcimz214uRo7yslL_!!6000000006932-0-tps-336-5177.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>The image with large height/width will lose too much information after being processed as model input</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_shape_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>003301613</p></td>
+</tr>
+<tr class="row-even"><td><p>image_width</p></td>
+<td><p>3469</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>color the circle by number pages for children to learn colors</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i1/O1CN01JYEc451JBT1ahgncM_!!6000000000990-0-tps-3469-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>The image with large height/width will lose too much information after being processed as model input</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>002642925</p></td>
+</tr>
+<tr class="row-even"><td><p>image_size</p></td>
+<td><p>2,391 bytes</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>pink gold opal and diamond ring</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i2/O1CN0134Pand1cXQiUz36dz_!!6000000003610-0-tps-336-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Images with too small size might be invalid placeholders without meaningful contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_text_matching_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>001365521</p></td>
+</tr>
+<tr class="row-even"><td><p>image_text_matching_score</p></td>
+<td><p>0.0008432278991676867</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>a black bmw m140i sports hatch from a dealer’s garage</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i3/O1CN01z5RI4q1k0T8kQzK5b_!!6000000004621-0-tps-595-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Images with too small image-text matching score might be invalid placeholders without meaningful contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">alphanumeric_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>001135426</p></td>
+</tr>
+<tr class="row-even"><td><p>alnum_ratio</p></td>
+<td><p>0.429825</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>dakin - laptopruck » » » » » » » » » » » » » » » »</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i1/O1CN01mylNRF1JKAYESRSUK_!!6000000001009-0-tps-336-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too small alnum ratio might contain unexpected extra meaningless tokens</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">character_repetition_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>004292597</p></td>
+</tr>
+<tr class="row-even"><td><p>char_rep_ratio</p></td>
+<td><p>0.720207</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>harden harden harden harden harden harden harden harden harden harden harden harden harden harden harden harden harden harden harden harden harden</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i3/O1CN013cLJD41OfIuGm5SRs_!!6000000001732-0-tps-336-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large character repetition ratio might contain repeat contents (captions of LCS-558K are generated by BLIP model)</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">flagged_words_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>001013268</p></td>
+</tr>
+<tr class="row-even"><td><p>flagged_words_ratio</p></td>
+<td><p>0.263158</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>porn photo video porn cartoon porn porn pictures online for adult porn</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p>Won’t display this image</p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with non-zero flagged words ratio might contain NSFW contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">perplexity_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>id</p></td>
+<td><p>002606088</p></td>
+</tr>
+<tr class="row-even"><td><p>perplexity</p></td>
+<td><p>19789.9</p></td>
+</tr>
+<tr class="row-odd"><td><p>caption</p></td>
+<td><p>real white pearl stud earrings sterling 925 925 9250 9210 9240 9210 9280 stud</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i1/O1CN01OF3Nqv1da0Yxei43Y_!!6000000003751-0-tps-336-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large perplexity might contain meaningless contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_deduplicator</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>ids</p></td>
+<td><p>004559803, 003716167, 005659131</p></td>
+</tr>
+<tr class="row-even"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i4/O1CN01RdDU8H22ux4N984fy_!!6000000007181-0-tps-336-336.jpg" /> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>There are some duplicate images with different names</p></td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+<section id="mmc4">
+<h3>MMC4<a class="headerlink" href="#mmc4" title="Link to this heading">¶</a></h3>
+<details>
+<summary>MMC4</summary>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_aspect_ratio_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>aspect_ratios</p></td>
+<td><p>[1.6, <font color=red><strong>10.4651162791</strong></font>]</p></td>
+</tr>
+<tr class="row-even"><td><p>corresponding text</p></td>
+<td><p>“We found that kahweol acetate and cafestol inhibited growth of cancer cells in mice, but the combination seemed to work synergistically, leading to a significantly slower tumour growth than in untreated mice,” said lead author Hiroaki Iwamoto.</p></td>
+</tr>
+<tr class="row-odd"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i1/O1CN01sKzpPJ1etX48h1cR2_!!6000000003929-2-tps-900-86.png" /> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Unaligned image and caption contents. Images with too large aspect ratio might lose too much information after being processed as model input</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>image_sizes</p></td>
+<td><p>[<font color=red><strong>453</strong></font>, 198343]</p></td>
+</tr>
+<tr class="row-even"><td><p>corresponding text</p></td>
+<td><p>If you’re in InfoSec, you are well aware of how this flies in the face of security team demographics.</p></td>
+</tr>
+<tr class="row-odd"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i2/O1CN01Iqaqn51oAK83fyvH9_!!6000000005184-2-tps-600-400.png" /> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Unaligned image and caption contents. Images with too small size might contains meaningless simple contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_size_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>image_sizes</p></td>
+<td><p><font color=red><strong>[481, 517, 532, 482]</strong></font></p></td>
+</tr>
+<tr class="row-even"><td><p>corresponding text</p></td>
+<td><p>[“Level Up Coin (LUC) is a cryptocurrency token and operates on the Ethereum platform.”, “Level Up Coin has a current supply of 1,298,120,000 LUC with 996,923,370 LUC in circulation.”, “The last known price of Level Up Coin is 0.000257 USD and is up 23.24% over the last 24 hours.”, “More information can be found at <a class="reference external" href="https://play2live.io">https://play2live.io</a>.”]</p></td>
+</tr>
+<tr class="row-odd"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i1/O1CN01w8cPt71JzOCUdvuxX_!!6000000001099-0-tps-608-604.jpg" /> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Images with too small size might be QR codes that contain sensitive contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image_text_matching_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>image_text_matching_score</p></td>
+<td><p><font color=red><strong>[0.0012427607]</strong></font></p></td>
+</tr>
+<tr class="row-even"><td><p>corresponding text</p></td>
+<td><p>Many a times, we face problems connecting to the internet in spite of the Android smartphone being connected to the Wi-Fi.</p></td>
+</tr>
+<tr class="row-odd"><td><p>image</p></td>
+<td><p><details><summary>image</summary> <img alt="" src="https://img.alicdn.com/imgextra/i1/O1CN01CbW5fR1UiPHplwbX3_!!6000000002551-0-tps-720-1163.jpg" /> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Unaligned image and caption contents. Some ad images might be mistakenly regarded as part of the sample.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">word_repetition_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>word_rep_ratio</p></td>
+<td><p>0.917219</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>Congratulations on your great designs ladies!<br>Please feel free to grab out “Top 3” blog badge from the right side bar and display it proudly.<br>For even more great designs, jump on back and check out all of the great entries to Sketch #169 here.<br>We love Wednesdays because we get to share with you our Design Team Creations!<br>Here is what our fantastic design team came up with for Sketch #170.<br>Congratulations on your great designs ladies!<br>Please feel free to grab out “Top 3” blog badge from the right side bar and display it proudly.<br>For even more great designs, jump on back and check out all of the great entries to Sketch #168 here.<br>We love Wednesdays because we get to share with you our Design Team Creations!<br>Here is what our fantastic design team came up with for Sketch #169.<br>Congratulations on your great designs ladies!<br>Please feel free to grab out “Top 3” blog badge from the right side bar and display it proudly.<br>For even more great designs, jump on back and check out all of the great entries to Sketch #167 here.<br>We love Wednesdays because we get to share with you our Design Team Creations!<br>Here is what our fantastic design team came up with for Sketch #168.<br>Top 3 for Sketch 166 and Design Team projects for Sketch 167.<br>Congratulations on your great designs ladies!<br>Please feel free to grab out “Top 3” blog badge from the right side bar and display it proudly.<br>For even more great designs, jump on back and check out all of the great entries to Sketch #166 here.<br>We love Wednesdays because we get to share with you our Design Team Creations!<br>Here is what our fantastic design team came up with for Sketch #167.</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large word repetition ratio might be a list of similar, repeated, but not the same contents</p></td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+</section>
+<section id="text-only-datasets">
+<h2>Text-only Datasets<a class="headerlink" href="#text-only-datasets" title="Link to this heading">¶</a></h2>
+<section id="wikipedia">
+<h3>Wikipedia<a class="headerlink" href="#wikipedia" title="Link to this heading">¶</a></h3>
+<details>
+<summary> Wikipedia </summary>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">alphanumeric_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>wiki page</p></td>
+<td><p><a class="reference external" href="https://bg.wikipedia.org/wiki/%D0%A0%D0%BE%D0%B4%D0%BE%D1%81%D0%BB%D0%BE%D0%B2%D0%BD%D0%BE%20%D0%B4%D1%8A%D1%80%D0%B2%D0%BE%20%D0%BD%D0%B0%20%D0%B3%D1%80%D1%8A%D1%86%D0%BA%D0%B8%20%D0%B1%D0%BE%D0%B3%D0%BE%D0%B2%D0%B5">link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>alnum_ratio</p></td>
+<td><p>0.262965</p></td>
+</tr>
+<tr class="row-odd"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>Хаос<br>                                              |<br>        Уран + Гея	                                          Тартар,Ерос,Ереб,Нюкта<br>            | 	                                                             |<br>   Тифон, Питон, Ехидна,	                                                Хемера,Ефир  <br>   циклопи, хекатонхейри  <br> <br> еринии, Понт, Хипнос, хеспериди,<br><br>  Мом, Немезида, Ирида, Танатос, Морфей<br>              | | | | …<br>              |Нерей Форкис Кето 	<br>              | | || 	  	 	  	 	<br>              |Нереиди |<br>              | /горгони, греи /	<br>     <strong>|<em><em>т и т а н и <strong><em><br>   | | | | | | | | | | | | |<br>  Кронос+Рея Диона Океан +Тетия Япет Мнемозина Криос Хиперион + Тея Койос + Феба Темида<br>   |</em>| +	   |</strong></em>|	 + + <em><strong>|</strong></em>	  <em><em>||</em>	 |_|</em></em>	+<br>      |	     | /океаниди/ | | | | | | | | | |<br>      | | Метида Климена | | Палант Астрей Еос Селена Хелиос Астерия Лето |<br>      | | | |</strong>| | | |<em><em>|_ | + |<br>      | | | | | | | Нике | | | Хеката | |<br>      | | | Епиметей | Борей Зефир Нот | |<br>      | | | Прометей | | |<br>      | | | Менетей | | |<br>      | | | Атлас | <strong>| |<br>      | | | | | | | | |<br>      | | | Мая | | Артемида Аполон |<br>      | | | | |</strong></em> | | |<br>      | | | | | | | Асклепий |<br>      | | | | музи | | |</em>_ |<br>      | | | |__ | | | | | |<br>      | | | | | | | Хигия Панацея Подалирий |<br>      | | | Хермес | | | <strong><em>|<br>      | | | | | | | | | | | | <br>      | | | Пан | | | | мойри ори харити Астрея<br>      | | |</em> | | | |<br>      | | | | | | | | <br>      | | Атина | | | | |<br>      | | | | | | |<br>      | | | | | | | |<br>      | Афродита | | | | | |<br>      | + | | | | | |<br>      | | |</strong><em>|</em><strong>|</strong><em>|</em>|<em><strong>|<br>      | | богове ||||||<br>      ||+</strong></em><br>           | | | | | | |<br>          Посейдон | Хера Зевс Деметра Хадес Хестия<br>                   | | |<em>|+|</em>| | <br>                   | Хефест | | | | | |<br>                   | Хеба Арес Илифия | Персефона |<br>                   |_<strong>| | + |<br>                     | | | | |</strong>|<br>                    Фобос Деймос Хармония |<br>                                 | |<br>                                Семела |<br>                                 ||<br>                                      |<br>                                      Дионис<br><br>Древногръцки богове<br>Родословни дървета</pre> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Texts with too small alnum ratio might only contain structural content, which might be hard to learn</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">character_repetition_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>wiki page</p></td>
+<td><p><a class="reference external" href="https://sr.wikipedia.org/wiki/RTV%20frekvencije%20u%20Srbiji">link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>char_rep_ratio</p></td>
+<td><p>0.818624</p></td>
+</tr>
+<tr class="row-odd"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>{| class=”wikitable” style=”font-size: 95%; float:center”<br>|-<br>! Predajnik<br>! RTS 1<br>! RTS 2<br>! Radio Beograd 1<br>! Radio Beograd 2<br>! Radio Beograd 3 (202)<br>! RTV 1<br>! RTV 2<br>! RNS 1<br>! RNS 2<br>! RNS 3<br>! Pink TV<br>! <br>!<br>! 	<br>! 	<br>! <br>!<br>|- <br>| Avala<br>| align=”center” | 6<br>| align=”center” | 22<br>| align=”center” | 95.3<br>| align=”center” | 97.6<br>| align=”center” | 104.0<br>| align=”center” | / <br>| align=”center” | / <br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | 45<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Deli Jovan <br>| align=”center” | 43<br>| align=”center” | 23<br>| align=”center” | 87.7<br>| align=”center” | 94.9<br>| align=”center” | 98.9<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Kopaonik, Gobelja<br>| align=”center” | 3<br>| align=”center” | 41<br>| align=”center” | 90.9<br>| align=”center” | 93.7<br>| align=”center” | 102.1<br>| align=”center” | <br>| align=”center” | 58<br>| align=”center” | 39<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Jastrebac<br>| align=”center” | 5<br>| align=”center” | 27<br>| align=”center” | 96.9<br>| align=”center” | 89.3<br>| align=”center” | 103.5<br>| align=”center” | <br>| align=”center” | 21<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Crni Vrh, Jagodina<br>| align=”center” | 11<br>| align=”center” | 35<br>| align=”center” | 89.7<br>| align=”center” | 99.3<br>| align=”center” | 101.0<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | 55<br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Vršac, Breg<br>| align=”center” | 11<br>| align=”center” | 39<br>| align=”center” | 95.7<br>| align=”center” | 98.1<br>| align=”center” | 103.0<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | 52<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Ovčar<br>| align=”center” | 8<br>| align=”center” | 42<br>| align=”center” | 88.1<br>| align=”center” | 90.1<br>| align=”center” | 101.6<br>| align=”center” | 51<br>| align=”center” | 67<br>| align=”center” | 25<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Subotica<br>| align=”center” | 5<br>| align=”center” | 61<br>| align=”center” | 88.9<br>| align=”center” | 101.1<br>| align=”center” | 98.5<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Tupižnica<br>| align=”center” | 10<br>| align=”center” | 25<br>| align=”center” | 92.5<br>| align=”center” | 96.1<br>| align=”center” | 100.4<br>| align=”center” | <br>| align=”center” | 44<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Hotel Venac<br>| align=”center” | 10<br>| align=”center” | - <br>| align=”center” | - <br>| align=”center” | 96.5<br>| align=”center” | 101.8<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 12<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Iriški Venac<br>| align=”center” | -<br>| align=”center” | 24<br>| align=”center” | 94.5<br>| align=”center” | -<br>| align=”center” | -<br>| align=”center” | 41<br>| align=”center” | 48<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Novi Beograd, Geneks<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | / <br>| align=”center” | 59<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Beograd, Kanarevo Brdo<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | / <br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | / <br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | 35<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Beograd, Stojčino brdo<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | 52<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Kosmaj            <br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | /<br>| align=”center” | 62<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Avala<br>| align=”center” | <br>| align=”center” | 98.5<br>| align=”center” | 101.4<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Tupižnica<br>| align=”center” | <br>| align=”center” | 94.1<br>| align=”center” |<br>| align=”center” | 105.3<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 34<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Šutenovačko Brdo<br>| align=”center” | <br>| align=”center” | 101.2<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 43<br>| align=”center” | 21<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Kladovo<br>| align=”center” | <br>| align=”center” | 96.5<br>| align=”center” | 102.0<br>| align=”center” | 94.5<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 53<br>| align=”center” | 35<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Venac<br>| align=”center” | <br>| align=”center” | 97.2<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Jadovnik<br>| align=”center” | <br>| align=”center” | 104.7<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Crni Vrh, Jagodina<br>| align=”center” | <br>| align=”center” | 106.8<br>| align=”center” | 91.1<br>| align=”center” | 102.9<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 38<br>| align=”center” | 58<br>| align=”center” | 61<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Vlaina <br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 106.5<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Vršac <br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 93.0<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Zrenjanin<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 88.7<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Maljen<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 107.2<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 32<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Ada<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 46<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Bešenovački Prnjavor<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 61<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Šid<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 60<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Kula, Silos<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 68<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Zrenjanin, Titelski breg<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | 61<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Cer<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 52  <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Besna Kobila<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 59<br>| align=”center” | 47<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Tornik<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 59<br>| align=”center” | <br>| align=”center” | 63<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Beograd, Kanarevo brdo<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 32<br>| align=”center” | 61<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Užice, Zabučje<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 26<br>| align=”center” | 36<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Raška, Gradac<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 38<br>| align=”center” | 65<br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Beograd, Stojčino brdo<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 25<br>| align=”center” | 8<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Priboj, Bić<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 43<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Prijepolje, Gradina<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 42<br>| align=”center” | 51<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Nova Varoš<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 34<br>| align=”center” | 69<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Valjevo, Pećina<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 58<br>| align=”center” | 21<br>| align=”center” | 49<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>|-<br>| Bajina Bašta<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | <br>| align=”center” |<br>| align=”center” | <br>| align=”center” | <br>| align=”center” | 39<br>| align=”center” | 30<br>| align=”center” |<br>| align=”center” |<br>| align=”center” | <br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |<br>| align=”center” |</pre> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Texts with too large character repetition ratio might contain the same style code in a table for the cells</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">special_characters_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>wiki page</p></td>
+<td><p><a class="reference external" href="https://en.wikipedia.org/wiki/List%20of%20years%20in%20politics">link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>special_char_ratio</p></td>
+<td><p>0.861592</p></td>
+</tr>
+<tr class="row-odd"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>This page indexes the individual year in politics pages.<br><br>20th century<br><br>1960s: 1960 - 1961 - 1962 - 1963 - 1964 - 1965 - 1966 - 1967 - 1968 - 1969<br>1970s: 1970 - 1971 - 1972 - 1973 - 1974 - 1975 - 1976 - 1977 - 1978 - 1979<br>1980s: 1980 - 1981 - 1982 - 1983 - 1984 - 1985 - 1986 - 1987 - 1988 - 1989<br>1990s: 1990 - 1991 - 1992 - 1993 - 1994 - 1995 - 1996 - 1997 - 1998 - 1999<br><br>21st century<br>2000s: 2000 - 2001 - 2002 - 2003 - 2004 - 2005 - 2006 - 2007 - 2008 - 2009<br>2010s: 2010 - 2011 - 2012 - 2013 - 2014 - 2015 - 2016 - 2017 - 2018 - 2019<br>2020s: 2020 - 2021 - 2022 - 2023<br><br>Politics</pre> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Texts with too many special characters might be a list of some other pages</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>wiki page</p></td>
+<td><p><a class="reference external" href="https://en.wikipedia.org/wiki/Donative%20%28canon%20law%29">link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>text_len</p></td>
+<td><p>9</p></td>
+</tr>
+<tr class="row-odd"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>Canon law</pre> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Texts with too short content might be an empty page</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">word_repetition_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>wiki page</p></td>
+<td><p><a class="reference external" href="https://en.wikipedia.org/wiki/List%20of%20Barnes%20F.C.%20seasons">link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>word_rep_ratio</p></td>
+<td><p>0.965517</p></td>
+</tr>
+<tr class="row-odd"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre><br><br>Seasons<br> 1862–63 Barnes F.C. season<br> 1863–64 Barnes F.C. season<br> 1864–65 Barnes F.C. season<br> 1865–66 Barnes F.C. season<br> 1866–67 Barnes F.C. season<br> 1867–68 Barnes F.C. season<br> 1868–69 Barnes F.C. season<br> 1869–70 Barnes F.C. season<br> 1870–71 Barnes F.C. season<br> 1871–72 Barnes F.C. season<br> 1872–73 Barnes F.C. season<br> 1873–74 Barnes F.C. season<br><br> <br>Barnes</pre> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Texts with too large word repetition ratio might be a list of relevant, repeated, but not the same contents</p></td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+<section id="books">
+<h3>Books<a class="headerlink" href="#books" title="Link to this heading">¶</a></h3>
+<details>
+<summary> Books </summary>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">alphanumeric_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>alnum_ratio</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>#<br>#<br><br>#<br>#<br><br>#<br>#<br><br>#<br>#<br><br>#<br><br></pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too small alnum ratio might only contain meaningless tokens</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">character_repetition_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>char_rep_ratio</p></td>
+<td><p>0.86</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br><br><a class="reference external" href="http://www.stmartins.com">www.stmartins.com</a><br><br><a class="reference external" href="mailto:MacmillanSpecialMarkets&#37;&#52;&#48;macmillan&#46;com">MacmillanSpecialMarkets<span>&#64;</span>macmillan<span>&#46;</span>com</a><br><br><a class="reference external" href="http://mollysuberthorpe.com">mollysuberthorpe.com</a><br><br>&#64;mollysuberthorpe<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br><br>Preface<br><br>CHAPTER ONE<br><br>Methods for Effective Practice<br><br>Principles of Modern Calligraphy Styles<br><br>Letter &amp; Grid Construction<br><br>A Guide to Supplies<br><br>Help Desk<br><br>CHAPTER TWO<br><br>Warm-up Exercises &amp; Drills<br><br>Pencil Warm-ups<br><br>Stroke Drills<br><br>CHAPTER THREE<br><br>Modern Calligraphy, Letter by Letter<br><br>The Building Blocks<br><br>Arrow Key<br><br>A Modern Basic Alphabet<br><br>Modern Variations: Letters, Numbers &amp; Symbols<br><br>Modern Ligatures<br><br>CHAPTER FOUR<br><br>From Letters to Words<br><br>One Change at a Time<br><br>Word Explorations<br><br>CHAPTER FIVE<br><br>Five Complete Alphabets<br><br>Quip<br><br>Nautica<br><br>Cream Soda<br><br>Dalliance<br><br>Blackboard Monoline<br><br>CHAPTER SIX<br><br>Majuscules &amp; Monograms<br><br>Borealis<br><br>Chubby Bunny<br><br>Vice Versa<br><br>CHAPTER SEVEN<br><br>Small Layouts<br><br>Layout Practice<br><br>Writing on Curves &amp; Slants<br><br>Envelope Addressing<br><br>All-caps Styles<br><br>CHAPTER EIGHT<br><br>Flourishes &amp; Borders<br><br>Flourish Drills<br><br>Decorative Flourishes<br><br>Illustrative Flourishes<br><br>Wreaths &amp; Laurels<br><br>APPENDIX I<br><br>Grids &amp; Guides<br><br>APPENDIX II<br><br>Glossary<br><br>APPENDIX III<br><br>Additional Resources<br><br>About the Author<br><br>Acknowledgments<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br>|<br><br>……</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large character repetition ratio might contain lots of repeated contents</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">perplexity_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>perplexity</p></td>
+<td><p>380817.4</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre><br><br>ISBN 978-1448-18265-7<br><br></pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large perplexity might contain hard-to-understand contents (e.g. ISBN)</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">language_id_score_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>lang_score</p></td>
+<td><p>0.057</p></td>
+</tr>
+<tr class="row-even"><td><p>lang</p></td>
+<td><p>en</p></td>
+</tr>
+<tr class="row-odd"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>……<br>vUtyh ¼vatkWl½] eq&gt;s fo’okl gh ugha gksrk fd esjh igyh lUrku] og uUgh cPph ftlds fy, geus mlds tUe ls eghuksa igys brus mRlkg ls I;kjk lk dejk ltk;k Fkk] vkt nqfu;k Hkj esa ?kwe pqdh gS vkSj Q+fuZpj fMt+kbu djus esa viuh txg cuk pqdh gSA geas irk py tkuk pkfg, Fkk fd rqe bl {ks= esa dke djksxh D;ksafd tc rqe cPph gh Fkh rc Hkh LVkbfy’k diM+ksa ds izfr rqEgkjk izse] ckjhd fooj.kksa dks Hkkaius okyh rqEgkjh fuxkg vkSj bl ckr ij tksj nsuk fd rqEgkjs vkl&amp;ikl dh phtsa ,dne oSlh gh gksa tSlh rqe pkgrh gks] gesa nax dj nsrk FkkA bl ds lkFk gh rqe viuh xSj ljdkjh laLFkk ds izfr viuh opuc)rk dks Hkh iwjh rjg fuHkkrh gksA rqEgkjs fnu dk ,d&amp;,d iy O;Lr gksrk gSA dHkh&amp;dHkh eSa rqEgsa Fkdk gqvk ns[krh gwa ysfdu fQj lksprh gwa fd ;g rqEgkjk esgur djus dk le; gSA ;g rks rqEgkjh ‘kq:vkr gSA<br><br>vkjrh ¼vkVZl~½] esjh nwljh cPph] rqEgsa irk ugha gS fd eSa bl ckr dk fdruk bUrt+kj dj jgh gwa fd rqe tku yks fd dkuwu gh rqEgkjs fy, lgh jkg gSA eSa mEehn djrh gwa fd dkuwu dh fMxzh dh i&lt;+kbZ ds fy, U;w;kWdZ esa fcrk, tkus okys rhu lky rqEgsa ;g le&gt;kus esa l{ke gksaxs fd rqEgkjh eka tks dj jgh gS ml dke esa Hkh vPNkbZ gSA dHkh&amp;dHkh eSa izkFkZuk djrh gwa fd rqe esjs lkFk dke djks ysfdu ;fn rqe dksbZ vkSj dke [kkstks tks rqEgsa dkuwu ls Hkh T+;knk ilUn vk,] rks Hkh eSa rqEgkjs fy, [+kq’k gksÅaxhA<br><br>vfnrh ¼vnwcsu½] esjh lcls NksVh cPph] rqEgkjs firk dks ;d+hu gS fd rqe gekjh lcls T+;knk izfrHkk’kkyh csVh gks] ftls ,d ckj ;g irk py tk, fd mldk fny D;k pkgrk gS] rks og viuh cguksa ls cgqr T+;knk vkxs tk,xhA rks rqEgsa gekjh lcls Åaph mEehnkas ij [kjk mrjuk gS!<br>……</pre> </details></p></td>
+</tr>
+<tr class="row-even"><td><p>comments</p></td>
+<td><p>Texts with too low language score might contain unreadable texts</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">special_characters_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>special_char_ratio</p></td>
+<td><p>0.999</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre><br><br>## PageList<br><br>  1.<br>  2.<br>  3.<br>  4.<br>  5.<br>  6.<br>  7.<br>  8.<br>  9.<br>  10.<br>  11.<br>  12.<br>  13.<br>  14.<br>  15.<br>  16.<br>  17.<br>  18.<br>  19.<br>  20.<br>  21.<br>  22.<br>  23.<br>  24.<br>  25.<br>  26.<br>  27.<br>  28.<br>  29.<br>  30.<br>  31.<br>  32.<br>  33.<br>  34.<br>  35.<br>  36.<br>  37.<br>  38.<br>  39.<br>  40.<br>  41.<br>  42.<br>  43.<br>  44.<br>  45.<br>  46.<br>  47.<br>  48.<br>  49.<br>  50.<br>  51.<br>  52.<br>  53.<br>  54.<br>  55.<br>  56.<br>  57.<br>  58.<br>  59.<br>  60.<br>  61.<br>  62.<br>  63.<br>  64.<br>  65.<br>  66.<br>  67.<br>  68.<br>  69.<br>  70.<br>  71.<br>  72.<br>  73.<br>  74.<br>  75.<br>  76.<br>  77.<br>  78.<br>  79.<br>  80.<br>  81.<br>  82.<br>  83.<br>  84.<br>  85.<br>  86.<br>  87.<br>  88.<br>  89.<br>  90.<br>  91.<br>  92.<br>  93.<br>  94.<br>  95.<br>  96.<br>  97.<br>  98.<br>  99.<br>  100.<br>  101.<br>  102.<br>  103.<br>  104.<br>  105.<br>  106.<br>  107.<br>  108.<br>  109.<br>  110.<br>  111.<br>  112.<br>  113.<br>  114.<br>  115.<br>  116.<br>  117.<br>  118.<br>  119.<br>  120.<br>  121.<br>  122.<br>  123.<br>  124.<br>  125.<br>  126.<br>  127.<br>  128.<br>  129.<br>  130.<br>  131.<br>  132.<br>  133.<br>  134.<br>  135.<br>  136.<br>  137.<br>  138.<br>  139.<br>  140.<br>  141.<br>  142.<br>  143.<br>  144.<br>  145.<br>  146.<br>  147.<br>  148.<br>  149.<br>  150.<br>  151.<br>  152.<br>  153.<br>  154.<br>  155.<br>  156.<br>  157.<br>  158.<br>  159.<br>  160.<br>  161.<br>  162.<br>  163.<br>  164.<br>  165.<br>  166.<br>  167.<br>  168.<br>  169.<br>  170.<br>  171.<br>  172.<br>  173.<br>  174.<br>  175.<br>  176.<br>  177.<br>  178.<br>  179.<br>  180.<br>  181.<br>  182.<br>  183.<br>  184.<br>  185.<br>  186.<br>  187.<br>  188.<br>  189.<br>  190.<br>  191.<br>  192.<br>  193.<br>  194.<br>  195.<br>  196.<br>  197.<br>  198.<br>  199.<br>  200.<br>  201.<br>  202.<br>  203.<br>  204.<br>  205.<br>  206.<br>  207.<br>  208.<br>  209.<br>  210.<br>  211.<br>  212.<br>  213.<br>  214.<br>  215.<br>  216.<br>  217.<br>  218.<br>  219.<br>  220.<br>  221.<br>  222.<br>  223.<br>  224.<br>  225.<br>  226.<br>  227.<br>  228.<br>  229.<br>  230.<br>  231.<br>  232.<br>  233.<br>  234.<br>  235.<br>  236.<br>  237.<br>  238.<br>  239.<br>  240.<br>  241.<br>  242.<br>  243.<br>  244.<br>  245.<br>  246.<br>  247.<br>  248.<br>  249.<br>  250.<br>  251.<br>  252.<br>  253.<br>  254.<br>  255.<br>  256.<br>  257.<br>  258.<br>  259.<br>  260.<br>  261.<br>  262.<br>  263.<br>  264.<br>  265.<br>  266.<br>  267.<br>  268.<br>  269.<br>  270.<br>  271.<br>  272.<br>  273.<br>  274.<br>  275.<br>  276.<br>  277.<br>  278.<br>  279.<br>  280.<br>  281.<br>  282.<br>  283.<br>  284.<br>  285.<br>  286.<br>  287.<br>  288.<br>  289.<br>  290.<br>  291.<br>  292.<br>  293.<br>  294.<br>  295.<br>  296.<br>  297.<br>  298.<br>  299.<br>  300.<br>  301.<br>  302.<br>  303.<br>  304.<br>  305.<br>  306.<br>  307.<br>  308.<br>  309.<br>  310.<br>  311.<br>  312.<br>  313.<br>  314.<br>  315.<br>  316.<br>  317.<br>  318.<br>  319.<br>  320.<br>  321.<br>  322.<br>  323.<br>  324.<br>  325.<br>  326.<br>  327.<br>  328.<br>  329.<br>  330.<br>  331.<br>  332.<br>  333.<br>  334.<br>  335.<br>  336.<br>  337.<br>  338.<br>  339.<br>  340.<br>  341.<br>  342.<br>  343.<br>  344.<br>  345.<br>  346.<br>  347.<br>  348.<br>  349.<br>  350.<br>  351.<br>  352.<br>  353.<br>  354.<br>  355.<br>  356.<br>  357.<br>  358.<br>  359.<br>  360.<br>  361.<br>  362.<br>  363.<br>  364.<br>  365.<br>  366.<br>  367.<br>  368.<br>  369.<br>  370.<br>  371.<br>  372.<br>  373.<br>  374.<br>  375.<br>  376.<br>  377.<br>  378.<br>  379.<br>  380.<br>  381.<br>  382.<br>  383.<br>  384.<br>  385.<br>  386.<br>  387.<br>  388.<br>  389.<br>  390.<br>  391.<br>  392.<br>  393.<br>  394.<br>  395.<br>  396.<br>  397.<br>  398.<br>  399.<br>  400.<br>  401.<br>  402.<br>  403.<br>  404.<br>  405.<br>  406.<br>  407.<br>  408.<br>  409.<br>  410.<br>  411.<br>  412.<br>  413.<br>  414.<br>  415.<br>  416.<br>  417.<br>  418.<br>  419.<br>  420.<br>  421.<br>  422.<br>  423.<br>  424.<br>  425.<br>  426.<br>  427.<br>  428.<br>  429.<br>  430.<br>  431.<br>  432.<br>  433.<br>  434.<br>  435.<br>  436.<br>  437.<br>  438.<br>  439.<br>  440.<br>  441.<br>  442.<br>  443.<br>  444.<br>  445.<br>  446.<br>  447.<br>  448.<br>  449.<br>  450.<br>  451.<br>  452.<br>  453.<br>  454.<br>  455.<br>  456.<br>  457.<br>  458.<br>  459.<br>  460.<br>  461.<br>  462.<br>  463.<br>  464.<br>  465.<br>  466.<br>  467.<br>  468.<br>  469.<br>  470.<br>  471.<br>  472.<br>  473.<br>  474.<br>  475.<br>  476.<br>  477.<br>  478.<br>  479.<br>  480.<br>  481.<br>  482.<br>  483.<br>  484.<br>  485.<br>  486.<br>  487.<br>  488.<br>  489.<br>  490.<br>  491.<br>  492.<br>  493.<br>  494.<br>  495.<br>  496.<br>  497.<br>  498.<br>  499.<br>  500.<br>  501.<br>  502.<br>  503.<br>  504.<br>  505.<br>  506.<br>  507.<br>  508.<br>  509.<br>  510.<br>  511.<br>  512.<br>  513.<br>  514.<br>  515.<br>  516.<br>  517.<br>  518.<br>  519.<br>  520.<br>  521.<br>  522.<br>  523.<br>  524.<br>  525.<br>  526.<br>  527.<br>  528.<br>  529.<br>  530.<br>  531.<br>  532.<br>  533.<br>  534.<br>  535.<br>  536.<br>  537.<br>  538.<br>  539.<br>  540.<br>  541.<br>  542.<br>  543.<br>  544.<br>  545.<br>  546.<br>  547.<br>  548.<br>  549.<br>  550.<br>  551.<br>  552.<br>  553.<br>  554.<br>  555.<br>  556.<br>  557.<br>  558.<br>  559.<br>  560.<br>  561.<br>  562.<br>  563.<br>  564.<br>  565.<br>  566.<br>  567.<br>  568.<br>  569.<br>  570.<br>  571.<br>  572.<br>  573.<br>  574.<br>  575.<br>  576.<br>  577.<br>  578.<br>  579.<br>  580.<br>  581.<br>  582.<br>  583.<br>  584.<br>  585.<br>  586.<br>  587.<br>  588.<br>  589.<br>  590.<br>  591.<br>  592.<br>  593.<br>  594.<br>  595.<br>  596.<br>  597.<br>  598.<br>  599.<br>  600.<br>  601.<br>  602.<br>  603.<br>  604.<br>  605.<br>  606.<br>  607.<br>  608.<br>  609.<br>  610.<br>  611.<br>  612.<br>  613.<br>  614.<br>  615.<br>  616.<br>  617.<br>  618.<br>  619.<br>  620.<br>  621.<br>  622.<br>  623.<br>  624.<br>  625.<br>  626.<br>  627.<br>  628.<br>  629.<br>  630.<br>  631.<br>  632.<br>  633.<br>  634.<br>  635.<br>  636.<br>  637.<br>  638.<br>  639.<br>  640.<br>  641.<br>  642.<br>  643.<br>  644.<br>  645.<br>  646.<br>  647.<br>  648.<br>  649.<br>  650.<br>  651.<br>  652.<br>  653.<br>  654.<br>  655.<br>  656.<br>  657.<br>  658.<br>  659.<br>  660.<br>  661.<br>  662.<br>  663.<br>  664.<br>  665.<br>  666.<br>  667.<br>  668.<br>  669.<br>  670.<br>  671.<br>  672.<br>  673.<br>  674.<br>  675.<br>  676.<br>  677.<br>  678.<br>  679.<br>  680.<br>  681.<br>  682.<br>  683.<br>  684.<br>  685.<br>  686.<br>  687.<br>  688.<br>  689.<br>  690.<br>  691.<br>  692.<br>  693.<br>  694.<br>  695.<br>  696.<br>  697.<br>  698.<br>  699.<br>  700.<br>  701.<br>  702.<br>  703.<br>  704.<br>  705.<br>  706.<br>  707.<br>  708.<br>  709.<br>  710.<br>  711.<br>  712.<br>  713.<br>  714.<br>  715.<br>  716.<br>  717.<br>  718.<br>  719.<br>  720.<br>  721.<br>  722.<br>  723.<br>  724.<br>  725.<br>  726.<br>  727.<br>  728.<br>  729.<br>  730.<br>  731.<br>  732.<br>  733.<br>  734.<br>  735.<br>  736.<br>  737.<br>  738.<br>  739.<br>  740.<br>  741.<br>  742.<br><br></pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large special character ratio might contain meaningless contents</p></td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+<section id="stack-exchange">
+<h3>Stack Exchange<a class="headerlink" href="#stack-exchange" title="Link to this heading">¶</a></h3>
+<details>
+<summary> Stack Exchange </summary>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">character_repetition_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>char_rep_ratio</p></td>
+<td><p>0.969099481</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>Q: Silent sound data uri? Does anyone know of a way to set a data uri to a valid silent sound? I’d be really curious to see if anything exists like that! Thank you.<br>A: A 0-second WAVE file:<br>data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAAABmYWN0BAAAAAAAAABkYXRhAAAAAA==<br>A: i love data uri s so i did this:<br>http://doiop.com/silent[DOT]mp3<br>which points to<br>http://tinyurl[DOT]com/silentmp3<br>which points to<br>data:audio/x-wav;<br>base64,UklGRooWAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YWYWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large character repetition ratio might contain the base64 code of an image</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">words_num_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>num_words</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>Q: Append</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too few words might be missing content</p></td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+<section id="arxiv">
+<h3>ArXiv<a class="headerlink" href="#arxiv" title="Link to this heading">¶</a></h3>
+<details>
+<summary> ArXiv </summary>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>text_len</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>\part*{</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too short content might be missing content</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">perplexity_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>perplexity</p></td>
+<td><p>244697</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>\section{Information about various village networks}<br>\begingroup<br>\squeezetable<br>\begin{table*}<br>\caption{Summary details of the<br>contact network properties for the villages considered in this study.}<br>\begin{ruledtabular}<br>   \begin{tabular}{c c c c c c c c c c}<br><br>SlNo&amp;Nodes&amp;LCC&amp;$<k>$&amp;Modules&amp;Q&amp;$\mu_{sz}$&amp;$\sigma_{sz}$&amp;LMS&amp;r\ \hline<br>1&amp;843&amp;825&amp;8.2&amp;24&amp;0.6782&amp;34.375&amp;19.6783&amp;72&amp;0.02\ <br>2&amp;877&amp;810&amp;7.2123&amp;23&amp;0.7396&amp;35.2174&amp;22.446&amp;91&amp;0.0149\ <br>3&amp;1380&amp;1318&amp;7.9841&amp;25&amp;0.7312&amp;52.72&amp;38.6539&amp;189&amp;0.0161\ <br>4&amp;1025&amp;957&amp;7.2403&amp;25&amp;0.7315&amp;38.28&amp;25.6117&amp;99&amp;0.0155\ <br>5&amp;650&amp;641&amp;7.869&amp;25&amp;0.7477&amp;25.64&amp;20.268&amp;70&amp;0.0154\ <br>6&amp;451&amp;434&amp;6.9954&amp;24&amp;0.7036&amp;18.0833&amp;15.4809&amp;63&amp;0.0193\ <br>7&amp;732&amp;719&amp;9.0668&amp;23&amp;0.7078&amp;31.2609&amp;25.1555&amp;83&amp;0.0195\ <br>8&amp;444&amp;440&amp;8.2818&amp;22&amp;0.7051&amp;20.0&amp;20.3693&amp;75&amp;0.0222\ <br>9&amp;928&amp;914&amp;8.4497&amp;22&amp;0.703&amp;41.5455&amp;33.3517&amp;141&amp;0.0212\ <br>10&amp;354&amp;346&amp;8.8353&amp;19&amp;0.6614&amp;18.2105&amp;15.2784&amp;48&amp;0.0294\ <br>11&amp;605&amp;589&amp;7.8727&amp;23&amp;0.6986&amp;25.6087&amp;23.814&amp;92&amp;0.023\ <br>12&amp;794&amp;760&amp;7.7132&amp;23&amp;0.7225&amp;33.0435&amp;20.0531&amp;74&amp;0.0167\ <br>13&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-\ <br>14&amp;675&amp;645&amp;8.1054&amp;23&amp;0.7453&amp;28.0435&amp;21.1115&amp;91&amp;0.0155\ <br>15&amp;853&amp;852&amp;8.9648&amp;23&amp;0.6954&amp;37.0435&amp;24.5985&amp;90&amp;0.0204\ <br>16&amp;712&amp;693&amp;9.3059&amp;22&amp;0.7152&amp;31.5&amp;24.7694&amp;99&amp;0.0201\ <br>17&amp;879&amp;850&amp;8.6494&amp;25&amp;0.7284&amp;34.0&amp;28.1539&amp;123&amp;0.0177\ <br>18&amp;1146&amp;1140&amp;9.157&amp;24&amp;0.7522&amp;47.5&amp;34.87&amp;127&amp;0.0149\ <br>19&amp;1134&amp;1118&amp;9.2844&amp;24&amp;0.7484&amp;46.5833&amp;31.0979&amp;131&amp;0.014\ <br>20&amp;714&amp;633&amp;8.6477&amp;23&amp;0.744&amp;27.5217&amp;18.5117&amp;66&amp;0.0139\ <br>21&amp;1046&amp;1011&amp;8.6311&amp;25&amp;0.7347&amp;40.44&amp;32.0063&amp;116&amp;0.0164\ <br>22&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-&amp;-\ <br>23&amp;1252&amp;1186&amp;8.6636&amp;24&amp;0.7572&amp;49.4167&amp;37.5732&amp;125&amp;0.0144\ <br>24&amp;835&amp;820&amp;9.3098&amp;25&amp;0.7222&amp;32.8&amp;22.735&amp;79&amp;0.0165\ <br>25&amp;1313&amp;1286&amp;9.4619&amp;25&amp;0.7751&amp;51.44&amp;32.2404&amp;124&amp;0.0116\ <br>26&amp;674&amp;666&amp;9.0405&amp;21&amp;0.7576&amp;31.7143&amp;28.3198&amp;127&amp;0.0152\ <br>27&amp;708&amp;682&amp;7.4091&amp;25&amp;0.7408&amp;27.28&amp;18.3794&amp;67&amp;0.0144\ <br>28&amp;1612&amp;1570&amp;9.5822&amp;25&amp;0.7812&amp;62.8&amp;39.8628&amp;163&amp;0.0112\ <br>29&amp;1337&amp;1270&amp;7.8276&amp;25&amp;0.7651&amp;50.8&amp;26.9741&amp;115&amp;0.0113\ <br>30&amp;689&amp;675&amp;8.8607&amp;23&amp;0.7489&amp;29.3478&amp;25.1441&amp;91&amp;0.0165\ <br>31&amp;851&amp;819&amp;9.0317&amp;25&amp;0.7893&amp;32.76&amp;22.0023&amp;97&amp;0.0106\ <br>32&amp;1181&amp;1136&amp;9.6514&amp;25&amp;0.7296&amp;45.44&amp;30.0281&amp;102&amp;0.0157\ <br>33&amp;843&amp;824&amp;7.7415&amp;25&amp;0.7279&amp;32.96&amp;29.0799&amp;101&amp;0.0174\ <br>34&amp;692&amp;628&amp;7.1385&amp;24&amp;0.7702&amp;26.1667&amp;26.1465&amp;115&amp;0.0128\ <br>35&amp;806&amp;756&amp;7.2302&amp;25&amp;0.758&amp;30.24&amp;27.388&amp;106&amp;0.0133\ <br>36&amp;1214&amp;1168&amp;8.8733&amp;24&amp;0.7147&amp;48.6667&amp;53.5698&amp;197&amp;0.0214\ <br>37&amp;500&amp;482&amp;7.7759&amp;16&amp;0.6593&amp;30.125&amp;24.2922&amp;91&amp;0.0324\ <br>38&amp;736&amp;726&amp;8.1267&amp;24&amp;0.7723&amp;30.25&amp;21.9037&amp;82&amp;0.0124\ <br>39&amp;1339&amp;1294&amp;9.1376&amp;25&amp;0.7666&amp;51.76&amp;31.9466&amp;134&amp;0.012\ <br>40&amp;1097&amp;1064&amp;8.0442&amp;25&amp;0.7713&amp;42.56&amp;42.0562&amp;168&amp;0.0135\ <br>41&amp;724&amp;703&amp;7.8862&amp;20&amp;0.7163&amp;35.15&amp;26.3615&amp;76&amp;0.0203\ <br>42&amp;853&amp;805&amp;8.0807&amp;25&amp;0.7587&amp;32.2&amp;32.3394&amp;117&amp;0.0153\ <br>43&amp;875&amp;861&amp;8.295&amp;24&amp;0.7331&amp;35.875&amp;30.5195&amp;121&amp;0.016\ <br>44&amp;978&amp;965&amp;8.8518&amp;25&amp;0.7212&amp;38.6&amp;40.4366&amp;136&amp;0.0202\ <br>45&amp;1073&amp;1044&amp;8.2356&amp;25&amp;0.7782&amp;41.76&amp;29.4405&amp;113&amp;0.0116\ <br>46&amp;1257&amp;1216&amp;7.8544&amp;24&amp;0.7683&amp;50.6667&amp;34.6671&amp;155&amp;0.0125\ <br>47&amp;680&amp;660&amp;8.5848&amp;24&amp;0.719&amp;27.5&amp;20.4185&amp;70&amp;0.0174\ <br>48&amp;808&amp;794&amp;8.9232&amp;24&amp;0.6998&amp;33.0833&amp;31.5686&amp;116&amp;0.0225\ <br>49&amp;766&amp;689&amp;8.7083&amp;22&amp;0.6439&amp;31.3182&amp;35.6987&amp;140&amp;0.0362\ <br>50&amp;999&amp;937&amp;8.9883&amp;25&amp;0.6994&amp;37.48&amp;43.5175&amp;145&amp;0.0235\ <br>51&amp;1061&amp;1015&amp;10.6591&amp;21&amp;0.6734&amp;48.3333&amp;55.2943&amp;187&amp;0.0308\ <br>52&amp;1525&amp;1497&amp;10.4369&amp;25&amp;0.7339&amp;59.88&amp;69.595&amp;276&amp;0.0192\ <br>53&amp;642&amp;630&amp;9.0683&amp;23&amp;0.6573&amp;27.3913&amp;32.5746&amp;110&amp;0.0322\ <br>54&amp;467&amp;458&amp;10.1528&amp;20&amp;0.6636&amp;22.9&amp;28.0141&amp;111&amp;0.0326\ <br>55&amp;1180&amp;1151&amp;7.9644&amp;24&amp;0.8192&amp;47.9583&amp;33.5478&amp;127&amp;0.0087\ <br>56&amp;573&amp;553&amp;7.8807&amp;23&amp;0.7223&amp;24.0435&amp;20.6955&amp;76&amp;0.0189\ <br>57&amp;948&amp;919&amp;8.2459&amp;25&amp;0.7222&amp;36.76&amp;29.2278&amp;130&amp;0.0174\ <br>58&amp;914&amp;905&amp;8.8541&amp;25&amp;0.744&amp;36.2&amp;27.0289&amp;110&amp;0.0153\ <br>59&amp;1599&amp;1552&amp;8.5393&amp;24&amp;0.7936&amp;64.6667&amp;46.4091&amp;182&amp;0.0108\ <br>60&amp;1775&amp;1729&amp;8.7953&amp;25&amp;0.789&amp;69.16&amp;42.0692&amp;215&amp;0.0105\ <br>61&amp;591&amp;572&amp;9.3776&amp;20&amp;0.7299&amp;28.6&amp;25.4213&amp;104&amp;0.0191\ <br>62&amp;994&amp;980&amp;9.1816&amp;24&amp;0.7676&amp;40.8333&amp;30.4872&amp;131&amp;0.013\ <br>63&amp;786&amp;774&amp;8.0284&amp;23&amp;0.7833&amp;33.6522&amp;23.392&amp;91&amp;0.0119\ <br>64&amp;1286&amp;1265&amp;8.7763&amp;25&amp;0.7926&amp;50.6&amp;32.3988&amp;115&amp;0.0103\ <br>65&amp;1331&amp;1301&amp;9.3766&amp;24&amp;0.7101&amp;54.2083&amp;42.7444&amp;149&amp;0.0194\ <br>66&amp;814&amp;790&amp;7.8848&amp;23&amp;0.7353&amp;34.3478&amp;29.078&amp;102&amp;0.0173\ <br>67&amp;893&amp;885&amp;8.5401&amp;22&amp;0.7311&amp;40.2273&amp;36.4778&amp;128&amp;0.0192\ <br>68&amp;663&amp;655&amp;8.1389&amp;22&amp;0.7014&amp;29.7727&amp;26.6218&amp;90&amp;0.0225\ <br>69&amp;875&amp;866&amp;10.4688&amp;23&amp;0.6739&amp;37.6522&amp;42.5457&amp;148&amp;0.0281\ <br>70&amp;899&amp;891&amp;9.3547&amp;20&amp;0.6634&amp;44.55&amp;37.4639&amp;129&amp;0.028\ <br>71&amp;1387&amp;1345&amp;8.3836&amp;24&amp;0.7556&amp;56.0417&amp;44.8046&amp;151&amp;0.0144\ <br>72&amp;999&amp;977&amp;8.6192&amp;25&amp;0.6973&amp;39.08&amp;33.5511&amp;147&amp;0.0217\ <br>73&amp;870&amp;858&amp;9.4767&amp;22&amp;0.7207&amp;39.0&amp;31.7905&amp;101&amp;0.0199\ <br>74&amp;743&amp;724&amp;8.2735&amp;23&amp;0.7707&amp;31.4783&amp;22.9307&amp;89&amp;0.0131\ <br>75&amp;831&amp;815&amp;10.0454&amp;24&amp;0.7199&amp;33.9583&amp;43.6305&amp;170&amp;0.0236\ <br>76&amp;1154&amp;1126&amp;8.3064&amp;25&amp;0.7878&amp;45.04&amp;34.5861&amp;128&amp;0.0114\ <br>77&amp;707&amp;671&amp;8.2355&amp;22&amp;0.7551&amp;30.5&amp;24.5352&amp;82&amp;0.015\<br>\end{tabular}<br>\end{ruledtabular}<br>\label{table1}<br>\end{table*}<br>\endgroup<br><br>{</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Texts with too large perplexity might be the table area in LaTeX code</p></td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+<section id="github-code">
+<h3>Github Code<a class="headerlink" href="#github-code" title="Link to this heading">¶</a></h3>
+<details>
+<summary> Github Code </summary>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">text_length_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>text_len</p></td>
+<td><p>10</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>new Date&lt;A</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Code with too short content might be missing/meaningless content</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>item</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>from OP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">average_line_length_filter</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>avg_line_length</p></td>
+<td><p>4.8571428571</p></td>
+</tr>
+<tr class="row-even"><td><p>text</p></td>
+<td><p><details><summary>text</summary> <pre>This<br>should<br>result<br>in<br>an<br>error</pre> </details></p></td>
+</tr>
+<tr class="row-odd"><td><p>comments</p></td>
+<td><p>Code with too short average line length might be “bad” code</p></td>
+</tr>
+</tbody>
+</table>
+</details>
+</section>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">“Bad” Data Exhibition</a><ul>
+<li><a class="reference internal" href="#table-of-contents">Table of Contents</a></li>
+<li><a class="reference internal" href="#involved-ops">Involved OPs</a></li>
+<li><a class="reference internal" href="#multimodal-datasets">Multimodal Datasets</a><ul>
+<li><a class="reference internal" href="#lcs-558k">LCS-558K</a></li>
+<li><a class="reference internal" href="#mmc4">MMC4</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#text-only-datasets">Text-only Datasets</a><ul>
+<li><a class="reference internal" href="#wikipedia">Wikipedia</a></li>
+<li><a class="reference internal" href="#books">Books</a></li>
+<li><a class="reference internal" href="#stack-exchange">Stack Exchange</a></li>
+<li><a class="reference internal" href="#arxiv">ArXiv</a></li>
+<li><a class="reference internal" href="#github-code">Github Code</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="awesome_llm_data.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">Awesome Data-Model Co-Development of MLLMs </span>
+        </a>
+        <a href="news.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">&lt;no title&gt;</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

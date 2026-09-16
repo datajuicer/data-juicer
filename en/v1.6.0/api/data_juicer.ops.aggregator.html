@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.ops.aggregator — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index.html" class="navbar-link">Doc</a>
+        <a href="../api.html" class="navbar-link active" aria-current="page">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/api/data_juicer.ops.aggregator.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.6.0/api/data_juicer.ops.aggregator.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="api/data_juicer.ops.aggregator"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/api/data_juicer.ops.aggregator.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../api.html">API</a></p>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.core.html">data_juicer.core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.html">data_juicer.ops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.filter.html">data_juicer.ops.filter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.mapper.html">data_juicer.ops.mapper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.deduplicator.html">data_juicer.ops.deduplicator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.selector.html">data_juicer.ops.selector</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">data_juicer.ops.aggregator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.grouper.html">data_juicer.ops.grouper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.pipeline.html">data_juicer.ops.pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.common.html">data_juicer.ops.common</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.analysis.html">data_juicer.analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.config.html">data_juicer.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.format.html">data_juicer.format</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="module-data_juicer.ops.aggregator">
+<span id="data-juicer-ops-aggregator"></span><h1>data_juicer.ops.aggregator<a class="headerlink" href="#module-data_juicer.ops.aggregator" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.aggregator.</span></span><span class="sig-name descname"><span class="pre">NestedAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/nested_aggregator.html#NestedAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Aggregator" title="data_juicer.ops.base_op.Aggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aggregator</span></code></a></p>
+<p>Aggregates nested content from multiple samples into a single summary.</p>
+<p>This operator uses a recursive summarization approach to aggregate content from multiple
+samples. It processes the input text, which is split into sub-documents, and generates a
+summary that maintains the average length of the original documents. The aggregation is
+performed using an API model, guided by system prompts and templates. The operator
+supports retrying the API call in case of errors and allows for customization of the
+summarization process through various parameters. The default system prompt and
+templates are provided in Chinese, but they can be customized. The operator uses a
+Hugging Face tokenizer to handle tokenization.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator.DEFAULT_SYSTEM_PROMPT">
+<span class="sig-name descname"><span class="pre">DEFAULT_SYSTEM_PROMPT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'给定一些文档碎片，将这些文档整合成一个文档总结。\n要求：\n-</span> <span class="pre">总结的长度与文档碎片的平均长度基本一致\n-</span> <span class="pre">不要包含主观看法\n-</span> <span class="pre">注意要尽可能保留文本的专有名词\n-</span> <span class="pre">只输出文档总结不要输出其他内容\n-</span> <span class="pre">参考如下样例：\n文档碎片：\n唐僧师徒四人行至白虎岭，遇上了变化多端的白骨精。\n\n文档碎片：\n白骨精首次变身少女送斋，被孙悟空识破打死，唐僧责怪悟空。\n\n文档碎片：\n妖怪再变老妇寻女，又被悟空击毙，师傅更加不满，念紧箍咒惩罚。\n\n文档碎片：\n不甘心的白骨精第三次化作老公公来诱骗，依旧逃不过金睛火眼。\n\n文档碎片：\n最终，在观音菩萨的帮助下，真相大白，唐僧明白了自己的误解。\n\n\n文档总结：\n唐僧师徒在白虎岭三遇白骨精变化诱惑，悟空屡次识破击毙妖怪却遭误解，最终观音相助真相大白。'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator.DEFAULT_SYSTEM_PROMPT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator.DEFAULT_INPUT_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_INPUT_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{sub_docs}\n\n文档总结：\n'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator.DEFAULT_INPUT_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator.DEFAULT_SUB_DOC_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_SUB_DOC_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'文档碎片：\n{text}\n'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator.DEFAULT_SUB_DOC_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gpt-4o'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'event_description'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_token_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_doc_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/nested_aggregator.html#NestedAggregator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.
+:param api_model: API model name.
+:param input_key: The input key in the meta field of the samples.</p>
+<blockquote>
+<div><p>It is “event_description” in default.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_key</strong> – The output key in the aggregation field in the
+samples. It is same as the input_key in default.</p></li>
+<li><p><strong>max_token_num</strong> – The max token num of the total tokens of the
+sub documents. Without limitation if it is None.</p></li>
+<li><p><strong>api_endpoint</strong> – URL endpoint for the API.</p></li>
+<li><p><strong>response_path</strong> – Path to extract content from the API response.
+Defaults to ‘choices.0.message.content’.</p></li>
+<li><p><strong>system_prompt</strong> – The system prompt.</p></li>
+<li><p><strong>sub_doc_template</strong> – The template for input text in each sample.</p></li>
+<li><p><strong>input_template</strong> – The input template.</p></li>
+<li><p><strong>try_num</strong> – The number of retry attempts when there is an API
+call error or output parsing error.</p></li>
+<li><p><strong>model_params</strong> – Parameters for initializing the API model.</p></li>
+<li><p><strong>sampling_params</strong> – Extra parameters passed to the API call.
+e.g {‘temperature’: 0.9, ‘top_p’: 0.95}</p></li>
+<li><p><strong>kwargs</strong> – Extra keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator.parse_output">
+<span class="sig-name descname"><span class="pre">parse_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/nested_aggregator.html#NestedAggregator.parse_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator.parse_output" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator.recursive_summary">
+<span class="sig-name descname"><span class="pre">recursive_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_docs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/nested_aggregator.html#NestedAggregator.recursive_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator.recursive_summary" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.NestedAggregator.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/nested_aggregator.html#NestedAggregator.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.NestedAggregator.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, batched sample –&gt; sample,
+the input must be the output of some Grouper OP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – batched sample to aggregate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>aggregated sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.aggregator.</span></span><span class="sig-name descname"><span class="pre">MetaTagsAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/meta_tags_aggregator.html#MetaTagsAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Aggregator" title="data_juicer.ops.base_op.Aggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aggregator</span></code></a></p>
+<p>Merge similar meta tags into a single, unified tag.</p>
+<p>This operator aggregates and consolidates similar meta tags from the input data. It can
+handle two scenarios:
+- When a set of target tags is provided, it maps the original tags to these predefined</p>
+<blockquote>
+<div><p>categories. If a “miscellaneous” or “other” category is included, any tags that do not
+fit into the specified categories are grouped under this label.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>When no target tags are provided, it generates reasonable categories based on the
+similarity and frequency of the input tags.</p></li>
+</ul>
+<p>The operator uses a language model (default: gpt-4o) to analyze and merge the tags. The
+system prompt, input template, and output pattern can be customized. The aggregated tags
+are then updated in the input sample’s metadata.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_SYSTEM_PROMPT">
+<span class="sig-name descname"><span class="pre">DEFAULT_SYSTEM_PROMPT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'给定一些标签以及这些标签出现的频次，合并意思相近的标签。\n要求：\n-</span> <span class="pre">任务分为两种情况，一种是给定合并后的标签，需要将合并前的标签映射到这些标签。如果给定的合并后的标签中有类似“其他”这种标签，将无法归类的标签合并到“其他”。以下是这种情况的一个样例：\n合并后的标签应限定在[科技,</span> <span class="pre">健康,</span> <span class="pre">其他]中。\n|</span> <span class="pre">合并前标签</span> <span class="pre">|</span> <span class="pre">频次</span> <span class="pre">|\n|</span> <span class="pre">------</span> <span class="pre">|</span> <span class="pre">------</span> <span class="pre">|\n|</span> <span class="pre">医疗</span> <span class="pre">|</span> <span class="pre">20</span> <span class="pre">|\n|</span> <span class="pre">信息技术</span> <span class="pre">|</span> <span class="pre">16</span> <span class="pre">|\n|</span> <span class="pre">学习</span> <span class="pre">|</span> <span class="pre">19</span> <span class="pre">|\n|</span> <span class="pre">气候变化</span> <span class="pre">|</span> <span class="pre">22</span> <span class="pre">|\n|</span> <span class="pre">人工智能</span> <span class="pre">|</span> <span class="pre">11</span> <span class="pre">|\n|</span> <span class="pre">养生</span> <span class="pre">|</span> <span class="pre">17</span> <span class="pre">|\n|</span> <span class="pre">科学创新</span> <span class="pre">|</span> <span class="pre">10</span> <span class="pre">|\n\n##</span> <span class="pre">分析：“信息技术”、“人工智能”、“科学创新”都属于“科技”类别，“医疗”和“养生”跟“健康”有关联，“学习”、“气候变化”和“科技”还有“健康”关联不强，应该被归为“其他”。\n##</span> <span class="pre">标签合并：\n**</span> <span class="pre">医疗归类为健康</span> <span class="pre">**\n**</span> <span class="pre">信息技术归类为科技</span> <span class="pre">**\n**</span> <span class="pre">学习归类为其他</span> <span class="pre">**\n**</span> <span class="pre">气候变化归类为其他</span> <span class="pre">**\n**</span> <span class="pre">人工智能归类为科技</span> <span class="pre">**\n**</span> <span class="pre">养生归类为健康</span> <span class="pre">**\n**</span> <span class="pre">科学创新归类为科技</span> <span class="pre">**\n-</span> <span class="pre">另外一种情况没有事先给定合并后的标签，需要生成合理的标签类别：|</span> <span class="pre">合并前标签</span> <span class="pre">|</span> <span class="pre">频次</span> <span class="pre">|\n|</span> <span class="pre">------</span> <span class="pre">|</span> <span class="pre">------</span> <span class="pre">|\n|</span> <span class="pre">医疗</span> <span class="pre">|</span> <span class="pre">20</span> <span class="pre">|\n|</span> <span class="pre">信息技术</span> <span class="pre">|</span> <span class="pre">16</span> <span class="pre">|\n|</span> <span class="pre">学习</span> <span class="pre">|</span> <span class="pre">2</span> <span class="pre">|\n|</span> <span class="pre">气候变化</span> <span class="pre">|</span> <span class="pre">1</span> <span class="pre">|\n|</span> <span class="pre">人工智能</span> <span class="pre">|</span> <span class="pre">11</span> <span class="pre">|\n|</span> <span class="pre">养生</span> <span class="pre">|</span> <span class="pre">17</span> <span class="pre">|\n|</span> <span class="pre">科学创新</span> <span class="pre">|</span> <span class="pre">10</span> <span class="pre">|\n\n##</span> <span class="pre">分析：“信息技术”、“人工智能”、“科学创新”这三个标签比较相近，归为同一类，都属于“科技”类别，“医疗”和“养生”都跟“健康”有关系，可以归类为“健康”，“学习”和“气候变化”跟其他标签关联度不强，且频次较低，统一归类为“其他”。\n##</span> <span class="pre">标签合并：\n**</span> <span class="pre">医疗归类为健康</span> <span class="pre">**\n**</span> <span class="pre">信息技术归类为科技</span> <span class="pre">**\n**</span> <span class="pre">学习归类为其他</span> <span class="pre">**\n**</span> <span class="pre">气候变化归类为其他</span> <span class="pre">**\n**</span> <span class="pre">人工智能归类为科技</span> <span class="pre">**\n**</span> <span class="pre">养生归类为健康</span> <span class="pre">**\n**</span> <span class="pre">科学创新归类为科技</span> <span class="pre">**\n'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_SYSTEM_PROMPT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_INPUT_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_INPUT_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{target_tag_str}|</span> <span class="pre">合并前标签</span> <span class="pre">|</span> <span class="pre">频次</span> <span class="pre">|\n|</span> <span class="pre">------</span> <span class="pre">|</span> <span class="pre">------</span> <span class="pre">|\n{tag_strs}'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_INPUT_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_TARGET_TAG_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_TARGET_TAG_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'合并后的标签应限定在[{target_tags}]中。\n'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_TARGET_TAG_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_TAG_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_TAG_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'|</span> <span class="pre">{tag}</span> <span class="pre">|</span> <span class="pre">{cnt}</span> <span class="pre">|'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_TAG_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_OUTPUT_PATTERN">
+<span class="sig-name descname"><span class="pre">DEFAULT_OUTPUT_PATTERN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\\*\\*\\s*(\\w+)归类为(\\w+)\\s*\\*\\*'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_OUTPUT_PATTERN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gpt-4o'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_tag_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'dialog_sentiment_labels'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_tag_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/meta_tags_aggregator.html#MetaTagsAggregator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.
+:param api_model: API model name.
+:param meta_tag_key: The key of the meta tag to be mapped.
+:param target_tags: The tags that is supposed to be mapped to.
+:param api_endpoint: URL endpoint for the API.
+:param response_path: Path to extract content from the API response.</p>
+<blockquote>
+<div><p>Defaults to ‘choices.0.message.content’.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>system_prompt</strong> – The system prompt.</p></li>
+<li><p><strong>input_template</strong> – The input template.</p></li>
+<li><p><strong>target_tag_template</strong> – The tap template for target tags.</p></li>
+<li><p><strong>tag_template</strong> – The tap template for each tag and its
+frequency.</p></li>
+<li><p><strong>output_pattern</strong> – The output pattern.</p></li>
+<li><p><strong>try_num</strong> – The number of retry attempts when there is an API
+call error or output parsing error.</p></li>
+<li><p><strong>model_params</strong> – Parameters for initializing the API model.</p></li>
+<li><p><strong>sampling_params</strong> – Extra parameters passed to the API call.
+e.g {‘temperature’: 0.9, ‘top_p’: 0.95}</p></li>
+<li><p><strong>kwargs</strong> – Extra keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.parse_output">
+<span class="sig-name descname"><span class="pre">parse_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/meta_tags_aggregator.html#MetaTagsAggregator.parse_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.parse_output" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.meta_map">
+<span class="sig-name descname"><span class="pre">meta_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta_cnts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/meta_tags_aggregator.html#MetaTagsAggregator.meta_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.meta_map" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MetaTagsAggregator.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/meta_tags_aggregator.html#MetaTagsAggregator.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MetaTagsAggregator.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, batched sample –&gt; sample,
+the input must be the output of some Grouper OP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – batched sample to aggregate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>aggregated sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.aggregator.</span></span><span class="sig-name descname"><span class="pre">EntityAttributeAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/entity_attribute_aggregator.html#EntityAttributeAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Aggregator" title="data_juicer.ops.base_op.Aggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aggregator</span></code></a></p>
+<p>Summarizes a given attribute of an entity from a set of documents.</p>
+<p>The operator extracts and summarizes the specified attribute of a given entity from the
+provided documents. It uses a system prompt, example prompt, and input template to
+generate the summary. The output is formatted as a markdown-style summary with the
+entity and attribute clearly labeled. The summary is limited to a specified number of
+words (default is 100). The operator uses a Hugging Face tokenizer to handle token
+limits and splits documents if necessary. If the input key or required fields are
+missing, the operator logs a warning and returns the sample unchanged. The summary is
+stored in the batch metadata under the specified output key. The system prompt, input
+template, example prompt, and output pattern can be customized.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_SYSTEM_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_SYSTEM_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'给定与`{entity}`相关的一些文档，总结`{entity}`的`{attribute}`。\n要求：\n-</span> <span class="pre">尽量使用原文专有名词\n-</span> <span class="pre">联系上下文，自动忽略上下文不一致的细节错误\n-</span> <span class="pre">只对文档中与`{entity}`的`{attribute}`有关的内容进行总结\n-</span> <span class="pre">字数限制在**{word_limit}字以内**\n-</span> <span class="pre">要求输出格式如下：\n#</span> <span class="pre">{entity}\n##</span> <span class="pre">{attribute}\n...\n{example}'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_SYSTEM_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_EXAMPLE_PROMPT">
+<span class="sig-name descname"><span class="pre">DEFAULT_EXAMPLE_PROMPT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'-</span> <span class="pre">例如，根据相关文档总结`孙悟空`的`出身背景`，**100字**以内的样例如下：\n`孙悟空`的`出身背景`总结：\n#</span> <span class="pre">孙悟空\n##</span> <span class="pre">出身背景\n号称齐天大圣，花果山水帘洞的美猴王、西行取经队伍中的大师兄。师父是唐僧玄奘，曾拜菩提祖师学艺。亲生父母未知，自石头中孕育而生。自认斗战胜佛，最怕观世音菩萨和紧箍咒。\n'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_EXAMPLE_PROMPT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_INPUT_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_INPUT_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'`{entity}`的相关文档：\n{sub_docs}\n\n`{entity}`的`{attribute}`总结：\n'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_INPUT_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_OUTPUT_PATTERN_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_OUTPUT_PATTERN_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\\#\\s*{entity}\\s*\\#\\#\\s*{attribute}\\s*(.*?)\\Z'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_OUTPUT_PATTERN_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gpt-4o'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribute</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'event_description'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'entity_attribute'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">word_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_token_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_prompt_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">example_prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_pattern_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/entity_attribute_aggregator.html#EntityAttributeAggregator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.
+:param api_model: API model name.
+:param entity: The given entity.
+:param attribute: The given attribute.
+:param input_key: The input key in the meta field of the samples.</p>
+<blockquote>
+<div><p>It is “event_description” in default.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_key</strong> – The output key in the aggregation field of the
+samples. It is “entity_attribute” in default.</p></li>
+<li><p><strong>word_limit</strong> – Prompt the output length.</p></li>
+<li><p><strong>max_token_num</strong> – The max token num of the total tokens of the
+sub documents. Without limitation if it is None.</p></li>
+<li><p><strong>api_endpoint</strong> – URL endpoint for the API.</p></li>
+<li><p><strong>response_path</strong> – Path to extract content from the API response.
+Defaults to ‘choices.0.message.content’.</p></li>
+<li><p><strong>system_prompt_template</strong> – The system prompt template.</p></li>
+<li><p><strong>example_prompt</strong> – The example part in the system prompt.</p></li>
+<li><p><strong>input_template</strong> – The input template.</p></li>
+<li><p><strong>output_pattern_template</strong> – The output template.</p></li>
+<li><p><strong>try_num</strong> – The number of retry attempts when there is an API
+call error or output parsing error.</p></li>
+<li><p><strong>model_params</strong> – Parameters for initializing the API model.</p></li>
+<li><p><strong>sampling_params</strong> – Extra parameters passed to the API call.
+e.g {‘temperature’: 0.9, ‘top_p’: 0.95}</p></li>
+<li><p><strong>kwargs</strong> – Extra keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.parse_output">
+<span class="sig-name descname"><span class="pre">parse_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/entity_attribute_aggregator.html#EntityAttributeAggregator.parse_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.parse_output" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.attribute_summary">
+<span class="sig-name descname"><span class="pre">attribute_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_docs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/entity_attribute_aggregator.html#EntityAttributeAggregator.attribute_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.attribute_summary" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.EntityAttributeAggregator.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/entity_attribute_aggregator.html#EntityAttributeAggregator.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, batched sample –&gt; sample,
+the input must be the output of some Grouper OP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – batched sample to aggregate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>aggregated sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.aggregator.</span></span><span class="sig-name descname"><span class="pre">MostRelevantEntitiesAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/most_relevant_entities_aggregator.html#MostRelevantEntitiesAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Aggregator" title="data_juicer.ops.base_op.Aggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aggregator</span></code></a></p>
+<p>Extracts and ranks entities closely related to a given entity from provided texts.</p>
+<p>The operator uses a language model API to identify and rank entities, filtering out
+entities of the same type as the given entity. The ranked list is sorted in descending
+order of importance. Input texts are aggregated and passed to the model, with an
+optional token limit. The output is parsed using a regular expression to extract the
+relevant entities. Results are stored in the batch metadata under the key
+‘most_relevant_entities’. The operator retries the API call up to a specified number of
+times in case of errors. The system prompt, input template, and output pattern can be
+customized.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_SYSTEM_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_SYSTEM_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'给定与`{entity}`相关的一些文档，总结一些与`{entity}`最为相关的`{entity_type}`。\n要求：\n-</span> <span class="pre">不用包含与{entity}为同一{entity_type}的{entity_type}。\n-</span> <span class="pre">请按照人物的重要性进行排序，**越重要人物在列表越前面**。\n-</span> <span class="pre">你的返回格式如下：\n##</span> <span class="pre">分析\n你对各个{entity_type}与{entity}关联度的分析\n##</span> <span class="pre">列表\n人物1,</span> <span class="pre">人物2,</span> <span class="pre">人物3,</span> <span class="pre">...'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_SYSTEM_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_INPUT_TEMPLATE">
+<span class="sig-name descname"><span class="pre">DEFAULT_INPUT_TEMPLATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'`{entity}`的相关文档：\n{sub_docs}\n\n与`{entity}`最相关的一些`{entity_type}`：\n'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_INPUT_TEMPLATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_OUTPUT_PATTERN">
+<span class="sig-name descname"><span class="pre">DEFAULT_OUTPUT_PATTERN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\\#\\#\\s*列表\\s*(.*?)\\Z'</span></span><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_OUTPUT_PATTERN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gpt-4o'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_entity_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'event_description'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'most_relevant_entities'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_token_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_prompt_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/most_relevant_entities_aggregator.html#MostRelevantEntitiesAggregator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.
+:param api_model: API model name.
+:param entity: The given entity.
+:param query_entity_type: The type of queried relevant entities.
+:param input_key: The input key in the meta field of the samples.</p>
+<blockquote>
+<div><p>It is “event_description” in default.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_key</strong> – The output key in the aggregation field of the
+samples. It is “most_relevant_entities” in default.</p></li>
+<li><p><strong>max_token_num</strong> – The max token num of the total tokens of the
+sub documents. Without limitation if it is None.</p></li>
+<li><p><strong>api_endpoint</strong> – URL endpoint for the API.</p></li>
+<li><p><strong>response_path</strong> – Path to extract content from the API response.
+Defaults to ‘choices.0.message.content’.</p></li>
+<li><p><strong>system_prompt_template</strong> – The system prompt template.</p></li>
+<li><p><strong>input_template</strong> – The input template.</p></li>
+<li><p><strong>output_pattern</strong> – The output pattern.</p></li>
+<li><p><strong>try_num</strong> – The number of retry attempts when there is an API
+call error or output parsing error.</p></li>
+<li><p><strong>model_params</strong> – Parameters for initializing the API model.</p></li>
+<li><p><strong>sampling_params</strong> – Extra parameters passed to the API call.
+e.g {‘temperature’: 0.9, ‘top_p’: 0.95}</p></li>
+<li><p><strong>kwargs</strong> – Extra keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.parse_output">
+<span class="sig-name descname"><span class="pre">parse_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/most_relevant_entities_aggregator.html#MostRelevantEntitiesAggregator.parse_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.parse_output" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.query_most_relevant_entities">
+<span class="sig-name descname"><span class="pre">query_most_relevant_entities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_docs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/most_relevant_entities_aggregator.html#MostRelevantEntitiesAggregator.query_most_relevant_entities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.query_most_relevant_entities" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/aggregator/most_relevant_entities_aggregator.html#MostRelevantEntitiesAggregator.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, batched sample –&gt; sample,
+the input must be the output of some Grouper OP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – batched sample to aggregate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>aggregated sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">data_juicer.ops.aggregator</a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator"><code class="docutils literal notranslate"><span class="pre">NestedAggregator</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator.DEFAULT_SYSTEM_PROMPT"><code class="docutils literal notranslate"><span class="pre">NestedAggregator.DEFAULT_SYSTEM_PROMPT</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator.DEFAULT_INPUT_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">NestedAggregator.DEFAULT_INPUT_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator.DEFAULT_SUB_DOC_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">NestedAggregator.DEFAULT_SUB_DOC_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator.__init__"><code class="docutils literal notranslate"><span class="pre">NestedAggregator.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator.parse_output"><code class="docutils literal notranslate"><span class="pre">NestedAggregator.parse_output()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator.recursive_summary"><code class="docutils literal notranslate"><span class="pre">NestedAggregator.recursive_summary()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.NestedAggregator.process_single"><code class="docutils literal notranslate"><span class="pre">NestedAggregator.process_single()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_SYSTEM_PROMPT"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.DEFAULT_SYSTEM_PROMPT</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_INPUT_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.DEFAULT_INPUT_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_TARGET_TAG_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.DEFAULT_TARGET_TAG_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_TAG_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.DEFAULT_TAG_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.DEFAULT_OUTPUT_PATTERN"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.DEFAULT_OUTPUT_PATTERN</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.__init__"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.parse_output"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.parse_output()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.meta_map"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.meta_map()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MetaTagsAggregator.process_single"><code class="docutils literal notranslate"><span class="pre">MetaTagsAggregator.process_single()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_SYSTEM_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.DEFAULT_SYSTEM_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_EXAMPLE_PROMPT"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.DEFAULT_EXAMPLE_PROMPT</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_INPUT_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.DEFAULT_INPUT_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.DEFAULT_OUTPUT_PATTERN_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.DEFAULT_OUTPUT_PATTERN_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.__init__"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.parse_output"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.parse_output()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.attribute_summary"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.attribute_summary()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.EntityAttributeAggregator.process_single"><code class="docutils literal notranslate"><span class="pre">EntityAttributeAggregator.process_single()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_SYSTEM_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator.DEFAULT_SYSTEM_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_INPUT_TEMPLATE"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator.DEFAULT_INPUT_TEMPLATE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.DEFAULT_OUTPUT_PATTERN"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator.DEFAULT_OUTPUT_PATTERN</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.__init__"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.parse_output"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator.parse_output()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.query_most_relevant_entities"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator.query_most_relevant_entities()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.aggregator.MostRelevantEntitiesAggregator.process_single"><code class="docutils literal notranslate"><span class="pre">MostRelevantEntitiesAggregator.process_single()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="data_juicer.ops.selector.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">data_juicer.ops.selector</span>
+        </a>
+        <a href="data_juicer.ops.grouper.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">data_juicer.ops.grouper</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

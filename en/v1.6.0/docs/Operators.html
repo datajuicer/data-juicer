@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Operator Schemas 算子提要 — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/docs/Operators.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.6.0/docs/Operators.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="docs/Operators"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/docs/Operators.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../docs_index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/QuickStart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ProcessData.html">Processing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AnalyzeData.html">Data Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Playground.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DatasetCfg.html">Dataset Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Export.html">Dataset Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cache.html">Cache Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tracing.html">Data Tracing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Lookup Materials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="GlobalConfig.html">Global Configuration Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Distributed Processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PartitionAndCheckpoint.html">Partitioned Processing with Checkpointing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="JobManagement.html">Job Management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extension &amp; Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="OperatorPlugins.html">Operator Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_service.html">DJ Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Juicer.html">Juicer: Natural-Language Data Refinement Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DeveloperGuide.html">How-to Guide for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Resources</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">operators</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/elastic_sharding/README.html">Elastic Multi-Node Sharding on Shared Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/video_humanvbench_simple/README.html">HumanVBench Operators Demo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="operator-schemas">
+<h1>Operator Schemas 算子提要<a class="headerlink" href="#operator-schemas" title="Link to this heading">¶</a></h1>
+<p>Operators are a collection of basic processes that assist in data modification,
+cleaning, filtering, deduplication, etc. We support a wide range of data
+sources and file formats, and allow for flexible extension to custom datasets.</p>
+<p>算子 (Operator) 是协助数据修改、清理、过滤、去重等基本流程的集合。我们支持广泛的数据来源和文件格式，并支持对自定义数据集的灵活扩展。</p>
+<p>This page offers a basic description of the operators (OPs) in Data-Juicer.
+Users can consult the
+<a class="reference external" href="https://datajuicer.github.io/data-juicer/en/main/api.html">API documentation</a>
+for the operator API reference. To learn more about each operator, click its
+adjacent ‘info’ link to access the operator’s details page, which includes its
+detailed parameters, effect demonstrations, and links to relevant unit tests
+and source code.</p>
+<p>Additionally, the ‘Reference’ column in the table is intended to cite research,
+libraries, or resource links that the operator’s design or implementation is
+based on. We welcome contributions of known or relevant reference sources to
+enrich this section.</p>
+<p>Users can also refer to and run the unit tests (<code class="docutils literal notranslate"><span class="pre">tests/ops/...</span></code>) for
+<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/tests/ops">examples of operator-wise usage</a> as well as the effects of each
+operator when applied to built-in test data samples. Besides, you can try to
+use agent to automatically route suitable OPs and call them. E.g., refer to
+<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/demos/api_service/react_data_filter_process.ipynb">Agentic Filters of DJ</a>, <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/demos/api_service/react_data_mapper_process.ipynb">Agentic Mappers of DJ</a></p>
+<p>这个页面提供了Data-Juicer中算子的基本描述。算子的API参考，用户可以直接查阅<a class="reference external" href="https://datajuicer.github.io/data-juicer/en/main/api.html">API文档</a>。
+要详细了解每个算子，请点击其旁的info链接进入算子详情页，其中包含了算子参数、效果演示，以及相关单元测试和源码的链接。</p>
+<p>此外，表格中的『参考』（Reference）列则用于注明算子设计或实现所依据的研究、库或资料链接，欢迎您提供已知或相关的参考来源，共同完善此部分内容。</p>
+<p>用户还可以查看、运行单元测试 (<code class="docutils literal notranslate"><span class="pre">tests/ops/...</span></code>)，来体验<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/tests/ops">各OP的用法示例</a>以及每个OP作用于内置测试数据样本时的效果。例如，参考<a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/demos/api_service/react_data_filter_process.ipynb">Agentic Filters of DJ</a>, <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/demos/api_service/react_data_mapper_process.ipynb">Agentic Mappers of DJ</a></p>
+<section id="overview">
+<h2>Overview  概览<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p>The operators in Data-Juicer are categorized into 8 types.
+Data-Juicer 中的算子分为以下 8 种类型。</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type 类型</p></th>
+<th class="head text-center"><p>Number 数量</p></th>
+<th class="head"><p>Description 描述</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.ops.aggregator.html#module-data_juicer.ops.aggregator" title="data_juicer.ops.aggregator"><span class="xref myst py py-mod">aggregator</span></a></p></td>
+<td class="text-center"><p>4</p></td>
+<td><p>Aggregate for batched samples, such as summary or conclusion. 对批量样本进行汇总，如得出总结或结论。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.ops.deduplicator.html#module-data_juicer.ops.deduplicator" title="data_juicer.ops.deduplicator"><span class="xref myst py py-mod">deduplicator</span></a></p></td>
+<td class="text-center"><p>10</p></td>
+<td><p>Detects and removes duplicate samples. 识别、删除重复样本。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.core.html#data_juicer.core.NestedDataset.filter" title="data_juicer.core.NestedDataset.filter"><span class="xref myst py py-meth">filter</span></a></p></td>
+<td class="text-center"><p>58</p></td>
+<td><p>Filters out low-quality samples. 过滤低质量样本。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.format.formatter.html#module-data_juicer.format.formatter" title="data_juicer.format.formatter"><span class="xref myst py py-mod">formatter</span></a></p></td>
+<td class="text-center"><p>8</p></td>
+<td><p>Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.ops.grouper.html#module-data_juicer.ops.grouper" title="data_juicer.ops.grouper"><span class="xref myst py py-mod">grouper</span></a></p></td>
+<td class="text-center"><p>3</p></td>
+<td><p>Group samples to batched samples. 将样本分组，每一组组成一个批量样本。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.ops.mapper.html#module-data_juicer.ops.mapper" title="data_juicer.ops.mapper"><span class="xref myst py py-mod">mapper</span></a></p></td>
+<td class="text-center"><p>138</p></td>
+<td><p>Edits and transforms samples. 对数据样本进行编辑和转换。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.ops.pipeline.html#module-data_juicer.ops.pipeline" title="data_juicer.ops.pipeline"><span class="xref myst py py-mod">pipeline</span></a></p></td>
+<td class="text-center"><p>3</p></td>
+<td><p>Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.ops.selector.html#module-data_juicer.ops.selector" title="data_juicer.ops.selector"><span class="xref myst py py-mod">selector</span></a></p></td>
+<td class="text-center"><p>6</p></td>
+<td><p>Selects top samples based on ranking. 基于排序选取高质量样本。</p></td>
+</tr>
+</tbody>
+</table>
+<p>All the specific operators are listed below, each featured with several capability tags.
+下面列出所有具体算子，每种算子都通过多个标签来注明其主要功能。</p>
+<ul class="simple">
+<li><p>Modality Tags</p>
+<ul>
+<li><p>🔤Text: process text data specifically. 专用于处理文本。</p></li>
+<li><p>🏞Image: process image data specifically. 专用于处理图像。</p></li>
+<li><p>📣Audio: process audio data specifically. 专用于处理音频。</p></li>
+<li><p>🎬Video: process video data specifically. 专用于处理视频。</p></li>
+<li><p>🔮Multimodal: process multimodal data. 用于处理多模态数据。</p></li>
+</ul>
+</li>
+<li><p>Resource Tags</p>
+<ul>
+<li><p>💻CPU: only requires CPU resource. 只需要 CPU 资源。</p></li>
+<li><p>🚀GPU: requires GPU/CUDA resource as well. 额外需要 GPU/CUDA 资源。</p></li>
+</ul>
+</li>
+<li><p>Usability Tags</p>
+<ul>
+<li><p>🔴Alpha: alpha version OP. Only the basic OP implementations are finished. 表示 alpha 版本算子。只完成了基础的算子实现。</p></li>
+<li><p>🟡Beta: beta version OP. Based on the alpha version, unittests for this OP are added as well. 表示 beta 版本算子。基于 alpha 版本，添加了算子的单元测试。</p></li>
+<li><p>🟢Stable: stable version OP. Based on the beta version, OP optimizations related to DJ (e.g. model management, batched processing, OP fusion, …) are added to this OP. 表示 stable 版本算子。基于 beta 版本，完善了DJ相关的算子优化项（如模型管理，批处理，算子融合等）。</p></li>
+</ul>
+</li>
+<li><p>Model Tags</p>
+<ul>
+<li><p>🔗API: equipped with API-based models. (e.g. ChatGPT, GPT-4o). 支持基于 API 调用模型（如 ChatGPT，GPT-4o）。</p></li>
+<li><p>🌊vLLM: equipped with models supported by vLLM. 支持基于 vLLM 进行模型推理。</p></li>
+<li><p>🧩HF: equipped with models from HuggingFace Hub. 支持来自于 HuggingFace Hub 的模型。</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="aggregator">
+<h2>aggregator <a name="aggregator"/><a class="headerlink" href="#aggregator" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>entity_attribute_aggregator</p></td>
+<td><p>💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Summarizes a given attribute of an entity from a set of documents. 汇总一组文档中实体的给定属性。</p></td>
+<td><p><a class="reference internal" href="operators/aggregator/entity_attribute_aggregator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>meta_tags_aggregator</p></td>
+<td><p>💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Merge similar meta tags into a single, unified tag. 将类似的元标记合并到一个统一的标记中。</p></td>
+<td><p><a class="reference internal" href="operators/aggregator/meta_tags_aggregator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>most_relevant_entities_aggregator</p></td>
+<td><p>💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Extracts and ranks entities closely related to a given entity from provided texts. 从提供的文本中提取与给定实体密切相关的实体并对其进行排名。</p></td>
+<td><p><a class="reference internal" href="operators/aggregator/most_relevant_entities_aggregator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>nested_aggregator</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Aggregates nested content from multiple samples into a single summary. 将多个示例中的嵌套内容聚合到单个摘要中。</p></td>
+<td><p><a class="reference internal" href="operators/aggregator/nested_aggregator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="deduplicator">
+<h2>deduplicator <a name="deduplicator"/><a class="headerlink" href="#deduplicator" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>document_deduplicator</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Deduplicates samples at the document level using exact matching. 使用完全匹配在文档级别删除重复的样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/document_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>document_line_deduplicator</p></td>
+<td><p>🔤Text 💻CPU 🟡Beta</p></td>
+<td><p>Deduplicates at the line level across documents. 在文档间按行级别去重。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/document_line_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>document_minhash_deduplicator</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Deduplicates samples at the document level using MinHash LSH. 使用MinHash LSH在文档级别删除重复样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>document_simhash_deduplicator</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Deduplicates samples at the document level using SimHash. 使用SimHash在文档级别删除重复的样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/document_simhash_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_deduplicator</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Deduplicates samples at the document level by exact matching of images. 通过图像的精确匹配在文档级别删除重复的样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/image_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>ray_bts_minhash_deduplicator</p></td>
+<td><p>🔤Text 💻CPU 🟡Beta</p></td>
+<td><p>A MinhashLSH deduplicator that operates in Ray distributed mode. 在Ray分布式模式下运行的MinhashLSH重复数据删除程序。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://ieeexplore.ieee.org/document/10598116">BTS Union-Find</a></p></td>
+</tr>
+<tr class="row-even"><td><p>ray_document_deduplicator</p></td>
+<td><p>🔤Text 💻CPU 🟡Beta</p></td>
+<td><p>Deduplicates samples at the document level using exact matching in Ray distributed mode. 在Ray分布式模式下使用精确匹配在文档级别删除重复的样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/ray_document_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>ray_image_deduplicator</p></td>
+<td><p>🏞Image 💻CPU 🟡Beta</p></td>
+<td><p>Deduplicates samples at the document level using exact matching of images in Ray distributed mode. 在光线分布模式下使用图像的精确匹配在文档级别删除重复样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/ray_image_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>ray_video_deduplicator</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Deduplicates samples at document-level using exact matching of videos in Ray distributed mode. 在Ray分布式模式下使用视频的精确匹配在文档级删除重复样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/ray_video_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_deduplicator</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Deduplicates samples at the document level using exact matching of videos. 使用视频的精确匹配在文档级别删除重复的样本。</p></td>
+<td><p><a class="reference internal" href="operators/deduplicator/video_deduplicator.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="filter">
+<h2>filter <a name="filter"/><a class="headerlink" href="#filter" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>alphanumeric_filter</p></td>
+<td><p>🔤Text 💻CPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples with an alphabet/numeric ratio within a specific range. 过滤器，以保持具有特定范围内的字母/数字比率的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/alphanumeric_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>audio_duration_filter</p></td>
+<td><p>📣Audio 💻CPU 🟢Stable</p></td>
+<td><p>Keep data samples whose audio durations are within a specified range. 保留音频持续时间在指定范围内的数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/audio_duration_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>audio_nmf_snr_filter</p></td>
+<td><p>📣Audio 💻CPU 🟢Stable</p></td>
+<td><p>Keep data samples whose audio Signal-to-Noise Ratios (SNRs) are within a specified range. 保留音频信噪比 (snr) 在指定范围内的数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/audio_nmf_snr_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>audio_size_filter</p></td>
+<td><p>📣Audio 💻CPU 🟢Stable</p></td>
+<td><p>Keep data samples based on the size of their audio files. 根据音频文件的大小保留数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/audio_size_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>average_line_length_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with average line length within a specific range. 过滤器，以保持平均线长度在特定范围内的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/average_line_length_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>character_repetition_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with character-level n-gram repetition ratio within a specific range. 过滤器将具有字符级n-gram重复比的样本保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/character_repetition_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>flagged_words_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with flagged-word ratio in a specified range. 过滤器将标记词比率的样本保留在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/flagged_words_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>general_field_filter</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Filter to keep samples based on a general field filter condition. 根据常规字段筛选条件保留样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/general_field_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_aesthetics_filter</p></td>
+<td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples with aesthetics scores within a specific range. 过滤以保持美学分数在特定范围内的样品。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_aesthetics_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_aspect_ratio_filter</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with image aspect ratio within a specific range. 过滤器，以保持样本的图像纵横比在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_aspect_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_face_count_filter</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with the number of faces within a specific range. 过滤以保持样本的面数在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_face_count_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_face_ratio_filter</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with face area ratios within a specific range. 过滤以保持面面积比在特定范围内的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_face_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_nsfw_filter</p></td>
+<td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples whose images have nsfw scores in a specified range. 过滤器保留其图像的nsfw分数在指定范围内的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_nsfw_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_pair_similarity_filter</p></td>
+<td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep image pairs with similarities between images within a specific range. 过滤器将图像之间具有相似性的图像对保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_pair_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_shape_filter</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with image shape (width, height) within specific ranges. 过滤器，以保持样本的图像形状 (宽度，高度) 在特定的范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_shape_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_size_filter</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Keep data samples whose image size (in Bytes/KB/MB/…) is within a specific range. 保留图像大小 (以字节/KB/MB/… 为单位) 在特定范围内的数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_size_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_subplot_filter</p></td>
+<td><p>🏞Image 💻CPU 🟡Beta</p></td>
+<td><p>Filter to detect and remove samples with images containing subplots. 过滤器来检测和删除包含子图的图像样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_subplot_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_text_matching_filter</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples with image-text matching scores within a specific range. 过滤器将图像文本匹配分数的样本保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_text_matching_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_text_similarity_filter</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples with image-text similarity within a specified range. 过滤器将具有图像-文本相似性的样本保持在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_text_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_watermark_filter</p></td>
+<td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples whose images have no watermark with high probability. 过滤器以保持其图像没有水印的样本具有高概率。</p></td>
+<td><p><a class="reference internal" href="operators/filter/image_watermark_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>in_context_influence_filter</p></td>
+<td><p>🚀GPU 🟢Stable</p></td>
+<td><p>Filter to keep texts based on their in-context influence on a validation set. 过滤以根据文本在上下文中对验证集的影响来保留文本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/in_context_influence_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>instruction_following_difficulty_filter</p></td>
+<td><p>🚀GPU 🟡Beta</p></td>
+<td><p>Filter to keep texts based on their instruction following difficulty (IFD, <a class="reference external" href="https://arxiv.org/abs/2308.12032">https://arxiv.org/abs/2308.12032</a>) score. 过滤以保持文本基于他们的指令跟随难度 (IFD， <a class="reference external" href="https://arxiv.org/abs/">https://arxiv.org/abs/</a> 2308.12032) 分数。</p></td>
+<td><p><a class="reference internal" href="operators/filter/instruction_following_difficulty_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2308.12032">IFD</a></p></td>
+</tr>
+<tr class="row-even"><td><p>language_id_score_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples in a specific language with a confidence score above a threshold. 过滤器以保留置信度高于阈值的特定语言的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/language_id_score_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>llm_analysis_filter</p></td>
+<td><p>🚀GPU 🌊vLLM 🧩HF 🔗API 🟡Beta</p></td>
+<td><p>Base filter class for leveraging LLMs to analyze and filter data samples. 用于利用LLMs分析和过滤数据样本的基本筛选器类。</p></td>
+<td><p><a class="reference internal" href="operators/filter/llm_analysis_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>llm_condition_filter</p></td>
+<td><p>🔤Text 🚀GPU 🌊vLLM 🧩HF 🔗API 🟡Beta</p></td>
+<td><p>Filter by user-given natural language condition (LLM yes/no). 按用户给定的自然语言条件进行过滤 (LLM是/否)。</p></td>
+<td><p><a class="reference internal" href="operators/filter/llm_condition_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>llm_difficulty_score_filter</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Filter to keep samples with high difficulty scores estimated by an LLM. 过滤器以保留由LLM估计的高难度分数的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/llm_difficulty_score_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>llm_perplexity_filter</p></td>
+<td><p>🚀GPU 🧩HF 🟡Beta</p></td>
+<td><p>Filter to keep samples with perplexity scores within a specified range, computed using a specified LLM. 过滤器将困惑分数的样本保留在指定范围内，使用指定的LLM计算。</p></td>
+<td><p><a class="reference internal" href="operators/filter/llm_perplexity_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>llm_quality_score_filter</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Filter to keep samples with a high quality score estimated by a language model. 过滤器，以保留具有语言模型估计的高质量分数的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/llm_quality_score_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>llm_task_relevance_filter</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Filter to keep samples with high relevance scores to validation tasks estimated by an LLM. 过滤器以保留与LLM估计的验证任务具有高相关性分数的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/llm_task_relevance_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum_line_length_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with a maximum line length within a specified range. 筛选器将最大行长度的样本保持在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/maximum_line_length_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>perplexity_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with perplexity score in a specified range. 过滤以保持困惑分数在指定范围内的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/perplexity_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>phrase_grounding_recall_filter</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples based on the phrase grounding recall of phrases extracted from text in images. 根据从图像中的文本中提取的短语接地召回来过滤以保留样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/phrase_grounding_recall_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>special_characters_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with special-character ratio within a specific range. 过滤器，以将具有特殊字符比率的样本保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/special_characters_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>specified_field_filter</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Filter samples based on the specified field information. 根据指定的字段信息筛选样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/specified_field_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>specified_numeric_field_filter</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Filter samples based on a specified numeric field value. 根据指定的数值字段值筛选样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/specified_numeric_field_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>stopwords_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with stopword ratio within a specified range. 过滤器将停止词比率的样本保持在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/stopwords_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>suffix_filter</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with specified suffix. 过滤器以保留具有指定后缀的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/suffix_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>text_action_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep texts that contain a minimum number of actions. 过滤以保留包含最少数量操作的文本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/text_action_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>text_embd_similarity_filter</p></td>
+<td><p>🔤Text 🚀GPU 🔗API 🟡Beta</p></td>
+<td><p>Filter to keep texts whose average embedding similarity to a set of given validation texts falls within a specific range. 过滤器，以保留与一组给定验证文本的平均嵌入相似度在特定范围内的文本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/text_embd_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2503.01807">Echo Embeddings</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>text_entity_dependency_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Identify and filter text samples based on entity dependencies. 根据实体依赖关系识别和过滤文本样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/text_entity_dependency_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>text_length_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with total text length within a specific range. 过滤以保持文本总长度在特定范围内的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/text_length_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>text_pair_similarity_filter</p></td>
+<td><p>🔤Text 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep text pairs with similarities within a specific range. 过滤以将具有相似性的文本对保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/text_pair_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>token_num_filter</p></td>
+<td><p>🔤Text 💻CPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples with a total token number within a specified range. 筛选器将总令牌数的样本保留在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/token_num_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_aesthetics_filter</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep data samples with aesthetics scores for specified frames in the videos within a specific range. 过滤器将视频中指定帧的美学得分数据样本保留在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_aesthetics_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_aspect_ratio_filter</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with video aspect ratio within a specific range. 过滤器将视频纵横比的样本保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_aspect_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_duration_filter</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Keep data samples whose videos’ durations are within a specified range. 保留视频持续时间在指定范围内的数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_duration_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_face_ratio_filter</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Keep data samples whose videos’ face-to-frame ratios are within a specified range. 保留视频的脸帧比在指定范围内的数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_face_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_frames_text_similarity_filter</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples based on the similarity between video frame images and text within a specific range. 根据视频帧图像和文本之间的相似性进行过滤，以保持样本在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_frames_text_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_motion_score_filter</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with video motion scores from OpenCV within a specific range. 过滤器将来自OpenCV的视频运动分数的样本保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_motion_score_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_motion_score_ptlflow_filter</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Filter to keep samples with video motion scores from ptlflow within a specified range. 过滤器以将来自ptlflow的具有视频运动分数的样本保持在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_motion_score_ptlflow_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_motion_score_raft_filter</p></td>
+<td><p>🎬Video 🚀GPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with video motion scores within a specified range. 过滤器将视频运动分数的样本保持在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_motion_score_raft_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2003.12039">RAFT</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_nsfw_filter</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples whose videos have nsfw scores in a specified range. 过滤器以保留其视频的nsfw分数在指定范围内的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_nsfw_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_ocr_area_ratio_filter</p></td>
+<td><p>🎬Video 🚀GPU 🟢Stable</p></td>
+<td><p>Keep data samples whose detected text area ratios for specified frames in the video are within a specified range. 保留检测到的视频中指定帧的文本面积比率在指定范围内的数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_ocr_area_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_resolution_filter</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Keep data samples whose videos’ resolutions are within a specified range. 保留视频分辨率在指定范围内的数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_resolution_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_tagging_from_frames_filter</p></td>
+<td><p>🎬Video 🚀GPU 🟢Stable</p></td>
+<td><p>Filter to keep samples whose videos contain specified tags. 过滤器以保留其视频包含指定标签的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_tagging_from_frames_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_watermark_filter</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Filter to keep samples whose videos have no watermark with high probability. 过滤器以保持其视频具有高概率没有水印的样本。</p></td>
+<td><p><a class="reference internal" href="operators/filter/video_watermark_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>word_repetition_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with word-level n-gram repetition ratio within a specific range. 过滤器将单词级n-gram重复比率的样本保持在特定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/word_repetition_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>words_num_filter</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Filter to keep samples with a total word count within a specified range. 过滤器将样本的总字数保持在指定范围内。</p></td>
+<td><p><a class="reference internal" href="operators/filter/words_num_filter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="formatter">
+<h2>formatter <a name="formatter"/><a class="headerlink" href="#formatter" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>csv_formatter</p></td>
+<td><p>🟢Stable</p></td>
+<td><p>The class is used to load and format csv-type files. 类用于加载和格式化csv类型的文件。</p></td>
+<td><p><a class="reference internal" href="operators/formatter/csv_formatter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>empty_formatter</p></td>
+<td><p>🟢Stable</p></td>
+<td><p>The class is used to create empty data. 类用于创建空数据。</p></td>
+<td><p><a class="reference internal" href="operators/formatter/empty_formatter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>json_formatter</p></td>
+<td><p>🟡Beta</p></td>
+<td><p>Load json-type files. 加载json类型的文件。</p></td>
+<td><p><a class="reference internal" href="operators/formatter/json_formatter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>local_formatter</p></td>
+<td><p>🟢Stable</p></td>
+<td><p>The class is used to load a dataset from local files or local directory. 类用于从本地文件或本地目录加载数据集。</p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>parquet_formatter</p></td>
+<td><p>🟢Stable</p></td>
+<td><p>The class is used to load and format parquet-type files. 该类用于加载和格式化镶木地板类型的文件。</p></td>
+<td><p><a class="reference internal" href="operators/formatter/parquet_formatter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>remote_formatter</p></td>
+<td><p>🟢Stable</p></td>
+<td><p>The class is used to load a dataset from repository of huggingface hub. 该类用于从huggingface hub的存储库加载数据集。</p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>text_formatter</p></td>
+<td><p>🟡Beta</p></td>
+<td><p>The class is used to load and format text-type files. 类用于加载和格式化文本类型文件。</p></td>
+<td><p><a class="reference internal" href="operators/formatter/text_formatter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>tsv_formatter</p></td>
+<td><p>🟢Stable</p></td>
+<td><p>The class is used to load and format tsv-type files. 该类用于加载和格式化tsv类型的文件。</p></td>
+<td><p><a class="reference internal" href="operators/formatter/tsv_formatter.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="grouper">
+<h2>grouper <a name="grouper"/><a class="headerlink" href="#grouper" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>key_value_grouper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Groups samples into batches based on values in specified keys. 根据指定键中的值将样本分组为批处理。</p></td>
+<td><p><a class="reference internal" href="operators/grouper/key_value_grouper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>naive_grouper</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Group all samples in a dataset into a single batched sample. 将数据集中的所有样本分组为单个批处理样本。</p></td>
+<td><p><a class="reference internal" href="operators/grouper/naive_grouper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>naive_reverse_grouper</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Split batched samples into individual samples. 将批处理的样品分成单个样品。</p></td>
+<td><p><a class="reference internal" href="operators/grouper/naive_reverse_grouper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mapper">
+<h2>mapper <a name="mapper"/><a class="headerlink" href="#mapper" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>agent_bad_case_signal_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Attach structured bad-case <em>signals</em> and a conservative <em>tier</em> to each sample. 将结构化的坏情况 * 信号 * 和保守 * 层 * 附加到每个样本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/agent_bad_case_signal_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>agent_dialog_normalize_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟡Beta</p></td>
+<td><p>Normalize agent format (messages + choices) to DJ fields. 将代理格式 (消息选择) 标准化为DJ字段。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/agent_dialog_normalize_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>agent_insight_llm_mapper</p></td>
+<td><p>💻CPU 🔗API 🟡Beta</p></td>
+<td><p>Synthesize stats + LLM eval text into <code class="docutils literal notranslate"><span class="pre">meta.agent_insight_llm</span></code> (JSON). 将stats LLM eval文本合成为 ‘’meta.agent_insight_llm ‘’(JSON)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/agent_insight_llm_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>agent_skill_insight_mapper</p></td>
+<td><p>💻CPU 🔗API 🟡Beta</p></td>
+<td><p>Summarize agent_tool_types and agent_skill_types into insights via LLM. 通过大语言模型将代理工具类型和代理技能类型总结为洞察。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/agent_skill_insight_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>agent_tool_relevance_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>Rough fit between tools/capabilities and the user task (uses meta tool tags). 工具/功能与用户任务之间的粗略匹配 (使用元工具标签)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/agent_tool_relevance_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/agent_graders/">OpenJudge tool graders</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>agent_tool_type_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Set primary_tool_type and dominant_tool_types from meta.agent_tool_types. 从meta.Agent_ tool_types设置primary_tool_type和dominant_tool_types。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/agent_tool_type_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>agent_trace_coherence_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔴Alpha</p></td>
+<td><p>Coherence of the flattened session <code class="docutils literal notranslate"><span class="pre">text</span></code> (goal focus, few detours). 扁平化会话 “文本” 的连贯性 (目标集中，少走弯路)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/agent_trace_coherence_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/agent_graders/">OpenJudge trajectory graders</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>audio_add_gaussian_noise_mapper</p></td>
+<td><p>📣Audio 💻CPU 🟡Beta</p></td>
+<td><p>Mapper to add Gaussian noise to audio samples. 映射器将高斯噪声添加到音频样本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/audio_add_gaussian_noise_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>audio_ffmpeg_wrapped_mapper</p></td>
+<td><p>📣Audio 💻CPU 🟢Stable</p></td>
+<td><p>Wraps FFmpeg audio filters for processing audio files in a dataset. 包装FFmpeg音频过滤器，用于处理数据集中的音频文件。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/audio_ffmpeg_wrapped_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>calibrate_qa_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Calibrates question-answer pairs based on reference text using an API model. 使用API模型根据参考文本校准问答对。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/calibrate_qa_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>calibrate_query_mapper</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Calibrate query in question-answer pairs based on reference text. 基于参考文本校准问答对中的查询。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/calibrate_query_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>calibrate_response_mapper</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Calibrate response in question-answer pairs based on reference text. 根据参考文本校准问答对中的回答。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/calibrate_response_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>chinese_convert_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to convert Chinese text between Traditional, Simplified, and Japanese Kanji. 映射器在繁体、简体和日文汉字之间转换中文文本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/chinese_convert_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>clean_copyright_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Cleans copyright comments at the beginning of text samples. 清除文本示例开头的版权注释。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/clean_copyright_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>clean_email_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Cleans email addresses from text samples using a regular expression. 使用正则表达式从文本示例中清除电子邮件地址。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/clean_email_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>clean_html_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Cleans HTML code from text samples, converting HTML to plain text. 从文本示例中清除HTML代码，将HTML转换为纯文本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/clean_html_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>clean_ip_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Cleans IPv4 and IPv6 addresses from text samples. 从文本示例中清除IPv4和IPv6地址。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/clean_ip_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>clean_links_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to clean links like http/https/ftp in text samples. 映射器来清理链接，如文本示例中的http/https/ftp。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/clean_links_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>detect_character_attributes_mapper</p></td>
+<td><p>🚀GPU 🟡Beta</p></td>
+<td><p>Takes an image, a caption, and main character names as input to extract the characters’ attributes. 根据给定的图像、图像描述信息和（多个）角色名称，提取图像中主要角色的属性。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/detect_character_attributes_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2505.16915">DetailMaster</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>detect_character_locations_mapper</p></td>
+<td><p>🚀GPU 🟡Beta</p></td>
+<td><p>Given an image and a list of main character names, extract the bounding boxes for each present character. 给定一张图像和主要角色的名称列表，提取每个在场角色的边界框。(YOLOE + MLLM)</p></td>
+<td><p><a class="reference internal" href="operators/mapper/detect_character_locations_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2505.16915">DetailMaster</a></p></td>
+</tr>
+<tr class="row-even"><td><p>detect_main_character_mapper</p></td>
+<td><p>🚀GPU 🟡Beta</p></td>
+<td><p>Extract all main character names based on the given image and its caption. 根据给定的图像及其图像描述，提取所有主要角色的名字。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/detect_main_character_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2505.16915">DetailMaster</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>dialog_clarification_quality_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>Quality of clarifying questions when the ask is vague; direct solve when clear. 当询问含糊不清时澄清问题的质量; 明确时直接解决。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_clarification_quality_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/">OpenJudge multi-turn</a></p></td>
+</tr>
+<tr class="row-even"><td><p>dialog_coreference_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>Whether the reply resolves pronouns/deictics in the latest user turn. 回复是否在最近的用户回合解析代词/指示词。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_coreference_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/">OpenJudge multi-turn</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>dialog_error_recovery_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>When the user disputes a prior assistant mistake, is the reply corrective. 当用户对先前的助手错误提出异议时，是答复纠正。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_error_recovery_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/">OpenJudge multi-turn</a></p></td>
+</tr>
+<tr class="row-even"><td><p>dialog_intent_detection_mapper</p></td>
+<td><p>💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Generates user’s intent labels in a dialog by analyzing the history, query, and response. 通过分析历史记录、查询和响应，在对话框中生成用户的意图标签。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_intent_detection_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>dialog_memory_consistency_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>Whether the final assistant turn respects prior user constraints and facts. 最终助理转弯是否尊重先前的用户约束和事实。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_memory_consistency_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/">OpenJudge multi-turn</a></p></td>
+</tr>
+<tr class="row-even"><td><p>dialog_non_repetition_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>New information vs prior assistant turns in the same prompt window. 新信息与先前助手在同一个提示窗口中打开。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_non_repetition_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/">OpenJudge multi-turn</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>dialog_proactivity_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>Balance helpful initiative against rambling or filler. 平衡有益的主动性和漫不经心或填充。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_proactivity_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/">OpenJudge multi-turn</a></p></td>
+</tr>
+<tr class="row-even"><td><p>dialog_sentiment_detection_mapper</p></td>
+<td><p>💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Generates sentiment labels and analysis for user queries in a dialog. 在对话框中为用户查询生成情绪标签和分析。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_sentiment_detection_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>dialog_sentiment_intensity_mapper</p></td>
+<td><p>💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Mapper to predict user’s sentiment intensity in a dialog, ranging from -5 to 5. Mapper预测用户在对话框中的情绪强度，范围从-5到5。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_sentiment_intensity_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>dialog_topic_detection_mapper</p></td>
+<td><p>💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Generates user’s topic labels and analysis in a dialog. 在对话框中生成用户的主题标签和分析。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_topic_detection_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>dialog_topic_shift_mapper</p></td>
+<td><p>💻CPU 🔴Alpha</p></td>
+<td><p>Focus on new topic vs clinging to an obsolete thread. 专注于新主题vs坚持一个过时的线程。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/dialog_topic_shift_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://agentscope-ai.github.io/OpenJudge/built_in_graders/multi_turn/">OpenJudge multi-turn</a></p></td>
+</tr>
+<tr class="row-even"><td><p>download_file_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Mapper to download URL files to local files or load them into memory. 映射器将URL文件下载到本地文件或将其加载到内存中。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/download_file_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>expand_macro_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Expands macro definitions in the document body of LaTeX samples. 展开LaTeX示例文档主体中的宏定义。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/expand_macro_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>export_to_lerobot_mapper</p></td>
+<td><p>🔮Multimodal 💻CPU 🟡Beta</p></td>
+<td><p>Export processed video data to LeRobot v2.0 dataset format (LIBERO-style). 将处理后的视频数据导出为LeRobot v2.0数据集格式 (LIBERO风格)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/export_to_lerobot_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>extract_entity_attribute_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Extracts attributes for given entities from the text and stores them in the sample’s metadata. 从文本中提取给定实体的属性，并将其存储在示例的元数据中。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/extract_entity_attribute_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>extract_entity_relation_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Extracts entities and relations from text to build a knowledge graph. 从文本中提取实体和关系以构建知识图谱。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/extract_entity_relation_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>extract_event_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Extracts events and relevant characters from the text. 从文本中提取事件和相关字符。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/extract_event_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>extract_keyword_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Generate keywords for the text. 为文本生成关键字。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/extract_keyword_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>extract_nickname_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Extracts nickname relationships in the text using a language model. 使用语言模型提取文本中的昵称关系。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/extract_nickname_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>extract_support_text_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Extracts a supporting sub-text from the original text based on a given summary. 根据给定的摘要从原始文本中提取支持子文本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/extract_support_text_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>extract_tables_from_html_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟡Beta</p></td>
+<td><p>Extracts tables from HTML content and stores them in a specified field. 从HTML内容中提取表并将其存储在指定字段中。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/extract_tables_from_html_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>fix_unicode_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Fixes unicode errors in text samples. 修复文本示例中的unicode错误。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/fix_unicode_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>generate_qa_from_examples_mapper</p></td>
+<td><p>🚀GPU 🌊vLLM 🧩HF 🟢Stable</p></td>
+<td><p>Generates question and answer pairs from examples using a Hugging Face model. 使用拥抱面部模型从示例生成问题和答案对。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/generate_qa_from_examples_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>generate_qa_from_text_mapper</p></td>
+<td><p>🔤Text 🚀GPU 🌊vLLM 🧩HF 🟢Stable</p></td>
+<td><p>Generates question and answer pairs from text using a specified model. 使用指定的模型从文本生成问题和答案对。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/generate_qa_from_text_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_blur_mapper</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Blurs images in the dataset with a specified probability and blur type. 使用指定的概率和模糊类型对数据集中的图像进行模糊处理。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_blur_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_captioning_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Generates image captions using a Hugging Face model and appends them to samples. 使用拥抱面部模型生成图像标题，并将其附加到样本中。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_captioning_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_detection_yolo_mapper</p></td>
+<td><p>🏞Image 🚀GPU 🟡Beta</p></td>
+<td><p>Perform object detection using YOLO on images and return bounding boxes and class labels. 使用YOLO对图像执行对象检测，并返回边界框和类标签。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_detection_yolo_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_diffusion_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Generate images using a diffusion model based on provided captions. 使用基于提供的字幕的扩散模型生成图像。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_diffusion_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_face_blur_mapper</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to blur faces detected in images. 映射器模糊图像中检测到的人脸。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_face_blur_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_mmpose_mapper</p></td>
+<td><p>🏞Image 🚀GPU 🟡Beta</p></td>
+<td><p>Mapper to perform human keypoint detection inference using MMPose models. Mapper使用MMPose模型执行人体关键点检测推断。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_mmpose_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_remove_background_mapper</p></td>
+<td><p>🏞Image 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to remove the background of images. 映射器删除图像的背景。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_remove_background_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_sam_3d_body_mapper</p></td>
+<td><p>🏞Image 🚀GPU 🟡Beta</p></td>
+<td><p>SAM 3D Body (3DB) is a promptable model for single-image full-body 3D human mesh recovery (HMR). SAM 3D Body (3DB) 是用于单图像全身3D人体网格恢复 (HMR) 的可提示模型。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_sam_3d_body_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_segment_mapper</p></td>
+<td><p>🏞Image 🚀GPU 🟢Stable</p></td>
+<td><p>Perform segment-anything on images and return the bounding boxes. 对图像执行segment-任何操作并返回边界框。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_segment_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>image_tagging_mapper</p></td>
+<td><p>🏞Image 🚀GPU 🟢Stable</p></td>
+<td><p>Generates image tags for each image in the sample. 为样本中的每个图像生成图像标记。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_tagging_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_tagging_vlm_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🔗API 🌊vLLM 🟡Beta</p></td>
+<td><p>Mapper to generates image tags. 映射器生成图像标签。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/image_tagging_vlm_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>imgdiff_difference_area_generator_mapper</p></td>
+<td><p>🚀GPU 🟡Beta</p></td>
+<td><p>Generates and filters bounding boxes for image pairs based on similarity, segmentation, and text matching. 根据相似性、分割和文本匹配生成和过滤图像对的边界框。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/imgdiff_difference_area_generator_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2408.04594">ImgDiff</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>imgdiff_difference_caption_generator_mapper</p></td>
+<td><p>🚀GPU 🟡Beta</p></td>
+<td><p>Generates difference captions for bounding box regions in two images. 为两个图像中的边界框区域生成差异字幕。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/imgdiff_difference_caption_generator_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2408.04594">ImgDiff</a></p></td>
+</tr>
+<tr class="row-even"><td><p>latex_figure_context_extractor_mapper</p></td>
+<td><p>🔮Multimodal 💻CPU 🟡Beta</p></td>
+<td><p>Extracts figures and their citing context from LaTeX source. 从LaTeX源中提取图形及其引用上下文。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/latex_figure_context_extractor_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>latex_merge_tex_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟡Beta</p></td>
+<td><p>Extracts and concatenates all <code class="docutils literal notranslate"><span class="pre">.tex</span></code> files from a compressed LaTeX project archive into a single text field. 将压缩的LaTeX项目存档中的所有 “.tex’’ 文件提取并连接到单个文本字段中。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/latex_merge_tex_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>llm_extract_mapper</p></td>
+<td><p>🚀GPU 🌊vLLM 🧩HF 🔗API 🟡Beta</p></td>
+<td><p>Extract structured fields from text using an LLM; write results to meta. 使用LLM从文本中提取结构化字段; 将结果写入meta。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/llm_extract_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>mllm_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Mapper to use MLLMs for visual question answering tasks. Mapper使用MLLMs进行视觉问答任务。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/mllm_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>nlpaug_en_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Augments English text samples using various methods from the nlpaug library. 使用nlpaug库中的各种方法增强英语文本样本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/nlpaug_en_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>nlpcda_zh_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Augments Chinese text samples using the nlpcda library. 使用nlpcda库扩充中文文本样本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/nlpcda_zh_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>optimize_prompt_mapper</p></td>
+<td><p>🚀GPU 🌊vLLM 🧩HF 🔗API 🟡Beta</p></td>
+<td><p>Optimize prompts based on existing ones in the same batch. 根据同一批次中的现有提示优化提示。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/optimize_prompt_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>optimize_qa_mapper</p></td>
+<td><p>🚀GPU 🌊vLLM 🧩HF 🔗API 🟢Stable</p></td>
+<td><p>Mapper to optimize question-answer pairs. 映射器来优化问题-答案对。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/optimize_qa_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>optimize_query_mapper</p></td>
+<td><p>🚀GPU 🟢Stable</p></td>
+<td><p>Optimize queries in question-answer pairs to make them more specific and detailed. 优化问答对中的查询，使其更加具体和详细。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/optimize_query_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>optimize_response_mapper</p></td>
+<td><p>🚀GPU 🟢Stable</p></td>
+<td><p>Optimize response in question-answer pairs to be more detailed and specific. 优化问答对中的响应，使其更加详细和具体。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/optimize_response_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>pair_preference_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Mapper to construct paired preference samples by generating a rejected response and its reason. Mapper通过生成拒绝响应及其原因来构造成对的偏好样本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/pair_preference_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>pii_llm_suspect_mapper</p></td>
+<td><p>💻CPU 🔗API 🟡Beta</p></td>
+<td><p>LLM audit (and optional redaction) for possibly missed PII. LLM审计 (和可选的编辑) 可能错过的PII。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/pii_llm_suspect_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>pii_redaction_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Redact PII in text and optionally in messages/query/response. 在文本中以及可选地在消息/查询/响应中编辑PII。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/pii_redaction_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>punctuation_normalization_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Normalizes unicode punctuations to their English equivalents in text samples. 将unicode标点规范化为文本示例中的英语等效项。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/punctuation_normalization_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>python_file_mapper</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Executes a Python function defined in a file on input data. 对输入数据执行文件中定义的Python函数。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/python_file_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>python_lambda_mapper</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Mapper for applying a Python lambda function to data samples. Mapper，用于将Python lambda函数应用于数据样本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/python_lambda_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>query_intent_detection_mapper</p></td>
+<td><p>🚀GPU 🧩HF 🧩HF 🟢Stable</p></td>
+<td><p>Predicts the user’s intent label and corresponding score for a given query. 为给定查询预测用户的意图标签和相应的分数。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/query_intent_detection_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>query_sentiment_detection_mapper</p></td>
+<td><p>🚀GPU 🧩HF 🧩HF 🟢Stable</p></td>
+<td><p>Predicts user’s sentiment label (‘negative’, ‘neutral’, ‘positive’) in a query. 在查询中预测用户的情绪标签 (“负面” 、 “中性” 、 “正面”)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/query_sentiment_detection_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>query_topic_detection_mapper</p></td>
+<td><p>🚀GPU 🧩HF 🧩HF 🟢Stable</p></td>
+<td><p>Predicts the topic label and its corresponding score for a given query. 预测给定查询的主题标签及其相应的分数。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/query_topic_detection_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>relation_identity_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Identify the relation between two entities in a given text. 确定给定文本中两个实体之间的关系。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/relation_identity_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>remove_bibliography_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Removes bibliography sections at the end of LaTeX documents. 删除LaTeX文档末尾的参考书目部分。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_bibliography_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>remove_comments_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Removes comments from documents, currently supporting only ‘tex’ format. 从文档中删除注释，当前仅支持 “文本” 格式。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_comments_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>remove_header_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Removes headers at the beginning of documents in LaTeX samples. 删除LaTeX示例中文档开头的标题。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_header_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>remove_long_words_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to remove long words within a specific range. 映射器删除特定范围内的长词。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_long_words_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>remove_non_chinese_character_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Removes non-Chinese characters from text samples. 从文本样本中删除非中文字符。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_non_chinese_character_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>remove_repeat_sentences_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to remove repeat sentences in text samples. 映射器删除文本样本中的重复句子。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_repeat_sentences_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>remove_specific_chars_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Removes specific characters from text samples. 从文本示例中删除特定字符。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_specific_chars_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>remove_table_text_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to remove table texts from text samples. 映射器从文本样本中删除表文本。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_table_text_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>remove_words_with_incorrect_substrings_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to remove words containing specified incorrect substrings. 映射程序删除包含指定的不正确子字符串的单词。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/remove_words_with_incorrect_substrings_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>replace_content_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Replaces content in the text that matches a specific regular expression pattern with a designated replacement string. 用指定的替换字符串替换与特定正则表达式模式匹配的文本中的内容。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/replace_content_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>s3_download_file_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Mapper to download files from S3 to local files or load them into memory. Mapper将文件从S3下载到本地文件或将其加载到内存中。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/s3_download_file_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>s3_upload_file_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Mapper to upload local files to S3 and update paths to S3 URLs. Mapper将本地文件上传到S3并更新S3 url的路径。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/s3_upload_file_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>sdxl_prompt2prompt_mapper</p></td>
+<td><p>🔤Text 🚀GPU 🟢Stable</p></td>
+<td><p>Generates pairs of similar images using the SDXL model. 使用SDXL模型生成成对的相似图像。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/sdxl_prompt2prompt_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>sentence_augmentation_mapper</p></td>
+<td><p>🔤Text 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Augments sentences by generating enhanced versions using a Hugging Face model. 通过使用拥抱面部模型生成增强版本来增强句子。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/sentence_augmentation_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>sentence_split_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Splits text samples into individual sentences based on the specified language. 根据指定的语言将文本样本拆分为单个句子。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/sentence_split_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>text_chunk_mapper</p></td>
+<td><p>🔤Text 💻CPU 🔗API 🟢Stable</p></td>
+<td><p>Split input text into chunks based on specified criteria. 根据指定的条件将输入文本拆分为块。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/text_chunk_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>text_tagging_by_prompt_mapper</p></td>
+<td><p>🔤Text 🚀GPU 🌊vLLM 🧩HF 🟡Beta</p></td>
+<td><p>Mapper to generate text tags using prompt with LLM. Mapper使用带有LLM的prompt生成文本标记。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/text_tagging_by_prompt_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>tool_success_tagger_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Set meta tool_success_count, tool_fail_count, tool_success_ratio. 设置meta tool_success_count、tool_fail_count、tool_success_ratio。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/tool_success_tagger_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>usage_counter_mapper</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Write token usage to meta from choices/usage (OpenAI/Anthropic-style). 从选择/用法 (OpenAI/Anthropic风格) 将令牌用法写入meta。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/usage_counter_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>vggt_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Input a video of a single scene, and use VGGT to extract information including Camera Pose, Depth Maps, Point Maps, and 3D Point Tracks. 输入单个场景的视频，并使用VGGT提取包括相机姿态、深度图、点图和3D点轨迹的信息。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/vggt_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_active_speaker_detect_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Detect active speakers in a video by analyzing visual face tracks and audio signals, including consistency checks for gender and age. 通过分析视觉面部轨迹和音频信号 (包括性别和年龄的一致性检查) 来检测视频中的活动说话者。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_active_speaker_detect_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_atomic_action_segment_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Segment a unified hand trajectory into atomic action clips. 将统一的手轨迹分割成原子动作片段。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_atomic_action_segment_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2510.21571">arxiv 2510.21571</a></p></td>
+</tr>
+<tr class="row-even"><td><p>video_audio_ASR_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Mapper to generate video tags from audio streams extracted by video using the Audio Spectrogram Transformer. 映射器使用音频频谱图转换器从视频提取的音频流生成视频标签。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_audio_ASR_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_audio_detect_age_gender_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model. 使用预训练的wav2vec2模型从视频音频信号中检测年龄和性别 (男性，女性，儿童)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_audio_detect_age_gender_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-even"><td><p>video_audio_speech_emotion_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Mapper to generate video tags from audio streams extracted by video using the Audio Spectrogram Transformer. 映射器使用音频频谱图转换器从视频提取的音频流生成视频标签。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_audio_speech_emotion_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_camera_calibration_deepcalib_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Compute the camera intrinsics and field of view (FOV) for a static camera using DeepCalib. 使用DeepCalib计算静态摄像机的摄像机内部和视场 (FOV)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_camera_calibration_deepcalib_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_camera_calibration_droidcalib_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Extract camera intrinsics from videos using DroidCalib. 使用DroidCalib从视频中提取相机内部函数。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_camera_calibration_droidcalib_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_camera_calibration_moge_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Compute the camera intrinsics and field of view (FOV) for a static camera using Moge-2 (more accurate than DeepCalib). 使用Moge-2 (比DeepCalib更准确) 计算静态摄像机的摄像机内部函数和视场 (FOV)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_camera_calibration_moge_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_camera_pose_megasam_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Extract camera poses by leveraging MegaSaM and MoGe-2. 通过利用MegaSaM和MoGe-2提取相机姿势。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_camera_pose_megasam_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_captioning_face_attribute_emotion_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟡Beta</p></td>
+<td><p>Generate facial attribute and emotion descriptions for each person tracked in a video using a video-to-text model. 使用视频到文本模型为视频中跟踪的每个人生成面部属性和情感描述。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_captioning_face_attribute_emotion_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-even"><td><p>video_captioning_from_audio_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Mapper to caption a video according to its audio streams based on Qwen-Audio model. 映射器根据基于qwen-audio模型的音频流为视频添加字幕。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_captioning_from_audio_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_captioning_from_frames_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Generates video captions from sampled frames using an image-to-text model. 使用图像到文本模型从采样帧生成视频字幕。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_captioning_from_frames_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_captioning_from_human_tracks_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟡Beta</p></td>
+<td><p>Mapper to generate samples whose captions are generated based on a video-to-text model and sampled video frame. 映射器生成样本，其字幕是基于视频到文本模型和采样的视频帧生成的。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_captioning_from_human_tracks_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_captioning_from_summarizer_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Mapper to generate video captions by summarizing several kinds of generated texts (captions from video/audio/frames, tags from audio/frames, …). 映射器通过总结几种生成的文本 (来自视频/音频/帧的字幕，来自音频/帧的标签，…) 来生成视频字幕。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_captioning_from_summarizer_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_captioning_from_video_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Generates video captions using a Hugging Face video-to-text model and sampled video frames. 使用拥抱面部视频到文本模型和采样视频帧生成视频字幕。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_captioning_from_video_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_captioning_from_vlm_mapper</p></td>
+<td><p>🔮Multimodal 🚀GPU 🌊vLLM 🧩HF 🟡Beta</p></td>
+<td><p>Generates video captions using a VLM that accepts videos as inputs. 使用接受视频作为输入的VLM生成视频字幕。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_captioning_from_vlm_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_clip_reassembly_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Reassemble hand-action results from overlapping video clips. 重新组合-重叠视频剪辑的手部动作结果。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_clip_reassembly_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2510.21571">arxiv 2510.21571</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_depth_estimation_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Perform depth estimation on the video. 对视频进行深度估计。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_depth_estimation_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_extract_frames_mapper</p></td>
+<td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to extract frames from video files according to specified methods. 映射器根据指定的方法从视频文件中提取帧。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_extract_frames_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_face_blur_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Mapper to blur faces detected in videos. 映射器模糊在视频中检测到的人脸。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_face_blur_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_ffmpeg_wrapped_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Wraps FFmpeg video filters for processing video files in a dataset. 包装FFmpeg视频过滤器，用于处理数据集中的视频文件。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_ffmpeg_wrapped_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_hand_action_compute_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Compute 7-DoF actions and 8-dim states from hand reconstruction and camera pose results. 根据手重建和相机姿态结果计算7自由度动作和8-dim状态。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_hand_action_compute_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_hand_motion_smooth_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Apply smoothing to world-space hand motions and remove outliers. 对世界空间手部运动应用平滑并移除异常值。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_hand_motion_smooth_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2510.21571">arxiv 2510.21571</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_hand_reconstruction_hawor_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Use HaWoR and MoGe-2 for hand reconstruction. 使用HaWoR和MoGe-2进行手部重建。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_hand_reconstruction_hawor_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_hand_reconstruction_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🔴Alpha</p></td>
+<td><p>Use the WiLoR model for hand localization and reconstruction. 使用WiLoR模型进行手部定位和重建。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_hand_reconstruction_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_human_tracks_extraction_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Extract face and human bounding box tracks from videos. 从视频中提取人脸和人体边界框轨迹.</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-even"><td><p>video_human_tracks_face_demographic_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Mapper to generate samples whose captions are generated based on a video-to-text model and sampled video frame. 映射器生成样本，其字幕是基于视频到文本模型和采样的视频帧生成的。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_object_segmenting_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟡Beta</p></td>
+<td><p>Text-guided semantic segmentation of valid objects throughout the video (YOLOE + SAM2). 在整个视频中对有效对象进行文本引导的语义分割 (YOLOE SAM2)。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_remove_watermark_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Remove watermarks from videos based on specified regions. 根据指定区域从视频中删除水印。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_resize_aspect_ratio_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Resizes videos to fit within a specified aspect ratio range. 调整视频大小以适应指定的宽高比范围。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_resize_resolution_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟢Stable</p></td>
+<td><p>Resizes video resolution based on specified width and height constraints. 根据指定的宽度和高度限制调整视频分辨率。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_split_by_duration_mapper</p></td>
+<td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
+<td><p>Splits videos into segments based on a specified duration. 根据指定的持续时间将视频拆分为多个片段。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_split_by_duration_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_split_by_key_frame_mapper</p></td>
+<td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
+<td><p>Splits a video into segments based on key frames. 根据关键帧将视频分割为多个片段。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_split_by_key_frame_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_split_by_scene_mapper</p></td>
+<td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
+<td><p>Splits videos into scene clips based on detected scene changes. 根据检测到的场景变化将视频拆分为场景剪辑。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_split_by_scene_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_tagging_from_audio_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
+<td><p>Generates video tags from audio streams using the Audio Spectrogram Transformer. 使用音频频谱图转换器从音频流生成视频标签。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_tagging_from_audio_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>video_tagging_from_frames_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟢Stable</p></td>
+<td><p>Generates video tags from frames extracted from videos. 从视频中提取的帧生成视频标签。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_trajectory_overlay_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Prepare VLM-ready frames by sampling and overlaying hand trajectories. 通过采样和覆盖手部轨迹来准备VLM就绪帧。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_trajectory_overlay_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p><a class="reference external" href="https://arxiv.org/abs/2510.21571">arxiv 2510.21571</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>video_undistort_mapper</p></td>
+<td><p>🎬Video 💻CPU 🟡Beta</p></td>
+<td><p>Undistort raw videos with corresponding camera intrinsics and distortion coefficients. 使用相应的相机固有特性和失真系数对原始视频进行失真。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_undistort_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_whole_body_pose_estimation_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation. 输入包含人的视频，并使用DWPose模型来提取视频中人类主体的身体、手、脚和面部关键点，即2D全身姿态估计。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>whitespace_normalization_mapper</p></td>
+<td><p>🔤Text 💻CPU 🟢Stable</p></td>
+<td><p>Normalizes various types of whitespace characters to standard spaces in text samples. 将文本样本中各种类型的空白字符规范化为标准空格。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="pipeline">
+<h2>pipeline <a name="pipeline"/><a class="headerlink" href="#pipeline" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>llm_ray_vllm_engine_pipeline</p></td>
+<td><p>🚀GPU 🟡Beta</p></td>
+<td><p>Pipeline to generate response using vLLM engine on Ray. 使用Ray上的vLLM引擎生成响应的管道。</p></td>
+<td><p><a class="reference internal" href="operators/pipeline/llm_inference_with_ray_vllm_pipeline.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>ray_repartition_pipeline</p></td>
+<td><p>💻CPU 🟡Beta</p></td>
+<td><p>Repartition a Ray Dataset into a target number of blocks. 将 Ray 数据集重新分区为目标数量的块。</p></td>
+<td><p><a class="reference internal" href="operators/pipeline/ray_repartition_pipeline.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>vlm_ray_vllm_engine_pipeline</p></td>
+<td><p>🏞Image 🚀GPU 🟡Beta</p></td>
+<td><p>Pipeline to generate response using vLLM engine on Ray. 使用Ray上的vLLM引擎生成响应的管道。</p></td>
+<td><p><a class="reference internal" href="operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="selector">
+<h2>selector <a name="selector"/><a class="headerlink" href="#selector" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator 算子</p></th>
+<th class="head"><p>Tags 标签</p></th>
+<th class="head"><p>Description 描述</p></th>
+<th class="head"><p>Details 详情</p></th>
+<th class="head"><p>Reference 参考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>frequency_specified_field_selector</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Selector to filter samples based on the frequency of a specified field. 选择器根据指定字段的频率过滤样本。</p></td>
+<td><p><a class="reference internal" href="operators/selector/frequency_specified_field_selector.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>image_ohem_selector</p></td>
+<td><p>🏞Image 🚀GPU 🟡Beta</p></td>
+<td><p>Keep the highest-loss image samples (Online Hard Example Mining). 保留损失最大的样本（在线难例挖掘）。</p></td>
+<td><p><a class="reference internal" href="operators/selector/image_ohem_selector.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>random_selector</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Randomly selects a subset of samples from the dataset. 从数据集中随机选择样本子集。</p></td>
+<td><p><a class="reference internal" href="operators/selector/random_selector.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>range_specified_field_selector</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Selects a range of samples based on the sorted values of a specified field. 根据指定字段的排序值选择采样范围。</p></td>
+<td><p><a class="reference internal" href="operators/selector/range_specified_field_selector.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>tags_specified_field_selector</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Selector to filter samples based on the tags of a specified field. 选择器根据指定字段的标签过滤样本。</p></td>
+<td><p><a class="reference internal" href="operators/selector/tags_specified_field_selector.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>topk_specified_field_selector</p></td>
+<td><p>💻CPU 🟢Stable</p></td>
+<td><p>Selects top samples based on the sorted values of a specified field. 根据指定字段的排序值选择顶部样本。</p></td>
+<td><p><a class="reference internal" href="operators/selector/topk_specified_field_selector.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="contributing">
+<h2>Contributing  贡献<a class="headerlink" href="#contributing" title="Link to this heading">¶</a></h2>
+<p>We welcome contributions of adding new operators. Please refer to <a class="reference internal" href="DeveloperGuide.html"><span class="std std-doc">How-to Guide
+for Developers</span></a>.</p>
+<p>我们欢迎社区贡献新的算子，具体请参考<span class="xref myst">开发者指南</span>。</p>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Operator Schemas 算子提要</a><ul>
+<li><a class="reference internal" href="#overview">Overview  概览</a></li>
+<li><a class="reference internal" href="#aggregator">aggregator <a name="aggregator"/></a></li>
+<li><a class="reference internal" href="#deduplicator">deduplicator <a name="deduplicator"/></a></li>
+<li><a class="reference internal" href="#filter">filter <a name="filter"/></a></li>
+<li><a class="reference internal" href="#formatter">formatter <a name="formatter"/></a></li>
+<li><a class="reference internal" href="#grouper">grouper <a name="grouper"/></a></li>
+<li><a class="reference internal" href="#mapper">mapper <a name="mapper"/></a></li>
+<li><a class="reference internal" href="#pipeline">pipeline <a name="pipeline"/></a></li>
+<li><a class="reference internal" href="#selector">selector <a name="selector"/></a></li>
+<li><a class="reference internal" href="#contributing">Contributing  贡献</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="GlobalConfig.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">Global Configuration Reference</span>
+        </a>
+        <a href="Distributed.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">Distributed Data Processing in Data-Juicer</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

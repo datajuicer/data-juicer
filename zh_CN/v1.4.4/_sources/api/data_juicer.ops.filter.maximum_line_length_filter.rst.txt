@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.maximum\_line\_length\_filter module
+============================================================
+
+.. automodule:: data_juicer.ops.filter.maximum_line_length_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

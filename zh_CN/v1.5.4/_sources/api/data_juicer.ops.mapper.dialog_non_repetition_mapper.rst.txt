@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.dialog\_non\_repetition\_mapper module
+==============================================================
+
+.. automodule:: data_juicer.ops.mapper.dialog_non_repetition_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

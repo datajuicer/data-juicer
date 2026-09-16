@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>How-to Guide for Developers — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/docs/DeveloperGuide.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.6.0/docs/DeveloperGuide_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="docs/DeveloperGuide"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/docs/DeveloperGuide.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../docs_index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/QuickStart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ProcessData.html">Processing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AnalyzeData.html">Data Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Playground.html">Web Playground</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DatasetCfg.html">Dataset Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Export.html">Dataset Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cache.html">Cache Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tracing.html">Data Tracing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Lookup Materials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="GlobalConfig.html">Global Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Operators.html">Operator Schemas 算子提要</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Distributed Processing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PartitionAndCheckpoint.html">Partitioned Processing with Checkpointing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="JobManagement.html">Job Management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Extension &amp; Development</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="OperatorPlugins.html">Operator Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_service.html">DJ Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Juicer.html">Juicer: Natural-Language Data Refinement Model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How-to Guide for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Resources</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+<li class="toctree-l1"><a class="reference internal" href="BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">operators</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="operators/aggregator/index.html">Aggregator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/entity_attribute_aggregator.html">entity_attribute_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/meta_tags_aggregator.html">meta_tags_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/most_relevant_entities_aggregator.html">most_relevant_entities_aggregator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/aggregator/nested_aggregator.html">nested_aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/deduplicator/index.html">Deduplicator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_deduplicator.html">document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_line_deduplicator.html">document_line_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator.html">document_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_document_deduplicator.html">ray_document_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_image_deduplicator.html">ray_image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/ray_video_deduplicator.html">ray_video_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/deduplicator/video_deduplicator.html">video_deduplicator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/filter/index.html">Filter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/alphanumeric_filter.html">alphanumeric_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_duration_filter.html">audio_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_nmf_snr_filter.html">audio_nmf_snr_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/audio_size_filter.html">audio_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/average_line_length_filter.html">average_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/character_repetition_filter.html">character_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/flagged_words_filter.html">flagged_words_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/general_field_filter.html">general_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aesthetics_filter.html">image_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_aspect_ratio_filter.html">image_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_count_filter.html">image_face_count_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_face_ratio_filter.html">image_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_nsfw_filter.html">image_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_pair_similarity_filter.html">image_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_shape_filter.html">image_shape_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_size_filter.html">image_size_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_subplot_filter.html">image_subplot_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_matching_filter.html">image_text_matching_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_text_similarity_filter.html">image_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/image_watermark_filter.html">image_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/in_context_influence_filter.html">in_context_influence_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/instruction_following_difficulty_filter.html">instruction_following_difficulty_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/language_id_score_filter.html">language_id_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_analysis_filter.html">llm_analysis_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_condition_filter.html">llm_condition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_difficulty_score_filter.html">llm_difficulty_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_perplexity_filter.html">llm_perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_quality_score_filter.html">llm_quality_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/llm_task_relevance_filter.html">llm_task_relevance_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/maximum_line_length_filter.html">maximum_line_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/perplexity_filter.html">perplexity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/phrase_grounding_recall_filter.html">phrase_grounding_recall_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/special_characters_filter.html">special_characters_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_field_filter.html">specified_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/specified_numeric_field_filter.html">specified_numeric_field_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/stopwords_filter.html">stopwords_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/suffix_filter.html">suffix_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_action_filter.html">text_action_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_embd_similarity_filter.html">text_embd_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_entity_dependency_filter.html">text_entity_dependency_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_length_filter.html">text_length_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/text_pair_similarity_filter.html">text_pair_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/token_num_filter.html">token_num_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aesthetics_filter.html">video_aesthetics_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_aspect_ratio_filter.html">video_aspect_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_duration_filter.html">video_duration_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_face_ratio_filter.html">video_face_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_frames_text_similarity_filter.html">video_frames_text_similarity_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_filter.html">video_motion_score_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_ptlflow_filter.html">video_motion_score_ptlflow_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_motion_score_raft_filter.html">video_motion_score_raft_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_nsfw_filter.html">video_nsfw_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_ocr_area_ratio_filter.html">video_ocr_area_ratio_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_resolution_filter.html">video_resolution_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_tagging_from_frames_filter.html">video_tagging_from_frames_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/video_watermark_filter.html">video_watermark_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/word_repetition_filter.html">word_repetition_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/filter/words_num_filter.html">words_num_filter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/mapper/index.html">Mapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_bad_case_signal_mapper.html">agent_bad_case_signal_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_dialog_normalize_mapper.html">agent_dialog_normalize_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_insight_llm_mapper.html">agent_insight_llm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_skill_insight_mapper.html">agent_skill_insight_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_relevance_mapper.html">agent_tool_relevance_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_tool_type_mapper.html">agent_tool_type_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/agent_trace_coherence_mapper.html">agent_trace_coherence_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_add_gaussian_noise_mapper.html">audio_add_gaussian_noise_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/audio_ffmpeg_wrapped_mapper.html">audio_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_qa_mapper.html">calibrate_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_query_mapper.html">calibrate_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/calibrate_response_mapper.html">calibrate_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/chinese_convert_mapper.html">chinese_convert_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_copyright_mapper.html">clean_copyright_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_email_mapper.html">clean_email_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_html_mapper.html">clean_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_ip_mapper.html">clean_ip_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/clean_links_mapper.html">clean_links_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_attributes_mapper.html">detect_character_attributes_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_character_locations_mapper.html">detect_character_locations_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/detect_main_character_mapper.html">detect_main_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_clarification_quality_mapper.html">dialog_clarification_quality_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_coreference_mapper.html">dialog_coreference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_error_recovery_mapper.html">dialog_error_recovery_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_intent_detection_mapper.html">dialog_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_memory_consistency_mapper.html">dialog_memory_consistency_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_non_repetition_mapper.html">dialog_non_repetition_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_proactivity_mapper.html">dialog_proactivity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_detection_mapper.html">dialog_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_sentiment_intensity_mapper.html">dialog_sentiment_intensity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_detection_mapper.html">dialog_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/dialog_topic_shift_mapper.html">dialog_topic_shift_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/download_file_mapper.html">download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/expand_macro_mapper.html">expand_macro_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/export_to_lerobot_mapper.html">export_to_lerobot_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_attribute_mapper.html">extract_entity_attribute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_entity_relation_mapper.html">extract_entity_relation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_event_mapper.html">extract_event_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_keyword_mapper.html">extract_keyword_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_nickname_mapper.html">extract_nickname_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_support_text_mapper.html">extract_support_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/extract_tables_from_html_mapper.html">extract_tables_from_html_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/fix_unicode_mapper.html">fix_unicode_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/general_fused_op.html">general_fused_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_examples_mapper.html">generate_qa_from_examples_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/generate_qa_from_text_mapper.html">generate_qa_from_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/human_preference_annotation_mapper.html">human_preference_annotation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_blur_mapper.html">image_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_captioning_mapper.html">image_captioning_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_detection_yolo_mapper.html">image_detection_yolo_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_diffusion_mapper.html">image_diffusion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_face_blur_mapper.html">image_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_mmpose_mapper.html">image_mmpose_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_remove_background_mapper.html">image_remove_background_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_sam_3d_body_mapper.html">image_sam_3d_body_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_segment_mapper.html">image_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_mapper.html">image_tagging_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/image_tagging_vlm_mapper.html">image_tagging_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_area_generator_mapper.html">imgdiff_difference_area_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/imgdiff_difference_caption_generator_mapper.html">imgdiff_difference_caption_generator_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_figure_context_extractor_mapper.html">latex_figure_context_extractor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/latex_merge_tex_mapper.html">latex_merge_tex_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/llm_extract_mapper.html">llm_extract_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/mllm_mapper.html">mllm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpaug_en_mapper.html">nlpaug_en_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/nlpcda_zh_mapper.html">nlpcda_zh_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_prompt_mapper.html">optimize_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_qa_mapper.html">optimize_qa_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_query_mapper.html">optimize_query_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/optimize_response_mapper.html">optimize_response_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pair_preference_mapper.html">pair_preference_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_llm_suspect_mapper.html">pii_llm_suspect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/pii_redaction_mapper.html">pii_redaction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/punctuation_normalization_mapper.html">punctuation_normalization_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_file_mapper.html">python_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/python_lambda_mapper.html">python_lambda_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_intent_detection_mapper.html">query_intent_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_sentiment_detection_mapper.html">query_sentiment_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/query_topic_detection_mapper.html">query_topic_detection_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/relation_identity_mapper.html">relation_identity_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_bibliography_mapper.html">remove_bibliography_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_comments_mapper.html">remove_comments_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_header_mapper.html">remove_header_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_long_words_mapper.html">remove_long_words_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_non_chinese_character_mapper.html">remove_non_chinese_character_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_repeat_sentences_mapper.html">remove_repeat_sentences_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_specific_chars_mapper.html">remove_specific_chars_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_table_text_mapper.html">remove_table_text_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/remove_words_with_incorrect_substrings_mapper.html">remove_words_with_incorrect_substrings_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/replace_content_mapper.html">replace_content_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_download_file_mapper.html">s3_download_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/s3_upload_file_mapper.html">s3_upload_file_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sdxl_prompt2prompt_mapper.html">sdxl_prompt2prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_augmentation_mapper.html">sentence_augmentation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/sentence_split_mapper.html">sentence_split_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_chunk_mapper.html">text_chunk_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/text_tagging_by_prompt_mapper.html">text_tagging_by_prompt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/tool_success_tagger_mapper.html">tool_success_tagger_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/usage_counter_mapper.html">usage_counter_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/vggt_mapper.html">vggt_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_active_speaker_detect_mapper.html">video_active_speaker_detect_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_atomic_action_segment_mapper.html">video_atomic_action_segment_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_ASR_mapper.html">video_audio_ASR_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_detect_age_gender_mapper.html">video_audio_detect_age_gender_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_audio_speech_emotion_mapper.html">video_audio_speech_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_deepcalib_mapper.html">video_camera_calibration_deepcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_droidcalib_mapper.html">video_camera_calibration_droidcalib_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_calibration_moge_mapper.html">video_camera_calibration_moge_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_camera_pose_megasam_mapper.html">video_camera_pose_megasam_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_face_attribute_emotion_mapper.html">video_captioning_face_attribute_emotion_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_audio_mapper.html">video_captioning_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_frames_mapper.html">video_captioning_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_human_tracks_mapper.html">video_captioning_from_human_tracks_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_summarizer_mapper.html">video_captioning_from_summarizer_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_video_mapper.html">video_captioning_from_video_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_captioning_from_vlm_mapper.html">video_captioning_from_vlm_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_clip_reassembly_mapper.html">video_clip_reassembly_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_depth_estimation_mapper.html">video_depth_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_extract_frames_mapper.html">video_extract_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_face_blur_mapper.html">video_face_blur_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_ffmpeg_wrapped_mapper.html">video_ffmpeg_wrapped_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_action_compute_mapper.html">video_hand_action_compute_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html">video_remove_watermark_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html">video_resize_aspect_ratio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html">video_resize_resolution_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_duration_mapper.html">video_split_by_duration_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_key_frame_mapper.html">video_split_by_key_frame_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_split_by_scene_mapper.html">video_split_by_scene_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_audio_mapper.html">video_tagging_from_audio_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html">video_tagging_from_frames_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_trajectory_overlay_mapper.html">video_trajectory_overlay_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_undistort_mapper.html">video_undistort_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html">video_whole_body_pose_estimation_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html">whitespace_normalization_mapper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/formatter/index.html">Formatter</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/csv_formatter.html">csv_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/empty_formatter.html">empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/json_formatter.html">json_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/parquet_formatter.html">parquet_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/ray_empty_formatter.html">ray_empty_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/text_formatter.html">text_formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/formatter/tsv_formatter.html">tsv_formatter</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/grouper/index.html">Grouper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/key_value_grouper.html">key_value_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_grouper.html">naive_grouper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/grouper/naive_reverse_grouper.html">naive_reverse_grouper</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/selector/index.html">Selector</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/frequency_specified_field_selector.html">frequency_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/image_ohem_selector.html">image_ohem_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/random_selector.html">random_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/range_specified_field_selector.html">range_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/tags_specified_field_selector.html">tags_specified_field_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/selector/topk_specified_field_selector.html">topk_specified_field_selector</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="operators/pipeline/index.html">Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/llm_inference_with_ray_vllm_pipeline.html">llm_ray_vllm_engine_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/ray_repartition_pipeline.html">ray_repartition_pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/pipeline/vlm_inference_with_ray_vllm_pipeline.html">vlm_ray_vllm_engine_pipeline</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/agent/README.html">Agent Quality &amp; Bad-Case Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/ego_hand_action_annotation/README.html">VLA Visualization Demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/elastic_sharding/README.html">Elastic Multi-Node Sharding on Shared Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/video_humanvbench_simple/README.html">HumanVBench Operators Demo</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README.html">Preprocess Tools</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/humanvbench_models/README.html">HumanVBench Models Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="how-to-guide-for-developers">
+<h1>How-to Guide for Developers<a class="headerlink" href="#how-to-guide-for-developers" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="#how-to-guide-for-developers">How-to Guide for Developers</a></p>
+<ul>
+<li><p><a class="reference internal" href="#build-your-own-ops-quickly">1. Build Your Own OPs Quickly</a></p></li>
+<li><p><a class="reference internal" href="#build-your-own-data-recipes-and-configs">2. Build Your Own Data Recipes and Configs</a></p>
+<ul>
+<li><p><a class="reference internal" href="#fruitful-config-sources-type-hints">2.1 Fruitful Config Sources &amp; Type Hints</a></p></li>
+<li><p><a class="reference internal" href="#hierarchical-configs-and-helps">2.2 Hierarchical Configs and Helps</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#dependency-management">3. Dependency Management</a></p>
+<ul>
+<li><p><a class="reference internal" href="#installing-uv">3.1 Installing uv</a></p></li>
+<li><p><a class="reference internal" href="#virtual-environment-management">3.2 Virtual Environment Management</a></p></li>
+<li><p><a class="reference internal" href="#adding-new-dependencies">3.3 Adding New Dependencies</a></p></li>
+<li><p><a class="reference internal" href="#development-setup">3.4 Development Setup</a></p></li>
+<li><p><a class="reference internal" href="#lazy-loading">3.5 Lazy Loading</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#contribution-to-the-open-source-community">4. Contribution to the Open-source Community</a></p>
+<ul>
+<li><p><a class="reference internal" href="#coding-style">4.1 Coding Style</a></p></li>
+<li><p><a class="reference internal" href="#documentation-style">4.2 Documentation Style</a></p></li>
+<li><p><a class="reference internal" href="#contribute-your-new-ops-to-the-open-source-community">4.3 Contribute Your New OPs to the Open-Source Community</a></p>
+<ul>
+<li><p><a class="reference internal" href="#providing-basic-op-functions-alpha-version">4.3.1 Providing Basic OP Functions (alpha version)</a></p></li>
+<li><p><a class="reference internal" href="#making-the-op-more-usable-beta-version">4.3.2 Making the OP More Usable (beta version)</a></p></li>
+<li><p><a class="reference internal" href="#making-op-faster-more-complete-stable-version">4.3.3 Making OP Faster &amp; More complete (stable version)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#contribute-your-new-recipes">4.4 Contribute Your New Recipes</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<section id="build-your-own-ops-quickly">
+<h2>1. Build Your Own OPs Quickly<a class="headerlink" href="#build-your-own-ops-quickly" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Data-Juicer allows everybody to easily build their own OPs.</p></li>
+<li><p>Before implementing a new OP, please refer to existing <a class="reference internal" href="Operators.html"><span class="std std-doc">OperatorsZoo</span></a> to avoid unnecessary duplication.</p></li>
+</ul>
+<blockquote>
+<div><p>The development process of the following example takes directly adding operators in the corresponding module of the source code as an example. If an operator is added externally, the new operator can be registered by passing the parameter <code class="docutils literal notranslate"><span class="pre">--custom-operator-paths</span></code> or configuring the <code class="docutils literal notranslate"><span class="pre">custom_operator_paths</span></code> parameter in the yaml file, for example: <code class="docutils literal notranslate"><span class="pre">custom_operator_paths:</span> <span class="pre">['/path/to/new/op.py',</span> <span class="pre">'/path/to/new/ops/directory/]</span></code>.</p>
+</div></blockquote>
+<p>Assuming we want to add a new Filter operator called “TextLengthFilter” to get corpus of expected text length, we can follow the following steps to build it.</p>
+<ol class="arabic simple">
+<li><p>(Optional) If the new OP defines  some statistical variables, please add the corresponding new <code class="docutils literal notranslate"><span class="pre">StatsKeysConstant</span></code> attribute in <code class="docutils literal notranslate"><span class="pre">data_juicer/utils/constant.py</span></code> for unified management.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">StatsKeysConstant</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="o">...</span>              <span class="c1"># other keys</span>
+    <span class="n">text_len</span> <span class="o">=</span> <span class="s1">'text_len'</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><p>Create a new OP file <code class="docutils literal notranslate"><span class="pre">text_length_filter.py</span></code> in the corresponding <code class="docutils literal notranslate"><span class="pre">data_juicer/ops/filter/</span></code> directory as follows.</p>
+<ul class="simple">
+<li><p>It’s a Filter OP, so the new OP needs to inherit from the basic <code class="docutils literal notranslate"><span class="pre">Filter</span></code> class in the <code class="docutils literal notranslate"><span class="pre">base_op.py</span></code>, and be decorated with <code class="docutils literal notranslate"><span class="pre">&#64;OPERATORS.register_module(xx_op)</span></code> to register itself automatically.</p></li>
+<li><p>For convenience, we can implement the core functions <code class="docutils literal notranslate"><span class="pre">compute_stats_single</span></code> and <code class="docutils literal notranslate"><span class="pre">process_single</span></code> in a single-sample way, whose input and output are a single sample dictionary.</p></li>
+<li><p>[Advanced] If you are familiar with batched processing in Data-Juicer, you can also implement the batched version directly by overwriting the <code class="docutils literal notranslate"><span class="pre">compute_stats_batched</span></code> and <code class="docutils literal notranslate"><span class="pre">process_batched</span></code> functions, which will be slightly faster than single-sample version. Their input and output are a column-wise dict with multiple samples (detailed in the following Section 4.3.3).</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">jsonargparse.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">PositiveInt</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.constant</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fields</span><span class="p">,</span> <span class="n">StatsKeys</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops.base_op</span><span class="w"> </span><span class="kn">import</span> <span class="n">OPERATORS</span><span class="p">,</span> <span class="n">Filter</span>
+
+
+<span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s1">'text_length_filter'</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TextLengthFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Filter to keep samples with total text length within a specific</span>
+<span class="sd">    range."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">min_len</span><span class="p">:</span> <span class="n">PositiveInt</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+                <span class="n">max_len</span><span class="p">:</span> <span class="n">PositiveInt</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Initialization method.</span>
+
+<span class="sd">        :param min_len: The min text length in the filtering. samples</span>
+<span class="sd">            will be filtered if their text length is below this</span>
+<span class="sd">            parameter.</span>
+<span class="sd">        :param max_len: The max text length in the filtering. samples</span>
+<span class="sd">            will be filtered if their text length exceeds this</span>
+<span class="sd">            parameter.</span>
+<span class="sd">        :param args: extra args</span>
+<span class="sd">        :param kwargs: extra args</span>
+<span class="sd">        """</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_len</span> <span class="o">=</span> <span class="n">min_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">=</span> <span class="n">max_len</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="c1"># check if it's computed already</span>
+        <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">text_len</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">sample</span>
+
+        <span class="c1"># compute text length and store it in the corresponding stats field</span>
+        <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">text_len</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">sample</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_len</span> <span class="o">&lt;=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">text_len</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+</pre></div>
+</div>
+</li>
+<li><p>After implementation, add it to the OP dictionary in the <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> file in <code class="docutils literal notranslate"><span class="pre">data_juicer/ops/filter/</span></code> directory.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># other OPs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.text_length_filter</span><span class="w"> </span><span class="kn">import</span> <span class="n">TextLengthFilter</span>  <span class="c1"># import this new OP class</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># other Ops</span>
+    <span class="s2">"TextLengthFilter"</span><span class="p">,</span>  <span class="c1"># add this new Op to __all__</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>When an operator has third-party package dependencies, use <code class="docutils literal notranslate"><span class="pre">LazyLoader</span></code> to load them at runtime rather than importing at module level. This follows the same convention used across all core operators (see <a class="reference external" href="https://github.com/datajuicer/data-juicer/blob/v1.6.0/data_juicer/utils/lazy_loader.py"><code class="docutils literal notranslate"><span class="pre">data_juicer/utils/lazy_loader.py</span></code></a> and the <a class="reference internal" href="OperatorPlugins.html"><span class="std std-doc">Operator Plugins</span></a> guide). No manual requirements file is needed — Data-Juicer will auto-install missing packages on first use.</p></li>
+<li><p>Now you can use this new OP with custom arguments in your own config files!</p></li>
+</ol>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># other configs</span>
+<span class="nn">...</span>
+
+<span class="c1"># process configs</span>
+<span class="nt">process</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">text_length_filter</span><span class="p">:</span><span class="w">  </span><span class="c1"># add this OP to your process list and set the parameters</span>
+<span class="w">      </span><span class="nt">min_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">      </span><span class="nt">max_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="6">
+<li><p>Community contributors can submit corresponding operator PRs and work with the Data-Juicer team to gradually improve it in subsequent PRs. Please see more details <a class="reference internal" href="#contribution-to-the-open-source-community">below</a>. We greatly welcome co-construction and will <a class="reference external" href="https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements">highlight acknowledgements</a>!</p></li>
+</ol>
+</section>
+<section id="build-your-own-data-recipes-and-configs">
+<h2>2. Build Your Own Data Recipes and Configs<a class="headerlink" href="#build-your-own-data-recipes-and-configs" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>We provide easy configuration based on <a class="reference external" href="https://github.com/omni-us/jsonargparse/">jsonargparse</a> to reduce cost for boilerplate codes.</p></li>
+<li><p>We provide fruitful examples in <a class="reference external" href="https://datajuicer.github.io/data-juicer-hub/en/main/docs/RecipeGallery.html">Data Recipe Gallery</a> for reference reuse and extension.</p></li>
+<li><p>📣📣📣 Community contributors can submit PRs in the <em>Data Recipe Gallery</em> to add customized data recipes to promote dissemination, reuse and related technical evolution. We greatly welcome co-construction and will highlight <a class="reference external" href="https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements">acknowledgements</a>!</p></li>
+</ul>
+<section id="fruitful-config-sources-type-hints">
+<h3>2.1 Fruitful Config Sources &amp; Type Hints<a class="headerlink" href="#fruitful-config-sources-type-hints" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>A global config object can be initialized via</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># core.executor.py</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">init_configs</span><span class="p">()</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>in which function arguments from diverse sources can be specified and mixed
+up, including</p></li>
+</ul>
+<ol class="arabic simple">
+<li><p><em>hard-coded default values</em> when registering the config into parser or specified in the classes’ <code class="docutils literal notranslate"><span class="pre">__init__</span></code> functions</p></li>
+<li><p>default <em>config files</em> in json (yaml or jsonnet supersets)</p></li>
+<li><p><em>environment variables</em></p></li>
+<li><p><em>POSIX-style command line arguments</em>, such as <code class="docutils literal notranslate"><span class="pre">--project_name</span> <span class="pre">my_data_demo</span></code> or <code class="docutils literal notranslate"><span class="pre">--project_name=my_data_demo</span></code> , including config files</p></li>
+</ol>
+<ul class="simple">
+<li><p>The final parsed values are mixed from these sources. And the override order is the same as the numbers above.</p></li>
+</ul>
+<p>Besides, many argument types and respective validation are supported.
+Including python built-in types, types from <a class="reference external" href="https://docs.python.org/3/library/typing.html">Lib/typing</a> module, and
+extended <a class="reference external" href="https://jsonargparse.readthedocs.io/en/stable/#type-hints">types</a>
+from jsonargparse, such as <code class="docutils literal notranslate"><span class="pre">restricted</span> <span class="pre">types</span></code> and <code class="docutils literal notranslate"><span class="pre">Paths</span></code> with customized
+limitations.</p>
+</section>
+<section id="hierarchical-configs-and-helps">
+<h3>2.2 Hierarchical Configs and Helps<a class="headerlink" href="#hierarchical-configs-and-helps" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>You can use dot notation in the argument names freely to define the
+hierarchy, e.g., <code class="docutils literal notranslate"><span class="pre">maximum_line_length_filter.min</span></code>.
+More importantly, by default, we automatically register the configs from
+the docstrings of implemented operators. That is, the structure of all
+configs are always in sync with codes.</p></li>
+<li><p>You can get the hierarchical help information by running a script that calls
+our executor such as</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python tools/process_data.py --help
+
+usage: process_data.py [-h] [--config CONFIG] [--print_config[=flags]] [--project_name PROJECT_NAME] [--dataset_path DATASET_PATH] [--dataset_dir DATASET_DIR] [--export_path EXPORT_PATH] [--process PROCESS]
+                            [--np NP] [--text_keys TEXT_KEYS] [--document_deduplicator CONFIG] [--document_deduplicator.hash_method HASH_METHOD] [--document_deduplicator.lowercase LOWERCASE]
+                            [--document_deduplicator.ignore_non_character IGNORE_NON_CHARACTER] [--language_id_score_filter CONFIG] [--language_id_score_filter.lang LANG] [--words_num_filter CONFIG] [--words_num_filter.min MIN] [--words_num_filter.max MAX]
+                            [--alphanumeric_filter CONFIG] [--alphanumeric_filter.min MIN] [--alphanumeric_filter.max MAX] [--average_line_length_filter CONFIG] [--average_line_length_filter.min MIN] [--average_line_length_filter.max MAX]
+                            [--maximum_line_length_filter CONFIG] [--maximum_line_length_filter.min MIN] [--maximum_line_length_filter.max MAX] [--text_length_filter CONFIG] [--text_length_filter.min MIN] [--text_length_filter.max MAX]
+                            [--remove_comments_mapper CONFIG] [--remove_comments_mapper.type TYPE] [--remove_comments_mapper.inline INLINE] [--remove_comments_mapper.multiline MULTILINE] [--remove_header_mapper CONFIG]
+                            [--remove_header_mapper.before_section BEFORE_SECTION]
+
+optional arguments:
+  -h, --help            Show this help message and exit.
+  --config CONFIG       Path to a configuration file.
+  --print_config[=flags]
+                        Print the configuration after applying all other arguments and exit. The optional flags customizes the output and are one or more keywords separated by comma. The supported flags are: comments, skip_default, skip_null.
+  --project_name PROJECT_NAME
+                        name of your data process project. (type: str, default: null)
+  --dataset_path DATASET_PATH
+                        path to your dataset file, relative with respect to the config file's location (type: Path_fr, default: null)
+  --dataset_dir DATASET_DIR
+                        path to your dataset(s) within a directory, relative with respect to the config file's location (type: Path_drw, default: null)
+  --export_path EXPORT_PATH
+                        path to the output processed dataset, relative with respect to the config file's location (type: Path_fc, default: null)
+  --process PROCESS, --process+ PROCESS
+                        a list of several process operators with their arguments (type: List[Dict], default: null)
+  --np NP               number of subprocess to process your dataset. (type: PositiveInt, default: null)
+
+&lt;class 'data_juicer.ops.filter.alphanumeric_filter.AlphanumericFilter'&gt;:
+  --alphanumeric_filter CONFIG
+                        Path to a configuration file.
+  --alphanumeric_filter.min MIN
+                        the min filter rate in alphanumeric op. (type: ClosedUnitInterval, default: 0.0)
+  --alphanumeric_filter.max MAX
+                        the max filter rate in alphanumeric op. (type: ClosedUnitInterval, default: 0.25)
+
+&lt;class 'data_juicer.ops.filter.text_length_filter.TextLengthFilter'&gt;:
+  --text_length_filter CONFIG
+                        Path to a configuration file.
+  --text_length_filter.min MIN
+                        min text length in the filtering (type: int, default: 10)
+  --text_length_filter.max MAX
+                        max text length in the filtering (type: int, default: 10000)
+
+......
+
+</pre></div>
+</div>
+</section>
+</section>
+<section id="dependency-management">
+<h2>3. Dependency Management<a class="headerlink" href="#dependency-management" title="Link to this heading">¶</a></h2>
+<p>Data-Juicer uses a modern dependency management system based on <code class="docutils literal notranslate"><span class="pre">uv</span></code> and <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>. Dependencies are managed through the standard Python packaging format (PEP 621) and installed on-demand using a lazy loading system.</p>
+<section id="installing-uv">
+<h3>3.1 Installing uv<a class="headerlink" href="#installing-uv" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">uv</span></code> is a fast Python package installer and resolver, as a better drop-in replacement for pip. You can install it using:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Using curl</span>
+curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+
+<span class="c1"># Or using pip</span>
+pip<span class="w"> </span>install<span class="w"> </span>uv
+</pre></div>
+</div>
+<p>After installation, verify it’s working by running <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">--version</span></code>.</p>
+</section>
+<section id="virtual-environment-management">
+<h3>3.2 Virtual Environment Management<a class="headerlink" href="#virtual-environment-management" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">uv</span></code> provides virtual environment management capabilities that replaces <code class="docutils literal notranslate"><span class="pre">venv</span></code> and <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code>. Here are the common commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a new virtual environment</span>
+uv<span class="w"> </span>venv
+
+<span class="c1"># Or create a virtual environment with a specific Python version</span>
+uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.10
+
+<span class="c1"># Activate the virtual environment</span>
+<span class="c1"># On Unix/macOS</span>
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<span class="c1"># On Windows</span>
+.venv<span class="se">\S</span>cripts<span class="se">\a</span>ctivate
+
+<span class="c1"># Install minimal dependencies in the virtual environment</span>
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+</section>
+<section id="adding-new-dependencies">
+<h3>3.3 Adding New Dependencies<a class="headerlink" href="#adding-new-dependencies" title="Link to this heading">¶</a></h3>
+<p>To add new dependencies:</p>
+<ol class="arabic simple">
+<li><p>Add them to the appropriate section in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>:</p>
+<ul class="simple">
+<li><p>Core dependencies go in <code class="docutils literal notranslate"><span class="pre">[project.dependencies]</span></code></p></li>
+<li><p>Optional dependencies go in <code class="docutils literal notranslate"><span class="pre">[project.optional-dependencies]</span></code> under the appropriate group (generic, dev, audio, video, etc.)</p></li>
+</ul>
+</li>
+<li><p>The lazy loading system will automatically handle installation when the dependencies are first used.</p></li>
+</ol>
+<p>Example:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[project.dependencies]</span>
+<span class="c1"># Core dependencies</span>
+<span class="n">numpy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"&gt;=1.26.4,&lt;2.0.0"</span>
+
+<span class="k">[project.optional-dependencies]</span>
+<span class="n">generic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"torch==2.6.0"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"transformers&gt;=4.47.0"</span><span class="p">,</span>
+<span class="w">    </span><span class="err">...</span>
+<span class="err">]</span>
+</pre></div>
+</div>
+</section>
+<section id="development-setup">
+<h3>3.4 Development Setup<a class="headerlink" href="#development-setup" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p>Install the package with all dependencies:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[all]"</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Or install with specific groups:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[generic]"</span><span class="w">      </span><span class="c1"># Generic dependencies</span>
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w">          </span><span class="c1"># Development tools</span>
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[ai_services]"</span><span class="w">  </span><span class="c1"># Services dependencies</span>
+</pre></div>
+</div>
+</section>
+<section id="lazy-loading">
+<h3>3.5 Lazy Loading<a class="headerlink" href="#lazy-loading" title="Link to this heading">¶</a></h3>
+<p>The lazy loading system automatically installs dependencies when they are first used. This means:</p>
+<ul class="simple">
+<li><p>Initial installation is faster</p></li>
+<li><p>Only required dependencies are installed</p></li>
+<li><p>Dependencies are installed on-demand</p></li>
+<li><p>Uses <code class="docutils literal notranslate"><span class="pre">uv</span></code> for fast installation when available</p></li>
+</ul>
+</section>
+</section>
+<section id="contribution-to-the-open-source-community">
+<h2>4. Contribution to the Open-source Community<a class="headerlink" href="#contribution-to-the-open-source-community" title="Link to this heading">¶</a></h2>
+<section id="coding-style">
+<h3>4.1 Coding Style<a class="headerlink" href="#coding-style" title="Link to this heading">¶</a></h3>
+<p>We define our styles in <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code>. Before committing,
+please install <code class="docutils literal notranslate"><span class="pre">pre-commit</span></code> tool to automatically check and modify accordingly:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># ===========install pre-commit tool===========</span>
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pre-commit
+
+<span class="nb">cd</span><span class="w"> </span>&lt;path_to_data_juicer&gt;
+<span class="c1"># install pre-commit script for data_juicer</span>
+pre-commit<span class="w"> </span>install
+
+
+<span class="c1"># ===========check all files===========</span>
+git<span class="w"> </span>add<span class="w"> </span>.
+pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+
+<span class="c1"># commit after all checking are passed</span>
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"xxxx"</span>
+</pre></div>
+</div>
+<p><strong>Note</strong>: We have configured pre-commit checks in github workflow. If this
+check in your PR fails, please locally ① ensure that the relevant
+dependencies of pre-commit are consistent with the project configuration
+(which can be completed through <code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">clean</span></code> and <code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">install</span></code>);
+and ② execute <code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">run</span> <span class="pre">--all-files</span></code> before push.</p>
+</section>
+<section id="documentation-style">
+<h3>4.2 Documentation Style<a class="headerlink" href="#documentation-style" title="Link to this heading">¶</a></h3>
+<p>We use Sphinx for document management. To ensure the smooth integration of development documents into the Sphinx documentation system, please pay attention to the following guidelines when writing:</p>
+<ol class="arabic simple">
+<li><p>Heading Hierarchy</p>
+<ul class="simple">
+<li><p>Level 1 Heading (<code class="docutils literal notranslate"><span class="pre">#</span></code>): Each document <strong>must and can only</strong> contain one Level 1 heading, which serves as the overall title of the document.</p></li>
+<li><p>Ensure the heading hierarchy is correct and avoid skipping heading levels. For example, a Level 1 heading should be followed by a Level 2 heading, not a Level 3 heading.</p></li>
+</ul>
+</li>
+<li><p>File Naming Conventions</p>
+<ul class="simple">
+<li><p>Chinese Documents: Chinese Markdown files must be named with the suffix <code class="docutils literal notranslate"><span class="pre">_ZH</span></code>. For example: <code class="docutils literal notranslate"><span class="pre">README_ZH.md</span></code></p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="contribute-your-new-ops-to-the-open-source-community">
+<h3>4.3 Contribute Your New OPs to the Open-Source Community<a class="headerlink" href="#contribute-your-new-ops-to-the-open-source-community" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>To faciliate community contribution, according to the implementation progress, OP will be categorized into 3 types of versions:</p>
+<ul>
+<li><p><img alt="alpha" src="https://img.shields.io/badge/alpha-red?style=plastic" /> version: Only the basic OP implementations are finished.</p></li>
+<li><p><img alt="beta" src="https://img.shields.io/badge/beta-yellow?style=plastic" /> version: Based on the alpha version, unittests for this OP and basic docstring are added as well.</p></li>
+<li><p><img alt="stable" src="https://img.shields.io/badge/stable-green?style=plastic" /> version: Based on the beta version, OP optimizations (e.g. model management, batched processing, OP fusion, …)</p></li>
+</ul>
+</li>
+<li><p>Community contributors can submit corresponding operator PRs in the alpha state. After that, the contributor can work with the Data-Juicer team to gradually improve it to beta and stable versions in subsequent PRs. We welcome co-construction and will highlight <a class="reference external" href="https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements">acknowledgements</a>!</p></li>
+<li><p>Welcome to add the corresponding references of your new recipe (e.g., a new implementation inspired by some existing ideas or codes, or an advanced algorithm proposed in an existing paper).</p></li>
+</ul>
+<section id="providing-basic-op-functions-alpha-version">
+<h4>4.3.1 Providing Basic OP Functions (alpha version)<a class="headerlink" href="#providing-basic-op-functions-alpha-version" title="Link to this heading">¶</a></h4>
+<p>In the previous <a class="reference internal" href="#build-your-own-ops-quickly">section</a>, the operator we implemented has already fulfilled the basic functionalities, thus meeting the requirements for the <img alt="alpha" src="https://img.shields.io/badge/alpha-red?style=plastic" /> version. Next, we will introduce how to extend this operator to make it more usable and standardized.</p>
+</section>
+<section id="making-the-op-more-usable-beta-version">
+<h4>4.3.2 Making the OP More Usable (beta version)<a class="headerlink" href="#making-the-op-more-usable-beta-version" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>(<img alt="beta" src="https://img.shields.io/badge/beta-yellow?style=plastic" /> strongly recommended) In order to enhance the robustness of the code, verify the correctness and intuitively show how to use its functions, it is best to unit test the newly added operators. For the <code class="docutils literal notranslate"><span class="pre">TextLengthFilter</span></code> operator above, implement a test file such as <code class="docutils literal notranslate"><span class="pre">test_text_length_filter.py</span></code> in <code class="docutils literal notranslate"><span class="pre">tests/ops/filter/</span></code>:</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">unittest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops.filter.text_length_filter</span><span class="w"> </span><span class="kn">import</span> <span class="n">TextLengthFilter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.unittest_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataJuicerTestCaseBase</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TextLengthFilterTest</span><span class="p">(</span><span class="n">DataJuicerTestCaseBase</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_func1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_func2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_func3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<ul>
+<li><p>(<img alt="beta" src="https://img.shields.io/badge/beta-yellow?style=plastic" /> strongly recommend) In order to facilitate other users to understand and use, it is best to update the newly added operator information to the corresponding documents, including the following two basic actions:</p>
+<ol class="arabic simple">
+<li><p>Please add basic information to the doc string of the operator class to ensure that it is complete and readable (including basic function description of the operator, input parameters, output parameters, etc.). There is no need for users to write in multiple places. Our <code class="docutils literal notranslate"><span class="pre">pre-commit</span></code> and sphinx build scripts will automatically extract doc strings to form operator pool documents and API documents.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data_juicer/config/config_all.yaml</span></code>: This complete configuration file saves a list of all operators and parameters, as a source of information for some automated features and one of the important documents for users to refer to available operators. Therefore, after adding a new operator, please also add it to the document process list (grouped by operator type and sorted alphabetically):</p></li>
+</ol>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">...</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">stopwords_filter</span><span class="p">:</span><span class="w">                                       </span><span class="c1"># filter text with stopword ratio smaller than a specific min value</span>
+<span class="w">    </span><span class="nt">lang</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en</span><span class="w">                                                </span><span class="c1"># consider stopwords in what language</span>
+<span class="w">    </span><span class="nt">tokenization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                                     </span><span class="c1"># whether to use model to tokenize documents</span>
+<span class="w">    </span><span class="nt">min_ratio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3</span><span class="w">                                          </span><span class="c1"># the min ratio to filter text</span>
+<span class="w">    </span><span class="nt">stopwords_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./assets</span><span class="w">                                 </span><span class="c1"># directory to store stopwords dictionaries</span>
+<span class="w">    </span><span class="nt">use_words_aug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                                    </span><span class="c1"># whether to augment words, especially for Chinese and Vietnamese</span>
+<span class="w">    </span><span class="nt">words_aug_group_sizes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">2</span><span class="p p-Indicator">]</span><span class="w">                              </span><span class="c1"># the group size of words to augment</span>
+<span class="w">    </span><span class="nt">words_aug_join_char</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                                 </span><span class="c1"># the join char between words to augment</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">text_length_filter</span><span class="p">:</span><span class="w">                                     </span><span class="c1"># filter text with length out of specific range</span>
+<span class="w">    </span><span class="nt">min_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w">                                             </span><span class="c1"># the min length of filter range</span>
+<span class="w">    </span><span class="nt">max_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span><span class="w">                                          </span><span class="c1"># the max length of filter range</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">token_num_filter</span><span class="p">:</span><span class="w">                                       </span><span class="c1"># filter text with total token number out of specific range</span>
+<span class="w">    </span><span class="nt">hf_tokenizer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EleutherAI/pythia-6.9b-deduped</span><span class="w">            </span><span class="c1"># name of used Hugging Face tokenizer</span>
+<span class="w">    </span><span class="nt">min_num</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w">                                             </span><span class="c1"># the min number of filter range</span>
+<span class="w">    </span><span class="nt">max_num</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span><span class="w">                                          </span><span class="c1"># the max number of filter range</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="making-op-faster-more-complete-stable-version">
+<h4>4.3.3 Making OP Faster &amp; More complete (stable version)<a class="headerlink" href="#making-op-faster-more-complete-stable-version" title="Link to this heading">¶</a></h4>
+<ul>
+<li><p>(<img alt="stable" src="https://img.shields.io/badge/stable-green?style=plastic" />) If Hugging Face models are used within an operator, you might want to leverage GPU acceleration. To achieve this, declare <code class="docutils literal notranslate"><span class="pre">_accelerator</span> <span class="pre">=</span> <span class="pre">'cuda'</span></code> in the OP’s constructor, and ensure that <code class="docutils literal notranslate"><span class="pre">compute_stats_single/batched</span></code> and <code class="docutils literal notranslate"><span class="pre">process_single/batched</span></code> methods accept an additional positional argument <code class="docutils literal notranslate"><span class="pre">rank</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ... (same as above)</span>
+
+<span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s1">'text_length_filter'</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TextLengthFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+
+    <span class="n">_accelerator</span> <span class="o">=</span> <span class="s1">'cuda'</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">min_len</span><span class="p">:</span> <span class="n">PositiveInt</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+                <span class="n">max_len</span><span class="p">:</span> <span class="n">PositiveInt</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># ... (same as above)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># ... (same as above)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># ... (same as above)</span>
+</pre></div>
+</div>
+</li>
+<li><p>(<img alt="stable" src="https://img.shields.io/badge/stable-green?style=plastic" />) If the operator processes data in batches rather than a single sample, or you want to enable batched processing, it is necessary to declare <code class="docutils literal notranslate"><span class="pre">_batched_op</span> <span class="pre">=</span> <span class="pre">True</span></code>.
+- For the original <code class="docutils literal notranslate"><span class="pre">compute_stats_single</span></code> and <code class="docutils literal notranslate"><span class="pre">process_single</span></code> functions, you can keep it still and Data-Juicer will call the default batched version to call the single version to support batched processing. Or you can implement your batched version in a more efficient way.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ... (import some other libraries)</span>
+<span class="n">OP_NAME</span> <span class="o">=</span> <span class="s1">'image_diffusion_mapper'</span>
+<span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="nd">@LOADED_IMAGES</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageDiffusionMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
+    <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="c1"># ... (OP parameters)</span>
+             <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+             <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
+        <span class="c1"># ... (some codes)</span>
+</pre></div>
+</div>
+</li>
+<li><p>(<img alt="stable" src="https://img.shields.io/badge/stable-green?style=plastic" />) In a mapper operator, to avoid process conflicts and data coverage, we offer an interface to make a saving path for produced extra data. The format of the saving path is <code class="docutils literal notranslate"><span class="pre">{ORIGINAL_DATAPATH}/__dj__produced_data__/{OP_NAME}/{ORIGINAL_FILENAME}__dj_hash_#{HASH_VALUE}#.{EXT}</span></code>, where the <code class="docutils literal notranslate"><span class="pre">HASH_VALUE</span></code> is hashed from the init parameters of the operator, the related parameters in each sample, the process ID, and the timestamp. You can also specify the save path (for example, save_dir) or set the storage path through the environment variable <code class="docutils literal notranslate"><span class="pre">DJ_PRODUCED_DATA_DIR</span></code>. For convenience, we can call <code class="docutils literal notranslate"><span class="pre">self.remove_extra_parameters(locals())</span></code> at the beginning of the initiation to get the init parameters. At the same time, we can call <code class="docutils literal notranslate"><span class="pre">self.add_parameters</span></code> to add related parameters with the produced extra data from each sample. Take the operator which enhances the images with diffusion models as example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.file_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">transfer_filename</span>
+<span class="c1"># ... (import some other libraries)</span>
+<span class="n">OP_NAME</span> <span class="o">=</span> <span class="s1">'image_diffusion_mapper'</span>
+<span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="nd">@LOADED_IMAGES</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageDiffusionMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="c1"># ... (OP parameters)</span>
+             <span class="n">save_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+             <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_extra_parameters</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span> <span class="o">=</span> <span class="n">save_dir</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="c1"># ... (some codes)</span>
+        <span class="c1"># captions[index] is the prompt for diffusion model</span>
+        <span class="n">related_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_parameters</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_init_parameters</span><span class="p">,</span> <span class="n">caption</span><span class="o">=</span><span class="n">captions</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="n">new_image_path</span> <span class="o">=</span> <span class="n">transfer_filename</span><span class="p">(</span>
+                <span class="n">origin_image_path</span><span class="p">,</span> <span class="n">OP_NAME</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">,</span> <span class="o">**</span><span class="n">related_parameters</span><span class="p">)</span>
+        <span class="c1"># ... (some codes)</span>
+</pre></div>
+</div>
+<p>For the mapper to produce multi extra data base on one origin data, we can add suffix at the saving path. Take the operator which splits videos according to their key frames as example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.file_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_suffix_to_filename</span><span class="p">,</span> <span class="n">transfer_filename</span>
+<span class="c1"># ... (import some other libraries)</span>
+<span class="n">OP_NAME</span> <span class="o">=</span> <span class="s1">'video_split_by_key_frame_mapper'</span>
+<span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VideoSplitByKeyFrameMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="c1"># ... (OP parameters)</span>
+             <span class="n">save_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+             <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_extra_parameters</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span> <span class="o">=</span> <span class="n">save_dir</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="c1"># ... (some codes)</span>
+        <span class="n">split_video_path</span> <span class="o">=</span> <span class="n">transfer_filename</span><span class="p">(</span>
+                    <span class="n">original_video_path</span><span class="p">,</span> <span class="n">OP_NAME</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_parameters</span><span class="p">)</span>
+        <span class="n">split_video_path</span> <span class="o">=</span> <span class="n">add_suffix_to_filename</span><span class="p">(</span><span class="n">split_video_path</span><span class="p">,</span>  <span class="sa">f</span><span class="s1">'_</span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+        <span class="c1"># ... (some codes)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>(<img alt="stable" src="https://img.shields.io/badge/stable-green?style=plastic" /> Optional) <strong>Make your OP fusible</strong></p>
+<ul class="simple">
+<li><p>If the calculation process of some intermediate variables in the new OP is reused in other existing OPs, this new OP can be
+added to the fusible OPs to accelerate the whole data processing with OP fusion technology. (e.g. both the <code class="docutils literal notranslate"><span class="pre">words_num_filter</span></code>
+and <code class="docutils literal notranslate"><span class="pre">word_repetition_filter</span></code> need to split the input text into words)</p></li>
+<li><p>When opening OP fusion, these reused calculation processes and intermediate variables can be shared in the <code class="docutils literal notranslate"><span class="pre">context</span></code> between
+OPs, thus reducing repeated calculations.</p></li>
+<li><p>OPs that contain common intermediate variables can be fused in OP fusion through the following steps:</p></li>
+</ul>
+<ol class="arabic simple">
+<li><p>(Optional) If a new intermediate variable is generated in the new OP, we need to add this new intermediate variable name to
+the <code class="docutils literal notranslate"><span class="pre">InterVars</span></code> class in <code class="docutils literal notranslate"><span class="pre">utils/constant.py</span></code>. In general, we need to add a prefix <code class="docutils literal notranslate"><span class="pre">DEFAULT_PREFIX</span></code> before the name.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">InterVars</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># text</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s1">'lines'</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="n">DEFAULT_PREFIX</span> <span class="o">+</span> <span class="s1">'words'</span>  <span class="c1"># add the new intermediate variable here</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>(Optional) We need to define a registry group in <code class="docutils literal notranslate"><span class="pre">ops/op_fusion.py</span></code> for the new intermediate variable in the 1st step, and add
+this registry group to the registry group list that stores all groups of intermediate variables. This facilitates the OP Fusion module
+to track OPs involving these intermediate variables.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">...</span>
+<span class="c1"># Type of intermediate vars</span>
+<span class="c1"># text</span>
+<span class="n">INTER_LINES</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">InterVars</span><span class="o">.</span><span class="n">lines</span><span class="p">)</span>
+<span class="n">INTER_WORDS</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">InterVars</span><span class="o">.</span><span class="n">words</span><span class="p">)</span>  <span class="c1"># define registry group for the new intermediate variable</span>
+
+<span class="c1"># images</span>
+<span class="n">LOADED_IMAGES</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">InterVars</span><span class="o">.</span><span class="n">loaded_images</span><span class="p">)</span>
+
+<span class="c1"># all</span>
+<span class="n">ALL_INTER_VARS</span> <span class="o">=</span> <span class="p">[</span><span class="n">INTER_LINES</span><span class="p">,</span> <span class="n">INTER_WORDS</span><span class="p">,</span> <span class="n">LOADED_IMAGES</span><span class="p">]</span>  <span class="c1"># and add it to the registry group list</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Before the OP class definition that involves the intermediate variable, register this OP in the registry group corresponding
+to this intermediate variable, indicating that the intermediate variable may be calculated and used in this OP.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">...</span>
+<span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
+<span class="nd">@INTER_WORDS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>  <span class="c1"># register this new OP into the registry group</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">WordsNumFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>In the calculation process of this intermediate variable of the new OP, we can modify the calculation logic to:</p>
+<ol class="arabic simple">
+<li><p>If the argument <code class="docutils literal notranslate"><span class="pre">context</span></code> is True, it means the OP fusion is opening, so we get the value of this intermediate variable
+from <code class="docutils literal notranslate"><span class="pre">context</span></code> first, which has been calculated by the previous OPs.</p></li>
+<li><p>If this intermediate variable doesn’t exist in the <code class="docutils literal notranslate"><span class="pre">context</span></code>, it means it’s the first time to calculate this variable in this
+OP, so we need to define a unique key and use it to store the intermediate variable in the <code class="docutils literal notranslate"><span class="pre">context</span></code> for subsequent OPs after
+it’s calculated by this new OP.</p></li>
+<li><p>If the argument <code class="docutils literal notranslate"><span class="pre">context</span></code> is False, just follow the normal calculation process.</p></li>
+</ol>
+</li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># before modification</span>
+<span class="o">...</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="p">)</span>
+<span class="n">words</span> <span class="o">=</span> <span class="n">get_words_from_document</span><span class="p">(</span>
+    <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">],</span>
+    <span class="n">token_func</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode_as_pieces</span> <span class="k">if</span> <span class="n">tokenizer</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+<span class="o">...</span>        
+
+<span class="c1"># after modification</span>
+<span class="o">...</span>
+<span class="n">words_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">InterVars</span><span class="o">.</span><span class="n">words</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="si">}</span><span class="s1">'</span>
+<span class="k">if</span> <span class="n">context</span> <span class="ow">and</span> <span class="n">words_key</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">context</span><span class="p">]:</span>
+    <span class="c1"># get the value of intermediate variable from context directly</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">context</span><span class="p">][</span><span class="n">words_key</span><span class="p">]</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># normal calculation process</span>
+    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="p">)</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="n">get_words_from_document</span><span class="p">(</span>
+        <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">],</span>
+        <span class="n">token_func</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode_as_pieces</span> <span class="k">if</span> <span class="n">tokenizer</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+        <span class="c1"># After calculating the intermediate variable for the first time,</span>
+        <span class="c1"># store it in the context for subsequent OPs.</span>
+        <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">context</span><span class="p">][</span><span class="n">words_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">words</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="5">
+<li><p>As the number of OPs increases, Data-Juicer’s dependencies also multiply. To prevent Data-Juicer from becoming excessively burdened with dependencies, we’ve implemented a strategy that incorporates manual specification, lazy importing and on-demand installation of additional dependencies required by OPs.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_requirements</span></code> attribute of OPs can be used to specify the additional dependencies required by the OP. It could be a list of packages or a string path to a requirements.txt file. In ray mode, this attribute helps Data-Juicer to install these additional dependencies on computing nodes in the Ray cluster automatically. We recommend developers set this attribute explicitly for new OPs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LazyLoader</span></code> will check if the packages corresponding to the module being loaded are installed, and if not, it will dynamically install them automatically.</p></li>
+</ul>
+</li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ... (import some library)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.lazy_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyLoader</span>
+
+<span class="c1"># lazy import</span>
+<span class="n">kenlm</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s1">'kenlm'</span><span class="p">)</span>
+<span class="n">sp</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s1">'sentencepiece'</span><span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">PerplexityFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+    <span class="c1"># set the additional requirements for this OP explicitly</span>
+    <span class="n">_requirements</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'kenlm'</span><span class="p">,</span> <span class="s1">'sentencepiece'</span><span class="p">,</span> <span class="s1">'fasttext-predict'</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="c1"># ... (OP parameters)</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># auto install before init</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">LazyLoader</span><span class="o">.</span><span class="n">check_packages</span><span class="p">([</span><span class="s1">'fasttext-predict'</span><span class="p">])</span>
+        <span class="c1"># ... (some codes)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="c1"># ... (some codes)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="contribute-your-new-recipes">
+<h3>4.4 Contribute Your New Recipes<a class="headerlink" href="#contribute-your-new-recipes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Community contributors can submit PRs in the <a class="reference external" href="https://github.com/datajuicer/data-juicer-hub">Data Recipe Gallery</a> to add customized data recipes to promote dissemination, reuse and related technical evolution.</p></li>
+<li><p>Feel free to add the corresponding references of your new recipe, or just propose some requirements/ideas to improve the existing recipes.</p></li>
+<li><p>We greatly welcome co-construction and will highlight <a class="reference external" href="https://github.com/datajuicer/data-juicer?tab=readme-ov-file#contribution-and-acknowledgements">acknowledgements</a>!</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">How-to Guide for Developers</a><ul>
+<li><a class="reference internal" href="#build-your-own-ops-quickly">1. Build Your Own OPs Quickly</a></li>
+<li><a class="reference internal" href="#build-your-own-data-recipes-and-configs">2. Build Your Own Data Recipes and Configs</a><ul>
+<li><a class="reference internal" href="#fruitful-config-sources-type-hints">2.1 Fruitful Config Sources &amp; Type Hints</a></li>
+<li><a class="reference internal" href="#hierarchical-configs-and-helps">2.2 Hierarchical Configs and Helps</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dependency-management">3. Dependency Management</a><ul>
+<li><a class="reference internal" href="#installing-uv">3.1 Installing uv</a></li>
+<li><a class="reference internal" href="#virtual-environment-management">3.2 Virtual Environment Management</a></li>
+<li><a class="reference internal" href="#adding-new-dependencies">3.3 Adding New Dependencies</a></li>
+<li><a class="reference internal" href="#development-setup">3.4 Development Setup</a></li>
+<li><a class="reference internal" href="#lazy-loading">3.5 Lazy Loading</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contribution-to-the-open-source-community">4. Contribution to the Open-source Community</a><ul>
+<li><a class="reference internal" href="#coding-style">4.1 Coding Style</a></li>
+<li><a class="reference internal" href="#documentation-style">4.2 Documentation Style</a></li>
+<li><a class="reference internal" href="#contribute-your-new-ops-to-the-open-source-community">4.3 Contribute Your New OPs to the Open-Source Community</a><ul>
+<li><a class="reference internal" href="#providing-basic-op-functions-alpha-version">4.3.1 Providing Basic OP Functions (alpha version)</a></li>
+<li><a class="reference internal" href="#making-the-op-more-usable-beta-version">4.3.2 Making the OP More Usable (beta version)</a></li>
+<li><a class="reference internal" href="#making-op-faster-more-complete-stable-version">4.3.3 Making OP Faster &amp; More complete (stable version)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contribute-your-new-recipes">4.4 Contribute Your New Recipes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="Juicer.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">Juicer: Natural-Language Data Refinement Model</span>
+        </a>
+        <a href="awesome_llm_data.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">Awesome Data-Model Co-Development of MLLMs </span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

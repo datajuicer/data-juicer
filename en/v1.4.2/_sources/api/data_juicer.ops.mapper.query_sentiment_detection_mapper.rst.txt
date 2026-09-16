@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.query\_sentiment\_detection\_mapper module
+==================================================================
+
+.. automodule:: data_juicer.ops.mapper.query_sentiment_detection_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

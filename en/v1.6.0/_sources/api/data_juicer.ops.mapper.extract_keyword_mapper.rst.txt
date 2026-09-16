@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.extract\_keyword\_mapper module
+=======================================================
+
+.. automodule:: data_juicer.ops.mapper.extract_keyword_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

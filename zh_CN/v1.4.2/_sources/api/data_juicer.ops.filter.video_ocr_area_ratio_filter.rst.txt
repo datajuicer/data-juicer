@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.video\_ocr\_area\_ratio\_filter module
+==============================================================
+
+.. automodule:: data_juicer.ops.filter.video_ocr_area_ratio_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

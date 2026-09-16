@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.s3\_download\_file\_mapper module
+=========================================================
+
+.. automodule:: data_juicer.ops.mapper.s3_download_file_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

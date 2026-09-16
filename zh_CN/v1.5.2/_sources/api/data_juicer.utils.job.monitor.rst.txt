@@ -1,0 +1,7 @@
+data\_juicer.utils.job.monitor module
+=====================================
+
+.. automodule:: data_juicer.utils.job.monitor
+   :members:
+   :show-inheritance:
+   :undoc-members:

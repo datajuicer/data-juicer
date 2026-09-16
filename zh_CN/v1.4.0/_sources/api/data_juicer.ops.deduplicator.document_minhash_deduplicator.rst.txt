@@ -1,0 +1,7 @@
+data\_juicer.ops.deduplicator.document\_minhash\_deduplicator module
+====================================================================
+
+.. automodule:: data_juicer.ops.deduplicator.document_minhash_deduplicator
+   :members:
+   :show-inheritance:
+   :undoc-members:

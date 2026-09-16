@@ -1,0 +1,7 @@
+data\_juicer.ops.op\_fusion module
+==================================
+
+.. automodule:: data_juicer.ops.op_fusion
+   :members:
+   :show-inheritance:
+   :undoc-members:

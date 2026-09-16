@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.expand\_macro\_mapper module
+====================================================
+
+.. automodule:: data_juicer.ops.mapper.expand_macro_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

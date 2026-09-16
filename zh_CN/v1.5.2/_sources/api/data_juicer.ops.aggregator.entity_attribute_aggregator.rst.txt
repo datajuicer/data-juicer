@@ -1,0 +1,7 @@
+data\_juicer.ops.aggregator.entity\_attribute\_aggregator module
+================================================================
+
+.. automodule:: data_juicer.ops.aggregator.entity_attribute_aggregator
+   :members:
+   :show-inheritance:
+   :undoc-members:

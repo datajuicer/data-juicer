@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.ops.mixins module — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index_ZH.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../index_ZH.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">zh-CN</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.4.4/api/data_juicer.ops.mixins.html" class="dropdown-item">English</a>
+            <a href="../../../zh_CN/v1.4.4/api/data_juicer.ops.mixins.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="api/data_juicer.ops.mixins"
+             data-current="v1.4.4">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.4.4</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../main/api/data_juicer.ops.mixins.html" class="dropdown-item">main</a>
+            <a href="../../v1.5.5/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.5.5</a>
+            <a href="../../v1.5.4/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.5.4</a>
+            <a href="../../v1.5.3/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.5.3</a>
+            <a href="../../v1.5.2/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.5.2</a>
+            <a href="../../v1.5.1/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.5.1</a>
+            <a href="../../v1.5.0/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.5.0</a>
+            <a href="../../v1.4.6/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.4.6</a>
+            <a href="../../v1.4.5/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.4.5</a>
+            <a href="../../v1.4.4/api/data_juicer.ops.mixins.html" class="dropdown-item active">v1.4.4</a>
+            <a href="../../v1.4.3/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.4.3</a>
+            <a href="../../v1.4.2/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.4.2</a>
+            <a href="../../v1.4.1/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.4.1</a>
+            <a href="../../v1.4.0/api/data_juicer.ops.mixins.html" class="dropdown-item">v1.4.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index_ZH.html">首页</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../index_ZH.html">文档</a></p>
+          <p class="caption" role="heading"><span class="caption-text">教程</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/tutorial/DJ-Cookbook_ZH.html">DJ-Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/tutorial/Installation_ZH.html">安装</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/tutorial/QuickStart_ZH.html">快速上手</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">帮助文档</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Operators.html">Operator Schemas 算子提要</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DatasetCfg_ZH.html">数据集配置指南</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/BadDataExhibition_ZH.html">“坏”数据展览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DJ_SORA_ZH.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DJ_agents_ZH.html">DataJuicer 智能体</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DJ_service_ZH.html">DJ_服务化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/DeveloperGuide_ZH.html">开发者指南</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Distributed_ZH.html">Data-Juicer 分布式数据处理</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/Sandbox_ZH.html">沙盒实验室</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demos/README_ZH.html">演示</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/auto_evaluation_helm/README_ZH.html">自动化评测：HELM 评测及可视化</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demos/role_playing_system_prompt/README_ZH.html">为LLM构造角色扮演的system prompt</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">hub</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../docs/hub/RecipeGallery_ZH.html">数据菜谱Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/hub/AlpacaCOT_ZH.html">Alpaca-CoT 完善配置文件</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/hub/AnnotationNotificationSystem.html">Notification System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/hub/BLOOM_ZH.html">BLOOM 配置文件</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docs/hub/RedPajama_ZH.html">Redpajama 配置文件</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">工具</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distributed_deduplication/README_ZH.html">分布式模糊去重工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/README_ZH.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/gpt_eval/README_ZH.html">GPT EVAL：使用 OpenAI API 评测大模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/evaluator/recorder/README_ZH.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/README_ZH.html">格式转换工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/multimodal/README_ZH.html">多模态工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/fmt_conversion/post_tuning_dialog/README_ZH.html">后微调工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/inception_metrics/README_ZH.html">视频生成测评工具</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/mm_eval/vbench_metrics/README_ZH.html">VBench metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/postprocess/README_ZH.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/preprocess/README_ZH.html">预处理工具</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">第三方</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/LLM_ecosystems/README_ZH.html">大语言模型生态</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thirdparty/models/README_ZH.html">第三方模型库</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="相关项目">
+          <p class="sidebar-projects-title">相关项目</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/zh_CN/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="module-data_juicer.ops.mixins">
+<span id="data-juicer-ops-mixins-module"></span><h1>data_juicer.ops.mixins module<a class="headerlink" href="#module-data_juicer.ops.mixins" title="链接到此标题。">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mixins.</span></span><span class="sig-name descname"><span class="pre">EventDrivenMixin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Mixin for event-driven capabilities in operations.</p>
+<p>This mixin provides functionality for registering event handlers,
+triggering events, and managing event polling.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin.__init__" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin.register_event_handler">
+<span class="sig-name descname"><span class="pre">register_event_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin.register_event_handler"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin.register_event_handler" title="链接到此定义。">¶</a></dt>
+<dd><p>Register a handler for a specific event type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_type</strong> -- Type of event to handle</p></li>
+<li><p><strong>handler</strong> -- Callback function to handle the event</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin.trigger_event">
+<span class="sig-name descname"><span class="pre">trigger_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin.trigger_event"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin.trigger_event" title="链接到此定义。">¶</a></dt>
+<dd><p>Trigger an event and call all registered handlers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_type</strong> -- Type of event to trigger</p></li>
+<li><p><strong>data</strong> -- Event data to pass to handlers</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin.start_polling">
+<span class="sig-name descname"><span class="pre">start_polling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin.start_polling"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin.start_polling" title="链接到此定义。">¶</a></dt>
+<dd><p>Start polling for a specific event type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_type</strong> -- Type of event to poll for</p></li>
+<li><p><strong>poll_func</strong> -- Function to call for polling</p></li>
+<li><p><strong>interval</strong> -- Polling interval in seconds</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin.stop_polling">
+<span class="sig-name descname"><span class="pre">stop_polling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin.stop_polling"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin.stop_polling" title="链接到此定义。">¶</a></dt>
+<dd><p>Stop polling for a specific event type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>event_type</strong> -- Type of event to stop polling for</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin.stop_all_polling">
+<span class="sig-name descname"><span class="pre">stop_all_polling</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin.stop_all_polling"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin.stop_all_polling" title="链接到此定义。">¶</a></dt>
+<dd><p>Stop all polling threads.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.EventDrivenMixin.wait_for_completion">
+<span class="sig-name descname"><span class="pre">wait_for_completion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Operation</span> <span class="pre">timed</span> <span class="pre">out'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#EventDrivenMixin.wait_for_completion"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.EventDrivenMixin.wait_for_completion" title="链接到此定义。">¶</a></dt>
+<dd><p>Wait for a condition to be met.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>condition_func</strong> -- Function that returns True when condition is met</p></li>
+<li><p><strong>timeout</strong> -- Maximum time to wait in seconds</p></li>
+<li><p><strong>poll_interval</strong> -- Polling interval in seconds</p></li>
+<li><p><strong>error_message</strong> -- Error message to raise on timeout</p></li>
+</ul>
+</dd>
+<dt class="field-even">抛出<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TimeoutError</strong> -- If the condition is not met within the timeout</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.NotificationMixin">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mixins.</span></span><span class="sig-name descname"><span class="pre">NotificationMixin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#NotificationMixin"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.NotificationMixin" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Mixin for sending notifications through various channels.</p>
+<p>This mixin provides functionality for sending notifications via email,
+Slack, DingTalk, and other platforms.</p>
+<p>Notification configuration can be specified as a &quot;notification_config&quot;
+parameter within an operator (for backward compatibility):
+<a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">`</span></a>yaml
+process:</p>
+<blockquote>
+<div><ul>
+<li><dl>
+<dt>some_mapper:</dt><dd><dl>
+<dt>notification_config:</dt><dd><p>enabled: true
+email:</p>
+<blockquote>
+<div><p># ... email settings ...</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<p><a href="#id5"><span class="problematic" id="id6">``</span></a><a href="#id7"><span class="problematic" id="id8">`</span></a></p>
+<p>For security best practices, sensitive information like passwords and
+tokens should be provided via environment variables:</p>
+<ul class="simple">
+<li><p>Email: set 'DATA_JUICER_EMAIL_PASSWORD' environment variable
+or service-specific 'DATA_JUICER_SMTP_SERVER_NAME_PASSWORD'</p></li>
+<li><p>Slack: set 'DATA_JUICER_SLACK_WEBHOOK' environment variable</p></li>
+<li><p>DingTalk: set 'DATA_JUICER_DINGTALK_TOKEN' and
+'DATA_JUICER_DINGTALK_SECRET' environment variables</p></li>
+</ul>
+<p>For even more secure email authentication, you can use TLS client
+certificates instead of passwords:</p>
+<ol class="arabic">
+<li><p>Generate a client certificate and key (example using OpenSSL):
+<a href="#id9"><span class="problematic" id="id10">``</span></a><a href="#id11"><span class="problematic" id="id12">`</span></a>bash
+# Generate a private key
+openssl genrsa -out client.key 2048</p>
+<p># Generate a certificate signing request (CSR)
+openssl req -new -key client.key -out client.csr</p>
+<p># Generate a self-signed certificate
+openssl x509 -req -days 365 -in client.csr -signkey client.key</p>
+<blockquote>
+<div><p>-out client.crt</p>
+</div></blockquote>
+<p><a href="#id13"><span class="problematic" id="id14">``</span></a><a href="#id15"><span class="problematic" id="id16">`</span></a></p>
+</li>
+<li><dl class="simple">
+<dt>Configure your SMTP server to accept this client certificate for</dt><dd><p>authentication</p>
+</dd>
+</dl>
+</li>
+<li><p>Configure Data Juicer to use certificate authentication:
+<a href="#id17"><span class="problematic" id="id18">``</span></a><a href="#id19"><span class="problematic" id="id20">`</span></a>yaml
+notification:</p>
+<blockquote>
+<div><p>enabled: true
+email:</p>
+<blockquote>
+<div><p>use_cert_auth: true
+client_cert_file: &quot;/path/to/client.crt&quot;
+client_key_file: &quot;/path/to/client.key&quot;
+smtp_server: &quot;smtp.example.com&quot;
+smtp_port: 587
+sender_email: &quot;<a class="reference external" href="mailto:notifications&#37;&#52;&#48;example&#46;com">notifications<span>&#64;</span>example<span>&#46;</span>com</a>&quot;
+recipients: [&quot;<a class="reference external" href="mailto:recipient&#37;&#52;&#48;example&#46;com">recipient<span>&#64;</span>example<span>&#46;</span>com</a>&quot;]</p>
+</div></blockquote>
+</div></blockquote>
+<p><a href="#id21"><span class="problematic" id="id22">``</span></a><a href="#id23"><span class="problematic" id="id24">`</span></a></p>
+</li>
+<li><p>Or use environment variables:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">export</span> <span class="pre">DATA_JUICER_EMAIL_CERT=&quot;/path/to/client.crt&quot;</span>
+<span class="pre">export</span> <span class="pre">DATA_JUICER_EMAIL_KEY=&quot;/path/to/client.key&quot;</span>
+<span class="pre">`</span></code></p></li>
+</ol>
+<p>For maximum connection security, you can use a direct SSL connection
+instead of STARTTLS by enabling the 'use_ssl' option:</p>
+<p><a href="#id25"><span class="problematic" id="id26">``</span></a><a href="#id27"><span class="problematic" id="id28">`</span></a>yaml
+notification:</p>
+<blockquote>
+<div><p>enabled: true
+email:</p>
+<blockquote>
+<div><p>use_ssl: true
+smtp_port: 465  # Common port for SMTP over SSL
+# ... other email configuration ...</p>
+</div></blockquote>
+</div></blockquote>
+<p><a href="#id29"><span class="problematic" id="id30">``</span></a><a href="#id31"><span class="problematic" id="id32">`</span></a></p>
+<dl class="simple">
+<dt>This establishes an encrypted connection from the beginning, rather than</dt><dd><p>starting with an unencrypted connection and upgrading to TLS as with
+STARTTLS. Note that this option can be combined with certificate
+authentication for maximum security.</p>
+</dd>
+<dt>The email notification system supports various email server configurations</dt><dd><p>through a flexible configuration system. Here are some examples for
+different servers:</p>
+</dd>
+</dl>
+<p>Standard SMTP with STARTTLS:
+<a href="#id33"><span class="problematic" id="id34">``</span></a><a href="#id35"><span class="problematic" id="id36">`</span></a>yaml
+notification:</p>
+<blockquote>
+<div><p>enabled: true
+email:</p>
+<blockquote>
+<div><p>smtp_server: &quot;smtp.example.com&quot;
+smtp_port: 587
+username: &quot;<a class="reference external" href="mailto:your&#46;username&#37;&#52;&#48;example&#46;com">your<span>&#46;</span>username<span>&#64;</span>example<span>&#46;</span>com</a>&quot;
+sender_email: &quot;<a class="reference external" href="mailto:your&#46;username&#37;&#52;&#48;example&#46;com">your<span>&#46;</span>username<span>&#64;</span>example<span>&#46;</span>com</a>&quot;
+sender_name: &quot;Your Name&quot;  # Optional
+recipients: [&quot;<a class="reference external" href="mailto:recipient1&#37;&#52;&#48;example&#46;com">recipient1<span>&#64;</span>example<span>&#46;</span>com</a>&quot;, &quot;<a class="reference external" href="mailto:recipient2&#37;&#52;&#48;example&#46;com">recipient2<span>&#64;</span>example<span>&#46;</span>com</a>&quot;]</p>
+</div></blockquote>
+</div></blockquote>
+<p><a href="#id37"><span class="problematic" id="id38">``</span></a><a href="#id39"><span class="problematic" id="id40">`</span></a></p>
+<p>Direct SSL Connection (e.g., Gmail):
+<a href="#id41"><span class="problematic" id="id42">``</span></a><a href="#id43"><span class="problematic" id="id44">`</span></a>yaml
+notification:</p>
+<blockquote>
+<div><p>enabled: true
+email:</p>
+<blockquote>
+<div><p>smtp_server: &quot;smtp.gmail.com&quot;
+smtp_port: 465
+use_ssl: true
+username: &quot;<a class="reference external" href="mailto:your&#46;username&#37;&#52;&#48;gmail&#46;com">your<span>&#46;</span>username<span>&#64;</span>gmail<span>&#46;</span>com</a>&quot;
+sender_email: &quot;<a class="reference external" href="mailto:your&#46;username&#37;&#52;&#48;gmail&#46;com">your<span>&#46;</span>username<span>&#64;</span>gmail<span>&#46;</span>com</a>&quot;
+sender_name: &quot;Your Name&quot;
+recipients: [&quot;<a class="reference external" href="mailto:recipient1&#37;&#52;&#48;example&#46;com">recipient1<span>&#64;</span>example<span>&#46;</span>com</a>&quot;, &quot;<a class="reference external" href="mailto:recipient2&#37;&#52;&#48;example&#46;com">recipient2<span>&#64;</span>example<span>&#46;</span>com</a>&quot;]</p>
+</div></blockquote>
+</div></blockquote>
+<p><a href="#id45"><span class="problematic" id="id46">``</span></a><a href="#id47"><span class="problematic" id="id48">`</span></a></p>
+<p>Alibaba Email Server:
+<a href="#id49"><span class="problematic" id="id50">``</span></a><a href="#id51"><span class="problematic" id="id52">`</span></a>yaml
+notification:</p>
+<blockquote>
+<div><p>enabled: true
+email:</p>
+<blockquote>
+<div><p>smtp_server: &quot;smtp.alibaba-inc.com&quot;
+smtp_port: 465
+username: &quot;<a class="reference external" href="mailto:your&#46;username&#37;&#52;&#48;alibaba-inc&#46;com">your<span>&#46;</span>username<span>&#64;</span>alibaba-inc<span>&#46;</span>com</a>&quot;
+sender_email: &quot;<a class="reference external" href="mailto:your&#46;username&#37;&#52;&#48;alibaba-inc&#46;com">your<span>&#46;</span>username<span>&#64;</span>alibaba-inc<span>&#46;</span>com</a>&quot;
+sender_name: &quot;Your Name&quot;
+recipient_separator: &quot;;&quot;       # Use semicolons to separate recipients
+recipients: [&quot;<a class="reference external" href="mailto:recipient1&#37;&#52;&#48;example&#46;com">recipient1<span>&#64;</span>example<span>&#46;</span>com</a>&quot;, &quot;<a class="reference external" href="mailto:recipient2&#37;&#52;&#48;example&#46;com">recipient2<span>&#64;</span>example<span>&#46;</span>com</a>&quot;]</p>
+</div></blockquote>
+</div></blockquote>
+<p><a href="#id53"><span class="problematic" id="id54">``</span></a><a href="#id55"><span class="problematic" id="id56">`</span></a></p>
+<p>Environment variable usage examples:
+<a href="#id57"><span class="problematic" id="id58">``</span></a><a href="#id59"><span class="problematic" id="id60">`</span></a>bash
+# General email password
+export DATA_JUICER_EMAIL_PASSWORD=&quot;your_email_password&quot;</p>
+<p># Server-specific passwords (preferred for clarity)
+export DATA_JUICER_SMTP_GMAIL_COM_PASSWORD=&quot;your_gmail_password&quot;
+export DATA_JUICER_SMTP_ALIBABA_INC_COM_PASSWORD=&quot;your_alibaba_password&quot;</p>
+<p># Slack webhook
+export DATA_JUICER_SLACK_WEBHOOK=&quot;your_slack_webhook_url&quot;</p>
+<p># DingTalk credentials
+export DATA_JUICER_DINGTALK_TOKEN=&quot;your_dingtalk_token&quot;
+export DATA_JUICER_DINGTALK_SECRET=&quot;your_dingtalk_secret&quot;
+<a href="#id61"><span class="problematic" id="id62">``</span></a><a href="#id63"><span class="problematic" id="id64">`</span></a></p>
+<p>If environment variables are not set, the system will fall back to using
+values from the configuration file, but this is less secure and not
+recommended for production environments.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.NotificationMixin.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#NotificationMixin.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.NotificationMixin.__init__" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mixins.NotificationMixin.send_notification">
+<span class="sig-name descname"><span class="pre">send_notification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notification_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mixins.html#NotificationMixin.send_notification"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.mixins.NotificationMixin.send_notification" title="链接到此定义。">¶</a></dt>
+<dd><p>Send a notification message.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> -- The message to send</p></li>
+<li><p><strong>notification_type</strong> -- The type of notification to send.
+Email, Slack, DingTalk.
+If None, send nothing</p></li>
+<li><p><strong>**kwargs</strong> -- Additional arguments to pass to the notification handler
+These can override any configuration settings for this
+specific notification</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the notification was sent successfully, else False</p>
+</dd>
+<dt class="field-odd">返回类型<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">data_juicer.ops.mixins module</a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin.__init__"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin.register_event_handler"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin.register_event_handler()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin.trigger_event"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin.trigger_event()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin.start_polling"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin.start_polling()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin.stop_polling"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin.stop_polling()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin.stop_all_polling"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin.stop_all_polling()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.EventDrivenMixin.wait_for_completion"><code class="docutils literal notranslate"><span class="pre">EventDrivenMixin.wait_for_completion()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.NotificationMixin"><code class="docutils literal notranslate"><span class="pre">NotificationMixin</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.NotificationMixin.__init__"><code class="docutils literal notranslate"><span class="pre">NotificationMixin.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mixins.NotificationMixin.send_notification"><code class="docutils literal notranslate"><span class="pre">NotificationMixin.send_notification()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="../_static/translations.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

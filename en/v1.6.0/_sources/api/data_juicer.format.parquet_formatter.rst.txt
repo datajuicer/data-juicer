@@ -1,0 +1,7 @@
+data\_juicer.format.parquet\_formatter module
+=============================================
+
+.. automodule:: data_juicer.format.parquet_formatter
+   :members:
+   :show-inheritance:
+   :undoc-members:

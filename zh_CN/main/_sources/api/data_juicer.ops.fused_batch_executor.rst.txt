@@ -1,0 +1,7 @@
+data\_juicer.ops.fused\_batch\_executor module
+==============================================
+
+.. automodule:: data_juicer.ops.fused_batch_executor
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.download.wikipedia — data-juicer</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../../../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../../../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../../../index.html" class="navbar-brand">
+          <img src="../../../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../../../index.html" class="navbar-link active" aria-current="page">Doc</a>
+        <a href="../../../api.html" class="navbar-link">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../../en/v1.4.0/_modules/data_juicer/download/wikipedia.html" class="dropdown-item active">English</a>
+            <a href="../../../../../zh_CN/v1.4.0/_modules/data_juicer/download/wikipedia_ZH.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../../../"
+             data-page="_modules/data_juicer/download/wikipedia"
+             data-current="v1.4.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.4.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../../main/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">main</a>
+            <a href="../../../../v1.5.5/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.5.5</a>
+            <a href="../../../../v1.5.4/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.5.4</a>
+            <a href="../../../../v1.5.3/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.5.3</a>
+            <a href="../../../../v1.5.2/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.5.2</a>
+            <a href="../../../../v1.5.1/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.5.1</a>
+            <a href="../../../../v1.5.0/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.5.0</a>
+            <a href="../../../../v1.4.6/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.4.6</a>
+            <a href="../../../../v1.4.5/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.4.5</a>
+            <a href="../../../../v1.4.4/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.4.4</a>
+            <a href="../../../../v1.4.3/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.4.3</a>
+            <a href="../../../../v1.4.2/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.4.2</a>
+            <a href="../../../../v1.4.1/_modules/data_juicer/download/wikipedia.html" class="dropdown-item">v1.4.1</a>
+            <a href="../../../../v1.4.0/_modules/data_juicer/download/wikipedia.html" class="dropdown-item active">v1.4.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../../../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../../../index.html">Documentation</a></p>
+          <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/DJ-Cookbook.html">DJ-Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/Installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/tutorial/QuickStart.html">Quick Start</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">docs</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Operators.html">Operator Schemas 算子提要</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/RecipeGallery.html">Data Recipe Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DatasetCfg.html">Dataset Configuration Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/BadDataExhibition.html">“Bad” Data Exhibition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DJ_SORA.html">DJ-SORA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DJ_service.html">DJ_service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/DeveloperGuide.html">How-to Guide for Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Distributed.html">Distributed Data Processing in Data-Juicer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/Sandbox.html">Sandbox</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs/awesome_llm_data.html">Awesome Data-Model Co-Development of MLLMs </a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">demos</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/README.html">Demos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/process_video_on_ray/data/Note.html">Note for dataset path</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/distributed_deduplication/README.html">Distributed Fuzzy Deduplication Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/README.html">Auto Evaluation Toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/gpt_eval/README.html">GPT EVAL: Evaluate your model with OpenAI API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/evaluator/recorder/README.html">Evaluation Results Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/README.html">Format Conversion Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/multimodal/README.html">Multimodal Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/fmt_conversion/post_tuning_dialog/README.html">Post Tuning Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/hpo/README.html">Hyper-parameter Optimization for Data Recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/humanops/README.html">Label Studio Service Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/mm_eval/inception_metrics/README.html">Metrics for video generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/postprocess/README.html">Postprocess tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/preprocess/README.html">Preprocess Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/quality_classifier/README.html">Data Scoring</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">thirdparty</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/LLM_ecosystems/README.html">LLM Ecosystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../thirdparty/models/README.html">Third-party Model Library</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <h1>Source code for data_juicer.download.wikipedia</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">bz2</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">codecs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">up</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xml.etree.cElementTree</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">etree</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">mwparserfromhell</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.download.downloader</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">DocumentDownloader</span><span class="p">,</span>
+                                             <span class="n">DocumentExtractor</span><span class="p">,</span>
+                                             <span class="n">DocumentIterator</span><span class="p">,</span>
+                                             <span class="n">download_and_extract</span><span class="p">,</span>
+                                             <span class="n">get_wikipedia_urls</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.file_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_outdir_and_mkdir</span>
+
+<span class="c1"># The majority of this code is taken from the HuggingFace</span>
+<span class="c1"># implementation of the Wikipedia dataset preparation:</span>
+<span class="c1"># https://github.com/huggingface/datasets/blob/7e30308f49f8c85dc7a2ab5aafbff04b5d2f38e2/datasets/wikipedia/wikipedia.py</span>
+
+<span class="n">MEDIA_ALIASES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'ab'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Афаил'</span><span class="p">,</span> <span class="s1">'Амедиа'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ace'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Beureukaih'</span><span class="p">,</span> <span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Alat'</span><span class="p">,</span> <span class="s1">'Berkas'</span><span class="p">],</span>
+    <span class="s1">'ady'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">],</span>
+    <span class="s1">'af'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Lêer'</span><span class="p">,</span> <span class="s1">'Beeld'</span><span class="p">],</span>
+    <span class="s1">'als'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'am'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ፋይል'</span><span class="p">,</span> <span class="s1">'ስዕል'</span><span class="p">],</span>
+    <span class="s1">'an'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imachen'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">],</span>
+    <span class="s1">'ang'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ymele'</span><span class="p">,</span> <span class="s1">'Biliþ'</span><span class="p">],</span>
+    <span class="s1">'ar'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ميديا'</span><span class="p">,</span> <span class="s1">'صورة'</span><span class="p">,</span> <span class="s1">'وسائط'</span><span class="p">,</span> <span class="s1">'ملف'</span><span class="p">],</span>
+    <span class="s1">'arc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ܠܦܦܐ'</span><span class="p">,</span> <span class="s1">'ܡܝܕܝܐ'</span><span class="p">],</span>
+    <span class="s1">'arz'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ميديا'</span><span class="p">,</span> <span class="s1">'صورة'</span><span class="p">,</span> <span class="s1">'وسائط'</span><span class="p">,</span> <span class="s1">'ملف'</span><span class="p">],</span>
+    <span class="s1">'as'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'চিত্ৰ'</span><span class="p">,</span> <span class="s1">'चित्र'</span><span class="p">,</span> <span class="s1">'চিত্র'</span><span class="p">,</span> <span class="s1">'মাধ্যম'</span><span class="p">],</span>
+    <span class="s1">'ast'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imaxen'</span><span class="p">,</span> <span class="s1">'Ficheru'</span><span class="p">,</span> <span class="s1">'Imaxe'</span><span class="p">,</span> <span class="s1">'Archivu'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">,</span> <span class="s1">'Medios'</span><span class="p">],</span>
+    <span class="s1">'atj'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Tipatcimoctakewin'</span><span class="p">,</span> <span class="s1">'Natisinahikaniwoc'</span><span class="p">],</span>
+    <span class="s1">'av'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ay'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medio'</span><span class="p">,</span> <span class="s1">'Archivo'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">],</span>
+    <span class="s1">'az'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Mediya'</span><span class="p">,</span> <span class="s1">'Şəkil'</span><span class="p">,</span> <span class="s1">'Fayl'</span><span class="p">],</span>
+    <span class="s1">'azb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'رسانه'</span><span class="p">,</span> <span class="s1">'تصویر'</span><span class="p">,</span> <span class="s1">'مدیا'</span><span class="p">,</span> <span class="s1">'فایل'</span><span class="p">,</span> <span class="s1">'رسانه‌ای'</span><span class="p">],</span>
+    <span class="s1">'ba'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Рәсем'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'bar'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'bat-smg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Vaizdas'</span><span class="p">,</span> <span class="s1">'Medėjė'</span><span class="p">,</span> <span class="s1">'Abruozdielis'</span><span class="p">],</span>
+    <span class="s1">'bcl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medio'</span><span class="p">,</span> <span class="s1">'Ladawan'</span><span class="p">],</span>
+    <span class="s1">'be'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Мультымедыя'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Выява'</span><span class="p">],</span>
+    <span class="s1">'be-x-old'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Мэдыя'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Выява'</span><span class="p">],</span>
+    <span class="s1">'bg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медия'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Картинка'</span><span class="p">],</span>
+    <span class="s1">'bh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'मीडिया'</span><span class="p">,</span> <span class="s1">'चित्र'</span><span class="p">],</span>
+    <span class="s1">'bjn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Barakas'</span><span class="p">,</span> <span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Berkas'</span><span class="p">],</span>
+    <span class="s1">'bm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'bn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'চিত্র'</span><span class="p">,</span> <span class="s1">'মিডিয়া'</span><span class="p">],</span>
+    <span class="s1">'bpy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ছবি'</span><span class="p">,</span> <span class="s1">'মিডিয়া'</span><span class="p">],</span>
+    <span class="s1">'br'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Skeudenn'</span><span class="p">,</span> <span class="s1">'Restr'</span><span class="p">],</span>
+    <span class="s1">'bs'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Mediji'</span><span class="p">,</span> <span class="s1">'Slika'</span><span class="p">,</span> <span class="s1">'Datoteka'</span><span class="p">,</span> <span class="s1">'Medija'</span><span class="p">],</span>
+    <span class="s1">'bug'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Berkas'</span><span class="p">],</span>
+    <span class="s1">'bxr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Меди'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ca'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fitxer'</span><span class="p">,</span> <span class="s1">'Imatge'</span><span class="p">],</span>
+    <span class="s1">'cbk-zam'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medio'</span><span class="p">,</span> <span class="s1">'Archivo'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">],</span>
+    <span class="s1">'cdo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'媒體'</span><span class="p">,</span> <span class="s1">'圖像'</span><span class="p">,</span> <span class="s1">'檔案'</span><span class="p">],</span>
+    <span class="s1">'ce'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Хlум'</span><span class="p">,</span> <span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Сурт'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Медйа'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ceb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Payl'</span><span class="p">,</span> <span class="s1">'Medya'</span><span class="p">,</span> <span class="s1">'Imahen'</span><span class="p">],</span>
+    <span class="s1">'ch'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Litratu'</span><span class="p">],</span>
+    <span class="s1">'ckb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'میدیا'</span><span class="p">,</span> <span class="s1">'پەڕگە'</span><span class="p">],</span>
+    <span class="s1">'co'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">],</span>
+    <span class="s1">'crh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Resim'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Fayl'</span><span class="p">,</span> <span class="s1">'Ресим'</span><span class="p">],</span>
+    <span class="s1">'cs'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Soubor'</span><span class="p">,</span> <span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Obrázok'</span><span class="p">],</span>
+    <span class="s1">'csb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Òbrôzk'</span><span class="p">,</span> <span class="s1">'Grafika'</span><span class="p">],</span>
+    <span class="s1">'cu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Видъ'</span><span class="p">,</span> <span class="s1">'Ви́дъ'</span><span class="p">,</span> <span class="s1">'Дѣло'</span><span class="p">,</span> <span class="s1">'Срѣдьства'</span><span class="p">],</span>
+    <span class="s1">'cv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Ӳкерчĕк'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'cy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Delwedd'</span><span class="p">],</span>
+    <span class="s1">'da'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Billede'</span><span class="p">,</span> <span class="s1">'Fil'</span><span class="p">],</span>
+    <span class="s1">'de'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'din'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ciɛl'</span><span class="p">,</span> <span class="s1">'Apamduööt'</span><span class="p">],</span>
+    <span class="s1">'diq'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medya'</span><span class="p">,</span> <span class="s1">'Dosya'</span><span class="p">],</span>
+    <span class="s1">'dsb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Wobraz'</span><span class="p">,</span> <span class="s1">'Dataja'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">,</span> <span class="s1">'Medija'</span><span class="p">],</span>
+    <span class="s1">'dty'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'चित्र'</span><span class="p">,</span> <span class="s1">'मिडिया'</span><span class="p">],</span>
+    <span class="s1">'dv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ފައިލު'</span><span class="p">,</span> <span class="s1">'މީޑިއާ'</span><span class="p">,</span> <span class="s1">'ފައިލް'</span><span class="p">],</span>
+    <span class="s1">'el'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Εικόνα'</span><span class="p">,</span> <span class="s1">'Αρχείο'</span><span class="p">,</span> <span class="s1">'Μέσο'</span><span class="p">,</span> <span class="s1">'Μέσον'</span><span class="p">],</span>
+    <span class="s1">'eml'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">],</span>
+    <span class="s1">'eo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Dosiero'</span><span class="p">,</span> <span class="s1">'Aŭdvidaĵo'</span><span class="p">],</span>
+    <span class="s1">'es'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medio'</span><span class="p">,</span> <span class="s1">'Archivo'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">],</span>
+    <span class="s1">'et'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Pilt'</span><span class="p">,</span> <span class="s1">'Fail'</span><span class="p">,</span> <span class="s1">'Meedia'</span><span class="p">],</span>
+    <span class="s1">'eu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Irudi'</span><span class="p">,</span> <span class="s1">'Fitxategi'</span><span class="p">],</span>
+    <span class="s1">'ext'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Archivu'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">,</span> <span class="s1">'Mediu'</span><span class="p">],</span>
+    <span class="s1">'fa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'رسانه'</span><span class="p">,</span> <span class="s1">'تصویر'</span><span class="p">,</span> <span class="s1">'مدیا'</span><span class="p">,</span> <span class="s1">'پرونده'</span><span class="p">,</span> <span class="s1">'رسانه‌ای'</span><span class="p">],</span>
+    <span class="s1">'ff'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'fi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kuva'</span><span class="p">,</span> <span class="s1">'Tiedosto'</span><span class="p">],</span>
+    <span class="s1">'fiu-vro'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Pilt'</span><span class="p">,</span> <span class="s1">'Meediä'</span><span class="p">],</span>
+    <span class="s1">'fo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Miðil'</span><span class="p">,</span> <span class="s1">'Mynd'</span><span class="p">],</span>
+    <span class="s1">'fr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'frp'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Émâge'</span><span class="p">,</span> <span class="s1">'Fichiér'</span><span class="p">,</span> <span class="s1">'Mèdia'</span><span class="p">],</span>
+    <span class="s1">'frr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'fur'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">,</span> <span class="s1">'Figure'</span><span class="p">],</span>
+    <span class="s1">'fy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ofbyld'</span><span class="p">],</span>
+    <span class="s1">'ga'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Íomhá'</span><span class="p">,</span> <span class="s1">'Meán'</span><span class="p">],</span>
+    <span class="s1">'gag'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Mediya'</span><span class="p">,</span> <span class="s1">'Medya'</span><span class="p">,</span> <span class="s1">'Resim'</span><span class="p">,</span> <span class="s1">'Dosya'</span><span class="p">,</span> <span class="s1">'Dosye'</span><span class="p">],</span>
+    <span class="s1">'gan'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'媒体文件'</span><span class="p">,</span> <span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'文檔'</span><span class="p">,</span> <span class="s1">'档案'</span><span class="p">,</span> <span class="s1">'媒體'</span><span class="p">,</span> <span class="s1">'图像'</span><span class="p">,</span> <span class="s1">'圖像'</span><span class="p">,</span> <span class="s1">'媒体'</span><span class="p">,</span> <span class="s1">'檔案'</span><span class="p">],</span>
+    <span class="s1">'gd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Faidhle'</span><span class="p">,</span> <span class="s1">'Meadhan'</span><span class="p">],</span>
+    <span class="s1">'gl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imaxe'</span><span class="p">,</span> <span class="s1">'Ficheiro'</span><span class="p">,</span> <span class="s1">'Arquivo'</span><span class="p">,</span> <span class="s1">'Imagem'</span><span class="p">],</span>
+    <span class="s1">'glk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'رسانه'</span><span class="p">,</span> <span class="s1">'تصویر'</span><span class="p">,</span> <span class="s1">'پرونده'</span><span class="p">,</span> <span class="s1">'فاىل'</span><span class="p">,</span> <span class="s1">'رسانه‌ای'</span><span class="p">,</span> <span class="s1">'مديا'</span><span class="p">],</span>
+    <span class="s1">'gn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medio'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">,</span> <span class="s2">"Ta'ãnga"</span><span class="p">],</span>
+    <span class="s1">'gom'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'माध्यम'</span><span class="p">,</span> <span class="s1">'मिडिया'</span><span class="p">,</span> <span class="s1">'फायल'</span><span class="p">],</span>
+    <span class="s1">'gor'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Berkas'</span><span class="p">],</span>
+    <span class="s1">'got'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'𐍆𐌴𐌹𐌻𐌰'</span><span class="p">],</span>
+    <span class="s1">'gu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'દ્રશ્ય-શ્રાવ્ય (મિડિયા)'</span><span class="p">,</span> <span class="s1">'દ્રશ્ય-શ્રાવ્ય_(મિડિયા)'</span><span class="p">,</span> <span class="s1">'ચિત્ર'</span><span class="p">],</span>
+    <span class="s1">'gv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Coadan'</span><span class="p">,</span> <span class="s1">'Meanyn'</span><span class="p">],</span>
+    <span class="s1">'hak'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'媒體'</span><span class="p">,</span> <span class="s1">'圖像'</span><span class="p">,</span> <span class="s1">'檔案'</span><span class="p">],</span>
+    <span class="s1">'haw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kiʻi'</span><span class="p">,</span> <span class="s1">'Waihona'</span><span class="p">,</span> <span class="s1">'Pāpaho'</span><span class="p">],</span>
+    <span class="s1">'he'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'תמונה'</span><span class="p">,</span> <span class="s1">'קו'</span><span class="p">,</span> <span class="s1">'מדיה'</span><span class="p">,</span> <span class="s1">'קובץ'</span><span class="p">],</span>
+    <span class="s1">'hi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'मीडिया'</span><span class="p">,</span> <span class="s1">'चित्र'</span><span class="p">],</span>
+    <span class="s1">'hif'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'file'</span><span class="p">,</span> <span class="s1">'saadhan'</span><span class="p">],</span>
+    <span class="s1">'hr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Mediji'</span><span class="p">,</span> <span class="s1">'DT'</span><span class="p">,</span> <span class="s1">'Slika'</span><span class="p">,</span> <span class="s1">'F'</span><span class="p">,</span> <span class="s1">'Datoteka'</span><span class="p">],</span>
+    <span class="s1">'hsb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Wobraz'</span><span class="p">,</span> <span class="s1">'Dataja'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'ht'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imaj'</span><span class="p">,</span> <span class="s1">'Fichye'</span><span class="p">,</span> <span class="s1">'Medya'</span><span class="p">],</span>
+    <span class="s1">'hu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kép'</span><span class="p">,</span> <span class="s1">'Fájl'</span><span class="p">,</span> <span class="s1">'Média'</span><span class="p">],</span>
+    <span class="s1">'hy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Պատկեր'</span><span class="p">,</span> <span class="s1">'Մեդիա'</span><span class="p">],</span>
+    <span class="s1">'ia'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imagine'</span><span class="p">,</span> <span class="s1">'Multimedia'</span><span class="p">],</span>
+    <span class="s1">'id'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Berkas'</span><span class="p">],</span>
+    <span class="s1">'ig'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Nká'</span><span class="p">,</span> <span class="s1">'Midia'</span><span class="p">,</span> <span class="s1">'Usòrò'</span><span class="p">,</span> <span class="s1">'Ákwúkwó orünotu'</span><span class="p">,</span> <span class="s1">'Ákwúkwó_orünotu'</span><span class="p">],</span>
+    <span class="s1">'ii'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'媒体文件'</span><span class="p">,</span> <span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'档案'</span><span class="p">,</span> <span class="s1">'图像'</span><span class="p">,</span> <span class="s1">'媒体'</span><span class="p">],</span>
+    <span class="s1">'ilo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Midia'</span><span class="p">,</span> <span class="s1">'Papeles'</span><span class="p">],</span>
+    <span class="s1">'inh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'io'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imajo'</span><span class="p">,</span> <span class="s1">'Arkivo'</span><span class="p">],</span>
+    <span class="s1">'is'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Miðill'</span><span class="p">,</span> <span class="s1">'Mynd'</span><span class="p">],</span>
+    <span class="s1">'it'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">],</span>
+    <span class="s1">'ja'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'メディア'</span><span class="p">,</span> <span class="s1">'ファイル'</span><span class="p">,</span> <span class="s1">'画像'</span><span class="p">],</span>
+    <span class="s1">'jbo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'velsku'</span><span class="p">,</span> <span class="s1">'datnyvei'</span><span class="p">],</span>
+    <span class="s1">'jv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Barkas'</span><span class="p">,</span> <span class="s1">'Medhia'</span><span class="p">,</span> <span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Médhia'</span><span class="p">],</span>
+    <span class="s1">'ka'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'მედია'</span><span class="p">,</span> <span class="s1">'სურათი'</span><span class="p">,</span> <span class="s1">'ფაილი'</span><span class="p">],</span>
+    <span class="s1">'kaa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Swret'</span><span class="p">,</span> <span class="s1">'Таспа'</span><span class="p">,</span> <span class="s1">'سۋرەت'</span><span class="p">,</span> <span class="s1">'Taspa'</span><span class="p">,</span> <span class="s2">"Su'wret"</span><span class="p">,</span> <span class="s1">'Сурет'</span><span class="p">,</span> <span class="s1">'تاسپا'</span><span class="p">],</span>
+    <span class="s1">'kab'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Tugna'</span><span class="p">],</span>
+    <span class="s1">'kbd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">],</span>
+    <span class="s1">'kbp'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'kg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fisye'</span><span class="p">],</span>
+    <span class="s1">'kk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Swret'</span><span class="p">,</span> <span class="s1">'سۋرەت'</span><span class="p">,</span> <span class="s1">'Таспа'</span><span class="p">,</span> <span class="s1">'Taspa'</span><span class="p">,</span> <span class="s1">'Сурет'</span><span class="p">,</span> <span class="s1">'تاسپا'</span><span class="p">],</span>
+    <span class="s1">'kl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Billede'</span><span class="p">,</span> <span class="s1">'Fiileq'</span><span class="p">,</span> <span class="s1">'Fil'</span><span class="p">],</span>
+    <span class="s1">'km'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ឯកសារ'</span><span class="p">,</span> <span class="s1">'រូបភាព'</span><span class="p">,</span> <span class="s1">'មេឌា'</span><span class="p">,</span> <span class="s1">'មីឌា'</span><span class="p">],</span>
+    <span class="s1">'kn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ಚಿತ್ರ'</span><span class="p">,</span> <span class="s1">'ಮೀಡಿಯ'</span><span class="p">],</span>
+    <span class="s1">'ko'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'미디어'</span><span class="p">,</span> <span class="s1">'파일'</span><span class="p">,</span> <span class="s1">'그림'</span><span class="p">],</span>
+    <span class="s1">'koi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'krc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ks'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'میڈیا'</span><span class="p">,</span> <span class="s1">'فَیِل'</span><span class="p">],</span>
+    <span class="s1">'ksh'</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s1">'Beld'</span><span class="p">,</span> <span class="s1">'Meedije'</span><span class="p">,</span> <span class="s1">'Medie'</span><span class="p">,</span> <span class="s1">'Belld'</span><span class="p">,</span> <span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Meedijum'</span><span class="p">,</span>
+        <span class="s1">'Bild'</span>
+    <span class="p">],</span>
+    <span class="s1">'ku'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'میدیا'</span><span class="p">,</span> <span class="s1">'پەڕگە'</span><span class="p">,</span> <span class="s1">'Medya'</span><span class="p">,</span> <span class="s1">'Wêne'</span><span class="p">],</span>
+    <span class="s1">'kv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'kw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Restren'</span><span class="p">],</span>
+    <span class="s1">'ky'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">],</span>
+    <span class="s1">'la'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imago'</span><span class="p">,</span> <span class="s1">'Fasciculus'</span><span class="p">],</span>
+    <span class="s1">'lad'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Dossia'</span><span class="p">,</span> <span class="s1">'Medya'</span><span class="p">,</span> <span class="s1">'Archivo'</span><span class="p">,</span> <span class="s1">'Dosya'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">,</span> <span class="s1">'Meddia'</span><span class="p">],</span>
+    <span class="s1">'lb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fichier'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'lbe'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Сурат'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'lez'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Mediya'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Şəkil'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'lfn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fix'</span><span class="p">],</span>
+    <span class="s1">'li'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Afbeelding'</span><span class="p">,</span> <span class="s1">'Plaetje'</span><span class="p">,</span> <span class="s1">'Aafbeilding'</span><span class="p">],</span>
+    <span class="s1">'lij'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immaggine'</span><span class="p">,</span> <span class="s1">'Immagine'</span><span class="p">],</span>
+    <span class="s1">'lmo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">,</span> <span class="s1">'Imàjine'</span><span class="p">,</span> <span class="s1">'Archivi'</span><span class="p">],</span>
+    <span class="s1">'ln'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'lo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ສື່ອ'</span><span class="p">,</span> <span class="s1">'ສື່'</span><span class="p">,</span> <span class="s1">'ຮູບ'</span><span class="p">],</span>
+    <span class="s1">'lrc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'رسانه'</span><span class="p">,</span> <span class="s1">'تصویر'</span><span class="p">,</span> <span class="s1">'رسانه‌ای'</span><span class="p">,</span> <span class="s1">'جانیا'</span><span class="p">,</span> <span class="s1">'أسگ'</span><span class="p">,</span> <span class="s1">'ڤارئسگأر'</span><span class="p">],</span>
+    <span class="s1">'lt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Vaizdas'</span><span class="p">,</span> <span class="s1">'Medija'</span><span class="p">],</span>
+    <span class="s1">'ltg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medeja'</span><span class="p">,</span> <span class="s1">'Fails'</span><span class="p">],</span>
+    <span class="s1">'lv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Attēls'</span><span class="p">],</span>
+    <span class="s1">'mai'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'मेडिया'</span><span class="p">,</span> <span class="s1">'फाइल'</span><span class="p">],</span>
+    <span class="s1">'map-bms'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Barkas'</span><span class="p">,</span> <span class="s1">'Medhia'</span><span class="p">,</span> <span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Médhia'</span><span class="p">],</span>
+    <span class="s1">'mdf'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Няйф'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'mg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Rakitra'</span><span class="p">,</span> <span class="s1">'Sary'</span><span class="p">,</span> <span class="s1">'Média'</span><span class="p">],</span>
+    <span class="s1">'mhr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'min'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Gambar'</span><span class="p">,</span> <span class="s1">'Berkas'</span><span class="p">],</span>
+    <span class="s1">'mk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Податотека'</span><span class="p">,</span> <span class="s1">'Медија'</span><span class="p">,</span> <span class="s1">'Медиум'</span><span class="p">,</span> <span class="s1">'Слика'</span><span class="p">],</span>
+    <span class="s1">'ml'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'പ്രമാണം'</span><span class="p">,</span> <span class="s1">'ചി'</span><span class="p">,</span> <span class="s1">'മീഡിയ'</span><span class="p">,</span> <span class="s1">'പ്ര'</span><span class="p">,</span> <span class="s1">'ചിത്രം'</span><span class="p">],</span>
+    <span class="s1">'mn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Зураг'</span><span class="p">],</span>
+    <span class="s1">'mr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'चित्र'</span><span class="p">,</span> <span class="s1">'मिडिया'</span><span class="p">],</span>
+    <span class="s1">'mrj'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ms'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fail'</span><span class="p">,</span> <span class="s1">'Imej'</span><span class="p">],</span>
+    <span class="s1">'mt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Midja'</span><span class="p">,</span> <span class="s1">'Medja'</span><span class="p">,</span> <span class="s1">'Stampa'</span><span class="p">],</span>
+    <span class="s1">'mwl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Multimédia'</span><span class="p">,</span> <span class="s1">'Fexeiro'</span><span class="p">,</span> <span class="s1">'Ficheiro'</span><span class="p">,</span> <span class="s1">'Arquivo'</span><span class="p">,</span> <span class="s1">'Imagem'</span><span class="p">],</span>
+    <span class="s1">'my'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ဖိုင်'</span><span class="p">,</span> <span class="s1">'မီဒီယာ'</span><span class="p">],</span>
+    <span class="s1">'myv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медия'</span><span class="p">,</span> <span class="s1">'Артовкс'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'mzn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'رسانه'</span><span class="p">,</span> <span class="s1">'تصویر'</span><span class="p">,</span> <span class="s1">'مه‌دیا'</span><span class="p">,</span> <span class="s1">'مدیا'</span><span class="p">,</span> <span class="s1">'پرونده'</span><span class="p">,</span> <span class="s1">'رسانه‌ای'</span><span class="p">],</span>
+    <span class="s1">'nah'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Mēdiatl'</span><span class="p">,</span> <span class="s1">'Īxiptli'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">],</span>
+    <span class="s1">'nap'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fiùra'</span><span class="p">,</span> <span class="s1">'Immagine'</span><span class="p">],</span>
+    <span class="s1">'nds'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'nds-nl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ofbeelding'</span><span class="p">,</span> <span class="s1">'Afbeelding'</span><span class="p">,</span> <span class="s1">'Bestaand'</span><span class="p">],</span>
+    <span class="s1">'ne'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'मीडिया'</span><span class="p">,</span> <span class="s1">'चित्र'</span><span class="p">],</span>
+    <span class="s1">'new'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'किपा'</span><span class="p">,</span> <span class="s1">'माध्यम'</span><span class="p">],</span>
+    <span class="s1">'nl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Bestand'</span><span class="p">,</span> <span class="s1">'Afbeelding'</span><span class="p">],</span>
+    <span class="s1">'nn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fil'</span><span class="p">,</span> <span class="s1">'Bilde'</span><span class="p">,</span> <span class="s1">'Filpeikar'</span><span class="p">],</span>
+    <span class="s1">'no'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fil'</span><span class="p">,</span> <span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Bilde'</span><span class="p">],</span>
+    <span class="s1">'nov'</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s1">'nrm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'nso'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Seswantšho'</span><span class="p">],</span>
+    <span class="s1">'nv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Eʼelyaaígíí'</span><span class="p">],</span>
+    <span class="s1">'oc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imatge'</span><span class="p">,</span> <span class="s1">'Fichièr'</span><span class="p">,</span> <span class="s1">'Mèdia'</span><span class="p">],</span>
+    <span class="s1">'olo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kuva'</span><span class="p">,</span> <span class="s1">'Medii'</span><span class="p">,</span> <span class="s1">'Failu'</span><span class="p">],</span>
+    <span class="s1">'or'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ମାଧ୍ୟମ'</span><span class="p">,</span> <span class="s1">'ଫାଇଲ'</span><span class="p">],</span>
+    <span class="s1">'os'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ныв'</span><span class="p">,</span> <span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'pa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ਤਸਵੀਰ'</span><span class="p">,</span> <span class="s1">'ਮੀਡੀਆ'</span><span class="p">],</span>
+    <span class="s1">'pcd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'pdc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">,</span> <span class="s1">'Feil'</span><span class="p">],</span>
+    <span class="s1">'pfl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Dadai'</span><span class="p">,</span> <span class="s1">'Medium'</span><span class="p">,</span> <span class="s1">'Datei'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'pi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'मीडिया'</span><span class="p">,</span> <span class="s1">'पटिमा'</span><span class="p">],</span>
+    <span class="s1">'pl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Plik'</span><span class="p">,</span> <span class="s1">'Grafika'</span><span class="p">],</span>
+    <span class="s1">'pms'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Figura'</span><span class="p">,</span> <span class="s1">'Immagine'</span><span class="p">],</span>
+    <span class="s1">'pnb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'میڈیا'</span><span class="p">,</span> <span class="s1">'تصویر'</span><span class="p">,</span> <span class="s1">'فائل'</span><span class="p">],</span>
+    <span class="s1">'pnt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Εικόνα'</span><span class="p">,</span> <span class="s1">'Αρχείον'</span><span class="p">,</span> <span class="s1">'Εικόναν'</span><span class="p">,</span> <span class="s1">'Μέσον'</span><span class="p">],</span>
+    <span class="s1">'ps'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'انځور'</span><span class="p">,</span> <span class="s1">'رسنۍ'</span><span class="p">,</span> <span class="s1">'دوتنه'</span><span class="p">],</span>
+    <span class="s1">'pt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Multimédia'</span><span class="p">,</span> <span class="s1">'Ficheiro'</span><span class="p">,</span> <span class="s1">'Arquivo'</span><span class="p">,</span> <span class="s1">'Imagem'</span><span class="p">],</span>
+    <span class="s1">'qu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Midya'</span><span class="p">,</span> <span class="s1">'Imagen'</span><span class="p">,</span> <span class="s1">'Rikcha'</span><span class="p">],</span>
+    <span class="s1">'rm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Multimedia'</span><span class="p">,</span> <span class="s1">'Datoteca'</span><span class="p">],</span>
+    <span class="s1">'rmy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fişier'</span><span class="p">,</span> <span class="s1">'Mediya'</span><span class="p">,</span> <span class="s1">'Chitro'</span><span class="p">,</span> <span class="s1">'Imagine'</span><span class="p">],</span>
+    <span class="s1">'ro'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fişier'</span><span class="p">,</span> <span class="s1">'Imagine'</span><span class="p">,</span> <span class="s1">'Fișier'</span><span class="p">],</span>
+    <span class="s1">'roa-rup'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fişier'</span><span class="p">,</span> <span class="s1">'Imagine'</span><span class="p">,</span> <span class="s1">'Fișier'</span><span class="p">],</span>
+    <span class="s1">'roa-tara'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">],</span>
+    <span class="s1">'ru'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'rue'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медіа'</span><span class="p">,</span> <span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">,</span> <span class="s1">'Зображення'</span><span class="p">],</span>
+    <span class="s1">'rw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Dosiye'</span><span class="p">,</span> <span class="s1">'Itangazamakuru'</span><span class="p">],</span>
+    <span class="s1">'sa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'चित्रम्'</span><span class="p">,</span> <span class="s1">'माध्यमम्'</span><span class="p">,</span> <span class="s1">'सञ्चिका'</span><span class="p">,</span> <span class="s1">'माध्यम'</span><span class="p">,</span> <span class="s1">'चित्रं'</span><span class="p">],</span>
+    <span class="s1">'sah'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Миэдьийэ'</span><span class="p">,</span> <span class="s1">'Ойуу'</span><span class="p">,</span> <span class="s1">'Билэ'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'sat'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ᱨᱮᱫ'</span><span class="p">,</span> <span class="s1">'ᱢᱤᱰᱤᱭᱟ'</span><span class="p">],</span>
+    <span class="s1">'sc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immàgini'</span><span class="p">],</span>
+    <span class="s1">'scn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">,</span> <span class="s1">'Mmàggini'</span><span class="p">,</span> <span class="s1">'Mèdia'</span><span class="p">],</span>
+    <span class="s1">'sd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'عڪس'</span><span class="p">,</span> <span class="s1">'ذريعات'</span><span class="p">,</span> <span class="s1">'فائل'</span><span class="p">],</span>
+    <span class="s1">'se'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fiila'</span><span class="p">],</span>
+    <span class="s1">'sg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'sh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Mediji'</span><span class="p">,</span> <span class="s1">'Slika'</span><span class="p">,</span> <span class="s1">'Медија'</span><span class="p">,</span> <span class="s1">'Datoteka'</span><span class="p">,</span> <span class="s1">'Medija'</span><span class="p">,</span> <span class="s1">'Слика'</span><span class="p">],</span>
+    <span class="s1">'si'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'රූපය'</span><span class="p">,</span> <span class="s1">'මාධ්‍යය'</span><span class="p">,</span> <span class="s1">'ගොනුව'</span><span class="p">],</span>
+    <span class="s1">'sk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Súbor'</span><span class="p">,</span> <span class="s1">'Obrázok'</span><span class="p">,</span> <span class="s1">'Médiá'</span><span class="p">],</span>
+    <span class="s1">'sl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Slika'</span><span class="p">,</span> <span class="s1">'Datoteka'</span><span class="p">],</span>
+    <span class="s1">'sq'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Figura'</span><span class="p">,</span> <span class="s1">'Skeda'</span><span class="p">],</span>
+    <span class="s1">'sr'</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s1">'Датотека'</span><span class="p">,</span>
+        <span class="s1">'Medij'</span><span class="p">,</span>
+        <span class="s1">'Slika'</span><span class="p">,</span>
+        <span class="s1">'Медија'</span><span class="p">,</span>
+        <span class="s1">'Datoteka'</span><span class="p">,</span>
+        <span class="s1">'Медиј'</span><span class="p">,</span>
+        <span class="s1">'Medija'</span><span class="p">,</span>
+        <span class="s1">'Слика'</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s1">'srn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Afbeelding'</span><span class="p">,</span> <span class="s1">'Gefre'</span><span class="p">],</span>
+    <span class="s1">'stq'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Bielde'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'su'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Gambar'</span><span class="p">],</span>
+    <span class="s1">'sv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fil'</span><span class="p">,</span> <span class="s1">'Bild'</span><span class="p">],</span>
+    <span class="s1">'sw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Faili'</span><span class="p">,</span> <span class="s1">'Picha'</span><span class="p">],</span>
+    <span class="s1">'szl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Plik'</span><span class="p">,</span> <span class="s1">'Grafika'</span><span class="p">],</span>
+    <span class="s1">'ta'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'படிமம்'</span><span class="p">,</span> <span class="s1">'ஊடகம்'</span><span class="p">],</span>
+    <span class="s1">'tcy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ಮಾದ್ಯಮೊ'</span><span class="p">,</span> <span class="s1">'ಫೈಲ್'</span><span class="p">],</span>
+    <span class="s1">'te'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ఫైలు'</span><span class="p">,</span> <span class="s1">'దస్త్రం'</span><span class="p">,</span> <span class="s1">'బొమ్మ'</span><span class="p">,</span> <span class="s1">'మీడియా'</span><span class="p">],</span>
+    <span class="s1">'tet'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imajen'</span><span class="p">,</span> <span class="s1">'Arquivo'</span><span class="p">,</span> <span class="s1">'Imagem'</span><span class="p">],</span>
+    <span class="s1">'tg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Акс'</span><span class="p">,</span> <span class="s1">'Медиа'</span><span class="p">],</span>
+    <span class="s1">'th'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ไฟล์'</span><span class="p">,</span> <span class="s1">'สื่อ'</span><span class="p">,</span> <span class="s1">'ภาพ'</span><span class="p">],</span>
+    <span class="s1">'ti'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ፋይል'</span><span class="p">,</span> <span class="s1">'ሜድያ'</span><span class="p">],</span>
+    <span class="s1">'tk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Faýl'</span><span class="p">],</span>
+    <span class="s1">'tl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Midya'</span><span class="p">,</span> <span class="s1">'Talaksan'</span><span class="p">],</span>
+    <span class="s1">'tpi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fail'</span><span class="p">],</span>
+    <span class="s1">'tr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medya'</span><span class="p">,</span> <span class="s1">'Resim'</span><span class="p">,</span> <span class="s1">'Dosya'</span><span class="p">,</span> <span class="s1">'Ortam'</span><span class="p">],</span>
+    <span class="s1">'tt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Рәсем'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Räsem'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ty'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Média'</span><span class="p">,</span> <span class="s1">'Fichier'</span><span class="p">],</span>
+    <span class="s1">'tyv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'udm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Суред'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">],</span>
+    <span class="s1">'ug'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ۋاسىتە'</span><span class="p">,</span> <span class="s1">'ھۆججەت'</span><span class="p">],</span>
+    <span class="s1">'uk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Медіа'</span><span class="p">,</span> <span class="s1">'Медиа'</span><span class="p">,</span> <span class="s1">'Файл'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">,</span> <span class="s1">'Зображення'</span><span class="p">],</span>
+    <span class="s1">'ur'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'میڈیا'</span><span class="p">,</span> <span class="s1">'تصویر'</span><span class="p">,</span> <span class="s1">'وسیط'</span><span class="p">,</span> <span class="s1">'زریعہ'</span><span class="p">,</span> <span class="s1">'فائل'</span><span class="p">,</span> <span class="s1">'ملف'</span><span class="p">],</span>
+    <span class="s1">'uz'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Mediya'</span><span class="p">,</span> <span class="s1">'Tasvir'</span><span class="p">,</span> <span class="s1">'Fayl'</span><span class="p">],</span>
+    <span class="s1">'vec'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Immagine'</span><span class="p">,</span> <span class="s1">'Imàjine'</span><span class="p">,</span> <span class="s1">'Mèdia'</span><span class="p">],</span>
+    <span class="s1">'vep'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Pilt'</span><span class="p">,</span> <span class="s1">'Fail'</span><span class="p">],</span>
+    <span class="s1">'vi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Phương_tiện'</span><span class="p">,</span> <span class="s1">'Tập_tin'</span><span class="p">,</span> <span class="s1">'Hình'</span><span class="p">,</span> <span class="s1">'Tập tin'</span><span class="p">,</span> <span class="s1">'Phương tiện'</span><span class="p">],</span>
+    <span class="s1">'vls'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Afbeelding'</span><span class="p">,</span> <span class="s1">'Ofbeeldienge'</span><span class="p">],</span>
+    <span class="s1">'vo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ragiv'</span><span class="p">,</span> <span class="s1">'Magod'</span><span class="p">,</span> <span class="s1">'Nünamakanäd'</span><span class="p">],</span>
+    <span class="s1">'wa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Imådje'</span><span class="p">],</span>
+    <span class="s1">'war'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Medya'</span><span class="p">,</span> <span class="s1">'Fayl'</span><span class="p">,</span> <span class="s1">'Paypay'</span><span class="p">],</span>
+    <span class="s1">'wo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Xibaarukaay'</span><span class="p">,</span> <span class="s1">'Dencukaay'</span><span class="p">],</span>
+    <span class="s1">'wuu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'档案'</span><span class="p">,</span> <span class="s1">'图像'</span><span class="p">,</span> <span class="s1">'媒体'</span><span class="p">],</span>
+    <span class="s1">'xal'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Аһар'</span><span class="p">,</span> <span class="s1">'Боомг'</span><span class="p">,</span> <span class="s1">'Изображение'</span><span class="p">,</span> <span class="s1">'Зург'</span><span class="p">],</span>
+    <span class="s1">'xmf'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'მედია'</span><span class="p">,</span> <span class="s1">'სურათი'</span><span class="p">,</span> <span class="s1">'ფაილი'</span><span class="p">],</span>
+    <span class="s1">'yi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'מעדיע'</span><span class="p">,</span> <span class="s1">'תמונה'</span><span class="p">,</span> <span class="s1">'טעקע'</span><span class="p">,</span> <span class="s1">'בילד'</span><span class="p">],</span>
+    <span class="s1">'yo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Fáìlì'</span><span class="p">,</span> <span class="s1">'Amóhùnmáwòrán'</span><span class="p">,</span> <span class="s1">'Àwòrán'</span><span class="p">],</span>
+    <span class="s1">'za'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'媒体文件'</span><span class="p">,</span> <span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'档案'</span><span class="p">,</span> <span class="s1">'图像'</span><span class="p">,</span> <span class="s1">'媒体'</span><span class="p">],</span>
+    <span class="s1">'zea'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Afbeelding'</span><span class="p">,</span> <span class="s1">'Plaetje'</span><span class="p">],</span>
+    <span class="s1">'zh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'媒体文件'</span><span class="p">,</span> <span class="s1">'F'</span><span class="p">,</span> <span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'媒體'</span><span class="p">,</span> <span class="s1">'档案'</span><span class="p">,</span> <span class="s1">'图像'</span><span class="p">,</span> <span class="s1">'圖像'</span><span class="p">,</span> <span class="s1">'媒体'</span><span class="p">,</span> <span class="s1">'檔案'</span><span class="p">],</span>
+    <span class="s1">'zh-classical'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'媒體'</span><span class="p">,</span> <span class="s1">'圖像'</span><span class="p">,</span> <span class="s1">'檔案'</span><span class="p">],</span>
+    <span class="s1">'zh-min-nan'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'tóng-àn'</span><span class="p">,</span> <span class="s1">'文件'</span><span class="p">,</span> <span class="s1">'媒體'</span><span class="p">,</span> <span class="s1">'Mûi-thé'</span><span class="p">,</span> <span class="s1">'圖像'</span><span class="p">,</span> <span class="s1">'檔案'</span><span class="p">],</span>
+    <span class="s1">'zh-yue'</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s1">'檔'</span><span class="p">,</span>
+        <span class="s1">'档'</span><span class="p">,</span>
+        <span class="s1">'文件'</span><span class="p">,</span>
+        <span class="s1">'图'</span><span class="p">,</span>
+        <span class="s1">'媒體'</span><span class="p">,</span>
+        <span class="s1">'圖'</span><span class="p">,</span>
+        <span class="s1">'档案'</span><span class="p">,</span>
+        <span class="s1">'图像'</span><span class="p">,</span>
+        <span class="s1">'圖像'</span><span class="p">,</span>
+        <span class="s1">'媒体'</span><span class="p">,</span>
+        <span class="s1">'檔案'</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">}</span>
+
+<span class="n">CAT_ALIASES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'ab'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'Акатегориа'</span><span class="p">],</span>
+    <span class="s1">'ace'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kawan'</span><span class="p">,</span> <span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'af'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'ak'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Nkyekyem'</span><span class="p">],</span>
+    <span class="s1">'als'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'am'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'መደብ'</span><span class="p">],</span>
+    <span class="s1">'an'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'ang'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Flocc'</span><span class="p">],</span>
+    <span class="s1">'ar'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'تصنيف'</span><span class="p">],</span>
+    <span class="s1">'arc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ܣܕܪܐ'</span><span class="p">],</span>
+    <span class="s1">'arz'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'تصنيف'</span><span class="p">],</span>
+    <span class="s1">'as'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'CAT'</span><span class="p">,</span> <span class="s1">'শ্ৰেণী'</span><span class="p">,</span> <span class="s1">'श्रेणी'</span><span class="p">,</span> <span class="s1">'শ্রেণী'</span><span class="p">],</span>
+    <span class="s1">'ast'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'atj'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Tipanictawin'</span><span class="p">],</span>
+    <span class="s1">'av'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'ay'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'az'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kateqoriya'</span><span class="p">],</span>
+    <span class="s1">'azb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'بؤلمه'</span><span class="p">],</span>
+    <span class="s1">'ba'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Төркөм'</span><span class="p">,</span> <span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'bar'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'bat-smg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">,</span> <span class="s1">'Kateguorėjė'</span><span class="p">],</span>
+    <span class="s1">'bcl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorya'</span><span class="p">],</span>
+    <span class="s1">'be'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Катэгорыя'</span><span class="p">],</span>
+    <span class="s1">'be-x-old'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Катэгорыя'</span><span class="p">],</span>
+    <span class="s1">'bg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'bh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'श्रेणी'</span><span class="p">],</span>
+    <span class="s1">'bjn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Tumbung'</span><span class="p">,</span> <span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'bm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'bn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'বিষয়শ্রেণী'</span><span class="p">,</span> <span class="s1">'വിഭാഗം'</span><span class="p">],</span>
+    <span class="s1">'bpy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'থাক'</span><span class="p">],</span>
+    <span class="s1">'br'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Rummad'</span><span class="p">],</span>
+    <span class="s1">'bs'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'bug'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'bxr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категори'</span><span class="p">,</span> <span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'ca'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'cbk-zam'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'cdo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分類'</span><span class="p">],</span>
+    <span class="s1">'ce'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категори'</span><span class="p">,</span> <span class="s1">'Тоба'</span><span class="p">,</span> <span class="s1">'Кадегар'</span><span class="p">],</span>
+    <span class="s1">'ceb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoriya'</span><span class="p">],</span>
+    <span class="s1">'ch'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Katigoria'</span><span class="p">],</span>
+    <span class="s1">'ckb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'پ'</span><span class="p">,</span> <span class="s1">'پۆل'</span><span class="p">],</span>
+    <span class="s1">'co'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'crh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'Kategoriya'</span><span class="p">],</span>
+    <span class="s1">'cs'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'csb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategòrëjô'</span><span class="p">],</span>
+    <span class="s1">'cu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Катигорї'</span><span class="p">,</span> <span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'Катигорїꙗ'</span><span class="p">],</span>
+    <span class="s1">'cv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категори'</span><span class="p">],</span>
+    <span class="s1">'cy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categori'</span><span class="p">],</span>
+    <span class="s1">'da'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'de'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'din'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Bekätakthook'</span><span class="p">],</span>
+    <span class="s1">'diq'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoriye'</span><span class="p">,</span> <span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'dsb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'dty'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'श्रेणी'</span><span class="p">],</span>
+    <span class="s1">'dv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ޤިސްމު'</span><span class="p">],</span>
+    <span class="s1">'el'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Κατηγορία'</span><span class="p">],</span>
+    <span class="s1">'eml'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'eo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorio'</span><span class="p">],</span>
+    <span class="s1">'es'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'CAT'</span><span class="p">,</span> <span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'et'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategooria'</span><span class="p">],</span>
+    <span class="s1">'eu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoria'</span><span class="p">],</span>
+    <span class="s1">'ext'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoría'</span><span class="p">,</span> <span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'fa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'رده'</span><span class="p">],</span>
+    <span class="s1">'ff'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'fi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Luokka'</span><span class="p">],</span>
+    <span class="s1">'fiu-vro'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Katõgooria'</span><span class="p">],</span>
+    <span class="s1">'fo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Bólkur'</span><span class="p">],</span>
+    <span class="s1">'fr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'frp'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catègorie'</span><span class="p">],</span>
+    <span class="s1">'frr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'fur'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">],</span>
+    <span class="s1">'fy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategory'</span><span class="p">],</span>
+    <span class="s1">'ga'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Rang'</span><span class="p">,</span> <span class="s1">'Catagóir'</span><span class="p">],</span>
+    <span class="s1">'gag'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">,</span> <span class="s1">'Kategoriya'</span><span class="p">],</span>
+    <span class="s1">'gan'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分類'</span><span class="p">,</span> <span class="s1">'分类'</span><span class="p">],</span>
+    <span class="s1">'gd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Roinn-seòrsa'</span><span class="p">],</span>
+    <span class="s1">'gl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'glk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'جرگه'</span><span class="p">,</span> <span class="s1">'رده'</span><span class="p">],</span>
+    <span class="s1">'gn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ñemohenda'</span><span class="p">],</span>
+    <span class="s1">'gom'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'वर्ग'</span><span class="p">,</span> <span class="s1">'श्रेणी'</span><span class="p">],</span>
+    <span class="s1">'gor'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Dalala'</span><span class="p">],</span>
+    <span class="s1">'got'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'𐌷𐌰𐌽𐍃𐌰'</span><span class="p">],</span>
+    <span class="s1">'gu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'શ્રેણી'</span><span class="p">,</span> <span class="s1">'CAT'</span><span class="p">,</span> <span class="s1">'શ્રે'</span><span class="p">],</span>
+    <span class="s1">'gv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ronney'</span><span class="p">],</span>
+    <span class="s1">'hak'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分類'</span><span class="p">],</span>
+    <span class="s1">'haw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Māhele'</span><span class="p">],</span>
+    <span class="s1">'he'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'קטגוריה'</span><span class="p">,</span> <span class="s1">'קט'</span><span class="p">],</span>
+    <span class="s1">'hi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'श्र'</span><span class="p">,</span> <span class="s1">'श्रेणी'</span><span class="p">],</span>
+    <span class="s1">'hif'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'vibhag'</span><span class="p">],</span>
+    <span class="s1">'hr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'CT'</span><span class="p">,</span> <span class="s1">'KT'</span><span class="p">,</span> <span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'hsb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'ht'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'hu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategória'</span><span class="p">],</span>
+    <span class="s1">'hy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Կատեգորիա'</span><span class="p">],</span>
+    <span class="s1">'ia'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'id'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'ie'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">],</span>
+    <span class="s1">'ig'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ébéonọr'</span><span class="p">,</span> <span class="s1">'Òtù'</span><span class="p">],</span>
+    <span class="s1">'ii'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分类'</span><span class="p">],</span>
+    <span class="s1">'ilo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoria'</span><span class="p">],</span>
+    <span class="s1">'inh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ОагӀат'</span><span class="p">],</span>
+    <span class="s1">'io'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorio'</span><span class="p">],</span>
+    <span class="s1">'is'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Flokkur'</span><span class="p">],</span>
+    <span class="s1">'it'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'CAT'</span><span class="p">,</span> <span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'ja'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'カテゴリ'</span><span class="p">],</span>
+    <span class="s1">'jbo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'klesi'</span><span class="p">],</span>
+    <span class="s1">'jv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'ka'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'კატეგორია'</span><span class="p">],</span>
+    <span class="s1">'kaa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Sanat'</span><span class="p">,</span> <span class="s1">'Kategoriya'</span><span class="p">,</span> <span class="s1">'Санат'</span><span class="p">,</span> <span class="s1">'سانات'</span><span class="p">],</span>
+    <span class="s1">'kab'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Taggayt'</span><span class="p">],</span>
+    <span class="s1">'kbd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'Категориэ'</span><span class="p">],</span>
+    <span class="s1">'kbp'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'kg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kalasi'</span><span class="p">],</span>
+    <span class="s1">'kk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Sanat'</span><span class="p">,</span> <span class="s1">'Санат'</span><span class="p">,</span> <span class="s1">'سانات'</span><span class="p">],</span>
+    <span class="s1">'kl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Sumut_atassuseq'</span><span class="p">,</span> <span class="s1">'Kategori'</span><span class="p">,</span> <span class="s1">'Sumut atassuseq'</span><span class="p">],</span>
+    <span class="s1">'km'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ចំនាត់ថ្នាក់ក្រុម'</span><span class="p">,</span> <span class="s1">'ចំណាត់ក្រុម'</span><span class="p">,</span> <span class="s1">'ចំណាត់ថ្នាក់ក្រុម'</span><span class="p">],</span>
+    <span class="s1">'kn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ವರ್ಗ'</span><span class="p">],</span>
+    <span class="s1">'ko'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'분류'</span><span class="p">],</span>
+    <span class="s1">'koi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'krc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'ks'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'زٲژ'</span><span class="p">],</span>
+    <span class="s1">'ksh'</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s1">'Saachjropp'</span><span class="p">,</span>
+        <span class="s1">'Saachjrop'</span><span class="p">,</span>
+        <span class="s1">'Katejori'</span><span class="p">,</span>
+        <span class="s1">'Kategorie'</span><span class="p">,</span>
+        <span class="s1">'Saachjrupp'</span><span class="p">,</span>
+        <span class="s1">'Kattejori'</span><span class="p">,</span>
+        <span class="s1">'Sachjrop'</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s1">'ku'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorî'</span><span class="p">,</span> <span class="s1">'پۆل'</span><span class="p">],</span>
+    <span class="s1">'kv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'kw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Class'</span><span class="p">,</span> <span class="s1">'Klass'</span><span class="p">],</span>
+    <span class="s1">'ky'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'la'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'lad'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kateggoría'</span><span class="p">,</span> <span class="s1">'Katēggoría'</span><span class="p">,</span> <span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'lb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'lbe'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'lez'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'lfn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'li'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">,</span> <span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'lij'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorîa'</span><span class="p">,</span> <span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'lmo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categuria'</span><span class="p">,</span> <span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'ln'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'lo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ໝວດ'</span><span class="p">],</span>
+    <span class="s1">'lrc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'دأسە'</span><span class="p">],</span>
+    <span class="s1">'lt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'ltg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoreja'</span><span class="p">],</span>
+    <span class="s1">'lv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'mai'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'CA'</span><span class="p">,</span> <span class="s1">'श्रेणी'</span><span class="p">],</span>
+    <span class="s1">'map-bms'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'mdf'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категорие'</span><span class="p">,</span> <span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'mg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Sokajy'</span><span class="p">,</span> <span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'mhr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'Категорий'</span><span class="p">],</span>
+    <span class="s1">'min'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'mk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категорија'</span><span class="p">],</span>
+    <span class="s1">'ml'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'വിഭാഗം'</span><span class="p">,</span> <span class="s1">'വി'</span><span class="p">,</span> <span class="s1">'വർഗ്ഗം'</span><span class="p">,</span> <span class="s1">'വ'</span><span class="p">],</span>
+    <span class="s1">'mn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ангилал'</span><span class="p">],</span>
+    <span class="s1">'mr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'वर्ग'</span><span class="p">],</span>
+    <span class="s1">'mrj'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категори'</span><span class="p">,</span> <span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'ms'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'mt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'mwl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catadorie'</span><span class="p">,</span> <span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'my'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ကဏ္ဍ'</span><span class="p">],</span>
+    <span class="s1">'myv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'mzn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'رج'</span><span class="p">,</span> <span class="s1">'رده'</span><span class="p">],</span>
+    <span class="s1">'nah'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Neneuhcāyōtl'</span><span class="p">,</span> <span class="s1">'Categoría'</span><span class="p">],</span>
+    <span class="s1">'nap'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categurìa'</span><span class="p">,</span> <span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'nds'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'nds-nl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">,</span> <span class="s1">'Kattegerie'</span><span class="p">,</span> <span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'ne'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'श्रेणी'</span><span class="p">],</span>
+    <span class="s1">'new'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'पुचः'</span><span class="p">],</span>
+    <span class="s1">'nl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">],</span>
+    <span class="s1">'nn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'no'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'nrm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'nso'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Setensele'</span><span class="p">],</span>
+    <span class="s1">'nv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Tʼááłáhági_átʼéego'</span><span class="p">,</span> <span class="s1">'Tʼááłáhági átʼéego'</span><span class="p">],</span>
+    <span class="s1">'oc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'olo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategourii'</span><span class="p">],</span>
+    <span class="s1">'or'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ବିଭାଗ'</span><span class="p">,</span> <span class="s1">'ଶ୍ରେଣୀ'</span><span class="p">],</span>
+    <span class="s1">'os'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категори'</span><span class="p">],</span>
+    <span class="s1">'pa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ਸ਼੍ਰੇਣੀ'</span><span class="p">],</span>
+    <span class="s1">'pcd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'pdc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Abdeeling'</span><span class="p">,</span> <span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'pfl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kadegorie'</span><span class="p">,</span> <span class="s1">'Sachgrubb'</span><span class="p">,</span> <span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'pi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'विभाग'</span><span class="p">],</span>
+    <span class="s1">'pl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoria'</span><span class="p">],</span>
+    <span class="s1">'pms'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorìa'</span><span class="p">],</span>
+    <span class="s1">'pnb'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'گٹھ'</span><span class="p">],</span>
+    <span class="s1">'pnt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Κατηγορίαν'</span><span class="p">],</span>
+    <span class="s1">'ps'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'وېشنيزه'</span><span class="p">],</span>
+    <span class="s1">'pt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'qu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Katiguriya'</span><span class="p">],</span>
+    <span class="s1">'rm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'rmy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Shopni'</span><span class="p">],</span>
+    <span class="s1">'ro'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">],</span>
+    <span class="s1">'roa-rup'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">],</span>
+    <span class="s1">'roa-tara'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'ru'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'К'</span><span class="p">],</span>
+    <span class="s1">'rue'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'Катеґорія'</span><span class="p">],</span>
+    <span class="s1">'rw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ikiciro'</span><span class="p">],</span>
+    <span class="s1">'sa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'वर्गः'</span><span class="p">],</span>
+    <span class="s1">'sah'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'sat'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ᱛᱷᱚᱠ'</span><span class="p">],</span>
+    <span class="s1">'sc'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'scn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catigurìa'</span><span class="p">],</span>
+    <span class="s1">'sd'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'زمرو'</span><span class="p">],</span>
+    <span class="s1">'se'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoriija'</span><span class="p">],</span>
+    <span class="s1">'sg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'sh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">,</span> <span class="s1">'Категорија'</span><span class="p">],</span>
+    <span class="s1">'si'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ප්‍රවර්ගය'</span><span class="p">],</span>
+    <span class="s1">'sk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategória'</span><span class="p">],</span>
+    <span class="s1">'sl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">],</span>
+    <span class="s1">'sq'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoria'</span><span class="p">,</span> <span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'sr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorija'</span><span class="p">,</span> <span class="s1">'Категорија'</span><span class="p">],</span>
+    <span class="s1">'srn'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">,</span> <span class="s1">'Guru'</span><span class="p">],</span>
+    <span class="s1">'stq'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorie'</span><span class="p">],</span>
+    <span class="s1">'su'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'sv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">],</span>
+    <span class="s1">'sw'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Jamii'</span><span class="p">],</span>
+    <span class="s1">'szl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoryjo'</span><span class="p">,</span> <span class="s1">'Kategoria'</span><span class="p">],</span>
+    <span class="s1">'ta'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'பகுப்பு'</span><span class="p">],</span>
+    <span class="s1">'tcy'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'ವರ್ಗೊ'</span><span class="p">],</span>
+    <span class="s1">'te'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'వర్గం'</span><span class="p">],</span>
+    <span class="s1">'tet'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoría'</span><span class="p">,</span> <span class="s1">'Kategoria'</span><span class="p">],</span>
+    <span class="s1">'tg'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Гурӯҳ'</span><span class="p">],</span>
+    <span class="s1">'th'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'หมวดหมู่'</span><span class="p">],</span>
+    <span class="s1">'ti'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'መደብ'</span><span class="p">],</span>
+    <span class="s1">'tk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategoriýa'</span><span class="p">],</span>
+    <span class="s1">'tl'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorya'</span><span class="p">,</span> <span class="s1">'Kaurian'</span><span class="p">],</span>
+    <span class="s1">'tpi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Grup'</span><span class="p">],</span>
+    <span class="s1">'tr'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategori'</span><span class="p">,</span> <span class="s1">'KAT'</span><span class="p">],</span>
+    <span class="s1">'tt'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Төркем'</span><span class="p">,</span> <span class="s1">'Törkem'</span><span class="p">,</span> <span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'ty'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'tyv'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Аңгылал'</span><span class="p">,</span> <span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'udm'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">],</span>
+    <span class="s1">'ug'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'تۈر'</span><span class="p">],</span>
+    <span class="s1">'uk'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Категория'</span><span class="p">,</span> <span class="s1">'Категорія'</span><span class="p">],</span>
+    <span class="s1">'ur'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'زمرہ'</span><span class="p">],</span>
+    <span class="s1">'uz'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Turkum'</span><span class="p">,</span> <span class="s1">'Kategoriya'</span><span class="p">],</span>
+    <span class="s1">'vec'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoria'</span><span class="p">],</span>
+    <span class="s1">'vep'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kategorii'</span><span class="p">],</span>
+    <span class="s1">'vi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Thể_loại'</span><span class="p">,</span> <span class="s1">'Thể loại'</span><span class="p">],</span>
+    <span class="s1">'vls'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">],</span>
+    <span class="s1">'vo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Klad'</span><span class="p">],</span>
+    <span class="s1">'wa'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categoreye'</span><span class="p">],</span>
+    <span class="s1">'war'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Kaarangay'</span><span class="p">],</span>
+    <span class="s1">'wo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Wàll'</span><span class="p">,</span> <span class="s1">'Catégorie'</span><span class="p">],</span>
+    <span class="s1">'wuu'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分类'</span><span class="p">],</span>
+    <span class="s1">'xal'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Янз'</span><span class="p">,</span> <span class="s1">'Әәшл'</span><span class="p">],</span>
+    <span class="s1">'xmf'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'კატეგორია'</span><span class="p">],</span>
+    <span class="s1">'yi'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'קאטעגאריע'</span><span class="p">,</span> <span class="s1">'קאַטעגאָריע'</span><span class="p">],</span>
+    <span class="s1">'yo'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Ẹ̀ka'</span><span class="p">],</span>
+    <span class="s1">'za'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分类'</span><span class="p">],</span>
+    <span class="s1">'zea'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Categorie'</span><span class="p">],</span>
+    <span class="s1">'zh'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分类'</span><span class="p">,</span> <span class="s1">'分類'</span><span class="p">,</span> <span class="s1">'CAT'</span><span class="p">],</span>
+    <span class="s1">'zh-classical'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分類'</span><span class="p">,</span> <span class="s1">'CAT'</span><span class="p">],</span>
+    <span class="s1">'zh-min-nan'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分類'</span><span class="p">,</span> <span class="s1">'Lūi-pia̍t'</span><span class="p">],</span>
+    <span class="s1">'zh-yue'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'分类'</span><span class="p">,</span> <span class="s1">'分類'</span><span class="p">,</span> <span class="s1">'类'</span><span class="p">,</span> <span class="s1">'類'</span><span class="p">],</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="WikipediaDownloader">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaDownloader">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WikipediaDownloader</span><span class="p">(</span><span class="n">DocumentDownloader</span><span class="p">):</span>
+
+<div class="viewcode-block" id="WikipediaDownloader.__init__">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaDownloader.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">download_dir</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_download_dir</span> <span class="o">=</span> <span class="n">download_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span> <span class="o">=</span> <span class="n">verbose</span></div>
+
+
+<div class="viewcode-block" id="WikipediaDownloader.download">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaDownloader.download">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="n">urlpath</span> <span class="o">=</span> <span class="n">up</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">output_name</span> <span class="o">=</span> <span class="n">urlpath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'/'</span><span class="p">,</span> <span class="s1">'-'</span><span class="p">)</span>
+        <span class="n">output_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_download_dir</span><span class="p">,</span> <span class="n">output_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_file</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'bz2 file: </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s1"> exists. Not downloading'</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Downloading </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1"> and writing to </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+            <span class="c1"># Download with either wget or s5cmd (aws)</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'wget'</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="s1">'-O'</span><span class="p">,</span> <span class="n">output_file</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+                <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span><span class="p">,</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                <span class="n">cmd</span><span class="p">,</span>
+                <span class="n">stdout</span><span class="o">=</span><span class="n">stdout</span><span class="p">,</span>
+                <span class="n">stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Failed to download </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1"> to </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">output_file</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="WikipediaIterator">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaIterator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WikipediaIterator</span><span class="p">(</span><span class="n">DocumentIterator</span><span class="p">):</span>
+
+<div class="viewcode-block" id="WikipediaIterator.__init__">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaIterator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s1">'en'</span><span class="p">,</span> <span class="n">log_frequency</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_language</span> <span class="o">=</span> <span class="n">language</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_frequency</span> <span class="o">=</span> <span class="n">log_frequency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="WikipediaIterator.iterate">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaIterator.iterate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">iterate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">bname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">file_path</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">input_file</span> <span class="o">=</span> <span class="n">bz2</span><span class="o">.</span><span class="n">BZ2File</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">utf_f</span> <span class="o">=</span> <span class="n">codecs</span><span class="o">.</span><span class="n">getreader</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">)(</span><span class="n">input_file</span><span class="p">)</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">iterparse</span><span class="p">(</span><span class="n">utf_f</span><span class="p">,</span> <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s1">'end'</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">unused_event</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">elem</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">'page'</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_frequency</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Extracted </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_counter</span><span class="si">}</span><span class="s1"> articles from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">namespace</span> <span class="o">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">tag</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="sa">f</span><span class="s1">'./</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s1">title'</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+            <span class="n">ns</span> <span class="o">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="sa">f</span><span class="s1">'./</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s1">ns'</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+            <span class="n">id_</span> <span class="o">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="sa">f</span><span class="s1">'./</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s1">id'</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+            <span class="n">red_</span> <span class="o">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="sa">f</span><span class="s1">'./</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s1">redirect'</span><span class="p">)</span>
+
+            <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'https://</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_language</span><span class="si">}</span><span class="s1">.wikipedia.org/wiki/</span><span class="si">{</span><span class="n">up</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">title</span><span class="p">)</span><span class="si">}</span><span class="s1">'</span>  <span class="c1"># noqa: E501</span>
+
+            <span class="c1"># Filter pages that are not in the "main" namespace.</span>
+            <span class="k">if</span> <span class="n">ns</span> <span class="o">!=</span> <span class="s1">'0'</span><span class="p">:</span>
+                <span class="n">elem</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="k">continue</span>
+
+            <span class="n">raw_content</span> <span class="o">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">'./</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s1">revision/</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s1">text'</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+            <span class="n">elem</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+            <span class="c1"># Filter redirects.</span>
+            <span class="k">if</span> <span class="n">raw_content</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">red_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">yield</span> <span class="p">{</span>
+                <span class="s1">'title'</span><span class="p">:</span> <span class="n">title</span><span class="p">,</span>
+                <span class="s1">'id'</span><span class="p">:</span> <span class="n">id_</span><span class="p">,</span>
+                <span class="s1">'url'</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span>
+                <span class="s1">'language'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_language</span><span class="p">,</span>
+                <span class="s1">'source_id'</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">bname</span><span class="si">}</span><span class="s1">'</span><span class="p">,</span>
+            <span class="p">},</span> <span class="n">raw_content</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="WikipediaExtractor">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaExtractor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WikipediaExtractor</span><span class="p">(</span><span class="n">DocumentExtractor</span><span class="p">):</span>
+
+<div class="viewcode-block" id="WikipediaExtractor.__init__">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaExtractor.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s1">'en'</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">mwparserfromhell</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_language</span> <span class="o">=</span> <span class="n">language</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span> <span class="o">=</span> <span class="n">parser</span></div>
+
+
+<div class="viewcode-block" id="WikipediaExtractor.extract">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.WikipediaExtractor.extract">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
+        <span class="n">wikicode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+
+        <span class="c1"># Filters for magic words / parser instructions -- e.g., __NOTOC__</span>
+        <span class="n">re_rm_magic</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">'__[A-Z]*__'</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">UNICODE</span><span class="p">)</span>
+
+        <span class="c1"># Filters for file/image links.</span>
+        <span class="n">media_prefixes</span> <span class="o">=</span> <span class="s1">'|'</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">'File'</span><span class="p">,</span> <span class="s1">'Image'</span><span class="p">,</span> <span class="s1">'Media'</span><span class="p">]</span> <span class="o">+</span>
+                                  <span class="n">MEDIA_ALIASES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_language</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="n">re_rm_wikilink</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">f</span><span class="s1">'^(?:</span><span class="si">{</span><span class="n">media_prefixes</span><span class="si">}</span><span class="s1">):'</span><span class="p">,</span>
+                                    <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">UNICODE</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">rm_wikilink</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">re_rm_wikilink</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">title</span><span class="p">)))</span>
+
+        <span class="c1"># Filters for references and tables</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">rm_tag</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">'ref'</span><span class="p">,</span> <span class="s1">'table'</span><span class="p">}</span>
+
+        <span class="c1"># Leave category links in-place but remove the category prefixes</span>
+        <span class="n">cat_prefixes</span> <span class="o">=</span> <span class="s1">'|'</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">'Category'</span><span class="p">]</span> <span class="o">+</span>
+                                <span class="n">CAT_ALIASES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_language</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="n">re_clean_wikilink</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">f</span><span class="s1">'^(?:</span><span class="si">{</span><span class="n">cat_prefixes</span><span class="si">}</span><span class="s1">):'</span><span class="p">,</span>
+                                       <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">UNICODE</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">is_category</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">re_clean_wikilink</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">title</span><span class="p">)))</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">clean_wikilink</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">__strip__</span><span class="p">()</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">re_clean_wikilink</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">try_replace_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">clean_wikilink</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="c1"># For unknown reasons, objects are sometimes not found.</span>
+                <span class="k">pass</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">try_remove_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">section</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">section</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="c1"># For unknown reasons, objects are sometimes not found.</span>
+                <span class="k">pass</span>
+
+        <span class="n">section_text</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Filter individual sections to clean.</span>
+        <span class="n">wiki_code_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">'flat'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">'include_lead'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">'include_headings'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">wikicode</span><span class="o">.</span><span class="n">get_sections</span><span class="p">(</span><span class="o">**</span><span class="n">wiki_code_kwargs</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">section</span><span class="o">.</span><span class="n">ifilter_wikilinks</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">rm_wikilink</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+                    <span class="n">try_remove_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">section</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">is_category</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+                    <span class="n">try_replace_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">section</span><span class="o">.</span><span class="n">ifilter_tags</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">rm_tag</span><span class="p">,</span>
+                                                <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="n">try_remove_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">section</span><span class="p">)</span>
+
+            <span class="n">section_text</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+                    <span class="n">re_rm_magic</span><span class="p">,</span>
+                    <span class="s1">''</span><span class="p">,</span>
+                    <span class="n">section</span><span class="o">.</span><span class="n">strip_code</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                <span class="p">))</span>
+        <span class="c1"># Don't return any meta here</span>
+        <span class="k">return</span> <span class="p">{},</span> <span class="s1">'</span><span class="se">\n\n</span><span class="s1">'</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">section_text</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="download_wikipedia">
+<a class="viewcode-back" href="../../../api/data_juicer.download.wikipedia.html#data_juicer.download.wikipedia.download_wikipedia">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">download_wikipedia</span><span class="p">(</span><span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">language</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'en'</span><span class="p">,</span>
+                       <span class="n">dump_date</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">output_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'jsonl'</span><span class="p">,</span>
+                       <span class="n">raw_download_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">keep_raw_download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">force_download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">url_limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">item_limit</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Downloads the latest Wikipedia dumps and extracts them using mwparserfromhell</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      output_path: The path to the root directory of the files</span>
+<span class="sd">      language: The language of the Wikipedia articles to download</span>
+<span class="sd">      dump_date: A string formatted as "YYYYMMDD" for the wikipedia dump to use.</span>
+<span class="sd">        If None, latest dump is used.</span>
+<span class="sd">      output_type: The file type to save the data as.</span>
+<span class="sd">      raw_download_dir: Path to store the raw download files for intermediate processing.</span>
+<span class="sd">        If None, they are stored in a folder named "downloads" under output_path.</span>
+<span class="sd">      keep_raw_download: If True, keeps the bz2 files that have not been extracted.</span>
+<span class="sd">      force_download: If False, will skip processing all files in output_paths that already exist and</span>
+<span class="sd">        directly read from them instead.</span>
+<span class="sd">      url_limit: The maximum number of raw files to download from the snapshot. If None, all</span>
+<span class="sd">        files from the range of snapshots are downloaded.</span>
+<span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
+    <span class="n">wikipedia_urls</span> <span class="o">=</span> <span class="n">get_wikipedia_urls</span><span class="p">(</span><span class="n">language</span><span class="o">=</span><span class="n">language</span><span class="p">,</span> <span class="n">dump_date</span><span class="o">=</span><span class="n">dump_date</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">url_limit</span><span class="p">:</span>
+        <span class="n">wikipedia_urls</span> <span class="o">=</span> <span class="n">wikipedia_urls</span><span class="p">[:</span><span class="n">url_limit</span><span class="p">]</span>
+    <span class="n">output_paths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="nb">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">url</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span>
+                                     <span class="n">url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="sa">f</span><span class="s1">'.</span><span class="si">{</span><span class="n">output_type</span><span class="si">}</span><span class="s1">'</span><span class="p">),</span>
+            <span class="n">wikipedia_urls</span><span class="p">,</span>
+        <span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">raw_download_dir</span><span class="p">:</span>
+        <span class="n">raw_download_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">'downloads'</span><span class="p">)</span>
+    <span class="n">expand_outdir_and_mkdir</span><span class="p">(</span><span class="n">raw_download_dir</span><span class="p">)</span>
+
+    <span class="n">downloader</span> <span class="o">=</span> <span class="n">WikipediaDownloader</span><span class="p">(</span><span class="n">download_dir</span><span class="o">=</span><span class="n">raw_download_dir</span><span class="p">)</span>
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">WikipediaIterator</span><span class="p">(</span><span class="n">language</span><span class="o">=</span><span class="n">language</span><span class="p">)</span>
+    <span class="n">extractor</span> <span class="o">=</span> <span class="n">WikipediaExtractor</span><span class="p">(</span><span class="n">language</span><span class="o">=</span><span class="n">language</span><span class="p">)</span>
+
+    <span class="n">output_format</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">'text'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">'title'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">'id'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">'url'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">'language'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">'source_id'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">'filename'</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">download_and_extract</span><span class="p">(</span><span class="n">wikipedia_urls</span><span class="p">,</span>
+                                   <span class="n">output_paths</span><span class="p">,</span>
+                                   <span class="n">downloader</span><span class="p">,</span>
+                                   <span class="n">iterator</span><span class="p">,</span>
+                                   <span class="n">extractor</span><span class="p">,</span>
+                                   <span class="n">output_format</span><span class="p">,</span>
+                                   <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">,</span>
+                                   <span class="n">keep_raw_download</span><span class="o">=</span><span class="n">keep_raw_download</span><span class="p">,</span>
+                                   <span class="n">force_download</span><span class="o">=</span><span class="n">force_download</span><span class="p">,</span>
+                                   <span class="n">item_limit</span><span class="o">=</span><span class="n">item_limit</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+</pre></div>
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../../../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../../../_static/documentation_options.js"></script>
+  <script src="../../../_static/doctools.js"></script>
+  <script src="../../../_static/sphinx_highlight.js"></script>
+  <script src="../../../_static/clipboard.min.js"></script>
+  <script src="../../../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../../../_static/ask-ai-widget.js"></script>
+</body>
+</html>

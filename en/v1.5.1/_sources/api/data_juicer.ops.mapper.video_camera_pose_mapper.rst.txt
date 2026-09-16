@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_camera\_pose\_mapper module
+==========================================================
+
+.. automodule:: data_juicer.ops.mapper.video_camera_pose_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

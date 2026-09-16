@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>data_juicer.core — data-juicer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" id="pygments-dark-css" href="../_static/pygments_dark.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/ask-ai-widget.css" type="text/css" />
+  <link rel="icon" href="../_static/icon.png" />
+
+  <script>
+  (function(){var t=localStorage.getItem('dj-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var d=document.getElementById('pygments-dark-css');if(d){d.disabled=(t!=='dark')}})();
+  </script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" id="sidebar-toggle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <a href="../index.html" class="navbar-brand">
+          <img src="../_static/images/icon.png" alt="data-juicer" class="navbar-logo" />
+          <span class="navbar-title">data-juicer</span>
+        </a>
+      </div>
+
+      <nav class="navbar-sections" aria-label="Documentation sections">
+        <a href="../docs_index.html" class="navbar-link">Doc</a>
+        <a href="../api.html" class="navbar-link active" aria-current="page">API</a>
+      </nav>
+
+      <nav class="navbar-center">
+        
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+      </nav>
+
+      <div class="navbar-right">
+        <button class="search-trigger" id="search-trigger" aria-label="Search" title="Search (Ctrl/⌘ K)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        </button>
+        <div class="dropdown" id="lang-dropdown">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 10.5 0 13M8 1.5c2 2.5 2 10.5 0 13"/></svg>
+            <span class="dropdown-text">en</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../../en/v1.6.0/api/data_juicer.core.html" class="dropdown-item active">English</a>
+            <a href="../../../zh_CN/v1.6.0/api/data_juicer.core.html" class="dropdown-item">简体中文</a>
+          </div>
+        </div>
+        <div class="dropdown" id="version-dropdown"
+             data-versions-url="https://datajuicer.github.io/data-juicer/versions.json"
+             data-link-prefix="../../"
+             data-page="api/data_juicer.core"
+             data-current="v1.6.0">
+          <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            <svg class="dropdown-icon-svg" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4l5.5 2.5L13.5 4M8 6.5V14"/><path d="M13.5 4v6l-5.5 4L2.5 10V4L8 1.5 13.5 4z"/></svg>
+            <span class="dropdown-text">v1.6.0</span>
+            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <a href="../../v1.6.0/api/data_juicer.core.html" class="dropdown-item active">v1.6.0</a>
+          </div>
+        </div>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M3.7 14.3l1.4-1.4M12.9 5.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="https://github.com/datajuicer/data-juicer" class="navbar-icon-link" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <ul class="sidebar-home">
+            <li class="">
+              <a href="../index.html">Home</a>
+            </li>
+          </ul>
+          <p class="caption"><a href="../api.html">API</a></p>
+          <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">data_juicer.core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.html">data_juicer.ops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.filter.html">data_juicer.ops.filter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.mapper.html">data_juicer.ops.mapper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.deduplicator.html">data_juicer.ops.deduplicator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.selector.html">data_juicer.ops.selector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.aggregator.html">data_juicer.ops.aggregator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.grouper.html">data_juicer.ops.grouper</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.pipeline.html">data_juicer.ops.pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.ops.common.html">data_juicer.ops.common</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.analysis.html">data_juicer.analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.config.html">data_juicer.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_juicer.format.html">data_juicer.format</a></li>
+</ul>
+
+
+        </nav>
+        <nav class="sidebar-projects" aria-label="Related projects">
+          <p class="sidebar-projects-title">Related projects</p>
+          
+        <a href="https://datajuicer.github.io/data-juicer-sandbox/en/main/" class="navbar-link" target="_blank" rel="noopener">Sandbox<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-hub/en/main/" class="navbar-link" target="_blank" rel="noopener">Hub<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        <a href="https://datajuicer.github.io/data-juicer-agents/en/main/" class="navbar-link" target="_blank" rel="noopener">Agents<svg class="external-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h7v7M10.5 1.5L4 8"/></svg></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-wrapper">
+        <article class="article" role="main">
+  <section id="module-data_juicer.core">
+<span id="data-juicer-core"></span><h1>data_juicer.core<a class="headerlink" href="#module-data_juicer.core" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">Adapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.MAX_BATCH_SIZE">
+<span class="sig-name descname"><span class="pre">MAX_BATCH_SIZE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10000</span></span><a class="headerlink" href="#data_juicer.core.Adapter.MAX_BATCH_SIZE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.execute_and_probe">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute_and_probe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.execute_and_probe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.execute_and_probe" title="Link to this definition">¶</a></dt>
+<dd><p>Process the input dataset and probe related information for each OP in
+the specified operator list.</p>
+<p>For now, we support the following targets to probe:
+“resource”: resource utilization for each OP.
+“speed”: average processing speed for each OP.</p>
+<p>The probe result is a list and each item in the list is the probe
+result for each OP.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.take_batch">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">take_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.take_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.take_batch" title="Link to this definition">¶</a></dt>
+<dd><p>Split the dataset into batches based on configuration and load factor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – The dataset to be split</p></li>
+<li><p><strong>config</strong> – Configuration settings, including batch size</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An iterator of batches</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.adapt_workloads">
+<span class="sig-name descname"><span class="pre">adapt_workloads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operators</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.adapt_workloads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.adapt_workloads" title="Link to this definition">¶</a></dt>
+<dd><p>Manage the scheduling and load balancing for the dataset processing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – The dataset that needs to be processed</p></li>
+<li><p><strong>operators</strong> – Operators in the data recipe</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.probe_small_batch">
+<span class="sig-name descname"><span class="pre">probe_small_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operators</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.probe_small_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.probe_small_batch" title="Link to this definition">¶</a></dt>
+<dd><p>Perform small batch pre-execution to probe available resources,
+current load and estimated OP speed, returning load factors and speed
+ranks for each OP.</p>
+<p>Notice: the probe should be run with cache enabled to avoid removing
+the cache files of the input dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – The dataset to pre-execute small batch on</p></li>
+<li><p><strong>operators</strong> – The OP list to be pre-execution and probe</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of probe results for each OP and the length of data
+batch to probe.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.batch_size_strategy">
+<span class="sig-name descname"><span class="pre">batch_size_strategy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_analysis_res</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_bs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">util_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.batch_size_strategy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.batch_size_strategy" title="Link to this definition">¶</a></dt>
+<dd><p>Decide the batch size for each op according to their workload analysis
+result and expected utilization threshold. We need to guarantee that
+the resource utilization won’t exceed the threshold. Now we only
+consider the buckets effect, which means the max batch size is decided
+by the max utilization of all types of resources except GPU util
+(decided by num_proc).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.analyze_small_batch">
+<span class="sig-name descname"><span class="pre">analyze_small_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.analyze_small_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.analyze_small_batch" title="Link to this definition">¶</a></dt>
+<dd><p>Perform small batch analysis to probe the current OP-wise stats/meta
+distributions. The analyzed results will be stored in the directory
+<cite>{work_dir}/insight_mining</cite>.</p>
+<p>Notice: the probe should be run with cache enabled to avoid removing
+the cache files of the input dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – The dataset to analyze small batch on</p></li>
+<li><p><strong>current_state</strong> – A string to indicate the current state of the
+input dataset. It usually consists of a number of the index of the
+OP processed just now and the OP name, e.g. “1_text_length_filter”.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Adapter.insight_mining">
+<span class="sig-name descname"><span class="pre">insight_mining</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pval_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/adapter.html#Adapter.insight_mining"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Adapter.insight_mining" title="Link to this definition">¶</a></dt>
+<dd><p>Mining the insights from the OP-wise analysis results. For now, we use
+T-Test to check the significance of stats/meta changes before and after
+each OP processing. If the p-value is less than a given threshold
+(usually 0.05), we think the stats/meta changes are significant. The
+insight mining results will be stored in the file
+<cite>{work_dir}/insight_mining/insight_mining.json</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pval_th</strong> – the threshold of p-value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.Analyzer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">Analyzer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/analyzer.html#Analyzer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Analyzer" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This Analyzer class is used to analyze a specific dataset.</p>
+<p>It will compute stats for all filter ops in the config file, apply
+multiple analysis (e.g. OverallAnalysis, ColumnWiseAnalysis, etc.)
+on these stats, and generate the analysis results (stats tables,
+distribution figures, etc.) to help users understand the input
+dataset better.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Analyzer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/analyzer.html#Analyzer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Analyzer.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cfg</strong> – optional jsonargparse Namespace dict.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Analyzer.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="data_juicer.core.data.dj_dataset.html#data_juicer.core.data.dj_dataset.NestedDataset" title="data_juicer.core.data.dj_dataset.NestedDataset"><span class="pre">NestedDataset</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_data_np</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_export</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_return</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/analyzer.html#Analyzer.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Analyzer.run" title="Link to this definition">¶</a></dt>
+<dd><p>Running the dataset analysis pipeline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – a Dataset object to be analyzed.</p></li>
+<li><p><strong>load_data_np</strong> – deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
+<li><p><strong>skip_export</strong> – whether export the results into disk</p></li>
+<li><p><strong>skip_return</strong> – skip return for API called.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>analyzed dataset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">NestedDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code>, <a class="reference internal" href="data_juicer.core.data.dj_dataset.html#data_juicer.core.data.dj_dataset.DJDataset" title="data_juicer.core.data.dj_dataset.DJDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">DJDataset</span></code></a></p>
+<p>Enhanced HuggingFace-Dataset for better usability and efficiency.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.schema">
+<span class="sig-name descname"><span class="pre">schema</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="data_juicer.core.data.schema.html#data_juicer.core.data.schema.Schema" title="data_juicer.core.data.schema.Schema"><span class="pre">Schema</span></a></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.schema" title="Link to this definition">¶</a></dt>
+<dd><p>Get dataset schema.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.get" title="Link to this definition">¶</a></dt>
+<dd><p>Get k rows from the dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.get_column">
+<span class="sig-name descname"><span class="pre">get_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.get_column"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.get_column" title="Link to this definition">¶</a></dt>
+<dd><p>Get column values from HuggingFace dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>column</strong> – Name of the column to retrieve</p></li>
+<li><p><strong>k</strong> – Optional number of rows to return. If None, returns all rows</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of values from the specified column</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>KeyError</strong> – If column doesn’t exist</p></li>
+<li><p><strong>ValueError</strong> – If k is negative</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operators</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">work_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exporter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpointer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adapter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">open_monitor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.process" title="Link to this definition">¶</a></dt>
+<dd><p>process a list of operators on the dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.count">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.count" title="Link to this definition">¶</a></dt>
+<dd><p>return the count of the dataset</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.update_args">
+<span class="sig-name descname"><span class="pre">update_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.update_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.update_args" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.map">
+<span class="sig-name descname"><span class="pre">map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.map" title="Link to this definition">¶</a></dt>
+<dd><p>Override the map func, which is called by most common operations,
+such that the processed samples can be accessed by nested manner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.filter" title="Link to this definition">¶</a></dt>
+<dd><p>Override the filter func, which is called by most common operations,
+such that the processed samples can be accessed by nested manner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.select">
+<span class="sig-name descname"><span class="pre">select</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.select"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.select" title="Link to this definition">¶</a></dt>
+<dd><p>Override the select func, such that selected samples can be accessed
+by nested manner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.to_list">
+<span class="sig-name descname"><span class="pre">to_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.to_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.to_list" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the dataset as a Python list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><cite>list</cite></p>
+</dd>
+</dl>
+<p>Example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">`py</span>
+<span class="pre">&gt;&gt;&gt;</span> <span class="pre">ds.to_list()</span>
+<span class="pre">`</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.from_dict">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.from_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.from_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Override the from_dict func, which is called by most from_xx
+constructors, such that the constructed dataset object is
+NestedDataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.from_list">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.from_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.from_list" title="Link to this definition">¶</a></dt>
+<dd><p>Override the from_dict func, which is called by most from_xx
+constructors, such that the constructed dataset object is
+NestedDataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.add_column">
+<span class="sig-name descname"><span class="pre">add_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.add_column"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.add_column" title="Link to this definition">¶</a></dt>
+<dd><p>Override the add column func, such that the processed samples
+can be accessed by nested manner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.select_columns">
+<span class="sig-name descname"><span class="pre">select_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.select_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.select_columns" title="Link to this definition">¶</a></dt>
+<dd><p>Override the select columns func, such that the processed samples
+can be accessed by nested manner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.remove_columns">
+<span class="sig-name descname"><span class="pre">remove_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.remove_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.remove_columns" title="Link to this definition">¶</a></dt>
+<dd><p>Override the remove columns func, such that the processed samples
+can be accessed by nested manner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.cleanup_cache_files">
+<span class="sig-name descname"><span class="pre">cleanup_cache_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.cleanup_cache_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.cleanup_cache_files" title="Link to this definition">¶</a></dt>
+<dd><p>Override the cleanup_cache_files func, clear raw and compressed
+cache files.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.NestedDataset.load_from_disk">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">load_from_disk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/data/dj_dataset.html#NestedDataset.load_from_disk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.NestedDataset.load_from_disk" title="Link to this definition">¶</a></dt>
+<dd><p>Loads a dataset that was previously saved using [<cite>save_to_disk</cite>] from a dataset directory, or from a
+filesystem using any implementation of <cite>fsspec.spec.AbstractFileSystem</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset_path</strong> (<cite>path-like</cite>) – Path (e.g. <cite>“dataset/train”</cite>) or remote URI (e.g. <cite>“s3//my-bucket/dataset/train”</cite>)
+of the dataset directory where the dataset will be loaded from.</p></li>
+<li><p><strong>keep_in_memory</strong> (<cite>bool</cite>, defaults to <cite>None</cite>) – Whether to copy the dataset in-memory. If <cite>None</cite>, the
+dataset will not be copied in-memory unless explicitly enabled by setting
+<cite>datasets.config.IN_MEMORY_MAX_SIZE</cite> to nonzero. See more details in the
+[improve performance](../cache#improve-performance) section.</p></li>
+<li><p><strong>storage_options</strong> (<cite>dict</cite>, <em>optional</em>) – <p>Key/value pairs to be passed on to the file-system backend, if any.</p>
+<p>&lt;Added version=”2.8.0”/&gt;</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>If <cite>dataset_path</cite> is a path of a dataset directory, the dataset requested.</p></li>
+<li><p>If <cite>dataset_path</cite> is a path of a dataset dict directory, a <cite>datasets.DatasetDict</cite> with each split.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[<cite>Dataset</cite>] or [<cite>DatasetDict</cite>]</p>
+</dd>
+</dl>
+<p>Example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">`py</span>
+<span class="pre">&gt;&gt;&gt;</span> <span class="pre">ds</span> <span class="pre">=</span> <span class="pre">load_from_disk(&quot;path/to/dataset/directory&quot;)</span>
+<span class="pre">`</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.ExecutorBase">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">ExecutorBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/base.html#ExecutorBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.ExecutorBase" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.ExecutorBase.__init__">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/base.html#ExecutorBase.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.ExecutorBase.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.ExecutorBase.run">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_data_np</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_return</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/base.html#ExecutorBase.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.ExecutorBase.run" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract method for ExecutorBase.run</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>load_data_np</strong> – deprecated; number of workers when loading the
+dataset. Still applied by the default executor and the Analyzer,
+which is where <cite>np</cite> and <cite>load_dataset_kwargs.num_proc</cite> replace it.
+The Ray executors have never applied it; their read parallelism
+comes from <cite>override_num_blocks</cite> and the cluster.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.ExecutorFactory">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">ExecutorFactory</span></span><a class="reference internal" href="../_modules/data_juicer/core/executor/factory.html#ExecutorFactory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.ExecutorFactory" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.ExecutorFactory.create_executor">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">create_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="data_juicer.core.executor.base.html#data_juicer.core.executor.base.ExecutorBase" title="data_juicer.core.executor.base.ExecutorBase"><span class="pre">ExecutorBase</span></a></span></span><a class="reference internal" href="../_modules/data_juicer/core/executor/factory.html#ExecutorFactory.create_executor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.ExecutorFactory.create_executor" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.DefaultExecutor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">DefaultExecutor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/default_executor.html#DefaultExecutor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.DefaultExecutor" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.core.executor.base.html#data_juicer.core.executor.base.ExecutorBase" title="data_juicer.core.executor.base.ExecutorBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExecutorBase</span></code></a>, <a class="reference internal" href="data_juicer.core.executor.dag_execution_mixin.html#data_juicer.core.executor.dag_execution_mixin.DAGExecutionMixin" title="data_juicer.core.executor.dag_execution_mixin.DAGExecutionMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">DAGExecutionMixin</span></code></a>, <a class="reference internal" href="data_juicer.core.executor.event_logging_mixin.html#data_juicer.core.executor.event_logging_mixin.EventLoggingMixin" title="data_juicer.core.executor.event_logging_mixin.EventLoggingMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventLoggingMixin</span></code></a></p>
+<p>This Executor class is used to process a specific dataset.</p>
+<p>It will load the dataset and unify the format, then apply all the
+ops in the config file in order and generate a processed dataset.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.DefaultExecutor.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/default_executor.html#DefaultExecutor.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.DefaultExecutor.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cfg</strong> – optional jsonargparse Namespace.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.DefaultExecutor.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="data_juicer.core.data.dj_dataset.html#data_juicer.core.data.dj_dataset.NestedDataset" title="data_juicer.core.data.dj_dataset.NestedDataset"><span class="pre">NestedDataset</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_data_np</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_export</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_return</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/default_executor.html#DefaultExecutor.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.DefaultExecutor.run" title="Link to this definition">¶</a></dt>
+<dd><p>Running the dataset process pipeline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – a Dataset object to be executed.</p></li>
+<li><p><strong>load_data_np</strong> – deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
+<li><p><strong>skip_export</strong> – whether export the results into disk</p></li>
+<li><p><strong>skip_return</strong> – skip return for API called.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>processed dataset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.DefaultExecutor.sample_data">
+<span class="sig-name descname"><span class="pre">sample_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_to_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_data_np</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_algo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'uniform'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/executor/default_executor.html#DefaultExecutor.sample_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.DefaultExecutor.sample_data" title="Link to this definition">¶</a></dt>
+<dd><p>Sample a subset from the given dataset.
+TODO add support other than LocalExecutor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset_to_sample</strong> – Dataset to sample from. If None, will use
+the formatter linked by the executor. Default is None.</p></li>
+<li><p><strong>load_data_np</strong> – deprecated; number of workers when loading the
+dataset. Still applied, but set <cite>load_dataset_kwargs.num_proc</cite> in
+the configuration instead, or <cite>np</cite> to load with the same
+parallelism as processing.</p></li>
+<li><p><strong>sample_ratio</strong> – The ratio of the sample size to the original
+dataset size. Default is 1.0 (no sampling).</p></li>
+<li><p><strong>sample_algo</strong> – Sampling algorithm to use. Options are “uniform”,
+“frequency_specified_field_selector”, or
+“topk_specified_field_selector”.
+Default is “uniform”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A sampled Dataset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.Exporter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">Exporter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_shard_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_in_parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_proc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_stats_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_hashes_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_stats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encrypt_before_export</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encryption_key_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/exporter.html#Exporter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Exporter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The Exporter class is used to export a dataset to files of specific
+format.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Exporter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_shard_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_in_parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_proc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_stats_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_hashes_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_stats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encrypt_before_export</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encryption_key_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/exporter.html#Exporter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Exporter.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>export_path</strong> – the path to export datasets.</p></li>
+<li><p><strong>export_type</strong> – the format type of the exported datasets.</p></li>
+<li><p><strong>export_shard_size</strong> – the approximate size of each shard of exported
+dataset. In default, it’s 0, which means export the dataset
+to a single file.</p></li>
+<li><p><strong>export_in_parallel</strong> – whether to export the datasets in parallel.</p></li>
+<li><p><strong>num_proc</strong> – number of process to export the dataset.</p></li>
+<li><p><strong>export_ds</strong> – whether to export the dataset contents.</p></li>
+<li><p><strong>keep_stats_in_res_ds</strong> – whether to keep stats in the result
+dataset.</p></li>
+<li><p><strong>keep_hashes_in_res_ds</strong> – whether to keep hashes in the result
+dataset.</p></li>
+<li><p><strong>export_stats</strong> – whether to export the stats of dataset.</p></li>
+<li><p><strong>encrypt_before_export</strong> – whether to encrypt each exported file
+in-place immediately after writing. Requires a valid Fernet key
+accessible via <code class="docutils literal notranslate"><span class="pre">encryption_key_path</span></code> or the environment
+variable <code class="docutils literal notranslate"><span class="pre">DJ_ENCRYPTION_KEY</span></code>. Remote paths (s3://, hdfs://)
+are skipped. Default: False.</p></li>
+<li><p><strong>encryption_key_path</strong> – path to a file containing the Fernet key.
+Falls back to the <code class="docutils literal notranslate"><span class="pre">DJ_ENCRYPTION_KEY</span></code> environment variable when
+<code class="docutils literal notranslate"><span class="pre">None</span></code>. Only used when <code class="docutils literal notranslate"><span class="pre">encrypt_before_export</span></code> is True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Exporter.export">
+<span class="sig-name descname"><span class="pre">export</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/exporter.html#Exporter.export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Exporter.export" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for a dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataset</strong> – the dataset to export.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Exporter.export_compute_stats">
+<span class="sig-name descname"><span class="pre">export_compute_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/exporter.html#Exporter.export_compute_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Exporter.export_compute_stats" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for saving compute status in filters</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Exporter.to_jsonl">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">to_jsonl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_proc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/exporter.html#Exporter.to_jsonl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Exporter.to_jsonl" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for jsonl target files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – the dataset to export.</p></li>
+<li><p><strong>export_path</strong> – the path to store the exported dataset.</p></li>
+<li><p><strong>num_proc</strong> – the number of processes used to export the dataset.</p></li>
+<li><p><strong>kwargs</strong> – extra arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Exporter.to_json">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_proc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/exporter.html#Exporter.to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Exporter.to_json" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for json target files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – the dataset to export.</p></li>
+<li><p><strong>export_path</strong> – the path to store the exported dataset.</p></li>
+<li><p><strong>num_proc</strong> – the number of processes used to export the dataset.</p></li>
+<li><p><strong>kwargs</strong> – extra arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Exporter.to_parquet">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/exporter.html#Exporter.to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Exporter.to_parquet" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for parquet target files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – the dataset to export.</p></li>
+<li><p><strong>export_path</strong> – the path to store the exported dataset.</p></li>
+<li><p><strong>kwargs</strong> – extra arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.RayAnalyzer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">RayAnalyzer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_analyzer.html#RayAnalyzer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayAnalyzer" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Analyzer that uses Ray for distributed stats computation.</p>
+<p>Computes filter stats in parallel via Ray, then uses Ray’s native
+aggregation (Mean, Std, Min, Max, Count) for overall analysis.
+No data is materialized to pandas — all computation stays distributed.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.RayAnalyzer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_analyzer.html#RayAnalyzer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayAnalyzer.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.RayAnalyzer.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_data_np</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_export</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_return</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_analyzer.html#RayAnalyzer.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayAnalyzer.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.RayExporter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">RayExporter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_shard_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_stats_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_hashes_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encrypt_before_export</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encryption_key_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_exporter.html#RayExporter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayExporter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The Exporter class is used to export a ray dataset to files of specific
+format.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.RayExporter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_shard_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_stats_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_hashes_in_res_ds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encrypt_before_export</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encryption_key_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_exporter.html#RayExporter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayExporter.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>export_path</strong> – the path to export datasets.</p></li>
+<li><p><strong>export_type</strong> – the format type of the exported datasets.</p></li>
+<li><p><strong>export_shard_size</strong> – the approximate size of each shard of exported
+dataset. In default, it’s 0, which means export the dataset in the default setting of ray.</p></li>
+<li><p><strong>keep_stats_in_res_ds</strong> – whether to keep stats in the result
+dataset.</p></li>
+<li><p><strong>keep_hashes_in_res_ds</strong> – whether to keep hashes in the result
+dataset.</p></li>
+<li><p><strong>encrypt_before_export</strong> – whether to encrypt each exported file
+in-place after Ray has finished writing. All files inside the
+export directory will be encrypted. S3 paths are skipped.
+Default: False.</p></li>
+<li><p><strong>encryption_key_path</strong> – path to a file containing the Fernet key.
+Falls back to the <code class="docutils literal notranslate"><span class="pre">DJ_ENCRYPTION_KEY</span></code> environment variable when
+<code class="docutils literal notranslate"><span class="pre">None</span></code>. Only used when <code class="docutils literal notranslate"><span class="pre">encrypt_before_export</span></code> is True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.RayExporter.export">
+<span class="sig-name descname"><span class="pre">export</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_exporter.html#RayExporter.export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayExporter.export" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for a dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – the dataset to export.</p></li>
+<li><p><strong>columns</strong> – the columns to export.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.RayExporter.write_json">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">write_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_exporter.html#RayExporter.write_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayExporter.write_json" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for json/jsonl target files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – the dataset to export.</p></li>
+<li><p><strong>export_path</strong> – the path to store the exported dataset.</p></li>
+<li><p><strong>kwargs</strong> – extra arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.RayExporter.write_webdataset">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">write_webdataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_exporter.html#RayExporter.write_webdataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayExporter.write_webdataset" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for webdataset target files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – the dataset to export.</p></li>
+<li><p><strong>export_path</strong> – the path to store the exported dataset.</p></li>
+<li><p><strong>kwargs</strong> – extra arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.RayExporter.write_others">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">write_others</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/ray_exporter.html#RayExporter.write_others"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.RayExporter.write_others" title="Link to this definition">¶</a></dt>
+<dd><p>Export method for other target files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> – the dataset to export.</p></li>
+<li><p><strong>export_path</strong> – the path to store the exported dataset.</p></li>
+<li><p><strong>kwargs</strong> – extra arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.Monitor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">Monitor</span></span><a class="reference internal" href="../_modules/data_juicer/core/monitor.html#Monitor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Monitor" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Monitor resource utilization and other information during the data
+processing.</p>
+<p>Resource utilization dict: (for each func)
+‘’’python
+{</p>
+<blockquote>
+<div><p>‘time’: 10,
+‘sampling interval’: 0.5,
+‘resource’: [</p>
+<blockquote>
+<div><dl class="simple">
+<dt>{</dt><dd><p>‘timestamp’: xxx,
+‘CPU count’: xxx,
+‘GPU free mem.’: xxx.
+…</p>
+</dd>
+</dl>
+<p>},
+{</p>
+<blockquote>
+<div><p>‘timestamp’: xxx,
+‘CPU count’: xxx,
+‘GPU free mem.’: xxx,
+…</p>
+</div></blockquote>
+<p>},</p>
+</div></blockquote>
+<p>]</p>
+</div></blockquote>
+<section id="id1">
+<h2>}<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<p>Based on the structure above, the resource utilization analysis result will
+add several extra fields on the first level:
+‘’’python
+{</p>
+<blockquote>
+<div><p>‘time’: 10,
+‘sampling interval’: 0.5,
+‘resource’: […],
+‘resource_analysis’: {</p>
+<blockquote>
+<div><dl class="simple">
+<dt>‘GPU free mem.’: {</dt><dd><p>‘max’: xxx,
+‘min’: xxx,
+‘avg’: xxx,</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>}</p>
+</div></blockquote>
+</section>
+<section id="id2">
+<h2>}<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
+<p>Only those fields in DYNAMIC_FIELDS will be analyzed.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data_juicer.core.Monitor.DYNAMIC_FIELDS">
+<span class="sig-name descname"><span class="pre">DYNAMIC_FIELDS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Available</span> <span class="pre">mem.',</span> <span class="pre">'CPU</span> <span class="pre">util.',</span> <span class="pre">'Free</span> <span class="pre">mem.',</span> <span class="pre">'GPU</span> <span class="pre">free</span> <span class="pre">mem.',</span> <span class="pre">'GPU</span> <span class="pre">used</span> <span class="pre">mem.',</span> <span class="pre">'GPU</span> <span class="pre">util.',</span> <span class="pre">'Mem.</span> <span class="pre">util.',</span> <span class="pre">'Used</span> <span class="pre">mem.'}</span></span><a class="headerlink" href="#data_juicer.core.Monitor.DYNAMIC_FIELDS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Monitor.monitor_current_resources">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">monitor_current_resources</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/monitor.html#Monitor.monitor_current_resources"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Monitor.monitor_current_resources" title="Link to this definition">¶</a></dt>
+<dd><p>Detect the resource utilization of the current environment/machine.
+All data of “util.” is ratios in the range of [0.0, 1.0]. All data of
+“mem.” is in MB.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Monitor.draw_resource_util_graph">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">draw_resource_util_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource_util_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/monitor.html#Monitor.draw_resource_util_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Monitor.draw_resource_util_graph" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Monitor.analyze_resource_util_list">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">analyze_resource_util_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource_util_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/monitor.html#Monitor.analyze_resource_util_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Monitor.analyze_resource_util_list" title="Link to this definition">¶</a></dt>
+<dd><p>Analyze the resource utilization for a given resource util list.
+Compute {‘max’, ‘min’, ‘avg’} of resource metrics for each dict item.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Monitor.analyze_single_resource_util">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">analyze_single_resource_util</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource_util_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/monitor.html#Monitor.analyze_single_resource_util"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Monitor.analyze_single_resource_util" title="Link to this definition">¶</a></dt>
+<dd><p>Analyze the resource utilization for a single resource util dict.
+Compute {‘max’, ‘min’, ‘avg’} of each resource metrics.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Monitor.monitor_func">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">monitor_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/monitor.html#Monitor.monitor_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Monitor.monitor_func" title="Link to this definition">¶</a></dt>
+<dd><p>Process the input dataset and probe related information for each OP in
+the specified operator list.</p>
+<p>For now, we support the following targets to probe:
+“resource”: resource utilization for each OP.
+“speed”: average processing speed for each OP.</p>
+<p>The probe result is a list and each item in the list is the probe
+result for each OP.</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.core.</span></span><span class="sig-name descname"><span class="pre">Tracer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">work_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op_list_to_trace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The tracer to trace the sample changes before and after an operator
+process.</p>
+<p>The comparison results will be stored in the work directory.
+Now supports sample-level tracing for better efficiency and accuracy.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">work_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op_list_to_trace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>work_dir</strong> – the work directory to store the comparison
+results</p></li>
+<li><p><strong>op_list_to_trace</strong> – the OP list to be traced.</p></li>
+<li><p><strong>show_num</strong> – the maximum number of samples to show in the
+comparison result files.</p></li>
+<li><p><strong>trace_keys</strong> – list of field names to include in trace output.
+If set, the specified fields’ values will be included in each
+trace entry.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.should_trace_op">
+<span class="sig-name descname"><span class="pre">should_trace_op</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.should_trace_op"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.should_trace_op" title="Link to this definition">¶</a></dt>
+<dd><p>Check if an operator should be traced.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>op_name</strong> – the operator name</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the operator should be traced</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.is_collection_complete">
+<span class="sig-name descname"><span class="pre">is_collection_complete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.is_collection_complete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.is_collection_complete" title="Link to this definition">¶</a></dt>
+<dd><p>Check if enough samples have been collected for an operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>op_name</strong> – the operator name</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if enough samples have been collected</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.collect_mapper_sample">
+<span class="sig-name descname"><span class="pre">collect_mapper_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processed_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.collect_mapper_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.collect_mapper_sample" title="Link to this definition">¶</a></dt>
+<dd><p>Collect a sample-level change for a Mapper operator.
+This method is thread-safe and will only collect up to show_num samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>op_name</strong> – the operator name</p></li>
+<li><p><strong>original_sample</strong> – the original sample before processing</p></li>
+<li><p><strong>processed_sample</strong> – the processed sample after processing</p></li>
+<li><p><strong>text_key</strong> – the key name of the text field to compare</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the sample was collected, False if collection is complete</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.collect_filter_sample">
+<span class="sig-name descname"><span class="pre">collect_filter_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">should_keep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.collect_filter_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.collect_filter_sample" title="Link to this definition">¶</a></dt>
+<dd><p>Collect a sample-level change for a Filter operator.
+This method is thread-safe and will only collect up to show_num samples.
+Only collects samples that are filtered out (should_keep=False).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>op_name</strong> – the operator name</p></li>
+<li><p><strong>sample</strong> – the sample being filtered</p></li>
+<li><p><strong>should_keep</strong> – True if the sample should be kept, False if filtered</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the sample was collected, False if collection is complete</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.get_trace_file_path">
+<span class="sig-name descname"><span class="pre">get_trace_file_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.get_trace_file_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.get_trace_file_path" title="Link to this definition">¶</a></dt>
+<dd><p>Get the file path for a trace file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>op_name</strong> – the operator name</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the file path</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.trace_mapper">
+<span class="sig-name descname"><span class="pre">trace_mapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processed_ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.trace_mapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.trace_mapper" title="Link to this definition">¶</a></dt>
+<dd><p>Compare datasets before and after a Mapper.</p>
+<p>This will mainly show the different sample pairs due to the
+modification by the Mapper</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>op_name</strong> – the op name of mapper</p></li>
+<li><p><strong>previous_ds</strong> – dataset before the mapper process</p></li>
+<li><p><strong>processed_ds</strong> – dataset processed by the mapper</p></li>
+<li><p><strong>text_key</strong> – which text_key to trace</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.trace_batch_mapper">
+<span class="sig-name descname"><span class="pre">trace_batch_mapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processed_ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.trace_batch_mapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.trace_batch_mapper" title="Link to this definition">¶</a></dt>
+<dd><p>Compare datasets before and after a BatchMapper.</p>
+<p>This will mainly show the new samples augmented by the BatchMapper</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>op_name</strong> – the op name of mapper</p></li>
+<li><p><strong>previous_ds</strong> – dataset before the mapper process</p></li>
+<li><p><strong>processed_ds</strong> – dataset processed by the mapper</p></li>
+<li><p><strong>text_key</strong> – which text_key to trace</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.trace_filter">
+<span class="sig-name descname"><span class="pre">trace_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processed_ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.trace_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.trace_filter" title="Link to this definition">¶</a></dt>
+<dd><p>Compare datasets before and after a Filter.</p>
+<p>This will mainly show the filtered samples by the Filter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>op_name</strong> – the op name of filter</p></li>
+<li><p><strong>previous_ds</strong> – dataset before the filter process</p></li>
+<li><p><strong>processed_ds</strong> – dataset processed by the filter</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.core.Tracer.trace_deduplicator">
+<span class="sig-name descname"><span class="pre">trace_deduplicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dup_pairs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/core/tracer/tracer.html#Tracer.trace_deduplicator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.core.Tracer.trace_deduplicator" title="Link to this definition">¶</a></dt>
+<dd><p>Compare datasets before and after a Deduplicator.</p>
+<p>This will mainly show the near-duplicate sample pairs extracted
+by the Deduplicator. Different from the other two trace methods,
+the trace process for deduplicator is embedded into the process
+method of deduplicator, but the other two trace methods are
+independent of the process method of mapper and filter operators</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>op_name</strong> – the op name of deduplicator</p></li>
+<li><p><strong>dup_pairs</strong> – duplicate sample pairs obtained from
+deduplicator</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+        </article>
+        <aside class="toc-sidebar">
+          <div class="toc-sidebar-inner">
+            <p class="toc-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">data_juicer.core</a><ul>
+<li><a class="reference internal" href="#data_juicer.core.Adapter"><code class="docutils literal notranslate"><span class="pre">Adapter</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.MAX_BATCH_SIZE"><code class="docutils literal notranslate"><span class="pre">Adapter.MAX_BATCH_SIZE</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.__init__"><code class="docutils literal notranslate"><span class="pre">Adapter.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.execute_and_probe"><code class="docutils literal notranslate"><span class="pre">Adapter.execute_and_probe()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.take_batch"><code class="docutils literal notranslate"><span class="pre">Adapter.take_batch()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.adapt_workloads"><code class="docutils literal notranslate"><span class="pre">Adapter.adapt_workloads()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.probe_small_batch"><code class="docutils literal notranslate"><span class="pre">Adapter.probe_small_batch()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.batch_size_strategy"><code class="docutils literal notranslate"><span class="pre">Adapter.batch_size_strategy()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.analyze_small_batch"><code class="docutils literal notranslate"><span class="pre">Adapter.analyze_small_batch()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Adapter.insight_mining"><code class="docutils literal notranslate"><span class="pre">Adapter.insight_mining()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.Analyzer"><code class="docutils literal notranslate"><span class="pre">Analyzer</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.Analyzer.__init__"><code class="docutils literal notranslate"><span class="pre">Analyzer.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Analyzer.run"><code class="docutils literal notranslate"><span class="pre">Analyzer.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset"><code class="docutils literal notranslate"><span class="pre">NestedDataset</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.__init__"><code class="docutils literal notranslate"><span class="pre">NestedDataset.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.schema"><code class="docutils literal notranslate"><span class="pre">NestedDataset.schema()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.get"><code class="docutils literal notranslate"><span class="pre">NestedDataset.get()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.get_column"><code class="docutils literal notranslate"><span class="pre">NestedDataset.get_column()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.process"><code class="docutils literal notranslate"><span class="pre">NestedDataset.process()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.count"><code class="docutils literal notranslate"><span class="pre">NestedDataset.count()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.update_args"><code class="docutils literal notranslate"><span class="pre">NestedDataset.update_args()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.map"><code class="docutils literal notranslate"><span class="pre">NestedDataset.map()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.filter"><code class="docutils literal notranslate"><span class="pre">NestedDataset.filter()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.select"><code class="docutils literal notranslate"><span class="pre">NestedDataset.select()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.to_list"><code class="docutils literal notranslate"><span class="pre">NestedDataset.to_list()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.from_dict"><code class="docutils literal notranslate"><span class="pre">NestedDataset.from_dict()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.from_list"><code class="docutils literal notranslate"><span class="pre">NestedDataset.from_list()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.add_column"><code class="docutils literal notranslate"><span class="pre">NestedDataset.add_column()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.select_columns"><code class="docutils literal notranslate"><span class="pre">NestedDataset.select_columns()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.remove_columns"><code class="docutils literal notranslate"><span class="pre">NestedDataset.remove_columns()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.cleanup_cache_files"><code class="docutils literal notranslate"><span class="pre">NestedDataset.cleanup_cache_files()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.NestedDataset.load_from_disk"><code class="docutils literal notranslate"><span class="pre">NestedDataset.load_from_disk()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.ExecutorBase"><code class="docutils literal notranslate"><span class="pre">ExecutorBase</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.ExecutorBase.__init__"><code class="docutils literal notranslate"><span class="pre">ExecutorBase.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.ExecutorBase.run"><code class="docutils literal notranslate"><span class="pre">ExecutorBase.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.ExecutorFactory"><code class="docutils literal notranslate"><span class="pre">ExecutorFactory</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.ExecutorFactory.create_executor"><code class="docutils literal notranslate"><span class="pre">ExecutorFactory.create_executor()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.DefaultExecutor"><code class="docutils literal notranslate"><span class="pre">DefaultExecutor</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.DefaultExecutor.__init__"><code class="docutils literal notranslate"><span class="pre">DefaultExecutor.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.DefaultExecutor.run"><code class="docutils literal notranslate"><span class="pre">DefaultExecutor.run()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.DefaultExecutor.sample_data"><code class="docutils literal notranslate"><span class="pre">DefaultExecutor.sample_data()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.Exporter"><code class="docutils literal notranslate"><span class="pre">Exporter</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.Exporter.__init__"><code class="docutils literal notranslate"><span class="pre">Exporter.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Exporter.export"><code class="docutils literal notranslate"><span class="pre">Exporter.export()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Exporter.export_compute_stats"><code class="docutils literal notranslate"><span class="pre">Exporter.export_compute_stats()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Exporter.to_jsonl"><code class="docutils literal notranslate"><span class="pre">Exporter.to_jsonl()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Exporter.to_json"><code class="docutils literal notranslate"><span class="pre">Exporter.to_json()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Exporter.to_parquet"><code class="docutils literal notranslate"><span class="pre">Exporter.to_parquet()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.RayAnalyzer"><code class="docutils literal notranslate"><span class="pre">RayAnalyzer</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.RayAnalyzer.__init__"><code class="docutils literal notranslate"><span class="pre">RayAnalyzer.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.RayAnalyzer.run"><code class="docutils literal notranslate"><span class="pre">RayAnalyzer.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.RayExporter"><code class="docutils literal notranslate"><span class="pre">RayExporter</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.RayExporter.__init__"><code class="docutils literal notranslate"><span class="pre">RayExporter.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.RayExporter.export"><code class="docutils literal notranslate"><span class="pre">RayExporter.export()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.RayExporter.write_json"><code class="docutils literal notranslate"><span class="pre">RayExporter.write_json()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.RayExporter.write_webdataset"><code class="docutils literal notranslate"><span class="pre">RayExporter.write_webdataset()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.RayExporter.write_others"><code class="docutils literal notranslate"><span class="pre">RayExporter.write_others()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.Monitor"><code class="docutils literal notranslate"><span class="pre">Monitor</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.Monitor.DYNAMIC_FIELDS"><code class="docutils literal notranslate"><span class="pre">Monitor.DYNAMIC_FIELDS</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Monitor.monitor_current_resources"><code class="docutils literal notranslate"><span class="pre">Monitor.monitor_current_resources()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Monitor.draw_resource_util_graph"><code class="docutils literal notranslate"><span class="pre">Monitor.draw_resource_util_graph()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Monitor.analyze_resource_util_list"><code class="docutils literal notranslate"><span class="pre">Monitor.analyze_resource_util_list()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Monitor.analyze_single_resource_util"><code class="docutils literal notranslate"><span class="pre">Monitor.analyze_single_resource_util()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Monitor.monitor_func"><code class="docutils literal notranslate"><span class="pre">Monitor.monitor_func()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer"><code class="docutils literal notranslate"><span class="pre">Tracer</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.__init__"><code class="docutils literal notranslate"><span class="pre">Tracer.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.should_trace_op"><code class="docutils literal notranslate"><span class="pre">Tracer.should_trace_op()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.is_collection_complete"><code class="docutils literal notranslate"><span class="pre">Tracer.is_collection_complete()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.collect_mapper_sample"><code class="docutils literal notranslate"><span class="pre">Tracer.collect_mapper_sample()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.collect_filter_sample"><code class="docutils literal notranslate"><span class="pre">Tracer.collect_filter_sample()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.get_trace_file_path"><code class="docutils literal notranslate"><span class="pre">Tracer.get_trace_file_path()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.trace_mapper"><code class="docutils literal notranslate"><span class="pre">Tracer.trace_mapper()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.trace_batch_mapper"><code class="docutils literal notranslate"><span class="pre">Tracer.trace_batch_mapper()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.trace_filter"><code class="docutils literal notranslate"><span class="pre">Tracer.trace_filter()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.core.Tracer.trace_deduplicator"><code class="docutils literal notranslate"><span class="pre">Tracer.trace_deduplicator()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </aside>
+      </div>
+      <nav class="prev-next">
+        <a href="../api.html" class="prev-next-link prev">
+          <span class="prev-next-label">Previous</span>
+          <span class="prev-next-title">API</span>
+        </a>
+        <a href="data_juicer.ops.html" class="prev-next-link next">
+          <span class="prev-next-label">Next</span>
+          <span class="prev-next-title">data_juicer.ops</span>
+        </a>
+      </nav>
+      <footer class="footer">
+        <p>© 2024, Data-Juicer Team — Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> &amp; Data-Juicer Theme</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Search Modal -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-modal">
+      <div class="search-modal-input">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+        <input type="text" id="search-modal-input" placeholder="Search documentation..." autocomplete="off" />
+      </div>
+      <div class="search-modal-results" id="search-modal-results"></div>
+      <div class="search-modal-footer">
+        <span><kbd>↵</kbd> to select</span>
+        <span><kbd>↑↓</kbd> to navigate</span>
+        <span><kbd>esc</kbd> to close</span>
+      </div>
+    </div>
+  </div>
+  <script src="../_static/js/theme.js"></script>
+  <script>window.JUICER_API_URL = 'https://datajuicer.online:443';</script>
+  <script src="../_static/documentation_options.js"></script>
+  <script src="../_static/doctools.js"></script>
+  <script src="../_static/sphinx_highlight.js"></script>
+  <script src="../_static/clipboard.min.js"></script>
+  <script src="../_static/copybutton.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="../_static/ask-ai-widget.js"></script>
+</body>
+</html>

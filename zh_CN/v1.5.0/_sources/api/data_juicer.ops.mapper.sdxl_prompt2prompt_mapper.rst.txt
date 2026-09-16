@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.sdxl\_prompt2prompt\_mapper module
+==========================================================
+
+.. automodule:: data_juicer.ops.mapper.sdxl_prompt2prompt_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

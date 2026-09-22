@@ -85,6 +85,7 @@ vision = [
     "imageio>=2.37",  # required by VideoLLaMA3 remote code
     "imageio-ffmpeg>=0.6",  # ffmpeg backend for imageio
     "scipy",  # signal/interpolation/wavfile for face-track ASD ops
+    "nvidia-dali-cuda120",  # GPU image decode for ray_bts_image_minhash_deduplicator
 ]
 
 # Natural Language Processing

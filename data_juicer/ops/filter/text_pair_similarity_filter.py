@@ -109,7 +109,12 @@ class TextPairSimilarityFilter(Filter):
         # Ray may run ``process_single`` in a later CPU-only task. Never leak a
         # CUDA tensor through the stats column: serializing it here and loading
         # it in that CPU task makes torch try to restore CUDA storage.
-        sample[Fields.stats][StatsKeys.text_pair_similarity] = [similarity.item()]
+        # Floating-point roundoff can also put cosine similarity slightly
+        # outside its mathematical [-1, 1] range. In particular, an identical
+        # text pair may produce 1.0000001 and be rejected by max_score=1.0,
+        # even though 1.0 is the largest value allowed by the recipe schema.
+        similarity_value = max(-1.0, min(1.0, similarity.item()))
+        sample[Fields.stats][StatsKeys.text_pair_similarity] = [similarity_value]
 
         return sample
 

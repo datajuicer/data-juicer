@@ -102,6 +102,10 @@ partition:
   gpu_probe_sample_shuffle: false                           # set true to randomize block order before sampling, avoiding biased measurements on datasets ordered by size or source
   gpu_probe_sample_seed: 42                                 # seed for the shuffled preflight sample; null draws a different sample on every run and therefore never reuses gpu_probe_results.json
   execution_group_size: auto                               # logical checkpoint partitions sharing one GPU actor lifecycle; auto limits model-init overhead
+  recovery_mode: streaming                                 # streaming: tee-sink row-level frontier (blast=uncommitted rows, loads=pool size); partition: plain per-partition baseline
+  stream_segments: 1                                       # contiguous op-segments (streaming mode); a tee is inserted after each, so resume re-runs only ops after the deepest committed segment; 1 = whole chain; clamped to <= number of ops
+  stream_fsync: true                                       # streaming mode: fsync each committed block + manifest (and dirs) before the tee returns, so segment k is durable before its rows reach segment k+1 (nested frontier holds under power-loss); false for a no-fsync A/B
+  stream_allow_row_expansion: auto                         # streaming mode: allow a row-EXPANDING (1:many) op in a segment. auto = detect known expanders per segment and relax that segment's tee id-uniqueness guard; true = force for all segments (custom expander); false = keep guard armed everywhere
   max_initialization_overhead_ratio: 0.1                    # maximum estimated model initialization share for each execution group
   target_size_mb: 256                                       # target size in MB for auto-mode planning; results below optimizer minimums are clamped with a warning
 

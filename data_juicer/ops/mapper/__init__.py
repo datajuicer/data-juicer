@@ -34,6 +34,7 @@ from .dialog_sentiment_intensity_mapper import DialogSentimentIntensityMapper
 from .dialog_topic_detection_mapper import DialogTopicDetectionMapper
 from .dialog_topic_shift_mapper import DialogTopicShiftMapper
 from .download_file_mapper import DownloadFileMapper
+from .expand_duplicate_mapper import ExpandDuplicateMapper
 from .expand_macro_mapper import ExpandMacroMapper
 from .export_to_lerobot_mapper import ExportToLeRobotMapper
 from .extract_entity_attribute_mapper import ExtractEntityAttributeMapper
@@ -190,6 +191,7 @@ __all__ = [
     "Difference_Area_Generator_Mapper",
     "Difference_Caption_Generator_Mapper",
     "DownloadFileMapper",
+    "ExpandDuplicateMapper",
     "ExpandMacroMapper",
     "ExtractEntityAttributeMapper",
     "ExtractEntityRelationMapper",

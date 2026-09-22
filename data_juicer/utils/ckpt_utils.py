@@ -6,6 +6,96 @@ from typing import Any, List, Optional, Tuple
 
 from loguru import logger
 
+# ===== Streaming tee-sink recovery (row-level manifest) =====
+# Schema version for per-block stream manifest shards. Bump on incompatible
+# manifest layout changes so resume can fail closed instead of misreading.
+STREAM_MANIFEST_SCHEMA_VERSION = 1
+
+
+def atomic_write_json(path: str, payload: dict, fsync: bool = False) -> None:
+    """Write ``payload`` as JSON atomically (write-tmp then os.replace).
+
+    Crash-safe and concurrency-safe on POSIX: a reader either sees the old file
+    or the fully-written new one, never a partial. A half-written ``.tmp`` left
+    by a crash is ignored by the reconciler.
+
+    The temp file name is made unique per writer (pid + random suffix) so two
+    concurrent writers of the SAME target path (e.g. a Ray task retry / a
+    speculative duplicate re-committing the same content-keyed block) never
+    share one ``.tmp`` and clobber each other's partial write; each renames its
+    own fully-written temp into place. The reconciler ignores every ``*.tmp``.
+
+    ``os.replace`` gives atomicity, not durability: after a process-kill the
+    page cache preserves the write, but a power-loss/NFS crash can lose or
+    reorder it. Pass ``fsync=True`` to flush the file and its directory to
+    stable storage before returning, which additionally guarantees ordering
+    against a later write in the same directory.
+    """
+    tmp = f"{path}.{os.getpid()}.{os.urandom(4).hex()}.tmp"
+    directory = os.path.dirname(path)
+    os.makedirs(directory, exist_ok=True)
+    with open(tmp, "w") as f:
+        json.dump(payload, f)
+        if fsync:
+            f.flush()
+            os.fsync(f.fileno())
+    os.replace(tmp, path)
+    if fsync:
+        dir_fd = os.open(directory, os.O_RDONLY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+
+
+def merge_row_id_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    """Merge a list of half-open [lo, hi) row-id ranges into sorted, disjoint ones."""
+    normalized = sorted((int(lo), int(hi)) for lo, hi in ranges if int(hi) > int(lo))
+    merged: List[Tuple[int, int]] = []
+    for lo, hi in normalized:
+        if merged and lo <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], hi))
+        else:
+            merged.append((lo, hi))
+    return merged
+
+
+def row_id_in_ranges(row_id: int, ranges: List[Tuple[int, int]]) -> bool:
+    """Membership test for a row id against sorted, disjoint [lo, hi) ranges.
+
+    Rebuilds the ``lo`` index on every call: O(K) per row. For hot filter paths
+    that test many rows against the SAME ranges, use :func:`make_row_id_membership`
+    which hoists that index out of the per-row call.
+    """
+    import bisect
+
+    if not ranges:
+        return False
+    los = [lo for lo, _ in ranges]
+    idx = bisect.bisect_right(los, row_id) - 1
+    return idx >= 0 and ranges[idx][0] <= row_id < ranges[idx][1]
+
+
+def make_row_id_membership(ranges: List[Tuple[int, int]]):
+    """Build a fast membership predicate over fixed, sorted, disjoint [lo, hi) ranges.
+
+    Precomputes the ``lo`` index once so each returned-closure call is a single
+    O(log K) bisect instead of rebuilding the index O(K) per row. Use in Ray
+    ``filter`` closures that test every row against the same committed frontier.
+    """
+    import bisect
+
+    los = [int(lo) for lo, _ in ranges]
+    tuples = [(int(lo), int(hi)) for lo, hi in ranges]
+
+    def _member(row_id: int) -> bool:
+        if not tuples:
+            return False
+        idx = bisect.bisect_right(los, row_id) - 1
+        return idx >= 0 and tuples[idx][0] <= row_id < tuples[idx][1]
+
+    return _member
+
 
 class CheckpointManagerBase(ABC):
     """
@@ -448,3 +538,77 @@ class RayCheckpointManager(CheckpointManagerBase):
             groups.append((current_start, len(ops), ops[current_start:]))
 
         return groups
+
+    # ===== Streaming tee-sink recovery =====
+    # Durable layout under ckpt_dir (never collides with the legacy
+    # checkpoint_op_*_partition_*.parquet files that find_latest_checkpoint globs):
+    #   stream_data/segment_{S:04d}/block_<uuid>.parquet   -- teed output blocks
+    #   stream_manifest/segment_{S:04d}/block_<uuid>.json  -- per-block manifest shards
+
+    def stream_data_dir(self, segment_index: int) -> str:
+        """Directory holding teed output block parquet files for a segment."""
+        return os.path.join(self.ckpt_dir, "stream_data", f"segment_{segment_index:04d}")
+
+    def stream_manifest_dir(self, segment_index: int) -> str:
+        """Directory holding per-block manifest shards for a segment."""
+        return os.path.join(self.ckpt_dir, "stream_manifest", f"segment_{segment_index:04d}")
+
+    def reconcile_stream_frontier(self, segment_index: int) -> Tuple[List[Tuple[int, int]], List[str], int]:
+        """Reconstruct the committed frontier of a segment from durable manifest shards.
+
+        Lists the manifest dir, ignores ``.tmp`` shards left by a crash, skips
+        unparseable JSON, and unions ``committed_row_id_ranges`` across all valid
+        shards. Shards whose ``schema_version`` differs are skipped defensively
+        (the caller enforces fail-closed resume separately). A shard whose
+        referenced block parquet file is MISSING on disk is skipped in full
+        (ranges included): the block that would supply those rows is gone, so
+        treating them as committed would silently drop them from the output.
+
+        :return: (merged_ranges, block_uris, shard_count) where merged_ranges is a
+            sorted list of disjoint half-open [lo, hi) row-id ranges, block_uris are
+            absolute parquet paths to restore, and shard_count is the number of
+            valid shards reconciled.
+        """
+        manifest_dir = self.stream_manifest_dir(segment_index)
+        ranges: List[Tuple[int, int]] = []
+        block_uris: List[str] = []
+        shard_count = 0
+        if not os.path.isdir(manifest_dir):
+            return ranges, block_uris, shard_count
+
+        for name in sorted(os.listdir(manifest_dir)):
+            if name.endswith(".tmp") or not name.endswith(".json"):
+                continue
+            shard_path = os.path.join(manifest_dir, name)
+            try:
+                with open(shard_path) as f:
+                    shard = json.load(f)
+            except Exception as e:  # partial/corrupt shard: ignore, do not resume past it
+                logger.warning(f"Skipping unparseable stream manifest shard {shard_path}: {e}")
+                continue
+            if shard.get("schema_version") != STREAM_MANIFEST_SCHEMA_VERSION:
+                logger.warning(
+                    f"Stream manifest shard {shard_path} has schema_version="
+                    f"{shard.get('schema_version')} != {STREAM_MANIFEST_SCHEMA_VERSION}; skipping"
+                )
+                continue
+            block_uri = shard.get("block_uri")
+            # A manifest shard is only trustworthy if its data block still
+            # exists: the ranges it claims are "committed" are only recoverable
+            # by restoring that block on resume. If the block file is gone
+            # (crash between block delete/move and manifest cleanup, partial
+            # copy, etc.), skip the WHOLE shard so its row-ids never enter the
+            # frontier and get silently excluded from the output.
+            abs_block = os.path.join(self.ckpt_dir, block_uri) if block_uri else None
+            if not abs_block or not os.path.exists(abs_block):
+                logger.warning(
+                    f"Stream manifest shard {shard_path} references missing block "
+                    f"{block_uri!r}; skipping shard (its row-ids will be reprocessed)"
+                )
+                continue
+            for lo, hi in shard.get("committed_row_id_ranges", []):
+                ranges.append((int(lo), int(hi)))
+            block_uris.append(abs_block)
+            shard_count += 1
+
+        return merge_row_id_ranges(ranges), block_uris, shard_count

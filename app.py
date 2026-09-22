@@ -198,6 +198,19 @@ def get_min_max_step(data):
     return min_value, max_value, step
 
 
+def combine_conds(conds, num_samples):
+    """Combine the per-OP boolean conditions into a single mask over samples.
+
+    ``conds`` is empty whenever none of the OPs in the config is covered by
+    ``op_stats_dict``. ``np.all`` over an empty list collapses to a scalar,
+    which ``DataFrame.loc`` then reads as a label instead of a boolean mask and
+    raises ``KeyError: True``, so keep all the samples explicitly in that case.
+    """
+    if not conds:
+        return np.ones(num_samples, dtype=bool)
+    return np.all([list(cond.values())[0] for cond in conds], axis=0)
+
+
 op_stats_dict = {
     "alphanumeric_filter": [StatsKeys.alpha_token_ratio, StatsKeys.alnum_ratio],
     "average_line_length_filter": [StatsKeys.avg_line_length],
@@ -336,7 +349,12 @@ class Visualize:
         if ordered:
             all_conds = [True if i in filtered_stats.index else False for i in range(len(stats))]
         else:
-            all_conds = np.all([list(cond.values())[0] for cond in conds], axis=0)
+            if not conds:
+                st.warning(
+                    "None of the OPs in this config provides stats that this demo can tune, "
+                    "so no sample is filtered out below."
+                )
+            all_conds = combine_conds(conds, len(stats))
         ds = pd.DataFrame(dataset)
         Visualize.display_dataset(ds, all_conds, show_num, "Retained samples", "docs")
         st.download_button(

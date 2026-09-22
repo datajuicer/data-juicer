@@ -511,8 +511,14 @@
             <span class="c1"># not an object, return directly</span>
             <span class="k">return</span> <span class="n">col</span>
         <span class="c1"># if the type of this column is object, we can decide the actual type</span>
-        <span class="c1"># according to the first element.</span>
-        <span class="n">first</span> <span class="o">=</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># according to the first valid element. Skipping the missing ones is</span>
+        <span class="c1"># necessary because an OP may fail to produce its stats/meta for some</span>
+        <span class="c1"># samples: a single missing value must not disqualify the whole column.</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"There is a column of stats without any valid value, which is skipped for now."</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">first</span> <span class="o">=</span> <span class="n">valid</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">first</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_object_types</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"There is a column of stats with type "</span>

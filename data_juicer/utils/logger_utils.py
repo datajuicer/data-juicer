@@ -15,8 +15,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import errno
+import gzip
 import inspect
 import os
+import shutil
 import sys
 from io import StringIO
 
@@ -32,6 +35,30 @@ except Exception:
     get_ipython = None
 
 LOGGER_SETUP = False
+
+
+def gzip_compression(file_path):
+    """
+    Compress the rotated log file to ``<file_path>.gz`` and remove the source.
+
+    Used as the ``compression`` callback for loguru's file sink instead of the
+    built-in ``"gz"`` shortcut. The built-in shortcut will raise when the
+    source file cannot be removed, which happens on FUSE-mounted filesystems
+    backed by OSS / AWS S3 (e.g. K8s + Fluid): the unlink succeeds on the
+    object store but the FUSE layer returns ``OSError: [Errno 34] Numerical
+    result out of range``. Swallowing that specific failure keeps logging
+    working in those environments.
+    """
+    gz_path = file_path + ".gz"
+    with open(file_path, "rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+        shutil.copyfileobj(f_in, f_out)
+
+    try:
+        os.remove(file_path)
+    except OSError as e:
+        # Swallow only the specific errnos seen on some FUSE mounts
+        if e.errno not in (errno.ERANGE, errno.ENOSYS):
+            raise
 
 
 def is_notebook():
@@ -171,7 +198,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
             save_file,
             format=loguru_format,
             level=level,
-            compression="gz",
+            compression=gzip_compression,
             enqueue=True,
         )
 
@@ -181,7 +208,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
         level="DEBUG",
         filter=lambda x: "DEBUG" == x["level"].name,
         format=loguru_format,
-        compression="gz",
+        compression=gzip_compression,
         enqueue=True,
         serialize=True,
     )
@@ -190,7 +217,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
         level="ERROR",
         filter=lambda x: "ERROR" == x["level"].name,
         format=loguru_format,
-        compression="gz",
+        compression=gzip_compression,
         enqueue=True,
         serialize=True,
     )
@@ -199,7 +226,7 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
         level="WARNING",
         filter=lambda x: "WARNING" == x["level"].name,
         format=loguru_format,
-        compression="gz",
+        compression=gzip_compression,
         enqueue=True,
         serialize=True,
     )

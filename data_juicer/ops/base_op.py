@@ -338,6 +338,7 @@ class OP(metaclass=OPMetaClass):
         "output_columns": (None, None),
         # Behavior control
         "skip_op_error": (bool, False),
+        "adaptive_batching": (bool, None),
         "auto_op_parallelism": (bool, True),
         "batch_mode": (None, None),
         "accelerator": (None, None),
@@ -369,6 +370,7 @@ class OP(metaclass=OPMetaClass):
             # reconstruction — the kwargs dict embeds work_dir
             "_init_args",
             "_init_kwargs",
+            "_elastic_juicer_stage_identity",
         }
     )
 
@@ -482,6 +484,9 @@ class OP(metaclass=OPMetaClass):
         # for unittest, do not skip the error.
         # It would be set to be True in config init.
         self.skip_op_error = kwargs.get("skip_op_error", False)
+        self.adaptive_batching = kwargs.get("adaptive_batching", None)
+        if self.adaptive_batching is not None and not isinstance(self.adaptive_batching, bool):
+            raise TypeError("adaptive_batching must be a boolean or None")
         self.auto_op_parallelism = kwargs.get("auto_op_parallelism", True)
 
         # whether to enable batch processing
@@ -672,6 +677,9 @@ class OP(metaclass=OPMetaClass):
 
 
 class Mapper(OP):
+    # Opt-in contract: row/order preserving, slice independent and retry safe.
+    _supports_adaptive_batching = False
+
     _supported_exec_modes = ("default", "ray", "ray_partitioned")
 
     def __init__(self, *args, **kwargs):

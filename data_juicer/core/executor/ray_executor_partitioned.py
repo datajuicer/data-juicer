@@ -30,6 +30,10 @@ from data_juicer.core.data.dataset_builder import (
     deprecated_load_data_np_kwargs,
 )
 from data_juicer.core.data.ray_dataset import RayDataset
+from data_juicer.core.elasticjuicer.stage_identity import (
+    assign_stage_identities,
+    stamped_stage_identity,
+)
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin, EventType
@@ -1679,6 +1683,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 profiled_stages.append(
                     {
                         "name": getattr(op, "_name", type(op).__name__),
+                        "stage_id": stamped_stage_identity(op),
                         "actors": count,
                         "steady_rows_per_second": throughput,
                         "source_input_ratio": max(source_ratio, 1e-9),
@@ -2327,6 +2332,15 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     def _prepare_operators(self):
         """Prepare process operators."""
         ops = load_ops(self.cfg.process)
+        if getattr(self.cfg, "elastic_juicer_adaptive_batching", False):
+            from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
+                adaptive_batching_enabled,
+            )
+
+            if getattr(self.cfg, "op_fusion", False):
+                raise ValueError("elastic_juicer_adaptive_batching currently requires op_fusion=false")
+            for op in ops:
+                adaptive_batching_enabled(op, True)
 
         # Check for op_fusion configuration with safe attribute access
         if hasattr(self.cfg, "op_fusion") and self.cfg.op_fusion:
@@ -2337,6 +2351,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
             )
 
+        self.cfg._resolved_stage_identities = assign_stage_identities(ops)
         return ops
 
     def _override_strategy_methods(self):

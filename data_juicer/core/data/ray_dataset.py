@@ -109,6 +109,7 @@ class RayDataset(DJDataset):
         auto_op_parallelism=True,
     ) -> None:
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
+        self._adaptive_batching = bool(cfg and cfg.get("elastic_juicer_adaptive_batching", False))
 
         # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
         if cfg and cfg.get("auto_op_parallelism") is not None:
@@ -222,6 +223,19 @@ class RayDataset(DJDataset):
         return self
 
     def _run_single_op(self, op, cached_columns=None, tracer=None, stats_only=False):
+        from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
+            RayAdaptiveMapperActor,
+            adaptive_batching_enabled,
+        )
+        from data_juicer.core.elasticjuicer.stage_identity import stamped_stage_identity
+
+        adaptive = adaptive_batching_enabled(op, getattr(self, "_adaptive_batching", False))
+        if adaptive and not op.use_ray_actor():
+            raise ValueError(f"{op._name}: adaptive batching requires an available CUDA Ray actor")
+        if adaptive and not float(op.num_gpus or 0) > 0:
+            raise ValueError(f"{op._name}: adaptive batching requires a resolved positive GPU reservation")
+        if adaptive and tracer and should_trace_op(tracer, op._name):
+            raise ValueError("Sample tracing is not yet supported with adaptive batching")
         # Use cached columns to avoid calling self.data.columns() which breaks pipeline
         if cached_columns is None:
             cached_columns = set(self.data.columns())
@@ -258,12 +272,25 @@ class RayDataset(DJDataset):
                 try:
                     if op.use_ray_actor():
                         compute = _build_actor_pool_strategy(op.num_proc)
+                        actor_class = op.__class__
+                        actor_args = op._init_args
+                        actor_kwargs = op._init_kwargs
+                        if adaptive:
+                            actor_class = RayAdaptiveMapperActor
+                            actor_args = ()
+                            actor_kwargs = {
+                                "op_class": op.__class__,
+                                "op_args": op._init_args,
+                                "op_kwargs": op._init_kwargs,
+                                "max_batch_size": batch_size,
+                                "stage_id": stamped_stage_identity(op),
+                            }
                         self.data = self.data.map_batches(
-                            op.__class__,
+                            actor_class,
                             fn_args=None,
                             fn_kwargs=None,
-                            fn_constructor_args=op._init_args,
-                            fn_constructor_kwargs=op._init_kwargs,
+                            fn_constructor_args=actor_args,
+                            fn_constructor_kwargs=actor_kwargs,
                             batch_size=batch_size,
                             num_cpus=op.num_cpus,
                             num_gpus=op.num_gpus,

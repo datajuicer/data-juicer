@@ -26,6 +26,74 @@ from .document_minhash_deduplicator import (
 ray = LazyLoader("ray")
 
 BATCH_SIZE = 1000
+UID_DTYPE = np.dtype(np.int64)
+HASH_PAIR_BLOCK_BYTES = 8 << 20
+HASH_BOUNDARY_CHUNK_ROWS = 1 << 20
+
+
+def _hash_pair_dtype(key_size):
+    """Return a packed dtype that preserves the complete fixed-width key."""
+    if key_size <= 0:
+        raise ValueError("MinHash keys must not be empty")
+    return np.dtype([("key", f"S{key_size}"), ("uid", UID_DTYPE)])
+
+
+def _union_uid_run(union_find, uids):
+    """Union one equal-key run without creating an unbounded Python list."""
+    if len(uids) == 1:
+        return int(uids[0])
+    if len(uids) == 0:
+        return None
+
+    if union_find.union_threshold is None:
+        chunk_size = 1 << 18
+    else:
+        chunk_size = max(2, union_find.union_threshold + 1)
+
+    current = uids
+    while len(current) > chunk_size:
+        representative_count = (len(current) + chunk_size - 1) // chunk_size
+        representatives = np.empty(representative_count, dtype=UID_DTYPE)
+        for index, start in enumerate(range(0, len(current), chunk_size)):
+            chunk = current[start : start + chunk_size]
+            if len(chunk) == 1:
+                representatives[index] = chunk[0]
+            else:
+                representatives[index] = union_find.union_list(chunk.tolist())
+        current = representatives
+    return union_find.union_list(current.tolist())
+
+
+def _compact_hash_pair_block(union_find, pairs, fingerprints):
+    """Reduce repeated keys in a full block to one exact-key representative."""
+    if len(pairs) < 2:
+        return pairs
+    # Python byte hashes are only a cheap duplicate-presence filter here. A
+    # collision merely triggers the exact-key path below and cannot merge keys.
+    if len(np.unique(fingerprints)) == len(pairs):
+        return pairs
+
+    pairs.sort(order="key")
+    boundaries = np.flatnonzero(pairs["key"][1:] != pairs["key"][:-1]) + 1
+    if len(boundaries) == len(pairs) - 1:
+        return pairs
+
+    run_starts = np.empty(len(boundaries) + 1, dtype=np.int64)
+    run_starts[0] = 0
+    run_starts[1:] = boundaries
+    run_ends = np.empty_like(run_starts)
+    run_ends[:-1] = boundaries
+    run_ends[-1] = len(pairs)
+    repeated = run_ends - run_starts > 1
+    for start, end in zip(run_starts[repeated], run_ends[repeated]):
+        start = int(start)
+        end = int(end)
+        representative = _union_uid_run(union_find, pairs["uid"][start:end])
+        pairs["uid"][start] = representative
+        if union_find.union_threshold is not None and end - start > union_find.union_threshold:
+            key = pairs["key"][start : start + 1].tobytes()
+            union_find.hot_key_roots[key] = representative
+    return pairs[run_starts]
 
 
 class IdGenerator:
@@ -74,7 +142,13 @@ class BTSUnionFind:
         self.union_threshold = union_threshold
         self.parallel_num = parallel_num
         self.parallel_id = parallel_id
-        self.hash_table = {}
+        self.hash_pair_dtype = None
+        self.hash_pair_block_rows = 0
+        self.hash_pair_blocks = []
+        self.hash_pair_current = None
+        self.hash_pair_current_size = 0
+        self.hash_pair_current_fingerprints = None
+        self.hot_key_roots = {}
         self.parent = {}
         self.old_parent = {}
         self.remote_edge_buffers = remote_edge_buffers
@@ -84,18 +158,117 @@ class BTSUnionFind:
         self.num_edge_buffer_task_returns = num_edge_buffer_task_returns
 
     def add_key_value_pairs(self, pairs):
-        for key, value in pairs:
-            if key not in self.hash_table:
-                self.hash_table[key] = []
-            self.hash_table[key].append(value)
-            if len(self.hash_table[key]) > self.union_threshold:
-                self.hash_table[key] = [self.union_list(self.hash_table[key])]
+        if not pairs:
+            return
+
+        keys = [pair[0] for pair in pairs]
+        if not all(isinstance(key, bytes) for key in keys):
+            raise TypeError("MinHash keys must be bytes")
+        key_size = len(keys[0])
+        if any(len(key) != key_size for key in keys):
+            raise ValueError("MinHash keys must have a fixed width")
+
+        pair_dtype = _hash_pair_dtype(key_size)
+        if self.hash_pair_dtype is None:
+            self.hash_pair_dtype = pair_dtype
+            self.hash_pair_block_rows = max(1, HASH_PAIR_BLOCK_BYTES // pair_dtype.itemsize)
+        elif pair_dtype != self.hash_pair_dtype:
+            raise ValueError("MinHash key width changed within one union-find actor")
+
+        try:
+            uid_array = np.fromiter((pair[1] for pair in pairs), dtype=UID_DTYPE, count=len(pairs))
+        except OverflowError as error:
+            raise ValueError("MinHash UIDs must fit in a signed 64-bit integer") from error
+
+        first_key = keys[0]
+        if first_key in self.hot_key_roots and all(key == first_key for key in keys[1:]):
+            values = np.empty(len(uid_array) + 1, dtype=UID_DTYPE)
+            values[0] = self.hot_key_roots[first_key]
+            values[1:] = uid_array
+            self.hot_key_roots[first_key] = _union_uid_run(self, values)
+            return
+
+        if self.hot_key_roots:
+            hot_values = {}
+            cold_keys = []
+            cold_uids = []
+            for index, key in enumerate(keys):
+                if key in self.hot_key_roots:
+                    if key not in hot_values:
+                        hot_values[key] = [self.hot_key_roots[key]]
+                    hot_values[key].append(int(uid_array[index]))
+                else:
+                    cold_keys.append(key)
+                    cold_uids.append(int(uid_array[index]))
+            for key, values in hot_values.items():
+                self.hot_key_roots[key] = _union_uid_run(self, np.asarray(values, dtype=UID_DTYPE))
+            if not cold_keys:
+                return
+            uid_array = np.asarray(cold_uids, dtype=UID_DTYPE)
+        else:
+            cold_keys = keys
+
+        key_array = np.frombuffer(b"".join(cold_keys), dtype=f"S{key_size}")
+        fingerprints = np.fromiter((hash(key) for key in cold_keys), dtype=UID_DTYPE, count=len(cold_keys))
+        pair_count = len(cold_keys)
+        offset = 0
+        while offset < pair_count:
+            if self.hash_pair_current is None:
+                self.hash_pair_current = np.empty(self.hash_pair_block_rows, dtype=self.hash_pair_dtype)
+                self.hash_pair_current_fingerprints = np.empty(self.hash_pair_block_rows, dtype=UID_DTYPE)
+                self.hash_pair_current_size = 0
+            count = min(self.hash_pair_block_rows - self.hash_pair_current_size, pair_count - offset)
+            destination = slice(self.hash_pair_current_size, self.hash_pair_current_size + count)
+            self.hash_pair_current["key"][destination] = key_array[offset : offset + count]
+            self.hash_pair_current["uid"][destination] = uid_array[offset : offset + count]
+            self.hash_pair_current_fingerprints[destination] = fingerprints[offset : offset + count]
+            self.hash_pair_current_size += count
+            offset += count
+            if self.hash_pair_current_size == self.hash_pair_block_rows:
+                self.hash_pair_blocks.append(
+                    _compact_hash_pair_block(self, self.hash_pair_current, self.hash_pair_current_fingerprints)
+                )
+                self.hash_pair_current = None
+                self.hash_pair_current_fingerprints = None
+                self.hash_pair_current_size = 0
 
     def flush_key_value_pairs(self):
-        for value in self.hash_table.values():
-            if len(value) > 1:
-                self.union_list(value)
-        self.hash_table = {}
+        if self.hash_pair_current_size:
+            self.hash_pair_blocks.append(self.hash_pair_current[: self.hash_pair_current_size])
+        self.hash_pair_current = None
+        self.hash_pair_current_fingerprints = None
+        self.hash_pair_current_size = 0
+
+        total = sum(len(block) for block in self.hash_pair_blocks)
+        if total == 0:
+            return
+
+        # Copy and release one source block at a time instead of retaining all
+        # source blocks until the destination has been populated.
+        pairs = np.empty(total, dtype=self.hash_pair_dtype)
+        offset = 0
+        while self.hash_pair_blocks:
+            block = self.hash_pair_blocks.pop()
+            pairs[offset : offset + len(block)] = block
+            offset += len(block)
+            del block
+
+        pairs.sort(order="key")
+        keys = pairs["key"]
+        uids = pairs["uid"]
+        run_start = 0
+        for start in range(1, total, HASH_BOUNDARY_CHUNK_ROWS):
+            end = min(start + HASH_BOUNDARY_CHUNK_ROWS, total)
+            boundaries = np.flatnonzero(keys[start:end] != keys[start - 1 : end - 1]) + start
+            if len(boundaries):
+                run_starts = np.empty_like(boundaries)
+                run_starts[0] = run_start
+                run_starts[1:] = boundaries[:-1]
+                repeated = boundaries - run_starts > 1
+                for repeated_start, boundary in zip(run_starts[repeated], boundaries[repeated]):
+                    _union_uid_run(self, uids[int(repeated_start) : int(boundary)])
+                run_start = int(boundaries[-1])
+        _union_uid_run(self, uids[run_start:total])
 
     def balanced_union_find(self):
         for x, y in self.edge_buffer:

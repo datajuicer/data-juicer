@@ -14,6 +14,7 @@ from data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator import (
     RayBTSMinhashDeduplicator,
     RayBTSMinhashDeduplicatorWithUid,
     _group_edges_by_destination,
+    _hash_pair_dtype,
     _parent_to_arrays,
     _union_edges,
     get_remote_classes,
@@ -159,6 +160,65 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
             finally:
                 for actor in union_finds + edge_buffers:
                     ray.kill(actor)
+
+    def test_exact_hash_pairs_are_compact_and_collision_free(self):
+        key_a = b"a" + b"\x00" * 35
+        key_b = b"a" + b"\x00" * 34 + b"\x01"
+        pair_dtype = _hash_pair_dtype(len(key_a))
+        self.assertEqual(pair_dtype.itemsize, 44)
+
+        union_find = BTSUnionFind(2, 2, 0, [], 20, 10)
+        pairs = [
+            (key_a, 10),
+            (key_b, 7),
+            (key_a, -3),
+            (key_a, 4),
+            (key_b, 6),
+            (key_a, 9),
+            (key_a, 1),
+        ]
+        module = "data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator"
+        with patch(f"{module}.HASH_PAIR_BLOCK_BYTES", pair_dtype.itemsize * 2), patch(
+            f"{module}.HASH_BOUNDARY_CHUNK_ROWS", 2
+        ), patch("builtins.hash", return_value=0):
+            union_find.add_key_value_pairs(pairs)
+            self.assertEqual(len(union_find.hash_pair_blocks), 3)
+            self.assertEqual([len(block) for block in union_find.hash_pair_blocks], [2, 1, 2])
+            union_find.flush_key_value_pairs()
+
+        self.assertEqual(union_find.find(10), -3)
+        self.assertEqual(union_find.find(1), -3)
+        self.assertEqual(union_find.find(7), 6)
+        self.assertNotEqual(union_find.find(10), union_find.find(7))
+        self.assertEqual(union_find.hash_pair_blocks, [])
+        self.assertIsNone(union_find.hash_pair_current)
+
+    def test_hash_pairs_require_fixed_width_keys_and_signed_uids(self):
+        union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
+        union_find.add_key_value_pairs([(b"abcd", 1)])
+
+        with self.assertRaisesRegex(ValueError, "key width changed"):
+            union_find.add_key_value_pairs([(b"abc", 2)])
+
+        overflow_union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
+        with self.assertRaisesRegex(ValueError, "signed 64-bit"):
+            overflow_union_find.add_key_value_pairs([(b"abcd", 1 << 80)])
+
+    def test_hot_hash_keys_are_reduced_between_blocks(self):
+        key = b"hot" + b"\x00" * 33
+        pair_dtype = _hash_pair_dtype(len(key))
+        union_find = BTSUnionFind(2, 1, 0, [], 20, 10)
+        module = "data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator"
+        with patch(f"{module}.HASH_PAIR_BLOCK_BYTES", pair_dtype.itemsize * 4):
+            union_find.add_key_value_pairs([(key, uid) for uid in range(4)])
+            self.assertEqual(union_find.hot_key_roots[key], 0)
+            self.assertEqual([len(block) for block in union_find.hash_pair_blocks], [1])
+
+            union_find.add_key_value_pairs([(key, uid) for uid in range(4, 12)])
+            self.assertIsNone(union_find.hash_pair_current)
+            union_find.flush_key_value_pairs()
+
+        self.assertEqual(union_find.find(11), 0)
 
 
 class RayBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):

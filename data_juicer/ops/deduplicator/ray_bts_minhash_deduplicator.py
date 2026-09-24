@@ -26,6 +26,79 @@ from .document_minhash_deduplicator import (
 ray = LazyLoader("ray")
 
 BATCH_SIZE = 1000
+UID_DTYPE = np.dtype(np.int64)
+EDGE_DTYPE = np.dtype([("u", UID_DTYPE), ("v", UID_DTYPE)])
+
+
+def _empty_edge_array():
+    return np.empty(0, dtype=EDGE_DTYPE)
+
+
+def _parent_to_arrays(parent):
+    """Convert a parent mapping to compact, order-aligned UID arrays."""
+    size = len(parent)
+    try:
+        uids = np.fromiter(parent.keys(), dtype=UID_DTYPE, count=size)
+        parents = np.fromiter(parent.values(), dtype=UID_DTYPE, count=size)
+    except OverflowError as error:
+        raise ValueError("MinHash UIDs must fit in a signed 64-bit integer") from error
+    return uids, parents
+
+
+def _group_edges_by_destination(uids, parents, parallel_num):
+    """Pack edges into one array grouped by their destination actor.
+
+    Every edge is sent to the actor owning its source UID and, when the two
+    endpoints have different owners, to the actor owning its parent UID too.
+    The returned offsets delimit the slice for each destination.
+    """
+    if parallel_num <= 0:
+        raise ValueError("parallel_num must be positive")
+    if len(uids) != len(parents):
+        raise ValueError("uids and parents must have the same length")
+    if len(uids) == 0:
+        return _empty_edge_array(), np.zeros(parallel_num + 1, dtype=np.int64)
+
+    hash_u = (uids // BATCH_SIZE) % parallel_num
+    hash_v = (parents // BATCH_SIZE) % parallel_num
+    cross_partition = hash_u != hash_v
+    cross_count = int(np.count_nonzero(cross_partition))
+
+    size = len(uids) + cross_count
+    destination_dtype = np.min_scalar_type(parallel_num - 1)
+    destinations = np.empty(size, dtype=destination_dtype)
+    destinations[: len(uids)] = hash_u
+    unsorted_edges = np.empty(size, dtype=EDGE_DTYPE)
+    unsorted_edges["u"][: len(uids)] = uids
+    unsorted_edges["v"][: len(uids)] = parents
+    if cross_count:
+        destinations[len(uids) :] = hash_v[cross_partition]
+        unsorted_edges["u"][len(uids) :] = uids[cross_partition]
+        unsorted_edges["v"][len(uids) :] = parents[cross_partition]
+    del hash_u, hash_v, cross_partition
+
+    # Union always chooses the smaller root, so the order within a destination
+    # does not affect the resulting connected components.
+    counts = np.bincount(destinations, minlength=parallel_num)
+    offsets = np.empty(parallel_num + 1, dtype=np.int64)
+    offsets[0] = 0
+    np.cumsum(counts, out=offsets[1:])
+    del counts
+
+    order = np.argsort(destinations)
+    del destinations
+    edges = np.empty(size, dtype=EDGE_DTYPE)
+    np.take(unsorted_edges["u"], order, out=edges["u"])
+    np.take(unsorted_edges["v"], order, out=edges["v"])
+    return edges, offsets
+
+
+def _union_edges(union_find, edges, chunk_size=1 << 18):
+    """Union compact edges without materializing all Python integers at once."""
+    for start in range(0, len(edges), chunk_size):
+        end = min(start + chunk_size, len(edges))
+        for u, v in zip(edges["u"][start:end].tolist(), edges["v"][start:end].tolist()):
+            union_find.union(u, v)
 
 
 class IdGenerator:
@@ -42,16 +115,31 @@ class IdGenerator:
 class EdgeBuffer:
 
     def __init__(self):
-        self.edge_dict = {}
+        self.clear()
 
     def clear(self):
-        self.edge_dict = {}
+        self.edges = _empty_edge_array()
+        self.offsets = np.zeros(1, dtype=np.int64)
+        self.consumed = np.empty(0, dtype=np.bool_)
+        self.remaining = 0
 
-    def set_edges(self, edge_dict):
-        self.edge_dict = edge_dict
+    def set_edges(self, edges, offsets):
+        self.edges = edges
+        self.offsets = offsets
+        self.consumed = np.zeros(len(offsets) - 1, dtype=np.bool_)
+        self.remaining = len(self.consumed)
 
     def get_edges(self, key):
-        return self.edge_dict.pop(key, [])
+        if key < 0 or key >= len(self.consumed) or self.consumed[key]:
+            return _empty_edge_array()
+
+        self.consumed[key] = True
+        self.remaining -= 1
+        start, end = self.offsets[key : key + 2]
+        result = self.edges[start:end]
+        if self.remaining == 0:
+            self.clear()
+        return result
 
 
 class BTSUnionFind:
@@ -78,8 +166,6 @@ class BTSUnionFind:
         self.parent = {}
         self.old_parent = {}
         self.remote_edge_buffers = remote_edge_buffers
-        self.edge_buffer = []
-        self.edge_list_dict = {}
         self.max_pending_edge_buffer_task = max_pending_edge_buffer_task
         self.num_edge_buffer_task_returns = num_edge_buffer_task_returns
 
@@ -98,69 +184,50 @@ class BTSUnionFind:
         self.hash_table = {}
 
     def balanced_union_find(self):
-        for x, y in self.edge_buffer:
-            self.union(x, y)
-        self.edge_buffer = []
         result_refs = []
         for remote_edge_buffer in self.remote_edge_buffers:
             if len(result_refs) > self.max_pending_edge_buffer_task:
                 ready_refs, result_refs = ray.wait(result_refs, num_returns=self.num_edge_buffer_task_returns)
-                edge_list = ray.get(ready_refs)
-                for edges in edge_list:
-                    for x, y in edges:
-                        self.union(x, y)
+                for edges in ray.get(ready_refs):
+                    _union_edges(self, edges)
                 del ready_refs
             result_refs.append(remote_edge_buffer.get_edges.remote(self.parallel_id))
-        edge_list = ray.get(result_refs)
-        for edges in edge_list:
-            for x, y in edges:
-                self.union(x, y)
-        del edge_list, result_refs
+        for edges in ray.get(result_refs):
+            _union_edges(self, edges)
+        del result_refs
         self.rebalancing()
         return self.old_parent != self.parent
 
-    def distribute_edge(self, u, v):
-        hash_u = u // BATCH_SIZE % self.parallel_num
-        hash_v = v // BATCH_SIZE % self.parallel_num
-        if hash_u not in self.edge_list_dict:
-            self.edge_list_dict[hash_u] = []
-        self.edge_list_dict[hash_u].append((u, v))
-        if hash_u != hash_v:
-            if hash_v not in self.edge_list_dict:
-                self.edge_list_dict[hash_v] = []
-            self.edge_list_dict[hash_v].append((u, v))
-
-    def set_edge_buffer(self):
-        if self.parallel_id in self.edge_list_dict:
-            self.edge_buffer = self.edge_list_dict[self.parallel_id]
-            del self.edge_list_dict[self.parallel_id]
-        else:
-            self.edge_buffer = []
-        ray.get(self.remote_edge_buffers[self.parallel_id].set_edges.remote(self.edge_list_dict))
-        self.edge_list_dict = {}
+    def set_edge_buffer(self, uids, parents):
+        edges, offsets = _group_edges_by_destination(uids, parents, self.parallel_num)
+        ray.get(self.remote_edge_buffers[self.parallel_id].set_edges.remote(edges, offsets))
 
     def edge_redistribution(self):
         self.flush_key_value_pairs()
         self.rebalancing()
-        self.edge_list_dict = {}
-        for u, v in self.parent.items():
-            self.distribute_edge(u, v)
+        uids, parents = _parent_to_arrays(self.parent)
         self.parent = {}
-        self.set_edge_buffer()
+        self.set_edge_buffer(uids, parents)
 
     def communication(self):
-        self.edge_list_dict = {}
-        del_list = []
+        edge_uids = np.empty(len(self.parent), dtype=UID_DTYPE)
+        edge_parents = np.empty(len(self.parent), dtype=UID_DTYPE)
+        deleted_uids = np.empty(len(self.parent), dtype=UID_DTYPE)
+        edge_count = 0
+        deleted_count = 0
         for u, v in self.parent.items():
             hash_u = u // BATCH_SIZE % self.parallel_num
-            if self.parent[u] != self.old_parent.get(u, u) or (hash_u != self.parallel_id and v not in self.parent):
-                self.distribute_edge(u, v)
+            if v != self.old_parent.get(u, u) or (hash_u != self.parallel_id and v not in self.parent):
+                edge_uids[edge_count] = u
+                edge_parents[edge_count] = v
+                edge_count += 1
             if hash_u != self.parallel_id:
-                del_list.append(u)
+                deleted_uids[deleted_count] = u
+                deleted_count += 1
         self.old_parent = self.parent.copy()
-        for u in del_list:
-            del self.parent[u]
-        self.set_edge_buffer()
+        for u in deleted_uids[:deleted_count]:
+            del self.parent[int(u)]
+        self.set_edge_buffer(edge_uids[:edge_count], edge_parents[:edge_count])
 
     def find(self, x):
         if x not in self.parent:
@@ -217,7 +284,6 @@ class BTSUnionFind:
         dup_keys = {x for x in self.parent if x // BATCH_SIZE % self.parallel_num == self.parallel_id}
         self.parent = dup_keys
         self.old_parent = {}
-        self.edge_buffer = []
         ray.get(self.remote_edge_buffers[self.parallel_id].clear.remote())
 
     def dup_idx(self, queries):

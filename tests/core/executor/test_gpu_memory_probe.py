@@ -943,7 +943,10 @@ def test_hardware_mismatch_reprobes(tmp_path):
 
 def test_old_profile_schema_is_reprobed(tmp_path):
     op = FakeOp("gpu", accelerator="cuda")
-    runner = lambda op, rows, measure: {"rows": rows, "metrics": metrics()}
+
+    def runner(op, rows, measure):
+        return {"rows": rows, "metrics": metrics()}
+
     GPUMemoryProbe(str(tmp_path), stage_runner=runner).resolve(FakeDataset([{"id": 1}]), [op])
     path = tmp_path / "gpu_probe_results.json"
     report = json.loads(path.read_text())

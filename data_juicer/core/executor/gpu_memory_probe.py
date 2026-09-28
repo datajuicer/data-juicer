@@ -1157,6 +1157,7 @@ class GPUMemoryProbe:
         }
         record = {
             "op_index": index,
+            "stage_id": getattr(op, "_elastic_juicer_stage_identity", None),
             "op_name": getattr(op, "_name", type(op).__name__),
             "op_class": f"{type(op).__module__}.{type(op).__qualname__}",
             "config_hash": _config_hash(op),

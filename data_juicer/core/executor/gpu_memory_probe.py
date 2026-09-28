@@ -15,13 +15,17 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, 
 
 from loguru import logger
 
+from data_juicer.core.executor.probe_resource_sampler import (
+    ProbeResourceSampler,
+    sample_probe_phase,
+)
 from data_juicer.ops import Filter, Mapper, Pipeline
 from data_juicer.utils.lazy_loader import LazyLoader
 
 ray = LazyLoader("ray")
 
 _REPORT_VERSION = 6
-_OBSERVABILITY_VERSION = 5
+_OBSERVABILITY_VERSION = 6
 _REPORT_NAME = "gpu_probe_results.json"
 _MEMORY_HEADROOM = 1.10
 _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE = 5
@@ -539,12 +543,14 @@ def _profile_probe_target(
     rows: Sequence[Dict],
     warmup_batches: int,
     steady_batches: int,
+    resource_sampler=None,
 ) -> Tuple[List[Dict], Dict[str, Any]]:
     """Measure model initialization separately from warmup and steady state."""
     target_name = str(spec.get("op_name") or "unknown")
     init_started = time.monotonic()
     logger.info(f"GPU preflight profile Op[{target_name}] constructing operator instance.")
-    op = _construct_probe_op(spec)
+    with sample_probe_phase(resource_sampler, "construction"):
+        op = _construct_probe_op(spec)
     initialization = time.monotonic() - init_started
     logger.info(f"GPU preflight profile Op[{target_name}] constructed operator instance " f"in {initialization:.2f}s.")
 
@@ -554,7 +560,8 @@ def _profile_probe_target(
         logger.info(
             f"GPU preflight profile Op[{target_name}] starting warmup batch " f"{batch_index + 1}/{warmup_batches}."
         )
-        _run_constructed_probe_op_rows(op, rows)
+        with sample_probe_phase(resource_sampler, "warmup", batch_index):
+            _run_constructed_probe_op_rows(op, rows)
         logger.info(
             f"GPU preflight profile Op[{target_name}] finished warmup batch "
             f"{batch_index + 1}/{warmup_batches} in "
@@ -570,7 +577,8 @@ def _profile_probe_target(
         logger.info(
             f"GPU preflight profile Op[{target_name}] starting steady batch " f"{batch_index + 1}/{steady_batches}."
         )
-        output_rows = _run_constructed_probe_op_rows(op, rows)
+        with sample_probe_phase(resource_sampler, "steady", batch_index):
+            output_rows = _run_constructed_probe_op_rows(op, rows)
         batch_seconds = time.monotonic() - batch_started
         steady_durations.append(batch_seconds)
         steady_outputs.append(len(output_rows))
@@ -662,6 +670,7 @@ def _run_parallel_probe_job(job: Mapping[str, Any], source_rows: List[Dict]) -> 
 
         warmup_batches = max(0, int(job.get("warmup_batches", 1)))
         steady_batches = max(1, int(job.get("steady_batches", 3)))
+        resource_sampler = ProbeResourceSampler() if job.get("resource_sampling", False) else None
 
         def run_target():
             # Keep operator execution identical to the formal Ray actor.  A
@@ -670,7 +679,7 @@ def _run_parallel_probe_job(job: Mapping[str, Any], source_rows: List[Dict]) -> 
             # model transfer into a multi-minute preflight stall.
             previous_marker = os.environ.pop(_PREFLIGHT_OP_ENV_VAR, None)
             try:
-                return _profile_probe_target(target, target_rows, warmup_batches, steady_batches)
+                return _profile_probe_target(target, target_rows, warmup_batches, steady_batches, resource_sampler)
             finally:
                 if previous_marker is None:
                     os.environ.pop(_PREFLIGHT_OP_ENV_VAR, None)
@@ -682,6 +691,8 @@ def _run_parallel_probe_job(job: Mapping[str, Any], source_rows: List[Dict]) -> 
             f"GPU preflight worker Op[{target_name}] starting measured target " f"with {len(target_rows)} row(s)."
         )
         (output_rows, profile), metrics = _measure_cuda_call(run_target)
+        if resource_sampler is not None:
+            metrics["resource_samples"] = resource_sampler.snapshot()
         target_seconds = time.monotonic() - target_started
         total_seconds = time.monotonic() - started
         logger.info(
@@ -718,6 +729,7 @@ def _run_probe_stage(
     warmup_batches: int = 0,
     steady_batches: int = 1,
     op_name: Optional[str] = None,
+    resource_sampling: bool = False,
 ) -> Dict[str, Any]:
     """Run one recipe stage in a disposable Ray worker."""
     from datasets import Dataset, disable_caching
@@ -730,6 +742,7 @@ def _run_probe_stage(
     # the child's allocator peak from this process.  ``None`` keeps the whole
     # probe stage in the Ray worker while still processing batches serially.
     kwargs = _probe_execution_kwargs(init_kwargs)
+    resource_sampler = ProbeResourceSampler() if measure_memory and resource_sampling else None
 
     def run_stage_once():
         op = op_class(*(init_args or ()), **kwargs)
@@ -744,7 +757,8 @@ def _run_probe_stage(
         try:
             init_started = time.monotonic()
             logger.info(f"GPU preflight profile Op[{target_name}] constructing operator instance.")
-            op = op_class(*(init_args or ()), **kwargs)
+            with sample_probe_phase(resource_sampler, "construction"):
+                op = op_class(*(init_args or ()), **kwargs)
             initialization = time.monotonic() - init_started
             logger.info(
                 f"GPU preflight profile Op[{target_name}] constructed operator instance " f"in {initialization:.2f}s."
@@ -762,7 +776,8 @@ def _run_probe_stage(
                     f"GPU preflight profile Op[{target_name}] starting warmup batch "
                     f"{batch_index + 1}/{warmup_batches}."
                 )
-                execute_once()
+                with sample_probe_phase(resource_sampler, "warmup", batch_index):
+                    execute_once()
                 logger.info(
                     f"GPU preflight profile Op[{target_name}] finished warmup batch "
                     f"{batch_index + 1}/{warmup_batches} in "
@@ -779,7 +794,8 @@ def _run_probe_stage(
                 logger.info(
                     f"GPU preflight profile Op[{target_name}] starting steady batch " f"{batch_index + 1}/{repeats}."
                 )
-                output_rows = execute_once()
+                with sample_probe_phase(resource_sampler, "steady", batch_index):
+                    output_rows = execute_once()
                 batch_seconds = time.monotonic() - batch_started
                 durations.append(batch_seconds)
                 output_counts.append(len(output_rows))
@@ -809,6 +825,8 @@ def _run_probe_stage(
 
     if measure_memory:
         (output_rows, profile), metrics = _measure_cuda_call(profile_stage)
+        if resource_sampler is not None:
+            metrics["resource_samples"] = resource_sampler.snapshot()
     else:
         output_rows = run_stage_once()
         metrics = None
@@ -834,6 +852,7 @@ class GPUMemoryProbe:
         sample_offset: int = 0,
         sample_shuffle: bool = False,
         sample_seed: Optional[int] = None,
+        resource_sampling: bool = False,
         stage_runner: Optional[Callable] = None,
         parallel_runner: Optional[Callable] = None,
         hardware_reader: Optional[Callable] = None,
@@ -866,6 +885,9 @@ class GPUMemoryProbe:
         self.sample_offset = int(sample_offset)
         self.sample_shuffle = bool(sample_shuffle)
         self.sample_seed = int(sample_seed) if sample_seed is not None else None
+        if not isinstance(resource_sampling, bool):
+            raise ValueError("resource_sampling must be a boolean")
+        self.resource_sampling = resource_sampling
         # Where the sample actually came from, which is not always what was
         # asked for once a sampling preference degrades back to the head.
         self._sample_source = "the dataset head"
@@ -1177,6 +1199,8 @@ class GPUMemoryProbe:
             ),
             **plan,
         }
+        if isinstance(metrics.get("resource_samples"), Mapping):
+            record["resource_samples"] = deepcopy(metrics["resource_samples"])
         if isinstance(profile, Mapping):
             record["profile"] = {
                 "construction": float(profile.get("construction", profile.get("initialization", 0)) or 0),
@@ -1250,6 +1274,7 @@ class GPUMemoryProbe:
                 "dependencies": [_op_spec(op) for op in job["dependencies"]],
                 "warmup_batches": self.warmup_batches,
                 "steady_batches": self.steady_batches,
+                "resource_sampling": self.resource_sampling,
             }
             options = {"num_cpus": self._job_num_cpus(job), "num_gpus": 1}
             runtime_env = getattr(target, "runtime_env", None)
@@ -1372,6 +1397,7 @@ class GPUMemoryProbe:
             self.warmup_batches if measure_memory else 0,
             self.steady_batches if measure_memory else 1,
             getattr(op, "_name", None) or type(op).__name__,
+            self.resource_sampling,
         )
         return ray.get(future)
 
@@ -1464,6 +1490,7 @@ class GPUMemoryProbe:
                 or report.get("max_gpu_workers_per_device") != self.max_gpu_workers_per_device
                 or report.get("warmup_batches") != self.warmup_batches
                 or report.get("steady_batches") != self.steady_batches
+                or report.get("resource_sampling", False) != self.resource_sampling
                 # Measurements taken from a different part of the dataset are not
                 # comparable, so a changed sampling policy has to re-probe.
                 or report.get("sample_policy") != self._sample_policy()
@@ -1483,6 +1510,7 @@ class GPUMemoryProbe:
             "max_gpu_workers_per_device": self.max_gpu_workers_per_device,
             "warmup_batches": self.warmup_batches,
             "steady_batches": self.steady_batches,
+            "resource_sampling": self.resource_sampling,
             "sample_policy": self._sample_policy(),
             # The policy above is what was requested and gates cache reuse; this
             # is where the sample came from once fallbacks were applied.

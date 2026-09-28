@@ -680,8 +680,14 @@ class BuildBaseParserTest(DataJuicerTestCaseBase):
 
         self.assertEqual(cfg.partition.gpu_probe_warmup_batches, 1)
         self.assertEqual(cfg.partition.gpu_probe_steady_batches, 3)
+        self.assertFalse(cfg.partition.gpu_probe_resource_sampling)
         self.assertEqual(cfg.partition.execution_group_size, "auto")
         self.assertEqual(cfg.partition.max_initialization_overhead_ratio, 0.1)
+
+    def test_gpu_probe_resource_sampling_can_be_enabled(self):
+        parser = build_base_parser()
+        cfg = parser.parse_args(["--auto", "--partition.gpu_probe_resource_sampling=true"])
+        self.assertTrue(cfg.partition.gpu_probe_resource_sampling)
 
     def test_execution_group_accepts_explicit_positive_integer(self):
         parser = build_base_parser()

@@ -757,7 +757,7 @@ def test_ordered_replay_uses_front_sample_and_refills_after_filter(tmp_path):
 
     report = json.loads((tmp_path / "gpu_probe_results.json").read_text())
     assert report["version"] == 6
-    assert report["observability_version"] == 5
+    assert report["observability_version"] == 6
     assert report["memory_headroom"] == 1.1
     assert report["max_gpu_workers_per_device"] == 5
     assert report["warmup_batches"] == 1
@@ -943,7 +943,10 @@ def test_hardware_mismatch_reprobes(tmp_path):
 
 def test_old_profile_schema_is_reprobed(tmp_path):
     op = FakeOp("gpu", accelerator="cuda")
-    runner = lambda op, rows, measure: {"rows": rows, "metrics": metrics()}
+
+    def runner(op, rows, measure):
+        return {"rows": rows, "metrics": metrics()}
+
     GPUMemoryProbe(str(tmp_path), stage_runner=runner).resolve(FakeDataset([{"id": 1}]), [op])
     path = tmp_path / "gpu_probe_results.json"
     report = json.loads(path.read_text())
@@ -1100,14 +1103,17 @@ def test_stage_failure_is_fail_fast(tmp_path):
     assert isinstance(error.value.__cause__, MemoryError)
 
 
-def test_executor_plans_parallelism_after_preflight(tmp_path):
+@pytest.mark.parametrize("resource_sampling", [False, True])
+def test_executor_plans_parallelism_after_preflight(tmp_path, resource_sampling):
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.partition_mode = "auto"
     executor.work_dir = str(tmp_path)
+    executor.gpu_probe_resource_sampling = resource_sampling
     target = FakeOp("gpu", accelerator="cuda")
     order = []
 
     def probe(_probe, dataset, ops):
+        assert _probe.resource_sampling is resource_sampling
         order.append("probe")
         ops[0].num_gpus = 0.25
 

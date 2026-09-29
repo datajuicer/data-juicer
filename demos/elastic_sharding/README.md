@@ -18,6 +18,30 @@ for large JSONL datasets:
 This design does not require a cross-node Ray cluster. The shared filesystem
 coordinates nodes, while every node has its own independent Ray runtime.
 
+The main package now exposes this capability as `dj-process-sharded`. Run it
+once on a single machine, or have a scheduler run the same command with the
+same `job-dir`, `run-id`, and arguments on every node:
+
+```bash
+dj-process-sharded run \
+  --config /mnt/shared/recipes/process.yaml \
+  --job-dir /mnt/shared/data-juicer-jobs/job-001 \
+  --num-shards 32 \
+  --run-id submission-001
+```
+
+The command checks the recipe first. Mapper/Filter-only recipes with local
+JSONL input and output use elastic sharding. Recipes containing whole-dataset
+operators such as Deduplicator, Selector, Grouper, Aggregator, or Pipeline—or
+unsupported input/output settings—print the reason and run one original
+`dj-process` invocation on the elected coordinator. Runtime failures after
+sharding starts never fall back, preventing duplicate full-dataset work.
+
+Inspect a sharded job with `dj-process-sharded status --job-dir <job-dir>`.
+Requeue terminal failures with
+`dj-process-sharded retry --job-dir <job-dir> --all-failed`, then invoke `run`
+with a new `run-id`. Arguments for the same `job-dir/run-id` must not change.
+
 > **DLC launch topology matters.** `dlc_job.py dlc` requires a job type that
 > broadcasts the configured startup command to every Worker. A PAI-DLC MPIJob
 > does not do that: its command runs on the Launcher, which must use `mpirun`
@@ -54,15 +78,19 @@ coordinates nodes, while every node has its own independent Ray runtime.
 - **Auditable and reproducible**: the manifest records input fingerprints,
   recipe hash, Data-Juicer commit, Ray configuration, and shard order.
 - **Exclusive claims**: POSIX `O_CREAT|O_EXCL` prevents two active Workers from
-  normally owning the same shard.
+  owning the same shard. A successful or terminally failed claim remains at
+  the same path as a durable fence, so a short NAS/CPFS metadata-visibility
+  delay cannot reopen an already finished shard.
 - **Failure handling**: failed attempts can retry, and expired claims can be
   reclaimed by another Worker.
 - **Integrity validation**: row counts, byte counts, and SHA256 values are
   checked before a result is accepted and merged.
 - **Deterministic order**: directory inputs are sorted, shards are contiguous,
   and merge follows manifest order.
-- **Low integration risk**: the implementation lives under `demos` and does
-  not modify existing executors or operators.
+- **Low integration risk**: the state machine lives in
+  `tools/elastic_sharding.py` and does not modify existing executors, recipe
+  schemas, or operators; this directory retains scheduler examples and a
+  compatibility wrapper.
 
 ## Comparison with existing approaches
 
@@ -70,7 +98,7 @@ coordinates nodes, while every node has its own independent Ray runtime.
 | --- | --- | --- | --- | --- | --- |
 | `tools/data_resplit.py` | Pre-split | No | No | User-managed | No |
 | `ray_partitioned` | Runtime | Ray scheduling | Ray job | Yes | Yes |
-| This demo | Pre-split | Shared filesystem | Timeout/retry | Yes | No |
+| `dj-process-sharded` | Pre-split | Shared filesystem | Timeout/retry | Yes | No |
 
 This demo is useful when:
 
@@ -96,7 +124,8 @@ demos/elastic_sharding/
 └── README_ZH.md
 ```
 
-`shard_job.py` contains the shared-storage shard state machine. For
+`shard_job.py` is a compatibility wrapper for the main
+`dj-process-sharded` command. For
 Worker-broadcast job types, `dlc_job.py` coordinates one-time preparation and
 finalization around any number of DLC Workers. `two_node_test.py` keeps the
 original strict two-node defaults for backward compatibility. An MPIJob
@@ -503,7 +532,7 @@ python demos/elastic_sharding/dlc_job.py dlc \
   --dataset-path /mnt/shared/input/my_dataset.jsonl \
   --job-dir /mnt/shared/data-juicer-jobs/my-dataset-001 \
   --nodes 4 \
-  --num-shards 16 \
+  --num-shards 4 \
   --ray-address local \
   --output /mnt/shared/output/my_dataset.processed.jsonl
 ```
@@ -514,24 +543,27 @@ In this command:
 - `--dataset-path` overrides the recipe's original input;
 - `--job-dir` stores all state and intermediate results for this run;
 - `--output` selects the final merged JSONL;
-- any live Workers dynamically claim sixteen shards and use Ray inside each
+- four live Workers dynamically claim four shards and use Ray inside each
   node.
 
-Start with a small sample and at least a few shards per node, then scale the
-input and shard count after the smoke test succeeds.
+Start with a small sample and one shard per node, then scale the input after
+the smoke test succeeds.
 
 ### Choosing the shard count
 
 - `1 <= num_shards <= total JSONL rows` must hold.
-- More shards than nodes improve work stealing and reduce skew.
-- Start with `2 × node_count` or `4 × node_count`.
+- For best throughput, keep the shard count no greater than the Worker node
+  count, ideally equal to it: one shard per node.
+- Fewer shards leave nodes idle. More shards make a Worker process multiple
+  shards sequentially and start another Data-Juicer process for each shard.
+- Use more shards than nodes only for significant workload skew or finer retry
+  granularity, and make each shard heavy enough to amortize process and
+  node-local Ray startup.
 - A shard should complete well before `lock_timeout_secs`.
-- Too few shards reduce load balancing; too many increase Ray startup,
-  metadata, and small-file overhead.
+- Too many shards also increase Ray startup, metadata, and small-file overhead.
 - Default elastic mode has no per-Worker cap, so the shard count does not need
   to be a multiple of the Worker count.
-- With `--require-all-nodes`, a multiple of `--nodes` is the simplest choice
-  and guarantees a clean equal upper bound.
+- With `--require-all-nodes`, set `--num-shards` equal to `--nodes`.
 
 ### When the recipe or input changes
 
@@ -645,8 +677,9 @@ Archive terminal failure state and requeue shards. Select exactly one mode:
 | `--all-failed` | Conditional | false | Requeue every failed shard |
 | `--shard-id` | Conditional | None | Requeue this ID; may be repeated |
 
-Old failure metadata and attempts move into `state/history`; retry does not
-overwrite history.
+Old failure metadata, attempts, and the terminal claim fence move into
+`state/history`; retry does not overwrite history. Removing that fence is the
+final atomic requeue step.
 
 ### `merge`
 
@@ -710,6 +743,10 @@ States are:
 - `pending`: not claimed;
 - `running`: has a non-expired claim;
 - `stale`: claim age exceeds the timeout and the next claimant may reclaim it;
+- `committing`: the claim is terminal but the terminal marker is not yet
+  visible to this filesystem client;
+- `conflict`: marker/claim metadata disagree; Workers stop instead of risking
+  duplicate processing;
 - `done`: validated completion metadata is published;
 - `failed`: terminal failure after the retry limit.
 
@@ -796,6 +833,9 @@ my-job-001/
 │   ├── done/
 │   ├── failed/
 │   └── history/
+│       ├── failed/
+│       ├── attempts/
+│       └── claims/
 └── merge.json
 ```
 
@@ -819,14 +859,16 @@ If `XDG_CACHE_HOME` or `HF_HOME` is not explicitly set, Workers use
 
 - A shard has one visible claim, although stale takeover can briefly overlap
   an old attempt and a new attempt.
+- Successful and terminally failed claims are rewritten in place to `done` or
+  `failed` and retained as fences. Only explicit `retry` archives a failed
+  terminal fence and makes that shard claimable again.
 - Every attempt has an isolated directory and cannot overwrite another result.
 - Only the first successful atomic done publication is accepted.
 - `max_retries=3` means three retries after the initial failure, allowing four
   failed attempts before terminal state.
 - A shard reaching the retry limit publishes `state/failed`, and the job exits
   with code 2.
-- Run `retry` only after confirming there is no active claim and fixing the
-  root cause.
+- Run `retry` only after fixing the root cause; it rejects non-terminal claims.
 - Input or recipe changes require a new job directory, not `retry`.
 - If a DLC prepare/finalize coordinator is killed before publishing its phase
   result, other instances wait until `wait_timeout_secs` and then fail. A new

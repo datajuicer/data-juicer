@@ -20,7 +20,7 @@ from data_juicer.utils.lazy_loader import LazyLoader
 
 ray = LazyLoader("ray")
 
-_REPORT_VERSION = 6
+_REPORT_VERSION = 7
 _OBSERVABILITY_VERSION = 5
 _REPORT_NAME = "gpu_probe_results.json"
 _MEMORY_HEADROOM = 1.10
@@ -977,7 +977,19 @@ class GPUMemoryProbe:
             last_serial_target = max(serial_pending)
             for index, op in enumerate(ops[: last_serial_target + 1]):
                 is_target = index in serial_pending
-                stage_rows = fill_to_batch(serial_rows, _normalized_batch_size(op)) if is_target else serial_rows
+                batch_size = _normalized_batch_size(op)
+                # A measured batch may truncate or pad the representative rows.
+                # Neither operation describes this stage's actual row lineage:
+                # later targets must see all surviving original rows, without
+                # duplicates introduced solely to fill a measurement batch.
+                replay_rows = (
+                    deepcopy(serial_rows)
+                    if is_target and index < last_serial_target and len(serial_rows) != batch_size
+                    else None
+                )
+                stage_rows = (
+                    [deepcopy(row) for row in fill_to_batch(serial_rows, batch_size)] if is_target else serial_rows
+                )
                 try:
                     result = self._stage_runner(op, stage_rows, is_target)
                 except Exception as error:
@@ -1001,6 +1013,24 @@ class GPUMemoryProbe:
                     )
                     self._accept_record(op, record)
                     new_records[index] = record
+
+                if replay_rows is not None:
+                    # Keep replay outside the measured call so its additional
+                    # batches do not change the target's batch-size profile.
+                    # Re-run the complete input (not just a tail): filters and
+                    # batch-sensitive operators must retain recipe semantics.
+                    name = getattr(op, "_name", type(op).__name__)
+                    logger.info(
+                        f"GPU preflight replaying all {len(replay_rows)} representative row(s) "
+                        f"through Op[{name}] for downstream targets, outside its measured batch."
+                    )
+                    try:
+                        serial_rows = list(self._stage_runner(op, replay_rows, False)["rows"])
+                    except Exception as error:
+                        raise RuntimeError(
+                            f"GPU preflight failed while replaying representative rows through "
+                            f"Op[{name}] at recipe index {index}. The formal Ray experiment was not started."
+                        ) from error
 
         merged = {**reusable, **new_records}
         self._save_report([merged[index] for index in sorted(merged)])

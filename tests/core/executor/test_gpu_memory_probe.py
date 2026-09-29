@@ -743,6 +743,7 @@ def test_ordered_replay_uses_front_sample_and_refills_after_filter(tmp_path):
     assert calls == [
         ("cpu_filter", 4, False),
         ("first_gpu", 2, True),
+        ("first_gpu", 1, False),
         ("second_gpu", 4, True),
     ]
     assert [record["op_name"] for record in records] == ["first_gpu", "second_gpu"]
@@ -756,7 +757,7 @@ def test_ordered_replay_uses_front_sample_and_refills_after_filter(tmp_path):
     assert first_gpu._op_cfg["first_gpu"]["memory"] == 111 / 1024
 
     report = json.loads((tmp_path / "gpu_probe_results.json").read_text())
-    assert report["version"] == 6
+    assert report["version"] == 7
     assert report["observability_version"] == 5
     assert report["memory_headroom"] == 1.1
     assert report["max_gpu_workers_per_device"] == 5
@@ -765,6 +766,87 @@ def test_ordered_replay_uses_front_sample_and_refills_after_filter(tmp_path):
     assert report["sample_policy"] == {"offset": 0, "shuffle": False, "seed": None}
     assert report["sample_source"] == "the dataset head"
     assert report["operators"][1]["sample_count"] == 4
+
+
+@pytest.mark.parametrize("first_batch,second_batch", [(1, 4), (2, 4), (4, 4), (8, 4)])
+def test_ordered_measurement_preserves_full_upstream_lineage(tmp_path, first_batch, second_batch):
+    rows = [{"id": index, "visits": []} for index in range(max(first_batch, second_batch))]
+    first = FakeOp("first", accelerator="cuda", batch_size=first_batch)
+    second = FakeOp("second", accelerator="cuda", batch_size=second_batch)
+    calls = []
+
+    def run_stage(op, inputs, measure):
+        calls.append((op._name, [row["id"] for row in inputs], measure))
+        if op is first:
+            for row in inputs:
+                row["visits"].append("first")
+        else:
+            assert [row["id"] for row in inputs] == list(range(second_batch))
+            assert all(row["visits"] == ["first"] for row in inputs)
+        return {"rows": inputs, "metrics": metrics(measured=100 if measure else 900)}
+
+    records = GPUMemoryProbe(str(tmp_path), stage_runner=run_stage).resolve(FakeDataset(rows), [first, second])
+
+    assert [record["sample_count"] for record in records] == [first_batch, second_batch]
+    assert all(record["measured_memory_mb"] == 100 for record in records)
+    assert all(row["visits"] == [] for row in rows), "Measured batches must not mutate the representative input"
+    replays = [call for call in calls if not call[2]]
+    assert len(replays) == int(first_batch < second_batch)
+    if replays:
+        assert replays[0][1] == list(range(second_batch))
+
+
+def test_ordered_filter_can_keep_unmeasured_tail_for_downstream(tmp_path):
+    first = UndeclaredProbeFilter(accelerator="cuda", batch_size=1)
+    second = FakeOp("second", accelerator="cuda", batch_size=4)
+    observed = []
+
+    def run_stage(op, rows, measure):
+        if op is first:
+            # The measured head is empty, but the original tail survives.
+            return {"rows": [row for row in rows if row["id"] >= 2], "metrics": metrics()}
+        observed.append([row["id"] for row in rows])
+        return {"rows": rows, "metrics": metrics()}
+
+    GPUMemoryProbe(str(tmp_path), stage_runner=run_stage).resolve(
+        FakeDataset([{"id": index} for index in range(4)]), [first, second]
+    )
+    assert observed == [[2, 3, 2, 3]]
+
+
+def test_ordered_padding_is_not_propagated_as_real_upstream_rows(tmp_path):
+    first = FakeOp("first", accelerator="cuda", batch_size=4)
+    second = FakeOp("second", accelerator="cuda", batch_size=6)
+    replay_sizes = []
+
+    def run_stage(op, rows, measure):
+        if op is first:
+            if not measure:
+                replay_sizes.append(len(rows))
+            return {"rows": [{**row, "upstream_count": len(rows)} for row in rows], "metrics": metrics()}
+        assert [row["id"] for row in rows] == [0, 1, 0, 1, 0, 1]
+        assert all(row["upstream_count"] == 2 for row in rows)
+        return {"rows": rows, "metrics": metrics()}
+
+    GPUMemoryProbe(str(tmp_path), stage_runner=run_stage).resolve(FakeDataset([{"id": 0}, {"id": 1}]), [first, second])
+    assert replay_sizes == [2]
+
+
+def test_ordered_representative_replay_failure_aborts_before_saving_report(tmp_path):
+    first = FakeOp("first", accelerator="cuda", batch_size=1)
+    second = FakeOp("second", accelerator="cuda", batch_size=2)
+
+    def run_stage(op, rows, measure):
+        if not measure:
+            raise ValueError("invalid tail image")
+        return {"rows": rows, "metrics": metrics()}
+
+    with pytest.raises(RuntimeError, match=r"representative rows.*Op\[first\]") as caught:
+        GPUMemoryProbe(str(tmp_path), stage_runner=run_stage).resolve(
+            FakeDataset([{"id": 0}, {"id": 1}]), [first, second]
+        )
+    assert isinstance(caught.value.__cause__, ValueError)
+    assert not (tmp_path / "gpu_probe_results.json").exists()
 
 
 def probe_sample_ids(tmp_path, dataset, **options):
@@ -947,12 +1029,12 @@ def test_old_profile_schema_is_reprobed(tmp_path):
     GPUMemoryProbe(str(tmp_path), stage_runner=runner).resolve(FakeDataset([{"id": 1}]), [op])
     path = tmp_path / "gpu_probe_results.json"
     report = json.loads(path.read_text())
-    report["version"] = 5
+    report["version"] = 6
     path.write_text(json.dumps(report))
     dataset = FakeDataset([{"id": 2}])
     GPUMemoryProbe(str(tmp_path), stage_runner=runner).resolve(dataset, [FakeOp("gpu", accelerator="cuda")])
     assert dataset.requested == [1]
-    assert json.loads(path.read_text())["version"] == 6
+    assert json.loads(path.read_text())["version"] == 7
 
 
 def test_worker_cap_change_invalidates_cached_plan(tmp_path):

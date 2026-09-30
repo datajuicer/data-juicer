@@ -1,6 +1,7 @@
 import os
 import shutil
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -83,6 +84,36 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
         self.assertEqual(uids.tolist(), [-2, 7])
         self.assertEqual(parents.tolist(), [-3, -2])
 
+    def test_large_uids_fall_back_without_changing_values(self):
+        high_uid = 1 << 63
+        low_uid = -(1 << 63) - 1001
+        uids, parents = _parent_to_arrays({high_uid: low_uid})
+
+        self.assertTrue(uids.dtype.hasobject)
+        self.assertTrue(parents.dtype.hasobject)
+        edges, offsets = _group_edges_by_destination(uids, parents, parallel_num=3)
+        self.assertTrue(edges.dtype.hasobject)
+        self.assertEqual(offsets[-1], 2)
+        self.assertEqual(set(zip(edges["u"].tolist(), edges["v"].tolist())), {(high_uid, low_uid)})
+
+    def test_large_uids_fall_back_during_bts_phases(self):
+        high_uid = 1 << 63
+        union_find = BTSUnionFind(256, 2, 0, [], 20, 10)
+        union_find.add_key_value_pairs([(b"same", high_uid), (b"same", high_uid + 1000)])
+        with patch.object(union_find, "set_edge_buffer") as set_edge_buffer:
+            union_find.edge_redistribution()
+        uids, parents = set_edge_buffer.call_args.args
+        self.assertTrue(uids.dtype.hasobject)
+        self.assertEqual(list(zip(uids.tolist(), parents.tolist())), [(high_uid + 1000, high_uid)])
+
+        union_find.parent = {high_uid + 1000: high_uid}
+        union_find.old_parent = {}
+        with patch.object(union_find, "set_edge_buffer") as set_edge_buffer:
+            union_find.communication()
+        uids, parents = set_edge_buffer.call_args.args
+        self.assertTrue(uids.dtype.hasobject)
+        self.assertEqual(list(zip(uids.tolist(), parents.tolist())), [(high_uid + 1000, high_uid)])
+
     @TEST_TAG("ray")
     def test_compact_edges_merge_across_ray_actors(self):
         import ray
@@ -91,31 +122,43 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
             ray.init("auto", ignore_reinit_error=True)
 
         remote_classes = get_remote_classes()
-        edge_buffers = [remote_classes["EdgeBuffer"].remote() for _ in range(2)]
-        union_finds = [
-            remote_classes["BTSUnionFind"].remote(256, 2, actor_id, edge_buffers, 20, 10)
-            for actor_id in range(2)
-        ]
-        try:
-            ray.get(
-                [union_finds[0].add_key_value_pairs.remote([(b"a", 0), (b"a", 1000)])]
-                + [union_finds[1].add_key_value_pairs.remote([(b"b", 1000), (b"b", 2000)])]
-            )
-            ray.get([union_find.edge_redistribution.remote() for union_find in union_finds])
-            while any(ray.get([union_find.balanced_union_find.remote() for union_find in union_finds])):
-                ray.get([union_find.communication.remote() for union_find in union_finds])
-            ray.get([union_find.squeeze.remote() for union_find in union_finds])
+        for uid_base in (0, 1 << 63):
+            edge_buffers = [remote_classes["EdgeBuffer"].remote() for _ in range(2)]
+            union_finds = [
+                remote_classes["BTSUnionFind"].remote(256, 2, actor_id, edge_buffers, 20, 10)
+                for actor_id in range(2)
+            ]
+            try:
+                ray.get(
+                    [
+                        union_finds[0].add_key_value_pairs.remote(
+                            [(b"a", uid_base), (b"a", uid_base + 1000)]
+                        )
+                    ]
+                    + [
+                        union_finds[1].add_key_value_pairs.remote(
+                            [(b"b", uid_base + 1000), (b"b", uid_base + 2000)]
+                        )
+                    ]
+                )
+                ray.get([union_find.edge_redistribution.remote() for union_find in union_finds])
+                while any(ray.get([union_find.balanced_union_find.remote() for union_find in union_finds])):
+                    ray.get([union_find.communication.remote() for union_find in union_finds])
+                ray.get([union_find.squeeze.remote() for union_find in union_finds])
 
-            duplicate_indices = ray.get(
-                [
-                    union_finds[0].dup_idx.remote([(0, 0), (2000, 2)]),
-                    union_finds[1].dup_idx.remote([(1000, 1)]),
-                ]
-            )
-            self.assertEqual(sorted(duplicate_indices[0] + duplicate_indices[1]), [1, 2])
-        finally:
-            for actor in union_finds + edge_buffers:
-                ray.kill(actor)
+                queries = [(uid_base + offset, index) for index, offset in enumerate((0, 1000, 2000))]
+                duplicate_indices = ray.get(
+                    [
+                        union_find.dup_idx.remote(
+                            [(uid, index) for uid, index in queries if uid // 1000 % 2 == actor_id]
+                        )
+                        for actor_id, union_find in enumerate(union_finds)
+                    ]
+                )
+                self.assertEqual(sorted(duplicate_indices[0] + duplicate_indices[1]), [1, 2])
+            finally:
+                for actor in union_finds + edge_buffers:
+                    ray.kill(actor)
 
 
 class RayBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):

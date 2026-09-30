@@ -28,6 +28,7 @@ ray = LazyLoader("ray")
 BATCH_SIZE = 1000
 UID_DTYPE = np.dtype(np.int64)
 EDGE_DTYPE = np.dtype([("u", UID_DTYPE), ("v", UID_DTYPE)])
+_OBJECT_EDGE_DTYPE = np.dtype([("u", object), ("v", object)])
 
 
 def _empty_edge_array():
@@ -40,8 +41,9 @@ def _parent_to_arrays(parent):
     try:
         uids = np.fromiter(parent.keys(), dtype=UID_DTYPE, count=size)
         parents = np.fromiter(parent.values(), dtype=UID_DTYPE, count=size)
-    except OverflowError as error:
-        raise ValueError("MinHash UIDs must fit in a signed 64-bit integer") from error
+    except OverflowError:
+        uids = np.fromiter(parent.keys(), dtype=object, count=size)
+        parents = np.fromiter(parent.values(), dtype=object, count=size)
     return uids, parents
 
 
@@ -59,8 +61,15 @@ def _group_edges_by_destination(uids, parents, parallel_num):
     if len(uids) == 0:
         return _empty_edge_array(), np.zeros(parallel_num + 1, dtype=np.int64)
 
-    hash_u = (uids // BATCH_SIZE) % parallel_num
-    hash_v = (parents // BATCH_SIZE) % parallel_num
+    use_object_edges = uids.dtype.hasobject or parents.dtype.hasobject
+    if use_object_edges:
+        hash_u = np.fromiter((int(uid) // BATCH_SIZE % parallel_num for uid in uids), dtype=np.intp, count=len(uids))
+        hash_v = np.fromiter(
+            (int(parent) // BATCH_SIZE % parallel_num for parent in parents), dtype=np.intp, count=len(parents)
+        )
+    else:
+        hash_u = (uids // BATCH_SIZE) % parallel_num
+        hash_v = (parents // BATCH_SIZE) % parallel_num
     cross_partition = hash_u != hash_v
     cross_count = int(np.count_nonzero(cross_partition))
 
@@ -68,7 +77,8 @@ def _group_edges_by_destination(uids, parents, parallel_num):
     destination_dtype = np.min_scalar_type(parallel_num - 1)
     destinations = np.empty(size, dtype=destination_dtype)
     destinations[: len(uids)] = hash_u
-    unsorted_edges = np.empty(size, dtype=EDGE_DTYPE)
+    edge_dtype = _OBJECT_EDGE_DTYPE if use_object_edges else EDGE_DTYPE
+    unsorted_edges = np.empty(size, dtype=edge_dtype)
     unsorted_edges["u"][: len(uids)] = uids
     unsorted_edges["v"][: len(uids)] = parents
     if cross_count:
@@ -87,7 +97,7 @@ def _group_edges_by_destination(uids, parents, parallel_num):
 
     order = np.argsort(destinations)
     del destinations
-    edges = np.empty(size, dtype=EDGE_DTYPE)
+    edges = np.empty(size, dtype=edge_dtype)
     np.take(unsorted_edges["u"], order, out=edges["u"])
     np.take(unsorted_edges["v"], order, out=edges["v"])
     return edges, offsets
@@ -210,9 +220,19 @@ class BTSUnionFind:
         self.set_edge_buffer(uids, parents)
 
     def communication(self):
-        edge_uids = np.empty(len(self.parent), dtype=UID_DTYPE)
-        edge_parents = np.empty(len(self.parent), dtype=UID_DTYPE)
-        deleted_uids = np.empty(len(self.parent), dtype=UID_DTYPE)
+        try:
+            edge_uids, edge_parents, deleted_uids = self._collect_communication_edges(UID_DTYPE)
+        except OverflowError:
+            edge_uids, edge_parents, deleted_uids = self._collect_communication_edges(object)
+        self.old_parent = self.parent.copy()
+        for u in deleted_uids:
+            del self.parent[int(u)]
+        self.set_edge_buffer(edge_uids, edge_parents)
+
+    def _collect_communication_edges(self, dtype):
+        edge_uids = np.empty(len(self.parent), dtype=dtype)
+        edge_parents = np.empty(len(self.parent), dtype=dtype)
+        deleted_uids = np.empty(len(self.parent), dtype=dtype)
         edge_count = 0
         deleted_count = 0
         for u, v in self.parent.items():
@@ -224,10 +244,7 @@ class BTSUnionFind:
             if hash_u != self.parallel_id:
                 deleted_uids[deleted_count] = u
                 deleted_count += 1
-        self.old_parent = self.parent.copy()
-        for u in deleted_uids[:deleted_count]:
-            del self.parent[int(u)]
-        self.set_edge_buffer(edge_uids[:edge_count], edge_parents[:edge_count])
+        return edge_uids[:edge_count], edge_parents[:edge_count], deleted_uids[:deleted_count]
 
     def find(self, x):
         if x not in self.parent:

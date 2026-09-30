@@ -220,6 +220,20 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
 
         self.assertEqual(union_find.find(11), 0)
 
+    def test_exact_key_sort_does_not_overflow_find_stack(self):
+        union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
+        pairs = []
+        for uid in range(3000):
+            key0 = bytes(4) + (3000 - uid // 2).to_bytes(4, "big")
+            key1 = (1).to_bytes(4, "big") + (3000 - (uid + 1) // 2).to_bytes(4, "big")
+            pairs.extend([(key0, uid), (key1, uid)])
+
+        union_find.add_key_value_pairs(pairs)
+        union_find.flush_key_value_pairs()
+        union_find.rebalancing()
+
+        self.assertEqual({union_find.find(uid) for uid in range(3000)}, {0})
+
 
 class RayBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):
 

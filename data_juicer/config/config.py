@@ -818,6 +818,42 @@ def build_base_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--partition.recovery_mode",
+        type=Literal["streaming", "partition"],
+        default="partition",
+        help=(
+            "'partition' (default) uses per-partition checkpoints. 'streaming' uses durable input "
+            "recovery units for Mapper/Filter chains, with bounded replay after a crash."
+        ),
+    )
+    parser.add_argument(
+        "--partition.unit_size",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Input rows per streaming recovery unit. 'auto' chooses a bounded size from operator "
+            "throughput probes; an explicit integer pins the retry granularity."
+        ),
+    )
+    parser.add_argument(
+        "--partition.stream_segments",
+        type=Optional[int],
+        default=1,
+        help=(
+            "Legacy tee-sink option retained for config compatibility. Recovery units commit "
+            "after every Mapper/Filter stage; this value is ignored in streaming mode."
+        ),
+    )
+    parser.add_argument(
+        "--partition.stream_fsync",
+        type=bool,
+        default=True,
+        help=(
+            "Legacy tee-sink option retained for config compatibility. Recovery units always fsync "
+            "their output files and SQLite commit; this value is ignored in streaming mode."
+        ),
+    )
+    parser.add_argument(
         "--partition.max_initialization_overhead_ratio",
         type=float,
         default=0.1,

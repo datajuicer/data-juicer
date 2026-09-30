@@ -183,7 +183,9 @@ class RayDataset(DJDataset):
 
         return [row[column] for row in self.data.take_all()]
 
-    def process(self, operators, *, exporter=None, checkpointer=None, tracer=None, stats_only=False) -> DJDataset:
+    def process(
+        self, operators, *, exporter=None, checkpointer=None, tracer=None, stats_only=False, defer_schema_probe=False
+    ) -> DJDataset:
         if operators is None:
             return self
         if not isinstance(operators, list):
@@ -194,19 +196,24 @@ class RayDataset(DJDataset):
         if self._auto_proc:
             calculate_ray_np(operators)
 
-        # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
-        # Ray's columns() internally does limit(1) which forces execution and breaks streaming
-        columns_result = self.data.columns()
-        # Handle empty dataset: columns() returns None when the schema is unknown
-        # (lazy/empty datasets) and [] for datasets with a known schema but 0 rows
-        if not columns_result:
-            logger.warning("Dataset is empty (0 rows or unknown schema), skipping operator processing")
-            return self
-        cached_columns = set(columns_result)
+        # A schema probe on a lazy stream executes a limited copy of its plan.
+        # This is unsafe when an upstream stage contains a checkpoint tee with
+        # side effects. The streaming executor therefore asks operators to
+        # check framework-managed columns on each batch instead.
+        if defer_schema_probe:
+            cached_columns = set()
+        else:
+            columns_result = self.data.columns()
+            if not columns_result:
+                logger.warning("Dataset is empty (0 rows or unknown schema), skipping operator processing")
+                return self
+            cached_columns = set(columns_result)
 
         for op in operators:
             try:
-                cached_columns = self._run_single_op(op, cached_columns, tracer=tracer, stats_only=stats_only)
+                cached_columns = self._run_single_op(
+                    op, cached_columns, tracer=tracer, stats_only=stats_only, defer_schema_probe=defer_schema_probe
+                )
             except Exception as e:
                 logger.error(f"Error processing operator {op}: {e}.")
                 if op.runtime_env is not None:
@@ -214,17 +221,25 @@ class RayDataset(DJDataset):
                     original_runtime_env = op.runtime_env
                     try:
                         op.runtime_env = None
-                        cached_columns = self._run_single_op(op, cached_columns, tracer=tracer, stats_only=stats_only)
+                        cached_columns = self._run_single_op(
+                            op,
+                            cached_columns,
+                            tracer=tracer,
+                            stats_only=stats_only,
+                            defer_schema_probe=defer_schema_probe,
+                        )
                     finally:
                         op.runtime_env = original_runtime_env
                 else:
                     raise e
         return self
 
-    def _run_single_op(self, op, cached_columns=None, tracer=None, stats_only=False):
+    def _run_single_op(self, op, cached_columns=None, tracer=None, stats_only=False, defer_schema_probe=False):
         # Use cached columns to avoid calling self.data.columns() which breaks pipeline
-        if cached_columns is None:
+        if cached_columns is None and not defer_schema_probe:
             cached_columns = set(self.data.columns())
+        elif cached_columns is None:
+            cached_columns = set()
 
         if "ray" not in op._supported_exec_modes:
             raise NotImplementedError(
@@ -232,9 +247,11 @@ class RayDataset(DJDataset):
                 f"Ray mode. Supported modes: {op._supported_exec_modes}"
             )
 
-        if op._name in TAGGING_OPS.modules and Fields.meta not in cached_columns:
+        if op._name in TAGGING_OPS.modules and (defer_schema_probe or Fields.meta not in cached_columns):
 
             def process_batch_arrow(table: pyarrow.Table):
+                if Fields.meta in table.column_names:
+                    return table
                 new_column_data = [{} for _ in range(len(table))]
                 new_table = table.append_column(Fields.meta, [new_column_data])
                 return new_table
@@ -288,9 +305,11 @@ class RayDataset(DJDataset):
                         op.process = original_process
             elif isinstance(op, Filter):
                 # Use cached_columns instead of self.data.columns() to avoid breaking pipeline
-                if Fields.stats not in cached_columns:
+                if defer_schema_probe or Fields.stats not in cached_columns:
 
                     def process_batch_arrow(table: pyarrow.Table):
+                        if Fields.stats in table.column_names:
+                            return table
                         new_column_data = [{} for _ in range(len(table))]
                         new_talbe = table.append_column(Fields.stats, [new_column_data])
                         return new_talbe

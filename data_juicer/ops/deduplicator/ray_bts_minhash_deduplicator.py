@@ -336,11 +336,15 @@ class BTSUnionFind:
         self.set_edge_buffer()
 
     def find(self, x):
-        if x not in self.parent:
-            return x
-        else:
-            self.parent[x] = self.find(self.parent[x])
-            return self.parent[x]
+        root = x
+        while root in self.parent:
+            root = self.parent[root]
+
+        while x in self.parent:
+            parent = self.parent[x]
+            self.parent[x] = root
+            x = parent
+        return root
 
     def union(self, x, y):
         px = self.find(x)

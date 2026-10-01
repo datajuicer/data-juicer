@@ -29,6 +29,24 @@ class RemoveHeaderMapperTest(DataJuicerTestCaseBase):
 
         self._run_remove_header(samples)
 
+    def test_drop_no_head(self):
+        samples = [{
+            'text': 'Plain text without any LaTeX header.',
+            'target': '',
+        }, {
+            'text': 'Preamble\n\\section{Intro}\nBody',
+            'target': '\\section{Intro}\nBody',
+        }]
+        self._run_remove_header(samples)
+
+    def test_keep_no_head(self):
+        self.op = RemoveHeaderMapper(drop_no_head=False)
+        samples = [{
+            'text': 'Plain text without any LaTeX header.',
+            'target': 'Plain text without any LaTeX header.',
+        }]
+        self._run_remove_header(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

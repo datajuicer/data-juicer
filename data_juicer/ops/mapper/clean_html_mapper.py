@@ -43,7 +43,7 @@ class CleanHtmlMapper(Mapper):
             raw_html = raw_html.replace("</li>", "")
             raw_html = raw_html.replace("<ol>", "\n*")
             raw_html = raw_html.replace("</ol>", "")
-            parser = selectolax.parser.HTMLParser(raw_html)
+            parser = selectolax.lexbor.LexborHTMLParser(raw_html)
             return parser.text()
 
         samples[self.text_key] = [_clean_html(text) for text in samples[self.text_key]]

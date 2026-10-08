@@ -109,6 +109,11 @@ jobs:
         docker compose exec ray-head bash -c 'coverage combine'
         docker compose exec ray-head bash -c 'mv .coverage .coverage.ray'
 
+    - name: Run ElasticJuicer pytest contracts and local Ray recovery
+      working-directory: dj-${{ github.run_id }}/.github/workflows/docker
+      run: |
+        docker compose exec -e PYTHONPATH=.:tests -e RAY_ADDRESS=local -e CUDA_VISIBLE_DEVICES=0 -e COVERAGE_FILE=.coverage.ray ray-head python -m pytest -q --cov=data_juicer --cov-append --cov-report= tests/core/elasticjuicer
+
     - name: Upload coverage report of ray
       uses: actions/upload-artifact@v4
       with:

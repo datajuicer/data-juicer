@@ -148,3 +148,14 @@ seed-off/on reduced injected OOM attempts from 24 to 6 with identical output
 and completed-checkpoint reuse. This is mechanism validation, not a performance
 claim. Changed Python files passed Black/isort; flake8 found no new issues
 (the base configuration module retains two existing F824 warnings).
+
+The PR handoff also updates the configuration snapshots for the new
+`adaptive_batching: None` operator default. Both partial and regression Ray CI
+jobs explicitly run the ElasticJuicer pytest suite: the repository's unittest
+loader does not collect these pytest functions. The pytest step sets
+`RAY_ADDRESS=local` for isolated injected-OOM clusters and appends coverage to
+the existing Ray coverage artifact.
+
+Local handoff verification passed all 127 ElasticJuicer tests with that pytest
+coverage command, and 60 configuration tests (one skipped), including the two
+previously failing configuration snapshots.

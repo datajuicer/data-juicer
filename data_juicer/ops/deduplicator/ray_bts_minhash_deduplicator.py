@@ -113,11 +113,11 @@ def _union_edges(union_find, edges, chunk_size=1 << 18):
             union_find.union(u, v)
 
 
-def _hash_pair_dtype(key_size):
+def _hash_pair_dtype(key_size, uid_dtype=UID_DTYPE):
     """Return a packed dtype that preserves the complete fixed-width key."""
     if key_size <= 0:
         raise ValueError("MinHash keys must not be empty")
-    return np.dtype([("key", f"S{key_size}"), ("uid", UID_DTYPE)])
+    return np.dtype([("key", f"S{key_size}"), ("uid", uid_dtype)])
 
 
 def _union_uid_run(union_find, uids):
@@ -135,7 +135,7 @@ def _union_uid_run(union_find, uids):
     current = uids
     while len(current) > chunk_size:
         representative_count = (len(current) + chunk_size - 1) // chunk_size
-        representatives = np.empty(representative_count, dtype=UID_DTYPE)
+        representatives = np.empty(representative_count, dtype=union_find.hash_pair_dtype["uid"])
         for index, start in enumerate(range(0, len(current), chunk_size)):
             chunk = current[start : start + chunk_size]
             if len(chunk) == 1:
@@ -267,17 +267,22 @@ class BTSUnionFind:
         if self.hash_pair_dtype is None:
             self.hash_pair_dtype = pair_dtype
             self.hash_pair_block_rows = max(1, HASH_PAIR_BLOCK_BYTES // pair_dtype.itemsize)
-        elif pair_dtype != self.hash_pair_dtype:
+        elif key_size != self.hash_pair_dtype["key"].itemsize:
             raise ValueError("MinHash key width changed within one union-find actor")
 
+        uid_dtype = self.hash_pair_dtype["uid"]
+        uid_values = (int(pair[1]) for pair in pairs) if uid_dtype.hasobject else (pair[1] for pair in pairs)
         try:
-            uid_array = np.fromiter((pair[1] for pair in pairs), dtype=UID_DTYPE, count=len(pairs))
-        except OverflowError as error:
-            raise ValueError("MinHash UIDs must fit in a signed 64-bit integer") from error
+            uid_array = np.fromiter(uid_values, dtype=uid_dtype, count=len(pairs))
+        except OverflowError:
+            self._promote_hash_pair_uids()
+            uid_array = np.fromiter((int(pair[1]) for pair in pairs), dtype=object, count=len(pairs))
+
+        uid_dtype = self.hash_pair_dtype["uid"]
 
         first_key = keys[0]
         if first_key in self.hot_key_roots and all(key == first_key for key in keys[1:]):
-            values = np.empty(len(uid_array) + 1, dtype=UID_DTYPE)
+            values = np.empty(len(uid_array) + 1, dtype=uid_dtype)
             values[0] = self.hot_key_roots[first_key]
             values[1:] = uid_array
             self.hot_key_roots[first_key] = _union_uid_run(self, values)
@@ -296,10 +301,10 @@ class BTSUnionFind:
                     cold_keys.append(key)
                     cold_uids.append(int(uid_array[index]))
             for key, values in hot_values.items():
-                self.hot_key_roots[key] = _union_uid_run(self, np.asarray(values, dtype=UID_DTYPE))
+                self.hot_key_roots[key] = _union_uid_run(self, np.asarray(values, dtype=uid_dtype))
             if not cold_keys:
                 return
-            uid_array = np.asarray(cold_uids, dtype=UID_DTYPE)
+            uid_array = np.asarray(cold_uids, dtype=uid_dtype)
         else:
             cold_keys = keys
 
@@ -326,6 +331,21 @@ class BTSUnionFind:
                 self.hash_pair_current = None
                 self.hash_pair_current_fingerprints = None
                 self.hash_pair_current_size = 0
+
+    def _promote_hash_pair_uids(self):
+        """Keep arbitrary Python integer UIDs exact, promoting only on overflow.
+
+        Completed int64 blocks stay compact until flush copies them into the
+        promoted destination. The fallback keeps the fixed-width key and
+        stores Python integers in the UID field; its block byte budget does
+        not include the referenced Python integer objects.
+        """
+        self.hash_pair_dtype = _hash_pair_dtype(self.hash_pair_dtype["key"].itemsize, object)
+        if self.hash_pair_current is not None:
+            current = np.empty(self.hash_pair_block_rows, dtype=self.hash_pair_dtype)
+            size = self.hash_pair_current_size
+            current[:size] = self.hash_pair_current[:size]
+            self.hash_pair_current = current
 
     def flush_key_value_pairs(self):
         if self.hash_pair_current_size:

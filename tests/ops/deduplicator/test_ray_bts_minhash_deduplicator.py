@@ -1,9 +1,11 @@
 import os
+import random
 import shutil
 import unittest
 from unittest.mock import patch
 
 import numpy as np
+import pyarrow as pa
 
 from data_juicer.core.data import NestedDataset as Dataset
 
@@ -123,24 +125,15 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
             ray.init("auto", ignore_reinit_error=True)
 
         remote_classes = get_remote_classes()
-        for uid_base in (0, 1 << 63):
+        for uid_base in (0, 1 << 63, 1 << 80, -(1 << 80)):
             edge_buffers = [remote_classes["EdgeBuffer"].remote() for _ in range(2)]
             union_finds = [
-                remote_classes["BTSUnionFind"].remote(256, 2, actor_id, edge_buffers, 20, 10)
-                for actor_id in range(2)
+                remote_classes["BTSUnionFind"].remote(256, 2, actor_id, edge_buffers, 20, 10) for actor_id in range(2)
             ]
             try:
                 ray.get(
-                    [
-                        union_finds[0].add_key_value_pairs.remote(
-                            [(b"a", uid_base), (b"a", uid_base + 1000)]
-                        )
-                    ]
-                    + [
-                        union_finds[1].add_key_value_pairs.remote(
-                            [(b"b", uid_base + 1000), (b"b", uid_base + 2000)]
-                        )
-                    ]
+                    [union_finds[0].add_key_value_pairs.remote([(b"a", uid_base), (b"a", uid_base + 1000)])]
+                    + [union_finds[1].add_key_value_pairs.remote([(b"b", uid_base + 1000), (b"b", uid_base + 2000)])]
                 )
                 ray.get([union_find.edge_redistribution.remote() for union_find in union_finds])
                 while any(ray.get([union_find.balanced_union_find.remote() for union_find in union_finds])):
@@ -160,6 +153,39 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
             finally:
                 for actor in union_finds + edge_buffers:
                     ray.kill(actor)
+
+    @TEST_TAG("ray")
+    def test_banded_minhash_preserves_large_uids(self):
+        import ray
+
+        if not ray.is_initialized():
+            ray.init("auto", ignore_reinit_error=True)
+
+        signatures = pa.array([[0, 1, 2, 3], [0, 1, 2, 3], [4, 5, 6, 7]], type=pa.list_(pa.uint32()))
+        for uid in (0, 1 << 63, 1 << 80, -(1 << 80)):
+            with self.subTest(uid=uid):
+                op = RayBTSMinhashDeduplicator(
+                    num_permutations=4, num_bands=2, num_rows_per_band=2, union_find_parallel_num=2
+                )
+                op._ensure_actors()
+                try:
+                    # Exercise the band ingestion path used by GPU MinHash
+                    # without requiring CUDA to generate the signatures.
+                    op.band_minhash(signatures, [uid, 5, 7])
+                    op.merge()
+                    queries = [(uid, 0), (5, 1), (7, 2)]
+                    duplicates = ray.get(
+                        [
+                            union_find.dup_idx.remote(
+                                [(value, index) for value, index in queries if value // 1000 % 2 == actor_id]
+                            )
+                            for actor_id, union_find in enumerate(op.union_find_list)
+                        ]
+                    )
+                    self.assertEqual(sorted(duplicates[0] + duplicates[1]), [0 if uid > 5 else 1])
+                finally:
+                    for actor in op.union_find_list + op.remote_edge_buffers:
+                        ray.kill(actor)
 
     def test_exact_hash_pairs_are_compact_and_collision_free(self):
         key_a = b"a" + b"\x00" * 35
@@ -193,16 +219,122 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
         self.assertEqual(union_find.hash_pair_blocks, [])
         self.assertIsNone(union_find.hash_pair_current)
 
-    def test_hash_pairs_require_fixed_width_keys_and_signed_uids(self):
+    def test_hash_pairs_require_fixed_width_byte_keys(self):
         union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
         union_find.add_key_value_pairs([(b"abcd", 1)])
 
         with self.assertRaisesRegex(ValueError, "key width changed"):
             union_find.add_key_value_pairs([(b"abc", 2)])
 
-        overflow_union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
-        with self.assertRaisesRegex(ValueError, "signed 64-bit"):
-            overflow_union_find.add_key_value_pairs([(b"abcd", 1 << 80)])
+        with self.assertRaisesRegex(ValueError, "fixed width"):
+            union_find.add_key_value_pairs([(b"abcd", 1), (b"abc", 2)])
+        with self.assertRaisesRegex(TypeError, "must be bytes"):
+            union_find.add_key_value_pairs([("abcd", 1)])
+        with self.assertRaisesRegex(ValueError, "must not be empty"):
+            BTSUnionFind(256, 1, 0, [], 20, 10).add_key_value_pairs([(b"", 1)])
+
+    def test_hash_pairs_preserve_large_integer_uids(self):
+        uids = [-(1 << 63), (1 << 63) - 1, 1 << 63, -(1 << 63) - 1, 1 << 80, -(1 << 80)]
+        for uid in uids:
+            with self.subTest(uid=uid):
+                union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
+                union_find.add_key_value_pairs([(b"same", uid), (b"same", 5)])
+                self.assertEqual(union_find.hash_pair_dtype.hasobject, not -(1 << 63) <= uid < (1 << 63))
+                union_find.flush_key_value_pairs()
+                self.assertEqual(union_find.find(uid), min(uid, 5))
+                self.assertEqual(union_find.find(5), min(uid, 5))
+
+    def test_hash_pairs_promote_full_and_partial_blocks_losslessly(self):
+        key_a = b"a\x00\x00\x00"
+        key_b = b"a\x00\x00\x01"
+        union_find = BTSUnionFind(None, 1, 0, [], 20, 10)
+        module = "data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator"
+        with (
+            patch(f"{module}.HASH_PAIR_BLOCK_BYTES", _hash_pair_dtype(4).itemsize * 3),
+            patch(f"{module}.HASH_BOUNDARY_CHUNK_ROWS", 2),
+            patch("builtins.hash", return_value=0),
+        ):
+            union_find.add_key_value_pairs([(key_a, 10), (key_b, 7), (key_a, 4), (key_b, 6)])
+            self.assertFalse(union_find.hash_pair_blocks[0].dtype.hasobject)
+            self.assertEqual(union_find.hash_pair_current_size, 1)
+            low_uid = -(1 << 80)
+            high_uid = np.uint64((1 << 64) - 1)
+            union_find.add_key_value_pairs([(key_a, low_uid), (key_b, high_uid)])
+            self.assertFalse(union_find.hash_pair_blocks[0].dtype.hasobject)
+            self.assertTrue(union_find.hash_pair_blocks[1].dtype.hasobject)
+            union_find.add_key_value_pairs([(key_b, 3)])
+            union_find.add_key_value_pairs([(key_b, np.uint64((1 << 64) - 2))])
+            self.assertTrue(union_find.hash_pair_current.dtype.hasobject)
+            union_find.flush_key_value_pairs()
+            union_find.flush_key_value_pairs()
+
+        self.assertEqual({union_find.find(uid) for uid in (10, 4, low_uid)}, {low_uid})
+        self.assertEqual({union_find.find(int(uid)) for uid in (7, 6, high_uid, (1 << 64) - 2, 3)}, {3})
+        self.assertEqual(union_find.hash_pair_blocks, [])
+        self.assertIsNone(union_find.hash_pair_current)
+
+    def test_large_uids_in_hot_keys_and_hierarchical_union(self):
+        module = "data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator"
+        key = b"hot\x00"
+        low_uid = -(1 << 80)
+        high_uid = 1 << 80
+        for threshold in (1, 2, 256):
+            with (
+                self.subTest(threshold=threshold),
+                patch(f"{module}.HASH_PAIR_BLOCK_BYTES", _hash_pair_dtype(4).itemsize * (threshold + 2)),
+            ):
+                union_find = BTSUnionFind(threshold, 1, 0, [], 20, 10)
+                union_find.add_key_value_pairs([(key, uid) for uid in range(threshold + 2)])
+                self.assertEqual(union_find.hot_key_roots[key], 0)
+                union_find.add_key_value_pairs([(key, low_uid), (b"cold", high_uid)])
+                union_find.add_key_value_pairs([(key, uid) for uid in range(threshold + 2, 1000)])
+                union_find.add_key_value_pairs([(b"cold", 2000), (key, high_uid + 1)])
+                union_find.flush_key_value_pairs()
+
+                self.assertEqual(union_find.hot_key_roots[key], low_uid)
+                self.assertEqual({union_find.find(uid) for uid in range(1000)}, {low_uid})
+                self.assertEqual(union_find.find(high_uid + 1), low_uid)
+                self.assertEqual(union_find.find(high_uid), 2000)
+
+    def test_mixed_integer_uids_match_reference_components(self):
+        module = "data_juicer.ops.deduplicator.ray_bts_minhash_deduplicator"
+        keys = [index.to_bytes(4, "big") for index in range(12)]
+        uids = list(range(-20, 20)) + [-(1 << 80), -(1 << 63) - 1, 1 << 63, 1 << 80]
+        for threshold in (None, 1, 2, 256):
+            for seed in range(5):
+                with self.subTest(threshold=threshold, seed=seed):
+                    rng = random.Random(seed)
+                    pairs = []
+                    for _ in range(300):
+                        group = rng.randrange(6)
+                        pairs.append((keys[2 * group + rng.randrange(2)], rng.choice(uids[group::6])))
+                    roots = {uid: uid for uid in uids}
+
+                    def find(uid):
+                        while roots[uid] != uid:
+                            uid = roots[uid]
+                        return uid
+
+                    first_uids = {}
+                    for key, uid in pairs:
+                        if key in first_uids:
+                            root_a, root_b = find(first_uids[key]), find(uid)
+                            roots[max(root_a, root_b)] = min(root_a, root_b)
+                        else:
+                            first_uids[key] = uid
+                    union_find = BTSUnionFind(threshold, 1, 0, [], 20, 10)
+                    with (
+                        patch(f"{module}.HASH_PAIR_BLOCK_BYTES", _hash_pair_dtype(4).itemsize * 7),
+                        patch(f"{module}.HASH_BOUNDARY_CHUNK_ROWS", 3),
+                        patch("builtins.hash", return_value=0),
+                    ):
+                        offset = 0
+                        while offset < len(pairs):
+                            batch_size = rng.randrange(1, 18)
+                            union_find.add_key_value_pairs(pairs[offset : offset + batch_size])
+                            offset += batch_size
+                        union_find.flush_key_value_pairs()
+                    self.assertEqual({uid: union_find.find(uid) for uid in uids}, {uid: find(uid) for uid in uids})
 
     def test_hot_hash_keys_are_reduced_between_blocks(self):
         key = b"hot" + b"\x00" * 33
@@ -221,18 +353,20 @@ class RayBTSMinhashStorageTest(unittest.TestCase):
         self.assertEqual(union_find.find(11), 0)
 
     def test_exact_key_sort_does_not_overflow_find_stack(self):
-        union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
-        pairs = []
-        for uid in range(3000):
-            key0 = bytes(4) + (3000 - uid // 2).to_bytes(4, "big")
-            key1 = (1).to_bytes(4, "big") + (3000 - (uid + 1) // 2).to_bytes(4, "big")
-            pairs.extend([(key0, uid), (key1, uid)])
+        for uid_base in (0, 1 << 80, -(1 << 80)):
+            with self.subTest(uid_base=uid_base):
+                union_find = BTSUnionFind(256, 1, 0, [], 20, 10)
+                pairs = []
+                for uid in range(3000):
+                    key0 = bytes(4) + (3000 - uid // 2).to_bytes(4, "big")
+                    key1 = (1).to_bytes(4, "big") + (3000 - (uid + 1) // 2).to_bytes(4, "big")
+                    pairs.extend([(key0, uid_base + uid), (key1, uid_base + uid)])
 
-        union_find.add_key_value_pairs(pairs)
-        union_find.flush_key_value_pairs()
-        union_find.rebalancing()
+                union_find.add_key_value_pairs(pairs)
+                union_find.flush_key_value_pairs()
+                union_find.rebalancing()
 
-        self.assertEqual({union_find.find(uid) for uid in range(3000)}, {0})
+                self.assertEqual({union_find.find(uid_base + uid) for uid in range(3000)}, {uid_base})
 
 
 class RayBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):

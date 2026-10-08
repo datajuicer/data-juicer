@@ -251,7 +251,9 @@ def test_only_before_first_local_observation_can_seed_and_local_oom_wins(setup_p
     assert warm.profile_diagnostics["seeded"] == 1
     assert warm.controller.state.oom_upper_bound == 2
     assert warm.controller.state.current_batch_size == 1
-    warm(profile_batch(cost="large"))
+    # Stay below the intentional local re-probe window; a remote prior must
+    # never replace the fresh OOM. Longer runs may probe using local successes.
+    warm(profile_batch(n=8, cost="large"))
     assert warm.profile_diagnostics["seeded"] == 1
     assert warm.controller.state.oom_upper_bound == 2
     assert fixture.store.metrics["reads"] == 2

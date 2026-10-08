@@ -73,9 +73,28 @@ The actor reads at most once, before its first local success/OOM observation.
 It validates schema, identity, bounds and TTL again before calling
 `AdaptiveBatchController.seed_bounds()`. A seed stays advisory: it cannot exceed
 static bounds, replace fresh local evidence or clear the actor's OOM limit.
-An input/resource change in a running actor does not reset its controller or
-trigger a new seed. The actor may therefore stay conservative after a heavy
-batch; bounded capacity recovery is a separate controller policy.
+An input/resource change in a running actor does not trigger a new seed.
+Capacity recovery is an actor-local controller policy, enabled whenever Ray
+adaptive batching is enabled, independently of StageProfile. After 32 full
+successful microbatches the actor can reopen an OOM bound and probe gradually.
+A failed recovery probe doubles that waiting interval; four failed recovery
+probes exhaust this automatic budget. Successful execution at a previously
+failing size resets the recovery budget. Growth without an OOM bound uses
+25% steps after three full successes, capped by the configured outer batch and
+resource hard limit. Partial tail slices do not advance the success window.
+
+For operators with the explicit input-cost and resource contracts described
+above, the actor also retains at most 64 exact contexts of its own successful
+batch sizes, for one hour. Returning to a context with actual, unconsumed
+success at or above the current OOM bound can request a fresh recovery window.
+The hint does not clear the bound: three fresh full successes must first pass.
+The same old evidence cannot repeatedly rearm unsuccessful probes. A fresh OOM
+invalidates contradictory proof for its context, smaller successes do not renew
+larger proof, and context changes revoke pending local hints. Skipped or
+contract-invalid outer batches cannot add success proof. This history is lost
+with the actor and never uses a remote profile as runtime recovery evidence.
+Operators without these contracts use only the bounded automatic probes and
+may remain conservative once their recovery budget is exhausted.
 
 Successful sizes are actual validated observations, never an inferred success
 at `oom_upper_bound - 1`. Profile merging takes the smallest live exclusive OOM

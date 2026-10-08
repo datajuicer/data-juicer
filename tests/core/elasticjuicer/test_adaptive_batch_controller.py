@@ -6,6 +6,48 @@ from data_juicer.core.elasticjuicer.batch_controller import (
 )
 
 
+def test_local_context_hint_requires_fresh_success_and_keeps_hard_cap():
+    controller = AdaptiveBatchController(8, max_batch_size=32, max_oom_reprobes=1, clock_ms=lambda: 100)
+    controller.observe_oom(8)
+    controller.oom_reprobe_events = 1
+    assert controller.record_context_recovery_hint(1000)
+    assert controller.oom_upper_bound == 8
+    controller.observe_success(4)
+    controller.observe_success(4)
+    assert controller.oom_upper_bound == 8
+    controller.observe_success(4)
+    assert controller.oom_upper_bound is None
+    assert controller.oom_reprobe_events == 0
+    controller.set_hard_limit(6)
+    for _ in range(100):
+        controller.observe_success(controller.next_batch_size(100))
+    assert controller.current_batch_size == 6
+
+
+@pytest.mark.parametrize("reason", ["expired", "disabled", "cap", "fresh_oom", "changed_context"])
+def test_local_context_hint_cannot_bypass_invalid_evidence(reason):
+    controller = AdaptiveBatchController(8, max_batch_size=32, max_oom_reprobes=1, clock_ms=lambda: 100)
+    controller.observe_oom(8)
+    controller.oom_reprobe_events = 1
+    if reason == "expired":
+        assert not controller.record_context_recovery_hint(100)
+    elif reason == "disabled":
+        controller.max_oom_reprobes = 0
+        assert not controller.record_context_recovery_hint(1000)
+    elif reason == "cap":
+        controller.set_hard_limit(4)
+        assert not controller.record_context_recovery_hint(1000)
+    else:
+        assert controller.record_context_recovery_hint(1000)
+        if reason == "fresh_oom":
+            controller.observe_oom(4)
+        else:
+            controller.clear_context_recovery_hint()
+    for _ in range(256):
+        controller.observe_success(controller.next_batch_size(100))
+    assert controller.oom_upper_bound is not None
+
+
 def test_controller_validates_configuration():
     with pytest.raises(ValueError, match="min_batch_size"):
         AdaptiveBatchController(initial_batch_size=1, min_batch_size=0)

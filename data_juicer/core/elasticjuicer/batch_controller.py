@@ -114,6 +114,7 @@ class AdaptiveBatchController:
         self._next_reprobe_successes = oom_reprobe_successes
         self._reprobe_origin: Optional[int] = None
         self._capacity_recovery_hint_pending = False
+        self._local_context_recovery_hint = False
         self._capacity_recovery_hint_expires_at_ms: Optional[int] = None
         self.capacity_recovery_hints = 0
         self._floor_recovery_pending = False
@@ -205,6 +206,7 @@ class AdaptiveBatchController:
         self._next_reprobe_successes = self.oom_reprobe_successes
         self._reprobe_origin = previous_upper_bound
         self._capacity_recovery_hint_pending = False
+        self._local_context_recovery_hint = False
         self._capacity_recovery_hint_expires_at_ms = None
         self._floor_recovery_pending = False
         return self.current_batch_size
@@ -240,13 +242,45 @@ class AdaptiveBatchController:
         self._capacity_recovery_hint_expires_at_ms = expires_at_ms
         return True
 
+    def record_context_recovery_hint(self, expires_at_ms: int) -> bool:
+        """Rearm probing using unconsumed, actor-local success in this context.
+
+        The caller must own actual, unexpired success evidence for the exact
+        input/resource context at a size above the current OOM bound. Remote
+        profiles and quota changes are not such evidence. Three fresh full
+        successes are still required; recording a hint never relaxes bounds.
+        """
+        if (
+            expires_at_ms <= self._clock_ms()
+            or self.max_oom_reprobes == 0
+            or self.oom_upper_bound is None
+            or self.hard_limit < self.oom_upper_bound
+            or self._reprobe_origin is not None
+            or self._capacity_recovery_hint_pending
+        ):
+            return False
+        self.capacity_recovery_hints += 1
+        self._capacity_recovery_hint_pending = True
+        self._local_context_recovery_hint = True
+        self._capacity_recovery_hint_expires_at_ms = expires_at_ms
+        self.successes_since_oom = 0
+        return True
+
     def _expire_capacity_recovery_hint(self, now_ms: Optional[int] = None) -> None:
         if self._capacity_recovery_hint_expires_at_ms is None:
             return
         resolved_now = self._clock_ms() if now_ms is None else now_ms
         if resolved_now >= self._capacity_recovery_hint_expires_at_ms:
             self._capacity_recovery_hint_pending = False
+            self._local_context_recovery_hint = False
             self._capacity_recovery_hint_expires_at_ms = None
+
+    def clear_context_recovery_hint(self) -> None:
+        """Revoke local evidence when the next input has a different context."""
+        if self._local_context_recovery_hint:
+            self._capacity_recovery_hint_pending = False
+            self._capacity_recovery_hint_expires_at_ms = None
+            self._local_context_recovery_hint = False
 
     def observe_success(self, batch_size: int) -> int:
         """Record a successful batch and cautiously probe after a stable streak."""
@@ -263,18 +297,26 @@ class AdaptiveBatchController:
 
         if self.oom_upper_bound is not None:
             self.successes_since_oom += 1
+            context_reprobe = (
+                self._local_context_recovery_hint
+                and self._capacity_recovery_hint_pending
+                and self.successes_since_oom >= self.successes_before_growth
+            )
             floor_reprobe = (
                 self._floor_recovery_pending
                 and self.oom_upper_bound == self.min_batch_size
                 and self.hard_limit > self.min_batch_size
             )
             if (
-                self.oom_reprobe_events < self.max_oom_reprobes
-                and self.successes_since_oom >= self._next_reprobe_successes
+                (context_reprobe or self.oom_reprobe_events < self.max_oom_reprobes)
+                and (context_reprobe or self.successes_since_oom >= self._next_reprobe_successes)
                 and (not self.recovery_requires_hint or self._capacity_recovery_hint_pending or floor_reprobe)
                 and (self.oom_upper_bound > self.min_batch_size or self.hard_limit > self.min_batch_size)
             ):
                 previous_upper_bound = self.oom_upper_bound
+                if context_reprobe:
+                    self.oom_reprobe_events = 0
+                    self._next_reprobe_successes = self.oom_reprobe_successes
                 self.oom_upper_bound = None
                 self.successes_since_oom = 0
                 # Reopening after a floor retry must test a *larger* size
@@ -283,6 +325,7 @@ class AdaptiveBatchController:
                 self._reprobe_origin = previous_upper_bound + 1 if floor_reprobe else previous_upper_bound
                 self._floor_recovery_pending = False
                 self._capacity_recovery_hint_pending = False
+                self._local_context_recovery_hint = False
                 self._capacity_recovery_hint_expires_at_ms = None
 
         if self._reprobe_origin is not None and batch_size >= self._reprobe_origin:
@@ -293,6 +336,7 @@ class AdaptiveBatchController:
             self._next_reprobe_successes = self.oom_reprobe_successes
             self._probe_ooms_for_bound = 0
             self._capacity_recovery_hint_pending = False
+            self._local_context_recovery_hint = False
             self._capacity_recovery_hint_expires_at_ms = None
 
         if self.oom_upper_bound is None or batch_size < self.oom_upper_bound:
@@ -337,6 +381,7 @@ class AdaptiveBatchController:
         self.successes_since_oom = 0
         # A new local failure supersedes an unused external hint.
         self._capacity_recovery_hint_pending = False
+        self._local_context_recovery_hint = False
         self._capacity_recovery_hint_expires_at_ms = None
         self._floor_recovery_pending = False
 

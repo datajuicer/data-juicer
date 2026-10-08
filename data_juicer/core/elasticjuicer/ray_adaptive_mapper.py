@@ -2,8 +2,9 @@
 
 import gc
 import sys
+import time
 import uuid
-from collections import Counter
+from collections import Counter, OrderedDict
 
 import pyarrow as pa
 from loguru import logger
@@ -77,7 +78,12 @@ class RayAdaptiveMapperActor:
         if stage_id:
             setattr(self.op, STAGE_IDENTITY_ATTR, stage_id)
         self.stage_id = stage_id or self.op._name or op_class.__name__
-        self.controller = AdaptiveBatchController(initial_batch_size=max_batch_size, max_batch_size=max_batch_size)
+        self.controller = AdaptiveBatchController(
+            initial_batch_size=max_batch_size,
+            max_batch_size=max_batch_size,
+            max_oom_reprobes=4,
+            minimum_growth_fraction=0.25,
+        )
         self.actor_id = uuid.uuid4().hex
         self.profile_diagnostics = Counter()
         self._profile_store = profile_store
@@ -86,12 +92,18 @@ class RayAdaptiveMapperActor:
         self._seed_attempted = False
         self._seeded_context = None
         self._observations = None
+        # This bounded history belongs to this incarnation, including when
+        # StageProfile is disabled. Only fully validated outer calls add proof.
+        self._recovery_history = OrderedDict()
+        self._recovery_context = None
+        self._last_recovery_context = None
+        self._recovery_successes = set()
         self.mapper = OOMSafeAdaptiveMapper(
             self._process_slice,
             self.controller,
             oom_cleanup=_cleanup_cuda,
             label=self.stage_id,
-            observation_callback=self._observe if profile_store is not None else None,
+            observation_callback=self._observe,
         )
 
     def _profile_rpc(self, method, *args, **kwargs):
@@ -109,6 +121,17 @@ class RayAdaptiveMapperActor:
             return None
 
     def _observe(self, kind, size):
+        context = self._recovery_context
+        if context is not None:
+            if kind == "successes":
+                self._recovery_successes.add(size)
+                if len(self._recovery_successes) > MAX_OBSERVED_SIZES:
+                    self._recovery_successes.remove(min(self._recovery_successes))
+            else:
+                self._recovery_successes = {value for value in self._recovery_successes if value < size}
+                proof = self._recovery_history.get(context)
+                if proof is not None and proof[0] >= size:
+                    del self._recovery_history[context]
         if self._observations is not None:
             sizes = self._observations[kind]
             sizes.add(size)
@@ -121,6 +144,42 @@ class RayAdaptiveMapperActor:
                     else ordered[:1] + ordered[-(MAX_OBSERVED_SIZES - 1) :]
                 )
                 self._observations[kind] = set(keep)
+
+    def _context(self, batch):
+        try:
+            return make_profile_context(batch, self.op, self.controller, self._profile_resource_envelope)[0]
+        except Exception:
+            return None
+
+    def _prepare_recovery(self, batch):
+        self._recovery_context = self._context(batch)
+        if self._recovery_context != self._last_recovery_context:
+            self.controller.clear_context_recovery_hint()
+        self._last_recovery_context = self._recovery_context
+        self._recovery_successes = set()
+        now = time.time_ns() // 1_000_000
+        for context, proof in list(self._recovery_history.items()):
+            if proof[1] <= now:
+                del self._recovery_history[context]
+        proof = self._recovery_history.get(self._recovery_context)
+        upper = self.controller.oom_upper_bound
+        if proof is not None and not proof[2] and upper is not None and proof[0] >= upper:
+            if self.controller.record_context_recovery_hint(proof[1]):
+                # The same old proof cannot repeatedly rearm a failing probe.
+                self._recovery_history[self._recovery_context] = (proof[0], proof[1], True)
+
+    def _publish_recovery(self, batch):
+        context = self._recovery_context
+        if context is None or not self._recovery_successes or context != self._context(batch):
+            return
+        size = max(self._recovery_successes)
+        proof = self._recovery_history.get(context)
+        if proof is None or size >= proof[0]:
+            # Smaller successes must not renew larger, older capacity evidence.
+            self._recovery_history[context] = (size, time.time_ns() // 1_000_000 + 3_600_000, False)
+        self._recovery_history.move_to_end(context)
+        while len(self._recovery_history) > 64:
+            self._recovery_history.popitem(last=False)
 
     def _prepare_profile(self, batch):
         if self._profile_store is None or not self._profile_request:
@@ -192,6 +251,7 @@ class RayAdaptiveMapperActor:
     def __call__(self, batch):
         self._observations = None
         request = self._prepare_profile(batch)
+        self._prepare_recovery(batch)
         try:
             result = self.mapper(batch)
         except Exception as error:
@@ -209,6 +269,9 @@ class RayAdaptiveMapperActor:
             # No partially processed/skipped/contract-invalid outer batch can
             # contribute a successful profile, even if early slices succeeded.
             self._publish_profile(batch, request)
+            self._publish_recovery(batch)
             return result
         finally:
             self._observations = None
+            self._recovery_context = None
+            self._recovery_successes = set()

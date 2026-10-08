@@ -110,6 +110,7 @@ class RayDataset(DJDataset):
     ) -> None:
         self.data = preprocess_dataset(dataset, dataset_path, cfg)
         self._adaptive_batching = bool(cfg and cfg.get("elastic_juicer_adaptive_batching", False))
+        self._stage_profile_cfg = cfg
 
         # if auto_op_parallelism is set in both args and cfg, cfg takes precedence
         if cfg and cfg.get("auto_op_parallelism") is not None:
@@ -285,6 +286,10 @@ class RayDataset(DJDataset):
                                 "max_batch_size": batch_size,
                                 "stage_id": stamped_stage_identity(op),
                             }
+                            cfg = getattr(self, "_stage_profile_cfg", None)
+                            session = getattr(cfg, "_stage_profile_session", None)
+                            if session is not None:
+                                actor_kwargs.update(session.actor_arguments(op, stamped_stage_identity(op)))
                         self.data = self.data.map_batches(
                             actor_class,
                             fn_args=None,

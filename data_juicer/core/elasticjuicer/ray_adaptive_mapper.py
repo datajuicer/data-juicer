@@ -2,6 +2,8 @@
 
 import gc
 import sys
+import uuid
+from collections import Counter
 
 import pyarrow as pa
 from loguru import logger
@@ -12,7 +14,13 @@ from data_juicer.utils.constant import Fields
 from .adaptive_mapper import AdaptiveBatchContractError, OOMSafeAdaptiveMapper
 from .batch_controller import AdaptiveBatchController
 from .oom import is_oom_error
+from .profile_context import make_profile_context
 from .stage_identity import STAGE_IDENTITY_ATTR
+from .stage_profile import (
+    MAX_OBSERVED_SIZES,
+    PROFILE_RPC_TIMEOUT_SECONDS,
+    validate_prior,
+)
 
 # PR1054 execution-group routing column; avoid importing the executor here.
 _PARTITION_COLUMN = "__data_juicer_logical_partition_id__"
@@ -54,15 +62,115 @@ class RayAdaptiveMapperActor:
     effects and operator-owned OOM swallowing are not compatible.
     """
 
-    def __init__(self, op_class, op_args, op_kwargs, max_batch_size, stage_id=None):
+    def __init__(
+        self,
+        op_class,
+        op_args,
+        op_kwargs,
+        max_batch_size,
+        stage_id=None,
+        profile_store=None,
+        profile_request=None,
+        profile_resource_envelope=None,
+    ):
         self.op = op_class(*op_args, **op_kwargs)
         if stage_id:
             setattr(self.op, STAGE_IDENTITY_ATTR, stage_id)
         self.stage_id = stage_id or self.op._name or op_class.__name__
         self.controller = AdaptiveBatchController(initial_batch_size=max_batch_size, max_batch_size=max_batch_size)
+        self.actor_id = uuid.uuid4().hex
+        self.profile_diagnostics = Counter()
+        self._profile_store = profile_store
+        self._profile_request = profile_request
+        self._profile_resource_envelope = profile_resource_envelope
+        self._seed_attempted = False
+        self._seeded_context = None
+        self._observations = None
         self.mapper = OOMSafeAdaptiveMapper(
-            self._process_slice, self.controller, oom_cleanup=_cleanup_cuda, label=self.stage_id
+            self._process_slice,
+            self.controller,
+            oom_cleanup=_cleanup_cuda,
+            label=self.stage_id,
+            observation_callback=self._observe if profile_store is not None else None,
         )
+
+    def _profile_rpc(self, method, *args, **kwargs):
+        import ray
+
+        try:
+            return ray.get(
+                getattr(self._profile_store, method).remote(*args, **kwargs), timeout=PROFILE_RPC_TIMEOUT_SECONDS
+            )
+        except Exception as error:
+            self.profile_diagnostics["rpc_errors"] += 1
+            # A service outage costs at most one bounded wait per incarnation.
+            self._profile_store = None
+            logger.warning(f"StageProfile[{self.stage_id}] unavailable; using local batching: {type(error).__name__}")
+            return None
+
+    def _observe(self, kind, size):
+        if self._observations is not None:
+            sizes = self._observations[kind]
+            sizes.add(size)
+            if len(sizes) > MAX_OBSERVED_SIZES:
+                # Always retain a genuinely observed small success below OOMs.
+                ordered = sorted(sizes)
+                keep = (
+                    ordered[:MAX_OBSERVED_SIZES]
+                    if kind == "ooms"
+                    else ordered[:1] + ordered[-(MAX_OBSERVED_SIZES - 1) :]
+                )
+                self._observations[kind] = set(keep)
+
+    def _prepare_profile(self, batch):
+        if self._profile_store is None or not self._profile_request:
+            return None
+        try:
+            context, reason = make_profile_context(batch, self.op, self.controller, self._profile_resource_envelope)
+        except Exception:
+            context, reason = None, "invalid_context_contract"
+        if context is None:
+            self.profile_diagnostics[reason] += 1
+            if self.profile_diagnostics[reason] == 1:
+                logger.debug(f"StageProfile[{self.stage_id}] cold start: {reason}")
+            return None
+        request = {**self._profile_request, "context": context}
+        state = self.controller.state
+        if not self._seed_attempted and not state.success_events and not state.oom_events:
+            self._seed_attempted = True
+            prior = self._profile_rpc("read", request)
+            if prior is not None:
+                try:
+                    safe, upper = validate_prior(prior, request)
+                    self.controller.seed_bounds(safe, upper)
+                    self._seeded_context = context
+                    self.profile_diagnostics["seeded"] += 1
+                    logger.info(
+                        f"StageProfile[{self.stage_id}] seeded actor {self.actor_id}: batch={safe}, OOM={upper}"
+                    )
+                except (ValueError, TypeError, KeyError, RuntimeError):
+                    self.profile_diagnostics["rejected_prior"] += 1
+                    logger.warning(f"StageProfile[{self.stage_id}] rejected invalid prior; using local batching")
+        if self._profile_store is not None:
+            self._observations = {"successes": set(), "ooms": set()}
+            return request
+        return None
+
+    def _publish_profile(self, batch, request):
+        if request is None or self._profile_store is None or self._observations is None:
+            return
+        try:
+            context, _ = make_profile_context(batch, self.op, self.controller, self._profile_resource_envelope)
+        except Exception:
+            context = None
+        if context != request["context"]:
+            self.profile_diagnostics["context_changed_during_call"] += 1
+            return
+        if not any(self._observations.values()):
+            return
+        observations = {kind: sorted(sizes) for kind, sizes in self._observations.items()}
+        if self._profile_rpc("publish", request, observations, self.actor_id, self._seeded_context == context):
+            self.profile_diagnostics["published"] += 1
 
     def _process_slice(self, batch):
         if isinstance(batch, pa.Table):
@@ -82,8 +190,10 @@ class RayAdaptiveMapperActor:
         return output
 
     def __call__(self, batch):
+        self._observations = None
+        request = self._prepare_profile(batch)
         try:
-            return self.mapper(batch)
+            result = self.mapper(batch)
         except Exception as error:
             if is_oom_error(error) or isinstance(error, AdaptiveBatchContractError) or not self.op.skip_op_error:
                 raise
@@ -95,3 +205,10 @@ class RayAdaptiveMapperActor:
             result[Fields.stats] = []
             result[Fields.source_file] = []
             return result
+        else:
+            # No partially processed/skipped/contract-invalid outer batch can
+            # contribute a successful profile, even if early slices succeeded.
+            self._publish_profile(batch, request)
+            return result
+        finally:
+            self._observations = None

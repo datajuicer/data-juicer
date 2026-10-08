@@ -122,6 +122,7 @@ class OOMSafeAdaptiveMapper:
         batch_cost_fn: Optional[Callable[[Any], float]] = None,
         max_floor_retries: int = 3,
         floor_retry_backoff_sec: float = 1.0,
+        observation_callback: Optional[Callable[[str, int], None]] = None,
     ):
         if max_retries_per_slice < 0:
             raise ValueError("max_retries_per_slice must be non-negative")
@@ -141,6 +142,7 @@ class OOMSafeAdaptiveMapper:
         self.batch_cost_fn = batch_cost_fn
         self.max_floor_retries = max_floor_retries
         self.floor_retry_backoff_sec = floor_retry_backoff_sec
+        self.observation_callback = observation_callback
         self.oom_retries = 0
         self.successful_slices = 0
 
@@ -180,6 +182,7 @@ class OOMSafeAdaptiveMapper:
                         raise
                     self.oom_retries += 1
                     retries += 1
+                    self._emit_observation("ooms", batch_size)
                     try:
                         self.controller.observe_oom(batch_size)
                     except MinimumBatchSizeOOM:
@@ -237,6 +240,7 @@ class OOMSafeAdaptiveMapper:
                     if record_recovery is not None:
                         record_recovery()
                 self.controller.observe_success(batch_size)
+                self._emit_observation("successes", batch_size)
                 if retries > 0:
                     logger.info(
                         f"ElasticJuicer[{self.label}] recovered: slice delivered at "
@@ -258,6 +262,13 @@ class OOMSafeAdaptiveMapper:
                 break
 
         return _merge_outputs(outputs)
+
+    def _emit_observation(self, kind, batch_size):
+        if self.observation_callback is not None:
+            try:
+                self.observation_callback(kind, batch_size)
+            except Exception:
+                logger.warning("Failed to report ElasticJuicer batch observation")
 
     def _emit_snapshot(self, measurement) -> None:
         """Report a completed measurement after the controller transition."""

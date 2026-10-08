@@ -853,6 +853,12 @@ def build_base_parser() -> ArgumentParser:
     )
     parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode.")
     parser.add_argument(
+        "--elastic_juicer_profile_seed",
+        type=bool,
+        default=False,
+        help="Reuse compatible stage batch profiles within one ray_partitioned run. Requires adaptive batching.",
+    )
+    parser.add_argument(
         "--auto_op_parallelism",
         type=bool,
         default=True,
@@ -1084,6 +1090,12 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
             raise ValueError("elastic_juicer_adaptive_batching requires a Ray executor")
         if cfg.get("op_fusion", False):
             raise ValueError("elastic_juicer_adaptive_batching currently requires op_fusion=false")
+
+    if cfg.get("elastic_juicer_profile_seed", False):
+        if not cfg.get("elastic_juicer_adaptive_batching", False):
+            raise ValueError("elastic_juicer_profile_seed requires elastic_juicer_adaptive_batching=true")
+        if cfg.get("executor_type", "default") != "ray_partitioned":
+            raise ValueError("elastic_juicer_profile_seed currently requires ray_partitioned")
 
     # Handle remote paths (S3/HDFS) differently from local paths
     _export_scheme = urlparse(cfg.export_path).scheme.lower()

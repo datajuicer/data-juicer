@@ -15,10 +15,12 @@ microbatch wrapper and stage identity code are adapted from ElasticJuicer
 | Lossless OOM retry wrapper | Retry the same input offset, isolate failed input mutations, validate output row counts and merge successful slices in order. |
 | Ray adapter | Select the adapter only for explicitly opted-in CUDA Mappers. Keep PR1054's outer batch size, ActorPool strategy, CPU/GPU reservations, execution groups and logical checkpoints. |
 
-The runtime uses no second global planner or coordinating service. Resident
+Optional job-scoped batch-profile reuse is described in
+[ElasticJuicerStageProfile.md](ElasticJuicerStageProfile.md). With its switch
+disabled, the runtime uses no coordinating service. Resident
 workers, dynamic actor replanning, ControlService/Captain, distributed memory
-quotas, profile persistence/seeding and actor-startup economics policies are
-outside this first batch. Controller state lasts for one actor incarnation;
+quotas and actor-startup economics policies are outside this first batch.
+Without profile seeding, controller state lasts for one actor incarnation;
 a new actor starts at the configured batch size.
 
 ## Enable explicitly
@@ -97,7 +99,8 @@ probing. Runtime injection of resource fields does not restamp an operator.
 The manifest is available as `cfg._resolved_stage_identities`; GPU probe records
 and throughput actor plans include `stage_id`, and adaptive retry logs use it.
 Existing checkpoint keys and persisted dataset layouts are unchanged. This
-patch does not add a separate runtime-plan writer or profile store.
+base adapter does not add a separate runtime-plan writer; the optional profile
+feature adds its own job-scoped service and audit snapshot.
 
 ## Validation
 

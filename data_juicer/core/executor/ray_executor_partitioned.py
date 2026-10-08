@@ -826,7 +826,36 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         """
         # Use TempDirManager to ensure cleanup of temporary files
         with TempDirManager(self.tmp_dir):
-            return self._run_impl(load_data_np, skip_return)
+            try:
+                return self._run_impl(load_data_np, skip_return)
+            finally:
+                session = getattr(self, "_stage_profile_session", None)
+                if session is not None:
+                    try:
+                        self.cfg._resolved_stage_profile_summary = session.finish()
+                    except Exception as error:
+                        logger.warning(f"StageProfile finalization failed: {type(error).__name__}")
+                        self.cfg._resolved_stage_profile_summary = None
+                    finally:
+                        self.cfg._stage_profile_session = None
+                        self._stage_profile_session = None
+
+    def _start_stage_profiles(self, ops):
+        if not self.cfg.get("elastic_juicer_profile_seed", False):
+            return
+        if not self.cfg.get("elastic_juicer_adaptive_batching", False):
+            raise ValueError("elastic_juicer_profile_seed requires elastic_juicer_adaptive_batching=true")
+        from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
+            adaptive_batching_enabled,
+        )
+        from data_juicer.core.elasticjuicer.stage_profile import StageProfileSession
+
+        if not any(adaptive_batching_enabled(op, True) for op in ops):
+            return
+        session = StageProfileSession(self.cfg._resolved_stage_identities, self.work_dir)
+        if session.start():
+            self._stage_profile_session = session
+            self.cfg._stage_profile_session = session
 
     def _run_impl(self, load_data_np: Optional[PositiveInt] = None, skip_return=False):
         """
@@ -959,6 +988,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Initialize DAG execution planning with final partition count
         # Pass ops to avoid redundant loading
         self._initialize_dag_execution(self.cfg, ops=ops)
+        self._start_stage_profiles(ops)
 
         # Log job start with DAG context
         # Handle both dataset_path (string) and dataset (dict) configurations

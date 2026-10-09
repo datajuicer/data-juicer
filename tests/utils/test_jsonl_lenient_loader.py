@@ -114,9 +114,7 @@ class JsonlLenientLoaderTest(DataJuicerTestCaseBase):
         with open(good, "w", encoding="utf-8") as f:
             f.write(json.dumps({"text": "ok"}) + "\n")
         missing = os.path.join(self.tmp_dir, "missing.jsonl")
-        ds = dataset_from_lenient_jsonl_files(
-            [(missing, ".jsonl"), (good, ".jsonl")], add_suffix_column=False
-        )
+        ds = dataset_from_lenient_jsonl_files([(missing, ".jsonl"), (good, ".jsonl")], add_suffix_column=False)
         self.assertEqual(list(ds["text"]), ["ok"])
 
     def test_handles_big_integer(self):

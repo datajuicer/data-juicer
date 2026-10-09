@@ -470,7 +470,7 @@
 
 
 <div class="viewcode-block" id="VideoFaceBlurMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoFaceBlurMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_face_blur_mapper.html#data_juicer.ops.mapper.video_face_blur_mapper.VideoFaceBlurMapper">[docs]</a>
 <span class="nd">@UNFORKABLE</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
@@ -492,7 +492,7 @@
     <span class="p">}</span>
 
 <div class="viewcode-block" id="VideoFaceBlurMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoFaceBlurMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_face_blur_mapper.html#data_juicer.ops.mapper.video_face_blur_mapper.VideoFaceBlurMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">cv_classifier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
@@ -547,7 +547,7 @@
 
 
 <div class="viewcode-block" id="VideoFaceBlurMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoFaceBlurMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_face_blur_mapper.html#data_juicer.ops.mapper.video_face_blur_mapper.VideoFaceBlurMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># there is no video in this sample</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">video_key</span><span class="p">]:</span>

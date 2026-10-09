@@ -474,7 +474,7 @@
 
 
 <div class="viewcode-block" id="get_hash_method">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.get_hash_method">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.image_deduplicator.get_hash_method">[文档]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_hash_method</span><span class="p">(</span><span class="n">method_name</span><span class="p">):</span>
     <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"phash"</span><span class="p">:</span> <span class="n">imgdedup_methods</span><span class="o">.</span><span class="n">PHash</span><span class="p">,</span>
@@ -488,7 +488,7 @@
 
 
 <div class="viewcode-block" id="ImageDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.ImageDeduplicator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.image_deduplicator.ImageDeduplicator">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_IMAGES</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ImageDeduplicator</span><span class="p">(</span><span class="n">Deduplicator</span><span class="p">):</span>
@@ -507,7 +507,7 @@
 <span class="sd">    - The operator caches the `imagehash` and, if applicable, the `hash` fields."""</span>
 
 <div class="viewcode-block" id="ImageDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.ImageDeduplicator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.image_deduplicator.ImageDeduplicator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"phash"</span><span class="p">,</span> <span class="n">consider_text</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -529,7 +529,7 @@
 
 
 <div class="viewcode-block" id="ImageDeduplicator.compute_hash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.ImageDeduplicator.compute_hash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.image_deduplicator.ImageDeduplicator.compute_hash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># get hash of text first</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">consider_text</span><span class="p">:</span>
@@ -556,7 +556,7 @@
 
 
 <div class="viewcode-block" id="ImageDeduplicator.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.ImageDeduplicator.process">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.image_deduplicator.html#data_juicer.ops.deduplicator.image_deduplicator.ImageDeduplicator.process">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">show_num</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        For doc-level, dataset --&gt; dataset.</span>

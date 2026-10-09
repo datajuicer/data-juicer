@@ -453,7 +453,7 @@
 
 
 <div class="viewcode-block" id="ReplaceContentMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ReplaceContentMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.replace_content_mapper.html#data_juicer.ops.mapper.replace_content_mapper.ReplaceContentMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"replace_content_mapper"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ReplaceContentMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Replaces content in the text that matches a specific regular expression pattern with a</span>
@@ -470,7 +470,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="ReplaceContentMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ReplaceContentMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.replace_content_mapper.html#data_juicer.ops.mapper.replace_content_mapper.ReplaceContentMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">repl</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -500,7 +500,7 @@
         <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ReplaceContentMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ReplaceContentMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.replace_content_mapper.html#data_juicer.ops.mapper.replace_content_mapper.ReplaceContentMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">samples</span>

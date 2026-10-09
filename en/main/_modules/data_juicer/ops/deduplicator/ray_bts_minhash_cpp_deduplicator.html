@@ -894,7 +894,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashCppDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_cpp_deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RayBTSMinhashCppDeduplicator</span><span class="p">(</span><span class="n">Deduplicator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -919,7 +919,7 @@
     <span class="n">_supported_exec_modes</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"ray"</span><span class="p">,</span> <span class="s2">"ray_partitioned"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RayBTSMinhashCppDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_cpp_deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokenization</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"space"</span><span class="p">,</span>
@@ -1090,7 +1090,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashCppDeduplicator.merge_op_batch">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.merge_op_batch">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_cpp_deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.merge_op_batch">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">merge_op_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_refs</span><span class="p">):</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">while</span> <span class="n">object_refs</span><span class="p">:</span>
@@ -1100,7 +1100,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashCppDeduplicator.merge">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.merge">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_cpp_deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.merge">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">hash_aggregators_ref</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hash_aggregators</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge_op_batch</span><span class="p">(</span>
@@ -1123,7 +1123,7 @@
 
 
 <div class="viewcode-block" id="RayBTSMinhashCppDeduplicator.run">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.run">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_bts_minhash_cpp_deduplicator.html#data_juicer.ops.deduplicator.RayBTSMinhashCppDeduplicator.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
         <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="n">dataset</span><span class="o">.</span><span class="n">map_batches</span><span class="p">(</span>

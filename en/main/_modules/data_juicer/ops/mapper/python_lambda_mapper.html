@@ -453,7 +453,7 @@
 
 
 <div class="viewcode-block" id="PythonLambdaMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonLambdaMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_lambda_mapper.html#data_juicer.ops.mapper.python_lambda_mapper.PythonLambdaMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PythonLambdaMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mapper for applying a Python lambda function to data samples.</span>
@@ -466,7 +466,7 @@
 <span class="sd">    function to ensure it has exactly one argument and compiles it safely."""</span>
 
 <div class="viewcode-block" id="PythonLambdaMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonLambdaMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_lambda_mapper.html#data_juicer.ops.mapper.python_lambda_mapper.PythonLambdaMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lambda_str</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="n">batched</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -509,7 +509,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid lambda function: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PythonLambdaMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonLambdaMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_lambda_mapper.html#data_juicer.ops.mapper.python_lambda_mapper.PythonLambdaMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="c1"># Process the input through the lambda function and return the result</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_func</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
@@ -522,7 +522,7 @@
 
 
 <div class="viewcode-block" id="PythonLambdaMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonLambdaMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_lambda_mapper.html#data_juicer.ops.mapper.python_lambda_mapper.PythonLambdaMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="c1"># Process the input through the lambda function and return the result</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_func</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>

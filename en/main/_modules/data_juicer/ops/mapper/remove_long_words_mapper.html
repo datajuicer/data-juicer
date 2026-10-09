@@ -461,7 +461,7 @@
 
 
 <div class="viewcode-block" id="RemoveLongWordsMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveLongWordsMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_long_words_mapper.html#data_juicer.ops.mapper.remove_long_words_mapper.RemoveLongWordsMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"remove_long_words_mapper"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoveLongWordsMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mapper to remove long words within a specific range.</span>
@@ -476,7 +476,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="RemoveLongWordsMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveLongWordsMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_long_words_mapper.html#data_juicer.ops.mapper.remove_long_words_mapper.RemoveLongWordsMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -494,7 +494,7 @@
 
 
 <div class="viewcode-block" id="RemoveLongWordsMapper.should_keep_long_word">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveLongWordsMapper.should_keep_long_word">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_long_words_mapper.html#data_juicer.ops.mapper.remove_long_words_mapper.RemoveLongWordsMapper.should_keep_long_word">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">should_keep_long_word</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
         <span class="n">word_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_len</span> <span class="o">&lt;=</span> <span class="n">word_len</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">:</span>
@@ -506,7 +506,7 @@
 
 
 <div class="viewcode-block" id="RemoveLongWordsMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveLongWordsMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_long_words_mapper.html#data_juicer.ops.mapper.remove_long_words_mapper.RemoveLongWordsMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]):</span>
             <span class="n">sentences</span> <span class="o">=</span> <span class="n">split_on_newline_tab_whitespace</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>

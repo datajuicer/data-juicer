@@ -460,13 +460,13 @@
 
 
 <div class="viewcode-block" id="Exporter">
-<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.Exporter">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.exporter.Exporter">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Exporter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The Exporter class is used to export a dataset to files of specific</span>
 <span class="sd">    format."""</span>
 
 <div class="viewcode-block" id="Exporter.__init__">
-<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.Exporter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.exporter.Exporter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">export_path</span><span class="p">,</span>
@@ -824,7 +824,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_encrypt_local_file</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Exporter.export">
-<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.Exporter.export">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.exporter.Exporter.export">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Export method for a dataset.</span>
@@ -836,7 +836,7 @@
 
 
 <div class="viewcode-block" id="Exporter.export_compute_stats">
-<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.Exporter.export_compute_stats">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.exporter.Exporter.export_compute_stats">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">export_compute_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">export_path</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Export method for saving compute status in filters</span>
@@ -892,7 +892,7 @@
                         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Exporter.to_jsonl">
-<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.Exporter.to_jsonl">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.exporter.Exporter.to_jsonl">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_jsonl</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">export_path</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -916,7 +916,7 @@
 
 
 <div class="viewcode-block" id="Exporter.to_json">
-<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.Exporter.to_json">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.exporter.Exporter.to_json">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">export_path</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -939,7 +939,7 @@
 
 
 <div class="viewcode-block" id="Exporter.to_parquet">
-<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.Exporter.to_parquet">[docs]</a>
+<a class="viewcode-back" href="../../../api/data_juicer.core.exporter.html#data_juicer.core.exporter.Exporter.to_parquet">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_parquet</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">export_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>

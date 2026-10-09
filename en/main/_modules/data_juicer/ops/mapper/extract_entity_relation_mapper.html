@@ -469,7 +469,7 @@
 
 <span class="c1"># TODO: LLM-based inference.</span>
 <div class="viewcode-block" id="ExtractEntityRelationMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEntityRelationMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_entity_relation_mapper.html#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExtractEntityRelationMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -609,7 +609,7 @@
     <span class="n">DEFAULT_RELATION_PATTERN</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">'\("relationship"(.*?)\)'</span>
 
 <div class="viewcode-block" id="ExtractEntityRelationMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEntityRelationMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_entity_relation_mapper.html#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gpt-4o"</span><span class="p">,</span>
@@ -693,7 +693,7 @@
 
 
 <div class="viewcode-block" id="ExtractEntityRelationMapper.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEntityRelationMapper.parse_output">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_entity_relation_mapper.html#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.parse_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_output</span><span class="p">):</span>
         <span class="n">entities</span><span class="p">,</span> <span class="n">relations</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
 
@@ -747,13 +747,13 @@
 
 
 <div class="viewcode-block" id="ExtractEntityRelationMapper.add_message">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEntityRelationMapper.add_message">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_entity_relation_mapper.html#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.add_message">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">messages</span> <span class="o">+</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="n">role</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">content</span><span class="p">}]</span></div>
 
 
 <div class="viewcode-block" id="ExtractEntityRelationMapper.light_rag_extraction">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEntityRelationMapper.light_rag_extraction">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_entity_relation_mapper.html#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.light_rag_extraction">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">light_rag_extraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">client</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">)</span>
 
@@ -779,7 +779,7 @@
 
 
 <div class="viewcode-block" id="ExtractEntityRelationMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEntityRelationMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_entity_relation_mapper.html#data_juicer.ops.mapper.extract_entity_relation_mapper.ExtractEntityRelationMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_key</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_key</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]:</span>

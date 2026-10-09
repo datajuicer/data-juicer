@@ -456,7 +456,7 @@
 
 
 <div class="viewcode-block" id="VideoAtomicActionSegmentMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoAtomicActionSegmentMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_atomic_action_segment_mapper.html#data_juicer.ops.mapper.video_atomic_action_segment_mapper.VideoAtomicActionSegmentMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoAtomicActionSegmentMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Segment a unified hand trajectory into atomic action clips.</span>
@@ -495,7 +495,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="VideoAtomicActionSegmentMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoAtomicActionSegmentMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_atomic_action_segment_mapper.html#data_juicer.ops.mapper.video_atomic_action_segment_mapper.VideoAtomicActionSegmentMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hand_action_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MetaKeys</span><span class="o">.</span><span class="n">hand_action_tags</span><span class="p">,</span>
@@ -720,7 +720,7 @@
     <span class="c1"># Main entry</span>
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="VideoAtomicActionSegmentMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoAtomicActionSegmentMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_atomic_action_segment_mapper.html#data_juicer.ops.mapper.video_atomic_action_segment_mapper.VideoAtomicActionSegmentMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">sample</span>

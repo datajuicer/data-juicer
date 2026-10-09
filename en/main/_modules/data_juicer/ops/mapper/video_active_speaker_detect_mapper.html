@@ -478,7 +478,7 @@
 
 
 <div class="viewcode-block" id="VideoActiveSpeakerDetectMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoActiveSpeakerDetectMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_active_speaker_detect_mapper.html#data_juicer.ops.mapper.video_active_speaker_detect_mapper.VideoActiveSpeakerDetectMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoActiveSpeakerDetectMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -495,7 +495,7 @@
     <span class="n">_default_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"upsample_num_times"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 
 <div class="viewcode-block" id="VideoActiveSpeakerDetectMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoActiveSpeakerDetectMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_active_speaker_detect_mapper.html#data_juicer.ops.mapper.video_active_speaker_detect_mapper.VideoActiveSpeakerDetectMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">temp_save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"./temp_path"</span><span class="p">,</span>
@@ -525,7 +525,7 @@
 
 
 <div class="viewcode-block" id="VideoActiveSpeakerDetectMapper.active_speaker_detection_revise">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoActiveSpeakerDetectMapper.active_speaker_detection_revise">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_active_speaker_detect_mapper.html#data_juicer.ops.mapper.video_active_speaker_detect_mapper.VideoActiveSpeakerDetectMapper.active_speaker_detection_revise">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">active_speaker_detection_revise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">active_score</span><span class="p">,</span> <span class="n">is_child_descrip</span><span class="p">,</span> <span class="n">speech_audio</span><span class="p">,</span> <span class="n">face_gender</span><span class="p">):</span>
         <span class="n">speech_child</span> <span class="o">=</span> <span class="n">speech_audio</span><span class="p">[</span><span class="s2">"child"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">speech_male</span> <span class="o">=</span> <span class="n">speech_audio</span><span class="p">[</span><span class="s2">"male"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
@@ -567,7 +567,7 @@
 
 
 <div class="viewcode-block" id="VideoActiveSpeakerDetectMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoActiveSpeakerDetectMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_active_speaker_detect_mapper.html#data_juicer.ops.mapper.video_active_speaker_detect_mapper.VideoActiveSpeakerDetectMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># there is no video in this sample</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">video_key</span><span class="p">]:</span>

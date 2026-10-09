@@ -457,7 +457,7 @@
 
 
 <div class="viewcode-block" id="DetectMainCharacterMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DetectMainCharacterMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.detect_main_character_mapper.html#data_juicer.ops.mapper.DetectMainCharacterMapper">[docs]</a>
 <span class="nd">@UNFORKABLE</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
@@ -475,7 +475,7 @@
     <span class="n">_accelerator</span> <span class="o">=</span> <span class="s2">"cuda"</span>
 
 <div class="viewcode-block" id="DetectMainCharacterMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DetectMainCharacterMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.detect_main_character_mapper.html#data_juicer.ops.mapper.DetectMainCharacterMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">mllm_mapper_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
@@ -523,7 +523,7 @@
         <span class="k">return</span> <span class="n">args_dict</span>
 
 <div class="viewcode-block" id="DetectMainCharacterMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DetectMainCharacterMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.detect_main_character_mapper.html#data_juicer.ops.mapper.DetectMainCharacterMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">:</span>

@@ -461,7 +461,7 @@
 
 
 <div class="viewcode-block" id="VideoAudioSpeechEmotionMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoAudioSpeechEmotionMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_audio_speech_emotion_mapper.html#data_juicer.ops.mapper.video_audio_speech_emotion_mapper.VideoAudioSpeechEmotionMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoAudioSpeechEmotionMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mapper to generate video tags from audio streams extracted by video</span>
@@ -474,7 +474,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="VideoAudioSpeechEmotionMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoAudioSpeechEmotionMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_audio_speech_emotion_mapper.html#data_juicer.ops.mapper.video_audio_speech_emotion_mapper.VideoAudioSpeechEmotionMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">model_dir_emo</span><span class="o">=</span><span class="s2">"FunAudioLLM/SenseVoiceSmall"</span><span class="p">,</span> <span class="n">speech_Emo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MetaKeys</span><span class="o">.</span><span class="n">speech_emotion</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
@@ -500,7 +500,7 @@
 
 
 <div class="viewcode-block" id="VideoAudioSpeechEmotionMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoAudioSpeechEmotionMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_audio_speech_emotion_mapper.html#data_juicer.ops.mapper.video_audio_speech_emotion_mapper.VideoAudioSpeechEmotionMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>

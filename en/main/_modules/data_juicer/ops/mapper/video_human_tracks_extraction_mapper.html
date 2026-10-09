@@ -476,7 +476,7 @@
 
 
 <div class="viewcode-block" id="VideoHumanTracksExtractionMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumanTracksExtractionMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_extraction_mapper.html#data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoHumanTracksExtractionMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -496,7 +496,7 @@
     <span class="n">_default_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"upsample_num_times"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 
 <div class="viewcode-block" id="VideoHumanTracksExtractionMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumanTracksExtractionMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_extraction_mapper.html#data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">face_track_bbox_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"./HumanVBenchRecipe/dj_human_track"</span><span class="p">,</span>
@@ -535,7 +535,7 @@
 
 
 <div class="viewcode-block" id="VideoHumanTracksExtractionMapper.get_face_and_human_tracks">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumanTracksExtractionMapper.get_face_and_human_tracks">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_extraction_mapper.html#data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper.get_face_and_human_tracks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_face_and_human_tracks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">video_array</span><span class="p">,</span> <span class="n">track</span><span class="p">,</span> <span class="n">human_detection_pipeline</span><span class="p">):</span>
         <span class="n">dets</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"x"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"y"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"s"</span><span class="p">:</span> <span class="p">[]}</span>
         <span class="k">for</span> <span class="n">det</span> <span class="ow">in</span> <span class="n">track</span><span class="p">[</span><span class="s2">"bbox"</span><span class="p">]:</span>  <span class="c1"># Read the tracks</span>
@@ -583,7 +583,7 @@
 
 
 <div class="viewcode-block" id="VideoHumanTracksExtractionMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumanTracksExtractionMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_extraction_mapper.html#data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># there is no video in this sample</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">video_key</span><span class="p">]:</span>

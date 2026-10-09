@@ -724,7 +724,12 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">default</span></code> 执行器中批处理算子的自适应批大小</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">turbo</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">elastic_juicer_profile_seed</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>在同一次 <code class="docutils literal notranslate"><span class="pre">ray_partitioned</span></code> 运行内复用兼容的 stage batch 经验；要求 <code class="docutils literal notranslate"><span class="pre">elastic_juicer_adaptive_batching=true</span></code> 及算子的输入成本/资源声明。参见 <a class="reference internal" href="ElasticJuicerStageProfile.html"><span class="std std-doc">StageProfile</span></a>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">turbo</span></code></p></td>
 <td><p>bool</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 <td><p>Turbo 模式（batch_size=1 时最大化速度）</p></td>

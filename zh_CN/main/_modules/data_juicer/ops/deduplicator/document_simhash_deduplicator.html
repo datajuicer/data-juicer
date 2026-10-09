@@ -477,7 +477,7 @@
 
 
 <div class="viewcode-block" id="DocumentSimhashDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentSimhashDeduplicator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.document_simhash_deduplicator.DocumentSimhashDeduplicator">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DocumentSimhashDeduplicator</span><span class="p">(</span><span class="n">Deduplicator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Deduplicates samples at the document level using SimHash.</span>
@@ -497,7 +497,7 @@
 <span class="sd">    - Only the first sample in each cluster is retained by default."""</span>
 
 <div class="viewcode-block" id="DocumentSimhashDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentSimhashDeduplicator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.document_simhash_deduplicator.DocumentSimhashDeduplicator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokenization</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"space"</span><span class="p">,</span>
@@ -554,7 +554,7 @@
 
 
 <div class="viewcode-block" id="DocumentSimhashDeduplicator.compute_hash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentSimhashDeduplicator.compute_hash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.document_simhash_deduplicator.DocumentSimhashDeduplicator.compute_hash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Compute simhash values for the sample.</span>
@@ -598,7 +598,7 @@
 
 
 <div class="viewcode-block" id="DocumentSimhashDeduplicator.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentSimhashDeduplicator.process">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_simhash_deduplicator.html#data_juicer.ops.deduplicator.document_simhash_deduplicator.DocumentSimhashDeduplicator.process">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">show_num</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        For doc-level, dataset --&gt; dataset.</span>

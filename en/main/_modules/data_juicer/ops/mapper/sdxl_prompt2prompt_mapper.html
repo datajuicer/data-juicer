@@ -468,7 +468,7 @@
 
 
 <div class="viewcode-block" id="SDXLPrompt2PromptMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.SDXLPrompt2PromptMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.sdxl_prompt2prompt_mapper.html#data_juicer.ops.mapper.sdxl_prompt2prompt_mapper.SDXLPrompt2PromptMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_IMAGES</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SDXLPrompt2PromptMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -484,7 +484,7 @@
     <span class="n">_accelerator</span> <span class="o">=</span> <span class="s2">"cuda"</span>
 
 <div class="viewcode-block" id="SDXLPrompt2PromptMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.SDXLPrompt2PromptMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.sdxl_prompt2prompt_mapper.html#data_juicer.ops.mapper.sdxl_prompt2prompt_mapper.SDXLPrompt2PromptMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hf_diffusion</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"stabilityai/stable-diffusion-xl-base-1.0"</span><span class="p">,</span>
@@ -539,7 +539,7 @@
 
 
 <div class="viewcode-block" id="SDXLPrompt2PromptMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.SDXLPrompt2PromptMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.sdxl_prompt2prompt_mapper.html#data_juicer.ops.mapper.sdxl_prompt2prompt_mapper.SDXLPrompt2PromptMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key_second</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>

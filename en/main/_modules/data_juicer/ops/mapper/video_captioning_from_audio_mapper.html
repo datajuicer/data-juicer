@@ -460,7 +460,7 @@
 
 
 <div class="viewcode-block" id="VideoCaptioningFromAudioMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoCaptioningFromAudioMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_captioning_from_audio_mapper.html#data_juicer.ops.mapper.video_captioning_from_audio_mapper.VideoCaptioningFromAudioMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoCaptioningFromAudioMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mapper to caption a video according to its audio streams based on</span>
@@ -471,7 +471,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="VideoCaptioningFromAudioMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoCaptioningFromAudioMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_captioning_from_audio_mapper.html#data_juicer.ops.mapper.video_captioning_from_audio_mapper.VideoCaptioningFromAudioMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keep_original_sample</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -569,7 +569,7 @@
         <span class="k">return</span> <span class="p">[</span><span class="n">captioned_sample</span><span class="p">]</span>
 
 <div class="viewcode-block" id="VideoCaptioningFromAudioMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoCaptioningFromAudioMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_captioning_from_audio_mapper.html#data_juicer.ops.mapper.video_captioning_from_audio_mapper.VideoCaptioningFromAudioMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># reconstruct samples from "dict of lists" to "list of dicts"</span>
         <span class="n">reconstructed_samples</span> <span class="o">=</span> <span class="p">[]</span>

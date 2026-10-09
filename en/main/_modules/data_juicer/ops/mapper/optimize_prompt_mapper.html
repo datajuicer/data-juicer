@@ -470,7 +470,7 @@
 
 
 <div class="viewcode-block" id="OptimizePromptMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.OptimizePromptMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.optimize_prompt_mapper.html#data_juicer.ops.mapper.optimize_prompt_mapper.OptimizePromptMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">OptimizePromptMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Optimize prompts based on existing ones in the same batch.</span>
@@ -506,7 +506,7 @@
     <span class="n">_accelerator</span> <span class="o">=</span> <span class="s2">"cuda"</span>
 
 <div class="viewcode-block" id="OptimizePromptMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.OptimizePromptMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.optimize_prompt_mapper.html#data_juicer.ops.mapper.optimize_prompt_mapper.OptimizePromptMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_or_hf_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Qwen/Qwen2.5-7B-Instruct"</span><span class="p">,</span>
@@ -615,7 +615,7 @@
 
 
 <div class="viewcode-block" id="OptimizePromptMapper.build_input">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.OptimizePromptMapper.build_input">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.optimize_prompt_mapper.html#data_juicer.ops.mapper.optimize_prompt_mapper.OptimizePromptMapper.build_input">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt_examples</span><span class="p">):</span>
         <span class="n">formatted_examples</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">example_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prompt_examples</span><span class="p">]</span>
@@ -625,7 +625,7 @@
 
 
 <div class="viewcode-block" id="OptimizePromptMapper.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.OptimizePromptMapper.parse_output">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.optimize_prompt_mapper.html#data_juicer.ops.mapper.optimize_prompt_mapper.OptimizePromptMapper.parse_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_output</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">raw_output</span><span class="p">)</span>
         <span class="n">output_prompt</span> <span class="o">=</span> <span class="s2">""</span>
@@ -636,7 +636,7 @@
 
 
 <div class="viewcode-block" id="OptimizePromptMapper.generate_one_prompt">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.OptimizePromptMapper.generate_one_prompt">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.optimize_prompt_mapper.html#data_juicer.ops.mapper.optimize_prompt_mapper.OptimizePromptMapper.generate_one_prompt">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">generate_one_prompt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">input_prompt_samples</span><span class="p">):</span>
         <span class="n">input_prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_input</span><span class="p">(</span><span class="n">input_prompt_samples</span><span class="p">)</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"system"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">},</span> <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">input_prompt</span><span class="p">}]</span>
@@ -669,7 +669,7 @@
 
 
 <div class="viewcode-block" id="OptimizePromptMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.OptimizePromptMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.optimize_prompt_mapper.html#data_juicer.ops.mapper.optimize_prompt_mapper.OptimizePromptMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="c1"># init model</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_vllm</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_hf_model</span><span class="p">:</span>

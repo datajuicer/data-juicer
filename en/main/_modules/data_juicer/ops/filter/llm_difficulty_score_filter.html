@@ -457,7 +457,7 @@
 
 
 <div class="viewcode-block" id="LLMDifficultyScoreFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_difficulty_score_filter.html#data_juicer.ops.filter.LLMDifficultyScoreFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMDifficultyScoreFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMDifficultyScoreFilter</span><span class="p">(</span><span class="n">LLMAnalysisFilter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Filter to keep samples with high difficulty scores estimated by an LLM.</span>
@@ -528,7 +528,7 @@
     <span class="p">]</span>
 
 <div class="viewcode-block" id="LLMDifficultyScoreFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_difficulty_score_filter.html#data_juicer.ops.filter.LLMDifficultyScoreFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMDifficultyScoreFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_difficulty_score</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -547,7 +547,7 @@
 
 
 <div class="viewcode-block" id="LLMDifficultyScoreFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_difficulty_score_filter.html#data_juicer.ops.filter.LLMDifficultyScoreFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMDifficultyScoreFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">itm_score</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_difficulty_score</span><span class="p">]</span>
 

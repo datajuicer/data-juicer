@@ -455,7 +455,7 @@
 
 
 <div class="viewcode-block" id="PythonFileMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonFileMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_file_mapper.html#data_juicer.ops.mapper.python_file_mapper.PythonFileMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PythonFileMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Executes a Python function defined in a file on input data.</span>
@@ -471,7 +471,7 @@
 <span class="sd">    - The function's return value must be a dictionary."""</span>
 
 <div class="viewcode-block" id="PythonFileMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonFileMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_file_mapper.html#data_juicer.ops.mapper.python_file_mapper.PythonFileMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="n">function_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"process_single"</span><span class="p">,</span> <span class="n">batched</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -525,7 +525,7 @@
         <span class="k">return</span> <span class="n">func</span>
 
 <div class="viewcode-block" id="PythonFileMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonFileMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_file_mapper.html#data_juicer.ops.mapper.python_file_mapper.PythonFileMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Invoke the loaded function with the provided sample."""</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
@@ -537,7 +537,7 @@
 
 
 <div class="viewcode-block" id="PythonFileMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PythonFileMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.python_file_mapper.html#data_juicer.ops.mapper.python_file_mapper.PythonFileMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Invoke the loaded function with the provided samples."""</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>

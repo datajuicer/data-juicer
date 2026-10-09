@@ -716,7 +716,12 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 <td><p>Adaptive batch sizes for batched operators in the <code class="docutils literal notranslate"><span class="pre">default</span></code> executor</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">turbo</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">elastic_juicer_profile_seed</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Reuse compatible stage batch profiles within one <code class="docutils literal notranslate"><span class="pre">ray_partitioned</span></code> run; requires <code class="docutils literal notranslate"><span class="pre">elastic_juicer_adaptive_batching=true</span></code> and operator cost/resource declarations. See <a class="reference internal" href="ElasticJuicerStageProfile.html"><span class="std std-doc">StageProfile</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">turbo</span></code></p></td>
 <td><p>bool</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 <td><p>Turbo mode (maximize speed at batch_size=1)</p></td>

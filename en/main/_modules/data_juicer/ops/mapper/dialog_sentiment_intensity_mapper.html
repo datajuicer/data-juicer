@@ -468,7 +468,7 @@
 
 <span class="c1"># TODO: LLM-based inference.</span>
 <div class="viewcode-block" id="DialogSentimentIntensityMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.dialog_sentiment_intensity_mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DialogSentimentIntensityMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -526,7 +526,7 @@
     <span class="n">DEFAULT_INTENSITY_PATTERN</span> <span class="o">=</span> <span class="s2">"情绪值：(.*?)($|</span><span class="se">\n</span><span class="s2">)"</span>
 
 <div class="viewcode-block" id="DialogSentimentIntensityMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.dialog_sentiment_intensity_mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gpt-4o"</span><span class="p">,</span>
@@ -615,7 +615,7 @@
 
 
 <div class="viewcode-block" id="DialogSentimentIntensityMapper.build_input">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.build_input">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.dialog_sentiment_intensity_mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.build_input">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_round</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">input_prompt</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">max_round</span> <span class="o">*</span> <span class="mi">4</span> <span class="p">:])</span>
@@ -627,7 +627,7 @@
 
 
 <div class="viewcode-block" id="DialogSentimentIntensityMapper.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.parse_output">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.dialog_sentiment_intensity_mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.parse_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
         <span class="n">analysis</span> <span class="o">=</span> <span class="s2">""</span>
         <span class="n">intensity</span> <span class="o">=</span> <span class="mi">0</span>
@@ -644,7 +644,7 @@
 
 
 <div class="viewcode-block" id="DialogSentimentIntensityMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.dialog_sentiment_intensity_mapper.html#data_juicer.ops.mapper.DialogSentimentIntensityMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">meta</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span> <span class="p">{})</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensities_key</span> <span class="ow">in</span> <span class="n">meta</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">analysis_key</span> <span class="ow">in</span> <span class="n">meta</span><span class="p">:</span>

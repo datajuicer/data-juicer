@@ -583,6 +583,8 @@
         <span class="n">auto_op_parallelism</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">preprocess_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">dataset_path</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_adaptive_batching</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">cfg</span> <span class="ow">and</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"elastic_juicer_adaptive_batching"</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stage_profile_cfg</span> <span class="o">=</span> <span class="n">cfg</span>
 
         <span class="c1"># if auto_op_parallelism is set in both args and cfg, cfg takes precedence</span>
         <span class="k">if</span> <span class="n">cfg</span> <span class="ow">and</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"auto_op_parallelism"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -709,6 +711,19 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_run_single_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">cached_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tracer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stats_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.elasticjuicer.ray_adaptive_mapper</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">RayAdaptiveMapperActor</span><span class="p">,</span>
+            <span class="n">adaptive_batching_enabled</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.elasticjuicer.stage_identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">stamped_stage_identity</span>
+
+        <span class="n">adaptive</span> <span class="o">=</span> <span class="n">adaptive_batching_enabled</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_adaptive_batching"</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">adaptive</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">use_ray_actor</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">op</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2">: adaptive batching requires an available CUDA Ray actor"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">adaptive</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">float</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">num_gpus</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">op</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2">: adaptive batching requires a resolved positive GPU reservation"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">adaptive</span> <span class="ow">and</span> <span class="n">tracer</span> <span class="ow">and</span> <span class="n">should_trace_op</span><span class="p">(</span><span class="n">tracer</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">_name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Sample tracing is not yet supported with adaptive batching"</span><span class="p">)</span>
         <span class="c1"># Use cached columns to avoid calling self.data.columns() which breaks pipeline</span>
         <span class="k">if</span> <span class="n">cached_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cached_columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">())</span>
@@ -745,12 +760,29 @@
                 <span class="k">try</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">use_ray_actor</span><span class="p">():</span>
                         <span class="n">compute</span> <span class="o">=</span> <span class="n">_build_actor_pool_strategy</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">num_proc</span><span class="p">)</span>
+                        <span class="n">actor_class</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="vm">__class__</span>
+                        <span class="n">actor_args</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">_init_args</span>
+                        <span class="n">actor_kwargs</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">_init_kwargs</span>
+                        <span class="k">if</span> <span class="n">adaptive</span><span class="p">:</span>
+                            <span class="n">actor_class</span> <span class="o">=</span> <span class="n">RayAdaptiveMapperActor</span>
+                            <span class="n">actor_args</span> <span class="o">=</span> <span class="p">()</span>
+                            <span class="n">actor_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+                                <span class="s2">"op_class"</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                <span class="s2">"op_args"</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="n">_init_args</span><span class="p">,</span>
+                                <span class="s2">"op_kwargs"</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="n">_init_kwargs</span><span class="p">,</span>
+                                <span class="s2">"max_batch_size"</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
+                                <span class="s2">"stage_id"</span><span class="p">:</span> <span class="n">stamped_stage_identity</span><span class="p">(</span><span class="n">op</span><span class="p">),</span>
+                            <span class="p">}</span>
+                            <span class="n">cfg</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_stage_profile_cfg"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                            <span class="n">session</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"_stage_profile_session"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">actor_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">actor_arguments</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">stamped_stage_identity</span><span class="p">(</span><span class="n">op</span><span class="p">)))</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">map_batches</span><span class="p">(</span>
-                            <span class="n">op</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                            <span class="n">actor_class</span><span class="p">,</span>
                             <span class="n">fn_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">fn_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                            <span class="n">fn_constructor_args</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">_init_args</span><span class="p">,</span>
-                            <span class="n">fn_constructor_kwargs</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">_init_kwargs</span><span class="p">,</span>
+                            <span class="n">fn_constructor_args</span><span class="o">=</span><span class="n">actor_args</span><span class="p">,</span>
+                            <span class="n">fn_constructor_kwargs</span><span class="o">=</span><span class="n">actor_kwargs</span><span class="p">,</span>
                             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
                             <span class="n">num_cpus</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">num_cpus</span><span class="p">,</span>
                             <span class="n">num_gpus</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">num_gpus</span><span class="p">,</span>

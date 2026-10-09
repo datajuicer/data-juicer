@@ -456,7 +456,7 @@
 
 
 <div class="viewcode-block" id="QueryIntentDetectionMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.QueryIntentDetectionMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.query_intent_detection_mapper.html#data_juicer.ops.mapper.query_intent_detection_mapper.QueryIntentDetectionMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QueryIntentDetectionMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -472,7 +472,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="QueryIntentDetectionMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.QueryIntentDetectionMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.query_intent_detection_mapper.html#data_juicer.ops.mapper.query_intent_detection_mapper.QueryIntentDetectionMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hf_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"bespin-global/klue-roberta-small-3i4k-intent-classification"</span><span class="p">,</span>  <span class="c1"># noqa: E501 E131</span>
@@ -525,7 +525,7 @@
 
 
 <div class="viewcode-block" id="QueryIntentDetectionMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.QueryIntentDetectionMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.query_intent_detection_mapper.html#data_juicer.ops.mapper.query_intent_detection_mapper.QueryIntentDetectionMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">metas</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_key</span> <span class="ow">in</span> <span class="n">metas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_key</span> <span class="ow">in</span> <span class="n">metas</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>

@@ -1308,7 +1308,19 @@
     <span class="p">)</span>
 
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--custom-operator-paths"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Paths to custom operator scripts or directories."</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--elastic_juicer_adaptive_batching"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Enable actor-local adaptive microbatches for opted-in, retry-safe CUDA Mappers in Ray mode."</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--debug"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Whether to run in debug mode."</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--elastic_juicer_profile_seed"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Reuse compatible stage batch profiles within one ray_partitioned run. Requires adaptive batching."</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--auto_op_parallelism"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
@@ -1544,6 +1556,18 @@
 <span class="sd">    :param cfg: an original cfg</span>
 <span class="sd">    :param cfg: an updated cfg</span>
 <span class="sd">    """</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"elastic_juicer_adaptive_batching"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"executor_type"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ray"</span><span class="p">,</span> <span class="s2">"ray_partitioned"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"elastic_juicer_adaptive_batching requires a Ray executor"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"op_fusion"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"elastic_juicer_adaptive_batching currently requires op_fusion=false"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"elastic_juicer_profile_seed"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"elastic_juicer_adaptive_batching"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"elastic_juicer_profile_seed requires elastic_juicer_adaptive_batching=true"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"executor_type"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"ray_partitioned"</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"elastic_juicer_profile_seed currently requires ray_partitioned"</span><span class="p">)</span>
 
     <span class="c1"># Handle remote paths (S3/HDFS) differently from local paths</span>
     <span class="n">_export_scheme</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">export_path</span><span class="p">)</span><span class="o">.</span><span class="n">scheme</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>

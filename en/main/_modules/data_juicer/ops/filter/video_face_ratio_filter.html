@@ -467,7 +467,7 @@
 
 
 <div class="viewcode-block" id="VideoFaceRatioFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_face_ratio_filter.html#data_juicer.ops.filter.video_face_ratio_filter.VideoFaceRatioFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoFaceRatioFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoFaceRatioFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -479,7 +479,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="VideoFaceRatioFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_face_ratio_filter.html#data_juicer.ops.filter.video_face_ratio_filter.VideoFaceRatioFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoFaceRatioFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">detect_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">any_or_all</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"all"</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -502,7 +502,7 @@
 
 
 <div class="viewcode-block" id="VideoFaceRatioFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_face_ratio_filter.html#data_juicer.ops.filter.video_face_ratio_filter.VideoFaceRatioFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoFaceRatioFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_face_exist</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -578,7 +578,7 @@
 
 
 <div class="viewcode-block" id="VideoFaceRatioFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.video_face_ratio_filter.html#data_juicer.ops.filter.video_face_ratio_filter.VideoFaceRatioFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.VideoFaceRatioFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="n">video_faces_ratio</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">video_face_exist</span><span class="p">]</span>
         <span class="n">keep_bools</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">face_ratio</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="k">for</span> <span class="n">face_ratio</span> <span class="ow">in</span> <span class="n">video_faces_ratio</span><span class="p">])</span>

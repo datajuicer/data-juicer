@@ -462,7 +462,7 @@
 
 
 <div class="viewcode-block" id="S3UploadFileMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.S3UploadFileMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.s3_upload_file_mapper.html#data_juicer.ops.mapper.s3_upload_file_mapper.S3UploadFileMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">S3UploadFileMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mapper to upload local files to S3 and update paths to S3 URLs.</span>
@@ -480,7 +480,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="S3UploadFileMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.S3UploadFileMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.s3_upload_file_mapper.html#data_juicer.ops.mapper.s3_upload_file_mapper.S3UploadFileMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">upload_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -655,7 +655,7 @@
             <span class="k">return</span> <span class="s2">"failed"</span><span class="p">,</span> <span class="n">local_path</span><span class="p">,</span> <span class="n">error_msg</span>
 
 <div class="viewcode-block" id="S3UploadFileMapper.upload_files_async">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.S3UploadFileMapper.upload_files_async">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.s3_upload_file_mapper.html#data_juicer.ops.mapper.s3_upload_file_mapper.S3UploadFileMapper.upload_files_async">[docs]</a>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">upload_files_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Upload multiple files asynchronously.</span>
 
@@ -711,7 +711,7 @@
         <span class="k">return</span> <span class="n">reconstructed</span>
 
 <div class="viewcode-block" id="S3UploadFileMapper.upload_nested_paths">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.S3UploadFileMapper.upload_nested_paths">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.s3_upload_file_mapper.html#data_juicer.ops.mapper.s3_upload_file_mapper.S3UploadFileMapper.upload_nested_paths">[docs]</a>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">upload_nested_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]):</span>
 <span class="w">        </span><span class="sd">"""Upload nested paths with structure preservation.</span>
 
@@ -762,7 +762,7 @@
 
 
 <div class="viewcode-block" id="S3UploadFileMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.S3UploadFileMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.s3_upload_file_mapper.html#data_juicer.ops.mapper.s3_upload_file_mapper.S3UploadFileMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Process a batch of samples."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">upload_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">samples</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">upload_field</span><span class="p">]:</span>

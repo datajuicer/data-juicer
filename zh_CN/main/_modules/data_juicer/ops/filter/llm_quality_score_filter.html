@@ -465,7 +465,7 @@
 
 
 <div class="viewcode-block" id="LLMQualityScoreFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_quality_score_filter.html#data_juicer.ops.filter.LLMQualityScoreFilter">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMQualityScoreFilter">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMQualityScoreFilter</span><span class="p">(</span><span class="n">LLMAnalysisFilter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Filter to keep samples with a high quality score estimated by a language model.</span>
@@ -533,7 +533,7 @@
     <span class="n">DEFAULT_DIM_REQUIRED_KEYS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"accuracy"</span><span class="p">,</span> <span class="s2">"grammar"</span><span class="p">,</span> <span class="s2">"informativeness"</span><span class="p">,</span> <span class="s2">"coherence"</span><span class="p">]</span>
 
 <div class="viewcode-block" id="LLMQualityScoreFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_quality_score_filter.html#data_juicer.ops.filter.LLMQualityScoreFilter.compute_stats_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMQualityScoreFilter.compute_stats_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_quality_score</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -552,7 +552,7 @@
 
 
 <div class="viewcode-block" id="LLMQualityScoreFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_quality_score_filter.html#data_juicer.ops.filter.LLMQualityScoreFilter.process_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMQualityScoreFilter.process_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">itm_score</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_quality_score</span><span class="p">]</span>
 

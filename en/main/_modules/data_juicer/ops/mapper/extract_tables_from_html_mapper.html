@@ -455,7 +455,7 @@
 
 
 <div class="viewcode-block" id="ExtractTablesFromHtmlMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractTablesFromHtmlMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_tables_from_html_mapper.html#data_juicer.ops.mapper.extract_tables_from_html_mapper.ExtractTablesFromHtmlMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExtractTablesFromHtmlMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -469,7 +469,7 @@
 <span class="sd">    been extracted, the operator will not reprocess the sample."""</span>
 
 <div class="viewcode-block" id="ExtractTablesFromHtmlMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractTablesFromHtmlMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_tables_from_html_mapper.html#data_juicer.ops.mapper.extract_tables_from_html_mapper.ExtractTablesFromHtmlMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tables_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MetaKeys</span><span class="o">.</span><span class="n">html_tables</span><span class="p">,</span>
@@ -497,7 +497,7 @@
 
 
 <div class="viewcode-block" id="ExtractTablesFromHtmlMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractTablesFromHtmlMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_tables_from_html_mapper.html#data_juicer.ops.mapper.extract_tables_from_html_mapper.ExtractTablesFromHtmlMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables_field_name</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]:</span>

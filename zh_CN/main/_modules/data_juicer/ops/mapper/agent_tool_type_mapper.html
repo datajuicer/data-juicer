@@ -468,14 +468,14 @@
 
 
 <div class="viewcode-block" id="AgentToolTypeMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_tool_type_mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper">[文档]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AgentToolTypeMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Set primary_tool_type and dominant_tool_types from meta.agent_tool_types."""</span>
 
 <div class="viewcode-block" id="AgentToolTypeMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_tool_type_mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tool_types_meta_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MetaKeys</span><span class="o">.</span><span class="n">agent_tool_types</span><span class="p">,</span>
@@ -492,7 +492,7 @@
 
 
 <div class="viewcode-block" id="AgentToolTypeMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_tool_type_mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper.process_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper.process_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
             <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>

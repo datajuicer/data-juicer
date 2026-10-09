@@ -462,7 +462,7 @@
 
 
 <div class="viewcode-block" id="LLMTaskRelevanceFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_task_relevance_filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@ATTRIBUTION_FILTERS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMTaskRelevanceFilter</span><span class="p">(</span><span class="n">LLMAnalysisFilter</span><span class="p">):</span>
@@ -534,7 +534,7 @@
     <span class="p">]</span>
 
 <div class="viewcode-block" id="LLMTaskRelevanceFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_task_relevance_filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_or_hf_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gpt-4o"</span><span class="p">,</span>
@@ -574,7 +574,7 @@
         <span class="k">return</span> <span class="s2">"valid_info"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_feature</span>
 
 <div class="viewcode-block" id="LLMTaskRelevanceFilter.prepare_valid_feature">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_task_relevance_filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.prepare_valid_feature">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.prepare_valid_feature">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">prepare_valid_feature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">task_desc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">valid_data_block</span> <span class="o">=</span> <span class="s2">""</span>
@@ -609,7 +609,7 @@
 
 
 <div class="viewcode-block" id="LLMTaskRelevanceFilter.build_input">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_task_relevance_filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.build_input">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.build_input">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_keys</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Not all input keys </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_keys</span><span class="si">}</span><span class="s2"> are in the sample!"</span><span class="p">)</span>
@@ -625,7 +625,7 @@
 
 
 <div class="viewcode-block" id="LLMTaskRelevanceFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_task_relevance_filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's computed already</span>
         <span class="k">if</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_task_relevance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
@@ -646,7 +646,7 @@
 
 
 <div class="viewcode-block" id="LLMTaskRelevanceFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_task_relevance_filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.LLMTaskRelevanceFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">itm_score</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_task_relevance</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">itm_score</span><span class="p">:</span>  <span class="c1"># 0.0 means LLM analysis failed</span>

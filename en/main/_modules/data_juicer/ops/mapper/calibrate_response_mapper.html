@@ -453,7 +453,7 @@
 
 <span class="c1"># TODO: LLM-based inference.</span>
 <div class="viewcode-block" id="CalibrateResponseMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.CalibrateResponseMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.calibrate_response_mapper.html#data_juicer.ops.mapper.CalibrateResponseMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CalibrateResponseMapper</span><span class="p">(</span><span class="n">CalibrateQAMapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Calibrate response in question-answer pairs based on reference text.</span>
@@ -470,7 +470,7 @@
 <span class="s2">        使其更加详细、准确，且仍可以回答原问题。只输出校准后的回答，不要输出多余内容。"</span>
 
 <div class="viewcode-block" id="CalibrateResponseMapper.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.CalibrateResponseMapper.parse_output">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.calibrate_response_mapper.html#data_juicer.ops.mapper.CalibrateResponseMapper.parse_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_output</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_pattern</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_OUTPUT_PATTERN</span><span class="p">:</span>
             <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>

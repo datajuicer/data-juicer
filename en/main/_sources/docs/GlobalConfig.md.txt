@@ -86,6 +86,7 @@ See [Export](Export.md) for details.
 | `mapper_fusion` | bool | `true` | Fuse consecutive GPU Mappers (requires op_fusion) |
 | `mapper_fusion_vram_limit` | float | `0.9` | Max aggregate VRAM fraction for fused mappers |
 | `adaptive_batch_size` | bool | `false` | Adaptive batch sizes for batched operators in the `default` executor |
+| `elastic_juicer_profile_seed` | bool | `false` | Reuse compatible stage batch profiles within one `ray_partitioned` run; requires `elastic_juicer_adaptive_batching=true` and operator cost/resource declarations. See [StageProfile](ElasticJuicerStageProfile.md). |
 | `turbo` | bool | `false` | Turbo mode (maximize speed at batch_size=1) |
 
 ---

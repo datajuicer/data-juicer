@@ -459,7 +459,7 @@
 
 
 <div class="viewcode-block" id="TextChunkMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.TextChunkMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.text_chunk_mapper.html#data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TextChunkMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Split input text into chunks based on specified criteria.</span>
@@ -482,7 +482,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="TextChunkMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.TextChunkMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.text_chunk_mapper.html#data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">max_len</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -533,7 +533,7 @@
 
 
 <div class="viewcode-block" id="TextChunkMapper.recursively_chunk">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.TextChunkMapper.recursively_chunk">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.text_chunk_mapper.html#data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper.recursively_chunk">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">recursively_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="p">)</span>
@@ -564,7 +564,7 @@
 
 
 <div class="viewcode-block" id="TextChunkMapper.get_text_chunks">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.TextChunkMapper.get_text_chunks">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.text_chunk_mapper.html#data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper.get_text_chunks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_text_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_pattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">chunks</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_pattern</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
@@ -591,7 +591,7 @@
 
 
 <div class="viewcode-block" id="TextChunkMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.TextChunkMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.text_chunk_mapper.html#data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">sample_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">])</span>
 

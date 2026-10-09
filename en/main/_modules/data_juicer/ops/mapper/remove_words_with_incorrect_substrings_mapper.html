@@ -462,7 +462,7 @@
 
 
 <div class="viewcode-block" id="RemoveWordsWithIncorrectSubstringsMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveWordsWithIncorrectSubstringsMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.html#data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.RemoveWordsWithIncorrectSubstringsMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoveWordsWithIncorrectSubstringsMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mapper to remove words containing specified incorrect substrings.</span>
@@ -485,7 +485,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="RemoveWordsWithIncorrectSubstringsMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveWordsWithIncorrectSubstringsMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.html#data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.RemoveWordsWithIncorrectSubstringsMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"en"</span><span class="p">,</span> <span class="n">tokenization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">substrings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
@@ -509,7 +509,7 @@
 
 
 <div class="viewcode-block" id="RemoveWordsWithIncorrectSubstringsMapper.should_keep_word_with_incorrect_substrings">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveWordsWithIncorrectSubstringsMapper.should_keep_word_with_incorrect_substrings">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.html#data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.RemoveWordsWithIncorrectSubstringsMapper.should_keep_word_with_incorrect_substrings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">should_keep_word_with_incorrect_substrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">,</span> <span class="n">substrings</span><span class="p">):</span>
         <span class="n">word</span> <span class="o">=</span> <span class="n">strip</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">SPECIAL_CHARACTERS</span><span class="p">)</span>
         <span class="n">should_keep</span> <span class="o">=</span> <span class="nb">all</span><span class="p">([(</span><span class="n">i_substr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">word</span><span class="p">)</span> <span class="k">for</span> <span class="n">i_substr</span> <span class="ow">in</span> <span class="n">substrings</span><span class="p">])</span>
@@ -517,7 +517,7 @@
 
 
 <div class="viewcode-block" id="RemoveWordsWithIncorrectSubstringsMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveWordsWithIncorrectSubstringsMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.html#data_juicer.ops.mapper.remove_words_with_incorrect_substrings_mapper.RemoveWordsWithIncorrectSubstringsMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenization</span><span class="p">:</span>

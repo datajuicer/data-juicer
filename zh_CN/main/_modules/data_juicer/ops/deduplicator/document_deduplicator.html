@@ -470,7 +470,7 @@
 
 
 <div class="viewcode-block" id="DocumentDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.DocumentDeduplicator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.document_deduplicator.DocumentDeduplicator">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"document_deduplicator"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DocumentDeduplicator</span><span class="p">(</span><span class="n">Deduplicator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Deduplicates samples at the document level using exact matching.</span>
@@ -485,7 +485,7 @@
 <span class="sd">    inspection."""</span>
 
 <div class="viewcode-block" id="DocumentDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.DocumentDeduplicator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.document_deduplicator.DocumentDeduplicator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lowercase</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ignore_non_character</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -504,7 +504,7 @@
 
 
 <div class="viewcode-block" id="DocumentDeduplicator.compute_hash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.DocumentDeduplicator.compute_hash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.document_deduplicator.DocumentDeduplicator.compute_hash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Compute md5 hash values for the sample.</span>
@@ -530,7 +530,7 @@
 
 
 <div class="viewcode-block" id="DocumentDeduplicator.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.DocumentDeduplicator.process">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_deduplicator.html#data_juicer.ops.deduplicator.document_deduplicator.DocumentDeduplicator.process">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">show_num</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        For doc-level, dataset --&gt; dataset.</span>

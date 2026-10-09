@@ -477,6 +477,10 @@
     <span class="n">deprecated_load_data_np_kwargs</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.data.ray_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RayDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.elasticjuicer.stage_identity</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">assign_stage_identities</span><span class="p">,</span>
+    <span class="n">stamped_stage_identity</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecutorBase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.dag_execution_mixin</span><span class="w"> </span><span class="kn">import</span> <span class="n">DAGExecutionMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.executor.event_logging_mixin</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventLoggingMixin</span><span class="p">,</span> <span class="n">EventType</span>
@@ -563,12 +567,12 @@
 
 
 <div class="viewcode-block" id="TempDirManager">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.TempDirManager">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.TempDirManager">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TempDirManager</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Context manager for temporary directory cleanup."""</span>
 
 <div class="viewcode-block" id="TempDirManager.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.TempDirManager.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.TempDirManager.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_dir</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tmp_dir</span> <span class="o">=</span> <span class="n">tmp_dir</span></div>
 
@@ -596,7 +600,7 @@
 
 <span class="c1"># Simplified classes for basic functionality</span>
 <div class="viewcode-block" id="PartitionResult">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionResult">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionResult">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PartitionResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Simple result container for partition processing."""</span>
@@ -609,7 +613,7 @@
 
 
 <div class="viewcode-block" id="PartitionMetadata">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionMetadata">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionMetadata">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PartitionMetadata</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Metadata for a single partition to enable validation on resume.</span>
@@ -627,13 +631,13 @@
     <span class="n">end_row</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Exclusive row offset in the ordered input</span>
 
 <div class="viewcode-block" id="PartitionMetadata.to_dict">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionMetadata.to_dict">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionMetadata.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PartitionMetadata.from_dict">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionMetadata.from_dict">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionMetadata.from_dict">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"PartitionMetadata"</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">)</span></div>
@@ -642,7 +646,7 @@
 
 
 <div class="viewcode-block" id="PartitioningInfo">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitioningInfo">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitioningInfo">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PartitioningInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Complete partitioning information for a job.</span>
@@ -658,7 +662,7 @@
     <span class="n">hash_algorithm</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">_PARTITION_CONTENT_HASH_ALGORITHM</span>
 
 <div class="viewcode-block" id="PartitioningInfo.to_dict">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitioningInfo.to_dict">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitioningInfo.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"num_partitions"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_partitions</span><span class="p">,</span>
@@ -670,7 +674,7 @@
 
 
 <div class="viewcode-block" id="PartitioningInfo.from_dict">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitioningInfo.from_dict">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitioningInfo.from_dict">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"PartitioningInfo"</span><span class="p">:</span>
         <span class="n">partitions</span> <span class="o">=</span> <span class="p">[</span><span class="n">PartitionMetadata</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"partitions"</span><span class="p">,</span> <span class="p">[])]</span>
@@ -684,7 +688,7 @@
 
 
 <div class="viewcode-block" id="PartitioningInfo.save">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitioningInfo.save">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitioningInfo.save">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Save partitioning info to JSON file."""</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -693,7 +697,7 @@
 
 
 <div class="viewcode-block" id="PartitioningInfo.load">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitioningInfo.load">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitioningInfo.load">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">"PartitioningInfo"</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Load partitioning info from JSON file."""</span>
@@ -711,7 +715,7 @@
 
 
 <div class="viewcode-block" id="PartitionedRayExecutor">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionedRayExecutor">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionedRayExecutor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PartitionedRayExecutor</span><span class="p">(</span><span class="n">ExecutorBase</span><span class="p">,</span> <span class="n">DAGExecutionMixin</span><span class="p">,</span> <span class="n">EventLoggingMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Simplified Ray executor with row-balanced dataset partitioning.</span>
@@ -725,7 +729,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="PartitionedRayExecutor.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionedRayExecutor.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionedRayExecutor.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Namespace</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize the partitioned Ray executor."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
@@ -1292,7 +1296,7 @@
         <span class="k">return</span> <span class="mi">2</span>
 
 <div class="viewcode-block" id="PartitionedRayExecutor.run">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionedRayExecutor.run">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionedRayExecutor.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_data_np</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">skip_return</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Run the simplified partitioned dataset processing pipeline.</span>
@@ -1309,8 +1313,37 @@
 <span class="sd">        """</span>
         <span class="c1"># Use TempDirManager to ensure cleanup of temporary files</span>
         <span class="k">with</span> <span class="n">TempDirManager</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_dir</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_impl</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="n">skip_return</span><span class="p">)</span></div>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_impl</span><span class="p">(</span><span class="n">load_data_np</span><span class="p">,</span> <span class="n">skip_return</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">session</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_stage_profile_session"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">_resolved_stage_profile_summary</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"StageProfile finalization failed: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">_resolved_stage_profile_summary</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">finally</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">_stage_profile_session</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_stage_profile_session</span> <span class="o">=</span> <span class="kc">None</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_start_stage_profiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"elastic_juicer_profile_seed"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"elastic_juicer_adaptive_batching"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"elastic_juicer_profile_seed requires elastic_juicer_adaptive_batching=true"</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.elasticjuicer.ray_adaptive_mapper</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">adaptive_batching_enabled</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.elasticjuicer.stage_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">StageProfileSession</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">adaptive_batching_enabled</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">StageProfileSession</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">_resolved_stage_identities</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">work_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">session</span><span class="o">.</span><span class="n">start</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_stage_profile_session</span> <span class="o">=</span> <span class="n">session</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">_stage_profile_session</span> <span class="o">=</span> <span class="n">session</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_run_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_data_np</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">skip_return</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1443,6 +1476,7 @@
         <span class="c1"># Initialize DAG execution planning with final partition count</span>
         <span class="c1"># Pass ops to avoid redundant loading</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_dag_execution</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="n">ops</span><span class="o">=</span><span class="n">ops</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_stage_profiles</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span>
 
         <span class="c1"># Log job start with DAG context</span>
         <span class="c1"># Handle both dataset_path (string) and dataset (dict) configurations</span>
@@ -1490,7 +1524,7 @@
         <span class="k">return</span> <span class="n">final_dataset</span>
 
 <div class="viewcode-block" id="PartitionedRayExecutor.cleanup_temp_files">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.PartitionedRayExecutor.cleanup_temp_files">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor_partitioned.html#data_juicer.core.executor.ray_executor_partitioned.PartitionedRayExecutor.cleanup_temp_files">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_temp_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Manually clean up temporary files from previous runs."""</span>
         <span class="n">tmp_base_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">work_dir</span><span class="p">,</span> <span class="s2">".tmp"</span><span class="p">)</span>
@@ -2170,6 +2204,7 @@
                 <span class="n">profiled_stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="p">{</span>
                         <span class="s2">"name"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="s2">"_name"</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">op</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">),</span>
+                        <span class="s2">"stage_id"</span><span class="p">:</span> <span class="n">stamped_stage_identity</span><span class="p">(</span><span class="n">op</span><span class="p">),</span>
                         <span class="s2">"actors"</span><span class="p">:</span> <span class="n">count</span><span class="p">,</span>
                         <span class="s2">"steady_rows_per_second"</span><span class="p">:</span> <span class="n">throughput</span><span class="p">,</span>
                         <span class="s2">"source_input_ratio"</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">source_ratio</span><span class="p">,</span> <span class="mf">1e-9</span><span class="p">),</span>
@@ -2818,6 +2853,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_operators</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Prepare process operators."""</span>
         <span class="n">ops</span> <span class="o">=</span> <span class="n">load_ops</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">process</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"elastic_juicer_adaptive_batching"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.elasticjuicer.ray_adaptive_mapper</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                <span class="n">adaptive_batching_enabled</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"op_fusion"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"elastic_juicer_adaptive_batching currently requires op_fusion=false"</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
+                <span class="n">adaptive_batching_enabled</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># Check for op_fusion configuration with safe attribute access</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"op_fusion"</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">op_fusion</span><span class="p">:</span>
@@ -2828,6 +2872,7 @@
                 <span class="n">mapper_fusion_vram_limit</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">"mapper_fusion_vram_limit"</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">),</span>
             <span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">_resolved_stage_identities</span> <span class="o">=</span> <span class="n">assign_stage_identities</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ops</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_override_strategy_methods</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

@@ -486,7 +486,7 @@
 
 
 <div class="viewcode-block" id="sha1_hash32">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.sha1_hash32">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.sha1_hash32">[文档]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">sha1_hash32</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Directly taken from datasketch package to avoid dependency.</span>
@@ -504,7 +504,7 @@
 
 
 <div class="viewcode-block" id="optimal_param">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.optimal_param">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.optimal_param">[文档]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">optimal_param</span><span class="p">(</span>
     <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">num_perm</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -559,7 +559,7 @@
 
 
 <div class="viewcode-block" id="DocumentMinhashDeduplicator">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentMinhashDeduplicator">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicator">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DocumentMinhashDeduplicator</span><span class="p">(</span><span class="n">Deduplicator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Deduplicates samples at the document level using MinHash LSH.</span>
@@ -578,7 +578,7 @@
 <span class="sd">      or the first sample in a cluster are retained."""</span>
 
 <div class="viewcode-block" id="DocumentMinhashDeduplicator.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentMinhashDeduplicator.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicator.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokenization</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"space"</span><span class="p">,</span>
@@ -684,7 +684,7 @@
 
 
 <div class="viewcode-block" id="DocumentMinhashDeduplicator.compute_hash">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentMinhashDeduplicator.compute_hash">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicator.compute_hash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Compute minhash values for the sample.</span>
@@ -754,7 +754,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span><span class="p">)]</span>
 
 <div class="viewcode-block" id="DocumentMinhashDeduplicator.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentMinhashDeduplicator.process">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicator.process">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">show_num</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        For doc-level, dataset --&gt; dataset.</span>
@@ -835,7 +835,7 @@
 
 
 <div class="viewcode-block" id="DocumentMinhashDeduplicatorWithUid">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentMinhashDeduplicatorWithUid">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicatorWithUid">[文档]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">OP_NAME</span><span class="si">}</span><span class="s2">_with_uid"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DocumentMinhashDeduplicatorWithUid</span><span class="p">(</span><span class="n">DocumentMinhashDeduplicator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -852,7 +852,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="DocumentMinhashDeduplicatorWithUid.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.DocumentMinhashDeduplicatorWithUid.process">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicatorWithUid.process">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">show_num</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        For doc-level, dataset --&gt; dataset.</span>

@@ -814,6 +814,7 @@
         <span class="s2">"output_columns"</span><span class="p">:</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="c1"># Behavior control</span>
         <span class="s2">"skip_op_error"</span><span class="p">:</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="s2">"adaptive_batching"</span><span class="p">:</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="s2">"auto_op_parallelism"</span><span class="p">:</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
         <span class="s2">"batch_mode"</span><span class="p">:</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="s2">"accelerator"</span><span class="p">:</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
@@ -845,6 +846,7 @@
             <span class="c1"># reconstruction — the kwargs dict embeds work_dir</span>
             <span class="s2">"_init_args"</span><span class="p">,</span>
             <span class="s2">"_init_kwargs"</span><span class="p">,</span>
+            <span class="s2">"_elastic_juicer_stage_identity"</span><span class="p">,</span>
         <span class="p">}</span>
     <span class="p">)</span>
 
@@ -960,6 +962,9 @@
         <span class="c1"># for unittest, do not skip the error.</span>
         <span class="c1"># It would be set to be True in config init.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">skip_op_error</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"skip_op_error"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adaptive_batching</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"adaptive_batching"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptive_batching</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptive_batching</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"adaptive_batching must be a boolean or None"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">auto_op_parallelism</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"auto_op_parallelism"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># whether to enable batch processing</span>
@@ -1187,6 +1192,9 @@
 <div class="viewcode-block" id="Mapper">
 <a class="viewcode-back" href="../../../api/data_juicer.ops.base_op.html#data_juicer.ops.Mapper">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Mapper</span><span class="p">(</span><span class="n">OP</span><span class="p">):</span>
+    <span class="c1"># Opt-in contract: row/order preserving, slice independent and retry safe.</span>
+    <span class="n">_supports_adaptive_batching</span> <span class="o">=</span> <span class="kc">False</span>
+
     <span class="n">_supported_exec_modes</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="s2">"ray"</span><span class="p">,</span> <span class="s2">"ray_partitioned"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Mapper.__init__">

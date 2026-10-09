@@ -78,6 +78,20 @@ class JsonlLenientLoaderTest(DataJuicerTestCaseBase):
         self.assertEqual(len(ds), 2)
         self.assertEqual(list(ds["a"]), [1, 2])
 
+    def test_dataset_from_lenient_jsonl_files_reloads_edited_file(self):
+        """An edited file should not be served from the stale HF cache."""
+        jsonl_path = os.path.join(self.tmp_dir, "test.jsonl")
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "v1"}) + "\n")
+        pairs = [(jsonl_path, ".jsonl")]
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["v1"])
+
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "v2"}) + "\n" + json.dumps({"text": "v3"}) + "\n")
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["v2", "v3"])
+
     def test_handles_big_integer(self):
         """Should handle big integers that ujson rejects."""
         jsonl_path = os.path.join(self.tmp_dir, "big_int.jsonl")

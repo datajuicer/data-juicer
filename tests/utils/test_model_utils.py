@@ -379,6 +379,57 @@ class ModelUtilsTest(DataJuicerTestCaseBase):
         # Test the model is moved to the target device
         mock_model.to.assert_called_once_with('cuda:0')
 
+    def _mock_embedding_encoder(self, mock_transformers):
+        import torch
+
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.return_value.to.return_value = {
+            'attention_mask': torch.tensor([[1, 1, 1]]),
+        }
+        mock_model = MagicMock()
+        mock_model.to.return_value = mock_model
+        mock_model.eval.return_value = mock_model
+        mock_model.return_value.last_hidden_state = torch.tensor([
+            [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+        ])
+        mock_transformers.AutoTokenizer.from_pretrained.return_value = mock_tokenizer
+        mock_transformers.AutoModel.from_pretrained.return_value = mock_model
+        return mock_tokenizer
+
+    @patch('data_juicer.utils.model_utils.check_model_home', return_value='test_model')
+    @patch('data_juicer.utils.model_utils.transformers')
+    def test_embedding_encode_preserves_tokenizer_input(self, mock_transformers, mock_check):
+        mock_tokenizer = self._mock_embedding_encoder(mock_transformers)
+        for pooling in (None, 'mean', 'weighted_mean'):
+            model = prepare_embedding_model('test_model', device='cpu', pooling=pooling)
+            for text in ('There is a lovely cat.', '你好，世界！', ''):
+                with self.subTest(pooling=pooling, text=text):
+                    mock_tokenizer.reset_mock()
+                    model.encode(text)
+                    mock_tokenizer.assert_called_once_with(
+                        text, padding=True, truncation=True,
+                        return_tensors='pt', max_length=4096,
+                    )
+
+    @patch('data_juicer.utils.model_utils.check_model_home', return_value='test_model')
+    @patch('data_juicer.utils.model_utils.transformers')
+    def test_embedding_encode_preserves_prompt_and_max_len(self, mock_transformers, mock_check):
+        mock_tokenizer = self._mock_embedding_encoder(mock_transformers)
+        text = 'There is a lovely cat.'
+        for pooling in (None, 'mean', 'weighted_mean'):
+            model = prepare_embedding_model('test_model', device='cpu', pooling=pooling)
+            for positional in (False, True):
+                with self.subTest(pooling=pooling, positional=positional):
+                    mock_tokenizer.reset_mock()
+                    if positional:
+                        model.encode(text, 'Instruct', 128)
+                    else:
+                        model.encode(text, prompt_name='Instruct', max_len=128)
+                    mock_tokenizer.assert_called_once_with(
+                        'Instruct: ' + text, padding=True, truncation=True,
+                        return_tensors='pt', max_length=128,
+                    )
+
     @patch('data_juicer.utils.model_utils.diffusers')
     def test_prepare_diffusion_model(self, mock_diffusers):
         mock_model = MagicMock()

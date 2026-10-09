@@ -1667,7 +1667,7 @@ def prepare_embedding_model(model_path, **model_params):
         embedding = nn.functional.normalize(embedding, p=2, dim=1)
         return embedding[0].tolist()
 
-    return type("EmbeddingModel", (), {"encode": encode})()
+    return type("EmbeddingModel", (), {"encode": staticmethod(encode)})()
 
 
 def update_sampling_params(

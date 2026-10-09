@@ -173,6 +173,11 @@ class DatasetBuilder(object):
         _datasets = []
         # load datasets with sample numbers
         for stra, weight, sample_num in zip(self.load_strategies, self.weights, self.sample_numbers):
+            # random_sample treats 0 as "unset" and falls back to the raw weight,
+            # so a dataset allotted no samples must be skipped, not sampled
+            if self.max_sample_num and sample_num <= 0:
+                continue
+
             # load dataset with its load strategy
             dataset = stra.load_data(**load_kwargs)
 

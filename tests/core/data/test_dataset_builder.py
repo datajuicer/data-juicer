@@ -520,6 +520,26 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
             self.assertIn('should be a positive integer', 
                           str(context.exception))
 
+    def test_max_sample_num_zero_share(self):
+        """Test max_sample_num with datasets allotted 0 samples"""
+        cfg = Namespace()
+        cfg.dataset = {
+            'configs': [
+                {
+                    'type': 'local',
+                    'path': 'test_data/sample.jsonl',
+                    'weight': 1.0
+                } for _ in range(4)
+            ],
+            'max_sample_num': 2
+        }
+
+        builder = DatasetBuilder(cfg)
+        self.assertEqual(builder.sample_numbers, [1, 1, 0, 0])
+
+        ds = builder.load_dataset()
+        self.assertEqual(len(ds), 2)
+
     @TEST_TAG('ray')
     def test_builder_ray_config(self):
         """Test loading Ray configuration from YAML"""

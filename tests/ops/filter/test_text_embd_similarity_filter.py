@@ -3,7 +3,7 @@ import unittest
 from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.text_embd_similarity_filter import TextEmbdSimilarityFilter
-from data_juicer.utils.constant import Fields
+from data_juicer.utils.constant import Fields, StatsKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
@@ -14,12 +14,19 @@ class TextEmbdSimilarityFilterTest(DataJuicerTestCaseBase):
 
     text_key = "text"
 
-    def _run_filter(self, dataset: Dataset, op, tgt_list, num_proc=1):
+    def _run_filter(self, dataset: Dataset, op, tgt_list, num_proc=1, max_unrelated_score=None):
         if Fields.stats not in dataset.features:
             # this is a temp solution, only add stats when calling filter op
             dataset = dataset.add_column(name=Fields.stats, column=[{}] * dataset.num_rows)
 
         dataset = dataset.map(op.compute_stats, num_proc=num_proc, with_rank=True)
+        if max_unrelated_score is not None:
+            # Check semantic separation, not just the final threshold decision:
+            # shared model repr text previously inflated the unrelated score.
+            scores = [sample[Fields.stats][StatsKeys.text_embd_similarity] for sample in dataset]
+            self.assertGreaterEqual(scores[0], op.min_score)
+            self.assertLess(scores[1], max_unrelated_score)
+            self.assertGreater(scores[0] - scores[1], 0.3)
         dataset = dataset.filter(op.process, num_proc=num_proc)
         dataset = dataset.select_columns(column_names=[self.text_key])
         res_list = dataset.to_list()
@@ -116,11 +123,11 @@ class TextEmbdSimilarityFilterTest(DataJuicerTestCaseBase):
         op = TextEmbdSimilarityFilter(
             api_or_hf_model=self._hf_model,
             is_hf_model=True,
-            min_score=0.97,
+            min_score=0.9,
             max_score=1.0,
         )
         op.prepare_valid_feature(valid_dataset)
-        self._run_filter(dataset, op, tgt_list)
+        self._run_filter(dataset, op, tgt_list, max_unrelated_score=0.5)
 
     def test_hf_model_mean_pooling(self):
 
@@ -140,12 +147,12 @@ class TextEmbdSimilarityFilterTest(DataJuicerTestCaseBase):
         op = TextEmbdSimilarityFilter(
             api_or_hf_model=self._hf_model,
             is_hf_model=True,
-            min_score=0.97,
+            min_score=0.9,
             max_score=1.0,
             pooling="mean"
         )
         op.prepare_valid_feature(valid_dataset)
-        self._run_filter(dataset, op, tgt_list)
+        self._run_filter(dataset, op, tgt_list, max_unrelated_score=0.65)
 
     def test_hf_model_weighted_mean_pooling(self):
         ds_list = [
@@ -164,12 +171,12 @@ class TextEmbdSimilarityFilterTest(DataJuicerTestCaseBase):
         op = TextEmbdSimilarityFilter(
             api_or_hf_model=self._hf_model,
             is_hf_model=True,
-            min_score=0.96,
+            min_score=0.9,
             max_score=1.0,
             pooling="weighted_mean"
         )
         op.prepare_valid_feature(valid_dataset)
-        self._run_filter(dataset, op, tgt_list)
+        self._run_filter(dataset, op, tgt_list, max_unrelated_score=0.5)
 
 
 if __name__ == '__main__':

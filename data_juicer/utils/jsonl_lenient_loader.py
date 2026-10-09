@@ -113,7 +113,10 @@ def dataset_from_lenient_jsonl_files(
         return (st.st_mtime_ns, st.st_size)
 
     # ``stats`` is unused by the generator; it is part of ``gen_kwargs`` so the
-    # HF cache fingerprint changes when a file is modified.
+    # HF cache fingerprint changes when a file is modified. It must stay
+    # index-aligned with ``pairs`` (HF shards list-valued kwargs together). The
+    # (mtime_ns, size) key is a heuristic: a same-size rewrite that preserves
+    # the mtime is not detected.
     def _gen(pairs, add_suffix, stats):
         yield from iter_lenient_jsonl_records(
             pairs,

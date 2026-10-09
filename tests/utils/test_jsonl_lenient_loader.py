@@ -92,6 +92,33 @@ class JsonlLenientLoaderTest(DataJuicerTestCaseBase):
         ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
         self.assertEqual(list(ds["text"]), ["v2", "v3"])
 
+    def test_dataset_from_lenient_jsonl_files_reloads_same_size_edit(self):
+        """A same-size edit with a newer mtime should not hit the stale cache."""
+        jsonl_path = os.path.join(self.tmp_dir, "same_size.jsonl")
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "aaaa"}) + "\n")
+        pairs = [(jsonl_path, ".jsonl")]
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["aaaa"])
+
+        st = os.stat(jsonl_path)
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "cccc"}) + "\n")
+        os.utime(jsonl_path, ns=(st.st_atime_ns, st.st_mtime_ns + 10**9))
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["cccc"])
+
+    def test_dataset_from_lenient_jsonl_files_missing_file(self):
+        """A missing path should be skipped without crashing the stat step."""
+        good = os.path.join(self.tmp_dir, "good.jsonl")
+        with open(good, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "ok"}) + "\n")
+        missing = os.path.join(self.tmp_dir, "missing.jsonl")
+        ds = dataset_from_lenient_jsonl_files(
+            [(missing, ".jsonl"), (good, ".jsonl")], add_suffix_column=False
+        )
+        self.assertEqual(list(ds["text"]), ["ok"])
+
     def test_handles_big_integer(self):
         """Should handle big integers that ujson rejects."""
         jsonl_path = os.path.join(self.tmp_dir, "big_int.jsonl")

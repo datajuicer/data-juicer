@@ -182,7 +182,12 @@ class DatasetBuilder(object):
 
             # do data sampling, if necessary
             if self.max_sample_num:
-                dataset = random_sample(dataset, weight, sample_num)
+                # random_sample treats 0 as "unset" and falls back to the raw weight,
+                # so a dataset allotted no samples has to be emptied explicitly
+                if sample_num <= 0:
+                    dataset = dataset.select([])
+                else:
+                    dataset = random_sample(dataset, weight, sample_num)
 
             _datasets.append(dataset)
 

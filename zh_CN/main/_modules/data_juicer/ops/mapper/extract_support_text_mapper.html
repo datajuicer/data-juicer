@@ -595,6 +595,9 @@
             <span class="n">support_text</span> <span class="o">=</span> <span class="n">summary</span>
 
         <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">support_text_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">support_text</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_text</span><span class="p">:</span>
+            <span class="n">sample</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sample</span></div>
 </div>
 

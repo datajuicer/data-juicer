@@ -476,7 +476,7 @@
 
 
 <div class="viewcode-block" id="ImageTaggingVLMMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.image_tagging_vlm_mapper.html#data_juicer.ops.mapper.image_tagging_vlm_mapper.ImageTaggingVLMMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ImageTaggingVLMMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ImageTaggingVLMMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -508,7 +508,7 @@
     <span class="n">_accelerator</span> <span class="o">=</span> <span class="s2">"cuda"</span>
 
 <div class="viewcode-block" id="ImageTaggingVLMMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.image_tagging_vlm_mapper.html#data_juicer.ops.mapper.image_tagging_vlm_mapper.ImageTaggingVLMMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ImageTaggingVLMMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_or_hf_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Qwen/Qwen2.5-VL-7B-Instruct"</span><span class="p">,</span>
@@ -577,7 +577,7 @@
 
 
 <div class="viewcode-block" id="ImageTaggingVLMMapper.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.image_tagging_vlm_mapper.html#data_juicer.ops.mapper.image_tagging_vlm_mapper.ImageTaggingVLMMapper.parse_output">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ImageTaggingVLMMapper.parse_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_output</span><span class="p">):</span>
         <span class="n">json_str</span> <span class="o">=</span> <span class="n">raw_output</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
@@ -620,7 +620,7 @@
 
 
 <div class="viewcode-block" id="ImageTaggingVLMMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.image_tagging_vlm_mapper.html#data_juicer.ops.mapper.image_tagging_vlm_mapper.ImageTaggingVLMMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ImageTaggingVLMMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag_field_name</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]:</span>

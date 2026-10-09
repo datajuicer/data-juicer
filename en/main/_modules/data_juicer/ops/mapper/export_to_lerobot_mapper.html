@@ -469,7 +469,7 @@
 
 
 <div class="viewcode-block" id="ExportToLeRobotMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.export_to_lerobot_mapper.html#data_juicer.ops.mapper.export_to_lerobot_mapper.ExportToLeRobotMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExportToLeRobotMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExportToLeRobotMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Export processed video data to LeRobot v2.0 dataset format (LIBERO-style).</span>
@@ -497,7 +497,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="ExportToLeRobotMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.export_to_lerobot_mapper.html#data_juicer.ops.mapper.export_to_lerobot_mapper.ExportToLeRobotMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExportToLeRobotMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"./lerobot_output"</span><span class="p">,</span>
@@ -702,7 +702,7 @@
         <span class="k">return</span> <span class="n">frame_data</span>
 
 <div class="viewcode-block" id="ExportToLeRobotMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.export_to_lerobot_mapper.html#data_juicer.ops.mapper.export_to_lerobot_mapper.ExportToLeRobotMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExportToLeRobotMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">sample</span>
@@ -978,7 +978,7 @@
         <span class="k">return</span> <span class="n">defaults</span>
 
 <div class="viewcode-block" id="ExportToLeRobotMapper.finalize_dataset">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.export_to_lerobot_mapper.html#data_juicer.ops.mapper.export_to_lerobot_mapper.ExportToLeRobotMapper.finalize_dataset">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExportToLeRobotMapper.finalize_dataset">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">finalize_dataset</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">robot_type</span><span class="o">=</span><span class="s2">"egodex_hand"</span><span class="p">,</span> <span class="n">chunks_size</span><span class="o">=</span><span class="n">DEFAULT_CHUNKS_SIZE</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Merge staged files into final LeRobot dataset structure.</span>

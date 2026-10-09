@@ -32,4 +32,4 @@ for other locales.
 | **算子文档** | 新增/改名 mapper 后，以 `python .pre-commit-hooks/build_op_doc.py` 更新表格；线上算子表见仓库根目录 [`docs/Operators.md`](../../docs/Operators.md)。 |
 | **信号 ↔ 报告** | 若增加 `agent_bad_case_signals` 的 `code`，请同步 [`scripts/bad_case_signal_support.py`](scripts/bad_case_signal_support.py)，以便 HTML 归因表一致。 |
 | **单测（示例）** | `pytest tests/ops/mapper/test_agent_bad_case_signal_mapper.py tests/ops/mapper/test_agent_insight_llm_mapper.py tests/ops/mapper/test_usage_counter_mapper.py tests/utils/test_agent_output_locale.py tests/demos/agent/test_generate_bad_case_report_smoke.py -q` |
-| **根 README** | 与本目录的交叉链接见 [仓库 README「Documentation」](../README.md#documentation) 中的 Agent quality 条目。 |
+| **根 README** | 与本目录的交叉链接见 [仓库 README「Documentation」](../../README.md#documentation) 中的 Agent quality 条目。 |

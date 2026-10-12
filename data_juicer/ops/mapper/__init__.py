@@ -39,6 +39,7 @@ from .export_to_lerobot_mapper import ExportToLeRobotMapper
 from .extract_entity_attribute_mapper import ExtractEntityAttributeMapper
 from .extract_entity_relation_mapper import ExtractEntityRelationMapper
 from .extract_event_mapper import ExtractEventMapper
+from .extract_html_content_mapper import ExtractHtmlContentMapper
 from .extract_keyword_mapper import ExtractKeywordMapper
 from .extract_nickname_mapper import ExtractNicknameMapper
 from .extract_support_text_mapper import ExtractSupportTextMapper
@@ -196,6 +197,7 @@ __all__ = [
     "ExportToLeRobotMapper",
     "ExtractEventMapper",
     "ExtractKeywordMapper",
+    "ExtractHtmlContentMapper",
     "ExtractNicknameMapper",
     "ExtractSupportTextMapper",
     "ExtractTablesFromHtmlMapper",

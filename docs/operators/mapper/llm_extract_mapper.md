@@ -91,6 +91,17 @@ export OPENAI_API_KEY=<你的 DashScope API Key>
 
 `OPENAI_API_URL` 与 `OPENAI_BASE_URL` 等价（任选其一）。
 
+### 🐋 OrcaRouter
+
+[OrcaRouter](https://www.orcarouter.ai) 是 OpenAI 兼容的 AI 网关，同样可通过环境变量接入，无需在 recipe 里写 key：
+
+```bash
+export ORCAROUTER_BASE_URL=https://api.orcarouter.ai/v1
+export ORCAROUTER_API_KEY=<你的 OrcaRouter API Key>
+```
+
+与 DashScope 类似，`ORCAROUTER_API_KEY` / `ORCAROUTER_BASE_URL` 会被自动合并进 OpenAI 客户端配置；显式传入的 `api_key` / `base_url` 优先。设置后把 `api_or_hf_model` 指定为 OrcaRouter 上可用的模型（如 `deepseek/deepseek-chat`）即可。
+
 ## 📊 Cost / usage 成本与用量
 
 Each sample gets `meta[llm_semantic_usage]` with:

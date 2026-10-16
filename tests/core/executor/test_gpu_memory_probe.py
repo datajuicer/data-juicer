@@ -1023,6 +1023,64 @@ def test_hardware_mismatch_reprobes(tmp_path):
     assert fresh_op._gpu_memory_fraction == 0.03
 
 
+def test_imported_report_reuses_measurements_across_job_work_directories(tmp_path):
+    first_dir, second_dir = tmp_path / "job-one", tmp_path / "job-two"
+    first = FakeOp("gpu", accelerator="cuda", batch_size=2)
+    first._op_cfg["gpu"]["work_dir"] = str(first_dir)
+    GPUMemoryProbe(str(first_dir), stage_runner=lambda op, rows, measure: {"rows": rows, "metrics": metrics()}).resolve(
+        FakeDataset([{"id": 1}, {"id": 2}]), [first]
+    )
+
+    second_dir.mkdir()
+    (second_dir / "gpu_probe_results.json").write_bytes((first_dir / "gpu_probe_results.json").read_bytes())
+    fresh = FakeOp("gpu", accelerator="cuda", batch_size=2)
+    fresh._op_cfg["gpu"]["work_dir"] = str(second_dir)
+    dataset = FakeDataset([{"id": 1}, {"id": 2}])
+
+    def must_not_probe(*args):
+        raise AssertionError("An imported compatible report must not reload and probe the model")
+
+    records = GPUMemoryProbe(
+        str(second_dir),
+        stage_runner=must_not_probe,
+        hardware_reader=lambda: {"gpu_name": "Fake GPU", "total_mb": 1000},
+    ).resolve(dataset, [fresh])
+    assert dataset.requested == []
+    assert len(records) == 1 and fresh.memory == 111 / 1024
+    assert fresh._op_cfg["gpu"]["work_dir"] == str(second_dir)
+
+
+@pytest.mark.parametrize(
+    "key,before,after",
+    [
+        ("batch_size", 2, 4),
+        ("model_path", "model-a", "model-b"),
+        ("precision", "float32", "float16"),
+        ("memory_budget_bytes", 1024, 2048),
+    ],
+)
+def test_imported_report_still_reprobes_semantic_changes(tmp_path, key, before, after):
+    first = FakeOp("gpu", accelerator="cuda", batch_size=2)
+    first._op_cfg["gpu"].update(work_dir="old-job", **{key: before})
+    GPUMemoryProbe(str(tmp_path), stage_runner=lambda op, rows, measure: {"rows": rows, "metrics": metrics()}).resolve(
+        FakeDataset([{"id": 1}, {"id": 2}]), [first]
+    )
+    fresh = FakeOp("gpu", accelerator="cuda", batch_size=2)
+    fresh._op_cfg["gpu"].update(work_dir="new-job", **{key: after})
+    replayed = []
+
+    def rerun(op, rows, measure):
+        replayed.append(op._name)
+        return {"rows": rows, "metrics": metrics()}
+
+    GPUMemoryProbe(
+        str(tmp_path),
+        stage_runner=rerun,
+        hardware_reader=lambda: {"gpu_name": "Fake GPU", "total_mb": 1000},
+    ).resolve(FakeDataset([{"id": 1}, {"id": 2}]), [fresh])
+    assert replayed == ["gpu"]
+
+
 def test_old_profile_schema_is_reprobed(tmp_path):
     op = FakeOp("gpu", accelerator="cuda")
 

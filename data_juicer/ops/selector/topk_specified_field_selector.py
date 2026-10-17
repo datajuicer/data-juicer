@@ -76,16 +76,13 @@ class TopkSpecifiedFieldSelector(Selector):
         field_keys = self.field_key.split(".")
         assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
-        if len(field_keys) == 1:
-            field_value_list = dataset[field_keys[0]]
-        else:
-            field_value_list = []
-            for item in dataset[field_keys[0]]:
-                field_value = item
-                for key in field_keys[1:]:
-                    assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
-                    field_value = field_value[key]
-                field_value_list.append(stats_to_number(field_value, self.reverse))
+        field_value_list = []
+        for item in dataset[field_keys[0]]:
+            field_value = item
+            for key in field_keys[1:]:
+                assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
+                field_value = field_value[key]
+            field_value_list.append(stats_to_number(field_value, self.reverse))
 
         if self.reverse:
             select_index = heapq.nlargest(int(select_num), range(len(dataset)), field_value_list.__getitem__)

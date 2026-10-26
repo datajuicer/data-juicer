@@ -30,6 +30,13 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertIn(PLACEHOLDER_JWT, out)
         self.assertIn(PLACEHOLDER_IP, out)
 
+    def test_cn_phone_and_id_card_next_to_cjk_text(self):
+        m = self._m()
+        out = m._redact_text("我的手机号是13812345678，身份证号110101199003071234。")
+        self.assertEqual(out, "我的手机号是[PHONE_REDACTED]，身份证号[ID_CARD_REDACTED]。")
+        # still not matched inside longer ASCII tokens such as hashes
+        self.assertEqual(m._redact_text("sha deadbeef13812345678cafe"), "sha deadbeef13812345678cafe")
+
     def test_extended_ipv6_mac_pem(self):
         m = self._m()  # PEM/IP/MAC on by default
         raw = (

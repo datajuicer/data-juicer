@@ -762,6 +762,7 @@ class Mapper(OP):
 
     def run(self, dataset, *, exporter=None, tracer=None):
         dataset = super(Mapper, self).run(dataset)
+        source_features = dataset.features if getattr(self, "drop_text", False) else None
 
         # Wrap process method with tracer for sample-level collection
         from data_juicer.core.tracer import should_trace_op
@@ -789,10 +790,11 @@ class Mapper(OP):
                 self.process = original_process
 
         free_models()
-        if getattr(self, "drop_text", False):
+        if source_features is not None:
             from data_juicer.ops.mapper.drop_text import remove_text_from_dataset
 
-            new_dataset = remove_text_from_dataset(new_dataset, self.text_key)
+            # Keep the original path when a literal dotted key was already removed.
+            new_dataset = remove_text_from_dataset(new_dataset, self.text_key, source_features)
         return new_dataset
 
 

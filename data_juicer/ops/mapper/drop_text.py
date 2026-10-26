@@ -48,10 +48,12 @@ def remove_text_from_sample(sample, text_key):
 
 
 def read_text_from_sample(sample, text_key):
+    if isinstance(sample, list):
+        return [read_text_from_sample(value, text_key) for value in sample]
     path = _text_path(sample, text_key)
     if path is None:
         for prefix, rest in _list_prefix(sample, text_key):
-            return [read_text_from_sample(value, rest) for value in sample[prefix]]
+            return read_text_from_sample(sample[prefix], rest)
         raise KeyError(text_key)
     value = sample
     for part in path:

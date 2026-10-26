@@ -54,7 +54,7 @@ class CleanEmailMapperTest(DataJuicerTestCaseBase):
     def test_custom_pattern(self):
         """Custom pattern must produce different results from default pattern.
 
-        Default pattern: [A-Za-z0-9.\\-+_]+@[a-z0-9.\\-+_]+\\.[a-z]+
+        Default pattern: [A-Za-z0-9.\\-+_]+@[A-Za-z0-9.\\-+_]+\\.[A-Za-z]+
         Custom pattern below also matches {user}@host forms (curly braces).
         The input '{admin}@srv.co' does NOT match the default pattern (because
         '{' and '}' are not in the default character class), but DOES match
@@ -79,6 +79,17 @@ class CleanEmailMapperTest(DataJuicerTestCaseBase):
             repl='<MAIL>',
         )
         self._run_clean_email(custom_op, samples)
+
+    def test_uppercase_domain(self):
+        samples = [{
+            'text': 'write to Jane.Doe@Gmail.com today',
+            'target': 'write to  today',
+        }, {
+            'text': 'write to JANE@EXAMPLE.ORG today',
+            'target': 'write to  today',
+        }]
+        op = CleanEmailMapper()
+        self._run_clean_email(op, samples)
 
     def test_no_email_unchanged(self):
         samples = [{

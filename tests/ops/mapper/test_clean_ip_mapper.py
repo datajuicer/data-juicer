@@ -50,6 +50,27 @@ class CleanIpMapperTest(DataJuicerTestCaseBase):
         op = CleanIpMapper()
         self._run_clean_ip(op, samples)
 
+    def test_compressed_ipv6(self):
+
+        samples = [{
+            'text': 'test of ip 2001:db8::ff00:42:8329',
+            'target': 'test of ip '
+        }, {
+            'text': 'loopback ::1 and link-local FE80::1FF:FE23:4567:890A',
+            'target': 'loopback  and link-local '
+        }, {
+            'text': 'connect to [2001:db8::1]:443 now',
+            'target': 'connect to []:443 now'
+        }, {
+            'text': '地址2001:db8::1，请勿外传',
+            'target': '地址，请勿外传'
+        }, {
+            'text': 'std::cout at 12:30 from 00:1B:44:11:3A:B7',
+            'target': 'std::cout at 12:30 from 00:1B:44:11:3A:B7'
+        }]
+        op = CleanIpMapper()
+        self._run_clean_ip(op, samples)
+
     def test_replace_ipv4(self):
 
         samples = [{

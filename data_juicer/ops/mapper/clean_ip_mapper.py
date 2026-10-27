@@ -41,6 +41,22 @@ class CleanIpMapper(Mapper):
             self.pattern += r"{3}(?:(?:1[0-9][0-9])|(?:2[0-4][0-9])|"
             self.pattern += r"(?:25[0-5])|(?:[1-9][0-9])|(?:[0-9]))|"
             self.pattern += r"([\da-fA-F]{1,4}:){7}[\da-fA-F]{1,4}"  # ipv6
+            # compressed ipv6 ("::"), not touching other ASCII word characters
+            # or colons, so "std::cout" and partial matches are left alone
+            hextet = r"[\da-fA-F]{1,4}"
+            compressed = "|".join(
+                [
+                    rf"(?:{hextet}:){{1,7}}:",
+                    rf"(?:{hextet}:){{1,6}}:{hextet}",
+                    rf"(?:{hextet}:){{1,5}}(?::{hextet}){{1,2}}",
+                    rf"(?:{hextet}:){{1,4}}(?::{hextet}){{1,3}}",
+                    rf"(?:{hextet}:){{1,3}}(?::{hextet}){{1,4}}",
+                    rf"(?:{hextet}:){{1,2}}(?::{hextet}){{1,5}}",
+                    rf"{hextet}:(?::{hextet}){{1,6}}",
+                    rf":(?::{hextet}){{1,7}}",
+                ]
+            )
+            self.pattern += rf"|(?<![0-9A-Za-z_:])(?:{compressed})(?![0-9A-Za-z_:])"
         else:
             self.pattern = pattern
             if (len(pattern) > 2) and (

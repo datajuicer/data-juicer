@@ -10,6 +10,7 @@ from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import transfer_filename
 from data_juicer.utils.mm_utils import (
     SpecialTokens,
+    image_to_bytes,
     load_data_with_context,
     load_image,
     remove_special_tokens,
@@ -206,7 +207,7 @@ class ImageDiffusionMapper(Mapper):
                 if self.image_bytes_key in generated_samples[aug_id] and index < len(
                     generated_samples[aug_id][self.image_bytes_key]
                 ):
-                    generated_samples[aug_id][self.image_bytes_key][index] = images[diffusion_image_key].tobytes()
+                    generated_samples[aug_id][self.image_bytes_key][index] = image_to_bytes(images[diffusion_image_key])
             generated_samples[aug_id][self.image_key] = diffusion_image_keys
 
         return generated_samples

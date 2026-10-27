@@ -214,6 +214,13 @@ def load_image_byte(path):
     return load_file_byte(path)
 
 
+def image_to_bytes(image):
+    """Encode a PIL image as PNG file bytes, which ``load_image`` can read back."""
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
 def image_path_to_base64(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")

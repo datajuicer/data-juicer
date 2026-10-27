@@ -156,6 +156,43 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertIsInstance(out["pair_tuple"], tuple)
         self.assertIn("[REDACTED]", out["pair_tuple"][0])
 
+    def test_secret_after_auth_scheme(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text("Authorization: Bearer sk-live-abc123def456"),
+            "Authorization: Bearer [REDACTED]",
+        )
+        self.assertEqual(m._redact_text("authorization: Basic dXNlcjpwYXNz"), "authorization: Basic [REDACTED]")
+        self.assertEqual(m._redact_text("password: basic"), "password: [REDACTED]")
+
+    def test_secret_quoted_value_redacted_up_to_closing_quote(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text('password: "correct horse battery staple" ok'),
+            'password: "[REDACTED]" ok',
+        )
+        self.assertEqual(m._redact_text("secret='a, b} c'"), "secret='[REDACTED]'")
+        self.assertEqual(m._redact_text('password="it\'s \\"quoted\\""'), 'password="[REDACTED]"')
+        self.assertEqual(m._redact_text('password: ""'), 'password: ""')
+
+    def test_secret_with_quoted_key(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text('{"api_key": "sk-abc123", "model": "gpt-4"}'),
+            '{"api_key": "[REDACTED]", "model": "gpt-4"}',
+        )
+        self.assertEqual(m._redact_text("{'password': 'hunter2'}"), "{'password': '[REDACTED]'}")
+        self.assertEqual(
+            m._redact_text('{"Authorization": "Bearer sk-live-abc123"}'),
+            '{"Authorization": "[REDACTED]"}',
+        )
+
+    def test_secret_value_already_masked_as_jwt(self):
+        m = self._m()
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln"
+        self.assertEqual(m._redact_text(f"token={jwt}"), "token=[REDACTED]")
+        self.assertEqual(m._redact_text(f"Authorization: Bearer {jwt}"), "Authorization: Bearer [REDACTED]")
+
 
 if __name__ == "__main__":
     unittest.main()

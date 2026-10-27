@@ -42,10 +42,14 @@ def _compile_patterns() -> dict:
         "path_win_unc": re.compile(r"(^|[\s\"'(\[=])(\\\\[^\s\"')\]]+)"),
         # Email: local@domain.tld (gwm.cn, qq.com, etc.)
         "email": re.compile(r"[a-zA-Z0-9][\w.+-]*@[\w.-]+\.(?:[a-zA-Z]{2,}|\w{2,})"),
-        # Secret keys: key:= value or "key": "value"
+        # Secret keys: key:= value or "key": "value". A quoted value is redacted up to
+        # its closing quote, a placeholder such as [JWT_REDACTED] whole, and an auth
+        # scheme (Bearer, Basic, ...) is kept.
         "secret_kv": re.compile(
             r"(\b(?:api[_-]?key|apikey|secret|password|passwd|token|auth|authorization"
-            r"|credential|license[_-]?key)\s*[:=]\s*[\"']?)([^\s\"',}\]]+)",
+            r"|credential|license[_-]?key)[\"']?\s*[:=]\s*"
+            r"(?:([\"'])|(?:bearer|basic|digest|token)\s+)?)"
+            r"((?(2)(?:\\.|(?!\2)[^\\\n])+|(?:\[[^\s\]]*\]|[^\s\"',}\]]+)))",
             re.IGNORECASE,
         ),
         # Session/user/request IDs (session_id: 123, user_id: ou_xxx)

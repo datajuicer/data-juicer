@@ -7,7 +7,11 @@ changing a target never preempts a worker or unloads a resident model.
 import math
 from dataclasses import asdict, dataclass
 
-from .dag_plan import DAGContractError
+
+class ComputeFlowError(ValueError):
+    """Invalid compute-flow configuration or execution contract."""
+
+    pass
 
 
 @dataclass(frozen=True)
@@ -22,22 +26,26 @@ class ComputeFlowConfig:
 
     def validate(self):
         if self.mode not in ("dynamic", "static"):
-            raise DAGContractError("compute flow mode must be dynamic or static")
+            raise ComputeFlowError("compute flow mode must be dynamic or static")
         for value in (self.interval_seconds, self.starvation_seconds):
-            if not math.isfinite(value) or value <= 0:
-                raise DAGContractError("compute flow intervals must be positive and finite")
-        if not math.isfinite(self.ewma_alpha) or not 0 < self.ewma_alpha <= 1:
-            raise DAGContractError("compute flow ewma_alpha must be in (0, 1]")
+            if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+                raise ComputeFlowError("compute flow intervals must be positive and finite")
+        if (
+            type(self.ewma_alpha) not in (int, float)
+            or not math.isfinite(self.ewma_alpha)
+            or not 0 < self.ewma_alpha <= 1
+        ):
+            raise ComputeFlowError("compute flow ewma_alpha must be in (0, 1]")
         if type(self.hysteresis_workers) is not int or self.hysteresis_workers < 1:
-            raise DAGContractError("hysteresis_workers must be a positive integer")
+            raise ComputeFlowError("hysteresis_workers must be a positive integer")
         if len(set(self.pools)) != len(self.pools):
-            raise DAGContractError("duplicate compute flow pool")
+            raise ComputeFlowError("duplicate compute flow pool")
         try:
             slots = dict(self.initial_slots)
         except (TypeError, ValueError) as error:
-            raise DAGContractError("initial_slots requires (group, workers) pairs") from error
+            raise ComputeFlowError("initial_slots requires (group, workers) pairs") from error
         if len(slots) != len(self.initial_slots) or any(type(n) is not int or n < 0 for n in slots.values()):
-            raise DAGContractError("initial_slots requires unique groups and nonnegative integer counts")
+            raise ComputeFlowError("initial_slots requires unique groups and nonnegative integer counts")
 
 
 @dataclass(frozen=True)
@@ -60,27 +68,27 @@ class ComputeFlowController:
         config.validate()
         self.config = config
         self.compiled = compiled
-        self.pools = config.pools or tuple(p.name for p in compiled["pools"].values() if p.num_gpus)
+        self.pools = config.pools or tuple(name for name, pool in compiled["pools"].items() if pool.num_gpus)
         if not self.pools or not set(self.pools) <= compiled["pools"].keys():
-            raise DAGContractError("compute flow requires known selected pools")
+            raise ComputeFlowError("compute flow requires known selected pools")
         self.groups = {
             p: tuple(g for g in compiled["group_order"] if compiled["groups"][g].pool == p) for p in self.pools
         }
         selected = {g for groups in self.groups.values() for g in groups}
         specified = dict(config.initial_slots)
         if not set(specified) <= selected:
-            raise DAGContractError("initial_slots references an unselected group")
+            raise ComputeFlowError("initial_slots references an unselected group")
         self.targets, self.static_owner = {}, {}
         for pool, groups in self.groups.items():
             workers = compiled["pools"][pool].workers
             if set(groups) & specified.keys():
                 if not set(groups) <= specified.keys() or sum(specified[g] for g in groups) != workers:
-                    raise DAGContractError("initial_slots must cover a pool exactly and sum to its workers")
+                    raise ComputeFlowError("initial_slots must cover a pool exactly and sum to its workers")
                 allocation = {g: specified[g] for g in groups}
             else:
                 allocation = {g: workers // len(groups) + int(i < workers % len(groups)) for i, g in enumerate(groups)}
             if config.mode == "static" and any(n == 0 for n in allocation.values()):
-                raise DAGContractError("static allocation needs at least one worker per selected group")
+                raise ComputeFlowError("static allocation needs at least one worker per selected group")
             self.targets.update(allocation)
             owners = [g for g in groups for _ in range(allocation[g])]
             self.static_owner.update({(pool, i): g for i, g in enumerate(owners)})
@@ -222,3 +230,73 @@ class ComputeFlowController:
             authority="idle actor group leases; actor-local batch state is untouched",
             live_actor_resize=False,
         )
+
+
+@dataclass(frozen=True)
+class PartitionComputeFlowConfig:
+    """Opt-in resident execution within ray_partitioned checkpoint intervals."""
+
+    enabled: bool = False
+    workers: int = 1
+    batch_size: int = 32
+    max_inflight_batches: int = 8
+    max_batch_bytes: int = 128 * 1024**2
+    memory_fraction_limit: float = 0.8
+    mode: str = "dynamic"
+    interval_seconds: float = 0.5
+    ewma_alpha: float = 0.25
+    starvation_seconds: float = 5.0
+    hysteresis_workers: int = 1
+    startup_timeout_seconds: float = 120
+    task_timeout_seconds: float = 600
+
+    @classmethod
+    def parse(cls, value):
+        if value is None:
+            return cls()
+        if hasattr(value, "as_dict"):
+            value = value.as_dict()
+        if not isinstance(value, dict):
+            raise ComputeFlowError("partition.compute_flow must be a mapping")
+        try:
+            result = cls(**value)
+        except TypeError as error:
+            raise ComputeFlowError(f"invalid partition.compute_flow option: {error}") from error
+        if type(result.enabled) is not bool:
+            raise ComputeFlowError("partition.compute_flow.enabled must be a boolean")
+        for name in ("workers", "batch_size", "max_inflight_batches", "max_batch_bytes"):
+            if type(getattr(result, name)) is not int or getattr(result, name) < 1:
+                raise ComputeFlowError(f"partition.compute_flow.{name} must be a positive integer")
+        for name in ("memory_fraction_limit", "startup_timeout_seconds", "task_timeout_seconds"):
+            number = getattr(result, name)
+            if type(number) not in (int, float) or not math.isfinite(number) or number <= 0:
+                raise ComputeFlowError(f"partition.compute_flow.{name} must be positive and finite")
+        if result.memory_fraction_limit > 1:
+            raise ComputeFlowError("compute_flow.memory_fraction_limit must be at most 1")
+        result.controller_config().validate()
+        return result
+
+    def controller_config(self):
+        return ComputeFlowConfig(
+            mode=self.mode,
+            pools=("gpu",),
+            interval_seconds=self.interval_seconds,
+            ewma_alpha=self.ewma_alpha,
+            starvation_seconds=self.starvation_seconds,
+            hysteresis_workers=self.hysteresis_workers,
+        )
+
+
+def partition_compute_flow_config(cfg):
+    partition = cfg.get("partition") or {}
+    result = PartitionComputeFlowConfig.parse(partition.get("compute_flow"))
+    if result.enabled:
+        if cfg.get("executor_type") != "ray_partitioned":
+            raise ComputeFlowError("partition.compute_flow requires ray_partitioned")
+        if not cfg.get("elastic_juicer_adaptive_batching", False):
+            raise ComputeFlowError("partition.compute_flow requires elastic_juicer_adaptive_batching=true")
+        if cfg.get("op_fusion", False):
+            raise ComputeFlowError("partition.compute_flow currently requires op_fusion=false")
+        if cfg.get("elastic_juicer_profile_seed", False):
+            raise ComputeFlowError("partition.compute_flow does not yet support shared stage-profile seeding")
+    return result

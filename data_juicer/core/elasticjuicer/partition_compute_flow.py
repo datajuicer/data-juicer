@@ -5,6 +5,7 @@ This module never starts/stops Ray, checkpoints rows, or retries whole tasks.
 """
 
 import copy
+import gc
 import json
 import math
 import time
@@ -26,6 +27,10 @@ from .stage_identity import operator_fingerprint, stamped_stage_identity
 
 _ROW_COLUMN = "__data_juicer_compute_flow_row_id__"
 _PARTITION_COLUMN = "__data_juicer_logical_partition_id__"
+
+
+class _PoolUnavailable(ComputeFlowError):
+    """Admission/readiness failed before any resident mapper task was submitted."""
 
 
 @dataclass(frozen=True)
@@ -136,6 +141,7 @@ class PartitionComputeFlowSession:
         self.fallbacks = []
         self.pools = []
         self.failure = None
+        self._batch_warnings = set()
 
     def _event(self, **event):
         self.events.write(json.dumps({"call": self.calls, "pool_number": self.pool_number, **event}) + "\n")
@@ -168,21 +174,37 @@ class PartitionComputeFlowSession:
         if signature == self.signature:
             return stages
         self._close_pool()
+        # Materializing Ray Data does not necessarily collect the execution
+        # graph's cyclic actor handles. Release unreachable handles before
+        # waiting for Ray to return their CPU/GPU reservations.
+        deadline = time.monotonic() + self.options.startup_timeout_seconds
+        gc.collect()
         cpus = max(float(op.num_cpus or 1) for op in ops)
         required = {"CPU": cpus * self.options.workers, "GPU": self.options.workers}
         gpu_nodes = [node for node in ray.nodes() if node["Alive"] and node["Resources"].get("GPU", 0) > 0]
         if len(gpu_nodes) != 1:
-            raise ComputeFlowError("GPU topology changed before resident pool creation")
+            raise _PoolUnavailable("GPU topology changed before resident pool creation")
         total = gpu_nodes[0]["Resources"]
         if required["GPU"] > total.get("GPU", 0) or required["CPU"] + 1 > total.get("CPU", 0):
-            raise ComputeFlowError(f"compute-flow pool needs {required} plus one CPU for Ray Data/checkpoint tasks")
+            raise _PoolUnavailable(f"compute-flow pool needs {required} plus one CPU for Ray Data/checkpoint tasks")
         # Only one pool exists at a time. Allow Ray's asynchronous actor teardown
         # to finish before replacing it; never stop or take over another job.
-        deadline = time.monotonic() + min(5, self.options.startup_timeout_seconds)
-        while any(required[k] > ray.available_resources().get(k, 0) for k in required):
-            if time.monotonic() >= deadline:
-                raise ComputeFlowError(f"insufficient free resources for compute-flow pool: {required}")
+        next_collection = time.monotonic() + 1
+        while True:
+            available = ray.available_resources()
+            if all(required[k] <= available.get(k, 0) for k in required):
+                break
+            now = time.monotonic()
+            if now >= deadline:
+                raise _PoolUnavailable(f"insufficient free resources for compute-flow pool: {required}")
+            if now >= next_collection:
+                # Background executors can drop their last live references
+                # after the first collection; avoid a full GC every poll.
+                gc.collect()
+                next_collection = time.monotonic() + 1
             time.sleep(0.05)
+        if time.monotonic() >= deadline:
+            raise _PoolUnavailable("compute-flow resource admission exceeded its startup timeout")
         specs = [
             dict(
                 op_class=type(op),
@@ -203,10 +225,13 @@ class PartitionComputeFlowSession:
                     specs, self.options.max_batch_bytes
                 )
             identities = ray.get(
-                [actor.ready.remote() for actor in self.actors.values()], timeout=self.options.startup_timeout_seconds
+                [actor.ready.remote() for actor in self.actors.values()], timeout=max(0, deadline - time.monotonic())
             )
             self.pools[-1]["instances"] = identities
             self._event(kind="pool", stages=stages, instances=identities, resources=required)
+        except ray.exceptions.GetTimeoutError as error:
+            self._close_pool()
+            raise _PoolUnavailable("compute-flow workers were not ready within the startup timeout") from error
         except BaseException:
             self._close_pool()
             raise
@@ -230,15 +255,28 @@ class PartitionComputeFlowSession:
         # Finish the preceding Ray Data segment before reserving a resident
         # GPU pool. No independent Ray Data actor pool runs this same interval.
         dataset = dataset.materialize()
-        source = iter(
-            dataset.iter_batches(batch_size=self.options.batch_size, batch_format="pyarrow", prefetch_batches=0)
-        )
+        operator_batch_sizes = [op.batch_size for op in ops]
+        largest_batch = max(operator_batch_sizes)
+        batch_size = largest_batch if self.options.batch_size == "auto" else self.options.batch_size
+        warning_key = (batch_size, largest_batch)
+        if batch_size < largest_batch and warning_key not in self._batch_warnings:
+            self._batch_warnings.add(warning_key)
+            logger.warning(
+                f"compute_flow.batch_size={batch_size} caps actual mapper batches below the configured "
+                f"operator batch size {largest_batch}; use batch_size='auto' to retain operator batch caps."
+            )
+        self._event(kind="interval", batch_size=batch_size, operator_batch_sizes=operator_batch_sizes)
+        source = iter(dataset.iter_batches(batch_size=batch_size, batch_format="pyarrow", prefetch_batches=0))
         try:
             first = next(source)
         except StopIteration:
             return dataset
         try:
-            stages = self._ensure_pool(ops)
+            try:
+                stages = self._ensure_pool(ops)
+            except _PoolUnavailable as error:
+                self.fallback(str(error))
+                return None
             result = self._execute_batches(first, source, stages)
             self.executed += 1
             return result

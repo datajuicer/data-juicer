@@ -28,7 +28,7 @@ partition:
   compute_flow:
     enabled: true
     workers: 2
-    batch_size: 32
+    batch_size: auto
     max_inflight_batches: 8
     max_batch_bytes: 134217728
     memory_fraction_limit: 0.8
@@ -49,6 +49,14 @@ per-operator runtime environments and error-skipping use the existing Ray Data
 path. Selection happens before resident execution. A failure after resident work
 starts fails the interval; it never silently replays the interval through another
 execution path.
+
+Pool admission and readiness also happen before submitting any mapper work.
+The executor collects unreachable Ray Data actor handles at this handoff and
+waits for resource release. Insufficient capacity, unavailable resources or a
+readiness timeout select the existing Ray Data path after releasing the owned
+pool. Operator-initialization exceptions and user interrupts still propagate;
+they are not treated as resource unavailability. Other jobs' actors are never
+stopped to make room.
 
 ## Partitions, checkpoint barriers and resume
 
@@ -104,6 +112,16 @@ Dataset and operator temporary allocations are outside this in-flight budget.
 There is no claim of bounded total dataset storage or physical VRAM from these
 Arrow limits.
 
+`batch_size: auto` (the default) uses the largest configured operator batch size
+in the selected interval for transport. Each operator still uses its own
+`op.batch_size` cap and adaptive microbatch controller, so smaller-cap operators
+slice that transport batch locally. An explicit positive integer sets a fixed
+transport batch size. A value below an operator's cap limits its actual batches
+and adaptive exploration; the executor warns about this choice and records the
+resolved transport size and operator caps in the interval event. Small explicit
+sizes also increase task and output-block counts. The existing byte limit still
+applies to input and intermediate batches, including with `auto`.
+
 ## Scheduling and diagnostics
 
 `mode: dynamic` is the default. Ready and in-flight row counts are weighted by
@@ -116,8 +134,10 @@ priority prevents starvation. Targets never overwrite local batch/OOM state.
 `mode: static` assigns fixed worker slots to stages as an experimental control.
 It requires at least one worker per stage; otherwise the interval uses the
 existing execution path. Static mode uses identical data transport and local
-adaptive batching. `startup_timeout_seconds` defaults to 120 and
-`task_timeout_seconds` to 600.
+adaptive batching. `startup_timeout_seconds` defaults to 120 and is one shared
+budget for pool admission, resource release and actor readiness (with no separate
+five-second resource-wait cap). `task_timeout_seconds` defaults to 600; a timeout
+after submitting mapper work fails the interval rather than replaying it.
 
 Each run has a unique directory under `work_dir/compute_flow/`, preserving failed
 run evidence across resume. `events.jsonl` records actual pool instances,
@@ -139,7 +159,9 @@ The transport tests run the public `PartitionedRayExecutor.run()` with real loca
 Ray workers, logical GPU reservations, injected preflight estimates and injected
 OOMs. They check output/order equality with the disabled path, model-instance
 reuse, reassignment, local retry isolation, checkpoint barriers, completed and
-partial-checkpoint resume, fallback decisions and resource cleanup.
+partial-checkpoint resume, mixed Ray Data/resident intervals with deferred cyclic
+GC, admission/readiness fallback, resource cleanup, automatic transport sizing
+and explicit small-batch overrides.
 
 These CPU-arithmetic tests do not establish physical GPU compatibility or
 throughput improvements. Earlier standalone resident-DAG measurements do not

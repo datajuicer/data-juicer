@@ -6,6 +6,7 @@ changing a target never preempts a worker or unloads a resident model.
 
 import math
 from dataclasses import asdict, dataclass
+from typing import Literal, Union
 
 
 class ComputeFlowError(ValueError):
@@ -238,7 +239,7 @@ class PartitionComputeFlowConfig:
 
     enabled: bool = False
     workers: int = 1
-    batch_size: int = 32
+    batch_size: Union[int, Literal["auto"]] = "auto"
     max_inflight_batches: int = 8
     max_batch_bytes: int = 128 * 1024**2
     memory_fraction_limit: float = 0.8
@@ -264,7 +265,9 @@ class PartitionComputeFlowConfig:
             raise ComputeFlowError(f"invalid partition.compute_flow option: {error}") from error
         if type(result.enabled) is not bool:
             raise ComputeFlowError("partition.compute_flow.enabled must be a boolean")
-        for name in ("workers", "batch_size", "max_inflight_batches", "max_batch_bytes"):
+        if result.batch_size != "auto" and (type(result.batch_size) is not int or result.batch_size < 1):
+            raise ComputeFlowError("partition.compute_flow.batch_size must be 'auto' or a positive integer")
+        for name in ("workers", "max_inflight_batches", "max_batch_bytes"):
             if type(getattr(result, name)) is not int or getattr(result, name) < 1:
                 raise ComputeFlowError(f"partition.compute_flow.{name} must be a positive integer")
         for name in ("memory_fraction_limit", "startup_timeout_seconds", "task_timeout_seconds"):

@@ -63,8 +63,8 @@ class TopkSpecifiedFieldSelector(Selector):
             return dataset
 
         select_num = 0
-        if not self.top_ratio:
-            if not self.topk:
+        if self.top_ratio is None:
+            if self.topk is None:
                 return dataset
             else:
                 select_num = self.topk

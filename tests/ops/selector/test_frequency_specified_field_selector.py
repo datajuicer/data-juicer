@@ -548,6 +548,28 @@ class FrequencySpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
                                              reverse=False)
         self._run_frequency_selector(dataset, tgt_list, op)
 
+    def test_zero_ratio_selects_nothing(self):
+        dataset = Dataset.from_list([{
+            'text': 'a',
+            'lang': 'en'
+        }, {
+            'text': 'b',
+            'lang': 'en'
+        }, {
+            'text': 'c',
+            'lang': 'zh'
+        }])
+        for kwargs in [
+            {'top_ratio': 0.0},
+            {'top_ratio': 0.0, 'topk': 1},
+            {'top_ratio': 0.1},
+        ]:
+            with self.subTest(**kwargs):
+                op = FrequencySpecifiedFieldSelector(field_key='lang', **kwargs)
+                result = op.process(dataset)
+                self.assertEqual(len(result), 0)
+                self.assertEqual(result.features, dataset.features)
+
 
 if __name__ == '__main__':
     unittest.main()

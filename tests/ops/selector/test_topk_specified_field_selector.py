@@ -751,6 +751,28 @@ class TopkSpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
                                             reverse=False)
             self._run_topk_selector(dataset, [{'text': 'a', 'score': a}], op)
 
+    def test_zero_ratio_selects_nothing(self):
+        dataset = Dataset.from_list([{
+            'text': 'a',
+            'score': 1
+        }, {
+            'text': 'b',
+            'score': 2
+        }, {
+            'text': 'c',
+            'score': 3
+        }])
+        for kwargs in [
+            {'top_ratio': 0.0},
+            {'top_ratio': 0.0, 'topk': 2},
+            {'top_ratio': 0.1},
+        ]:
+            with self.subTest(**kwargs):
+                op = TopkSpecifiedFieldSelector(field_key='score', **kwargs)
+                result = op.process(dataset)
+                self.assertEqual(len(result), 0)
+                self.assertEqual(result.features, dataset.features)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -55,6 +55,11 @@ class Exporter:
         :param encryption_key_path: path to a file containing the Fernet key.
             Falls back to the ``DJ_ENCRYPTION_KEY`` environment variable when
             ``None``. Only used when ``encrypt_before_export`` is True.
+        :param kwargs: For Iceberg, table_identifier and catalog_kwargs are
+            required. mode defaults to "overwrite" (replace the entire existing
+            table on every run); "append" adds rows, including on repeated runs.
+            export_path is a local stats/artifact anchor, not the table address.
+            Missing tables, sharding and file encryption are not supported.
         """
         self.export_path = export_path
         self.export_shard_size = export_shard_size
@@ -72,6 +77,19 @@ class Exporter:
             )
         self.num_proc = num_proc
         self.max_shard_size_str = ""
+        self.iceberg_config = None
+        if self.suffix == "iceberg":
+            from data_juicer.utils.iceberg_utils import (
+                iceberg_export_config,
+                validate_iceberg_artifact,
+            )
+
+            if export_ds:
+                self.iceberg_config = iceberg_export_config(
+                    export_path, export_shard_size, encrypt_before_export, kwargs
+                )
+            else:
+                validate_iceberg_artifact(export_path, export_shard_size, encrypt_before_export)
 
         # Set up encryption for local export
         self.encrypt_before_export = encrypt_before_export
@@ -248,7 +266,11 @@ class Exporter:
                 # If meta/stats were serialized as JSON strings (e.g. \\uXXXX),
                 # parse back to dict so to_json(force_ascii=False) writes UTF-8.
                 ds_stats = Exporter._ensure_meta_stats_dicts_for_export(ds_stats)
-                stats_file = export_path.replace("." + suffix, "_stats.jsonl")
+                stats_file = (
+                    os.path.splitext(export_path)[0] + "_stats.jsonl"
+                    if suffix == "iceberg"
+                    else export_path.replace("." + suffix, "_stats.jsonl")
+                )
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
                 # Add storage_options if available (for S3/HDFS export)
                 if self.storage_options is not None:
@@ -275,6 +297,8 @@ class Exporter:
                 removed_fields = extra_fields.intersection(feature_fields)
                 dataset = dataset.remove_columns(removed_fields)
             export_method = Exporter._router()[suffix]
+            if suffix == "iceberg":
+                return export_method(dataset, export_path, **self.iceberg_config)
             if self.export_shard_size <= 0:
                 # export the whole dataset into one single file.
                 logger.info("Export dataset into a single file...")
@@ -384,6 +408,17 @@ class Exporter:
         """
         Export method for saving compute status in filters
         """
+        if self.suffix == "iceberg":
+            from data_juicer.utils.iceberg_utils import validate_iceberg_artifact
+
+            validate_iceberg_artifact(export_path)
+            keep_stats = self.keep_stats_in_res_ds
+            self.keep_stats_in_res_ds = True
+            try:
+                self._export_impl(dataset, export_path, "jsonl", export_stats=False)
+            finally:
+                self.keep_stats_in_res_ds = keep_stats
+            return
         keep_stats_in_res_ds = self.keep_stats_in_res_ds
         self.keep_stats_in_res_ds = True
         self._export_impl(dataset, export_path, self.suffix, export_stats=False)
@@ -491,6 +526,33 @@ class Exporter:
         else:
             dataset.to_parquet(export_path)
 
+    @staticmethod
+    def to_iceberg(dataset, export_path, table_identifier, catalog_kwargs, mode="overwrite"):
+        """Write stored Arrow values in logical row order to an existing table."""
+        from data_juicer.utils.iceberg_utils import (
+            align_iceberg_nullability,
+            load_iceberg_table,
+            validate_iceberg_schema,
+        )
+
+        table = load_iceberg_table(table_identifier, catalog_kwargs)
+        dataset = dataset.with_format("arrow")
+        arrow = dataset.flatten_indices().data.table if dataset._indices is not None else dataset.data.table
+        arrow = align_iceberg_nullability(arrow, table)
+        validate_iceberg_schema(arrow.schema, table)
+        if mode == "overwrite":
+            if arrow.num_rows:
+                table.overwrite(arrow)
+            else:
+                from pyiceberg.expressions import AlwaysTrue
+
+                table.delete(delete_filter=AlwaysTrue())
+        elif mode == "append":
+            if arrow.num_rows:
+                table.append(arrow)
+        else:
+            raise ValueError("Iceberg export mode must be append or overwrite")
+
     # suffix to export method
     @staticmethod
     def _router():
@@ -503,4 +565,5 @@ class Exporter:
             "jsonl": Exporter.to_jsonl,
             "json": Exporter.to_json,
             "parquet": Exporter.to_parquet,
+            "iceberg": Exporter.to_iceberg,
         }

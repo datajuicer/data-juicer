@@ -1,6 +1,7 @@
 import fnmatch
 import os
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Optional, Type
 
@@ -9,7 +10,10 @@ from jsonargparse import Namespace
 from loguru import logger
 
 from data_juicer.core.data import DJDataset
-from data_juicer.core.data.config_validator import ConfigValidator
+from data_juicer.core.data.config_validator import (
+    ConfigValidationError,
+    ConfigValidator,
+)
 from data_juicer.download.downloader import validate_snapshot_format
 from data_juicer.format.formatter import unify_format
 from data_juicer.format.load import load_formatter
@@ -182,6 +186,113 @@ class DefaultDataLoadStrategy(DataLoadStrategy):
     @abstractmethod
     def load_data(self, **kwargs) -> DJDataset:
         """Need to be implemented in the"""
+
+
+class IcebergConfigMixin:
+    """Shared configuration for Iceberg readers; catalog properties remain native to PyIceberg."""
+
+    CONFIG_VALIDATION_RULES = {
+        "required_fields": ["table_identifier", "catalog_kwargs"],
+        "optional_fields": ["snapshot_id", "row_filter", "selected_fields", "path"],
+        "field_types": {
+            "table_identifier": str,
+            "catalog_kwargs": dict,
+            "snapshot_id": int,
+            "row_filter": str,
+            "selected_fields": list,
+            "path": str,
+        },
+        "custom_validators": {},
+    }
+
+    def validate_config(self, ds_config):
+        super().validate_config(ds_config)
+        for name in ("table_identifier", "row_filter", "path"):
+            if name in ds_config and not ds_config[name].strip():
+                raise ConfigValidationError(f"Field '{name}' must not be empty")
+        if "snapshot_id" in ds_config:
+            snapshot_id = ds_config["snapshot_id"]
+            if isinstance(snapshot_id, bool) or snapshot_id <= 0:
+                raise ConfigValidationError("Field 'snapshot_id' must be a positive integer")
+        if "selected_fields" in ds_config:
+            fields = ds_config["selected_fields"]
+            if not fields or any(not isinstance(field, str) or not field.strip() for field in fields):
+                raise ConfigValidationError("Field 'selected_fields' must be a non-empty list of column names")
+
+    @staticmethod
+    def _catalog_loader():
+        try:
+            from pyiceberg.catalog import load_catalog
+        except ImportError as e:
+            raise RuntimeError(
+                'Iceberg reading requires PyIceberg. Install with `uv pip install "py-data-juicer[iceberg]"`.'
+            ) from e
+        return load_catalog
+
+    def _scan_args(self):
+        args = {key: self.ds_config[key] for key in ("snapshot_id", "row_filter") if key in self.ds_config}
+        if "row_filter" in args:
+            from pyiceberg.expressions.parser import parse
+
+            # Ray's worker-side ArrowScan requires an expression, even though
+            # Table.scan also accepts a string on the Local path.
+            args["row_filter"] = parse(args["row_filter"])
+        if "selected_fields" in self.ds_config:
+            args["selected_fields"] = tuple(self.ds_config["selected_fields"])
+        return args
+
+
+@DataLoadStrategyRegistry.register("default", "remote", "iceberg")
+class DefaultIcebergDataLoadStrategy(IcebergConfigMixin, DefaultDataLoadStrategy):
+    """Read an Iceberg scan into memory and apply the usual Local dataset normalization."""
+
+    def load_data(self, **kwargs):
+        load_catalog = self._catalog_loader()
+        table_identifier = self.ds_config["table_identifier"]
+        try:
+            # Do not rewrite S3 properties or inject credentials. PyIceberg owns
+            # catalog/FileIO authentication, including its default credential chain.
+            catalog = load_catalog(**deepcopy(self.ds_config["catalog_kwargs"]))
+            table = catalog.load_table(table_identifier)
+            dataset = datasets.Dataset(table.scan(**self._scan_args()).to_arrow())
+        except Exception as e:
+            raise RuntimeError(f"Failed to read Iceberg table {table_identifier}") from e
+        return unify_format(
+            dataset,
+            text_keys=getattr(self.cfg, "text_keys", ["text"]),
+            num_proc=kwargs.get("num_proc", 1),
+            global_cfg=self.cfg,
+            dataset_path=self.ds_config.get("path"),
+        )
+
+
+@DataLoadStrategyRegistry.register("ray", "remote", "iceberg")
+class RayIcebergDataLoadStrategy(IcebergConfigMixin, RayDataLoadStrategy):
+    """Read Iceberg with Ray's native distributed reader, without collecting on the driver."""
+
+    def load_data(self, **kwargs):
+        import ray.data
+        from packaging.version import Version
+
+        if Version(ray.__version__) < Version("2.52.0"):
+            raise RuntimeError("Iceberg reading in Ray mode requires Ray >=2.52.0")
+        self._catalog_loader()
+
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        table_identifier = self.ds_config["table_identifier"]
+        try:
+            dataset = ray.data.read_iceberg(
+                table_identifier=table_identifier,
+                catalog_kwargs=deepcopy(self.ds_config["catalog_kwargs"]),
+                override_num_blocks=kwargs.get("override_num_blocks"),
+                **self._scan_args(),
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to read Iceberg table {table_identifier} in Ray") from e
+        # A table identifier is not a filesystem path. Only use an explicitly
+        # supplied path as the anchor for relative multimedia paths.
+        return RayDataset(dataset, dataset_path=self.ds_config.get("path"), cfg=self.cfg)
 
 
 # TODO dask support

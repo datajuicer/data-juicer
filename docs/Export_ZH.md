@@ -12,6 +12,29 @@ Data-Juicer 通过 `Exporter`（默认模式）或 `RayExporter`（Ray 模式）
 - **S3 导出** — 将结果直接写入 Amazon S3 或 S3 兼容存储
 - **统计信息和哈希管理** — 控制输出中保留哪些中间字段
 
+## Apache Iceberg 表
+
+默认模式和 Ray 模式都可以写入已有的 Iceberg 表。安装 `py-data-juicer[iceberg]`；Ray 模式还需要 distributed 扩展及 Ray >=2.53。按[数据集配置](DatasetCfg_ZH.md#apache-iceberg-表)设置命名 PyIceberg catalog，凭证不要写在菜谱中。
+
+```yaml
+export_type: iceberg
+export_path: ./outputs/result.jsonl  # 本地产物路径，不是目标表的位置
+export_extra_args:
+  table_identifier: default.cleaned_documents
+  catalog_kwargs:
+    name: production
+  mode: overwrite
+keep_stats_in_res_ds: false
+keep_hashes_in_res_ds: false
+```
+
+写出必须显式填写 `catalog_kwargs.name`。目标表及 namespace 必须提前存在。Data-Juicer 不自动建表或修改表的字段结构；输入类型不兼容时直接报错，不会退回普通文件导出。建议使用与输入不同的目标表，除非你明确希望替换源表。目标表的顶层必填（required）列只要本次结果中没有空值即可写入；出现空值会报错且不修改表。
+
+- `overwrite`（默认）：用本次处理结果替换表中全部现有行；空结果会清空目标表。
+- `append`：把本次结果追加到已有行后面；重跑会再次追加，空结果不改变目标表。
+
+即使表数据放在 S3/OSS，`export_path` 也必须填写本地路径，它不是表数据的写入位置。默认模式下，统计信息会写入独立的 `_stats.jsonl` 文件；表数据位置由 catalog 决定。Iceberg 不支持文件加密及 `export_shard_size > 0`。Ray 将结果物化一次，按已有表结构完成校验和对齐，然后通过 Ray 公共的 `Dataset.write_iceberg()` API 并行写入数据文件，不提交字段结构变更。失败的写入可能在存储中留下尚未提交的数据文件，但这些文件不属于表的已提交快照。
+
 ## 配置
 
 ### 基本设置

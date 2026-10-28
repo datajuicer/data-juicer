@@ -45,6 +45,51 @@ dataset:
 
 See [remote_huggingface.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/remote_huggingface.yaml) for a complete example.
 
+### Apache Iceberg table
+
+Install the Iceberg reader. Ray mode also requires the distributed extra and Ray 2.52 or later:
+
+```bash
+pip install "py-data-juicer[iceberg]"
+pip install "py-data-juicer[iceberg,distributed]"  # Ray mode
+```
+
+Set `source` to `iceberg`, identify the table, and pass a standard PyIceberg catalog configuration:
+
+```yaml
+executor_type: default  # use ray for distributed reading
+
+dataset:
+  configs:
+    - type: remote
+      source: iceberg
+      table_identifier: default.documents
+      catalog_kwargs:
+        name: production
+      snapshot_id: 1234567890            # optional
+      row_filter: "language == 'en'"     # optional PyIceberg expression
+      selected_fields: [id, text]        # optional projection
+
+override_num_blocks: 64                 # optional, Ray mode only
+```
+
+`catalog_kwargs` is passed to PyIceberg without rewriting. Keep credentials outside the recipe by configuring the named catalog through PyIceberg. For example:
+
+```bash
+export PYICEBERG_CATALOG__PRODUCTION__TYPE=rest
+export PYICEBERG_CATALOG__PRODUCTION__URI=https://catalog.example.com
+export PYICEBERG_CATALOG__PRODUCTION__WAREHOUSE=s3://bucket/warehouse
+export PYICEBERG_CATALOG__PRODUCTION__S3__ACCESS_KEY_ID=...
+export PYICEBERG_CATALOG__PRODUCTION__S3__SECRET_ACCESS_KEY=...
+export PYICEBERG_CATALOG__PRODUCTION__S3__REGION=us-east-1
+```
+
+PyIceberg also supports `~/.pyiceberg.yaml`. Data-Juicer redacts credential-like fields if a catalog configuration is placed directly in the recipe, but environment variables or the PyIceberg configuration file avoid storing credentials in the recipe itself.
+
+The default executor materializes the selected table scan into a local dataset. Ray mode uses Ray's native Iceberg reader and keeps the scan distributed. In Ray 2.52, a table with no data files produces an empty dataset without an inferred schema. Reading does not modify the source table. To write processing results to an existing Iceberg table, configure [Iceberg export](Export.md#apache-iceberg-tables).
+
+See [demos/process_iceberg/config.yaml](../demos/process_iceberg/config.yaml) for a complete processing recipe.
+
 ### arXiv data
 
 For arXiv papers, use the [preprocessing tools](../tools/preprocess/README.md) to download and convert arXiv tar archives into JSONL format that Data-Juicer can process directly.

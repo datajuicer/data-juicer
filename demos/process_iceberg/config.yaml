@@ -1,0 +1,21 @@
+project_name: iceberg_read_demo
+executor_type: default
+
+np: 4
+text_keys: [text]
+
+dataset:
+  configs:
+    - type: remote
+      source: iceberg
+      table_identifier: default.documents
+      catalog_kwargs:
+        name: production
+      row_filter: "language == 'en'"
+      selected_fields: [id, text, language]
+
+process:
+  - text_length_filter:
+      min_len: 10
+
+export_path: ./outputs/iceberg_read_demo/result.parquet

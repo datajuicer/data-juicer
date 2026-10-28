@@ -45,6 +45,51 @@ dataset:
 
 完整示例参见 [remote_huggingface.yaml](https://github.com/datajuicer/data-juicer-hub/blob/main/dataset_config/remote_huggingface.yaml)。
 
+### Apache Iceberg 表
+
+安装 Iceberg 读取依赖；Ray 模式还需要 distributed 扩展，且 Ray 版本须为 2.52 或更高：
+
+```bash
+pip install "py-data-juicer[iceberg]"
+pip install "py-data-juicer[iceberg,distributed]"  # Ray 模式
+```
+
+将 `source` 设为 `iceberg`，指定表标识，并传入标准的 PyIceberg catalog 配置：
+
+```yaml
+executor_type: default  # 分布式读取使用 ray
+
+dataset:
+  configs:
+    - type: remote
+      source: iceberg
+      table_identifier: default.documents
+      catalog_kwargs:
+        name: production
+      snapshot_id: 1234567890            # 可选：指定快照
+      row_filter: "language == 'en'"     # 可选：PyIceberg 过滤表达式
+      selected_fields: [id, text]        # 可选：只读取指定列
+
+override_num_blocks: 64                 # 可选：仅 Ray 模式使用
+```
+
+`catalog_kwargs` 会原样传给 PyIceberg，不改写配置键。建议通过 PyIceberg 配置命名 catalog，将凭证放在菜谱之外。例如：
+
+```bash
+export PYICEBERG_CATALOG__PRODUCTION__TYPE=rest
+export PYICEBERG_CATALOG__PRODUCTION__URI=https://catalog.example.com
+export PYICEBERG_CATALOG__PRODUCTION__WAREHOUSE=s3://bucket/warehouse
+export PYICEBERG_CATALOG__PRODUCTION__S3__ACCESS_KEY_ID=...
+export PYICEBERG_CATALOG__PRODUCTION__S3__SECRET_ACCESS_KEY=...
+export PYICEBERG_CATALOG__PRODUCTION__S3__REGION=us-east-1
+```
+
+PyIceberg 也支持 `~/.pyiceberg.yaml`。如果直接在菜谱中填写 catalog 配置，Data-Juicer 会对日志中的凭证类字段脱敏；使用环境变量或 PyIceberg 配置文件则可以避免将凭证保存在菜谱本身。
+
+默认执行器会将选定的表扫描结果物化为本地数据集。Ray 模式使用 Ray 原生 Iceberg reader，保留分布式读取。在 Ray 2.52 中，没有数据文件的空表会返回无法推断 schema 的空数据集。读取不会修改源表。若需将处理结果写入已有 Iceberg 表，请配置 [Iceberg 导出](Export_ZH.md#apache-iceberg-表)。
+
+完整处理菜谱参见 [demos/process_iceberg/config.yaml](../demos/process_iceberg/config.yaml)。
+
 ### arXiv 数据
 
 arXiv 论文请使用[预处理工具](../tools/preprocess/README_ZH.md)下载并将 arXiv tar 包转为 Data-Juicer 可直接处理的 JSONL 格式。

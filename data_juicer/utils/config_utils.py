@@ -2,7 +2,36 @@
 Configuration utilities for handling both dict and object-style configs.
 """
 
+import re
 from typing import Any
+
+from jsonargparse import Namespace
+
+
+def redact_sensitive_config(value):
+    """Return a display-only copy with credentials and URI userinfo hidden."""
+    if isinstance(value, Namespace):
+        value = value.as_dict()
+    if isinstance(value, dict):
+        redacted = {}
+        for key, item in value.items():
+            tokens = str(key).lower().replace("-", "_").replace(".", "_").split("_")
+            sensitive = any(
+                token in {"password", "passwd", "secret", "token", "credential", "credentials", "authorization"}
+                for token in tokens
+            ) or any(
+                tokens[index : index + 2] in (["access", "key"], ["account", "key"], ["api", "key"], ["private", "key"])
+                for index in range(len(tokens) - 1)
+            )
+            redacted[key] = "***" if sensitive else redact_sensitive_config(item)
+        return redacted
+    if isinstance(value, str):
+        return re.sub(r"(?<=://)[^/@\s]+@", "***@", value)
+    if isinstance(value, list):
+        return [redact_sensitive_config(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_sensitive_config(item) for item in value)
+    return value
 
 
 class ConfigAccessor:

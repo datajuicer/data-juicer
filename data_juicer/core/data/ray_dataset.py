@@ -70,6 +70,8 @@ def set_dataset_to_absolute_path(dataset, dataset_path, cfg):
     """
     path_keys = []
     columns = dataset.columns()
+    if columns is None:
+        return dataset
     for key in [
         cfg.get("video_key", "videos"),
         cfg.get("image_key", "images"),

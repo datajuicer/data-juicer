@@ -5,9 +5,12 @@ from jsonargparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
 from data_juicer.config import init_configs
-from data_juicer.core.data.dataset_builder import (rewrite_cli_datapath, 
-                                                   parse_cli_datapath,
-                                                   DatasetBuilder)
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    _redact_sensitive_config,
+    parse_cli_datapath,
+    rewrite_cli_datapath,
+)
 from data_juicer.core.data.config_validator import ConfigValidationError
 from data_juicer.utils.unittest_utils import (DataJuicerTestCaseBase, TEST_TAG)
 from data_juicer.core.data.load_strategy import RayLocalJsonDataLoadStrategy
@@ -18,6 +21,63 @@ WORK_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
              
 
 class DatasetBuilderTest(DataJuicerTestCaseBase):
+
+    def test_startup_redacts_read_and_write_credentials_in_console_and_logs(self):
+        import gzip
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        import yaml
+
+        read_secret = "SYNTHETIC_READ_SECRET_1107"
+        write_token = "SYNTHETIC_WRITE_TOKEN_1107"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            config = {
+                "project_name": "iceberg_redaction_test",
+                "np": 1,
+                "work_dir": str(root / "work"),
+                "dataset": {"configs": [{
+                    "type": "remote", "source": "iceberg", "table_identifier": "training.source",
+                    "catalog_kwargs": {"name": "test", "s3.secret-access-key": read_secret},
+                }]},
+                "export_path": str(root / "output.jsonl"),
+                "export_type": "iceberg",
+                "export_extra_args": {
+                    "table_identifier": "training.target",
+                    "catalog_kwargs": {"name": "test", "token": write_token},
+                },
+                "process": [],
+            }
+            recipe = root / "recipe.yaml"
+            recipe.write_text(yaml.safe_dump(config))
+            result = subprocess.run(
+                [sys.executable, "-c",
+                 "import sys; from data_juicer.config import init_configs; "
+                 "cfg = init_configs(['--config', sys.argv[1]]); "
+                 "assert cfg.dataset['configs'][0]['catalog_kwargs']['s3.secret-access-key'] == sys.argv[2]; "
+                 "assert cfg.export_extra_args['catalog_kwargs']['token'] == sys.argv[3]",
+                 str(recipe), read_secret, write_token],
+                cwd=Path(__file__).resolve().parents[3], capture_output=True, text=True, timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            console = result.stdout + result.stderr
+            self.assertIn("s3.secret-access-key", console)
+            self.assertIn("***", console)
+            logs = list(root.rglob("*.txt*"))
+            self.assertTrue(logs)
+            contents = [console]
+            for path in logs:
+                if path.suffix == ".gz":
+                    with gzip.open(path, "rt") as log:
+                        contents.append(log.read())
+                else:
+                    contents.append(path.read_text())
+            self.assertTrue(any("s3.secret-access-key" in content for content in contents[1:]))
+            for content in contents:
+                self.assertNotIn(read_secret, content)
+                self.assertNotIn(write_token, content)
 
     def setUp(self):
         """Setup basic configuration for tests"""
@@ -35,6 +95,34 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
     def tearDown(self):
         super().tearDown()
         os.chdir(self._original_cwd)
+
+    def test_redact_sensitive_dataset_config(self):
+        config = {
+            "configs": [
+                {
+                    "source": "iceberg",
+                    "catalog_kwargs": {
+                        "s3.access-key-id": "access",
+                        "s3.secret-access-key": "secret",
+                        "oauth_token": "token",
+                        "adls.account-key": "account-key",
+                        "uri": "postgresql://user:password@catalog.example.com/db",
+                        "warehouse": "s3://bucket/path",
+                    },
+                }
+            ]
+        }
+        redacted = _redact_sensitive_config(config)
+
+        self.assertEqual(redacted["configs"][0]["catalog_kwargs"]["s3.access-key-id"], "***")
+        self.assertEqual(redacted["configs"][0]["catalog_kwargs"]["s3.secret-access-key"], "***")
+        self.assertEqual(redacted["configs"][0]["catalog_kwargs"]["oauth_token"], "***")
+        self.assertEqual(redacted["configs"][0]["catalog_kwargs"]["adls.account-key"], "***")
+        self.assertEqual(
+            redacted["configs"][0]["catalog_kwargs"]["uri"], "postgresql://***@catalog.example.com/db"
+        )
+        self.assertEqual(redacted["configs"][0]["catalog_kwargs"]["warehouse"], "s3://bucket/path")
+        self.assertEqual(config["configs"][0]["catalog_kwargs"]["s3.secret-access-key"], "secret")
 
     def test_rewrite_cli_datapath_local_single_file(self):
         dataset_path = os.path.join(WORK_DIR, "test_data/sample.txt")

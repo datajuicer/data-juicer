@@ -985,5 +985,353 @@ class TestRayHdfsDataLoadStrategy(DataJuicerTestCaseBase):
 
 
 
+class IcebergFixture:
+    """Real local tables shared by Local and Ray integration tests."""
+
+    def setUp(self):
+        super().setUp()
+        import importlib.util
+
+        if importlib.util.find_spec("pyiceberg") is None:
+            self.skipTest("Install py-data-juicer[iceberg] to run Iceberg integration tests")
+        from pathlib import Path
+        import pyarrow as pa
+        from pyiceberg.catalog import load_catalog
+
+        # CI workers share the repository mount, but not the head's /tmp.
+        temp = tempfile.TemporaryDirectory(prefix="tmp_iceberg_", dir=WORK_DIR)
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.catalog_kwargs = {
+            "name": "local_test",
+            "type": "sql",
+            "uri": f"sqlite:///{self.root / 'catalog.db'}",
+            "warehouse": self.root.as_uri(),
+            "py-io-impl": "pyiceberg.io.pyarrow.PyArrowFileIO",
+            # Native properties must survive unchanged, even for a local catalog.
+            "s3.endpoint": "http://127.0.0.1:1",
+            "s3.region": "us-east-1",
+        }
+        self.catalog = load_catalog(**self.catalog_kwargs)
+        self.catalog.create_namespace("training")
+        self.arrow_schema = pa.schema([("id", pa.int64()), ("body", pa.string()), ("language", pa.string())])
+        self.table = self.catalog.create_table("training.documents", schema=self.arrow_schema)
+        self.initial = [
+            {"id": 1, "body": "A long training document", "language": "en"},
+            {"id": 2, "body": "短", "language": "zh"},
+        ]
+        self.added = [{"id": 3, "body": "另一篇足够长的训练文章", "language": "zh"}]
+        self.table.append(pa.Table.from_pylist(self.initial, schema=self.arrow_schema))
+        self.snapshot_id = self.table.current_snapshot().snapshot_id
+        self.table.append(pa.Table.from_pylist(self.added, schema=self.arrow_schema))
+        self.ds_config = {
+            "type": "remote",
+            "source": "iceberg",
+            "table_identifier": "training.documents",
+            "catalog_kwargs": self.catalog_kwargs,
+        }
+        self.cfg = Namespace(
+            dataset={"configs": [self.ds_config]},
+            text_keys=["body"],
+            text_key="body",
+            np=1,
+        )
+
+    def create_typed_table(self):
+        import datetime
+        from decimal import Decimal
+
+        import pyarrow as pa
+
+        schema = pa.schema(
+            [
+                ("id", pa.int64()),
+                ("body", pa.string()),
+                ("score", pa.float64()),
+                ("price", pa.decimal128(10, 2)),
+                ("blob", pa.binary()),
+                ("created", pa.timestamp("us")),
+                ("tags", pa.list_(pa.string())),
+                ("meta", pa.struct([("source", pa.string()), ("page", pa.int32())])),
+                ("note", pa.string()),
+            ]
+        )
+        rows = [
+            {
+                "id": 1,
+                "body": "typed row one",
+                "score": 0.5,
+                "price": Decimal("12.34"),
+                "blob": b"\x00\xffbin",
+                "created": datetime.datetime(2026, 1, 2, 3, 4, 5, 678901),
+                "tags": ["a", "b"],
+                "meta": {"source": "web", "page": 7},
+                "note": None,
+            },
+            {
+                "id": 2,
+                "body": "typed row two",
+                "score": None,
+                "price": None,
+                "blob": None,
+                "created": None,
+                "tags": [],
+                "meta": None,
+                "note": "present",
+            },
+        ]
+        table = self.catalog.create_table("training.typed", schema=schema)
+        table.append(pa.Table.from_pylist(rows, schema=schema))
+        self.ds_config["table_identifier"] = "training.typed"
+        return table.scan().to_arrow()
+
+    def load(self, executor="default"):
+        from data_juicer.core.data.dataset_builder import DatasetBuilder
+
+        return DatasetBuilder(self.cfg, executor_type=executor).load_dataset()
+
+    def create_media_table(self):
+        import pyarrow as pa
+        from PIL import Image
+
+        media = self.root / "media"
+        media.mkdir()
+        Image.new("RGB", (16, 8)).save(media / "img.png")
+        schema = pa.schema([("body", pa.string()), ("images", pa.list_(pa.string()))])
+        table = self.catalog.create_table("training.media", schema=schema)
+        table.append(pa.Table.from_pylist([{"body": "hello", "images": ["img.png"]}], schema=schema))
+        self.ds_config.update(table_identifier="training.media", path=str(media / "source.jsonl"))
+        return media
+
+    @staticmethod
+    def sorted_rows(rows):
+        return sorted(rows, key=lambda row: row["id"])
+
+
+class TestDefaultIcebergDataLoadStrategy(IcebergFixture, DataJuicerTestCaseBase):
+    def test_media_anchor_reaches_image_operator_without_mutating_config(self):
+        from copy import deepcopy
+
+        from data_juicer.ops.filter.image_shape_filter import ImageShapeFilter
+
+        media = self.create_media_table()
+        run_dir = self.root / "run"
+        run_dir.mkdir()
+        old_cwd = os.getcwd()
+        self.addCleanup(os.chdir, old_cwd)
+        os.chdir(run_dir)
+        # The file anchor need not exist; the image itself must exist.
+        self.assertFalse((media / "source.jsonl").exists())
+        for anchor in (str(media / "source.jsonl"), str(media)):
+            self.ds_config["path"] = anchor
+            before = deepcopy(self.cfg)
+            dataset = self.load()
+            self.assertEqual(dataset[0]["images"], [str(media / "img.png")])
+            result = dataset.process(
+                ImageShapeFilter(text_key="body", min_width=16, max_width=16,
+                                 min_height=8, max_height=8, num_proc=1, skip_op_error=False),
+                open_monitor=False,
+            )
+            self.assertEqual(len(result), 1)
+            self.assertEqual(self.cfg, before)
+
+    def test_builder_reads_latest_without_mutating_configuration(self):
+        from copy import deepcopy
+
+        before = deepcopy(self.ds_config)
+        for _ in range(2):
+            self.assertEqual(self.sorted_rows(self.load().to_list()), self.initial + self.added)
+        self.assertEqual(self.ds_config, before)
+
+    def test_snapshot_filter_and_projection(self):
+        # The current table contains id=3, but the selected old snapshot must not.
+        self.assertEqual(len(self.load()), 3)
+        self.ds_config.update(
+            snapshot_id=self.snapshot_id, row_filter="language == 'zh'", selected_fields=["id", "body"]
+        )
+        self.assertEqual(self.load().to_list(), [{"id": 2, "body": "短"}])
+
+    def test_typed_columns_match_pyiceberg_scan(self):
+        expected = self.create_typed_table()
+        result = self.load()
+        self.assertEqual(self.sorted_rows(result.to_list()), self.sorted_rows(expected.to_pylist()))
+        actual_types = {field.name: field.type for field in result.data.table.schema}
+        for field in expected.schema:
+            with self.subTest(column=field.name):
+                self.assertTrue(actual_types[field.name].equals(field.type), (actual_types[field.name], field.type))
+
+    def test_empty_table_preserves_schema(self):
+        self.catalog.create_table("training.empty", schema=self.arrow_schema)
+        self.ds_config["table_identifier"] = "training.empty"
+        result = self.load()
+        self.assertEqual(result.to_list(), [])
+        self.assertEqual(result.column_names, ["id", "body", "language"])
+
+    def test_normalization_uses_configured_text_key(self):
+        import pyarrow as pa
+
+        self.table.append(pa.Table.from_pylist([{"id": 4, "body": None, "language": "zh"}], schema=self.arrow_schema))
+        self.assertEqual(self.sorted_rows(self.load().to_list()), self.initial + self.added)
+
+    def test_missing_table_preserves_original_error(self):
+        from pyiceberg.exceptions import NoSuchTableError
+
+        self.ds_config["table_identifier"] = "training.missing"
+        with self.assertRaisesRegex(RuntimeError, "training.missing") as raised:
+            self.load()
+        self.assertIsInstance(raised.exception.__cause__, NoSuchTableError)
+
+    def test_invalid_snapshot_is_not_silently_replaced_by_latest(self):
+        self.ds_config["snapshot_id"] = 1
+        with self.assertRaisesRegex(RuntimeError, "training.documents") as raised:
+            self.load()
+        self.assertIsInstance(raised.exception.__cause__, ValueError)
+
+    def test_load_filter_export_round_trip(self):
+        from data_juicer.core.exporter import Exporter
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+
+        dataset = self.load()
+        result = dataset.process(TextLengthFilter(min_len=5, text_key="body", num_proc=1), open_monitor=False)
+        path = self.root / "result.jsonl"
+        Exporter(str(path), export_stats=False, keep_stats_in_res_ds=False).export(result)
+        exported = [json.loads(line) for line in path.read_text().splitlines()]
+        self.assertEqual(self.sorted_rows(exported), [self.initial[0], self.added[0]])
+        # Reading/processing must not write back to the source table.
+        self.assertEqual(self.sorted_rows(self.table.scan().to_arrow().to_pylist()), self.initial + self.added)
+
+
+class TestIcebergConfiguration(DataJuicerTestCaseBase):
+    def test_unsupported_ray_version_fails_before_io(self):
+        from unittest.mock import patch
+
+        from data_juicer.core.data.load_strategy import RayIcebergDataLoadStrategy
+
+        strategy = RayIcebergDataLoadStrategy(
+            {"table_identifier": "training.documents", "catalog_kwargs": {}}, Namespace()
+        )
+        with patch("ray.__version__", "2.51.0"), patch("ray.data.read_iceberg") as reader:
+            with self.assertRaisesRegex(RuntimeError, "requires Ray >=2.52.0"):
+                strategy.load_data()
+        reader.assert_not_called()
+
+    def test_invalid_configuration_fails_before_io(self):
+        from data_juicer.core.data.load_strategy import DefaultIcebergDataLoadStrategy, RayIcebergDataLoadStrategy
+
+        valid = {"table_identifier": "training.documents", "catalog_kwargs": {}}
+        invalid = [
+            {},
+            {"table_identifier": "training.documents"},
+            dict(valid, table_identifier=" "),
+            dict(valid, catalog_kwargs=[]),
+            dict(valid, snapshot_id=True),
+            dict(valid, snapshot_id=-1),
+            dict(valid, snapshot_id="1"),
+            dict(valid, row_filter=""),
+            dict(valid, selected_fields=[]),
+            dict(valid, selected_fields=[1]),
+            dict(valid, path=""),
+        ]
+        for strategy in (DefaultIcebergDataLoadStrategy, RayIcebergDataLoadStrategy):
+            for config in invalid:
+                with self.subTest(strategy=strategy.__name__, config=config):
+                    with self.assertRaises(ConfigValidationError):
+                        strategy(config, Namespace())
+
+
+class TestRayIcebergDataLoadStrategy(IcebergFixture, DataJuicerTestCaseBase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        import ray
+
+        cls.started_ray = not ray.is_initialized()
+        if cls.started_ray:
+            address = os.environ.get("RAY_ADDRESS", "local")
+            options = {"num_cpus": 2} if address == "local" else {}
+            ray.init(address=address, include_dashboard=False, **options)
+
+    @classmethod
+    def tearDownClass(cls):
+        import ray
+
+        if cls.started_ray:
+            ray.shutdown()
+        super().tearDownClass()
+
+    @TEST_TAG("ray")
+    def test_builder_reads_latest_without_mutating_configuration(self):
+        from copy import deepcopy
+
+        before = deepcopy(self.ds_config)
+        self.cfg.override_num_blocks = 2
+        result = self.load("ray")
+        self.assertEqual(self.sorted_rows(result.data.take_all()), self.initial + self.added)
+        self.assertEqual(self.ds_config, before)
+        self.assertEqual(self.sorted_rows(self.load("ray").data.take_all()), self.initial + self.added)
+
+    @TEST_TAG("ray")
+    def test_snapshot_filter_and_projection(self):
+        self.assertEqual(len(self.load("ray").data.take_all()), 3)
+        self.ds_config.update(
+            snapshot_id=self.snapshot_id, row_filter="language == 'zh'", selected_fields=["id", "body"]
+        )
+        self.assertEqual(self.load("ray").data.take_all(), [{"id": 2, "body": "短"}])
+
+    @TEST_TAG("ray")
+    def test_typed_columns_match_pyiceberg_scan(self):
+        expected = self.create_typed_table()
+        result = self.load("ray").data
+        self.assertEqual(self.sorted_rows(result.take_all()), self.sorted_rows(expected.to_pylist()))
+        actual_types = dict(zip(result.schema().names, result.schema().types))
+        for field in expected.schema:
+            with self.subTest(column=field.name):
+                # Ray's Iceberg reader returns 64-bit offset variants (large_string etc.).
+                actual = self.logical_type(actual_types[field.name])
+                self.assertTrue(actual.equals(field.type), (actual_types[field.name], field.type))
+
+    @classmethod
+    def logical_type(cls, arrow_type):
+        import pyarrow as pa
+
+        if pa.types.is_large_string(arrow_type):
+            return pa.string()
+        if pa.types.is_large_binary(arrow_type):
+            return pa.binary()
+        if pa.types.is_large_list(arrow_type) or pa.types.is_list(arrow_type):
+            return pa.list_(cls.logical_type(arrow_type.value_type))
+        if pa.types.is_struct(arrow_type):
+            return pa.struct([pa.field(f.name, cls.logical_type(f.type), f.nullable) for f in arrow_type])
+        return arrow_type
+
+    @TEST_TAG("ray")
+    def test_empty_table(self):
+        self.catalog.create_table("training.empty", schema=self.arrow_schema)
+        self.ds_config["table_identifier"] = "training.empty"
+        self.assertEqual(self.load("ray").data.take_all(), [])
+
+    @TEST_TAG("ray")
+    def test_empty_table_with_media_anchor(self):
+        self.catalog.create_table("training.empty", schema=self.arrow_schema)
+        self.ds_config.update(table_identifier="training.empty", path=str(self.root / "source.jsonl"))
+        self.assertEqual(self.load("ray").data.take_all(), [])
+
+    @TEST_TAG("ray")
+    def test_missing_table_surfaces_error(self):
+        from pyiceberg.exceptions import NoSuchTableError
+
+        self.ds_config["table_identifier"] = "training.missing"
+        with self.assertRaisesRegex(RuntimeError, "training.missing") as raised:
+            self.load("ray").data.take_all()
+        self.assertIsInstance(raised.exception.__cause__, NoSuchTableError)
+
+    @TEST_TAG("ray")
+    def test_invalid_snapshot_is_not_silently_replaced_by_latest(self):
+        self.ds_config["snapshot_id"] = 1
+        with self.assertRaisesRegex(RuntimeError, "training.documents") as raised:
+            self.load("ray").data.take_all()
+        self.assertIsInstance(raised.exception.__cause__, ValueError)
+
+
 if __name__ == '__main__':
     unittest.main()

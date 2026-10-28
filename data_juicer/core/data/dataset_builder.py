@@ -11,6 +11,9 @@ from data_juicer.core.data import DJDataset, NestedDataset
 from data_juicer.core.data.config_validator import ConfigValidationError
 from data_juicer.core.data.data_validator import DataValidatorRegistry
 from data_juicer.core.data.load_strategy import DataLoadStrategyRegistry
+from data_juicer.utils.config_utils import (
+    redact_sensitive_config as _redact_sensitive_config,
+)
 from data_juicer.utils.file_utils import is_absolute_path
 from data_juicer.utils.sample import random_sample
 
@@ -80,7 +83,7 @@ class DatasetBuilder(object):
             logger.info(f"found dataset_path setting: {cfg.dataset_path}")
             ds_configs = rewrite_cli_datapath(cfg.dataset_path)
         elif hasattr(cfg, "dataset") and cfg.dataset:
-            logger.info(f"found dataset setting: {cfg.dataset}")
+            logger.info(f"found dataset setting: {_redact_sensitive_config(cfg.dataset)}")
             ds_configs = cfg.dataset
         else:
             logger.warning(

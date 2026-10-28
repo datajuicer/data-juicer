@@ -184,6 +184,7 @@ def unify_format(
     text_keys: Union[List[str], str] = "text",
     num_proc: int = 1,
     global_cfg: Union[dict, Namespace] = None,
+    dataset_path: Optional[str] = None,
 ) -> Dataset:
     """
     Get an unified internal format, conduct the following modifications.
@@ -197,6 +198,8 @@ def unify_format(
     :param num_proc: number of processes for mapping
     :param global_cfg: the global cfg used in consequent processes,
         since cfg.text_key may be modified after unifying
+    :param dataset_path: explicit source path for relative media paths. A
+        nonexistent file path is also accepted as a directory anchor.
 
     :return: unified_format_dataset
     """
@@ -252,7 +255,10 @@ def unify_format(
         if isinstance(global_cfg, dict):
             global_cfg = dict_to_namespace(global_cfg)
         # check and get dataset dir
-        if (
+        if dataset_path is not None:
+            anchor = os.path.abspath(dataset_path)
+            ds_dir = anchor if os.path.isdir(anchor) else os.path.dirname(anchor)
+        elif (
             hasattr(global_cfg, "dataset_path")
             and global_cfg.dataset_path is not None
             and os.path.exists(global_cfg.dataset_path)

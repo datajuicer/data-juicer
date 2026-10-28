@@ -133,6 +133,12 @@ distributed = [
     "pylance",  # to support I/O for lance data in ray mode
 ]
 
+# Iceberg reading for Local or Ray (install distributed separately for Ray)
+iceberg = [
+    # Ray 2.51/2.52 readers require FileScanTask.length, removed after PyIceberg 0.10.
+    "pyiceberg[pyarrow,sql-sqlite]>=0.10.0,<0.11",
+]
+
 # Development & Tools
 dev = [
     "coverage",
@@ -182,6 +188,7 @@ all = [
     "py-data-juicer[nlp]",
     "py-data-juicer[audio]",
     "py-data-juicer[distributed]",
+    "py-data-juicer[iceberg]",
     "py-data-juicer[dev]",
     "py-data-juicer[ai_services]",
     "py-data-juicer[tools]",

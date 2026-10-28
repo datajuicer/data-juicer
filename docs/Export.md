@@ -12,6 +12,29 @@ Data-Juicer exports via `Exporter` (default mode) or `RayExporter` (Ray mode). T
 - **S3 export** — write results directly to Amazon S3 or S3-compatible storage
 - **Stats and hash management** — control which intermediate fields are kept in the output
 
+## Apache Iceberg tables
+
+Both default and Ray modes can write to an existing Iceberg table. Install `py-data-juicer[iceberg]`; Ray mode also needs the distributed extra and Ray >=2.53. Configure the named PyIceberg catalog as described in [Dataset Configuration](DatasetCfg.md#apache-iceberg-table), keeping credentials outside the recipe.
+
+```yaml
+export_type: iceberg
+export_path: ./outputs/result.jsonl  # Local artifact anchor, NOT the table location
+export_extra_args:
+  table_identifier: default.cleaned_documents
+  catalog_kwargs:
+    name: production
+  mode: overwrite
+keep_stats_in_res_ds: false
+keep_hashes_in_res_ds: false
+```
+
+An explicit `catalog_kwargs.name` is required for writing. The target table and namespace must already exist. Data-Juicer does not create tables or evolve their schemas; incompatible input fails instead of falling back to a file export. Use a different target table from your input unless replacing the source is intentional. Top-level required columns accept results without null values; a null in a required column fails without changing the table.
+
+- `overwrite` (default) replaces all current rows with this run's result. An empty result clears the target table.
+- `append` adds this run's rows to existing rows. Rerunning adds them again; an empty result makes no change.
+
+`export_path` is required and must be local, even when the table data is stored on S3/OSS. It is not where the table data is written. In default mode, exported statistics use a separate `_stats.jsonl` artifact; the table location comes from the catalog. File encryption and `export_shard_size > 0` are not supported for Iceberg. Ray materializes the result once, validates and aligns it to the existing table schema, then uses Ray's public `Dataset.write_iceberg()` API to write data files in parallel without schema changes. A failed write can leave uncommitted data files in storage; they are not part of the table's committed snapshot.
+
 ## Configuration
 
 ### Basic Settings

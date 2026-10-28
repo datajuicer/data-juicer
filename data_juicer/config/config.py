@@ -1809,6 +1809,8 @@ def display_config(cfg: Namespace):
 
     from tabulate import tabulate
 
+    from data_juicer.utils.config_utils import redact_sensitive_config
+
     table_header = ["key", "values"]
 
     # remove ops outside the process list for better displaying
@@ -1817,7 +1819,7 @@ def display_config(cfg: Namespace):
         _ = shown_cfg.pop(op)
 
     # construct the table as 2 columns
-    config_table = [(k, pprint.pformat(v, compact=True)) for k, v in shown_cfg.items()]
+    config_table = [(k, pprint.pformat(v, compact=True)) for k, v in redact_sensitive_config(shown_cfg).items()]
     table = tabulate(config_table, headers=table_header, tablefmt="fancy_grid")
 
     logger.info("Configuration table: ")

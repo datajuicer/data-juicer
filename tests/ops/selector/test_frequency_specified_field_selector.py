@@ -569,6 +569,18 @@ class FrequencySpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
                 self.assertEqual(len(result), expected_rows)
                 self.assertEqual(result.features, dataset.features)
 
+    def test_single_row_and_empty_datasets_are_returned_unchanged(self):
+        # Like the other selectors, datasets with at most one row skip selection.
+        single = Dataset.from_list([{'text': 'a', 'lang': 'en'}])
+        empty = Dataset.from_dict({'text': [], 'lang': []})
+        for dataset in [single, empty]:
+            for kwargs in [{'top_ratio': 0.0}, {'top_ratio': 0.0, 'topk': 1}, {'topk': 1}]:
+                with self.subTest(rows=len(dataset), **kwargs):
+                    op = FrequencySpecifiedFieldSelector(field_key='lang', **kwargs)
+                    result = op.process(dataset)
+                    self.assertEqual(result.to_list(), dataset.to_list())
+                    self.assertEqual(result.features, dataset.features)
+
 
 if __name__ == '__main__':
     unittest.main()

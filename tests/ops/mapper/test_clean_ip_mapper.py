@@ -71,6 +71,33 @@ class CleanIpMapperTest(DataJuicerTestCaseBase):
         op = CleanIpMapper()
         self._run_clean_ip(op, samples)
 
+    def test_ipv4_embedded_ipv6(self):
+
+        samples = [{
+            'text': 'mapped ::ffff:192.0.2.128 ok',
+            'target': 'mapped  ok'
+        }, {
+            'text': 'connect to [::ffff:192.0.2.128]:443 now',
+            'target': 'connect to []:443 now'
+        }, {
+            'text': 'nat64 64:ff9b::198.51.100.7, full 0:0:0:0:0:ffff:192.0.2.1.',
+            'target': 'nat64 , full .'
+        }]
+        op = CleanIpMapper()
+        self._run_clean_ip(op, samples)
+
+    def test_replace_ipv4_embedded_ipv6(self):
+
+        samples = [{
+            'text': '::ffff:192.0.2.128',
+            'target': '<IP>'
+        }, {
+            'text': '[::ffff:192.0.2.128]:443',
+            'target': '[<IP>]:443'
+        }]
+        op = CleanIpMapper(repl='<IP>')
+        self._run_clean_ip(op, samples)
+
     def test_replace_ipv4(self):
 
         samples = [{

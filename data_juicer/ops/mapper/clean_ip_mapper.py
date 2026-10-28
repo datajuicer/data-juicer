@@ -36,10 +36,11 @@ class CleanIpMapper(Mapper):
 
         super().__init__(*args, **kwargs)
         if pattern is None:
-            self.pattern = r"(?:(?:1[0-9][0-9]\.)|(?:2[0-4][0-9]\.)|"
-            self.pattern += r"(?:25[0-5]\.)|(?:[1-9][0-9]\.)|(?:[0-9]\.))"
-            self.pattern += r"{3}(?:(?:1[0-9][0-9])|(?:2[0-4][0-9])|"
-            self.pattern += r"(?:25[0-5])|(?:[1-9][0-9])|(?:[0-9]))|"
+            ipv4 = r"(?:(?:1[0-9][0-9]\.)|(?:2[0-4][0-9]\.)|"
+            ipv4 += r"(?:25[0-5]\.)|(?:[1-9][0-9]\.)|(?:[0-9]\.))"
+            ipv4 += r"{3}(?:(?:1[0-9][0-9])|(?:2[0-4][0-9])|"
+            ipv4 += r"(?:25[0-5])|(?:[1-9][0-9])|(?:[0-9]))"
+            self.pattern = ipv4 + "|"
             self.pattern += r"([\da-fA-F]{1,4}:){7}[\da-fA-F]{1,4}"  # ipv6
             # compressed ipv6 ("::"), not touching other ASCII word characters
             # or colons, so "std::cout" and partial matches are left alone
@@ -56,7 +57,15 @@ class CleanIpMapper(Mapper):
                     rf":(?::{hextet}){{1,7}}",
                 ]
             )
-            self.pattern += rf"|(?<![0-9A-Za-z_:])(?:{compressed})(?![0-9A-Za-z_:])"
+            # ipv6 ending in an ipv4 address (::ffff:192.0.2.128, 64:ff9b::198.51.100.7),
+            # matched whole; no match may end right before a dotted ipv4 part
+            embedded = "|".join(
+                [rf"(?:{hextet}:){{6}}", rf"::(?:{hextet}:){{0,5}}"]
+                + [rf"(?:{hextet}:){{{n}}}:(?:{hextet}:){{0,{5 - n}}}" for n in range(1, 6)]
+            )
+            # the first lookahead only skips quickly past text where no address can start
+            self.pattern += rf"|(?<![0-9A-Za-z_:])(?=[\da-fA-F]{{0,4}}:)"
+            self.pattern += rf"(?:(?:{embedded}){ipv4}|{compressed})(?![0-9A-Za-z_:]|\.\d)"
         else:
             self.pattern = pattern
             if (len(pattern) > 2) and (

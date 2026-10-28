@@ -172,6 +172,13 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertEqual(m._redact_text("authorization: Basic dXNlcjpwYXNz"), "authorization: Basic [REDACTED]")
         self.assertEqual(m._redact_text("password: basic"), "password: [REDACTED]")
 
+    def test_secret_scheme_not_kept_for_other_keys_or_across_lines(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password=basic\nstatus=ok"), "password=[REDACTED]\nstatus=ok")
+        self.assertEqual(m._redact_text("password=basic # comment"), "password=[REDACTED] # comment")
+        self.assertEqual(m._redact_text("Authorization: Basic\nstatus=ok"), "Authorization: [REDACTED]\nstatus=ok")
+        self.assertEqual(m._redact_text("auth=basic # comment"), "auth=[REDACTED] # comment")
+
     def test_secret_quoted_value_redacted_up_to_closing_quote(self):
         m = self._m()
         self.assertEqual(

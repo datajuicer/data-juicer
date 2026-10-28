@@ -2,9 +2,12 @@ import os
 import shutil
 import unittest
 
+import numpy as np
+
 from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.mapper.image_face_blur_mapper import ImageFaceBlurMapper
+from data_juicer.utils.mm_utils import load_image
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -106,6 +109,22 @@ class ImageFaceBlurMapperTest(DataJuicerTestCaseBase):
         }]
         op = ImageFaceBlurMapper(blur_type='gaussian', radius=10)
         self._run_helper(op, ds_list, np=3)
+
+    def test_image_bytes(self):
+        # the images are only in the bytes field, e.g. after download_file_mapper
+        img_bytes = []
+        for path in (self.img3_path, self.img1_path):
+            with open(path, 'rb') as f:
+                img_bytes.append(f.read())
+        op = ImageFaceBlurMapper()
+        res = op.process_single({
+            'images': ['https://example.com/lena-face.jpg', 'https://example.com/cat.jpg'],
+            'image_bytes': list(img_bytes),
+        })
+        face, no_face = (np.array(load_image(b)) for b in res['image_bytes'])
+        self.assertEqual(face.shape, np.array(load_image(img_bytes[0])).shape)
+        self.assertFalse((face == np.array(load_image(img_bytes[0]))).all())
+        np.testing.assert_array_equal(no_face, np.array(load_image(img_bytes[1])))
 
 if __name__ == '__main__':
     unittest.main()

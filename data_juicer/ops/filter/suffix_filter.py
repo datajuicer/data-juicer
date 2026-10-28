@@ -34,13 +34,19 @@ class SuffixFilter(Filter):
             self.suffixes = [suffixes]
         else:
             self.suffixes = suffixes
+        # match the suffix format stored by the formatters: lower-cased and
+        # starting with a dot, e.g. 'TXT' -> '.txt'
+        self.suffixes = [s.lower() if s.startswith(".") else "." + s.lower() for s in self.suffixes]
 
     def compute_stats_single(self, sample):
         return sample
 
     def process_single(self, sample):
         if self.suffixes:
-            res_bool = sample[Fields.suffix] in self.suffixes
+            suffix = sample[Fields.suffix]
+            if isinstance(suffix, str):
+                suffix = suffix.lower()
+            res_bool = suffix in self.suffixes
             if self.reversed_range:
                 res_bool = not res_bool
             return res_bool

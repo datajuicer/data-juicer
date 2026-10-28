@@ -218,6 +218,13 @@ class MMTest(DataJuicerTestCaseBase):
             img = img.filter(ImageFilter.BLUR)
             return av.VideoFrame.from_image(img)
         self.assertEqual(process_each_frame(input_path, output_path, change_frame), output_path)
+        # the audio is copied to the output video
+        with av.open(input_path) as src, av.open(output_path) as res:
+            self.assertEqual(len(res.streams.audio), 1)
+            src_audio = [p for p in src.demux(src.streams.audio[0]) if p.dts is not None]
+            res_audio = [p for p in res.demux(res.streams.audio[0]) if p.dts is not None]
+            self.assertEqual(len(res_audio), len(src_audio))
+            self.assertAlmostEqual(get_video_duration(res), get_video_duration(src), delta=0.1)
 
     def test_extract_key_frames(self):
         input_path = self.vid_path  # 11.75s

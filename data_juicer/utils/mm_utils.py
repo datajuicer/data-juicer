@@ -541,9 +541,13 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
     # create the output video
     output_container = load_video(output_video, "w")
 
-    # add the audio stream into the output video with template of input audio
-    for input_audio_stream in container.streams.audio:
-        output_container.add_stream(template=input_audio_stream)
+    # add the audio stream into the output video with template of input audio,
+    # its packets are copied as they are while demuxing the video
+    output_audio_streams = {
+        input_audio_stream.index: output_container.add_stream(template=input_audio_stream)
+        for input_audio_stream in container.streams.audio
+    }
+    audio_streams_to_copy = list(container.streams.audio)
 
     # add the video stream into the output video according to input video
     for input_video_stream in container.streams.video:
@@ -557,7 +561,13 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
         output_video_stream.width = input_video_stream.codec_context.width
         output_video_stream.height = input_video_stream.codec_context.height
 
-        for packet in container.demux(input_video_stream):
+        for packet in container.demux(input_video_stream, *audio_streams_to_copy):
+            if packet.stream.type == "audio":
+                # skip the empty packet that ends each stream
+                if packet.dts is not None:
+                    packet.stream = output_audio_streams[packet.stream.index]
+                    output_container.mux(packet)
+                continue
             for frame in packet.decode():
                 new_frame = frame_func(frame)
                 if new_frame != frame:
@@ -571,6 +581,8 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
         # flush all packets
         for packet in output_video_stream.encode():
             output_container.mux(packet)
+        # the audio only needs to be copied once
+        audio_streams_to_copy = []
 
     # close the output videos
     if isinstance(input_video, str):

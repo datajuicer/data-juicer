@@ -548,26 +548,25 @@ class FrequencySpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
                                              reverse=False)
         self._run_frequency_selector(dataset, tgt_list, op)
 
-    def test_zero_ratio_selects_nothing(self):
+    def test_top_ratio_and_topk_options(self):
+        # three distinct values: en (3 rows), zh (2 rows), fr (1 row)
         dataset = Dataset.from_list([{
-            'text': 'a',
-            'lang': 'en'
-        }, {
-            'text': 'b',
-            'lang': 'en'
-        }, {
-            'text': 'c',
-            'lang': 'zh'
-        }])
-        for kwargs in [
-            {'top_ratio': 0.0},
-            {'top_ratio': 0.0, 'topk': 1},
-            {'top_ratio': 0.1},
+            'text': str(i),
+            'lang': lang
+        } for i, lang in enumerate(['en', 'en', 'en', 'zh', 'zh', 'fr'])])
+        for kwargs, expected_rows in [
+            ({}, 6),
+            ({'topk': 1}, 3),
+            ({'top_ratio': 0.7}, 5),
+            ({'top_ratio': 0.7, 'topk': 1}, 3),
+            ({'top_ratio': 0.0}, 0),
+            ({'top_ratio': 0.0, 'topk': 1}, 0),
+            ({'top_ratio': 0.1}, 0),
         ]:
             with self.subTest(**kwargs):
                 op = FrequencySpecifiedFieldSelector(field_key='lang', **kwargs)
                 result = op.process(dataset)
-                self.assertEqual(len(result), 0)
+                self.assertEqual(len(result), expected_rows)
                 self.assertEqual(result.features, dataset.features)
 
 

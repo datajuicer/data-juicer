@@ -7,7 +7,12 @@ from pydantic import NonNegativeFloat
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import transfer_filename
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import detect_faces, load_data_with_context, load_image
+from data_juicer.utils.mm_utils import (
+    detect_faces,
+    image_to_bytes,
+    load_data_with_context,
+    load_image,
+)
 from data_juicer.utils.model_utils import get_model, prepare_model
 
 from ..base_op import OPERATORS, UNFORKABLE, Mapper
@@ -141,7 +146,7 @@ class ImageFaceBlurMapper(Mapper):
                 if key_mapping[value] != value:
                     sample[Fields.source_file][i] = value
             if self.image_bytes_key in sample and i < len(sample[self.image_bytes_key]):
-                sample[self.image_bytes_key][i] = images[key_mapping[value]].tobytes()
+                sample[self.image_bytes_key][i] = image_to_bytes(images[key_mapping[value]])
 
         sample[self.image_key] = [key_mapping[key] for key in loaded_image_keys]
         return sample

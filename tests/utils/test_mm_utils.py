@@ -20,7 +20,7 @@ from data_juicer.utils.mm_utils import (
     extract_key_frames_by_seconds, extract_key_frames, get_key_frame_seconds,
     extract_video_frames_uniformly_by_seconds, extract_video_frames_uniformly,
     extract_audio_from_video, size_to_bytes, insert_texts_after_placeholders,
-    timecode_string_to_seconds, parse_string_to_roi,
+    timecode_string_to_seconds, parse_string_to_roi, image_to_bytes,
 )
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
@@ -107,6 +107,13 @@ class MMTest(DataJuicerTestCaseBase):
     def test_img_to_base64(self):
         self.assertIsInstance(image_path_to_base64(self.img_path), str)
         self.assertIsInstance(image_byte_to_base64(load_image_byte(self.img_path)), str)
+
+    def test_image_to_bytes(self):
+        pil_img = load_image(self.img_path)
+        np.testing.assert_array_equal(np.array(load_image(image_to_bytes(pil_img))), np.array(pil_img))
+        # also for modes JPEG cannot store, e.g. the RGBA output of image_remove_background_mapper
+        rgba_img = pil_img.convert('RGBA')
+        self.assertEqual(load_image(image_to_bytes(rgba_img)).size, rgba_img.size)
 
     def test_pil_to_opencv(self):
         pil_img = load_image(self.img_path)

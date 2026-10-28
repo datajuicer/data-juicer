@@ -67,13 +67,15 @@ def _compile_patterns() -> dict:
         "feishu_open_id": re.compile(r"\bou_[0-9a-f]{32}\b", re.IGNORECASE),
         # 钉钉/企业微信 等常见 open_id 格式 (字母+数字+下划线，较长)
         "platform_open_id": re.compile(r"\b(ou_|u_|uid_)[0-9a-zA-Z_-]{16,64}\b"),
-        # Chinese mobile (simple)
-        "phone_cn": re.compile(r"\b1[3-9]\d{9}\b"),
+        # Chinese mobile (simple). ASCII lookarounds instead of \b, because \b
+        # does not separate CJK characters from digits (我的手机号13812345678).
+        "phone_cn": re.compile(r"(?<![0-9A-Za-z])1[3-9]\d{9}(?![0-9A-Za-z])"),
         # Generic phone (international, simple)
         "phone_intl": re.compile(r"\+\d{1,4}[-.\s]?\d{6,14}\b"),
         # Chinese ID card (18 digits)
         "id_card_cn": re.compile(
-            r"\b[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])" r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]\b"
+            r"(?<![0-9A-Za-z])[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
+            r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?![0-9A-Za-z])"
         ),
         # PEM / SSH keys & certs (strip whole block first)
         "pem_block": re.compile(

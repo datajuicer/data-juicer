@@ -454,7 +454,6 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -490,10 +489,6 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Default fallback</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">work_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"outputs/partition-checkpoint-eventlog"</span><span class="p">)</span> <span class="o">/</span> <span class="n">job_id</span>
-
-        <span class="c1"># Set up logging</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"INFO"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"{time:HH:mm:ss} | </span><span class="si">{level}</span><span class="s2"> | </span><span class="si">{name}</span><span class="s2">:</span><span class="si">{function}</span><span class="s2">:</span><span class="si">{line}</span><span class="s2"> - </span><span class="si">{message}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">work_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Job directory not found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">work_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
@@ -686,14 +681,15 @@
                     <span class="p">}</span>
 
                 <span class="k">elif</span> <span class="n">event</span><span class="p">[</span><span class="s2">"event_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"op_complete"</span><span class="p">:</span>
+                    <span class="n">metadata</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
                     <span class="n">op_info</span> <span class="o">=</span> <span class="p">{</span>
                         <span class="s2">"name"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"operation_name"</span><span class="p">,</span> <span class="s2">"Unknown"</span><span class="p">),</span>
                         <span class="s2">"idx"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"operation_idx"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                        <span class="s2">"duration"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"duration"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                        <span class="s2">"input_rows"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"input_rows"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                        <span class="s2">"output_rows"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"output_rows"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                        <span class="s2">"throughput"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"performance_metrics"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"throughput"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                        <span class="s2">"reduction_ratio"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"performance_metrics"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reduction_ratio"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                        <span class="s2">"duration"</span><span class="p">:</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"duration_seconds"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                        <span class="s2">"input_rows"</span><span class="p">:</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"input_rows"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                        <span class="s2">"output_rows"</span><span class="p">:</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"output_rows"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                        <span class="s2">"throughput"</span><span class="p">:</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"throughput_rows_per_second"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                        <span class="s2">"reduction_ratio"</span><span class="p">:</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reduction_ratio"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
                     <span class="p">}</span>
                     <span class="n">partition_status</span><span class="p">[</span><span class="n">partition_id</span><span class="p">][</span><span class="s2">"completed_ops"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op_info</span><span class="p">)</span>
                     <span class="n">partition_status</span><span class="p">[</span><span class="n">partition_id</span><span class="p">][</span><span class="s2">"current_op"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>

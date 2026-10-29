@@ -497,10 +497,15 @@
         <span class="s2">"path_win_unc"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(^|[\s</span><span class="se">\"</span><span class="s2">'(\[=])(</span><span class="se">\\\\</span><span class="s2">[^\s</span><span class="se">\"</span><span class="s2">')\]]+)"</span><span class="p">),</span>
         <span class="c1"># Email: local@domain.tld (gwm.cn, qq.com, etc.)</span>
         <span class="s2">"email"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[a-zA-Z0-9][\w.+-]*@[\w.-]+\.(?:[a-zA-Z]{2,}|\w{2,})"</span><span class="p">),</span>
-        <span class="c1"># Secret keys: key:= value or "key": "value"</span>
+        <span class="c1"># Secret keys: key:= value or "key": "value". A quoted value is redacted up to</span>
+        <span class="c1"># its closing quote and a placeholder such as [JWT_REDACTED] whole. For auth and</span>
+        <span class="c1"># Authorization keys, a scheme (Bearer, Basic, ...) followed by a credential on</span>
+        <span class="c1"># the same line is kept.</span>
         <span class="s2">"secret_kv"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="sa">r</span><span class="s2">"(\b(?:api[_-]?key|apikey|secret|password|passwd|token|auth|authorization"</span>
-            <span class="sa">r</span><span class="s2">"|credential|license[_-]?key)\s*[:=]\s*[</span><span class="se">\"</span><span class="s2">']?)([^\s</span><span class="se">\"</span><span class="s2">',}\]]+)"</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">"(\b(?:api[_-]?key|apikey|secret|password|passwd|token|credential|license[_-]?key"</span>
+            <span class="sa">r</span><span class="s2">"|(auth(?:orization)?))[</span><span class="se">\"</span><span class="s2">']?\s*[:=]\s*"</span>
+            <span class="sa">r</span><span class="s2">"(?:([</span><span class="se">\"</span><span class="s2">'])|(?(2)(?:bearer|basic|digest|token)[ \t]+(?=[^\s#])))?)"</span>
+            <span class="sa">r</span><span class="s2">"((?(3)(?:</span><span class="se">\\</span><span class="s2">.|(?!\3)[^</span><span class="se">\\</span><span class="s2">\n])+|(?:\[[^\s\]]*\]|[^\s</span><span class="se">\"</span><span class="s2">',}\]]+)))"</span><span class="p">,</span>
             <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="c1"># Session/user/request IDs (session_id: 123, user_id: ou_xxx)</span>

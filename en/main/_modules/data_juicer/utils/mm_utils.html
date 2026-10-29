@@ -1068,9 +1068,13 @@
     <span class="c1"># create the output video</span>
     <span class="n">output_container</span> <span class="o">=</span> <span class="n">load_video</span><span class="p">(</span><span class="n">output_video</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
 
-    <span class="c1"># add the audio stream into the output video with template of input audio</span>
-    <span class="k">for</span> <span class="n">input_audio_stream</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="o">.</span><span class="n">audio</span><span class="p">:</span>
-        <span class="n">output_container</span><span class="o">.</span><span class="n">add_stream</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="n">input_audio_stream</span><span class="p">)</span>
+    <span class="c1"># add the audio stream into the output video with template of input audio,</span>
+    <span class="c1"># its packets are copied as they are while demuxing the video</span>
+    <span class="n">output_audio_streams</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">input_audio_stream</span><span class="o">.</span><span class="n">index</span><span class="p">:</span> <span class="n">output_container</span><span class="o">.</span><span class="n">add_stream</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="n">input_audio_stream</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">input_audio_stream</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="o">.</span><span class="n">audio</span>
+    <span class="p">}</span>
+    <span class="n">audio_streams_to_copy</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="o">.</span><span class="n">audio</span><span class="p">)</span>
 
     <span class="c1"># add the video stream into the output video according to input video</span>
     <span class="k">for</span> <span class="n">input_video_stream</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="o">.</span><span class="n">video</span><span class="p">:</span>
@@ -1084,7 +1088,13 @@
         <span class="n">output_video_stream</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">input_video_stream</span><span class="o">.</span><span class="n">codec_context</span><span class="o">.</span><span class="n">width</span>
         <span class="n">output_video_stream</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">input_video_stream</span><span class="o">.</span><span class="n">codec_context</span><span class="o">.</span><span class="n">height</span>
 
-        <span class="k">for</span> <span class="n">packet</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">demux</span><span class="p">(</span><span class="n">input_video_stream</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">packet</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">demux</span><span class="p">(</span><span class="n">input_video_stream</span><span class="p">,</span> <span class="o">*</span><span class="n">audio_streams_to_copy</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">packet</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"audio"</span><span class="p">:</span>
+                <span class="c1"># skip the empty packet that ends each stream</span>
+                <span class="k">if</span> <span class="n">packet</span><span class="o">.</span><span class="n">dts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">packet</span><span class="o">.</span><span class="n">stream</span> <span class="o">=</span> <span class="n">output_audio_streams</span><span class="p">[</span><span class="n">packet</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+                    <span class="n">output_container</span><span class="o">.</span><span class="n">mux</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+                <span class="k">continue</span>
             <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">packet</span><span class="o">.</span><span class="n">decode</span><span class="p">():</span>
                 <span class="n">new_frame</span> <span class="o">=</span> <span class="n">frame_func</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">new_frame</span> <span class="o">!=</span> <span class="n">frame</span><span class="p">:</span>
@@ -1098,6 +1108,8 @@
         <span class="c1"># flush all packets</span>
         <span class="k">for</span> <span class="n">packet</span> <span class="ow">in</span> <span class="n">output_video_stream</span><span class="o">.</span><span class="n">encode</span><span class="p">():</span>
             <span class="n">output_container</span><span class="o">.</span><span class="n">mux</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+        <span class="c1"># the audio only needs to be copied once</span>
+        <span class="n">audio_streams_to_copy</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="c1"># close the output videos</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_video</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>

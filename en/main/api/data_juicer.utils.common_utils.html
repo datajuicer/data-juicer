@@ -455,6 +455,15 @@ of list to a float.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.utils.common_utils.iter_column">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.utils.common_utils.</span></span><span class="sig-name descname"><span class="pre">iter_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/common_utils.html#iter_column"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.utils.common_utils.iter_column" title="Link to this definition">¶</a></dt>
+<dd><p>Iterate over the values of a dataset column in batches.</p>
+<p>Iterating <code class="docutils literal notranslate"><span class="pre">dataset[column_name]</span></code> directly decodes the column one row
+at a time. Slicing it decodes a whole batch at once, and reading one
+batch at a time keeps the decoded rows from piling up in memory.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="data_juicer.utils.common_utils.dict_to_hash">
 <span class="sig-prename descclassname"><span class="pre">data_juicer.utils.common_utils.</span></span><span class="sig-name descname"><span class="pre">dict_to_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hash_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/common_utils.html#dict_to_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.utils.common_utils.dict_to_hash" title="Link to this definition">¶</a></dt>
 <dd><p>hash a dict to a string with length hash_length</p>
@@ -549,6 +558,7 @@ the total token nums of sub string lists are similar.</p>
             <ul>
 <li><a class="reference internal" href="#">data_juicer.utils.common_utils module</a><ul>
 <li><a class="reference internal" href="#data_juicer.utils.common_utils.stats_to_number"><code class="docutils literal notranslate"><span class="pre">stats_to_number()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.utils.common_utils.iter_column"><code class="docutils literal notranslate"><span class="pre">iter_column()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.common_utils.dict_to_hash"><code class="docutils literal notranslate"><span class="pre">dict_to_hash()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.common_utils.nested_access"><code class="docutils literal notranslate"><span class="pre">nested_access()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.common_utils.is_string_list"><code class="docutils literal notranslate"><span class="pre">is_string_list()</span></code></a></li>

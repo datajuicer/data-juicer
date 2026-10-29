@@ -476,6 +476,22 @@
 
 
 
+<div class="viewcode-block" id="iter_column">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.common_utils.html#data_juicer.utils.common_utils.iter_column">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">iter_column</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">column_name</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Iterate over the values of a dataset column in batches.</span>
+
+<span class="sd">    Iterating ``dataset[column_name]`` directly decodes the column one row</span>
+<span class="sd">    at a time. Slicing it decodes a whole batch at once, and reading one</span>
+<span class="sd">    batch at a time keeps the decoded rows from piling up in memory.</span>
+<span class="sd">    """</span>
+    <span class="n">column</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">column_name</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">column</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">):</span>
+        <span class="k">yield from</span> <span class="n">column</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span></div>
+
+
+
 <div class="viewcode-block" id="dict_to_hash">
 <a class="viewcode-back" href="../../../api/data_juicer.utils.common_utils.html#data_juicer.utils.common_utils.dict_to_hash">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">dict_to_hash</span><span class="p">(</span><span class="n">input_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">hash_length</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

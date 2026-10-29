@@ -53,9 +53,12 @@ def _compile_patterns() -> dict:
             r"((?(3)(?:\\.|(?!\3)[^\\\n])+|(?:\[[^\s\]]*\]|[^\s\"',}\]]+)))",
             re.IGNORECASE,
         ),
-        # Session/user/request IDs (session_id: 123, user_id: ou_xxx)
+        # Session/user/request IDs (session_id: 123, user_id: ou_xxx, "user_id": "...").
+        # The key, separator and quotes are kept; a quoted value is redacted up to its
+        # closing quote.
         "id_kv": re.compile(
-            r"\b(session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\s*[:=]\s*[\"']?" r"[\w.-]+",
+            r"(([\"']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2\s*[:=]\s*([\"'])?)"
+            r"(?(3)(?:\\.|(?!\3)[^\\\n])+|[\w.-]+)",
             re.IGNORECASE,
         ),
         # Agent channel: 当前的channel: feishu / dingtalk / email / 飞书 / 钉钉

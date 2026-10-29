@@ -207,6 +207,21 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertEqual(m._redact_text(f"token={jwt}"), "token=[REDACTED]")
         self.assertEqual(m._redact_text(f"Authorization: Bearer {jwt}"), "Authorization: Bearer [REDACTED]")
 
+    def test_id_keeps_separator_and_quotes(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("user_id: 42"), "user_id: [ID_REDACTED]")
+        self.assertEqual(m._redact_text("request-id = r-9"), "request-id = [ID_REDACTED]")
+        self.assertEqual(m._redact_text("trace_id:'t1'"), "trace_id:'[ID_REDACTED]'")
+        self.assertEqual(m._redact_text('user_id: ""'), 'user_id: ""')
+
+    def test_id_with_quoted_key_and_value(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text('{"user_id": "u-123", "name": "x"}'),
+            '{"user_id": "[ID_REDACTED]", "name": "x"}',
+        )
+        self.assertEqual(m._redact_text("{'session_id': 'abc:def'}"), "{'session_id': '[ID_REDACTED]'}")
+
 
 if __name__ == "__main__":
     unittest.main()

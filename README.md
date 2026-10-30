@@ -89,6 +89,15 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
+<summary>[2026-10-30] Release v1.6.2: <b>Selector & Filter Boundary Fixes; Broader PII Redaction; Faster Dedup & Field Selectors</b></summary>
+
+* 🎯 *Boundary-Correct Selectors & Filters* — explicit `top_ratio: 0` and zero-row random selections now keep zero rows; single-sided `range_specified_field_selector` bounds apply instead of returning the whole dataset; `topk_specified_field_selector` ranks top-level numeric strings numerically and tolerates `None`; `specified_numeric_field_filter` keeps `0` and `0.0`; `suffix_filter` normalizes `txt`, `.TXT` and `.txt` alike.
+* 🛡️ *Broader PII Redaction* — `pii_redaction_mapper` redacts CN phone and ID numbers next to CJK text, redacts whole secret values (quoted values, `Authorization: Bearer ...`, `"api_key": "..."`), and redacts ID values such as `user_id: 42` or `{"user_id": "u-123"}` while keeping the key and separator; `clean_email_mapper` matches uppercase domains; `clean_ip_mapper` matches compressed IPv6 and IPv6-embedded IPv4 addresses.
+* ⚡ *Faster Dedup, Loading & Field Selectors* — exact, simhash, image and video deduplication compute kept rows from the hash columns instead of decoding every column; line dedup counts line hashes from the hash column; MinHash band collisions are unioned during the scan; `unify_format` skips the None-text filter when no text column has nulls; four field selectors read their column in 10,000-row batches.
+* 🔧 *Media, Loading & Job Fixes* — image OPs write results back as PNG bytes so chained image OPs can read them; video frame processing keeps the audio track; lenient JSONL keeps the BOM-prefixed first record; inline LaTeX comments no longer consume the preceding character; job progress reads metrics from completion-event metadata; `nltk` upgraded to 3.10.4.
+</details>
+
+<details open>
 <summary>[2026-10-19] Release v1.6.1: <b>Throughput-Aware GPU Actor Planning; Adaptive GPU Microbatching; Leaner Ray MinHash Dedup</b></summary>
 
 * 🎛️ *Throughput-Aware GPU Actor Planning* — `ray_partitioned` runs a GPU preflight that measures each GPU operator's memory, steady-state throughput, and output ratio, then plans actor counts independently of the partition count. Partitions in one execution group share an actor pool to avoid repeated model loading. Enabled by default; set `partition.gpu_preflight_enabled: false` to keep explicitly configured GPU resources.
@@ -111,7 +120,7 @@ for s in res_ds:
 * 🔧 *Robustness Fixes* — Fixed fused-filter cache isolation, MinHash state reuse and empty inputs, deduplicator execution-mode declarations, empty text chunks, gzip JSONL HPO sampling, and pandas extension-dtype handling. HPO modules can now be imported without starting a sweep.
 </details>
 
-<details open>
+<details>
 <summary>[2026-08-25] Juicer Model Release: <b>Natural-Language Data Refinement; Local Deployment; Playground</b></summary>
 
 * 🧃 *Natural-Language Data Refinement* — [Juicer](docs/Juicer.md) follows natural-language instructions for text cleaning, filtering, and semantic labeling.

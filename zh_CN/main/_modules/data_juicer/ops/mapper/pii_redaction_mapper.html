@@ -508,9 +508,12 @@
             <span class="sa">r</span><span class="s2">"((?(3)(?:</span><span class="se">\\</span><span class="s2">.|(?!\3)[^</span><span class="se">\\</span><span class="s2">\n])+|(?:\[[^\s\]]*\]|[^\s</span><span class="se">\"</span><span class="s2">',}\]]+)))"</span><span class="p">,</span>
             <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
         <span class="p">),</span>
-        <span class="c1"># Session/user/request IDs (session_id: 123, user_id: ou_xxx)</span>
+        <span class="c1"># Session/user/request IDs (session_id: 123, user_id: ou_xxx, "user_id": "...").</span>
+        <span class="c1"># The key, separator and quotes are kept; a quoted value is redacted up to its</span>
+        <span class="c1"># closing quote.</span>
         <span class="s2">"id_kv"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="sa">r</span><span class="s2">"\b(session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\s*[:=]\s*[</span><span class="se">\"</span><span class="s2">']?"</span> <span class="sa">r</span><span class="s2">"[\w.-]+"</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">"(([</span><span class="se">\"</span><span class="s2">']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2\s*[:=]\s*([</span><span class="se">\"</span><span class="s2">'])?)"</span>
+            <span class="sa">r</span><span class="s2">"(?(3)(?:</span><span class="se">\\</span><span class="s2">.|(?!\3)[^</span><span class="se">\\</span><span class="s2">\n])+|[\w.-]+)"</span><span class="p">,</span>
             <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="c1"># Agent channel: 当前的channel: feishu / dingtalk / email / 飞书 / 钉钉</span>

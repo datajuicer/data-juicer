@@ -473,7 +473,7 @@
 
 
 <div class="viewcode-block" id="ImageCaptioningMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ImageCaptioningMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.image_captioning_mapper.html#data_juicer.ops.mapper.image_captioning_mapper.ImageCaptioningMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_IMAGES</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ImageCaptioningMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -493,7 +493,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="ImageCaptioningMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ImageCaptioningMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.image_captioning_mapper.html#data_juicer.ops.mapper.image_captioning_mapper.ImageCaptioningMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hf_img2seq</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Salesforce/blip2-opt-2.7b"</span><span class="p">,</span>
@@ -888,7 +888,7 @@
         <span class="k">return</span> <span class="n">samples_after_generation</span>
 
 <div class="viewcode-block" id="ImageCaptioningMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ImageCaptioningMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.image_captioning_mapper.html#data_juicer.ops.mapper.image_captioning_mapper.ImageCaptioningMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Process a batch of samples with true GPU batching for caption generation.</span>
 

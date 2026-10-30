@@ -32,6 +32,10 @@ PII_VALUE_KEYS = ("file_path", "path", "file", "arguments", "file_paths")
 def _compile_patterns() -> dict:
     """Build regex patterns for multi-platform and common PII."""
     ipv4 = r"(?<![0-9.])" r"(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}" r"(?:25[0-5]|2[0-4]\d|[01]?\d\d?)" r"(?![0-9])"
+    # \b finds no boundary between CJK text and an ASCII token (用户ou_xxx发来消息), so
+    # tokens below start at (?a:\b), an ASCII-only boundary, and end at one or right
+    # before any non-ASCII character.
+    end = r"(?:(?a:\b)|(?=[^\x00-\x7f]))"
     return {
         # Unix: /Users/..., /home/..., /tmp/..., /opt/...
         "path_unix": re.compile(
@@ -63,19 +67,19 @@ def _compile_patterns() -> dict:
         ),
         # Agent channel: 当前的channel: feishu / dingtalk / email / 飞书 / 钉钉
         "channel_kv": re.compile(
-            r"(\bchannel\s*[:=]\s*[\"']?|当前的\s*channel\s*[:：]\s*)"
-            r"(feishu|dingtalk|wecom|wechat_work|email|mail|飞书|钉钉|企业微信|邮箱)\b",
+            r"((?a:\b)channel\s*[:=]\s*[\"']?|当前的\s*channel\s*[:：]\s*)"
+            r"(feishu|dingtalk|wecom|wechat_work|email|mail|飞书|钉钉|企业微信|邮箱)(?![0-9A-Za-z_])",
             re.IGNORECASE,
         ),
         # 飞书 open_id (ou_ + 32 hex)
-        "feishu_open_id": re.compile(r"\bou_[0-9a-f]{32}\b", re.IGNORECASE),
+        "feishu_open_id": re.compile(r"(?a:\b)ou_[0-9a-f]{32}" + end, re.IGNORECASE),
         # 钉钉/企业微信 等常见 open_id 格式 (字母+数字+下划线，较长)
-        "platform_open_id": re.compile(r"\b(ou_|u_|uid_)[0-9a-zA-Z_-]{16,64}\b"),
+        "platform_open_id": re.compile(r"(?a:\b)(ou_|u_|uid_)[0-9a-zA-Z_-]{16,64}" + end),
         # Chinese mobile (simple). ASCII lookarounds instead of \b, because \b
         # does not separate CJK characters from digits (我的手机号13812345678).
         "phone_cn": re.compile(r"(?<![0-9A-Za-z])1[3-9]\d{9}(?![0-9A-Za-z])"),
         # Generic phone (international, simple)
-        "phone_intl": re.compile(r"\+\d{1,4}[-.\s]?\d{6,14}\b"),
+        "phone_intl": re.compile(r"\+\d{1,4}[-.\s]?\d{6,14}" + end),
         # Chinese ID card (18 digits)
         "id_card_cn": re.compile(
             r"(?<![0-9A-Za-z])[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
@@ -88,7 +92,7 @@ def _compile_patterns() -> dict:
         ),
         # Typical JWS (header often starts with eyJ = {"alg"...)
         "jwt": re.compile(
-            r"\beyJ[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+\b",
+            r"(?a:\b)eyJ[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+" + end,
         ),
         # http(s) URLs (query strings may carry tokens)
         "url": re.compile(r"https?://[^\s\"'<>]+"),
@@ -98,7 +102,7 @@ def _compile_patterns() -> dict:
             r"\[[0-9a-fA-F:.]{3,}\](?::\d{1,5})?\b",
         ),
         "mac": re.compile(
-            r"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b",
+            r"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}" + end,
         ),
     }
 

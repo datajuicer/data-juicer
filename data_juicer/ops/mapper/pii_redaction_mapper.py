@@ -93,9 +93,10 @@ def _compile_patterns() -> dict:
         # http(s) URLs (query strings may carry tokens)
         "url": re.compile(r"https?://[^\s\"'<>]+"),
         "ipv4": re.compile(ipv4),
-        # Bracketed IPv6 + optional :port
+        # Bracketed IPv6 + optional :port. The brackets must hold "::" or at least six
+        # colons, so [123], [cafe] and [12:01:33] are left alone.
         "ipv6": re.compile(
-            r"\[[0-9a-fA-F:.]{3,}\](?::\d{1,5})?\b",
+            r"\[(?=[0-9a-fA-F:.]*::|(?:[0-9a-fA-F.]*:){6})[0-9a-fA-F:.]{3,}\](?::\d{1,5}(?!\d))?",
         ),
         "mac": re.compile(
             r"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b",

@@ -474,11 +474,20 @@
 <div class="viewcode-block" id="UnionFind.find">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.common.helper_func.html#data_juicer.ops.common.UnionFind.find">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">!=</span> <span class="n">x</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">]</span></div>
+        <span class="c1"># iterative, as parent chains can be longer than the recursion limit</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parent</span><span class="p">:</span>
+            <span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+            <span class="k">return</span> <span class="n">x</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">while</span> <span class="n">parent</span><span class="p">[</span><span class="n">root</span><span class="p">]</span> <span class="o">!=</span> <span class="n">root</span><span class="p">:</span>
+            <span class="n">root</span> <span class="o">=</span> <span class="n">parent</span><span class="p">[</span><span class="n">root</span><span class="p">]</span>
+        <span class="c1"># path compression</span>
+        <span class="k">while</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">root</span><span class="p">:</span>
+            <span class="n">next_x</span> <span class="o">=</span> <span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+            <span class="n">parent</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">next_x</span>
+        <span class="k">return</span> <span class="n">root</span></div>
 
 
 <div class="viewcode-block" id="UnionFind.union">

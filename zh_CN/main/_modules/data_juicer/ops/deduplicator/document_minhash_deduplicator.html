@@ -459,7 +459,6 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">struct</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -667,7 +666,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">hash_ranges</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows_per_band</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows_per_band</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span><span class="p">)</span>
         <span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset_hash_tables</span><span class="p">()</span>
 
         <span class="c1"># generate permutations</span>
         <span class="n">gen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
@@ -751,7 +750,9 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_reset_hash_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span><span class="p">)]</span>
+        <span class="c1"># each table maps a band hash to the first sample that has it; a</span>
+        <span class="c1"># set per hash would be allocated for every sample in every band</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span> <span class="o">=</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span><span class="p">)]</span>
 
 <div class="viewcode-block" id="DocumentMinhashDeduplicator.process">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.document_minhash_deduplicator.html#data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicator.process">[文档]</a>
@@ -775,26 +776,21 @@
         <span class="c1"># when exporting the processed dataset</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">([</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">minhash</span><span class="p">])</span>
 
-        <span class="c1"># make clusters -- construct the minhash lookup tables of seg to ids</span>
+        <span class="c1"># make clusters -- union each sample with the first sample that</span>
+        <span class="c1"># shares one of its band hashes. Roots are the smallest index of</span>
+        <span class="c1"># each cluster, as UnionFind.union always keeps the minimum.</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Start clustering for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples..."</span><span class="p">)</span>
+        <span class="n">union_find</span> <span class="o">=</span> <span class="n">UnionFind</span><span class="p">()</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">10000</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
             <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">minhashes</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">dynamic_ncols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">"Iterating MinHashes of samples..."</span>
         <span class="p">):</span>
             <span class="n">batch</span> <span class="o">=</span> <span class="n">minhashes</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">hs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">hs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">i</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">hashtable</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span><span class="p">):</span>
-                    <span class="n">hashtable</span><span class="p">[</span><span class="n">h</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span>
-
-        <span class="c1"># using UnionFind set to union samples within the same clusters</span>
-        <span class="n">union_find</span> <span class="o">=</span> <span class="n">UnionFind</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span><span class="p">,</span> <span class="n">dynamic_ncols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">"Clustering"</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">idx</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cluster</span><span class="p">:</span>
-                    <span class="n">union_find</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+                    <span class="n">first</span> <span class="o">=</span> <span class="n">hashtable</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">first</span> <span class="o">!=</span> <span class="n">idx</span><span class="p">:</span>
+                        <span class="n">union_find</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">first</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"There are </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">union_find</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="si">}</span><span class="s2"> "</span>
             <span class="sa">f</span><span class="s2">"clusters that includes multiple near-duplicate samples."</span>
@@ -875,8 +871,11 @@
         <span class="n">uids</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">uid</span><span class="p">]</span>
         <span class="n">uid2idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">uid</span><span class="p">:</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">uid</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">uids</span><span class="p">)}</span>
 
-        <span class="c1"># make clusters -- construct the minhash lookup tables of seg to ids</span>
+        <span class="c1"># make clusters -- union each sample with the first sample that</span>
+        <span class="c1"># shares one of its band hashes. Roots are the smallest uid of each</span>
+        <span class="c1"># cluster, as UnionFind.union always keeps the minimum.</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Start clustering for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples..."</span><span class="p">)</span>
+        <span class="n">union_find</span> <span class="o">=</span> <span class="n">UnionFind</span><span class="p">()</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">10000</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
             <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">minhashes</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">dynamic_ncols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">"Iterating MinHashes of samples..."</span>
@@ -885,17 +884,9 @@
             <span class="n">batch_uid</span> <span class="o">=</span> <span class="n">uids</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">hs</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">batch_uid</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">hashtable</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span><span class="p">):</span>
-                    <span class="n">hashtable</span><span class="p">[</span><span class="n">h</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span>
-
-        <span class="c1"># using UnionFind set to union samples within the same clusters</span>
-        <span class="n">union_find</span> <span class="o">=</span> <span class="n">UnionFind</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hash_tables</span><span class="p">,</span> <span class="n">dynamic_ncols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">"Clustering"</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">uid</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cluster</span><span class="p">:</span>
-                    <span class="n">union_find</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">uid</span><span class="p">)</span>
+                    <span class="n">first</span> <span class="o">=</span> <span class="n">hashtable</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">uid</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">first</span> <span class="o">!=</span> <span class="n">uid</span><span class="p">:</span>
+                        <span class="n">union_find</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="n">first</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"There are </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">union_find</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="si">}</span><span class="s2"> "</span>
             <span class="sa">f</span><span class="s2">"clusters that includes multiple near-duplicate samples."</span>

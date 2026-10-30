@@ -102,6 +102,46 @@ class TextPairSimilarityFilterTest(DataJuicerTestCaseBase):
         self.assertEqual(similarity, [1.0])
         self.assertIs(type(similarity[0]), float)
 
+    def test_compute_stats_clamps_floating_point_overshoot(self):
+        class FakeBatch(dict):
+            def to(self, _device):
+                return self
+
+        class FakeProcessor:
+            def __call__(self, **_kwargs):
+                return FakeBatch()
+
+        class FakeModel:
+            device = "cpu"
+
+            def get_text_features(self, **_kwargs):
+                return torch.tensor([[1.0, 0.0], [1.0, 0.0]])
+
+        op = object.__new__(TextPairSimilarityFilter)
+        op.model_key = "fake-model"
+        op.text_key = self.text_key
+        op.text_key_second = self.text_key_second
+        op.use_cuda = lambda: False
+        sample = {
+            self.text_key: "same text",
+            self.text_key_second: "same text",
+            Fields.stats: {},
+        }
+
+        with patch(
+            "data_juicer.ops.filter.text_pair_similarity_filter.get_model",
+            return_value=(FakeModel(), FakeProcessor()),
+        ), patch(
+            "data_juicer.ops.filter.text_pair_similarity_filter.torch.cosine_similarity",
+            return_value=torch.tensor(1.0000001192092896),
+        ):
+            result = op.compute_stats_single(sample)
+
+        self.assertEqual(
+            result[Fields.stats][StatsKeys.text_pair_similarity],
+            [1.0],
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -6,6 +6,10 @@ from loguru import logger
 from pydantic import PositiveInt
 
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
+from data_juicer.ops.mapper.drop_text import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
@@ -149,16 +153,18 @@ class ExtractEventMapper(Mapper):
     def process_batched(self, samples, rank=None):
         # check if it's generated already
         if self.event_desc_key in samples[Fields.meta][0] and self.relevant_char_key in samples[Fields.meta][0]:
+            if self.drop_text:
+                remove_text_from_sample(samples, self.text_key)
             return samples
 
         events, characters = [], []
-        for text in samples[self.text_key]:
+        for text in read_text_from_sample(samples, self.text_key):
             cur_events, cur_characters = self._process_single_sample(text, rank=rank)
             events.append(cur_events)
             characters.append(cur_characters)
 
         if self.drop_text:
-            samples.pop(self.text_key)
+            remove_text_from_sample(samples, self.text_key)
 
         new_samples = []
         for i in range(len(events)):

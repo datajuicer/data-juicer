@@ -222,6 +222,28 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         )
         self.assertEqual(m._redact_text("{'session_id': 'abc:def'}"), "{'session_id': '[ID_REDACTED]'}")
 
+    def test_kv_with_fullwidth_colon(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password：hunter2"), "password：[REDACTED]")
+        self.assertEqual(m._redact_text("api_key： sk-abc123"), "api_key： [REDACTED]")
+        self.assertEqual(m._redact_text("user_id：12345"), "user_id：[ID_REDACTED]")
+
+    def test_kv_value_does_not_run_onto_the_next_line(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password=\nstatus=ok"), "password=\nstatus=ok")
+        self.assertEqual(m._redact_text("token:\nnext line text"), "token:\nnext line text")
+        self.assertEqual(m._redact_text("user_id=\nstatus=ok"), "user_id=\nstatus=ok")
+        self.assertEqual(m._redact_text("password=\r\nstatus=ok"), "password=\r\nstatus=ok")
+
+    def test_kv_value_on_an_indented_next_line(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password:\n  hunter2"), "password:\n  [REDACTED]")
+        self.assertEqual(
+            m._redact_text('{\n  "password":\n    "s3cret"\n}'),
+            '{\n  "password":\n    "[REDACTED]"\n}',
+        )
+        self.assertEqual(m._redact_text("user_id:\n  u-42"), "user_id:\n  [ID_REDACTED]")
+
 
 if __name__ == "__main__":
     unittest.main()

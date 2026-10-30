@@ -48,6 +48,17 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertIn(PLACEHOLDER_MAC, out)
         self.assertIn(PLACEHOLDER_PEM, out)
 
+    def test_bracketed_ipv6_without_port(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("[2001:db8::1] is up"), "[IP_REDACTED] is up")
+        self.assertEqual(m._redact_text("ping [fe80::1]."), "ping [IP_REDACTED].")
+        self.assertEqual(m._redact_text("http://[2001:db8::1]/x"), "http://[IP_REDACTED]/x")
+        self.assertEqual(m._redact_text("地址[2001:db8::1]:8080的服务"), "地址[IP_REDACTED]的服务")
+        self.assertEqual(m._redact_text("[1:2:3:4:5:6:7:8]"), "[IP_REDACTED]")
+        # brackets that do not hold an IPv6 address are left alone
+        for text in ("[123]x", "[cafe]x", "[12:01:33]INFO", "[...]", "listen [::]:80"):
+            self.assertEqual(m._redact_text(text), text)
+
     def test_extended_url_off_by_default(self):
         """URL masking is off by default, but JWT and IP are on."""
         m = self._m()

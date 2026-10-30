@@ -37,6 +37,23 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         # still not matched inside longer ASCII tokens such as hashes
         self.assertEqual(m._redact_text("sha deadbeef13812345678cafe"), "sha deadbeef13812345678cafe")
 
+    def test_tokens_next_to_cjk_text(self):
+        m = self._m()
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln"
+        cases = {
+            f"令牌是{jwt}，已过期": "令牌是[JWT_REDACTED]，已过期",
+            "电话+8613812345678请回电": "电话[PHONE_REDACTED]请回电",
+            "MAC地址00:1A:2B:3C:4D:5E的设备": "MAC地址[MAC_REDACTED]的设备",
+            "用户ou_0123456789abcdef0123456789abcdef发来消息": "用户[CHANNEL_ID_REDACTED]发来消息",
+            "用户uid_abcdef0123456789xyz发来消息": "用户[CHANNEL_ID_REDACTED]发来消息",
+            "当前channel: feishu通知": "当前channel: [CHANNEL_ID_REDACTED]通知",
+            "当前的channel: 飞书发送": "当前的channel: [CHANNEL_ID_REDACTED]发送",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(m._redact_text(raw), expected)
+        # still not matched inside longer ASCII tokens
+        self.assertEqual(m._redact_text("abcuid_abcdef0123456789xyz"), "abcuid_abcdef0123456789xyz")
+
     def test_extended_ipv6_mac_pem(self):
         m = self._m()  # PEM/IP/MAC on by default
         raw = (

@@ -45,19 +45,21 @@ def _compile_patterns() -> dict:
         # Secret keys: key:= value or "key": "value". A quoted value is redacted up to
         # its closing quote and a placeholder such as [JWT_REDACTED] whole. For auth and
         # Authorization keys, a scheme (Bearer, Basic, ...) followed by a credential on
-        # the same line is kept.
+        # the same line is kept. The separator may be a full-width colon, and the value
+        # may start on the next line only if that line is indented (YAML, pretty JSON).
         "secret_kv": re.compile(
             r"(\b(?:api[_-]?key|apikey|secret|password|passwd|token|credential|license[_-]?key"
-            r"|(auth(?:orization)?))[\"']?\s*[:=]\s*"
+            r"|(auth(?:orization)?))[\"']?\s*[:=：][ \t]*(?:\r?\n[ \t]+)?"
             r"(?:([\"'])|(?(2)(?:bearer|basic|digest|token)[ \t]+(?=[^\s#])))?)"
             r"((?(3)(?:\\.|(?!\3)[^\\\n])+|(?:\[[^\s\]]*\]|[^\s\"',}\]]+)))",
             re.IGNORECASE,
         ),
         # Session/user/request IDs (session_id: 123, user_id: ou_xxx, "user_id": "...").
         # The key, separator and quotes are kept; a quoted value is redacted up to its
-        # closing quote.
+        # closing quote. Separator and line rules are the same as for secret_kv.
         "id_kv": re.compile(
-            r"(([\"']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2\s*[:=]\s*([\"'])?)"
+            r"(([\"']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2"
+            r"\s*[:=：][ \t]*(?:\r?\n[ \t]+)?([\"'])?)"
             r"(?(3)(?:\\.|(?!\3)[^\\\n])+|[\w.-]+)",
             re.IGNORECASE,
         ),

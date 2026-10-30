@@ -607,11 +607,15 @@
             <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="p">{}</span>
 
         <span class="c1"># --- count document frequency for each line hash ---------------</span>
+        <span class="c1"># read only the hash column, in batches: iterating the dataset</span>
+        <span class="c1"># decodes every column of every row</span>
         <span class="n">doc_freq</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">:</span>
-            <span class="n">unique_hashes</span> <span class="o">=</span> <span class="p">{</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">row</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">line_hashes</span><span class="p">]</span> <span class="k">if</span> <span class="n">h</span><span class="p">}</span>
-            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">unique_hashes</span><span class="p">:</span>
-                <span class="n">doc_freq</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">hash_column</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select_columns</span><span class="p">([</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">line_hashes</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">hash_column</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">line_hashes</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">line_hashes</span><span class="p">]:</span>
+                <span class="n">unique_hashes</span> <span class="o">=</span> <span class="p">{</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">line_hashes</span> <span class="k">if</span> <span class="n">h</span><span class="p">}</span>
+                <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">unique_hashes</span><span class="p">:</span>
+                    <span class="n">doc_freq</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="n">high_freq</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">cnt</span> <span class="ow">in</span> <span class="n">doc_freq</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">cnt</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency_threshold</span><span class="p">}</span>
 

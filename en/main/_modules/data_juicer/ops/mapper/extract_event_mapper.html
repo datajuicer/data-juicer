@@ -463,7 +463,7 @@
 
 <span class="c1"># TODO: LLM-based inference.</span>
 <div class="viewcode-block" id="ExtractEventMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_event_mapper.html#data_juicer.ops.mapper.extract_event_mapper.ExtractEventMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEventMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExtractEventMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -507,7 +507,7 @@
 <span class="s2">    """</span>
 
 <div class="viewcode-block" id="ExtractEventMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_event_mapper.html#data_juicer.ops.mapper.extract_event_mapper.ExtractEventMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEventMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gpt-4o"</span><span class="p">,</span>
@@ -566,7 +566,7 @@
 
 
 <div class="viewcode-block" id="ExtractEventMapper.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_event_mapper.html#data_juicer.ops.mapper.extract_event_mapper.ExtractEventMapper.parse_output">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEventMapper.parse_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_output</span><span class="p">):</span>
         <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_pattern</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
         <span class="n">matches</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">raw_output</span><span class="p">)</span>
@@ -602,7 +602,7 @@
         <span class="k">return</span> <span class="n">event_list</span><span class="p">,</span> <span class="n">character_list</span>
 
 <div class="viewcode-block" id="ExtractEventMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_event_mapper.html#data_juicer.ops.mapper.extract_event_mapper.ExtractEventMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractEventMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_desc_key</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">relevant_char_key</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>

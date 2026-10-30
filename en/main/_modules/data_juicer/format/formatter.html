@@ -708,19 +708,19 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
 
     <span class="c1"># 2. filter out those samples with empty or None text</span>
-    <span class="c1"># TODO: optimize the filtering operation for better efficiency</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"There are </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> sample(s) in the original dataset."</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">non_empty_text</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">target_keys</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">target_key</span> <span class="ow">in</span> <span class="n">target_keys</span><span class="p">:</span>
-            <span class="c1"># TODO: case for CFT, in which the len(sample[target_key]) == 0</span>
-            <span class="k">if</span> <span class="n">sample</span><span class="p">[</span><span class="n">target_key</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="c1"># we filter out the samples contains at least None column</span>
-                <span class="c1"># since the op can not handle it now</span>
-                <span class="k">return</span> <span class="kc">False</span>
-        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">non_empty_text</span><span class="p">(</span><span class="o">*</span><span class="n">columns</span><span class="p">):</span>
+        <span class="c1"># TODO: case for CFT, in which the len(sample[target_key]) == 0</span>
+        <span class="c1"># we filter out the samples contains at least None column since the</span>
+        <span class="c1"># op can not handle it now</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">all</span><span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span> <span class="k">for</span> <span class="n">values</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">columns</span><span class="p">)]</span>
 
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">non_empty_text</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">,</span> <span class="n">fn_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"target_keys"</span><span class="p">:</span> <span class="n">text_keys</span><span class="p">})</span>
+    <span class="c1"># arrow counts the nulls of a column without decoding any row, so the</span>
+    <span class="c1"># filter only runs when some text column has a null, and then it reads</span>
+    <span class="c1"># only the text columns, in batches</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">column</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">null_count</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">text_keys</span><span class="p">):</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">non_empty_text</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">num_proc</span><span class="p">,</span> <span class="n">input_columns</span><span class="o">=</span><span class="n">text_keys</span><span class="p">,</span> <span class="n">batched</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples left after filtering empty text."</span><span class="p">)</span>
 
     <span class="c1"># 3. convert relative paths to absolute paths</span>

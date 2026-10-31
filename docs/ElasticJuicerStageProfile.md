@@ -1,9 +1,9 @@
 # Stage batch profiles for Ray adaptive Mappers
 
 StageProfile builds on PR1070's actor-local adaptive microbatch controller and
-PR1054's execution groups. It shares successful microbatch sizes and exclusive
+`ray_partitioned` execution. It shares successful microbatch sizes and exclusive
 OOM upper bounds between actors in **one `PartitionedRayExecutor.run()`**.
-Later execution groups and replacement actors can start with compatible prior
+Actors started later and replacement actors can start with compatible prior
 experience instead of repeating the same initial OOM probes.
 
 The switch defaults to **false**. This feature does not require PR1072's probe
@@ -119,7 +119,7 @@ the error adds at most one two-second timeout for that incarnation. Service
 startup has a separate ten-second timeout.
 
 Eligible outer batches publish once after delivery, with a bounded RPC wait, so
-the next execution group sees completed evidence. There is no RPC per
+actors that start later see completed evidence. There is no RPC per
 microbatch. Cost validation scans the declared columns before and after each
 outer batch. This opt-in overhead should be measured on target workloads.
 
@@ -154,7 +154,7 @@ PYTHONPATH=.:tests CUDA_VISIBLE_DEVICES=0 python -m pytest -q \
 
 The real-Ray tests use a CPU-safe Mapper with injected OOMs and logical GPU
 reservations. They kill and replace an actor, verify actual seeding and run
-seed-off/on public execution across four execution groups with two repeated
+seed-off/on public partitioned execution with two repeated
 stages. They compare output rows, values, nested mutation counts, exported IDs,
 OOM attempts and completed checkpoint reuse. These tests do not allocate CUDA
 memory or benchmark real-model throughput.

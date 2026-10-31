@@ -190,6 +190,7 @@ __all__ = [
     "Difference_Area_Generator_Mapper",
     "Difference_Caption_Generator_Mapper",
     "DownloadFileMapper",
+    "ExpandDuplicateMapper",
     "ExpandMacroMapper",
     "ExtractEntityAttributeMapper",
     "ExtractEntityRelationMapper",

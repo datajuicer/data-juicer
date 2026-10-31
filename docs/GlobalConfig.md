@@ -104,10 +104,8 @@ See [Export](Export.md) for details.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `checkpoint.enabled` | bool | `true` | Enable partition checkpointing |
-| `checkpoint.strategy` | str | `every_n_ops` | Strategy: `every_op` / `every_n_ops` / `manual` / `disabled` |
-| `checkpoint.n_ops` | int | `5` | Interval for `every_n_ops` strategy |
-| `checkpoint.op_names` | list | `[]` | Operator names to checkpoint for `manual` strategy |
+| `checkpoint.enabled` | bool | `true` | Enable checkpointing |
+| `checkpoint.strategy` | str | `every_op` | `every_op` commits every leading Mapper/Filter batch; `disabled` turns checkpoints off |
 
 ---
 

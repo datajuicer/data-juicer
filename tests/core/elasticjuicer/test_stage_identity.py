@@ -69,12 +69,9 @@ def test_plan_keeps_identities_and_initialization_for_explicit_and_auto_gpu_stag
     executor.cfg = SimpleNamespace()
     executor._auto_parallel_op_ids = {id(ops[1])}
     executor.max_gpu_workers_per_device = 5
-    executor.execution_group_size = "auto"
-    executor.max_initialization_overhead_ratio = 0.1
     topology = SimpleNamespace(total_cpus=3, total_gpus=1, gpu_devices_per_node=(1,))
     with patch("data_juicer.utils.ray_cluster_utils.detect_cluster_topology", return_value=topology):
         plan = executor._configure_throughput_aware_gpu_parallelism(ops, total_samples=800)
     assert [stage["stage_id"] for stage in plan["operators"]] == [stamped_stage_identity(op) for op in ops]
     assert len({stage["stage_id"] for stage in plan["operators"]}) == 2
     assert ops[0].num_proc == 1
-    assert executor._resolve_execution_group_size(SimpleNamespace(num_partitions=8, total_rows=800), ops) == 8

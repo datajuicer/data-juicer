@@ -333,6 +333,16 @@ process:
       drop_text: false                                        # If drop the text in the output.
       model_params: {}                                        # Parameters for initializing the API model.
       sampling_params: {}                                     # Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95}
+  - extract_html_content_mapper:                               # extract the main content of web pages from HTML with Trafilatura, removing boilerplate.
+      output_format: 'txt'                                    # Format of the extracted content, 'txt' or 'markdown'.
+      focus: 'balanced'                                       # Extraction trade-off, 'balanced', 'precision' (less noise) or 'recall' (less missing content).
+      include_tables: true                                    # Whether to keep tables in the output text.
+      include_links: false                                    # Whether to keep link targets as Markdown-style links in txt and markdown output.
+      include_comments: false                                 # Whether to keep the user comment section of the page.
+      fast: false                                             # Whether to skip the fallback extraction algorithms for speed.
+      url_key: null                                           # Optional page URL field or dot-separated dictionary path; exact top-level names take precedence.
+      extract_metadata: false                                 # Whether to store page metadata (title, author, date, ...) in the meta field.
+      metadata_field_name: 'html_metadata'                    # Field name in meta to store the metadata.
   - extract_nickname_mapper:                                # Extract nickname relationship in the text.
       api_model: 'gpt-4o'                                     # API model name.
       nickname_key: 'nickname'                                # The key name in the meta field to store the nickname relationship.

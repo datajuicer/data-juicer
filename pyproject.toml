@@ -97,6 +97,7 @@ nlp = [
     "ftfy",  # Text fixing
     "simhash-pybind",  # Text similarity
     "selectolax",  # HTML parsing
+    "trafilatura>=2.0.0",  # Web page content extraction
     "nlpaug",  # Text augmentation
     "nlpcda",  # Chinese text augmentation
     "tiktoken",  # Token counting

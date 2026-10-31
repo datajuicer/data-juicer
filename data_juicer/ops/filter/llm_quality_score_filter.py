@@ -17,8 +17,11 @@ class LLMQualityScoreFilter(LLMAnalysisFilter):
     multiple dimensions, including accuracy, grammar, informativeness, and coherence. The
     LLM provides a numerical score for each dimension on a 1-5 scale, where 1 is the lowest
     and 5 is the highest. The overall quality score is used to decide whether to keep or
-    filter out the sample based on the specified minimum and maximum score thresholds. The
-    evaluation results are cached in the 'llm_quality_score' and 'llm_quality_record'
+    filter out the sample based on the specified minimum and maximum score thresholds.
+    Thresholds use the mean of selected dimension scores divided by 5; an average rating
+    of 4.5 corresponds to min_score=0.9. Scores are used directly, with no clamping or
+    automatic calibration across scales.
+    The evaluation results are cached in the 'llm_quality_score' and 'llm_quality_record'
     fields. Important flags and tags from the LLM's analysis may also be stored in the
     sample's stats."""
 

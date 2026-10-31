@@ -273,8 +273,8 @@ def build_base_parser() -> ArgumentParser:
         type=Dict,
         default=None,
         help="Optional AWS credentials for S3 export: aws_access_key_id, aws_secret_access_key, aws_region, "
-        "and optionally aws_session_token and endpoint_url. Exporters can also use dataset credentials or "
-        "the AWS default credential chain.",
+        "and optionally aws_session_token and endpoint_url. Environment variables take precedence over these "
+        "values. Without access keys, exporters use the AWS default credential chain.",
     )
     parser.add_argument(
         "--decrypt_after_reading",

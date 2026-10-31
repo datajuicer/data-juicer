@@ -359,6 +359,11 @@ def scheduling_num_gpus(op_name: str, num_gpus: float, memory_fraction: float) -
 
 def _config_hash(op) -> str:
     config = getattr(op, "_op_cfg", {getattr(op, "_name", type(op).__name__): {}})
+    # Config initialization injects a job-specific work_dir into every OP.
+    # Importing a report into another job must not invalidate unchanged model,
+    # batch and resource measurements just because that artifact path differs.
+    # Keep all other constructor settings and never mutate the live config.
+    config = {name: {key: value for key, value in args.items() if key != "work_dir"} for name, args in config.items()}
     payload = json.dumps(config, sort_keys=True, ensure_ascii=False, default=str, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 

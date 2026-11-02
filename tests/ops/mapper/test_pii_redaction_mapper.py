@@ -235,6 +235,12 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertEqual(m._redact_text("user_id=\nstatus=ok"), "user_id=\nstatus=ok")
         self.assertEqual(m._redact_text("password=\r\nstatus=ok"), "password=\r\nstatus=ok")
 
+    def test_kv_with_unicode_whitespace_after_the_separator(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password:\u3000hunter2"), "password:\u3000[REDACTED]")
+        self.assertEqual(m._redact_text("user_id:\u00a0u-42"), "user_id:\u00a0[ID_REDACTED]")
+        self.assertEqual(m._redact_text("password:\n\u3000hunter2"), "password:\n\u3000[REDACTED]")
+
     def test_kv_value_on_an_indented_next_line(self):
         m = self._m()
         self.assertEqual(m._redact_text("password:\n  hunter2"), "password:\n  [REDACTED]")

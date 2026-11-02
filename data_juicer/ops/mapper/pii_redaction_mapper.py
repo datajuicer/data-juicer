@@ -49,7 +49,7 @@ def _compile_patterns() -> dict:
         # may start on the next line only if that line is indented (YAML, pretty JSON).
         "secret_kv": re.compile(
             r"(\b(?:api[_-]?key|apikey|secret|password|passwd|token|credential|license[_-]?key"
-            r"|(auth(?:orization)?))[\"']?\s*[:=：][ \t]*(?:\r?\n[ \t]+)?"
+            r"|(auth(?:orization)?))[\"']?\s*[:=：][^\S\r\n]*(?:\r?\n[^\S\r\n]+)?"
             r"(?:([\"'])|(?(2)(?:bearer|basic|digest|token)[ \t]+(?=[^\s#])))?)"
             r"((?(3)(?:\\.|(?!\3)[^\\\n])+|(?:\[[^\s\]]*\]|[^\s\"',}\]]+)))",
             re.IGNORECASE,
@@ -59,7 +59,7 @@ def _compile_patterns() -> dict:
         # closing quote. Separator and line rules are the same as for secret_kv.
         "id_kv": re.compile(
             r"(([\"']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2"
-            r"\s*[:=：][ \t]*(?:\r?\n[ \t]+)?([\"'])?)"
+            r"\s*[:=：][^\S\r\n]*(?:\r?\n[^\S\r\n]+)?([\"'])?)"
             r"(?(3)(?:\\.|(?!\3)[^\\\n])+|[\w.-]+)",
             re.IGNORECASE,
         ),

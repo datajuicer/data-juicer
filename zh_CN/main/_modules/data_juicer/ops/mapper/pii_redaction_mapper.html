@@ -487,6 +487,10 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_compile_patterns</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build regex patterns for multi-platform and common PII."""</span>
     <span class="n">ipv4</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?&lt;![0-9.])"</span> <span class="sa">r</span><span class="s2">"(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.)</span><span class="si">{3}</span><span class="s2">"</span> <span class="sa">r</span><span class="s2">"(?:25[0-5]|2[0-4]\d|[01]?\d\d?)"</span> <span class="sa">r</span><span class="s2">"(?![0-9])"</span>
+    <span class="c1"># \b finds no boundary between CJK text and an ASCII token (用户ou_xxx发来消息), so</span>
+    <span class="c1"># tokens below start at (?a:\b), an ASCII-only boundary, and end at one or right</span>
+    <span class="c1"># before any non-ASCII character.</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?:(?a:\b)|(?=[^\x00-\x7f]))"</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="c1"># Unix: /Users/..., /home/..., /tmp/..., /opt/...</span>
         <span class="s2">"path_unix"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
@@ -518,19 +522,19 @@
         <span class="p">),</span>
         <span class="c1"># Agent channel: 当前的channel: feishu / dingtalk / email / 飞书 / 钉钉</span>
         <span class="s2">"channel_kv"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="sa">r</span><span class="s2">"(\bchannel\s*[:=]\s*[</span><span class="se">\"</span><span class="s2">']?|当前的\s*channel\s*[:：]\s*)"</span>
-            <span class="sa">r</span><span class="s2">"(feishu|dingtalk|wecom|wechat_work|email|mail|飞书|钉钉|企业微信|邮箱)\b"</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">"((?a:\b)channel\s*[:=]\s*[</span><span class="se">\"</span><span class="s2">']?|当前的\s*channel\s*[:：]\s*)"</span>
+            <span class="sa">r</span><span class="s2">"(feishu|dingtalk|wecom|wechat_work|email|mail|飞书|钉钉|企业微信|邮箱)(?![0-9A-Za-z_])"</span><span class="p">,</span>
             <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="c1"># 飞书 open_id (ou_ + 32 hex)</span>
-        <span class="s2">"feishu_open_id"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\bou_[0-9a-f]</span><span class="si">{32}</span><span class="s2">\b"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">),</span>
+        <span class="s2">"feishu_open_id"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?a:\b)ou_[0-9a-f]</span><span class="si">{32}</span><span class="s2">"</span> <span class="o">+</span> <span class="n">end</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">),</span>
         <span class="c1"># 钉钉/企业微信 等常见 open_id 格式 (字母+数字+下划线，较长)</span>
-        <span class="s2">"platform_open_id"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\b(ou_|u_|uid_)[0-9a-zA-Z_-]{16,64}\b"</span><span class="p">),</span>
+        <span class="s2">"platform_open_id"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?a:\b)(ou_|u_|uid_)[0-9a-zA-Z_-]{16,64}"</span> <span class="o">+</span> <span class="n">end</span><span class="p">),</span>
         <span class="c1"># Chinese mobile (simple). ASCII lookarounds instead of \b, because \b</span>
         <span class="c1"># does not separate CJK characters from digits (我的手机号13812345678).</span>
         <span class="s2">"phone_cn"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?&lt;![0-9A-Za-z])1[3-9]\d</span><span class="si">{9}</span><span class="s2">(?![0-9A-Za-z])"</span><span class="p">),</span>
         <span class="c1"># Generic phone (international, simple)</span>
-        <span class="s2">"phone_intl"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\+\d{1,4}[-.\s]?\d{6,14}\b"</span><span class="p">),</span>
+        <span class="s2">"phone_intl"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\+\d{1,4}[-.\s]?\d{6,14}"</span> <span class="o">+</span> <span class="n">end</span><span class="p">),</span>
         <span class="c1"># Chinese ID card (18 digits)</span>
         <span class="s2">"id_card_cn"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
             <span class="sa">r</span><span class="s2">"(?&lt;![0-9A-Za-z])[1-9]\d</span><span class="si">{5}</span><span class="s2">(?:19|20)\d</span><span class="si">{2}</span><span class="s2">(?:0[1-9]|1[0-2])"</span>
@@ -543,7 +547,7 @@
         <span class="p">),</span>
         <span class="c1"># Typical JWS (header often starts with eyJ = {"alg"...)</span>
         <span class="s2">"jwt"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="sa">r</span><span class="s2">"\beyJ[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+\b"</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">"(?a:\b)eyJ[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+"</span> <span class="o">+</span> <span class="n">end</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="c1"># http(s) URLs (query strings may carry tokens)</span>
         <span class="s2">"url"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"https?://[^\s</span><span class="se">\"</span><span class="s2">'&lt;&gt;]+"</span><span class="p">),</span>
@@ -554,7 +558,7 @@
             <span class="sa">r</span><span class="s2">"\[(?=[0-9a-fA-F:.]*::|(?:[0-9a-fA-F.]*:)</span><span class="si">{6}</span><span class="s2">)[0-9a-fA-F:.]{3,}\](?::\d{1,5}(?!\d))?"</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="s2">"mac"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="sa">r</span><span class="s2">"(?&lt;![0-9A-Fa-f:])(?:[0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">[:-])</span><span class="si">{5}</span><span class="s2">[0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">\b"</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">"(?&lt;![0-9A-Fa-f:])(?:[0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">[:-])</span><span class="si">{5}</span><span class="s2">[0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">"</span> <span class="o">+</span> <span class="n">end</span><span class="p">,</span>
         <span class="p">),</span>
     <span class="p">}</span>
 

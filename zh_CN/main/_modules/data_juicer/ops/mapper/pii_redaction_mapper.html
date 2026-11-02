@@ -548,9 +548,10 @@
         <span class="c1"># http(s) URLs (query strings may carry tokens)</span>
         <span class="s2">"url"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"https?://[^\s</span><span class="se">\"</span><span class="s2">'&lt;&gt;]+"</span><span class="p">),</span>
         <span class="s2">"ipv4"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">ipv4</span><span class="p">),</span>
-        <span class="c1"># Bracketed IPv6 + optional :port</span>
+        <span class="c1"># Bracketed IPv6 + optional :port. The brackets must hold "::" or at least six</span>
+        <span class="c1"># colons, so [123], [cafe] and [12:01:33] are left alone.</span>
         <span class="s2">"ipv6"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="sa">r</span><span class="s2">"\[[0-9a-fA-F:.]{3,}\](?::\d{1,5})?\b"</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">"\[(?=[0-9a-fA-F:.]*::|(?:[0-9a-fA-F.]*:)</span><span class="si">{6}</span><span class="s2">)[0-9a-fA-F:.]{3,}\](?::\d{1,5}(?!\d))?"</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="s2">"mac"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
             <span class="sa">r</span><span class="s2">"(?&lt;![0-9A-Fa-f:])(?:[0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">[:-])</span><span class="si">{5}</span><span class="s2">[0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">\b"</span><span class="p">,</span>

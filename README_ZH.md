@@ -88,12 +88,12 @@ for s in res_ds:
 ## 📰 动态
 
 <details open>
-<summary>[2026-10-30] Release v1.6.2: <b>选择器与过滤器边界修复；PII 脱敏覆盖更全；去重与字段选择器提速</b></summary>
+<summary>[2026-11-03] Release v1.6.2: <b>选择器与过滤器边界修复；PII 脱敏覆盖更全；去重与字段选择器提速</b></summary>
 
 * 🎯 选择器与过滤器边界修复 — 显式设置 `top_ratio: 0` 和随机选择得到零行时，现在保留零条样本；`range_specified_field_selector` 只设置单侧边界时按该边界生效，不再返回整个数据集；`topk_specified_field_selector` 对顶层数值字符串按数值排序，并可容忍 `None`；`specified_numeric_field_filter` 保留 `0` 和 `0.0`；`suffix_filter` 统一归一化 `txt`、`.TXT` 与 `.txt`。
-* 🛡️ PII 脱敏覆盖更全 — `pii_redaction_mapper` 可脱敏紧邻中文的手机号、身份证号，完整脱敏秘密值（引号包裹的值、`Authorization: Bearer ...`、`"api_key": "..."`），并可脱敏 `user_id: 42`、`{"user_id": "u-123"}` 这类 ID 值，同时保留键名和分隔符；`clean_email_mapper` 匹配大写域名；`clean_ip_mapper` 匹配压缩写法的 IPv6 及内嵌 IPv4 的 IPv6 地址。
+* 🛡️ PII 脱敏覆盖更全 — `pii_redaction_mapper` 新增对 JWT、国际电话、MAC 地址、飞书/钉钉 open ID 及方括号 IPv6 地址的脱敏；紧邻中文的手机号、身份证号及上述 token 也能识别；秘密值和 ID 值（`user_id: 42`、`{"user_id": "u-123"}`、`Authorization: Bearer ...`）整体脱敏并保留键名、分隔符和引号，支持全角 `：`，且值不会误吞下一行（缩进换行除外）；`clean_email_mapper` 匹配大写域名；`clean_ip_mapper` 匹配压缩写法的 IPv6 及内嵌 IPv4 的 IPv6 地址。
 * ⚡ 去重、加载与字段选择器提速 — 精确去重、simhash 去重、图像去重和视频去重只读取哈希列来计算保留行，不再解码其他列；行去重只从哈希列统计行哈希；MinHash 分带冲突在扫描过程中直接合并；`unify_format` 在所有文本列都无空值时跳过 None 过滤；四个字段选择器按每批 1 万行读取目标列。
-* 🔧 媒体、加载与作业修复 — 图像算子将结果回写为 PNG 字节，后续图像算子可正常读取；视频逐帧处理保留音轨；宽松 JSONL 保留带 BOM 的首条记录；行内 LaTeX 注释不再吞掉前一个字符；作业进度从完成事件的 metadata 读取指标；`nltk` 升级至 3.10.4。
+* 🔧 媒体、加载与作业修复 — 图像算子将结果回写为 PNG 字节，后续图像算子可正常读取；视频逐帧处理保留音轨；宽松 JSONL 保留带 BOM 的首条记录；行内 LaTeX 注释不再吞掉前一个字符；`expand_macro_mapper` 可展开文本末尾或紧邻另一个宏的宏；作业进度从完成事件的 metadata 读取指标；`nltk` 升级至 3.10.4，GitPython 升级至 3.2.1。
 </details>
 
 <details open>

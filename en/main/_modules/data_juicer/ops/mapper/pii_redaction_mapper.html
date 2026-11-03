@@ -496,19 +496,21 @@
         <span class="c1"># Secret keys: key:= value or "key": "value". A quoted value is redacted up to</span>
         <span class="c1"># its closing quote and a placeholder such as [JWT_REDACTED] whole. For auth and</span>
         <span class="c1"># Authorization keys, a scheme (Bearer, Basic, ...) followed by a credential on</span>
-        <span class="c1"># the same line is kept.</span>
+        <span class="c1"># the same line is kept. The separator may be a full-width colon, and the value</span>
+        <span class="c1"># may start on the next line only if that line is indented (YAML, pretty JSON).</span>
         <span class="s2">"secret_kv"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
             <span class="sa">r</span><span class="s2">"(\b(?:api[_-]?key|apikey|secret|password|passwd|token|credential|license[_-]?key"</span>
-            <span class="sa">r</span><span class="s2">"|(auth(?:orization)?))[</span><span class="se">\"</span><span class="s2">']?\s*[:=]\s*"</span>
+            <span class="sa">r</span><span class="s2">"|(auth(?:orization)?))[</span><span class="se">\"</span><span class="s2">']?\s*[:=：][^\S\r\n]*(?:\r?\n[^\S\r\n]+)?"</span>
             <span class="sa">r</span><span class="s2">"(?:([</span><span class="se">\"</span><span class="s2">'])|(?(2)(?:bearer|basic|digest|token)[ \t]+(?=[^\s#])))?)"</span>
             <span class="sa">r</span><span class="s2">"((?(3)(?:</span><span class="se">\\</span><span class="s2">.|(?!\3)[^</span><span class="se">\\</span><span class="s2">\n])+|(?:\[[^\s\]]*\]|[^\s</span><span class="se">\"</span><span class="s2">',}\]]+)))"</span><span class="p">,</span>
             <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="c1"># Session/user/request IDs (session_id: 123, user_id: ou_xxx, "user_id": "...").</span>
         <span class="c1"># The key, separator and quotes are kept; a quoted value is redacted up to its</span>
-        <span class="c1"># closing quote.</span>
+        <span class="c1"># closing quote. Separator and line rules are the same as for secret_kv.</span>
         <span class="s2">"id_kv"</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="sa">r</span><span class="s2">"(([</span><span class="se">\"</span><span class="s2">']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2\s*[:=]\s*([</span><span class="se">\"</span><span class="s2">'])?)"</span>
+            <span class="sa">r</span><span class="s2">"(([</span><span class="se">\"</span><span class="s2">']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2"</span>
+            <span class="sa">r</span><span class="s2">"\s*[:=：][^\S\r\n]*(?:\r?\n[^\S\r\n]+)?([</span><span class="se">\"</span><span class="s2">'])?)"</span>
             <span class="sa">r</span><span class="s2">"(?(3)(?:</span><span class="se">\\</span><span class="s2">.|(?!\3)[^</span><span class="se">\\</span><span class="s2">\n])+|[\w.-]+)"</span><span class="p">,</span>
             <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
         <span class="p">),</span>

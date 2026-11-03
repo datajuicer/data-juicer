@@ -471,10 +471,11 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_iter_text_lines</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".jsonl.gz"</span><span class="p">):</span>
+    <span class="n">lower_path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">lower_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".jsonl.gz"</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rt"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8-sig"</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
             <span class="k">yield from</span> <span class="n">handle</span>
-    <span class="k">elif</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".jsonl.zst"</span><span class="p">):</span>
+    <span class="k">elif</span> <span class="n">lower_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".jsonl.zst"</span><span class="p">):</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">compressed</span><span class="p">:</span>
             <span class="n">dctx</span> <span class="o">=</span> <span class="n">zstd</span><span class="o">.</span><span class="n">ZstdDecompressor</span><span class="p">()</span>
             <span class="k">with</span> <span class="n">dctx</span><span class="o">.</span><span class="n">stream_reader</span><span class="p">(</span><span class="n">compressed</span><span class="p">)</span> <span class="k">as</span> <span class="n">reader</span><span class="p">:</span>

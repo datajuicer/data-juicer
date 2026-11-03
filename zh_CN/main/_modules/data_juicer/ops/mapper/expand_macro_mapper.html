@@ -534,12 +534,12 @@
             <span class="c1"># inline-expand all non-arg macros</span>
             <span class="k">for</span> <span class="n">macro_name</span><span class="p">,</span> <span class="n">macro_value</span> <span class="ow">in</span> <span class="n">non_arg_macros</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
-                    <span class="c1"># make pattern grouped to make sure that the macro</span>
-                    <span class="c1"># is not part of a longer alphanumeric word</span>
-                    <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"("</span> <span class="o">+</span> <span class="n">macro_name</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">")"</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">"([^a-zA-Z0-9])"</span><span class="p">,</span>
-                    <span class="c1"># replace the macro with its value and add back the</span>
-                    <span class="c1"># character that was matched after the macro</span>
-                    <span class="n">repl</span><span class="o">=</span><span class="n">macro_value</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">"\2"</span><span class="p">,</span>
+                    <span class="c1"># use a lookahead to make sure that the macro is not part</span>
+                    <span class="c1"># of a longer alphanumeric word without consuming the next</span>
+                    <span class="c1"># character, so macros at the end of the text or directly</span>
+                    <span class="c1"># followed by another macro are expanded too</span>
+                    <span class="n">pattern</span><span class="o">=</span><span class="n">macro_name</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">"(?![a-zA-Z0-9])"</span><span class="p">,</span>
+                    <span class="n">repl</span><span class="o">=</span><span class="n">macro_value</span><span class="p">,</span>
                     <span class="n">string</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
                 <span class="p">)</span>
 

@@ -72,12 +72,12 @@ class ExpandMacroMapper(Mapper):
             # inline-expand all non-arg macros
             for macro_name, macro_value in non_arg_macros.items():
                 text = re.sub(
-                    # make pattern grouped to make sure that the macro
-                    # is not part of a longer alphanumeric word
-                    pattern=r"(" + macro_name + r")" + r"([^a-zA-Z0-9])",
-                    # replace the macro with its value and add back the
-                    # character that was matched after the macro
-                    repl=macro_value + r"\2",
+                    # use a lookahead to make sure that the macro is not part
+                    # of a longer alphanumeric word without consuming the next
+                    # character, so macros at the end of the text or directly
+                    # followed by another macro are expanded too
+                    pattern=macro_name + r"(?![a-zA-Z0-9])",
+                    repl=macro_value,
                     string=text,
                 )
 

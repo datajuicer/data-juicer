@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.vggt\_mapper module
+===========================================
+
+.. automodule:: data_juicer.ops.mapper.vggt_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

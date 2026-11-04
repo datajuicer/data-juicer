@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.image\_sam\_3d\_body\_mapper module
+===========================================================
+
+.. automodule:: data_juicer.ops.mapper.image_sam_3d_body_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

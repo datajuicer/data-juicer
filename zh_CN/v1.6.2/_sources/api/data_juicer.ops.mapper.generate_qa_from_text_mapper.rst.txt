@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.generate\_qa\_from\_text\_mapper module
+===============================================================
+
+.. automodule:: data_juicer.ops.mapper.generate_qa_from_text_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

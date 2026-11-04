@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.video\_aesthetics\_filter module
+========================================================
+
+.. automodule:: data_juicer.ops.filter.video_aesthetics_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

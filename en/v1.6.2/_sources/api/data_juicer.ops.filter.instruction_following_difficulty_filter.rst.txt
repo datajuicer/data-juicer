@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.instruction\_following\_difficulty\_filter module
+=========================================================================
+
+.. automodule:: data_juicer.ops.filter.instruction_following_difficulty_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

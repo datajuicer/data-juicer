@@ -1,0 +1,7 @@
+data\_juicer.tools.DJ\_mcp\_granular\_ops module
+================================================
+
+.. automodule:: data_juicer.tools.DJ_mcp_granular_ops
+   :members:
+   :show-inheritance:
+   :undoc-members:

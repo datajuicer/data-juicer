@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_trajectory\_overlay\_mapper module
+=================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_trajectory_overlay_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

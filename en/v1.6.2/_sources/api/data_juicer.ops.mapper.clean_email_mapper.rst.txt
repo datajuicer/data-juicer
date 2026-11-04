@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.clean\_email\_mapper module
+===================================================
+
+.. automodule:: data_juicer.ops.mapper.clean_email_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

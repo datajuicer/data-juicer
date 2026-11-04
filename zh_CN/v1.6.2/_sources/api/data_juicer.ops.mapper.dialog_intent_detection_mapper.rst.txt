@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.dialog\_intent\_detection\_mapper module
+================================================================
+
+.. automodule:: data_juicer.ops.mapper.dialog_intent_detection_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

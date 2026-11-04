@@ -1,0 +1,7 @@
+data\_juicer.core.elasticjuicer.stage\_identity module
+======================================================
+
+.. automodule:: data_juicer.core.elasticjuicer.stage_identity
+   :members:
+   :show-inheritance:
+   :undoc-members:

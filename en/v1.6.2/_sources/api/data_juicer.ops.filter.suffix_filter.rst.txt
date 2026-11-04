@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.suffix\_filter module
+=============================================
+
+.. automodule:: data_juicer.ops.filter.suffix_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

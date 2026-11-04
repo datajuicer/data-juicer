@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_clip\_reassembly\_mapper module
+==============================================================
+
+.. automodule:: data_juicer.ops.mapper.video_clip_reassembly_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

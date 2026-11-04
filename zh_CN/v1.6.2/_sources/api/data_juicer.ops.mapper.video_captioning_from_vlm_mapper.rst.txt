@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_captioning\_from\_vlm\_mapper module
+===================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_captioning_from_vlm_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

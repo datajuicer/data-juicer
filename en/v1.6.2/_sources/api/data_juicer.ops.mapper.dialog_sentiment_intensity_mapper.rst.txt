@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.dialog\_sentiment\_intensity\_mapper module
+===================================================================
+
+.. automodule:: data_juicer.ops.mapper.dialog_sentiment_intensity_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

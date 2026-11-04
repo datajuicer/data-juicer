@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.special\_characters\_filter module
+==========================================================
+
+.. automodule:: data_juicer.ops.filter.special_characters_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

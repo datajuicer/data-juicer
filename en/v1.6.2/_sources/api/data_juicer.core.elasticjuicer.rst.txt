@@ -1,0 +1,7 @@
+data_juicer.core.elasticjuicer
+==============================
+
+.. automodule:: data_juicer.core.elasticjuicer
+   :members:
+   :show-inheritance:
+   :undoc-members:

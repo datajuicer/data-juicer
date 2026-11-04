@@ -1,0 +1,7 @@
+data\_juicer.tools.op\_search module
+====================================
+
+.. automodule:: data_juicer.tools.op_search
+   :members:
+   :show-inheritance:
+   :undoc-members:

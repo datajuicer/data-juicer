@@ -1,0 +1,7 @@
+data\_juicer.tools.DJ\_mcp\_recipe\_flow module
+===============================================
+
+.. automodule:: data_juicer.tools.DJ_mcp_recipe_flow
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.whitespace\_normalization\_mapper module
+================================================================
+
+.. automodule:: data_juicer.ops.mapper.whitespace_normalization_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

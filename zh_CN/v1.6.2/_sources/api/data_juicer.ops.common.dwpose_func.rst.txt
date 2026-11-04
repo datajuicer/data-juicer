@@ -1,0 +1,7 @@
+data\_juicer.ops.common.dwpose\_func module
+===========================================
+
+.. automodule:: data_juicer.ops.common.dwpose_func
+   :members:
+   :show-inheritance:
+   :undoc-members:

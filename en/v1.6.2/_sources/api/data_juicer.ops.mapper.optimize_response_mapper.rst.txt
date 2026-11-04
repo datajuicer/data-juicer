@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.optimize\_response\_mapper module
+=========================================================
+
+.. automodule:: data_juicer.ops.mapper.optimize_response_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

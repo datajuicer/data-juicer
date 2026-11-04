@@ -1,0 +1,7 @@
+data\_juicer.tools.hpo.objects module
+=====================================
+
+.. automodule:: data_juicer.tools.hpo.objects
+   :members:
+   :show-inheritance:
+   :undoc-members:

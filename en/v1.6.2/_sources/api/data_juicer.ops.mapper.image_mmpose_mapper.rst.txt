@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.image\_mmpose\_mapper module
+====================================================
+
+.. automodule:: data_juicer.ops.mapper.image_mmpose_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_split\_by\_key\_frame\_mapper module
+===================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_split_by_key_frame_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

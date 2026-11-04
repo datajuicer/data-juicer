@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.image\_remove\_background\_mapper module
+================================================================
+
+.. automodule:: data_juicer.ops.mapper.image_remove_background_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

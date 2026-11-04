@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.nlpcda\_zh\_mapper module
+=================================================
+
+.. automodule:: data_juicer.ops.mapper.nlpcda_zh_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

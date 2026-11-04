@@ -1,0 +1,7 @@
+data\_juicer.core.elasticjuicer.ray\_adaptive\_mapper module
+============================================================
+
+.. automodule:: data_juicer.core.elasticjuicer.ray_adaptive_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

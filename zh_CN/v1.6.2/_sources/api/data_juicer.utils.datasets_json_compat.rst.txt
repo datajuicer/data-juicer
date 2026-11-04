@@ -1,0 +1,7 @@
+data\_juicer.utils.datasets\_json\_compat module
+================================================
+
+.. automodule:: data_juicer.utils.datasets_json_compat
+   :members:
+   :show-inheritance:
+   :undoc-members:

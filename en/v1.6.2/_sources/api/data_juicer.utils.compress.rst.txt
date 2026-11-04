@@ -1,0 +1,7 @@
+data\_juicer.utils.compress module
+==================================
+
+.. automodule:: data_juicer.utils.compress
+   :members:
+   :show-inheritance:
+   :undoc-members:

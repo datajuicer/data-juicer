@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_captioning\_from\_human\_tracks\_mapper module
+=============================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_captioning_from_human_tracks_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

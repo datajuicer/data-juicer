@@ -1,0 +1,7 @@
+data\_juicer.utils.lazy\_loader module
+======================================
+
+.. automodule:: data_juicer.utils.lazy_loader
+   :members:
+   :show-inheritance:
+   :undoc-members:

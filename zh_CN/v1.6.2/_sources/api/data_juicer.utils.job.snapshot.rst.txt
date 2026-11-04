@@ -1,0 +1,7 @@
+data\_juicer.utils.job.snapshot module
+======================================
+
+.. automodule:: data_juicer.utils.job.snapshot
+   :members:
+   :show-inheritance:
+   :undoc-members:

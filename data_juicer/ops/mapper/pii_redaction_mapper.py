@@ -265,14 +265,17 @@ class PiiRedactionMapper(Mapper):
             for k, v in list(val.items()):
                 if k in PII_VALUE_KEYS and isinstance(v, str):
                     val[k] = self._redact_text(v)
+                elif k in PII_VALUE_KEYS and isinstance(v, list):
+                    # e.g. file_paths: a list of path strings
+                    v[:] = [self._redact_text(item) for item in v]
+                    self._redact_value(v)
                 else:
                     self._redact_value(v)
         elif isinstance(val, list):
-            for i, item in enumerate(val):
-                if isinstance(item, str):
-                    val[i] = self._redact_text(item)
-                else:
-                    self._redact_value(item)
+            # Plain strings in lists (e.g. images/videos media paths) are left
+            # alone; only nested dicts are walked for PII_VALUE_KEYS.
+            for item in val:
+                self._redact_value(item)
 
     def _redact_messages(self, messages: Any) -> None:
         """In-place redact all string content inside messages (list of msg)."""

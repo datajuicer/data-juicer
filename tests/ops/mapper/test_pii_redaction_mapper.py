@@ -112,8 +112,32 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertIn("dev@example.com", payload["safe"])
         self.assertIn("[PATH_REDACTED]", payload["tool"]["arguments"])
         self.assertIn("[PATH_REDACTED]", payload["tool"]["nested"][0]["path"])
-        self.assertIn("[PHONE_REDACTED]", payload["items"][0])
+        # plain strings in lists are not under PII_VALUE_KEYS, so left alone
+        self.assertEqual(payload["items"][0], "call 13800138000")
         self.assertIn("[PATH_REDACTED]", payload["items"][1]["file_path"])
+
+    def test_redact_value_redacts_file_paths_list(self):
+        m = self._m()
+        payload = {"tool": {"file_paths": ["/home/bob/a.json", "/data/b.json"]}}
+        m._redact_value(payload)
+        self.assertEqual(payload["tool"]["file_paths"], ["[PATH_REDACTED]", "/data/b.json"])
+
+    def test_process_single_keeps_media_paths_outside_redact_keys(self):
+        m = self._m(redact_keys=["text"])
+        out = m.process_single(
+            {
+                "text": "contact dev@example.com",
+                "images": ["/home/alice/photos/cat.jpg", "/data/imgs/dog.png"],
+                "videos": ["/tmp/clip.mp4"],
+                "audios": ["/Users/bob/voice.wav"],
+                "tags": ["user_id: 42", "plain tag"],
+            }
+        )
+        self.assertIn("[EMAIL_REDACTED]", out["text"])
+        self.assertEqual(out["images"], ["/home/alice/photos/cat.jpg", "/data/imgs/dog.png"])
+        self.assertEqual(out["videos"], ["/tmp/clip.mp4"])
+        self.assertEqual(out["audios"], ["/Users/bob/voice.wav"])
+        self.assertEqual(out["tags"], ["user_id: 42", "plain tag"])
 
     def test_redact_messages_handles_content_blocks_and_tool_calls(self):
         m = self._m(mask_urls=True)

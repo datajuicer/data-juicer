@@ -5,6 +5,10 @@ from loguru import logger
 from pydantic import PositiveInt
 
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
+from data_juicer.ops.mapper.drop_text import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
@@ -148,15 +152,15 @@ class RelationIdentityMapper(Mapper):
     def process_single(self, sample, rank=None):
         meta = sample[Fields.meta]
         if self.output_key in meta:
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
         if self.source_entity is None or self.target_entity is None:
             meta[self.output_key] = ""
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
         client = get_model(self.model_key, rank=rank)
 
-        text = sample[self.text_key]
+        text = read_text_from_sample(sample, self.text_key)
         input_prompt = self.input_template.format(entity1=self.source_entity, entity2=self.target_entity, text=text)
         messages = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": input_prompt}]
         relation = ""
@@ -172,6 +176,6 @@ class RelationIdentityMapper(Mapper):
         meta[self.output_key] = relation
 
         if self.drop_text:
-            sample.pop(self.text_key)
+            remove_text_from_sample(sample, self.text_key)
 
         return sample

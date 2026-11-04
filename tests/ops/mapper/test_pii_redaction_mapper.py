@@ -107,13 +107,39 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
                 "nested": [{"path": "C:\\Users\\alice\\secret.txt"}],
             },
             "items": ["call 13800138000", {"file_path": "/home/bob/data.json"}],
+            "meta": {"file_paths": ["/home/carol/a.txt"]},
         }
         m._redact_value(payload)
         self.assertIn("dev@example.com", payload["safe"])
         self.assertIn("[PATH_REDACTED]", payload["tool"]["arguments"])
         self.assertIn("[PATH_REDACTED]", payload["tool"]["nested"][0]["path"])
-        self.assertIn("[PHONE_REDACTED]", payload["items"][0])
+        self.assertEqual(payload["items"][0], "call 13800138000")
         self.assertIn("[PATH_REDACTED]", payload["items"][1]["file_path"])
+        self.assertIn("[PATH_REDACTED]", payload["meta"]["file_paths"][0])
+
+    def test_process_single_keeps_media_paths(self):
+        m = self._m()
+        out = m.process_single(
+            {
+                "text": "contact dev@example.com",
+                "images": ["/home/alice/photos/cat.jpg", "/data/imgs/dog.png"],
+                "videos": ["/tmp/clip.mp4"],
+                "audios": ["/Users/bob/a.wav"],
+                "tags": ["user_id: 42"],
+            }
+        )
+        self.assertIn("[EMAIL_REDACTED]", out["text"])
+        self.assertEqual(out["images"], ["/home/alice/photos/cat.jpg", "/data/imgs/dog.png"])
+        self.assertEqual(out["videos"], ["/tmp/clip.mp4"])
+        self.assertEqual(out["audios"], ["/Users/bob/a.wav"])
+        self.assertEqual(out["tags"], ["user_id: 42"])
+
+    def test_process_single_redacts_list_in_redact_keys(self):
+        m = self._m(redact_keys=["notes"], messages_key=None)
+        out = m.process_single({"notes": ["call 13800138000", "plain", "/home/alice/a.txt"]})
+        self.assertIn("[PHONE_REDACTED]", out["notes"][0])
+        self.assertEqual(out["notes"][1], "plain")
+        self.assertIn("[PATH_REDACTED]", out["notes"][2])
 
     def test_redact_messages_handles_content_blocks_and_tool_calls(self):
         m = self._m(mask_urls=True)

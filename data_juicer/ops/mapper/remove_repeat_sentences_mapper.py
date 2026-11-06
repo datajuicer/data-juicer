@@ -10,7 +10,7 @@ def split_sentence(text):
     text = re.sub(r"([.。！!？\?])([^’”])", r"\1\n\2", text)  # noqa
     text = re.sub(r"(\.{6})([^’”])", r"\1\n\2", text)  # noqa
     text = re.sub("(\…{2})([^’”])", r"\1\n\2", text)  # noqa
-    text = re.sub(r"([.。!！？\?\.{6}\…{2}][’”])([^’”])", r"\1\n\2", text)  # noqa
+    text = re.sub(r"([.。!！？\?…][’”])([^’”])", r"\1\n\2", text)  # noqa
     return text.split("\n")
 
 

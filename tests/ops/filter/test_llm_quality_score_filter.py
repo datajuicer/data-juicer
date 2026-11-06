@@ -1,4 +1,6 @@
+import json
 import unittest
+from unittest.mock import patch
 
 from loguru import logger
 
@@ -7,6 +9,46 @@ from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.filter.llm_quality_score_filter import LLMQualityScoreFilter
 from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, StatsKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+
+
+class LLMQualityScoreFilterNormalizationTest(unittest.TestCase):
+    """Deterministic inherited-parser and threshold tests without model calls."""
+
+    def _make_op(self, **kwargs):
+        with patch('data_juicer.ops.filter.llm_analysis_filter.prepare_model',
+                   return_value='mock-model'):
+            return LLMQualityScoreFilter(api_or_hf_model='fake', **kwargs)
+
+    def test_average_4_5_uses_normalized_threshold(self):
+        for dimensions, scores in [
+            (None, {'accuracy': 5, 'grammar': 4,
+                    'informativeness': 4, 'coherence': 5}),
+            (['accuracy', 'coherence'], {'accuracy': 5, 'grammar': 1,
+                                        'informativeness': 1, 'coherence': 4}),
+        ]:
+            for threshold, keep in [(0.9, True), (0.91, False), (4.5, False)]:
+                with self.subTest(dimensions=dimensions, threshold=threshold):
+                    op = self._make_op(dim_required_keys=dimensions,
+                                       min_score=threshold)
+                    score, record, _ = op.parse_output(json.dumps({
+                        'dimension_scores': scores,
+                    }))
+                    self.assertAlmostEqual(score, 0.9)
+                    self.assertEqual(record['dimension_scores'], scores)
+                    sample = {Fields.stats: {StatsKeys.llm_quality_score: score}}
+                    self.assertEqual(op.process_single(sample), keep)
+
+    def test_standard_range_and_unclamped_custom_scores(self):
+        op = self._make_op()
+        for dimension_score, expected in [(1, 0.2), (5, 1.0), (6, 1.2)]:
+            with self.subTest(dimension_score=dimension_score):
+                score, _, _ = op.parse_output(json.dumps({
+                    'dimension_scores': {
+                        key: dimension_score for key in op.dim_required_keys
+                    },
+                }))
+                self.assertAlmostEqual(score, expected)
+
 
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMQualityScoreFilterTest(DataJuicerTestCaseBase):

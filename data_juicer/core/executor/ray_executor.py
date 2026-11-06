@@ -92,13 +92,9 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         # Prepare export extra args, including S3 credentials if export_path is S3
         export_extra_args = dict(self.cfg.export_extra_args) if hasattr(self.cfg, "export_extra_args") else {}
 
-        # If export_path is S3, extract AWS credentials with priority:
-        # 1. export_aws_credentials (export-specific)
-        # 2. dataset config (for backward compatibility)
-        # 3. environment variables (handled by exporter)
+        # Exporters read S3 credentials from environment variables first, then from export_aws_credentials,
+        # and use the AWS default credential chain when no access keys are set.
         if urlparse(self.cfg.export_path).scheme.lower() == "s3":
-            # Pass export-specific credentials if provided.
-            # The RayExporter will handle falling back to environment variables or other credential mechanisms.
             if hasattr(self.cfg, "export_aws_credentials") and self.cfg.export_aws_credentials:
                 export_aws_creds = self.cfg.export_aws_credentials
                 # Iterate through the required fields directly, and copy them to export_extra_args if they exist.

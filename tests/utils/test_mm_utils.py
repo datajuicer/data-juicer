@@ -311,6 +311,10 @@ class MMTest(DataJuicerTestCaseBase):
             ('2 zb', 2 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024),
             ('9 YiB', 9 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024),
             ('15', 15),
+            ('1.5GB', 1536 * 1024 * 1024),
+            ('0.5 MiB', 512 * 1024),
+            ('.25kb', 256),
+            ('2.5', 2),
         ]
         for size, expected_bytes in test_data:
             self.assertEqual(size_to_bytes(size), expected_bytes)
@@ -320,6 +324,12 @@ class MMTest(DataJuicerTestCaseBase):
 
         with self.assertRaises(ValueError):
             size_to_bytes('2 k')
+
+        with self.assertRaises(ValueError):
+            size_to_bytes('. GB')
+
+        with self.assertRaises(ValueError):
+            size_to_bytes('1.2.3GB')
 
     def test_insert_texts_after_placeholders(self):
         test_data = [

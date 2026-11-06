@@ -809,6 +809,12 @@ def build_base_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--partition.compute_flow",
+        type=Optional[Dict],
+        default=None,
+        help="Optional resident GPU compute-flow settings for ray_partitioned; see docs/elasticjuicer_compute_flow.md.",
+    )
+    parser.add_argument(
         "--partition.execution_group_size",
         type=Union[PositiveInt, Literal["auto"]],
         default="auto",
@@ -1084,6 +1090,12 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     :param cfg: an original cfg
     :param cfg: an updated cfg
     """
+
+    from data_juicer.core.elasticjuicer.compute_flow import (
+        partition_compute_flow_config,
+    )
+
+    partition_compute_flow_config(cfg)
 
     if cfg.get("elastic_juicer_adaptive_batching", False):
         if cfg.get("executor_type", "default") not in ("ray", "ray_partitioned"):

@@ -829,6 +829,14 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             try:
                 return self._run_impl(load_data_np, skip_return)
             finally:
+                compute_flow = getattr(self, "_compute_flow_session", None)
+                if compute_flow is not None:
+                    try:
+                        self.cfg._resolved_compute_flow_summary = compute_flow.finish()
+                    except Exception as error:
+                        logger.warning(f"Compute-flow finalization failed: {type(error).__name__}")
+                    finally:
+                        self._compute_flow_session = None
                 session = getattr(self, "_stage_profile_session", None)
                 if session is not None:
                     try:
@@ -839,6 +847,29 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     finally:
                         self.cfg._stage_profile_session = None
                         self._stage_profile_session = None
+
+    def _start_compute_flow(self):
+        from data_juicer.core.elasticjuicer.compute_flow import (
+            partition_compute_flow_config,
+        )
+
+        options = partition_compute_flow_config(self.cfg)
+        self._compute_flow_session = None
+        if options.enabled:
+            from data_juicer.core.elasticjuicer.partition_compute_flow import (
+                PartitionComputeFlowSession,
+            )
+
+            self._compute_flow_session = PartitionComputeFlowSession(options, self.work_dir)
+
+    def _process_execution_interval(self, dataset, ops):
+        """Execute inside the existing partition/checkpoint transaction boundary."""
+        session = getattr(self, "_compute_flow_session", None)
+        if session is not None:
+            result = session.execute(dataset.data, ops)
+            if result is not None:
+                return self._wrap_with_precomputed_parallelism(result)
+        return dataset.process(ops)
 
     def _start_stage_profiles(self, ops):
         if not self.cfg.get("elastic_juicer_profile_seed", False):
@@ -989,6 +1020,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Pass ops to avoid redundant loading
         self._initialize_dag_execution(self.cfg, ops=ops)
         self._start_stage_profiles(ops)
+        self._start_compute_flow()
 
         # Log job start with DAG context
         # Handle both dataset_path (string) and dataset (dict) configurations
@@ -1018,6 +1050,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         else:
             logger.info("No convergence points found, processing with simple partitioning")
             final_dataset = self._process_with_simple_partitioning(dataset, ops)
+
+        compute_flow = getattr(self, "_compute_flow_session", None)
+        if compute_flow is not None:
+            compute_flow.release()
 
         # Export final dataset
         logger.info("Exporting final dataset...")
@@ -1067,6 +1103,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         if self._should_use_execution_groups(dataset, ops):
             return self._process_partition_execution_groups(partitions, partitioning_info, ops)
+
+        compute_flow = getattr(self, "_compute_flow_session", None)
+        if compute_flow is not None:
+            compute_flow.fallback("resume or non-groupable operators use the existing per-partition path")
 
         # Process partitions concurrently. Each worker thread drives one Ray
         # Dataset execution; the actual data processing still runs on Ray.
@@ -1290,7 +1330,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     ) -> RayDataset:
         """Execute once, while writing independent checkpoints for each tag."""
         if not self.ckpt_manager.checkpoint_enabled:
-            current = dataset.process(ops)
+            current = self._process_execution_interval(dataset, ops)
             current.data = current.data.materialize()
             if _LOGICAL_PARTITION_COLUMN not in self._schema_names(current.data):
                 raise RuntimeError(
@@ -1310,7 +1350,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             for partition_id in partition_ids:
                 if self.pipeline_dag:
                     self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
-            current = current.process(group_ops)
+            current = self._process_execution_interval(current, group_ops)
             current.data = current.data.materialize()
             if _LOGICAL_PARTITION_COLUMN not in self._schema_names(current.data):
                 raise RuntimeError(f"Operation group {group_idx + 1} removed the internal logical-partition tag.")
@@ -2123,6 +2163,10 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         else:
             logger.info("No pre-convergence operations, using original dataset...")
             processed_dataset = dataset
+
+        compute_flow = getattr(self, "_compute_flow_session", None)
+        if compute_flow is not None:
+            compute_flow.fallback("global convergence boundary uses existing Ray Data execution")
 
         # Merge partitions for global operations
         logger.info("Merging partitions for global operations...")

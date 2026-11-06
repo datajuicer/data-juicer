@@ -141,6 +141,21 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertEqual(out["notes"][1], "plain")
         self.assertIn("[PATH_REDACTED]", out["notes"][2])
 
+    def test_process_single_redacts_nested_lists(self):
+        m = self._m()
+        out = m.process_single({"tool": {"arguments": {"files": ["/home/alice/a.txt"]}}})
+        self.assertEqual(out["tool"]["arguments"]["files"], ["[PATH_REDACTED]"])
+        out = m.process_single({"tool": {"arguments": {"commands": ["token=abc"]}}})
+        self.assertEqual(out["tool"]["arguments"]["commands"], ["token=[REDACTED]"])
+
+        m = self._m(redact_keys=["notes"], messages_key=None)
+        out = m.process_single({"notes": [{"commands": ["token=abc"]}]})
+        self.assertEqual(out["notes"][0]["commands"], ["token=[REDACTED]"])
+        out = m.process_single({"notes": [{"commands": ["token=abc"]}, ["call 13800138000"]]})
+        self.assertEqual(out["notes"], [{"commands": ["token=[REDACTED]"]}, ["call [PHONE_REDACTED]"]])
+        out = m.process_single({"notes": {"commands": ["token=abc"]}})
+        self.assertEqual(out["notes"], {"commands": ["token=[REDACTED]"]})
+
     def test_redact_messages_handles_content_blocks_and_tool_calls(self):
         m = self._m(mask_urls=True)
         messages = [

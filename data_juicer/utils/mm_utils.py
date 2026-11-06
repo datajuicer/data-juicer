@@ -4,6 +4,7 @@ import io
 import os
 import re
 import shutil
+from fractions import Fraction
 from typing import ClassVar, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -954,36 +955,38 @@ def extract_audio_from_video(
 # Others
 def size_to_bytes(size):
     alphabets_list = [char for char in size if char.isalpha()]
-    numbers_list = [char for char in size if char.isdigit()]
+    numbers_list = [char for char in size if char.isdigit() or char == "."]
 
-    if len(numbers_list) == 0:
+    if not any(char.isdigit() for char in numbers_list):
         raise ValueError(f"Your input `size` does not contain numbers: {size}")
 
-    size_numbers = int(float("".join(numbers_list)))
+    # keep the decimal point, so "1.5GB" is 1.5 GiB rather than 15 GiB, and
+    # use a Fraction so that large sizes stay exact
+    size_numbers = Fraction("".join(numbers_list))
 
     if len(alphabets_list) == 0:
         # by default, if users do not specify the units, the number will be
         # regarded as in bytes
-        return size_numbers
+        return int(size_numbers)
 
     suffix = "".join(alphabets_list).lower()
 
     if suffix == "kb" or suffix == "kib":
-        return size_numbers << 10
+        return int(size_numbers * (1 << 10))
     elif suffix == "mb" or suffix == "mib":
-        return size_numbers << 20
+        return int(size_numbers * (1 << 20))
     elif suffix == "gb" or suffix == "gib":
-        return size_numbers << 30
+        return int(size_numbers * (1 << 30))
     elif suffix == "tb" or suffix == "tib":
-        return size_numbers << 40
+        return int(size_numbers * (1 << 40))
     elif suffix == "pb" or suffix == "pib":
-        return size_numbers << 50
+        return int(size_numbers * (1 << 50))
     elif suffix == "eb" or suffix == "eib":
-        return size_numbers << 60
+        return int(size_numbers * (1 << 60))
     elif suffix == "zb" or suffix == "zib":
-        return size_numbers << 70
+        return int(size_numbers * (1 << 70))
     elif suffix == "yb" or suffix == "yib":
-        return size_numbers << 80
+        return int(size_numbers * (1 << 80))
     else:
         raise ValueError(
             f"You specified unidentifiable unit: {suffix}, "

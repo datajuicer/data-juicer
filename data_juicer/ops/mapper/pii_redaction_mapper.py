@@ -259,20 +259,26 @@ class PiiRedactionMapper(Mapper):
             text = pat.sub(repl, text)
         return text
 
-    def _redact_value(self, val: Any) -> None:
-        """Recursively redact PII in dict/list; in-place. For str, use _redact_text."""
+    def _redact_value(self, val: Any, redact_strings: bool = False) -> None:
+        """Recursively redact PII in dict/list; in-place. For str, use _redact_text.
+
+        Strings in a list are redacted when the list is anywhere below a
+        PII_VALUE_KEYS key or ``redact_strings`` is set. Other list strings,
+        such as media paths, are left alone.
+        """
         if isinstance(val, dict):
             for k, v in list(val.items()):
                 if k in PII_VALUE_KEYS and isinstance(v, str):
                     val[k] = self._redact_text(v)
                 else:
-                    self._redact_value(v)
+                    self._redact_value(v, redact_strings or k in PII_VALUE_KEYS)
         elif isinstance(val, list):
             for i, item in enumerate(val):
                 if isinstance(item, str):
-                    val[i] = self._redact_text(item)
+                    if redact_strings:
+                        val[i] = self._redact_text(item)
                 else:
-                    self._redact_value(item)
+                    self._redact_value(item, redact_strings)
 
     def _redact_messages(self, messages: Any) -> None:
         """In-place redact all string content inside messages (list of msg)."""
@@ -345,6 +351,10 @@ class PiiRedactionMapper(Mapper):
                 if redacted_q is not q or redacted_r is not r:
                     # Preserve list vs. tuple (old code always wrote a tuple).
                     sample[key] = type(val)((redacted_q, redacted_r))
+                for part in (q, r):
+                    self._redact_value(part, redact_strings=True)
+            elif isinstance(val, (list, dict)):
+                self._redact_value(val, redact_strings=True)
         # Redact PII in nested file_path/path/arguments anywhere in sample
         self._redact_value(sample)
         return sample

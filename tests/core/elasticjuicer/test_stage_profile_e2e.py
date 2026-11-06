@@ -122,7 +122,7 @@ def test_killed_actor_replacement_inherits_from_live_job_service(local_ray, tmp_
         independent.finish()
 
 
-def test_public_execution_groups_seed_on_off_and_completed_checkpoint_reuse(local_ray, tmp_path, monkeypatch):
+def test_public_partitioned_seed_on_off_and_completed_checkpoint_reuse(local_ray, tmp_path, monkeypatch):
     OPERATORS.register_module(AuditedProfileMapper._name)(AuditedProfileMapper)
     rows = [{"id": i, "text": str(i), "meta": {"attempts": 0}, "cost": "small"} for i in range(64)]
     source = tmp_path / "input.jsonl"
@@ -158,7 +158,6 @@ def test_public_execution_groups_seed_on_off_and_completed_checkpoint_reuse(loca
             "partition": {
                 "mode": "manual",
                 "num_of_partitions": 4,
-                "execution_group_size": 1,
                 "max_concurrent_partitions": 1,
                 "gpu_preflight_enabled": False,
             },
@@ -174,7 +173,7 @@ def test_public_execution_groups_seed_on_off_and_completed_checkpoint_reuse(loca
         assert [row["id"] for row in actual] == list(range(64))
         assert [row["value"] for row in actual] == [i * 2 for i in range(64)]
         assert all(row["meta"]["attempts"] == 2 for row in actual)
-        assert all("__data_juicer_logical_partition_id__" not in row for row in actual)
+        assert all("__dj_ckpt_seq__" not in row and "__dj_ckpt_idx__" not in row for row in actual)
         results.append(actual)
         attempts = [json.loads(line) for line in diagnostics.read_text().splitlines()]
         oom_counts.append(sum(attempt["oom"] for attempt in attempts))
@@ -188,16 +187,17 @@ def test_public_execution_groups_seed_on_off_and_completed_checkpoint_reuse(loca
             assert all(profile["seeded_actor_ids"] for profile in profiles)
             assert cfg._stage_profile_session is None
 
-            def forbidden_reprocessing(*args, **kwargs):
-                raise AssertionError("Completed checkpoint rows must not execute again")
-
-            with monkeypatch.context() as patch:
-                patch.setattr(RayDataset, "process", forbidden_reprocessing)
-                cfg._resume_requested = True
-                executor._is_resuming = True
-                ops = executor._prepare_operators()
-                restored = executor._process_with_simple_partitioning(executor.datasetbuilder.load_dataset(), ops)
+            cfg._resume_requested = True
+            executor._is_resuming = True
+            ops = executor._prepare_operators()
+            restored, recovery = executor._process_with_partition_recovery(executor.datasetbuilder.load_dataset(), ops)
+            try:
+                # Every row is already committed, so no operator stage has input to run.
+                assert recovery.plan["source"] == [] and not any(recovery.plan["stages"].values())
                 assert sorted(restored.data.take_all(), key=lambda row: row["id"]) == actual
+                recovery.finish()
+            finally:
+                recovery.close()
             assert len(diagnostics.read_text().splitlines()) == len(attempts)
         else:
             assert not artifact.exists()

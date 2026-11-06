@@ -1138,8 +1138,7 @@ class ConfigRuntimeConsistencyTest(DataJuicerTestCaseBase):
 
         for name, value in [
             ('checkpoint.strategy', 'every_partition'),
-            ('checkpoint.n_ops', '0'),
-            ('checkpoint.n_ops', '-1'),
+            ('checkpoint.strategy', 'every_n_ops'),
             ('override_num_blocks', '0'),
             ('override_num_blocks', '-1'),
         ]:
@@ -1148,31 +1147,16 @@ class ConfigRuntimeConsistencyTest(DataJuicerTestCaseBase):
                     build_base_parser().parse_args(['--auto', '--' + name, value])
                 self.assertEqual(caught.exception.code, 2)
 
-    def test_parsed_checkpoint_strategies_select_expected_operations(self):
+    def test_checkpoint_strategy_accepts_only_every_op_and_disabled(self):
         from data_juicer.config.config import build_base_parser
-        from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
 
-        expected = {
-            'every_op': [0, 1, 2, 3, 4],
-            'every_n_ops': [2],
-            'manual': [1],
-            'disabled': [],
-        }
-        with tempfile.TemporaryDirectory() as tmp:
-            for strategy, indices in expected.items():
-                with self.subTest(strategy=strategy):
-                    cfg = build_base_parser().parse_args([
-                        '--auto', '--checkpoint.strategy', strategy,
-                        '--checkpoint.n_ops', '3', '--checkpoint.op_names', '[op_1]',
-                    ])
-                    manager = RayCheckpointManager(
-                        tmp, checkpoint_enabled=cfg.checkpoint.enabled,
-                        checkpoint_strategy=CheckpointStrategy(cfg.checkpoint.strategy),
-                        checkpoint_n_ops=cfg.checkpoint.n_ops,
-                        checkpoint_op_names=cfg.checkpoint.op_names,
-                    )
-                    actual = [i for i in range(5) if manager.should_checkpoint(i, f'op_{i}')]
-                    self.assertEqual(actual, indices)
+        for strategy in ('every_op', 'disabled'):
+            cfg = build_base_parser().parse_args(['--auto', '--checkpoint.strategy', strategy])
+            self.assertEqual(cfg.checkpoint.strategy, strategy)
+        self.assertEqual(build_base_parser().parse_args(['--auto']).checkpoint.strategy, 'every_op')
+        for strategy in ('every_n_ops', 'manual'):
+            with redirect_stderr(StringIO()), self.assertRaises(SystemExit):
+                build_base_parser().parse_args(['--auto', '--checkpoint.strategy', strategy])
 
     def test_lenient_jsonl_yaml_controls_real_loading(self):
         from datasets.exceptions import DatasetGenerationError

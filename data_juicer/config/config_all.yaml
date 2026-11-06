@@ -90,7 +90,7 @@ override_num_blocks: null                                   # override the numbe
 # partition configuration (for ray_partitioned executor)
 partition:
   mode: auto                                                # partition mode: "auto" (use optimizer) or "manual" (specify count or sample target)
-  size: null                                                # optional samples-per-partition target; mutually exclusive with num_of_partitions in manual mode, used as an optimizer fallback in auto mode
+  size: null                                                # with checkpointing: max input rows per commit, without merging small blocks; otherwise the ordinary input-partition target; null derives a bounded commit size from measured throughput
   num_of_partitions: null                                   # optional explicit count; defaults to 4 when neither this nor size is set; "auto" derives a cluster-aware count in auto mode (floor = nodes x partitions_per_node / resolved concurrency, ceiling = optimizer estimate)
   partitions_per_node: auto                                 # per-node partition multiplier for auto mode; "auto" uses per-node GPU slots for GPU pipelines (2x for CPU-only), set a positive integer to override
   max_concurrent_partitions: auto                           # resource-aware driver concurrency; set a positive integer to override
@@ -103,16 +103,12 @@ partition:
   gpu_probe_sample_offset: 0                                # leading rows skipped when collecting the preflight sample; use it when the dataset head is not representative
   gpu_probe_sample_shuffle: false                           # set true to randomize block order before sampling, avoiding biased measurements on datasets ordered by size or source
   gpu_probe_sample_seed: 42                                 # seed for the shuffled preflight sample; null draws a different sample on every run and therefore never reuses gpu_probe_results.json
-  execution_group_size: auto                               # logical checkpoint partitions sharing one GPU actor lifecycle; auto limits model-init overhead
-  max_initialization_overhead_ratio: 0.1                    # maximum estimated model initialization share for each execution group
   target_size_mb: 256                                       # target size in MB for auto-mode planning; results below optimizer minimums are clamped with a warning
 
 # checkpoint configuration (ray_partitioned executor)
 checkpoint:
   enabled: true
-  strategy: every_n_ops                                     # every_op, every_n_ops, manual or disabled
-  n_ops: 5                                                 # positive interval for every_n_ops
-  op_names: []                                             # operator names for manual strategy
+  strategy: every_op                                        # every_op commits each Mapper/Filter batch; disabled skips checkpointing
 
 # only for data analysis
 percentiles: [0.25, 0.5, 0.75]                              # percentiles to analyze the dataset distribution
@@ -133,7 +129,7 @@ strict_preflight: true                                     # validate pipeline b
 event_logging:
   enabled: true                                           # JSONL event tracking under the job work_dir
 event_log_dir: null                                        # human-readable logs; default job work_dir/logs
-checkpoint_dir: null                                       # ray_partitioned checkpoint directory
+checkpoint_dir: null                                       # ray_partitioned checkpoint location: shared POSIX path or s3:// URI
 partition_dir: null                                        # resolved path for external integrations; no built-in partition-file writer
 generated_dataset_config: null                             # formatter constructor configuration, including type
 export_aws_credentials: null                               # optional S3 export credentials

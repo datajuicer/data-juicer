@@ -4,12 +4,10 @@ This document describes DataJuicer's fault-tolerant processing system with parti
 
 ## Overview
 
-The `ray_partitioned` executor splits datasets into partitions and processes them with configurable checkpointing. Failed jobs can resume from the last checkpoint.
+The `ray_partitioned` executor processes a dataset on Ray Data and can checkpoint every operator. Failed jobs can resume from the committed work.
 
 **Checkpointing strategies:**
-- `every_n_ops` - checkpoint every N operations (default, balanced)
-- `every_op` - checkpoint after every operation (max protection, impacts performance)
-- `manual` - checkpoint only after specified operations (best for known expensive ops)
+- `every_op` - commit the output of every Mapper/Filter batch (default)
 - `disabled` - no checkpointing (best performance)
 
 ## Directory Structure
@@ -20,9 +18,12 @@ The `ray_partitioned` executor splits datasets into partitions and processes the
 ├── gpu_probe_results.json         # Auto-probed GPU operator resources
 ├── events_{timestamp}.jsonl      # Machine-readable event log
 ├── dag_execution_plan.json       # DAG execution plan
-├── checkpoints/                  # Checkpoint data
-│   ├── partitioning_info.json    # Saved row boundaries and partition hashes
-│   └── checkpoint_op_*.parquet/  # Per-operation partition checkpoints
+├── checkpoints/                  # checkpoint_dir
+│   └── partition_recovery/
+│       ├── run.json              # Input fingerprint and recipe identity
+│       ├── commits/              # One immutable manifest per committed batch
+│       ├── exports/              # One record per export attempt
+│       └── data/                 # Parquet files referenced by the manifests
 ├── logs/                         # Human-readable logs
 └── metadata/                     # Job metadata
 ```
@@ -48,10 +49,8 @@ partition:
   gpu_probe_sample_offset: 0          # Leading rows skipped when sampling for preflight
   gpu_probe_sample_shuffle: false     # true randomizes block order before sampling
   gpu_probe_sample_seed: 42           # Seed for the shuffled sample; null re-samples, and never reuses the report
-  execution_group_size: "auto"       # Logical partitions sharing one GPU actor lifecycle
-  max_initialization_overhead_ratio: 0.1  # Allowed model-init share per execution group
   target_size_mb: 256    # Target partition size (128, 256, 512, or 1024)
-  size: 5000             # Fallback if auto-analysis fails
+  size: 5000             # Fallback if auto-analysis fails; max input rows per commit when checkpointing
   max_size_mb: 256       # Fallback max size
 ```
 
@@ -69,23 +68,13 @@ row count give or take one row. This is deliberately not Ray's
 `Dataset.split(n)`, which distributes whole blocks: a dataset with fewer blocks
 than `num_of_partitions` would otherwise produce empty trailing partitions (ten
 rows in one block split four ways gives `[10, 0, 0, 0]`), and unevenly sized
-blocks would skew partitions even when there are enough of them. Empty
-partitions are not free -- each one still builds an operator graph, consumes an
-actor lifecycle and writes a checkpoint -- and skew breaks the uniform
-partition-size assumption behind execution-group sizing. A partition count
-larger than the row count therefore fails the job before any actor starts,
-rather than being lowered silently: the count is what a resume is validated
-against, so it must be the one that was asked for.
+blocks would skew partitions even when there are enough of them. A partition
+count larger than the row count fails the job before any actor starts.
 
-Logical partitions and GPU execution concurrency are independent. Logical
-partitions define checkpoint/recovery granularity and the per-partition data
-bound. Preflight throughput and cluster resources determine GPU actor counts.
-An execution group sends several logical partitions through one Ray actor-pool
-lifecycle while still writing a separate checkpoint for every logical
-partition. `execution_group_size: "auto"` uses measured initialization time,
-throughput, data volume, and `max_initialization_overhead_ratio`; a positive
-integer overrides it. Resume safely falls back to serial per-partition
-execution because partitions may be at different checkpoint boundaries.
+Partitions only apply when no operator is checkpointed. A checkpointed run streams the
+whole dataset through one Ray Data plan instead and forms its recovery commits
+as batches finish (see [Checkpointing](#checkpointing)), so `partition.mode` and
+`num_of_partitions` do not affect it.
 
 The automatic actor planner starts with one actor per profiled GPU stage and
 adds actors to the current pipeline bottleneck. Every addition must fit the
@@ -206,34 +195,54 @@ invalid zero peak fail before formal partition workers start.
 ```yaml
 checkpoint:
   enabled: true
-  strategy: every_n_ops  # every_n_ops (default), every_op, manual, disabled
-  n_ops: 5               # Default: checkpoint every 5 operations
-  op_names:              # For manual strategy - checkpoint after expensive ops
-    - ray_document_deduplicator
-    - extract_keyword_mapper
+  strategy: every_op     # every_op (default) or disabled
+partition:
+  size: 5000             # Maximum input rows per commit
+checkpoint_dir: s3://bucket/jobs/my_job   # Optional; defaults to <work_dir>/checkpoints
 ```
 
-Choose `every_op`, `every_n_ops`, `manual`, or `disabled`. For `every_n_ops`, set `n_ops` to a positive integer. For `manual`, list operator names from your recipe in `op_names`.
+Every leading Mapper/Filter of the recipe is a save point. Data stays on Ray
+Data: operators read and write blocks through the object store as in an
+uncheckpointed run, and each worker writes a copy of its output batch to
+`checkpoint_dir` as a side effect before passing the batch on. A commit is
+formed at that moment rather than when the input is read: it records which input
+rows the batch consumed and which Parquet files it produced, so a Mapper that
+expands rows or a Filter that drops all of them is still recorded exactly.
+Checkpointed stages pass `batch_size=None` to Ray, so small blocks are not
+combined to reach `partition.size`. Each Ray block is split into commits
+of at most `partition.size` input rows, without changing the operator's internal
+inference `batch_size`. Without `partition.size`, the limit is derived from
+preflight throughput (about 30 seconds of work, between 64 and 2048 rows) and
+defaults to 512.
 
-When checkpointing is enabled, the initial run saves
-`checkpoints/partitioning_info.json`. For every logical partition, this file
-records:
+The first Deduplicator, `Pipeline` or other operator that needs all rows at
+once ends the checkpointed prefix. It and every later operator run unchanged on
+the merged output without checkpoints, and a warning names the operator.
 
-- `start_row` (inclusive) and `end_row` (exclusive) in the ordered input;
-- the partition row count;
-- a stable hash of the complete partition contents;
-- the partition hash algorithm used by the writer.
+Commits are coordinated by a metadata-only Ray actor pinned to the driver node.
+It hands out commit sequence numbers and rejects a batch whose input rows
+overlap a different committed batch. Before running the operator, a retry looks
+up a durable commit by the stage and consumed lineage; if found, it reads the
+original output without running the operator. Concurrent attempts use the
+first committed result; later attempts reuse its output. Each commit is published
+as a manifest that is created only if absent, so a commit is never overwritten.
 
-These values allow an explicit resume to recreate the original logical
-partitions even when Ray produces a different physical block layout in the new
-process. Complete partition hashes are sensitive to row order, independent of
-Ray batch boundaries, and validated before any checkpoint is reused.
+`checkpoint_dir` must be visible to every Ray worker. Supported locations are a
+shared POSIX path and `s3://` (AWS S3 or an S3-compatible service such as
+MinIO, through `boto3` with conditional `If-None-Match` writes). Other schemes
+are rejected at startup.
 
 ### Checkpoints and Temporary Files
 
-Use `checkpoint.enabled` to turn checkpointing on or off and `checkpoint.strategy` to choose when to save. Checkpoints are saved as Parquet datasets under `checkpoint_dir`, which defaults to `<work_dir>/checkpoints`. Keep this directory to resume an interrupted job.
+Checkpoints are kept after the job finishes so that it can be resumed. The
+executor cleans up its temporary working files when the run exits.
 
-The executor cleans up its temporary working files when the run exits. Checkpoints are stored separately and remain available for resumption.
+Checkpoint cleanup removes only files owned by an attempt that are proven not
+to be committed. A process kill or ambiguous remote write can still leave
+orphan files; there is no automatic sweep of all unreferenced files, because
+another worker could still be writing or committing them. See
+[RecoveryPartitionProtocol.md](RecoveryPartitionProtocol.md#storage) for the
+cleanup boundaries. Empty checkpoint exports remain directories for resumption.
 
 ## Usage
 
@@ -273,14 +282,37 @@ strict resume in the following order:
 
 1. locate the original work and checkpoint directories;
 2. verify that the current configuration matches the original run;
-3. load the saved partition count, row boundaries, and content hashes;
-4. recreate the original partitions with the saved row boundaries;
-5. validate every complete partition hash;
-6. load completed checkpoints and process only the unfinished work.
+3. read and fingerprint the input again and compare it, its row count, schema
+   and the checkpointed operator configuration with `run.json`;
+4. load commit manifests with at most 32 concurrent storage `get` calls,
+   register commits in stage order, and determine each operator's unconsumed rows;
+5. run each operator only on those rows plus the committed rows of the previous
+   operator that it has not consumed yet, reading committed rows from storage on
+   the workers;
+6. verify after the export that every input row was consumed and delivered
+   exactly once;
+7. only then remove the export files that the interrupted runs left behind.
 
-If metadata is missing, row boundaries are invalid, the input has changed, or
-a content hash does not match, explicit resume stops with an error and leaves
-the existing checkpoints unchanged.
+`partition.size` is not part of the identity and may change on resume. If the
+recorded input fingerprint, row count, schema or checkpointed operator
+configuration does not match, explicit resume stops with an error and leaves
+the existing checkpoints unchanged. Starting a new run with the ID of an
+existing checkpoint is rejected rather than mixed with it.
+
+The caller must preserve source-row identity and read order: the same source
+offset must still refer to the same logical record. The fingerprint is an
+additional diagnostic guard, not a guarantee that every payload byte is
+unchanged. Non-JSON values use their display representation, which can omit
+tensor elements; contents of referenced media or model files are not hashed.
+Keep payload consistency under your own dataset/version management and start
+a new job when the logical input changes.
+
+The export is written while the operators run, so an interrupted job usually
+leaves a partial export behind. A resumed job writes the complete export under
+new file names and removes the earlier files only after its own export is
+complete and verified, so a failed resume never loses exported output. Files in
+the export directory that the job did not write are kept and reported in a
+warning. A partial Lance export must be removed before resuming.
 
 Use `--job_id` to name a job. To resume it, add `--resume` with the original job ID to the original command.
 
@@ -295,14 +327,11 @@ dj-process --config config.yaml \
 ### Checkpoint Strategies
 
 ```bash
-# Every operation
+# Every Mapper/Filter (default when checkpointing is enabled)
 dj-process --config config.yaml --checkpoint.strategy every_op
 
-# Every N operations
-dj-process --config config.yaml --checkpoint.strategy every_n_ops --checkpoint.n_ops 3
-
-# Manual
-dj-process --config config.yaml --checkpoint.strategy manual --checkpoint.op_names op1,op2
+# No checkpoints
+dj-process --config config.yaml --checkpoint.strategy disabled
 ```
 
 ## Auto-Configuration
@@ -384,92 +413,48 @@ events = job_utils.load_event_logs()
 
 ## Performance Considerations
 
-### Checkpoint vs Ray Optimization Trade-off
+### Checkpoint Cost
 
-**Key insight: Checkpointing interferes with Ray's automatic optimization.**
+Checkpointing does not add a materialization barrier between operators: Ray
+Data keeps fusing, pipelining and scheduling operators as in an uncheckpointed
+run. The added cost is the side write of every operator's output batch, one
+small manifest per commit, a fingerprint pass over the input at startup, and
+removing the internal lineage columns before the export. For cheap text
+operators the write can cost more than re-running them; disable checkpointing
+for short jobs.
 
-Ray optimizes execution by fusing operations together and pipelining data. Each checkpoint forces materialization, which breaks the optimization window:
-
-```
-Without checkpoints:     op1 → op2 → op3 → op4 → op5
-                         |___________________________|
-                              Ray optimizes entire window
-
-With every_op:           op1 | op2 | op3 | op4 | op5
-                         materialize at each | (5 barriers)
-
-With every_n_ops(5):     op1 → op2 → op3 → op4 → op5 |
-                         |_____________________________|
-                              Ray optimizes all 5 ops
-```
-
-### Checkpoint Cost Analysis
-
-| Cost Type | Typical Value |
-|-----------|---------------|
-| Checkpoint write | ~2-5 seconds |
-| Cheap op execution | ~1-2 seconds |
-| Expensive op execution | minutes to hours |
-
-**For cheap operations, checkpointing costs MORE than re-running on failure.**
-
-Example pipeline analysis:
-```
-filter(1s) → mapper(2s) → deduplicator(300s) → filter(1s)
-
-Strategy         | Overhead  | Protection Value
------------------|-----------|------------------
-every_op         | ~20s      | Save 1-304s on failure
-after dedup only | ~5s       | Save 300s on failure
-disabled         | 0s        | Re-run everything
-```
-
-### Strategy Recommendations
-
-| Job Duration | Recommended Strategy | Rationale |
-|--------------|---------------------|-----------|
-| < 10 min | `disabled` | Re-running is cheap |
-| 10-60 min | `every_n_ops` (n=5) | Balanced protection |
-| > 60 min with expensive ops | `manual` | Checkpoint after expensive ops only |
-| Unstable infrastructure | `every_n_ops` (n=2-3) | Accept overhead for reliability |
-
-### Operation Categories
-
-**Expensive operations (checkpoint after these):**
-- `*_deduplicator` - Global state, expensive computation
-- `*_embedding_*` - Model inference
-- `*_model_*` - Model inference
-- `*_vision_*` - Image/video processing
-- `*_audio_*` - Audio processing
-
-**Cheap operations (skip checkpointing):**
-- `*_filter` - Simple filtering
-- `clean_*` - Text cleaning
-- `remove_*` - Field removal
+Two optional consumers require retained final results: setting
+`export_shard_size` materializes the export input for exact sizing, and asking
+the Python API for a returned dataset materializes any operators after the
+checkpointed prefix so export and later reads share one execution. The CLI
+discards the return value and uses `skip_return=True`. Explicit Filter
+statistics exports outside the checkpointed prefix also retain their computed
+statistics for both writing and filtering.
 
 ### Storage Recommendations
 
 - Event logs: fast storage (SSD)
-- Checkpoints: large capacity storage
+- Checkpoints: storage shared by every worker with enough capacity for every
+  operator's output
 
-### Partition Sizing Trade-offs
+### Commit Size Trade-offs
 
-- Smaller partitions: better fault tolerance, more scheduling overhead
-- Larger partitions: less overhead, coarser recovery granularity
+- Smaller `partition.size`: less work lost per failure, more manifests and files
+- Larger `partition.size`: fewer files, more rows recomputed after a failure
 
 ## Troubleshooting
 
 **Job resumption fails:**
 ```bash
 ls -la ./outputs/{work_dir}/{job_id}/job_summary.json
-ls -la ./outputs/{work_dir}/{job_id}/checkpoints/
-cat ./outputs/{work_dir}/{job_id}/checkpoints/partitioning_info.json
+ls -la ./outputs/{work_dir}/{job_id}/checkpoints/partition_recovery/commits/
+cat ./outputs/{work_dir}/{job_id}/checkpoints/partition_recovery/run.json
 ```
 
 Use the resume token printed by the original run and rerun the same recipe with
-`--resume`. Check the error log for configuration mismatch, missing partition
-metadata, invalid row boundaries, or partition content hash mismatch. Explicit
-resume does not delete checkpoints when validation fails.
+`--resume`. Check the error log for configuration mismatch, a changed input,
+read order or operator configuration, or commits without a `run.json`.
+Explicit resume does not delete checkpoints when validation fails.
 
 **Check Ray status:**
 ```bash

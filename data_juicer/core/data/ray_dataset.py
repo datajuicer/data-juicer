@@ -9,12 +9,14 @@ import ray
 from jsonargparse import Namespace
 from loguru import logger
 from ray.data import ActorPoolStrategy, TaskPoolStrategy
+from ray.data.block import BlockAccessor
 
 from data_juicer.core.data import DJDataset
+from data_juicer.core.data.ray_batch_plan import RayBatchPlan
 from data_juicer.core.data.schema import Schema
 from data_juicer.core.tracer import should_trace_op
 from data_juicer.ops import Deduplicator, Filter, Mapper, Pipeline
-from data_juicer.ops.base_op import DEFAULT_BATCH_SIZE, TAGGING_OPS
+from data_juicer.ops.base_op import DEFAULT_BATCH_SIZE, NON_STATS_FILTERS, TAGGING_OPS
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import is_remote_path
 from data_juicer.utils.webdataset_utils import _custom_default_decoder
@@ -95,8 +97,44 @@ def preprocess_dataset(dataset: ray.data.Dataset, dataset_path, cfg) -> ray.data
     return dataset
 
 
-def filter_batch(batch, filter_func):
-    mask = pyarrow.array(filter_func(batch.to_pydict()))
+def operator_batch_columns(op):
+    columns = []
+    if op._name in TAGGING_OPS.modules:
+        columns.append(Fields.meta)
+    # The inherited batched statistics loop requires this column even for non-stats filters.
+    if isinstance(op, Filter) and (op._name not in NON_STATS_FILTERS.modules or op.is_batched_op()):
+        columns.append(Fields.stats)
+    return columns
+
+
+def prepare_batch_columns(table: pyarrow.Table, columns):
+    for column in columns:
+        if column not in table.column_names:
+            table = table.append_column(column, [[{} for _ in range(len(table))]])
+    return table
+
+
+class RayOperatorActor:
+    def __init__(self, operator_type, args, kwargs, tracer=None):
+        self.operator = operator_type(*args, **kwargs)
+        op = self.operator
+        if isinstance(op, Mapper) and tracer and should_trace_op(tracer, op._name):
+            from data_juicer.ops.base_op import wrap_mapper_with_tracer
+
+            op.process = wrap_mapper_with_tracer(op.process, op._name, op.text_key, tracer, True)
+
+    def __call__(self, table: pyarrow.Table):
+        return self.operator(table)
+
+
+def filter_batch(batch, filter_func, is_batched=True):
+    if batch.num_rows == 0:
+        return batch
+    if is_batched:
+        keep = filter_func(batch.to_pydict())
+    else:
+        keep = [bool(filter_func(row)) for row in BlockAccessor.for_block(batch).iter_rows(public_row_format=True)]
+    mask = pyarrow.array(keep, type=pyarrow.bool_())
     return batch.filter(mask)
 
 
@@ -172,8 +210,14 @@ class RayDataset(DJDataset):
         if self.data is None:
             raise KeyError(f"Column '{column}' not found in dataset")
 
-        columns = self.data.columns()
-        if columns is None or column not in columns:
+        columns = self.data.columns(fetch_if_missing=False)
+        # A zero-row request still validates the column, but needs no second
+        # execution to retrieve values. Other requests validate the rows read.
+        if columns is None and k == 0:
+            columns = self.data.columns()
+            if columns is None:
+                raise KeyError(f"Column '{column}' not found in dataset")
+        if columns is not None and column not in columns:
             raise KeyError(f"Column '{column}' not found in dataset")
 
         if k is not None:
@@ -181,11 +225,30 @@ class RayDataset(DJDataset):
                 raise ValueError(f"k must be non-negative, got {k}")
             if k == 0:
                 return []
-            return [row[column] for row in self.data.take(k)]
 
-        return [row[column] for row in self.data.take_all()]
+        # An empty result's schema belongs to the executed plan, including its limit.
+        requested_data = self.data if k is None else self.data.limit(k)
+        rows = requested_data.take_all()
+        if columns is None and not rows:
+            columns = requested_data.columns(fetch_if_missing=False)
+            if columns is None or column not in columns:
+                raise KeyError(f"Column '{column}' not found in dataset")
+        try:
+            return [row[column] for row in rows]
+        except KeyError:
+            raise KeyError(f"Column '{column}' not found in dataset") from None
 
-    def process(self, operators, *, exporter=None, checkpointer=None, tracer=None, stats_only=False) -> DJDataset:
+    def process(
+        self,
+        operators,
+        *,
+        exporter=None,
+        checkpointer=None,
+        tracer=None,
+        stats_only=False,
+        defer_schema_probe=False,
+        partition_recovery=None,
+    ) -> DJDataset:
         if operators is None:
             return self
         if not isinstance(operators, list):
@@ -195,41 +258,68 @@ class RayDataset(DJDataset):
 
         if self._auto_proc:
             calculate_ray_np(operators)
+        if partition_recovery is not None:
+            from data_juicer.core.executor.partition_protocol import ProtocolError
 
-        # Cache columns once at start to avoid breaking pipeline with repeated columns() calls
-        # Ray's columns() internally does limit(1) which forces execution and breaks streaming
-        columns_result = self.data.columns()
-        # Handle empty dataset: columns() returns None when the schema is unknown
-        # (lazy/empty datasets) and [] for datasets with a known schema but 0 rows
-        if not columns_result:
-            logger.warning("Dataset is empty (0 rows or unknown schema), skipping operator processing")
-            return self
-        cached_columns = set(columns_result)
+            if not operators or len(operators) != partition_recovery.stage_count:
+                raise ProtocolError("Operator stages differ from the checkpoint plan")
+            if stats_only:
+                raise ProtocolError("Statistics-only execution cannot be checkpointed")
+            if any(not isinstance(op, (Mapper, Filter)) for op in operators):
+                raise ProtocolError("Checkpointed stages must be Mapper/Filter operators")
+            if any(getattr(op, "_prepare_for_ray_map_batches", None) is not None for op in operators):
+                raise ProtocolError("Shared Ray state requires its own recovery contract")
+            defer_schema_probe = True
 
-        for op in operators:
+        if defer_schema_probe:
+            cached_columns = set()
+        else:
+            columns_result = self.data.columns(fetch_if_missing=False)
+            if columns_result is None:
+                # Inferring a lazy schema executes upstream operators. Prepare
+                # optional columns inside each batch instead of probing the plan.
+                defer_schema_probe = True
+                cached_columns = set()
+            elif not columns_result:
+                logger.warning("Dataset has no columns, skipping operator processing")
+                return self
+            else:
+                cached_columns = set(columns_result)
+
+        if partition_recovery is not None:
+            self.data = partition_recovery.open()
+        for index, op in enumerate(operators):
+            options = dict(tracer=tracer, stats_only=stats_only, defer_schema_probe=defer_schema_probe)
+            if partition_recovery is not None:
+                self.data = partition_recovery.stage_input(index, self.data)
+                options["recovery"] = partition_recovery.stage(index)
             try:
-                cached_columns = self._run_single_op(op, cached_columns, tracer=tracer, stats_only=stats_only)
+                cached_columns = self._run_single_op(op, cached_columns, **options)
             except Exception as e:
                 logger.error(f"Error processing operator {op}: {e}.")
-                if op.runtime_env is not None:
-                    logger.error("Try to fallback to the base runtime environment.")
-                    original_runtime_env = op.runtime_env
-                    try:
-                        op.runtime_env = None
-                        cached_columns = self._run_single_op(op, cached_columns, tracer=tracer, stats_only=stats_only)
-                    finally:
-                        op.runtime_env = original_runtime_env
-                else:
-                    raise e
+                if op.runtime_env is None:
+                    raise
+                logger.error("Try to fallback to the base runtime environment.")
+                original_runtime_env = op.runtime_env
+                try:
+                    op.runtime_env = None
+                    cached_columns = self._run_single_op(op, cached_columns, **options)
+                finally:
+                    op.runtime_env = original_runtime_env
+        if partition_recovery is not None:
+            self.data = partition_recovery.output(self.data)
         return self
 
-    def _run_single_op(self, op, cached_columns=None, tracer=None, stats_only=False):
+    def _run_single_op(
+        self, op, cached_columns=None, tracer=None, stats_only=False, defer_schema_probe=False, recovery=None
+    ):
         from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
             RayAdaptiveMapperActor,
             adaptive_batching_enabled,
         )
         from data_juicer.core.elasticjuicer.stage_identity import stamped_stage_identity
 
+        plan = RayBatchPlan()
         adaptive = adaptive_batching_enabled(op, getattr(self, "_adaptive_batching", False))
         if adaptive and not op.use_ray_actor():
             raise ValueError(f"{op._name}: adaptive batching requires an available CUDA Ray actor")
@@ -237,9 +327,10 @@ class RayDataset(DJDataset):
             raise ValueError(f"{op._name}: adaptive batching requires a resolved positive GPU reservation")
         if adaptive and tracer and should_trace_op(tracer, op._name):
             raise ValueError("Sample tracing is not yet supported with adaptive batching")
-        # Use cached columns to avoid calling self.data.columns() which breaks pipeline
         if cached_columns is None:
-            cached_columns = set(self.data.columns())
+            columns = None if defer_schema_probe else self.data.columns(fetch_if_missing=False)
+            defer_schema_probe = defer_schema_probe or columns is None
+            cached_columns = set(columns or ())
 
         if "ray" not in op._supported_exec_modes:
             raise NotImplementedError(
@@ -247,15 +338,12 @@ class RayDataset(DJDataset):
                 f"Ray mode. Supported modes: {op._supported_exec_modes}"
             )
 
-        if op._name in TAGGING_OPS.modules and Fields.meta not in cached_columns:
-
-            def process_batch_arrow(table: pyarrow.Table):
-                new_column_data = [{} for _ in range(len(table))]
-                new_table = table.append_column(Fields.meta, [new_column_data])
-                return new_table
-
-            self.data = self.data.map_batches(
-                process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
+        prepared_columns = operator_batch_columns(op)
+        if Fields.meta in prepared_columns and (defer_schema_probe or Fields.meta not in cached_columns):
+            plan.map_batches(
+                partial(prepare_batch_columns, columns=(Fields.meta,)),
+                batch_format="pyarrow",
+                batch_size=DEFAULT_BATCH_SIZE,
             )
             cached_columns.add(Fields.meta)
 
@@ -290,7 +378,7 @@ class RayDataset(DJDataset):
                             session = getattr(cfg, "_stage_profile_session", None)
                             if session is not None:
                                 actor_kwargs.update(session.actor_arguments(op, stamped_stage_identity(op)))
-                        self.data = self.data.map_batches(
+                        plan.map_operator(
                             actor_class,
                             fn_args=None,
                             fn_kwargs=None,
@@ -305,7 +393,7 @@ class RayDataset(DJDataset):
                         )
                     else:
                         compute = TaskPoolStrategy(size=op.num_proc)
-                        self.data = self.data.map_batches(
+                        plan.map_operator(
                             op.process,
                             batch_size=batch_size,
                             batch_format="pyarrow",
@@ -320,15 +408,11 @@ class RayDataset(DJDataset):
                         op.process = original_process
             elif isinstance(op, Filter):
                 # Use cached_columns instead of self.data.columns() to avoid breaking pipeline
-                if Fields.stats not in cached_columns:
-
-                    def process_batch_arrow(table: pyarrow.Table):
-                        new_column_data = [{} for _ in range(len(table))]
-                        new_talbe = table.append_column(Fields.stats, [new_column_data])
-                        return new_talbe
-
-                    self.data = self.data.map_batches(
-                        process_batch_arrow, batch_format="pyarrow", batch_size=DEFAULT_BATCH_SIZE
+                if Fields.stats in prepared_columns and (defer_schema_probe or Fields.stats not in cached_columns):
+                    plan.map_batches(
+                        partial(prepare_batch_columns, columns=(Fields.stats,)),
+                        batch_format="pyarrow",
+                        batch_size=DEFAULT_BATCH_SIZE,
                     )
                     cached_columns.add(Fields.stats)
                 prepare_for_ray_map_batches = getattr(op, "_prepare_for_ray_map_batches", None)
@@ -340,12 +424,12 @@ class RayDataset(DJDataset):
                     )
                 if op.use_ray_actor() and not use_instance_for_ray_tasks:
                     compute = _build_actor_pool_strategy(op.num_proc)
-                    self.data = self.data.map_batches(
-                        op.__class__,
+                    plan.map_operator(
+                        RayOperatorActor,
                         fn_args=None,
                         fn_kwargs=None,
-                        fn_constructor_args=op._init_args,
-                        fn_constructor_kwargs=op._init_kwargs,
+                        fn_constructor_args=(op.__class__, op._init_args, op._init_kwargs),
+                        fn_constructor_kwargs=None,
                         batch_size=batch_size,
                         num_cpus=op.num_cpus,
                         num_gpus=op.num_gpus,
@@ -355,7 +439,7 @@ class RayDataset(DJDataset):
                     )
                 else:
                     compute = TaskPoolStrategy(size=op.num_proc)
-                    self.data = self.data.map_batches(
+                    plan.map_operator(
                         op.compute_stats,
                         batch_size=batch_size,
                         batch_format="pyarrow",
@@ -365,9 +449,9 @@ class RayDataset(DJDataset):
                         runtime_env=op.runtime_env,
                     )
                     if use_instance_for_ray_tasks:
-                        self.data = self.data.materialize()
+                        plan.materialize()
                 if op.stats_export_path is not None:
-                    self.data.write_json(op.stats_export_path, force_ascii=False)
+                    plan.write_json(op.stats_export_path, force_ascii=False)
                 if not stats_only:
                     # Wrap process method with tracer for sample-level collection
                     original_process = None
@@ -378,28 +462,24 @@ class RayDataset(DJDataset):
                         op.process = wrap_filter_with_tracer(original_process, op._name, tracer, op.is_batched_op())
 
                     try:
-                        if op.is_batched_op():
-                            # The core computation have been done in compute_stats,
-                            # and the filter process only performs simple filtering.
-                            # cpu and parallelism are not set here
-                            self.data = self.data.map_batches(
-                                partial(filter_batch, filter_func=op.process),
-                                batch_format="pyarrow",
-                                zero_copy_batch=True,
-                                batch_size=DEFAULT_BATCH_SIZE,
-                                runtime_env=op.runtime_env,
-                            )
-                        else:
-                            self.data = self.data.filter(
-                                op.process,
-                                runtime_env=op.runtime_env,
-                            )
+                        # The core computation have been done in compute_stats,
+                        # and the filter process only performs simple filtering.
+                        # cpu and parallelism are not set here
+                        plan.map_batches(
+                            partial(filter_batch, filter_func=op.process, is_batched=op.is_batched_op()),
+                            batch_format="pyarrow",
+                            zero_copy_batch=True,
+                            batch_size=DEFAULT_BATCH_SIZE,
+                            runtime_env=op.runtime_env,
+                        )
                     finally:
                         # Restore original process method
                         if tracer and should_trace_op(tracer, op._name) and original_process:
                             op.process = original_process
             elif isinstance(op, (Deduplicator, Pipeline)):
-                self.data = op.run(self.data)
+                self.data = op.run(plan.apply(self.data))
+                return cached_columns
+            self.data = plan.apply(self.data, recovery)
         except:  # noqa: E722
             logger.exception(f"An error occurred during Op [{op._name}].")
             raise

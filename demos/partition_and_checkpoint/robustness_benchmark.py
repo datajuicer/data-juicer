@@ -113,7 +113,6 @@ def create_benchmark_config(
     num_partitions: int = 4,
     checkpoint_enabled: bool = True,
     checkpoint_strategy: str = "every_op",
-    checkpoint_n_ops: int = 2,
 ) -> str:
     """Create a config file for benchmarking."""
 
@@ -145,7 +144,6 @@ def create_benchmark_config(
         config["checkpoint"] = {
             "enabled": checkpoint_enabled,
             "strategy": checkpoint_strategy,
-            "n_ops": checkpoint_n_ops,
         }
 
     config_path = os.path.join(output_dir, "benchmark_config.yaml")
@@ -206,11 +204,9 @@ def run_benchmark(config_path: str, job_id: str, work_dir: str, input_rows: int)
     # Collect metrics from work directory (checkpoints are stored directly in work_dir)
     storage_mb = get_dir_size_mb(work_dir) if os.path.exists(work_dir) else 0
 
-    # Count checkpoints (each checkpoint_op_*_partition_*.parquet directory is one checkpoint)
-    checkpoint_dir = os.path.join(work_dir, "checkpoints")
-    checkpoint_count = 0
-    if os.path.exists(checkpoint_dir):
-        checkpoint_count = len(list(Path(checkpoint_dir).glob("checkpoint_op_*.parquet")))
+    # Count checkpoints (each manifest under commits/ is one committed batch)
+    commit_dir = os.path.join(work_dir, "checkpoints", "partition_recovery", "commits")
+    checkpoint_count = len(list(Path(commit_dir).glob("*.json"))) if os.path.exists(commit_dir) else 0
 
     # Count output rows
     output_path = config.get("export_path", "")
@@ -264,7 +260,6 @@ def run_overhead_benchmark(dataset_path: str, output_base: str, num_partitions: 
         ("baseline_ray", "ray", False, "disabled"),
         ("partitioned_no_ckpt", "ray_partitioned", False, "disabled"),
         ("partitioned_ckpt_every_op", "ray_partitioned", True, "every_op"),
-        ("partitioned_ckpt_every_2", "ray_partitioned", True, "every_n_ops"),
     ]
 
     for name, executor, ckpt_enabled, ckpt_strategy in configs:
@@ -278,7 +273,6 @@ def run_overhead_benchmark(dataset_path: str, output_base: str, num_partitions: 
             num_partitions=num_partitions,
             checkpoint_enabled=ckpt_enabled,
             checkpoint_strategy=ckpt_strategy,
-            checkpoint_n_ops=2,
         )
 
         result = run_benchmark(config_path, name, work_dir, input_rows)
@@ -392,7 +386,7 @@ def print_summary(results: Dict[str, BenchmarkResult]):
     print(f"\nResults interpretation:")
     print(f"  - Overhead < 10%: Acceptable for production use")
     print(f"  - Overhead 10-20%: Consider for critical pipelines")
-    print(f"  - Overhead > 20%: Use every_n_ops to reduce overhead")
+    print(f"  - Overhead > 20%: Use a larger partition.size or disable checkpointing")
 
 
 def main():

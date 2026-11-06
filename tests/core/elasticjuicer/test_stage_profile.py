@@ -268,12 +268,12 @@ def test_only_before_first_local_observation_can_seed_and_local_oom_wins(setup_p
     assert fixture.store.metrics["reads"] == before
 
 
-@pytest.mark.parametrize("failure", ["ordinary", "rows", "tags", "schema", "resource_change"])
+@pytest.mark.parametrize("failure", ["ordinary", "rows", "schema", "resource_change"])
 def test_failed_or_context_changed_outer_batch_does_not_publish_partial_observations(setup_profile, failure):
     fixture = setup_profile
     actor = fixture.actor()
     actor.op.skip_op_error = True
-    if failure in ("ordinary", "rows", "tags"):
+    if failure in ("ordinary", "rows"):
         actor.op.failure = failure
     else:
         original = actor.op.process_batched
@@ -287,7 +287,7 @@ def test_failed_or_context_changed_outer_batch_does_not_publish_partial_observat
             return output
 
         actor.op.process_batched = process
-    if failure in ("rows", "tags", "schema"):
+    if failure in ("rows", "schema"):
         with pytest.raises(ValueError):
             actor(profile_batch())
     else:

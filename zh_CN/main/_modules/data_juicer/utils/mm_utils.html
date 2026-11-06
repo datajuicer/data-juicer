@@ -459,6 +459,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -1510,36 +1511,38 @@
 <a class="viewcode-back" href="../../../api/data_juicer.utils.mm_utils.html#data_juicer.utils.mm_utils.size_to_bytes">[文档]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">size_to_bytes</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
     <span class="n">alphabets_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">char</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">size</span> <span class="k">if</span> <span class="n">char</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()]</span>
-    <span class="n">numbers_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">char</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">size</span> <span class="k">if</span> <span class="n">char</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+    <span class="n">numbers_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">char</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">size</span> <span class="k">if</span> <span class="n">char</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">or</span> <span class="n">char</span> <span class="o">==</span> <span class="s2">"."</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">numbers_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">char</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">numbers_list</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Your input `size` does not contain numbers: </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-    <span class="n">size_numbers</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">numbers_list</span><span class="p">)))</span>
+    <span class="c1"># keep the decimal point, so "1.5GB" is 1.5 GiB rather than 15 GiB, and</span>
+    <span class="c1"># use a Fraction so that large sizes stay exact</span>
+    <span class="n">size_numbers</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">numbers_list</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alphabets_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># by default, if users do not specify the units, the number will be</span>
         <span class="c1"># regarded as in bytes</span>
-        <span class="k">return</span> <span class="n">size_numbers</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span><span class="p">)</span>
 
     <span class="n">suffix</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">alphabets_list</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"kb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"kib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">10</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">10</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"mb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"mib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"gb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"gib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">30</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">30</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"tb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"tib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">40</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">40</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"pb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"pib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">50</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">50</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"eb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"eib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">60</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">60</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"zb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"zib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">70</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">70</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"yb"</span> <span class="ow">or</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">"yib"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">size_numbers</span> <span class="o">&lt;&lt;</span> <span class="mi">80</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">size_numbers</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">80</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"You specified unidentifiable unit: </span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">, "</span>

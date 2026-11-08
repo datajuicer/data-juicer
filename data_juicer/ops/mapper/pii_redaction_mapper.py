@@ -51,8 +51,10 @@ def _compile_patterns() -> dict:
         # Authorization keys, a scheme (Bearer, Basic, ...) followed by a credential on
         # the same line is kept. The separator may be a full-width colon, and the value
         # may start on the next line only if that line is indented (YAML, pretty JSON).
+        # The key may follow "_" or non-ASCII text (db_password, 我的password), but
+        # not an ASCII letter or digit.
         "secret_kv": re.compile(
-            r"(\b(?:api[_-]?key|apikey|secret|password|passwd|token|credential|license[_-]?key"
+            r"((?<![0-9A-Za-z])(?:api[_-]?key|apikey|secret|password|passwd|token|credential|license[_-]?key"
             r"|(auth(?:orization)?))[\"']?\s*[:=：][^\S\r\n]*(?:\r?\n[^\S\r\n]+)?"
             r"(?:([\"'])|(?(2)(?:bearer|basic|digest|token)[ \t]+(?=[^\s#])))?)"
             r"((?(3)(?:\\.|(?!\3)[^\\\n])+|(?:\[[^\s\]]*\]|[^\s\"',}\]]+)))",
@@ -60,9 +62,10 @@ def _compile_patterns() -> dict:
         ),
         # Session/user/request IDs (session_id: 123, user_id: ou_xxx, "user_id": "...").
         # The key, separator and quotes are kept; a quoted value is redacted up to its
-        # closing quote. Separator and line rules are the same as for secret_kv.
+        # closing quote. Separator, line and key start rules are the same as for
+        # secret_kv.
         "id_kv": re.compile(
-            r"(([\"']?)\b(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)\2"
+            r"((?:([\"'])\w*)?(?<![0-9A-Za-z])(?:session[_-]?id|user[_-]?id|request[_-]?id|trace[_-]?id)(?(2)\2)"
             r"\s*[:=：][^\S\r\n]*(?:\r?\n[^\S\r\n]+)?([\"'])?)"
             r"(?(3)(?:\\.|(?!\3)[^\\\n])+|[\w.-]+)",
             re.IGNORECASE,

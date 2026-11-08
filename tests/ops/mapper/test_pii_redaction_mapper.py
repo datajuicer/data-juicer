@@ -291,6 +291,19 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         )
         self.assertEqual(m._redact_text("{'session_id': 'abc:def'}"), "{'session_id': '[ID_REDACTED]'}")
 
+    def test_kv_key_after_underscore_or_cjk(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("db_password=hunter2"), "db_password=[REDACTED]")
+        self.assertEqual(m._redact_text("GITHUB_TOKEN=ghp_abc123"), "GITHUB_TOKEN=[REDACTED]")
+        self.assertEqual(m._redact_text('{"client_secret": "s3cr3t"}'), '{"client_secret": "[REDACTED]"}')
+        self.assertEqual(m._redact_text("我的password=hunter2"), "我的password=[REDACTED]")
+        self.assertEqual(m._redact_text("parent_user_id: 42"), "parent_user_id: [ID_REDACTED]")
+        self.assertEqual(m._redact_text('{"parent_user_id": "u-123"}'), '{"parent_user_id": "[ID_REDACTED]"}')
+        self.assertEqual(m._redact_text("用户user_id: 42"), "用户user_id: [ID_REDACTED]")
+        # still not matched after an ASCII letter or digit
+        self.assertEqual(m._redact_text("mypassword=x"), "mypassword=x")
+        self.assertEqual(m._redact_text('{"myuser_id": "u1"}'), '{"myuser_id": "u1"}')
+
     def test_kv_with_fullwidth_colon(self):
         m = self._m()
         self.assertEqual(m._redact_text("password：hunter2"), "password：[REDACTED]")

@@ -83,6 +83,34 @@ class RemoveRepeatSentencesMapperTest(DataJuicerTestCaseBase):
         op = RemoveRepeatSentencesMapper()
         self._run_helper(samples, op)
 
+    def test_decimal_point_is_not_a_sentence_boundary(self):
+
+        samples = [{
+            'text': 'Item A costs 19.99. Item B costs 20.99.',
+            'target': 'Item A costs 19.99. Item B costs 20.99.'
+        }, {
+            'text': 'Read section 1.25. Read section 2.25.',
+            'target': 'Read section 1.25. Read section 2.25.'
+        }, {
+            'text': 'v1.2.3 is out. v1.2.4 is out.',
+            'target': 'v1.2.3 is out. v1.2.4 is out.'
+        }, {
+            'text': 'The price is 3.14. The price is 3.14.',
+            'target': 'The price is 3.14.'
+        }, {
+            'text': 'It ends with 5. It ends with 5.',
+            'target': 'It ends with 5.'
+        }, {
+            'text': 'It is done. 2 more remain. It is done. 3 remain.',
+            'target': 'It is done. 2 more remain. 3 remain.'
+        }, {
+            'text': '已完成步骤1。2人继续。已完成步骤1。3人离开。',
+            'target': '已完成步骤1。2人继续。3人离开。'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
     def test_custom_tokenizer_callable(self):
 
         from nltk.tokenize import sent_tokenize

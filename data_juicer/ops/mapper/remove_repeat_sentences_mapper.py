@@ -6,8 +6,23 @@ import regex as re
 from ..base_op import OPERATORS, Mapper
 
 
+def _break_on_sentence_punct(match):
+    """Put a newline after sentence punctuation, but not inside a number.
+
+    A '.' with a digit on both sides is a decimal point or a version dot.
+    Treating it as a sentence end makes the fractional piece its own sentence,
+    so a later different sentence that shares those digits loses them.
+    """
+    punct = match.group(1)
+    nxt = match.group(2)
+    prev = match.string[match.start() - 1] if match.start() else ""
+    if punct == "." and prev.isdigit() and nxt.isdigit():
+        return match.group(0)
+    return punct + "\n" + nxt
+
+
 def split_sentence(text):
-    text = re.sub(r"([.。！!？\?])([^’”])", r"\1\n\2", text)  # noqa
+    text = re.sub(r"([.。！!？\?])([^’”])", _break_on_sentence_punct, text)  # noqa
     text = re.sub(r"(\.{6})([^’”])", r"\1\n\2", text)  # noqa
     text = re.sub("(\…{2})([^’”])", r"\1\n\2", text)  # noqa
     text = re.sub(r"([.。!！？\?…][’”])([^’”])", r"\1\n\2", text)  # noqa

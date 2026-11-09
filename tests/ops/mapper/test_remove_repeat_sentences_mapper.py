@@ -67,6 +67,22 @@ class RemoveRepeatSentencesMapperTest(DataJuicerTestCaseBase):
                                          min_repeat_sentence_length=5)
         self._run_helper(samples, op)
 
+    def test_digit_before_closing_quote(self):
+
+        samples = [{
+            'text': 'The board is 6’ long. The rope is 6’ long.',
+            'target': 'The board is 6’ long. The rope is 6’ long.'
+        }, {
+            'text': 'Use a 2” pipe here. Use a 2” pipe there.',
+            'target': 'Use a 2” pipe here. Use a 2” pipe there.'
+        }, {
+            'text': 'He said “Stop.” He said “Stop.”',
+            'target': 'He said “Stop.”'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
     def test_custom_tokenizer_callable(self):
 
         from nltk.tokenize import sent_tokenize

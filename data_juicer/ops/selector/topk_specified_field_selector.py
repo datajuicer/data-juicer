@@ -77,6 +77,8 @@ class TopkSpecifiedFieldSelector(Selector):
         assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
         select_num_int = int(select_num)
+        if select_num_int <= 0:
+            return dataset.select([])
 
         # Stream the field column and maintain a heap of size select_num
         # instead of materializing the entire field_value_list.
@@ -99,11 +101,19 @@ class TopkSpecifiedFieldSelector(Selector):
             #   negate the value so min-heap behaves as max-heap;
             #   replace when current value is smaller than the current k-th smallest.
             heap_value = field_value if self.reverse else -field_value
+            # Use -idx as second tuple element so that, on ties, the later row
+            # sits on top of the heap and gets evicted first — preserving the
+            # original stable selection (earlier rows are kept).
+            heap_entry = (heap_value, -idx)
 
             if len(heap) < select_num_int:
-                heapq.heappush(heap, (heap_value, idx))
+                heapq.heappush(heap, heap_entry)
             elif heap_value > heap[0][0]:
-                heapq.heapreplace(heap, (heap_value, idx))
+                heapq.heapreplace(heap, heap_entry)
 
-        select_index = [idx for (val, idx) in heap]
+        # Sort by heap_value descending to match nlargest output order.
+        # reverse=True: heap_value=field_value, descending → largest first.
+        # reverse=False: heap_value=-field_value, descending → smallest field first.
+        heap.sort(reverse=True)
+        select_index = [-neg_idx for (val, neg_idx) in heap]
         return dataset.select(select_index)

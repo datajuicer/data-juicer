@@ -71,6 +71,11 @@ def operator(**kw):
         {"unknown": 1},
         {"workers": 0},
         {"workers": True},
+        {"actors_per_gpu": 0},
+        {"actors_per_gpu": True},
+        {"actors_per_gpu": 1.5},
+        {"max_resident_models": 2},
+        {"max_resident_models": True},
         {"batch_size": -1},
         {"batch_size": 0},
         {"batch_size": True},
@@ -129,6 +134,36 @@ def test_eligibility_uses_measured_joint_memory_and_strict_mapper_contract():
     assert "error-skipping" in segment_rejection([operator(skip_op_error=True)], options())
     assert "runtime" in segment_rejection([operator(runtime_env={"env_vars": {"A": "B"}})], options())
     assert "contract" in segment_rejection([operator(adaptive_batching=False)], options())
+
+
+def test_multiple_actors_account_for_all_model_replicas_in_memory_admission():
+    ops = [operator(), operator()]
+    assert segment_rejection(ops, options(actors_per_gpu=2)) is None
+    assert "co-residency" in segment_rejection(ops, options(actors_per_gpu=3))
+
+
+def test_single_resident_model_requires_lazy_contract_and_accounts_for_all_processes():
+    ops = [operator(), operator()]
+    assert "lazy" in segment_rejection(ops, options(actors_per_gpu=5, max_resident_models=1))
+    for op in ops:
+        op.elastic_juicer_lazy_model = True
+        op.elastic_juicer_load_model = lambda: None
+        op.elastic_juicer_release_model = lambda: None
+    assert segment_rejection(ops, options(actors_per_gpu=5, max_resident_models=1)) is None
+    ops[0]._gpu_memory_fraction = 0.2
+    assert "co-residency" in segment_rejection(ops, options(actors_per_gpu=5, max_resident_models=1))
+
+
+def test_fractional_resident_pool_runs_more_actors_than_gpus(cluster, measured_probe, tmp_path):
+    cfg = recipe(tmp_path)
+    cfg.partition.compute_flow = dict(enabled=True, workers=4, actors_per_gpu=2, batch_size=4, max_inflight_batches=8)
+    result = PartitionedRayExecutor(cfg).run()
+    assert_rows(result)
+    summary = cfg._resolved_compute_flow_summary
+    assert not summary["fallbacks"]
+    pool = summary["pools"][0]
+    assert pool["workers"] == 4 and pool["actors_per_gpu"] == 2 and pool["gpu_per_worker"] == 0.5
+    assert len(pool["instances"]) == 4
 
 
 @pytest.fixture(scope="module")

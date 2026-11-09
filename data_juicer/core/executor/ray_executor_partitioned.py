@@ -856,11 +856,19 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         options = partition_compute_flow_config(self.cfg)
         self._compute_flow_session = None
         if options.enabled:
-            from data_juicer.core.elasticjuicer.partition_compute_flow import (
-                PartitionComputeFlowSession,
+            from data_juicer.core.elasticjuicer.conditional_session import (
+                ConditionalLinearSession,
             )
 
-            self._compute_flow_session = PartitionComputeFlowSession(options, self.work_dir)
+            session_class = ConditionalLinearSession
+            if options.execution == "conditional":
+                from data_juicer.core.elasticjuicer.conditional_session import (
+                    ConditionalFlowSession,
+                )
+
+                session_class = ConditionalFlowSession
+            self._compute_flow_session = session_class(options, self.work_dir)
+            self._compute_flow_session.cfg = self.cfg
 
     def _process_execution_interval(self, dataset, ops):
         """Execute inside the existing partition/checkpoint transaction boundary."""
@@ -1163,9 +1171,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             merged_dataset = processed_partitions[0]
         else:
             # Union all partitions
-            merged_dataset = processed_partitions[0]
-            for partition in processed_partitions[1:]:
-                merged_dataset = merged_dataset.union(partition)
+            merged_dataset = self._concatenate_partitions(processed_partitions)
 
         # Return as RayDataset wrapper
         return RayDataset(merged_dataset, cfg=self.cfg)
@@ -1292,9 +1298,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 self._tag_execution_partition(partition, partition_id)
                 for partition, partition_id in zip(group_partitions, partition_ids)
             ]
-            combined = tagged[0]
-            for tagged_partition in tagged[1:]:
-                combined = combined.union(tagged_partition)
+            combined = self._concatenate_partitions(tagged)
             try:
                 processed = self._process_execution_group_with_checkpointing(
                     self._wrap_with_precomputed_parallelism(combined),
@@ -1317,10 +1321,18 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     partition_id=partition_id,
                 )
 
-        merged = processed_groups[0]
-        for processed in processed_groups[1:]:
-            merged = merged.union(processed)
+        merged = self._concatenate_partitions(processed_groups)
         return RayDataset(merged, cfg=self.cfg)
+
+    @staticmethod
+    def _concatenate_partitions(datasets):
+        """Concatenate block references in input order; Ray union round-robins."""
+        import ray
+
+        if len(datasets) == 1:
+            return datasets[0]
+        refs = [ref for dataset in datasets for ref in dataset.materialize().get_internal_block_refs()]
+        return ray.data.from_arrow_refs(refs)
 
     def _process_execution_group_with_checkpointing(
         self,

@@ -10,7 +10,7 @@ import json
 import math
 import time
 from collections import deque
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from uuid import uuid4
 
@@ -73,7 +73,20 @@ def segment_rejection(ops, options):
     # Sum complete per-operator peak estimates, including activation budgets.
     # This deliberately overestimates co-resident usage: only one stage runs
     # at a time on each worker. It remains an estimate, not an OOM guarantee.
-    if sum(fractions) > options.memory_fraction_limit:
+    if options.max_resident_models == 1:
+        if any(
+            not getattr(op, "elastic_juicer_lazy_model", False)
+            or not callable(getattr(op, "elastic_juicer_release_model", None))
+            or not callable(getattr(op, "elastic_juicer_load_model", None))
+            for op in ops
+        ):
+            return "single-model residency requires explicit lazy initialization and load/release hooks"
+        # Each actor retains all Captain states, but holds only one GPU model.
+        # Fractions in this mode are independent single-stage peak estimates.
+        fraction = max(fractions)
+    else:
+        fraction = sum(fractions)
+    if fraction * options.actors_per_gpu > options.memory_fraction_limit:
         return "sum of measured operator memory fractions exceeds the co-residency limit"
     if options.mode == "static" and options.workers < len(ops):
         return "static allocation requires one worker per stage"
@@ -81,8 +94,10 @@ def segment_rejection(ops, options):
 
 
 class _ResidentWorker:
-    def __init__(self, specs, max_batch_bytes):
+    def __init__(self, specs, max_batch_bytes, max_resident_models=0):
         self.max_batch_bytes = max_batch_bytes
+        self.max_resident_models = max_resident_models
+        self.active_stage = None
         self.runners = {spec["stage_id"]: RayAdaptiveMapperActor(**spec) for spec in specs}
 
     def ready(self):
@@ -92,9 +107,16 @@ class _ResidentWorker:
             "gpu_ids": ray.get_gpu_ids(),
         }
 
-    def process(self, stage, table, terminal):
+    def process(self, stage, table, terminal, indices=None):
+        if indices is not None:
+            table = table.take(pa.array(indices, type=pa.int64()))
         start = time.perf_counter()
         runner = self.runners[stage]
+        if self.max_resident_models == 1 and self.active_stage != stage:
+            if self.active_stage is not None:
+                self.runners[self.active_stage].op.elastic_juicer_release_model()
+            runner.op.elastic_juicer_load_model()
+            self.active_stage = stage
         # Match RayDataset._run_single_op's metadata setup for tagging Mappers.
         if runner.op._name in TAGGING_OPS.modules and Fields.meta not in table.column_names:
             table = table.append_column(Fields.meta, pa.array([{} for _ in range(table.num_rows)]))
@@ -103,6 +125,10 @@ class _ResidentWorker:
         retries = runner.mapper.oom_retries
         result = runner(table)
         output = result if isinstance(result, pa.Table) else pa.Table.from_pydict(result)
+        if getattr(runner.op, "conditional_topic", False):
+            from .conditional_flow import check_identity
+
+            check_identity(table, output)
         if _ROW_COLUMN not in output.column_names or not output[_ROW_COLUMN].equals(expected):
             raise ComputeFlowError("resident mapper changed row identity/order")
         if tags is not None and (
@@ -113,7 +139,7 @@ class _ResidentWorker:
             raise ComputeFlowError("resident output exceeded max_batch_bytes")
         if terminal:
             output = output.drop_columns([_ROW_COLUMN])
-        return output, {
+        metadata = {
             "stage": stage,
             "rows": table.num_rows,
             "bytes": output.nbytes,
@@ -122,6 +148,9 @@ class _ResidentWorker:
             "oom_retries": runner.mapper.oom_retries - retries,
             "batch": asdict(runner.controller.state),
         }
+        if getattr(runner.op, "conditional_topic", False):
+            metadata["required_ops"] = output["required_ops"].to_pylist()
+        return output, metadata
 
 
 class PartitionComputeFlowSession:
@@ -180,11 +209,12 @@ class PartitionComputeFlowSession:
         deadline = time.monotonic() + self.options.startup_timeout_seconds
         gc.collect()
         cpus = max(float(op.num_cpus or 1) for op in ops)
-        required = {"CPU": cpus * self.options.workers, "GPU": self.options.workers}
+        gpu_per_worker = 1.0 / self.options.actors_per_gpu
+        required = {"CPU": cpus * self.options.workers, "GPU": self.options.workers * gpu_per_worker}
         gpu_nodes = [node for node in ray.nodes() if node["Alive"] and node["Resources"].get("GPU", 0) > 0]
-        if len(gpu_nodes) != 1:
+        if not gpu_nodes or (len(gpu_nodes) != 1 and not self.options.allow_multi_node):
             raise _PoolUnavailable("GPU topology changed before resident pool creation")
-        total = gpu_nodes[0]["Resources"]
+        total = {name: sum(node["Resources"].get(name, 0) for node in gpu_nodes) for name in ("CPU", "GPU")}
         if required["GPU"] > total.get("GPU", 0) or required["CPU"] + 1 > total.get("CPU", 0):
             raise _PoolUnavailable(f"compute-flow pool needs {required} plus one CPU for Ray Data/checkpoint tasks")
         # Only one pool exists at a time. Allow Ray's asynchronous actor teardown
@@ -216,14 +246,28 @@ class PartitionComputeFlowSession:
             for stage, op in zip(stages, ops)
         ]
         self.pool_number += 1
-        self.flow = ComputeFlowController(_compiled(stages, self.options.workers), self.options.controller_config())
-        self.pools.append({"number": self.pool_number, "stages": stages, "workers": self.options.workers})
+        controller_config = self.options.controller_config()
+        if self.options.stage_slots:
+            if len(self.options.stage_slots) != len(stages):
+                raise ComputeFlowError("stage_slots must cover every stage in the resident interval")
+            controller_config = replace(controller_config, initial_slots=tuple(zip(stages, self.options.stage_slots)))
+        self.flow = ComputeFlowController(_compiled(stages, self.options.workers), controller_config)
+        self.pools.append(
+            {
+                "number": self.pool_number,
+                "stages": stages,
+                "workers": self.options.workers,
+                "actors_per_gpu": self.options.actors_per_gpu,
+                "gpu_per_worker": gpu_per_worker,
+                "max_resident_models": self.options.max_resident_models,
+            }
+        )
         try:
             remote = ray.remote(max_restarts=0, max_task_retries=0)(_ResidentWorker)
             for slot in range(self.options.workers):
-                self.actors[("gpu", slot)] = remote.options(num_cpus=cpus, num_gpus=1).remote(
-                    specs, self.options.max_batch_bytes
-                )
+                self.actors[("gpu", slot)] = remote.options(
+                    num_cpus=cpus, num_gpus=gpu_per_worker, scheduling_strategy="SPREAD"
+                ).remote(specs, self.options.max_batch_bytes, self.options.max_resident_models)
             identities = ray.get(
                 [actor.ready.remote() for actor in self.actors.values()], timeout=max(0, deadline - time.monotonic())
             )
@@ -246,7 +290,7 @@ class PartitionComputeFlowSession:
             self.fallback(reason)
             return None
         gpu_nodes = [node for node in ray.nodes() if node["Alive"] and node["Resources"].get("GPU", 0) > 0]
-        if len(gpu_nodes) != 1:
+        if not gpu_nodes or (len(gpu_nodes) != 1 and not self.options.allow_multi_node):
             self.fallback("resident compute flow currently requires a single GPU node")
             return None
         schema = dataset.schema()

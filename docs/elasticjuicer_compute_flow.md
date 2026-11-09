@@ -84,25 +84,35 @@ checkpoint identity and recovery decisions remain owned by `PartitionedRayExecut
 
 ## Resource admission
 
-Each resident worker reserves one whole GPU and the maximum CPU requirement of
-its operators. `workers` controls the **shared** worker count for a selected
+Each resident worker reserves `1 / actors_per_gpu` GPU (default: one whole GPU)
+and the maximum CPU requirement of its operators. `workers` controls the **shared** worker count for a selected
 interval, replacing the separate per-operator actor counts there. Existing actor
 counts still apply to fallback intervals. The executor never allocates both kinds
 of GPU pool for the same interval. At least one CPU remains available for Ray Data
 metadata, input preparation and checkpoint/export tasks.
 
 GPU preflight must provide a measured memory fraction for every selected
-operator. The sum of those complete per-operator peak estimates must be at most
-`memory_fraction_limit`. This conservative admission rule includes all models
-and sums activation estimates even though each actor runs only one stage at a
-time. Missing estimates or an excessive sum select the legacy path. Scheduling
-fractions alone are not treated as proof that models fit together.
+operator. With `max_resident_models: 0` (the default), admission uses the sum of
+those complete per-operator peaks, multiplied by `actors_per_gpu`. This includes
+all actor replicas and conservatively sums their activation estimates.
 
-The first version supports a single GPU node with hardware matching the preflight
-measurements. Multiple GPU nodes use the existing path. Preflight estimates do
+`max_resident_models: 1` instead uses the largest single-operator peak, multiplied
+by `actors_per_gpu`. Every selected operator must explicitly declare lazy model
+construction and callable load/release hooks. A worker releases its previous GPU
+model before loading another stage, retaining all operator-local controllers.
+Missing hooks, missing estimates or a result above `memory_fraction_limit`
+select the legacy path before resident work starts. GPU scheduling fractions
+alone are not treated as proof that models fit. See the
+[supplemental guide](elasticjuicer_compute_flow_supplement.md) for the hook contract.
+
+The default topology remains a single GPU node. Multiple GPU nodes require
+`allow_multi_node: true`; provision compatible hardware, dependencies, operator
+code and shared input/output paths on every node. Admission sums the live GPU
+nodes' resources, reserves fractional GPUs when requested, and records each
+worker's node and GPU identity. Preflight estimates do
 not guarantee future inputs will fit: local adaptive retries remain necessary,
 and model-construction failures abort the interval. There is no live pool resize,
-model migration, preemption or eviction. Shared stage-profile seeding is rejected
+model migration or preemption. Shared stage-profile seeding is rejected
 when compute flow is enabled because co-resident resource envelopes need separate
 compatibility validation.
 
@@ -164,6 +174,9 @@ GC, admission/readiness fallback, resource cleanup, automatic transport sizing
 and explicit small-batch overrides.
 
 These CPU-arithmetic tests do not establish physical GPU compatibility or
-throughput improvements. Earlier standalone resident-DAG measurements do not
-validate this integrated path. Real-model GPU and repeated end-to-end performance
-comparisons remain required before recommending it as a default.
+throughput improvements. The supplemental implementation has separate real-model
+H20 evidence, including completed two/four-node framework comparisons and partial
+feature ablations; the latter are not a complete five-repeat multi-node result.
+See the [supplemental guide](elasticjuicer_compute_flow_supplement.md) for the
+validation boundary and opt-in conditional execution. The feature remains disabled
+by default.

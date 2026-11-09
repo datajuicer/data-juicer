@@ -239,11 +239,16 @@ class PartitionComputeFlowConfig:
 
     enabled: bool = False
     workers: int = 1
+    actors_per_gpu: int = 1
+    max_resident_models: int = 0
     batch_size: Union[int, Literal["auto"]] = "auto"
     max_inflight_batches: int = 8
     max_batch_bytes: int = 128 * 1024**2
     memory_fraction_limit: float = 0.8
     mode: str = "dynamic"
+    execution: str = "linear"
+    allow_multi_node: bool = False
+    stage_slots: tuple = ()
     interval_seconds: float = 0.5
     ewma_alpha: float = 0.25
     starvation_seconds: float = 5.0
@@ -265,9 +270,21 @@ class PartitionComputeFlowConfig:
             raise ComputeFlowError(f"invalid partition.compute_flow option: {error}") from error
         if type(result.enabled) is not bool:
             raise ComputeFlowError("partition.compute_flow.enabled must be a boolean")
+        if result.execution not in ("linear", "conditional"):
+            raise ComputeFlowError("partition.compute_flow.execution must be linear or conditional")
+        if type(result.allow_multi_node) is not bool:
+            raise ComputeFlowError("partition.compute_flow.allow_multi_node must be a boolean")
+        if type(result.max_resident_models) is not int or result.max_resident_models not in (0, 1):
+            raise ComputeFlowError("max_resident_models must be 0 (all) or 1 (explicit lazy-model contract)")
+        if (
+            not isinstance(result.stage_slots, (tuple, list))
+            or any(type(n) is not int or n < 1 for n in result.stage_slots)
+            or (result.stage_slots and sum(result.stage_slots) != result.workers)
+        ):
+            raise ComputeFlowError("stage_slots must be positive integers summing to workers")
         if result.batch_size != "auto" and (type(result.batch_size) is not int or result.batch_size < 1):
             raise ComputeFlowError("partition.compute_flow.batch_size must be 'auto' or a positive integer")
-        for name in ("workers", "max_inflight_batches", "max_batch_bytes"):
+        for name in ("workers", "actors_per_gpu", "max_inflight_batches", "max_batch_bytes"):
             if type(getattr(result, name)) is not int or getattr(result, name) < 1:
                 raise ComputeFlowError(f"partition.compute_flow.{name} must be a positive integer")
         for name in ("memory_fraction_limit", "startup_timeout_seconds", "task_timeout_seconds"):

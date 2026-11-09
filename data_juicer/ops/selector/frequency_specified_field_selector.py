@@ -1,5 +1,4 @@
 import numbers
-from itertools import chain
 from typing import Optional
 
 from pydantic import Field, PositiveInt
@@ -65,7 +64,9 @@ class FrequencySpecifiedFieldSelector(Selector):
         field_keys = self.field_key.split(".")
         assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
-        field_value_dict = {}
+        # First pass: count frequencies only (O(unique_values) memory),
+        # instead of storing the full index list for every value (O(n) memory).
+        value_counts = {}
         for i, item in enumerate(iter_column(dataset, field_keys[0])):
             field_value = item
             for key in field_keys[1:]:
@@ -74,10 +75,7 @@ class FrequencySpecifiedFieldSelector(Selector):
             assert (
                 field_value is None or isinstance(field_value, str) or isinstance(field_value, numbers.Number)
             ), "The {} item is not String, Numbers or NoneType".format(i)
-            if field_value not in field_value_dict.keys():
-                field_value_dict[field_value] = [i]
-            else:
-                field_value_dict[field_value].append(i)
+            value_counts[field_value] = value_counts.get(field_value, 0) + 1
 
         select_num = 0
         if self.top_ratio is None:
@@ -86,11 +84,24 @@ class FrequencySpecifiedFieldSelector(Selector):
             else:
                 select_num = self.topk
         else:
-            select_num = self.top_ratio * len(field_value_dict)
+            select_num = self.top_ratio * len(value_counts)
             if self.topk and self.topk < select_num:
                 select_num = self.topk
 
-        select_index = list(
-            chain.from_iterable(sorted(field_value_dict.values(), key=len, reverse=self.reverse)[: int(select_num)])
-        )
+        # Pick the top select_num values by frequency.
+        # reverse=True  → most frequent first
+        # reverse=False → least frequent first
+        sorted_values = sorted(value_counts.items(), key=lambda x: x[1], reverse=self.reverse)
+        selected_values = set(v for v, count in sorted_values[: int(select_num)])
+
+        # Second pass: collect indices whose value is in the selected set (O(selected) memory).
+        select_index = []
+        for i, item in enumerate(iter_column(dataset, field_keys[0])):
+            field_value = item
+            for key in field_keys[1:]:
+                assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
+                field_value = field_value[key]
+            if field_value in selected_values:
+                select_index.append(i)
+
         return dataset.select(select_index)

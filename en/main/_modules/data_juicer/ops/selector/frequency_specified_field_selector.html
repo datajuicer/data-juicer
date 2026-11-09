@@ -446,7 +446,6 @@
         <article class="article" role="main">
   <h1>Source code for data_juicer.ops.selector.frequency_specified_field_selector</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numbers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">PositiveInt</span>
@@ -455,6 +454,22 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.common_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_column</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..base_op</span><span class="w"> </span><span class="kn">import</span> <span class="n">OPERATORS</span><span class="p">,</span> <span class="n">Selector</span>
+
+<span class="c1"># Sentinel object used as a dict key for NaN values, since</span>
+<span class="c1"># float('nan') != float('nan') and cannot be matched across passes.</span>
+<span class="n">_NAN_SENTINEL</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_value</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Normalize a field value so it can be used reliably as a dict key.</span>
+
+<span class="sd">    NaN values are replaced with a shared sentinel object because two NaN</span>
+<span class="sd">    floats never compare equal, which would break set-membership checks</span>
+<span class="sd">    across the two passes.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span>  <span class="c1"># NaN check</span>
+        <span class="k">return</span> <span class="n">_NAN_SENTINEL</span>
+    <span class="k">return</span> <span class="n">v</span>
 
 
 <div class="viewcode-block" id="FrequencySpecifiedFieldSelector">
@@ -519,7 +534,9 @@
         <span class="n">field_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s2">"'</span><span class="si">{}</span><span class="s2">' not in </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dataset</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-        <span class="n">field_value_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># First pass: count frequencies only (O(unique_values) memory),</span>
+        <span class="c1"># instead of storing the full index list for every value (O(n) memory).</span>
+        <span class="n">value_counts</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iter_column</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
             <span class="n">field_value</span> <span class="o">=</span> <span class="n">item</span>
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
@@ -528,10 +545,8 @@
             <span class="k">assert</span> <span class="p">(</span>
                 <span class="n">field_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">)</span>
             <span class="p">),</span> <span class="s2">"The </span><span class="si">{}</span><span class="s2"> item is not String, Numbers or NoneType"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">field_value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">field_value_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="n">field_value_dict</span><span class="p">[</span><span class="n">field_value</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">field_value_dict</span><span class="p">[</span><span class="n">field_value</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">_normalize_value</span><span class="p">(</span><span class="n">field_value</span><span class="p">)</span>
+            <span class="n">value_counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="n">select_num</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_ratio</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -540,13 +555,35 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">select_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">select_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_ratio</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">field_value_dict</span><span class="p">)</span>
+            <span class="n">select_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_ratio</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">value_counts</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span> <span class="o">&lt;</span> <span class="n">select_num</span><span class="p">:</span>
                 <span class="n">select_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span>
 
-        <span class="n">select_index</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-            <span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">field_value_dict</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">)[:</span> <span class="nb">int</span><span class="p">(</span><span class="n">select_num</span><span class="p">)])</span>
-        <span class="p">)</span>
+        <span class="c1"># Pick the top select_num values by frequency.</span>
+        <span class="c1"># reverse=True  → most frequent first</span>
+        <span class="c1"># reverse=False → least frequent first</span>
+        <span class="n">sorted_values</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">value_counts</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">)</span>
+        <span class="n">selected_values</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">sorted_values</span><span class="p">[:</span> <span class="nb">int</span><span class="p">(</span><span class="n">select_num</span><span class="p">)])</span>
+
+        <span class="c1"># Second pass: collect indices grouped by value (O(selected) memory).</span>
+        <span class="c1"># Grouping preserves the original frequency-group ordering: all rows of</span>
+        <span class="c1"># the most-frequent value come first, then the next, etc.</span>
+        <span class="n">selected_indices_by_value</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">selected_values</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iter_column</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+            <span class="n">field_value</span> <span class="o">=</span> <span class="n">item</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">field_value</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s2">"'</span><span class="si">{}</span><span class="s2">' not in </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">field_value</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="n">field_value</span> <span class="o">=</span> <span class="n">field_value</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">_normalize_value</span><span class="p">(</span><span class="n">field_value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">selected_indices_by_value</span><span class="p">:</span>
+                <span class="n">selected_indices_by_value</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Flatten in the order of sorted_values to match the original</span>
+        <span class="c1"># group-by-value output order.</span>
+        <span class="n">select_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">sorted_values</span><span class="p">[:</span> <span class="nb">int</span><span class="p">(</span><span class="n">select_num</span><span class="p">)]:</span>
+            <span class="n">select_index</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">selected_indices_by_value</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
+
         <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">select_index</span><span class="p">)</span></div>
 </div>
 

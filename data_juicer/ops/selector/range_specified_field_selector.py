@@ -96,6 +96,31 @@ class RangeSpecifiedFieldSelector(Selector):
         field_keys = self.field_key.split(".")
         assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
+        # Stream the column and maintain a max-heap (using negated values) of size upper_bound
+        # to keep the upper_bound smallest values. This avoids materializing the entire
+        # field_value_list (O(n) memory) — peak memory drops to O(upper_bound).
+        heap = []  # min-heap of (-value, idx), simulating a max-heap
+
+        for idx, item in enumerate(iter_column(dataset, field_keys[0])):
+            field_value = item
+            for key in field_keys[1:]:
+                assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
+                field_value = field_value[key]
+            field_value = stats_to_number(field_value)
+
+            neg_value = -field_value
+
+            if len(heap) < upper_bound:
+                heapq.heappush(heap, (neg_value, idx))
+            elif neg_value > heap[0][0]:
+                # heap[0] is the smallest neg_value = largest value in current top.
+                # Replace when current value is smaller than the current upper_bound-th smallest.
+                heapq.heapreplace(heap, (neg_value, idx))
+
+        select_index = [idx for (neg_val, idx) in heap]
+        sub_dataset = dataset.select(select_index)
+
+        # Second pass on sub_dataset (size upper_bound) — already small enough to materialize.
         def get_field_value_list(cur_dataset, field_keys):
             if len(field_keys) == 1:
                 field_value_list = list(iter_column(cur_dataset, field_keys[0]))
@@ -109,10 +134,6 @@ class RangeSpecifiedFieldSelector(Selector):
                     field_value_list.append(field_value)
             field_value_list = [stats_to_number(s) for s in field_value_list]
             return field_value_list
-
-        field_value_list = get_field_value_list(dataset, field_keys)
-        select_index = heapq.nsmallest(int(upper_bound), range(len(dataset)), field_value_list.__getitem__)
-        sub_dataset = dataset.select(select_index)
 
         field_value_list = get_field_value_list(sub_dataset, field_keys)
         select_index = heapq.nlargest(

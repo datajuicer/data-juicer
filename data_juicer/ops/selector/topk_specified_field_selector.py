@@ -76,8 +76,14 @@ class TopkSpecifiedFieldSelector(Selector):
         field_keys = self.field_key.split(".")
         assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
-        field_value_list = []
-        for item in iter_column(dataset, field_keys[0]):
+        select_num_int = int(select_num)
+
+        # Stream the field column and maintain a heap of size select_num
+        # instead of materializing the entire field_value_list.
+        # This reduces peak memory from O(n) to O(select_num).
+        heap = []  # min-heap
+
+        for idx, item in enumerate(iter_column(dataset, field_keys[0])):
             field_value = item
             for key in field_keys[1:]:
                 assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
@@ -85,10 +91,19 @@ class TopkSpecifiedFieldSelector(Selector):
             # keep native numbers as-is so large integers are compared exactly
             if not isinstance(field_value, (int, float)):
                 field_value = stats_to_number(field_value, self.reverse)
-            field_value_list.append(field_value)
 
-        if self.reverse:
-            select_index = heapq.nlargest(int(select_num), range(len(dataset)), field_value_list.__getitem__)
-        else:
-            select_index = heapq.nsmallest(int(select_num), range(len(dataset)), field_value_list.__getitem__)
+            # For reverse=True (descending, want largest values):
+            #   min-heap stores the smallest of the top-k;
+            #   replace when current value is larger.
+            # For reverse=False (ascending, want smallest values):
+            #   negate the value so min-heap behaves as max-heap;
+            #   replace when current value is smaller than the current k-th smallest.
+            heap_value = field_value if self.reverse else -field_value
+
+            if len(heap) < select_num_int:
+                heapq.heappush(heap, (heap_value, idx))
+            elif heap_value > heap[0][0]:
+                heapq.heapreplace(heap, (heap_value, idx))
+
+        select_index = [idx for (val, idx) in heap]
         return dataset.select(select_index)

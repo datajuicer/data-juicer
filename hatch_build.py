@@ -31,10 +31,14 @@ class CustomBuildHook(BuildHookInterface):
             def build_extensions(self):
                 ct = self.compiler.compiler_type
                 opts = []
+                link_opts = []
 
                 if ct == "unix":
-                    opts.append("-std=c++11")
+                    opts.append("-std=c++17")
                     opts.append("-fvisibility=hidden")
+                    opts.append("-fopenmp")
+                    opts.append("-O3")
+                    link_opts.append("-fopenmp")
                     # On macOS, ensure clang finds C++ stdlib (fixes 'cstddef' not found)
                     if sys.platform == "darwin":
                         try:
@@ -50,11 +54,13 @@ class CustomBuildHook(BuildHookInterface):
                         except (subprocess.CalledProcessError, FileNotFoundError):
                             pass
                 elif ct == "msvc":
-                    opts.append("/std:c++11")
+                    opts.append("/std:c++17")
+                    opts.append("/openmp")
 
                 for ext in self.extensions:
                     if ext.language == "c++":
                         ext.extra_compile_args = opts
+                        ext.extra_link_args = link_opts
 
                 build_ext.build_extensions(self)
 

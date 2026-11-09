@@ -123,7 +123,12 @@ class RangeSpecifiedFieldSelector(Selector):
                 # Replace when current value is smaller than the current upper_bound-th smallest.
                 heapq.heapreplace(heap, heap_entry)
 
-        select_index = [-neg_idx for (neg_val, neg_idx) in heap]
+        # Sort heap entries by (value, idx) ascending to match nsmallest's stable order.
+        # The heap itself is not sorted — we must restore ascending value order and
+        # original row order for ties before the second-stage nlargest.
+        heap_entries = [(-neg_val, -neg_idx) for (neg_val, neg_idx) in heap]
+        heap_entries.sort(key=lambda x: (x[0], x[1]))
+        select_index = [idx for (val, idx) in heap_entries]
         sub_dataset = dataset.select(select_index)
 
         # Second pass on sub_dataset (size upper_bound) — already small enough to materialize.

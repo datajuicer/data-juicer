@@ -530,8 +530,16 @@
         <span class="n">field_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s2">"'</span><span class="si">{}</span><span class="s2">' not in </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dataset</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-        <span class="n">field_value_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">iter_column</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">select_num_int</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">select_num</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">select_num_int</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">([])</span>
+
+        <span class="c1"># Stream the field column and maintain a heap of size select_num</span>
+        <span class="c1"># instead of materializing the entire field_value_list.</span>
+        <span class="c1"># This reduces peak memory from O(n) to O(select_num).</span>
+        <span class="n">heap</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># min-heap</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iter_column</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
             <span class="n">field_value</span> <span class="o">=</span> <span class="n">item</span>
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">field_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
                 <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">field_value</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s2">"'</span><span class="si">{}</span><span class="s2">' not in </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">field_value</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -539,12 +547,29 @@
             <span class="c1"># keep native numbers as-is so large integers are compared exactly</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
                 <span class="n">field_value</span> <span class="o">=</span> <span class="n">stats_to_number</span><span class="p">(</span><span class="n">field_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">)</span>
-            <span class="n">field_value_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field_value</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
-            <span class="n">select_index</span> <span class="o">=</span> <span class="n">heapq</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">select_num</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)),</span> <span class="n">field_value_list</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">select_index</span> <span class="o">=</span> <span class="n">heapq</span><span class="o">.</span><span class="n">nsmallest</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">select_num</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)),</span> <span class="n">field_value_list</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">)</span>
+            <span class="c1"># For reverse=True (descending, want largest values):</span>
+            <span class="c1">#   min-heap stores the smallest of the top-k;</span>
+            <span class="c1">#   replace when current value is larger.</span>
+            <span class="c1"># For reverse=False (ascending, want smallest values):</span>
+            <span class="c1">#   negate the value so min-heap behaves as max-heap;</span>
+            <span class="c1">#   replace when current value is smaller than the current k-th smallest.</span>
+            <span class="n">heap_value</span> <span class="o">=</span> <span class="n">field_value</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span> <span class="k">else</span> <span class="o">-</span><span class="n">field_value</span>
+            <span class="c1"># Use -idx as second tuple element so that, on ties, the later row</span>
+            <span class="c1"># sits on top of the heap and gets evicted first — preserving the</span>
+            <span class="c1"># original stable selection (earlier rows are kept).</span>
+            <span class="n">heap_entry</span> <span class="o">=</span> <span class="p">(</span><span class="n">heap_value</span><span class="p">,</span> <span class="o">-</span><span class="n">idx</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">heap</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">select_num_int</span><span class="p">:</span>
+                <span class="n">heapq</span><span class="o">.</span><span class="n">heappush</span><span class="p">(</span><span class="n">heap</span><span class="p">,</span> <span class="n">heap_entry</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">heap_value</span> <span class="o">&gt;</span> <span class="n">heap</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">heapq</span><span class="o">.</span><span class="n">heapreplace</span><span class="p">(</span><span class="n">heap</span><span class="p">,</span> <span class="n">heap_entry</span><span class="p">)</span>
+
+        <span class="c1"># Sort by heap_value descending to match nlargest output order.</span>
+        <span class="c1"># reverse=True: heap_value=field_value, descending → largest first.</span>
+        <span class="c1"># reverse=False: heap_value=-field_value, descending → smallest field first.</span>
+        <span class="n">heap</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">select_index</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="n">neg_idx</span> <span class="k">for</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">neg_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="n">heap</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">select_index</span><span class="p">)</span></div>
 </div>
 

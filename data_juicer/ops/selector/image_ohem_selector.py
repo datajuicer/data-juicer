@@ -146,6 +146,16 @@ class ImageOHEMSelector(Selector):
             return dataset
         model = None
         losses = []
+        # Stream the top-k losses into a bounded heap to avoid a second O(n) pass.
+        # heap[0] is the smallest loss in the current top-k (min-heap).
+        heap = []
+        select_num = len(dataset)
+        if self.top_ratio is not None:
+            select_num = int(self.top_ratio * len(dataset))
+        if self.topk is not None:
+            select_num = min(select_num, self.topk)
+        if select_num <= 0:
+            return dataset.select([])
         try:
             model, device = self._ensure_model(), self._device()
             for start in range(0, len(dataset), self.batch_size):
@@ -159,7 +169,14 @@ class ImageOHEMSelector(Selector):
                     raise ValueError("score_fn must return exactly one loss per sample")
                 if not np.isfinite(batch_losses).all():
                     raise ValueError("score_fn returned NaN or infinite loss")
-                losses.extend(batch_losses)
+                for i, loss in enumerate(batch_losses):
+                    global_idx = start + i
+                    losses.append(loss)
+                    # Maintain a bounded min-heap of the top-k largest losses.
+                    if len(heap) < select_num:
+                        heapq.heappush(heap, (loss, global_idx))
+                    elif loss > heap[0][0]:
+                        heapq.heapreplace(heap, (loss, global_idx))
         finally:
             self._release_model()
             model = None
@@ -171,13 +188,6 @@ class ImageOHEMSelector(Selector):
             return sample
 
         dataset = dataset.map(attach_loss, with_indices=True)
-        select_num = len(dataset)
-        if self.top_ratio is not None:
-            select_num = int(self.top_ratio * len(dataset))
-        if self.topk is not None:
-            select_num = min(select_num, self.topk)
-        if select_num <= 0:
-            return dataset.select([])
-        values = [float(sample[Fields.stats][self.loss_field]) for sample in dataset]
-        indices = heapq.nlargest(select_num, range(len(dataset)), values.__getitem__)
+        # The heap already holds the top-k indices — no need to re-scan the column.
+        indices = [idx for (loss, idx) in heap]
         return dataset.select(indices)

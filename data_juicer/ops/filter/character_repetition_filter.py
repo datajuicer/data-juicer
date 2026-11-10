@@ -54,16 +54,22 @@ class CharacterRepetitionFilter(Filter):
 
             cur_text = samples_list[idx]
             freq_char_ngrams = {}
+            num_no_rep_char_ngrams = 0
             for i in range(len(cur_text) - self.n + 1):
                 char_ngram = cur_text[i : i + self.n]
-                freq_char_ngrams[char_ngram] = freq_char_ngrams.get(char_ngram, 0) + 1
+                old = freq_char_ngrams.get(char_ngram, 0)
+                freq_char_ngrams[char_ngram] = old + 1
+                # Track count of n-grams that appear exactly once
+                if old == 0:
+                    num_no_rep_char_ngrams += 1
+                elif old == 1:
+                    num_no_rep_char_ngrams -= 1
 
             if len(freq_char_ngrams) == 0:
                 samples_stats[idx][StatsKeys.char_rep_ratio] = 0.0
                 continue
 
             freq_char_ngrams = sorted(freq_char_ngrams.values(), reverse=True)
-            num_no_rep_char_ngrams = freq_char_ngrams.count(1)
             num_rep_char_ngrams = min(
                 int(np.sqrt(len(freq_char_ngrams))),
                 len(freq_char_ngrams) - num_no_rep_char_ngrams,

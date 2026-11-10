@@ -170,15 +170,13 @@ class DocumentMinhashDeduplicator(Deduplicator):
         # check parameters
         if self.ignore_pattern and self.tokenization == "punctuation":
             logger.warning(
-                "Be careful that tokenization with punctuations "
-                "won't work if the ignore pattern includes "
-                "punctuations."
+                "Be careful that tokenization with punctuations won't work if the ignore pattern includes punctuations."
             )
         self.punctuation_pattern = regex.compile(r"\p{P}")
 
         if self.tokenization == "sentencepiece":
             if tokenizer_model is None:
-                raise ValueError("To use 'sentencepiece' tokenization, " "'tokenizer_model' is required.")
+                raise ValueError("To use 'sentencepiece' tokenization, 'tokenizer_model' is required.")
             self.tokenizer = prepare_sentencepiece_model(tokenizer_model)
         else:
             self.tokenizer = None
@@ -310,9 +308,7 @@ class DocumentMinhashDeduplicator(Deduplicator):
         # minhash column into memory at once. Each sample's minhash is
         # read on-demand, reducing peak memory from O(n) to O(1)
         # (only the hash tables and union-find state are kept).
-        for idx, sample in enumerate(tqdm(
-            dataset, dynamic_ncols=True, desc="Iterating MinHashes of samples..."
-        )):
+        for idx, sample in enumerate(tqdm(dataset, dynamic_ncols=True, desc="Iterating MinHashes of samples...")):
             hs = sample[HashKeys.minhash]
             for h, hashtable in zip(hs, self.hash_tables):
                 first = hashtable.setdefault(h, idx)
@@ -323,8 +319,7 @@ class DocumentMinhashDeduplicator(Deduplicator):
         # when exporting the processed dataset
         dataset = dataset.remove_columns([HashKeys.minhash])
         logger.info(
-            f"There are {len(set(union_find.parent.values()))} "
-            f"clusters that includes multiple near-duplicate samples."
+            f"There are {len(set(union_find.parent.values()))} clusters that includes multiple near-duplicate samples."
         )
 
         # record the duplicate sample pairs
@@ -413,8 +408,7 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
                     if first != uid:
                         union_find.union(uid, first)
         logger.info(
-            f"There are {len(set(union_find.parent.values()))} "
-            f"clusters that includes multiple near-duplicate samples."
+            f"There are {len(set(union_find.parent.values()))} clusters that includes multiple near-duplicate samples."
         )
 
         # record the duplicate sample pairs

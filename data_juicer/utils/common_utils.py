@@ -28,15 +28,19 @@ def stats_to_number(s, reverse=True):
 
 def iter_column(dataset, column_name, batch_size=10000):
     """
-    Iterate over the values of a dataset column in batches.
+    Iterate over the values of a dataset column in a streaming fashion.
 
-    Iterating ``dataset[column_name]`` directly decodes the column one row
-    at a time. Slicing it decodes a whole batch at once, and reading one
-    batch at a time keeps the decoded rows from piling up in memory.
+    Instead of materializing the entire column into a Python list first
+    (which uses O(n) memory), we select only the needed column and stream
+    over the dataset row by row. Peak memory drops from O(n) to O(1) —
+    only the current row's value is held at any time.
+
+    This also avoids decoding other columns that are not needed.
     """
-    column = dataset[column_name]
-    for start in range(0, len(column), batch_size):
-        yield from column[start : start + batch_size]
+    # Select only the column we need, so other columns are never decoded
+    col_dataset = dataset.select_columns([column_name])
+    for sample in col_dataset:
+        yield sample[column_name]
 
 
 def dict_to_hash(input_dict: dict, hash_length=None):

@@ -393,6 +393,20 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
         for t in texts:
             self.assertTrue(t.strip(), f"Got empty/whitespace fragment: {repr(t)}")
 
+    def test_max_len_overlap_no_tail_chunk(self):
+        """With overlap_len, the last chunk must not repeat the end of the
+        previous one on its own."""
+        text = "Today is Sunday and it's a happy day!"
+        op = TextChunkMapper(max_len=20, overlap_len=2, split_pattern=None)
+        self.assertEqual(
+            op.get_text_chunks(text),
+            ['Today is Sunday and ', "d it's a happy day!"])
+        op = TextChunkMapper(max_len=10, overlap_len=5, split_pattern=None)
+        self.assertEqual(
+            op.get_text_chunks(text),
+            ['Today is S', ' is Sunday', 'unday and ', " and it's ",
+             "it's a hap", 'a happy da', 'py day!'])
+
     def test_recursive_chunk_consecutive_delimiters(self):
         """Consecutive delimiters should not produce empty fragments."""
         ds_list = [

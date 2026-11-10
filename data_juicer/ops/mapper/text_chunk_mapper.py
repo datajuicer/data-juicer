@@ -127,6 +127,9 @@ class TextChunkMapper(Mapper):
                 if self.tokenizer_name is not None:
                     cur = tokenizer.decode(cur)
                 chunks.append(cur)
+                # The rest of the text is already in this chunk
+                if start + self.max_len >= total_len:
+                    break
         else:
             chunks = self.recursively_chunk(text)
 

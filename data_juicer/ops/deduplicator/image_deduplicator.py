@@ -58,7 +58,7 @@ class ImageDeduplicator(Deduplicator):
         """
         super().__init__(*args, **kwargs)
         if method not in HASH_METHOD:
-            raise ValueError(f"Keep strategy [{method}] is not supported. " f"Can only be one of {HASH_METHOD}.")
+            raise ValueError(f"Keep strategy [{method}] is not supported. Can only be one of {HASH_METHOD}.")
         self.hasher = get_hash_method(method)()
         self.consider_text = consider_text
         self.text_dedup_op = None

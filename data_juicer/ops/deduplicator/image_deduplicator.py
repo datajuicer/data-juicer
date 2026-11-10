@@ -46,7 +46,13 @@ class ImageDeduplicator(Deduplicator):
     duplicate pairs for tracing purposes.
     - The operator caches the `imagehash` and, if applicable, the `hash` fields."""
 
-    def __init__(self, method: str = "phash", consider_text: bool = False, *args, **kwargs):
+    def __init__(
+        self,
+        method: str = "phash",
+        consider_text: bool = False,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -81,7 +87,11 @@ class ImageDeduplicator(Deduplicator):
         # load images
         loaded_image_keys = sample[self.image_key]
         sample, images = load_data_with_context(
-            sample, context, loaded_image_keys, load_image, mm_bytes_key=self.image_bytes_key
+            sample,
+            context,
+            loaded_image_keys,
+            load_image,
+            mm_bytes_key=self.image_bytes_key,
         )
 
         # compute hash
@@ -122,7 +132,9 @@ class ImageDeduplicator(Deduplicator):
                 if h:
                     hash2ids[h] += 1
             dup_samples = sorted(hash2ids.items(), key=lambda x: x[1], reverse=True)
-            dup_hashes = set([item[0] for item in dup_samples if item[1] > 1][:show_num])
+            dup_hashes = set(
+                [item[0] for item in dup_samples if item[1] > 1][:show_num]
+            )
             dup_pairs = {hash_v: [] for hash_v in dup_hashes}
 
         # Second pass: collect keep indices and duplicate pairs

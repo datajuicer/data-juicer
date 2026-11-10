@@ -173,10 +173,14 @@ class ImageOHEMSelector(Selector):
                     global_idx = start + i
                     losses.append(loss)
                     # Maintain a bounded min-heap of the top-k largest losses.
+                    # Tie-break on -idx so that, on equal loss, the later row sits
+                    # on top of the heap and gets evicted first — preserving the
+                    # earlier row (matches nlargest's stable tie-breaking).
+                    heap_entry = (loss, -global_idx)
                     if len(heap) < select_num:
-                        heapq.heappush(heap, (loss, global_idx))
+                        heapq.heappush(heap, heap_entry)
                     elif loss > heap[0][0]:
-                        heapq.heapreplace(heap, (loss, global_idx))
+                        heapq.heapreplace(heap, heap_entry)
         finally:
             self._release_model()
             model = None
@@ -188,6 +192,10 @@ class ImageOHEMSelector(Selector):
             return sample
 
         dataset = dataset.map(attach_loss, with_indices=True)
-        # The heap already holds the top-k indices — no need to re-scan the column.
-        indices = [idx for (loss, idx) in heap]
+        # Sort heap entries by loss descending (and idx ascending for ties) to
+        # match nlargest's output order. The heap itself is a min-heap with no
+        # guaranteed order — we must restore the descending loss order explicitly.
+        heap_entries = [(loss, -neg_idx) for (loss, neg_idx) in heap]
+        heap_entries.sort(key=lambda x: (-x[0], x[1]))
+        indices = [idx for (loss, idx) in heap_entries]
         return dataset.select(indices)

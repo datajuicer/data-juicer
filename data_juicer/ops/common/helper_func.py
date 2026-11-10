@@ -169,8 +169,9 @@ def words_refinement(
     if lower_case:
         words = [word.lower() for word in words]
     if strip_chars:
-        words = [strip(word, strip_chars) for word in words]
-        words = [word for word in words if word]
+        # Combine strip and non-empty filter into one list comprehension
+        # to avoid creating an intermediate list
+        words = [stripped for word in words if (stripped := strip(word, strip_chars))]
     if use_words_aug:
         augmentation = [
             words_augmentation(words, group_size, words_aug_join_char) for group_size in words_aug_group_sizes

@@ -49,7 +49,7 @@ class SpecialCharactersFilter(Filter):
             cur_text = samples_list[idx]
             # get ratio of special characters
             samples_stats[idx][StatsKeys.special_char_ratio] = (
-                (len([c for c in cur_text if c in SPECIAL_CHARACTERS]) / len(cur_text)) if len(cur_text) != 0 else 0.0
+                (sum(1 for c in cur_text if c in SPECIAL_CHARACTERS) / len(cur_text)) if len(cur_text) != 0 else 0.0
             )
 
         return samples

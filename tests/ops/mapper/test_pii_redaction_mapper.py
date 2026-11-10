@@ -304,6 +304,21 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertEqual(m._redact_text("mypassword=x"), "mypassword=x")
         self.assertEqual(m._redact_text('{"myuser_id": "u1"}'), '{"myuser_id": "u1"}')
 
+    def test_ambiguous_secret_keys_after_underscore(self):
+        m = self._m()
+        for text in [
+            "tokenizer.pad_token = tokenizer.eos_token",
+            '{"eos_token": "</s>", "pad_token": "<pad>"}',
+            "is_secret=False",
+            "use_auth=True",
+            "max_token=512",
+        ]:
+            self.assertEqual(m._redact_text(text), text)
+        self.assertEqual(m._redact_text("HF_TOKEN=hf_abc123"), "HF_TOKEN=[REDACTED]")
+        self.assertEqual(m._redact_text('{"access_token": "abc"}'), '{"access_token": "[REDACTED]"}')
+        self.assertEqual(m._redact_text("refresh_token: abc"), "refresh_token: [REDACTED]")
+        self.assertEqual(m._redact_text("我的token=abc"), "我的token=[REDACTED]")
+
     def test_kv_with_fullwidth_colon(self):
         m = self._m()
         self.assertEqual(m._redact_text("password：hunter2"), "password：[REDACTED]")

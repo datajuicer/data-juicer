@@ -79,30 +79,33 @@ class DocumentDeduplicator(Deduplicator):
         if len(dataset) <= 1:
             return dataset, {}
 
-        # read the hash column once: iterating dataset[column] decodes it
-        # row by row
-        sample_hashes = dataset[HashKeys.hash][:]
-
-        dup_hashes = None
-        if show_num > 0:
-            # sample duplicate pairs
-            hash2ids: Dict[int, Set[int]] = defaultdict(set)
-            for sid, hash_val in enumerate(sample_hashes):
-                hash2ids[hash_val].add(sid)
-            dup_samples = sorted(list(hash2ids.items()), key=lambda x: len(x[1]), reverse=True)
-            dup_hashes = set([item[0] for item in dup_samples if len(item[1]) > 1][:show_num])
-
-        # keep the first sample of each hash; the kept indices are computed
-        # from the hash column alone, so the other columns are never decoded
+        # keep the first sample of each hash; stream over the dataset instead
+        # of materializing the entire hash column into a Python list first.
+        # Peak memory drops from O(n) (full hash column) to O(unique_hashes)
+        # (only the set of seen hashes is kept).
         hashes = set()
-        dup_pairs = {hash_v: [] for hash_v in dup_hashes} if dup_hashes else {}
         keep = []
-        for idx, hash in enumerate(sample_hashes):
-            if show_num > 0 and hash in dup_hashes and len(dup_pairs[hash]) < 2:
+        dup_pairs = {}
+        dup_hashes = None
+
+        # First pass: if tracer is on, find the most duplicated hashes
+        if show_num > 0:
+            hash2ids: Dict[str, int] = {}
+            for idx, sample in enumerate(dataset):
+                h = sample[HashKeys.hash]
+                hash2ids[h] = hash2ids.get(h, 0) + 1
+            dup_samples = sorted(hash2ids.items(), key=lambda x: x[1], reverse=True)
+            dup_hashes = set([item[0] for item in dup_samples if item[1] > 1][:show_num])
+            dup_pairs = {hash_v: [] for hash_v in dup_hashes}
+
+        # Second pass: collect keep indices and duplicate pairs
+        for idx, sample in enumerate(dataset):
+            h = sample[HashKeys.hash]
+            if show_num > 0 and h in dup_hashes and len(dup_pairs[h]) < 2:
                 # tracer is open and not enough duplicate sample pairs
-                dup_pairs[hash].append(dataset[idx])
-            if hash not in hashes:
-                hashes.add(hash)
+                dup_pairs[h].append(sample)
+            if h not in hashes:
+                hashes.add(h)
                 keep.append(idx)
         dataset = dataset.select(keep)
         return dataset, dup_pairs

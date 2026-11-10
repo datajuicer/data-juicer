@@ -457,7 +457,7 @@
 
 
 <div class="viewcode-block" id="SubFigure">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_figure_context_extractor_mapper.html#data_juicer.ops.mapper.latex_figure_context_extractor_mapper.SubFigure">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_figure_context_extractor_mapper.html#data_juicer.ops.mapper.SubFigure">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SubFigure</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""A subfigure within a figure environment."""</span>
@@ -469,7 +469,7 @@
 
 
 <div class="viewcode-block" id="Figure">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_figure_context_extractor_mapper.html#data_juicer.ops.mapper.latex_figure_context_extractor_mapper.Figure">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_figure_context_extractor_mapper.html#data_juicer.ops.mapper.Figure">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Figure</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""A top-level figure/figure* environment."""</span>
@@ -482,7 +482,7 @@
 
 
 <div class="viewcode-block" id="LatexFigureContextExtractorMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_figure_context_extractor_mapper.html#data_juicer.ops.mapper.latex_figure_context_extractor_mapper.LatexFigureContextExtractorMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.LatexFigureContextExtractorMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LatexFigureContextExtractorMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Extracts figures and their citing context from LaTeX source.</span>
@@ -565,7 +565,7 @@
     <span class="p">)</span>
 
 <div class="viewcode-block" id="LatexFigureContextExtractorMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_figure_context_extractor_mapper.html#data_juicer.ops.mapper.latex_figure_context_extractor_mapper.LatexFigureContextExtractorMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.LatexFigureContextExtractorMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">citation_commands</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -956,7 +956,7 @@
         <span class="n">output_samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parent_label_key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="n">parent</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LatexFigureContextExtractorMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_figure_context_extractor_mapper.html#data_juicer.ops.mapper.latex_figure_context_extractor_mapper.LatexFigureContextExtractorMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.LatexFigureContextExtractorMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="n">input_keys</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
         <span class="n">num_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">input_keys</span><span class="p">))])</span>

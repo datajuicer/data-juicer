@@ -592,6 +592,9 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">cur</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span>
                 <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span>
+                <span class="c1"># The rest of the text is already in this chunk</span>
+                <span class="k">if</span> <span class="n">start</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">&gt;=</span> <span class="n">total_len</span><span class="p">:</span>
+                    <span class="k">break</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">chunks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursively_chunk</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 

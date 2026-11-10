@@ -27,7 +27,13 @@ class DocumentDeduplicator(Deduplicator):
     parameter is set, the operator also returns a specified number of duplicate pairs for
     inspection."""
 
-    def __init__(self, lowercase: bool = False, ignore_non_character: bool = False, *args, **kwargs):
+    def __init__(
+        self,
+        lowercase: bool = False,
+        ignore_non_character: bool = False,
+        *args,
+        **kwargs,
+    ):
         """
         Initialization method.
 
@@ -40,7 +46,9 @@ class DocumentDeduplicator(Deduplicator):
         super().__init__(*args, **kwargs)
         self.lowercase = lowercase
         self.remove_non_character_regex = (
-            re.compile(f"\s+|\d+|[{re.escape(string.punctuation)}]") if ignore_non_character else None  # noqa: W605
+            re.compile(f"\s+|\d+|[{re.escape(string.punctuation)}]")
+            if ignore_non_character
+            else None  # noqa: W605
         )
 
     def compute_hash(self, sample):
@@ -95,7 +103,9 @@ class DocumentDeduplicator(Deduplicator):
                 h = sample[HashKeys.hash]
                 hash2ids[h] = hash2ids.get(h, 0) + 1
             dup_samples = sorted(hash2ids.items(), key=lambda x: x[1], reverse=True)
-            dup_hashes = set([item[0] for item in dup_samples if item[1] > 1][:show_num])
+            dup_hashes = set(
+                [item[0] for item in dup_samples if item[1] > 1][:show_num]
+            )
             dup_pairs = {hash_v: [] for hash_v in dup_hashes}
 
         # Second pass: collect keep indices and duplicate pairs

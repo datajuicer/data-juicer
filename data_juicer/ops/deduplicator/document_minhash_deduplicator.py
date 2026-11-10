@@ -300,26 +300,28 @@ class DocumentMinhashDeduplicator(Deduplicator):
         if len(dataset) <= 1:
             return dataset, {}
 
-        minhashes = dataset[HashKeys.minhash]
-        # remove bytes minhash column otherwise unexpected error would occur
-        # when exporting the processed dataset
-        dataset = dataset.remove_columns([HashKeys.minhash])
-
         # make clusters -- union each sample with the first sample that
         # shares one of its band hashes. Roots are the smallest index of
         # each cluster, as UnionFind.union always keeps the minimum.
         logger.info(f"Start clustering for {len(dataset)} samples...")
         union_find = UnionFind()
-        batch_size = 10000
-        for i in tqdm(
-            range(0, len(minhashes), batch_size), dynamic_ncols=True, desc="Iterating MinHashes of samples..."
-        ):
-            batch = minhashes[i : i + batch_size]
-            for idx, hs in enumerate(batch, start=i):
-                for h, hashtable in zip(hs, self.hash_tables):
-                    first = hashtable.setdefault(h, idx)
-                    if first != idx:
-                        union_find.union(idx, first)
+
+        # Stream over the dataset instead of materializing the entire
+        # minhash column into memory at once. Each sample's minhash is
+        # read on-demand, reducing peak memory from O(n) to O(1)
+        # (only the hash tables and union-find state are kept).
+        for idx, sample in enumerate(tqdm(
+            dataset, dynamic_ncols=True, desc="Iterating MinHashes of samples..."
+        )):
+            hs = sample[HashKeys.minhash]
+            for h, hashtable in zip(hs, self.hash_tables):
+                first = hashtable.setdefault(h, idx)
+                if first != idx:
+                    union_find.union(idx, first)
+
+        # remove bytes minhash column otherwise unexpected error would occur
+        # when exporting the processed dataset
+        dataset = dataset.remove_columns([HashKeys.minhash])
         logger.info(
             f"There are {len(set(union_find.parent.values()))} "
             f"clusters that includes multiple near-duplicate samples."

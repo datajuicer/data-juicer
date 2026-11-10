@@ -149,33 +149,35 @@ class DocumentSimhashDeduplicator(Deduplicator):
 
         # read the hash column once: iterating dataset[column] decodes it
         # row by row
-        simhashes = dataset[HashKeys.simhash][:]
+        simhashes_str = dataset[HashKeys.simhash][:]
+        # convert to uint64 for faster integer-keyed dicts
+        simhashes = np.uint64(simhashes_str)
 
         # find matches
         logger.info(f"Start querying {len(dataset)} samples.")
         matches = simhash.find_all(
-            np.uint64(simhashes),
+            simhashes,
             self.num_blocks,
             self.hamming_distance,
         )
         logger.info(f"Querying done, found {len(matches)} matches.")
 
         # compute hash diff distribution
-        graph = defaultdict(dict)
+        graph = defaultdict(set)
         for x, y in matches:
-            x = str(x)
-            y = str(y)
-            graph[x][y] = graph[y][x] = True
+            graph[x].add(y)
+            graph[y].add(x)
 
-        hashes: Set[str] = set(simhashes)
-        hash2cluster: Dict[str, int] = {}
-        visited: Set[str] = set()
+        # clustering using integer hash keys directly (faster than strings)
+        unique_hashes = set(simhashes.tolist())
+        hash2cluster: Dict[int, int] = {}
+        visited: Set[int] = set()
         cluster_id: int = 0
 
         # clustering
         dup_pairs = {}  # store duplicate pairs when show_num > 0
-        while hashes:
-            hash_val = hashes.pop()
+        while unique_hashes:
+            hash_val = unique_hashes.pop()
             if hash_val in visited:
                 continue
 

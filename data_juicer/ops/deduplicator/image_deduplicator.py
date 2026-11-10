@@ -102,41 +102,43 @@ class ImageDeduplicator(Deduplicator):
         if len(dataset) <= 1:
             return dataset, {}
 
-        # read the hash columns once: iterating dataset[column] decodes it
-        # row by row
-        if self.consider_text:
-            sample_hashes = list(zip(dataset[HashKeys.imagehash][:], dataset[HashKeys.hash][:]))
-        else:
-            sample_hashes = dataset[HashKeys.imagehash][:]
-
-        dup_hashes = None
-        if show_num > 0:
-            # sample duplicate pairs
-            if self.consider_text:
-                hash2ids: Dict[Tuple[int, int], Set[int]] = defaultdict(set)
-            else:
-                hash2ids: Dict[int, Set[int]] = defaultdict(set)
-            for sid, hash_val in enumerate(sample_hashes):
-                if hash_val:
-                    hash2ids[hash_val].add(sid)
-            dup_samples = sorted(list(hash2ids.items()), key=lambda x: len(x[1]), reverse=True)
-            dup_hashes = set([item[0] for item in dup_samples if len(item[1]) > 1][:show_num])
-
         # keep the first sample of each hash, and every sample without one;
-        # the kept indices are computed from the hash columns alone, so the
-        # other columns are never decoded
+        # stream over the dataset instead of materializing the entire hash
+        # column into a Python list first. Peak memory drops from O(n)
+        # (full hash column) to O(unique_hashes) (only the set of seen hashes).
         hashes = set()
-        dup_pairs = {hash_v: [] for hash_v in dup_hashes} if dup_hashes else {}
         keep = []
-        for idx, hash in enumerate(sample_hashes):
-            if not hash:
+        dup_pairs = {}
+        dup_hashes = None
+
+        # First pass: if tracer is on, find the most duplicated hashes
+        if show_num > 0:
+            hash2ids = defaultdict(int)
+            for sample in dataset:
+                if self.consider_text:
+                    h = (sample[HashKeys.imagehash], sample[HashKeys.hash])
+                else:
+                    h = sample[HashKeys.imagehash]
+                if h:
+                    hash2ids[h] += 1
+            dup_samples = sorted(hash2ids.items(), key=lambda x: x[1], reverse=True)
+            dup_hashes = set([item[0] for item in dup_samples if item[1] > 1][:show_num])
+            dup_pairs = {hash_v: [] for hash_v in dup_hashes}
+
+        # Second pass: collect keep indices and duplicate pairs
+        for idx, sample in enumerate(dataset):
+            if self.consider_text:
+                h = (sample[HashKeys.imagehash], sample[HashKeys.hash])
+            else:
+                h = sample[HashKeys.imagehash]
+            if not h:
                 keep.append(idx)
                 continue
-            if show_num > 0 and hash in dup_hashes and len(dup_pairs[hash]) < 2:
+            if show_num > 0 and h in dup_hashes and len(dup_pairs[h]) < 2:
                 # tracer is open and not enough duplicate sample pairs
-                dup_pairs[hash].append(dataset[idx])
-            if hash not in hashes:
-                hashes.add(hash)
+                dup_pairs[h].append(sample)
+            if h not in hashes:
+                hashes.add(h)
                 keep.append(idx)
         dataset = dataset.select(keep)
         return dataset, dup_pairs

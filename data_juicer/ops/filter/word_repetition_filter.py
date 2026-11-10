@@ -95,18 +95,23 @@ class WordRepetitionFilter(Filter):
                 if context:
                     samples[Fields.context][idx][refined_words_key] = words
             freq_word_ngrams = {}
+            total = 0
+            rep_total = 0
             for i in range(len(words) - self.n + 1):
                 word_ngram = " ".join(words[i : i + self.n])
-                freq_word_ngrams[word_ngram] = freq_word_ngrams.get(word_ngram, 0) + 1
+                count = freq_word_ngrams.get(word_ngram, 0) + 1
+                freq_word_ngrams[word_ngram] = count
+                total += 1
+                if count == 2:
+                    rep_total += 2
+                elif count > 2:
+                    rep_total += 1
 
-            if len(freq_word_ngrams) == 0:
+            if total == 0:
                 samples_stats[idx][StatsKeys.word_rep_ratio] = 0.0
                 continue
 
-            freq_word_ngrams = list(freq_word_ngrams.values())
-            rep_more_than_one = [freq for freq in freq_word_ngrams if freq > 1]
-            total = sum(freq_word_ngrams)
-            samples_stats[idx][StatsKeys.word_rep_ratio] = (sum(rep_more_than_one) / total) if total != 0 else 0.0
+            samples_stats[idx][StatsKeys.word_rep_ratio] = rep_total / total
 
         return samples
 

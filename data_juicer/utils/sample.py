@@ -1,3 +1,4 @@
+import random
 from itertools import chain, repeat
 
 import numpy as np
@@ -24,11 +25,18 @@ def random_sample(dataset, weight=1.0, sample_number=0, seed=None):
     if sample_number == ds_samples:
         return dataset
 
-    sample_index = range(sample_number)
+    # When sampling more samples than the dataset size, repeat the dataset
+    if sample_number > ds_samples:
+        sample_index = range(sample_number)
+        n_repeat = int(np.ceil(sample_number / ds_samples)) - 1
+        if n_repeat > 0:
+            remain_samples = sample_number - n_repeat * ds_samples
+            sample_index = chain(*repeat(range(ds_samples), n_repeat), range(remain_samples))
+        return dataset.shuffle(seed=seed).select(sample_index)
 
-    n_repeat = int(np.ceil(sample_number / ds_samples)) - 1
-    if n_repeat > 0:
-        remain_samples = sample_number - n_repeat * ds_samples
-        sample_index = chain(*repeat(range(ds_samples), n_repeat), range(remain_samples))
-
-    return dataset.shuffle(seed=seed).select(sample_index)
+    # Sample k indices directly in O(k) instead of shuffling all n indices.
+    # random.sample on range(n) uses Floyd's algorithm and is O(k) time/space,
+    # avoiding the O(n) shuffle overhead on large datasets when k << n.
+    rng = random.Random(seed)
+    sample_index = rng.sample(range(ds_samples), sample_number)
+    return dataset.select(sample_index)

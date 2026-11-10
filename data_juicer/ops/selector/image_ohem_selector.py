@@ -146,6 +146,16 @@ class ImageOHEMSelector(Selector):
             return dataset
         model = None
         losses = []
+        # Stream the top-k losses into a bounded heap to avoid a second O(n) pass.
+        # heap[0] is the smallest loss in the current top-k (min-heap).
+        heap = []
+        select_num = len(dataset)
+        if self.top_ratio is not None:
+            select_num = int(self.top_ratio * len(dataset))
+        if self.topk is not None:
+            select_num = min(select_num, self.topk)
+        if select_num <= 0:
+            return dataset.select([])
         try:
             model, device = self._ensure_model(), self._device()
             for start in range(0, len(dataset), self.batch_size):
@@ -159,7 +169,18 @@ class ImageOHEMSelector(Selector):
                     raise ValueError("score_fn must return exactly one loss per sample")
                 if not np.isfinite(batch_losses).all():
                     raise ValueError("score_fn returned NaN or infinite loss")
-                losses.extend(batch_losses)
+                for i, loss in enumerate(batch_losses):
+                    global_idx = start + i
+                    losses.append(loss)
+                    # Maintain a bounded min-heap of the top-k largest losses.
+                    # Tie-break on -idx so that, on equal loss, the later row sits
+                    # on top of the heap and gets evicted first — preserving the
+                    # earlier row (matches nlargest's stable tie-breaking).
+                    heap_entry = (loss, -global_idx)
+                    if len(heap) < select_num:
+                        heapq.heappush(heap, heap_entry)
+                    elif loss > heap[0][0]:
+                        heapq.heapreplace(heap, heap_entry)
         finally:
             self._release_model()
             model = None
@@ -171,13 +192,10 @@ class ImageOHEMSelector(Selector):
             return sample
 
         dataset = dataset.map(attach_loss, with_indices=True)
-        select_num = len(dataset)
-        if self.top_ratio is not None:
-            select_num = int(self.top_ratio * len(dataset))
-        if self.topk is not None:
-            select_num = min(select_num, self.topk)
-        if select_num <= 0:
-            return dataset.select([])
-        values = [float(sample[Fields.stats][self.loss_field]) for sample in dataset]
-        indices = heapq.nlargest(select_num, range(len(dataset)), values.__getitem__)
+        # Sort heap entries by loss descending (and idx ascending for ties) to
+        # match nlargest's output order. The heap itself is a min-heap with no
+        # guaranteed order — we must restore the descending loss order explicitly.
+        heap_entries = [(loss, -neg_idx) for (loss, neg_idx) in heap]
+        heap_entries.sort(key=lambda x: (-x[0], x[1]))
+        indices = [idx for (loss, idx) in heap_entries]
         return dataset.select(indices)

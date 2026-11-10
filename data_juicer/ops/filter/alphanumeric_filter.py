@@ -64,7 +64,7 @@ class AlphanumericFilter(Filter):
             if self.tokenization:
                 if StatsKeys.alpha_token_ratio in stat:
                     continue
-                alpha_count = sum(map(lambda char: 1 if char.isalpha() else 0, cur_text))
+                alpha_count = sum(1 for char in cur_text if char.isalpha())
                 tokenizer = get_model(self.model_key)
                 token_count = len(
                     get_words_from_document(cur_text, token_func=tokenizer.tokenize if tokenizer else None)
@@ -75,7 +75,7 @@ class AlphanumericFilter(Filter):
             else:
                 if StatsKeys.alnum_ratio in stat:
                     continue
-                alnum_count = sum(map(lambda char: 1 if char.isalnum() else 0, cur_text))
+                alnum_count = sum(1 for char in cur_text if char.isalnum())
                 samples_stats[idx][StatsKeys.alnum_ratio] = (alnum_count / len(cur_text)) if len(cur_text) != 0 else 0.0
 
         return samples

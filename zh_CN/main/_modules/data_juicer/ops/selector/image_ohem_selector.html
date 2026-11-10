@@ -608,6 +608,16 @@
             <span class="k">return</span> <span class="n">dataset</span>
         <span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Stream the top-k losses into a bounded heap to avoid a second O(n) pass.</span>
+        <span class="c1"># heap[0] is the smallest loss in the current top-k (min-heap).</span>
+        <span class="n">heap</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">select_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">select_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top_ratio</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">select_num</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">select_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">select_num</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">([])</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">model</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_model</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">):</span>
@@ -621,7 +631,18 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"score_fn must return exactly one loss per sample"</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">batch_losses</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"score_fn returned NaN or infinite loss"</span><span class="p">)</span>
-                <span class="n">losses</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">batch_losses</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">loss</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch_losses</span><span class="p">):</span>
+                    <span class="n">global_idx</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">i</span>
+                    <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+                    <span class="c1"># Maintain a bounded min-heap of the top-k largest losses.</span>
+                    <span class="c1"># Tie-break on -idx so that, on equal loss, the later row sits</span>
+                    <span class="c1"># on top of the heap and gets evicted first — preserving the</span>
+                    <span class="c1"># earlier row (matches nlargest's stable tie-breaking).</span>
+                    <span class="n">heap_entry</span> <span class="o">=</span> <span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="o">-</span><span class="n">global_idx</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">heap</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">select_num</span><span class="p">:</span>
+                        <span class="n">heapq</span><span class="o">.</span><span class="n">heappush</span><span class="p">(</span><span class="n">heap</span><span class="p">,</span> <span class="n">heap_entry</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">loss</span> <span class="o">&gt;</span> <span class="n">heap</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+                        <span class="n">heapq</span><span class="o">.</span><span class="n">heapreplace</span><span class="p">(</span><span class="n">heap</span><span class="p">,</span> <span class="n">heap_entry</span><span class="p">)</span>
         <span class="k">finally</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_release_model</span><span class="p">()</span>
             <span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
@@ -633,15 +654,12 @@
             <span class="k">return</span> <span class="n">sample</span>
 
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">attach_loss</span><span class="p">,</span> <span class="n">with_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">select_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">select_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top_ratio</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">select_num</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">select_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">topk</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">select_num</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">([])</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_field</span><span class="p">])</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">]</span>
-        <span class="n">indices</span> <span class="o">=</span> <span class="n">heapq</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="n">select_num</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)),</span> <span class="n">values</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">)</span>
+        <span class="c1"># Sort heap entries by loss descending (and idx ascending for ties) to</span>
+        <span class="c1"># match nlargest's output order. The heap itself is a min-heap with no</span>
+        <span class="c1"># guaranteed order — we must restore the descending loss order explicitly.</span>
+        <span class="n">heap_entries</span> <span class="o">=</span> <span class="p">[(</span><span class="n">loss</span><span class="p">,</span> <span class="o">-</span><span class="n">neg_idx</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">neg_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="n">heap</span><span class="p">]</span>
+        <span class="n">heap_entries</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="k">for</span> <span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="ow">in</span> <span class="n">heap_entries</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span></div>
 </div>
 

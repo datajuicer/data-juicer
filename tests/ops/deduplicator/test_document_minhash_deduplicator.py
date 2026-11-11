@@ -1121,5 +1121,20 @@ class DocumentMinhashDeduplicatorEmptyInputTest(DataJuicerTestCaseBase):
             [{'text': ''}, {'text': 'hello world this is a normal sentence'}])
 
 
+class DocumentMinhashDeduplicatorBandParamTest(DataJuicerTestCaseBase):
+
+    def test_bands_exceeding_permutations_rejected(self):
+        # 30 bands x 10 rows needs 300 permutations: the bands past 256 are
+        # empty and equal for every sample, so all samples would be merged
+        with self.assertRaises(ValueError):
+            DocumentMinhashDeduplicator(
+                num_permutations=256, num_bands=30, num_rows_per_band=10)
+
+        # using every permutation exactly is still allowed
+        op = DocumentMinhashDeduplicator(
+            num_permutations=256, num_bands=32, num_rows_per_band=8)
+        self.assertEqual(op.hash_ranges[-1], (248, 256))
+
+
 if __name__ == '__main__':
     unittest.main()

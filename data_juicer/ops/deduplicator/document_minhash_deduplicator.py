@@ -196,6 +196,14 @@ class DocumentMinhashDeduplicator(Deduplicator):
                 self.jaccard_threshold,
                 self.num_permutation,
             )
+        # a band past the last permutation is empty and identical for every
+        # sample, which would mark all samples as duplicates of each other
+        if self.num_bands * self.num_rows_per_band > self.num_permutation:
+            raise ValueError(
+                f"num_bands * num_rows_per_band ({self.num_bands} * "
+                f"{self.num_rows_per_band}) must not exceed num_permutations "
+                f"({self.num_permutation})."
+            )
 
         # compute hash ranges and create hash tables
         self.hash_ranges = [

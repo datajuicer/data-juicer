@@ -124,9 +124,7 @@ class StopWordsFilter(Filter):
                 sample[Fields.context][refined_words_key] = words
 
         stopwords_ratio = (
-            (sum(1 for word in words if word in self.STOPWORDS[self.lang]) / len(words))
-            if len(words) != 0
-            else 0.0
+            (sum(1 for word in words if word in self.STOPWORDS[self.lang]) / len(words)) if len(words) != 0 else 0.0
         )
 
         if stopwords_ratio > 1.0:

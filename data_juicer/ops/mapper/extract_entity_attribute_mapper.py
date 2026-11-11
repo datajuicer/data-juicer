@@ -139,7 +139,7 @@ class ExtractEntityAttributeMapper(Mapper):
         self.drop_text = drop_text
 
     def parse_output(self, raw_output, attribute_name):
-        attribute_pattern = self.attr_pattern_template.format(attribute=attribute_name)
+        attribute_pattern = self.attr_pattern_template.format(attribute=re.escape(attribute_name))
         pattern = re.compile(attribute_pattern, re.VERBOSE | re.DOTALL)
         matches = pattern.findall(raw_output)
         if matches:

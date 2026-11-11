@@ -44,6 +44,21 @@ def sha1_hash32(data):
     return struct.unpack("<I", hashlib.sha1(data).digest()[:4])[0]
 
 
+def check_band_params(num_bands: int, num_rows_per_band: int, num_perm: int):
+    """
+    Reject LSH band settings that need more rows than there are permutations.
+
+    A band past the last permutation is empty and identical for every sample,
+    which would mark all samples as duplicates of each other.
+    """
+    if num_bands * num_rows_per_band > num_perm:
+        raise ValueError(
+            f"num_bands * num_rows_per_band ({num_bands} * "
+            f"{num_rows_per_band}) must not exceed num_permutations "
+            f"({num_perm})."
+        )
+
+
 def optimal_param(
     threshold: float,
     num_perm: int,
@@ -196,14 +211,7 @@ class DocumentMinhashDeduplicator(Deduplicator):
                 self.jaccard_threshold,
                 self.num_permutation,
             )
-        # a band past the last permutation is empty and identical for every
-        # sample, which would mark all samples as duplicates of each other
-        if self.num_bands * self.num_rows_per_band > self.num_permutation:
-            raise ValueError(
-                f"num_bands * num_rows_per_band ({self.num_bands} * "
-                f"{self.num_rows_per_band}) must not exceed num_permutations "
-                f"({self.num_permutation})."
-            )
+        check_band_params(self.num_bands, self.num_rows_per_band, self.num_permutation)
 
         # compute hash ranges and create hash tables
         self.hash_ranges = [

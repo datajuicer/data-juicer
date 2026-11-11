@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from loguru import logger
 
@@ -21,6 +22,34 @@ class MostRelevantEntitiesAggregatorUnitTest(DataJuicerTestCaseBase):
         self.assertEqual(
             list(op.parse_output("## 列表\nrolea, roleb")), ["rolea", "roleb"]
         )
+
+    def test_parse_output_returns_empty_without_entity_list(self):
+        op = MostRelevantEntitiesAggregator(
+            api_model="any-model",
+            entity="李莲花",
+            query_entity_type="人物",
+        )
+        self.assertEqual(list(op.parse_output("no list here")), [])
+        self.assertEqual(list(op.parse_output("## 列表\n")), [])
+
+    def test_retries_when_response_has_no_entity_list(self):
+        op = MostRelevantEntitiesAggregator(
+            api_model="any-model",
+            entity="李莲花",
+            query_entity_type="人物",
+            try_num=2,
+        )
+        responses = iter(["no list here", "## 列表\nrolea, roleb"])
+        model = MagicMock(side_effect=lambda *args, **kwargs: next(responses))
+        tokenizer = MagicMock()
+        tokenizer.encode.side_effect = lambda text: list(text)
+        with patch(
+            "data_juicer.ops.aggregator.most_relevant_entities_aggregator.get_model",
+            return_value=(model, tokenizer),
+        ):
+            result = op.query_most_relevant_entities(["doc"])
+        self.assertEqual(list(result), ["rolea", "roleb"])
+        self.assertEqual(model.call_count, 2)
 
     def test_validates_required_fields(self):
         with self.assertRaises(ValueError):

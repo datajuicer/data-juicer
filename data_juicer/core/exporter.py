@@ -248,7 +248,11 @@ class Exporter:
                 # If meta/stats were serialized as JSON strings (e.g. \\uXXXX),
                 # parse back to dict so to_json(force_ascii=False) writes UTF-8.
                 ds_stats = Exporter._ensure_meta_stats_dicts_for_export(ds_stats)
-                stats_file = export_path.replace("." + suffix, "_stats.jsonl")
+                # strip the extension rather than replacing "." + suffix: with
+                # export_type set, the path may not end in that suffix, and the
+                # stats file would then take the export path itself and be
+                # overwritten by the dataset
+                stats_file = os.path.splitext(export_path)[0] + "_stats.jsonl"
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
                 # Add storage_options if available (for S3/HDFS export)
                 if self.storage_options is not None:

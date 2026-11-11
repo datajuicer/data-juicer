@@ -606,33 +606,37 @@
 
         <span class="c1"># read the hash column once: iterating dataset[column] decodes it</span>
         <span class="c1"># row by row</span>
-        <span class="n">simhashes</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">simhash</span><span class="p">][:]</span>
+        <span class="n">simhashes_str</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">simhash</span><span class="p">][:]</span>
+        <span class="c1"># convert to uint64 for faster integer-keyed dicts</span>
+        <span class="n">simhashes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">simhashes_str</span><span class="p">)</span>
 
         <span class="c1"># find matches</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Start querying </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples."</span><span class="p">)</span>
         <span class="n">matches</span> <span class="o">=</span> <span class="n">simhash</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">simhashes</span><span class="p">),</span>
+            <span class="n">simhashes</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">num_blocks</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">hamming_distance</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Querying done, found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span><span class="si">}</span><span class="s2"> matches."</span><span class="p">)</span>
 
-        <span class="c1"># compute hash diff distribution</span>
+        <span class="c1"># compute hash diff distribution. Use dict adjacency (not sets): a</span>
+        <span class="c1"># dict with only atomic keys/values is not tracked by the cyclic GC,</span>
+        <span class="c1"># whereas a per-node set is, which shows up as GC overhead on large</span>
+        <span class="c1"># match graphs.</span>
         <span class="n">graph</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-            <span class="n">y</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
             <span class="n">graph</span><span class="p">[</span><span class="n">x</span><span class="p">][</span><span class="n">y</span><span class="p">]</span> <span class="o">=</span> <span class="n">graph</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
-        <span class="n">hashes</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">simhashes</span><span class="p">)</span>
-        <span class="n">hash2cluster</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">visited</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c1"># clustering with the integer hash values directly</span>
+        <span class="n">unique_hashes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">simhashes</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">hash2cluster</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">visited</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="n">cluster_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="c1"># clustering</span>
         <span class="n">dup_pairs</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># store duplicate pairs when show_num &gt; 0</span>
-        <span class="k">while</span> <span class="n">hashes</span><span class="p">:</span>
-            <span class="n">hash_val</span> <span class="o">=</span> <span class="n">hashes</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">unique_hashes</span><span class="p">:</span>
+            <span class="n">hash_val</span> <span class="o">=</span> <span class="n">unique_hashes</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">hash_val</span> <span class="ow">in</span> <span class="n">visited</span><span class="p">:</span>
                 <span class="k">continue</span>
 

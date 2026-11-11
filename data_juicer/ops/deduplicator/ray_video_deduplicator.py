@@ -17,7 +17,7 @@ class RayVideoDeduplicator(RayBasicDeduplicator):
     This operator computes the MD5 hash of video streams in each sample and compares them to
     identify duplicates. It uses Ray distributed mode for parallel processing. The hash is
     computed by demuxing the video streams and updating the MD5 hash with each video packet.
-    If a sample does not contain a valid video, it is assigned an empty hash value. The
+    If a sample does not contain a valid video, it is always kept. The
     operator supports 'ray_actor' or 'redis' backends for deduplication."""
 
     def __init__(self, backend: str = "ray_actor", redis_address: str = "redis://localhost:6379", *args, **kwargs):
@@ -31,8 +31,9 @@ class RayVideoDeduplicator(RayBasicDeduplicator):
         super().__init__(backend=backend, redis_address=redis_address, *args, **kwargs)
 
     def calculate_hash(self, sample, context=False):
+        # a sample without videos is never a duplicate, as in video_deduplicator
         if self.video_key not in sample or not sample[self.video_key]:
-            return RayBasicDeduplicator.EMPTY_HASH_VALUE
+            return None
 
         # load videos
         loaded_video_keys = sample[self.video_key]

@@ -302,35 +302,35 @@ class RayImageDeduplicatorTest(DataJuicerTestCaseBase):
         op = RayImageDeduplicator(method='ahash')
         self._run_image_deduplicator(dataset, tgt_list, op)
 
-    # @TEST_TAG("ray")
-    # def test_no_image(self):
+    @TEST_TAG("ray")
+    def test_no_image(self):
 
-    #     ds_list = [{
-    #         'images': [],
-    #         'text': 'text1',
-    #     }, {
-    #         'images': [],
-    #         'text': 'text2',
-    #     }, {
-    #         'images': [self.img7_path],
-    #         'text': '<image> text6',
-    #     }, {
-    #         'images': [self.img6_path],
-    #         'text': '<image> text6',
-    #     }]
-    #     tgt_list = [{
-    #         'images': [],
-    #         'text': 'text1',
-    #     }, {
-    #         'images': [],
-    #         'text': 'text2',
-    #     }, {
-    #         'images': [self.img7_path],
-    #         'text': '<image> text6',
-    #     }]
-    #     dataset = self.generate_dataset(ds_list)
-    #     op = RayImageDeduplicator()
-    #     self._run_image_deduplicator(dataset, tgt_list, op)
+        ds_list = [{
+            'images': [],
+            'text': 'text1',
+        }, {
+            'images': [],
+            'text': 'text2',
+        }, {
+            'images': [self.img7_path],
+            'text': '<image> text6',
+        }, {
+            'images': [self.img6_path],
+            'text': '<image> text6',
+        }]
+        tgt_list = [{
+            'images': [],
+            'text': 'text1',
+        }, {
+            'images': [],
+            'text': 'text2',
+        }, {
+            'images': [self.img7_path],
+            'text': '<image> text6',
+        }]
+        dataset = self.generate_dataset(ds_list)
+        op = RayImageDeduplicator()
+        self._run_image_deduplicator(dataset, tgt_list, op)
 
     # @TEST_TAG("ray")
     # def test_no_image_consider_text(self):

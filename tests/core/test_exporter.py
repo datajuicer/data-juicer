@@ -181,6 +181,27 @@ class ExporterTest(DataJuicerTestCaseBase):
                 export_path=os.path.join(self.work_dir, 'txt', 'test.txt'),
             )
 
+    def test_export_shards_keep_dotted_file_name(self):
+        # two exports whose names differ only after the first dot
+        export_dir = os.path.join(self.work_dir, 'shards_dotted')
+        datasets = {
+            'result.v1.jsonl': self.test_data,
+            'result.v2.jsonl': self.test_data.select([0]),
+        }
+        for name, data in datasets.items():
+            Exporter(
+                export_path=os.path.join(export_dir, name),
+                export_shard_size=1024,
+                num_proc=1,
+                export_stats=False,
+            ).export(data)
+
+        for name, data in datasets.items():
+            shard_path = add_suffix_to_filename(os.path.join(export_dir, name), '-00-of-01')
+            self.assertTrue(os.path.exists(shard_path))
+            with jl.open(shard_path) as reader:
+                self.assertEqual(len(list(reader)), len(data))
+
     def test_export_multiple_shards(self):
         export_path = os.path.join(self.work_dir, 'shards', 'test.jsonl')
         exporter = Exporter(

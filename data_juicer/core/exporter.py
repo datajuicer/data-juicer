@@ -344,7 +344,10 @@ class Exporter:
                 else:
                     # For local paths, use standard directory structure
                     dirname = os.path.dirname(os.path.abspath(self.export_path))
-                    basename = os.path.basename(self.export_path).split(".")[0]
+                    # drop only the extension, as for S3/HDFS above: cutting at
+                    # the first dot gives "a.v1.jsonl" and "a.v2.jsonl" the same
+                    # shard names, so one export overwrites the other
+                    basename = os.path.splitext(os.path.basename(self.export_path))[0]
                     os.makedirs(dirname, exist_ok=True)
                     filenames = [
                         os.path.join(

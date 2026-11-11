@@ -162,13 +162,15 @@ class DocumentSimhashDeduplicator(Deduplicator):
         )
         logger.info(f"Querying done, found {len(matches)} matches.")
 
-        # compute hash diff distribution
-        graph = defaultdict(set)
+        # compute hash diff distribution. Use dict adjacency (not sets): a
+        # dict with only atomic keys/values is not tracked by the cyclic GC,
+        # whereas a per-node set is, which shows up as GC overhead on large
+        # match graphs.
+        graph = defaultdict(dict)
         for x, y in matches:
-            graph[x].add(y)
-            graph[y].add(x)
+            graph[x][y] = graph[y][x] = True
 
-        # clustering using integer hash keys directly (faster than strings)
+        # clustering with the integer hash values directly
         unique_hashes = set(simhashes.tolist())
         hash2cluster: Dict[int, int] = {}
         visited: Set[int] = set()

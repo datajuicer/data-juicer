@@ -489,7 +489,7 @@
 
 
 <div class="viewcode-block" id="ensure_spacy_pipeline_installed">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.pii_llm_suspect_mapper.html#data_juicer.ops.mapper.pii_llm_suspect_mapper.ensure_spacy_pipeline_installed">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.pii_llm_suspect_mapper.html#data_juicer.ops.mapper.ensure_spacy_pipeline_installed">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">ensure_spacy_pipeline_installed</span><span class="p">(</span><span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">auto_download</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""If ``auto_download`` and pipeline missing, run ``spacy.cli.download`` (needs network)."""</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">auto_download</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">model_name</span><span class="p">:</span>
@@ -766,7 +766,7 @@
 
 
 <div class="viewcode-block" id="PiiLlmSuspectMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.pii_llm_suspect_mapper.html#data_juicer.ops.mapper.pii_llm_suspect_mapper.PiiLlmSuspectMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PiiLlmSuspectMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PiiLlmSuspectMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -796,7 +796,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="PiiLlmSuspectMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.pii_llm_suspect_mapper.html#data_juicer.ops.mapper.pii_llm_suspect_mapper.PiiLlmSuspectMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PiiLlmSuspectMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"qwen-turbo"</span><span class="p">,</span>
@@ -1013,7 +1013,7 @@
                     <span class="p">)</span>
 
 <div class="viewcode-block" id="PiiLlmSuspectMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.pii_llm_suspect_mapper.html#data_juicer.ops.mapper.pii_llm_suspect_mapper.PiiLlmSuspectMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PiiLlmSuspectMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">meta</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>

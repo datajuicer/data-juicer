@@ -59,8 +59,26 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
             {'configs': [
                 {'path': 'hf-internal-testing/librispeech_asr_dummy',
                 'split': 'train',
-                'type': 'huggingface'}]},
+                'type': 'remote',
+                'source': 'huggingface'}]},
              ans)
+
+    @patch('data_juicer.core.data.load_strategy.datasets.load_dataset')
+    def test_builder_loads_huggingface_dataset_path(self, mock_load_dataset):
+        """A Hugging Face dataset id in dataset_path is loaded by the HF strategy."""
+        from datasets import Dataset
+        from data_juicer.core.data.load_strategy import DefaultHuggingfaceDataLoadStrategy
+
+        mock_load_dataset.return_value = Dataset.from_dict({'text': ['a', 'b']})
+        cfg = Namespace(dataset_path='hf-org/hf-dataset', text_keys='text')
+
+        builder = DatasetBuilder(cfg, executor_type='default')
+        self.assertIsInstance(builder.load_strategies[0], DefaultHuggingfaceDataLoadStrategy)
+
+        ds = builder.load_dataset()
+        self.assertEqual(ds['text'], ['a', 'b'])
+        self.assertEqual(mock_load_dataset.call_args.args[0], 'hf-org/hf-dataset')
+        self.assertEqual(mock_load_dataset.call_args.kwargs['split'], 'train')
 
     def test_rewrite_cli_datapath_local_wrong_files(self):
         dataset_path = os.path.join(WORK_DIR, "missingDir")
@@ -98,7 +116,7 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
         dataset_path = "1.0 huggingface/dataset"
         expected = {
             'configs': [
-                {'type': 'huggingface', 'path': 'huggingface/dataset', 'split': 'train'}
+                {'type': 'remote', 'source': 'huggingface', 'path': 'huggingface/dataset', 'split': 'train'}
             ]
         }
         result = rewrite_cli_datapath(dataset_path)

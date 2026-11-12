@@ -469,7 +469,7 @@
 
 
 <div class="viewcode-block" id="replace_func">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_split_by_scene_mapper.html#data_juicer.ops.mapper.video_split_by_scene_mapper.replace_func">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_split_by_scene_mapper.html#data_juicer.ops.mapper.replace_func">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">replace_func</span><span class="p">(</span><span class="n">match</span><span class="p">,</span> <span class="n">scene_counts_iter</span><span class="p">):</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">count</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">scene_counts_iter</span><span class="p">)</span>
@@ -480,7 +480,7 @@
 
 
 <div class="viewcode-block" id="VideoSplitBySceneMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_split_by_scene_mapper.html#data_juicer.ops.mapper.video_split_by_scene_mapper.VideoSplitBySceneMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoSplitBySceneMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoSplitBySceneMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Splits videos into scene clips based on detected scene changes.</span>
@@ -510,7 +510,7 @@
     <span class="p">}</span>
 
 <div class="viewcode-block" id="VideoSplitBySceneMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_split_by_scene_mapper.html#data_juicer.ops.mapper.video_split_by_scene_mapper.VideoSplitBySceneMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoSplitBySceneMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">detector</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"ContentDetector"</span><span class="p">,</span>
@@ -627,7 +627,7 @@
         <span class="k">return</span> <span class="n">output_files</span>
 
 <div class="viewcode-block" id="VideoSplitBySceneMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_split_by_scene_mapper.html#data_juicer.ops.mapper.video_split_by_scene_mapper.VideoSplitBySceneMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoSplitBySceneMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># there is no video in this sample</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">video_key</span><span class="p">]:</span>

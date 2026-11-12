@@ -812,21 +812,28 @@
                 <span class="c1"># export dataset into multiple shards using multiprocessing</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Start to exporting to </span><span class="si">{</span><span class="n">num_shards</span><span class="si">}</span><span class="s2"> shards."</span><span class="p">)</span>
                 <span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span><span class="p">)</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shards</span><span class="p">):</span>
                     <span class="n">export_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"num_proc"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>  <span class="c1"># Each shard export uses single process</span>
                     <span class="c1"># Add storage_options if available (for S3/HDFS export)</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">export_kwargs</span><span class="p">[</span><span class="s2">"storage_options"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span>
-                    <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
-                        <span class="n">export_method</span><span class="p">,</span>
-                        <span class="n">args</span><span class="o">=</span><span class="p">(</span>
-                            <span class="n">shards</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                            <span class="n">filenames</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                        <span class="p">),</span>
-                        <span class="n">kwds</span><span class="o">=</span><span class="n">export_kwargs</span><span class="p">,</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
+                            <span class="n">export_method</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+                                <span class="n">shards</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">filenames</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                            <span class="p">),</span>
+                            <span class="n">kwds</span><span class="o">=</span><span class="n">export_kwargs</span><span class="p">,</span>
+                        <span class="p">)</span>
                     <span class="p">)</span>
                 <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                <span class="c1"># re-raise any error from a shard writer instead of reporting a</span>
+                <span class="c1"># successful export of empty or missing shards</span>
+                <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                    <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
                 <span class="c1"># Encrypt each local shard after all shards are written.</span>
                 <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_encrypt_local_file</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>

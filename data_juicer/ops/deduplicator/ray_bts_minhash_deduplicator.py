@@ -19,6 +19,7 @@ from ..common.helper_func import split_on_whitespace
 from .document_minhash_deduplicator import (
     MAX_HASH,
     MERSENNE_PRIME,
+    check_band_params,
     optimal_param,
     sha1_hash32,
 )
@@ -756,6 +757,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
                 self.jaccard_threshold,
                 self.num_permutation,
             )
+        check_band_params(self.num_bands, self.num_rows_per_band, self.num_permutation)
 
         # compute hash ranges and create hash tables
         self.hash_ranges = [

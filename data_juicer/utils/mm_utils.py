@@ -3,7 +3,6 @@ import datetime
 import io
 import os
 import re
-import shutil
 from fractions import Fraction
 from typing import ClassVar, Dict, List, Optional, Tuple, Union
 
@@ -593,7 +592,9 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
     if frame_modified:
         return output_video
     else:
-        shutil.rmtree(output_video, ignore_errors=True)
+        # the output is a file, so shutil.rmtree would fail and leave it behind
+        if os.path.isfile(output_video):
+            os.remove(output_video)
         return input_video if isinstance(input_video, str) else input_video.name
 
 

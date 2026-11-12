@@ -212,6 +212,8 @@ class MMTest(DataJuicerTestCaseBase):
         self.assertEqual(process_each_frame(input_path, output_path, lambda x: x), input_path)
         container = load_video(input_path)
         self.assertEqual(process_each_frame(container, output_path, lambda x: x), input_path)
+        # the unused output video is removed
+        self.assertFalse(os.path.exists(output_path))
         # tiny change
         def change_frame(frame: av.VideoFrame):
             img = frame.to_image()

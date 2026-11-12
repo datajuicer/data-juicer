@@ -84,6 +84,29 @@ class ExporterTest(DataJuicerTestCaseBase):
         self.assertTrue(os.path.exists(export_path))
         self.assertTrue(os.path.exists(add_suffix_to_filename(export_path, '_stats')))
 
+    def test_stats_file_when_path_does_not_end_with_suffix(self):
+        # export_type given for a path without that extension, and an
+        # upper-case extension: the stats must not land on the export path
+        for name, export_type in [('result', 'jsonl'), ('result.JSONL', None)]:
+            with self.subTest(name=name):
+                export_dir = os.path.join(self.work_dir, 'stats_path', name.replace('.', '_'))
+                export_path = os.path.join(export_dir, name)
+                exporter = Exporter(
+                    export_path=export_path,
+                    export_type=export_type,
+                    num_proc=1,
+                    keep_stats_in_res_ds=False,
+                    export_stats=True,
+                )
+                exporter.export(self.test_data)
+
+                stats_path = os.path.join(export_dir, 'result_stats.jsonl')
+                self.assertTrue(os.path.exists(stats_path))
+                with jl.open(stats_path) as reader:
+                    self.assertEqual([row[Fields.stats]['a'] for row in reader], [1, 3, 5])
+                with jl.open(export_path) as reader:
+                    self.assertEqual([row['text'] for row in reader], ['text 1', 'text 2', 'text 3'])
+
     def test_different_shard_size(self):
         export_path = os.path.join(self.work_dir, 'shard_size', 'test.json')
         # bytes

@@ -65,6 +65,9 @@ class SentenceAugmentationMapper(Mapper):
         :param args: extra args
         :param kwargs: extra args
         """
+        if task_sentence is None:
+            raise ValueError("task_sentence is required for sentence augmentation.")
+
         kwargs["memory"] = "31GB" if kwargs.get("memory", 0) == 0 else kwargs["memory"]
         kwargs["num_proc"] = 1 if kwargs.get("num_proc", None) is None else kwargs["num_proc"]
 
@@ -94,12 +97,6 @@ class SentenceAugmentationMapper(Mapper):
                 processing multiple fields, and you need to specify \
                 valid `text_key_second`"
             )
-
-        if self.task_sentence is None:
-            print("[Warning] task_sentence is None!")
-            sample[self.text_key] = ""
-            sample[self.text_key_second] = ""
-            return sample
 
         model, processor = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
 

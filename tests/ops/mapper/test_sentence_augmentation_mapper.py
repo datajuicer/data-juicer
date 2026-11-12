@@ -1,7 +1,54 @@
 import unittest
 from copy import deepcopy
+from unittest.mock import MagicMock, patch
+
 from data_juicer.ops.mapper.sentence_augmentation_mapper import SentenceAugmentationMapper
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+
+
+class SentenceAugmentationMapperValidationTest(unittest.TestCase):
+
+    @patch('data_juicer.ops.mapper.sentence_augmentation_mapper.prepare_model')
+    def test_missing_task_sentence(self, prepare_model):
+        for kwargs in ({}, {'task_sentence': None}):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaisesRegex(ValueError, 'task_sentence is required'):
+                    SentenceAugmentationMapper(text_key_second='augmented', **kwargs)
+        prepare_model.assert_not_called()
+
+    @patch('data_juicer.ops.mapper.sentence_augmentation_mapper.prepare_model')
+    def test_valid_task_sentence(self, prepare_model):
+        for kwargs, expected_key in (({}, 'text'), ({'text_key': 'caption'}, 'caption')):
+            with self.subTest(kwargs=kwargs):
+                op = SentenceAugmentationMapper(
+                    task_sentence='Rephrase the sentence.', text_key_second='augmented', **kwargs
+                )
+                self.assertEqual(op.task_sentence, 'Rephrase the sentence.')
+                self.assertEqual(op.text_key, expected_key)
+                self.assertEqual(op.text_key_second, 'augmented')
+                self.assertEqual(op.model_key, prepare_model.return_value)
+        self.assertEqual(prepare_model.call_count, 2)
+
+    @patch('data_juicer.ops.mapper.sentence_augmentation_mapper.get_model')
+    @patch('data_juicer.ops.mapper.sentence_augmentation_mapper.prepare_model')
+    def test_augmentation_preserves_original_text(self, prepare_model, get_model):
+        op = SentenceAugmentationMapper(
+            task_sentence='Rephrase the sentence.', text_key_second='augmented'
+        )
+        model, processor = MagicMock(), MagicMock()
+        get_model.return_value = (model, processor)
+        inputs = processor.return_value.to.return_value
+        inputs.input_ids.shape = (1, 2)
+        inputs.input_ids.__ne__.return_value.sum.return_value.item.return_value = 0
+        processor.batch_decode.return_value = ['  A cat is sleeping.  ']
+        sample = {'text': 'The cat sleeps.', 'augmented': 'Previous content.'}
+
+        result = op.process_single(sample)
+
+        self.assertIs(result, sample)
+        self.assertEqual(result['text'], 'The cat sleeps.')
+        self.assertEqual(result['augmented'], 'A cat is sleeping.')
+        model.generate.assert_called_once()
 
 
 class SentenceAugmentationMapperTest(DataJuicerTestCaseBase):

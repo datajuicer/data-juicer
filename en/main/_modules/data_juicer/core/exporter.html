@@ -700,7 +700,11 @@
                 <span class="c1"># If meta/stats were serialized as JSON strings (e.g. \\uXXXX),</span>
                 <span class="c1"># parse back to dict so to_json(force_ascii=False) writes UTF-8.</span>
                 <span class="n">ds_stats</span> <span class="o">=</span> <span class="n">Exporter</span><span class="o">.</span><span class="n">_ensure_meta_stats_dicts_for_export</span><span class="p">(</span><span class="n">ds_stats</span><span class="p">)</span>
-                <span class="n">stats_file</span> <span class="o">=</span> <span class="n">export_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"."</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">,</span> <span class="s2">"_stats.jsonl"</span><span class="p">)</span>
+                <span class="c1"># strip the extension rather than replacing "." + suffix: with</span>
+                <span class="c1"># export_type set, the path may not end in that suffix, and the</span>
+                <span class="c1"># stats file would then take the export path itself and be</span>
+                <span class="c1"># overwritten by the dataset</span>
+                <span class="n">stats_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">export_path</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"_stats.jsonl"</span>
                 <span class="n">export_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"num_proc"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_proc</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">export_in_parallel</span> <span class="k">else</span> <span class="mi">1</span><span class="p">}</span>
                 <span class="c1"># Add storage_options if available (for S3/HDFS export)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

@@ -36,11 +36,14 @@ class RemoveTableTextMapper(Mapper):
         self.min_col = min_col
         self.max_col = max_col
         self.pattern = r"(?<=\n)((\S+?)([ |\t](\S+?)){%d}\n+){2,}"
+        # The compiled regexes only depend on the configured column range,
+        # so precompile them once instead of recompiling per sample in the
+        # hot path.
+        self._compiled_patterns = [re.compile(self.pattern % i) for i in range(self.min_col - 1, self.max_col)]
 
     def process_batched(self, samples):
         for idx, text in enumerate(samples[self.text_key]):
-            for i in range(self.min_col - 1, self.max_col):
-                pattern = re.compile(self.pattern % i)
+            for pattern in self._compiled_patterns:
                 text = pattern.sub("", text)
 
             samples[self.text_key][idx] = text

@@ -176,6 +176,19 @@ class ExporterTest(DataJuicerTestCaseBase):
         self.assertTrue(os.path.exists(add_suffix_to_filename(export_path, '-00-of-01')))
         self.assertTrue(os.path.exists(add_suffix_to_filename(export_path, '_stats')))
 
+    def test_export_multiple_shards_raises_shard_write_error(self):
+        # bytes values are not JSON serializable, so writing any shard fails
+        data = Dataset.from_list([{'text': f'text {i}', 'raw': b'\x00\x01'} for i in range(20)])
+        export_path = os.path.join(self.work_dir, 'shards_error', 'test.jsonl')
+
+        single = Exporter(export_path=export_path, export_shard_size=0, num_proc=1, export_stats=False)
+        with self.assertRaises(TypeError):
+            single.export(data)
+
+        sharded = Exporter(export_path=export_path, export_shard_size=128, num_proc=1, export_stats=False)
+        with self.assertRaises(TypeError):
+            sharded.export(data)
+
     def test_export_compute_stats(self):
         export_path = os.path.join(self.work_dir, 'stats', 'res.jsonl')
         exporter = Exporter(

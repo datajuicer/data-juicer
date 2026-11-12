@@ -352,21 +352,28 @@ class Exporter:
                 # export dataset into multiple shards using multiprocessing
                 logger.info(f"Start to exporting to {num_shards} shards.")
                 pool = Pool(self.num_proc)
+                results = []
                 for i in range(num_shards):
                     export_kwargs = {"num_proc": 1}  # Each shard export uses single process
                     # Add storage_options if available (for S3/HDFS export)
                     if self.storage_options is not None:
                         export_kwargs["storage_options"] = self.storage_options
-                    pool.apply_async(
-                        export_method,
-                        args=(
-                            shards[i],
-                            filenames[i],
-                        ),
-                        kwds=export_kwargs,
+                    results.append(
+                        pool.apply_async(
+                            export_method,
+                            args=(
+                                shards[i],
+                                filenames[i],
+                            ),
+                            kwds=export_kwargs,
+                        )
                     )
                 pool.close()
                 pool.join()
+                # re-raise any error from a shard writer instead of reporting a
+                # successful export of empty or missing shards
+                for res in results:
+                    res.get()
                 # Encrypt each local shard after all shards are written.
                 for fname in filenames:
                     self._encrypt_local_file(fname)

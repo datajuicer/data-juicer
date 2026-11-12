@@ -476,6 +476,44 @@
 
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
+    <span class="c1"># regex for extracting \newcommand macros without arguments</span>
+    <span class="n">_non_arg_nc_reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="c1"># this regex matches the following:</span>
+        <span class="c1"># \newcommand{\macro_name}{macro_value}</span>
+        <span class="c1"># \newcommand*{\macro_name}{macro_value}</span>
+        <span class="c1"># where macro_name is only allowed to contain letters and numbers;</span>
+        <span class="c1"># macro_value can contain any character.</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bnewcommand\b\*?\{(</span><span class="se">\\</span><span class="s2">[a-zA-Z0-9]+?)\}\{(.*?)\}$"</span><span class="p">,</span>
+        <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># regex for extracting \def macros without arguments</span>
+    <span class="n">_non_arg_def_reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="c1"># this regex matches the following:</span>
+        <span class="c1"># \def\macro_name{macro_value}</span>
+        <span class="c1"># where macro_name is only allowed to contain letters and numbers;</span>
+        <span class="c1"># macro_value can contain any character.</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">def\s*(</span><span class="se">\\</span><span class="s2">[a-zA-Z0-9]+?)\s*\{(.*?)\}$"</span><span class="p">,</span>
+        <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># regex for splitting a text into the spans that macro expansion can</span>
+    <span class="c1"># change: a span starts at a backslash and covers all directly following</span>
+    <span class="c1"># letters, numbers and backslashes. A macro match never reaches out of</span>
+    <span class="c1"># its span, so every span is expanded on its own.</span>
+    <span class="n">_macro_span_reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(</span><span class="se">\\</span><span class="s2">[a-zA-Z0-9</span><span class="se">\\</span><span class="s2">]*)"</span><span class="p">)</span>
+
+    <span class="c1"># regex for splitting a text around its control words. A control word</span>
+    <span class="c1"># covers the whole alphanumeric run, so a macro that equals a control</span>
+    <span class="c1"># word is never a part of a longer alphanumeric word; macros at the end</span>
+    <span class="c1"># of the text or directly followed by another macro are found too.</span>
+    <span class="n">_control_word_reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(</span><span class="se">\\</span><span class="s2">[a-zA-Z0-9]+)"</span><span class="p">)</span>
+
+    <span class="c1"># regex for the empty match at the start of a text. An escaped macro</span>
+    <span class="c1"># value is a re.sub template; a substitution of this match in an empty</span>
+    <span class="c1"># text gives the text that the macro inserts.</span>
+    <span class="n">_text_start_reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">"^"</span><span class="p">)</span>
+
 <div class="viewcode-block" id="ExpandMacroMapper.__init__">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExpandMacroMapper.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -489,30 +527,9 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_build_non_arg_macros_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_content</span><span class="p">):</span>
-        <span class="c1"># regex for extracting \newcommand macros without arguments</span>
-        <span class="n">non_arg_nc_reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="c1"># this regex matches the following:</span>
-            <span class="c1"># \newcommand{\macro_name}{macro_value}</span>
-            <span class="c1"># \newcommand*{\macro_name}{macro_value}</span>
-            <span class="c1"># where macro_name is only allowed to contain letters and numbers;</span>
-            <span class="c1"># macro_value can contain any character.</span>
-            <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">\bnewcommand\b\*?\{(</span><span class="se">\\</span><span class="s2">[a-zA-Z0-9]+?)\}\{(.*?)\}$"</span><span class="p">,</span>
-            <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># regex for extracting \def macros without arguments</span>
-        <span class="n">non_arg_def_reg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="c1"># this regex matches the following:</span>
-            <span class="c1"># \def\macro_name{macro_value}</span>
-            <span class="c1"># where macro_name is only allowed to contain letters and numbers;</span>
-            <span class="c1"># macro_value can contain any character.</span>
-            <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">def\s*(</span><span class="se">\\</span><span class="s2">[a-zA-Z0-9]+?)\s*\{(.*?)\}$"</span><span class="p">,</span>
-            <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">,</span>
-        <span class="p">)</span>
-
         <span class="c1"># Extract all user-defined LaTeX macros from the preamble</span>
         <span class="n">macros</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">reg</span> <span class="ow">in</span> <span class="p">[</span><span class="n">non_arg_nc_reg</span><span class="p">,</span> <span class="n">non_arg_def_reg</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">reg</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_non_arg_nc_reg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_arg_def_reg</span><span class="p">]:</span>
             <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">reg</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">file_content</span><span class="p">):</span>
                 <span class="c1"># convert the macro name and value to a raw string that can be</span>
                 <span class="c1"># used in re.sub</span>
@@ -521,6 +538,32 @@
 
                 <span class="n">macros</span><span class="p">[</span><span class="n">macro_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">macro_val</span>
         <span class="k">return</span> <span class="n">macros</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_expand_non_arg_macros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">macros</span><span class="p">,</span> <span class="n">positions</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Inline-expand the macros in the text one after another in</span>
+<span class="sd">        definition order.</span>
+
+<span class="sd">        :param text: text to expand</span>
+<span class="sd">        :param macros: list of (control word, replacement text) in</span>
+<span class="sd">            definition order</span>
+<span class="sd">        :param positions: position in `macros` of each control word</span>
+<span class="sd">        :return: expanded text</span>
+<span class="sd">        """</span>
+        <span class="n">next_pos</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># the control words are the odd items of the split result</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_word_reg</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="c1"># only the macros that occur in the text need a substitution;</span>
+            <span class="c1"># macros before `next_pos` had their turn already</span>
+            <span class="n">pending</span> <span class="o">=</span> <span class="p">[</span><span class="n">positions</span><span class="p">[</span><span class="n">word</span><span class="p">]</span> <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="n">positions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">next_pos</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pending</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">text</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">pending</span><span class="p">)</span>
+            <span class="n">control_word</span><span class="p">,</span> <span class="n">replacement</span> <span class="o">=</span> <span class="n">macros</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
+            <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">replacement</span> <span class="k">if</span> <span class="n">word</span> <span class="o">==</span> <span class="n">control_word</span> <span class="k">else</span> <span class="n">word</span> <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]]</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+            <span class="n">next_pos</span> <span class="o">=</span> <span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span>
 
 <div class="viewcode-block" id="ExpandMacroMapper.process_batched">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExpandMacroMapper.process_batched">[文档]</a>
@@ -532,16 +575,20 @@
             <span class="n">arg_macros</span> <span class="o">=</span> <span class="p">{}</span>
 
             <span class="c1"># inline-expand all non-arg macros</span>
-            <span class="k">for</span> <span class="n">macro_name</span><span class="p">,</span> <span class="n">macro_value</span> <span class="ow">in</span> <span class="n">non_arg_macros</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
-                    <span class="c1"># use a lookahead to make sure that the macro is not part</span>
-                    <span class="c1"># of a longer alphanumeric word without consuming the next</span>
-                    <span class="c1"># character, so macros at the end of the text or directly</span>
-                    <span class="c1"># followed by another macro are expanded too</span>
-                    <span class="n">pattern</span><span class="o">=</span><span class="n">macro_name</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">"(?![a-zA-Z0-9])"</span><span class="p">,</span>
-                    <span class="n">repl</span><span class="o">=</span><span class="n">macro_value</span><span class="p">,</span>
-                    <span class="n">string</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">non_arg_macros</span><span class="p">:</span>
+                <span class="c1"># the escaped macro name only adds a second leading backslash</span>
+                <span class="c1"># to the control word; the escaped value is a re.sub</span>
+                <span class="c1"># template, so let re.sub make the text that it inserts</span>
+                <span class="n">macros</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="n">macro_name</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_start_reg</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">repl</span><span class="o">=</span><span class="n">macro_value</span><span class="p">,</span> <span class="n">string</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">macro_name</span><span class="p">,</span> <span class="n">macro_value</span> <span class="ow">in</span> <span class="n">non_arg_macros</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">]</span>
+                <span class="n">positions</span> <span class="o">=</span> <span class="p">{</span><span class="n">control_word</span><span class="p">:</span> <span class="n">pos</span> <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">control_word</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">macros</span><span class="p">)}</span>
+                <span class="c1"># expand each distinct span once and reuse the result</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_macro_span_reg</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                <span class="n">expanded</span> <span class="o">=</span> <span class="p">{</span><span class="n">span</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expand_non_arg_macros</span><span class="p">(</span><span class="n">span</span><span class="p">,</span> <span class="n">macros</span><span class="p">,</span> <span class="n">positions</span><span class="p">)</span> <span class="k">for</span> <span class="n">span</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">])}</span>
+                <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">expanded</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
 
             <span class="c1"># inline-expand all macros that use args</span>
             <span class="c1"># TODO: inline-expand macros with args</span>

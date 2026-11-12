@@ -126,7 +126,9 @@ class EntityAttributeAggregator(Aggregator):
         self.system_prompt = system_prompt_template.format(
             entity=self.entity, attribute=self.attribute, word_limit=self.word_limit, example=self.example_prompt
         )
-        self.output_pattern = output_pattern_template.format(entity=entity, attribute=attribute)
+        # escape them so spaces (dropped by re.VERBOSE) and characters such
+        # as '+' or '.' in the names are matched literally
+        self.output_pattern = output_pattern_template.format(entity=re.escape(entity), attribute=re.escape(attribute))
 
         self.sampling_params = sampling_params
         self.model_key = prepare_model(

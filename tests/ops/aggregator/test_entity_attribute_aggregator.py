@@ -22,6 +22,28 @@ class EntityAttributeAggregatorUnitTest(DataJuicerTestCaseBase):
             "旧身份是李相夷。",
         )
 
+    def test_parse_output_multiword_entity_and_attribute(self):
+        op = EntityAttributeAggregator(
+            api_model="any-model",
+            entity="Harry Potter",
+            attribute="early life",
+        )
+        self.assertEqual(
+            op.parse_output("# Harry Potter\n## early life\nRaised by the Dursleys."),
+            "Raised by the Dursleys.",
+        )
+
+    def test_parse_output_entity_with_regex_characters(self):
+        op = EntityAttributeAggregator(
+            api_model="any-model",
+            entity="C++",
+            attribute="history",
+        )
+        self.assertEqual(
+            op.parse_output("# C++\n## history\nCreated by Bjarne Stroustrup."),
+            "Created by Bjarne Stroustrup.",
+        )
+
     def test_parse_output_returns_empty_for_unformatted_input(self):
         op = EntityAttributeAggregator(
             api_model="any-model",

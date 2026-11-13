@@ -2,11 +2,11 @@
 
 Deduplicates samples at document-level using exact matching of videos in Ray distributed mode.
 
-This operator computes the MD5 hash of video streams in each sample and compares them to identify duplicates. It uses Ray distributed mode for parallel processing. The hash is computed by demuxing the video streams and updating the MD5 hash with each video packet. If a sample does not contain a valid video, it is assigned an empty hash value. The operator supports 'ray_actor' or 'redis' backends for deduplication.
+This operator computes the MD5 hash of video streams in each sample and compares them to identify duplicates. It uses Ray distributed mode for parallel processing. The hash is computed by demuxing the video streams and updating the MD5 hash with each video packet. If a sample does not contain a valid video, it is always kept. The operator supports 'ray_actor' or 'redis' backends for deduplication.
 
 在 Ray 分布式模式下，使用视频的精确匹配在文档级别去重样本。
 
-该算子计算每个样本中视频流的 MD5 哈希值，并通过比较这些哈希值来识别重复项。它使用 Ray 分布式模式进行并行处理。哈希值通过解复用视频流并对每个视频包更新 MD5 哈希值来计算。如果样本不包含有效的视频，则分配一个空的哈希值。该算子支持 'ray_actor' 或 'redis' 后端进行去重。
+该算子计算每个样本中视频流的 MD5 哈希值，并通过比较这些哈希值来识别重复项。它使用 Ray 分布式模式进行并行处理。哈希值通过解复用视频流并对每个视频包更新 MD5 哈希值来计算。如果样本不包含有效的视频，则始终保留该样本。该算子支持 'ray_actor' 或 'redis' 后端进行去重。
 
 Type 算子类型: **deduplicator**
 

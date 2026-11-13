@@ -2,11 +2,11 @@
 
 Deduplicates samples at the document level using exact matching of images in Ray distributed mode.
 
-This operator uses a specified hash method to compute image hashes and identifies duplicates by comparing these hashes. It operates in Ray distributed mode, supporting 'ray_actor' or 'redis' backends for deduplication. The hash method can be set during initialization, with supported methods listed in `HASH_METHOD`. If a sample does not contain an image, it is assigned an empty hash value. The operator loads images from the specified keys and computes their combined hash for comparison.
+This operator uses a specified hash method to compute image hashes and identifies duplicates by comparing these hashes. It operates in Ray distributed mode, supporting 'ray_actor' or 'redis' backends for deduplication. The hash method can be set during initialization, with supported methods listed in `HASH_METHOD`. If a sample does not contain an image, it is always kept. The operator loads images from the specified keys and computes their combined hash for comparison.
 
 在 Ray 分布式模式下，使用图像的精确匹配在文档级别去重样本。
 
-该算子使用指定的哈希方法计算图像哈希值，并通过比较这些哈希值来识别重复项。它在 Ray 分布式模式下运行，支持 'ray_actor' 或 'redis' 后端进行去重。哈希方法可以在初始化时设置，支持的方法列在 `HASH_METHOD` 中。如果样本不包含图像，则分配一个空的哈希值。该算子从指定的键加载图像并计算它们的组合哈希值以进行比较。
+该算子使用指定的哈希方法计算图像哈希值，并通过比较这些哈希值来识别重复项。它在 Ray 分布式模式下运行，支持 'ray_actor' 或 'redis' 后端进行去重。哈希方法可以在初始化时设置，支持的方法列在 `HASH_METHOD` 中。如果样本不包含图像，则始终保留该样本。该算子从指定的键加载图像并计算它们的组合哈希值以进行比较。
 
 Type 算子类型: **deduplicator**
 

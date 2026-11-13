@@ -34,7 +34,7 @@ class RayImageDeduplicator(RayBasicDeduplicator):
     duplicates by comparing these hashes. It operates in Ray distributed mode, supporting
     'ray_actor' or 'redis' backends for deduplication. The hash method can be set during
     initialization, with supported methods listed in `HASH_METHOD`. If a sample does not
-    contain an image, it is assigned an empty hash value. The operator loads images from the
+    contain an image, it is always kept. The operator loads images from the
     specified keys and computes their combined hash for comparison."""
 
     def __init__(
@@ -59,8 +59,9 @@ class RayImageDeduplicator(RayBasicDeduplicator):
         self.hasher = get_hash_method(method)()
 
     def calculate_hash(self, sample, context=False):
+        # a sample without images is never a duplicate, as in image_deduplicator
         if self.image_key not in sample or not sample[self.image_key]:
-            return RayBasicDeduplicator.EMPTY_HASH_VALUE
+            return None
 
         # load images
         loaded_image_keys = sample[self.image_key]

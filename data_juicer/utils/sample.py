@@ -1,4 +1,3 @@
-import random
 from itertools import chain, repeat
 
 import numpy as np
@@ -34,9 +33,11 @@ def random_sample(dataset, weight=1.0, sample_number=0, seed=None):
             sample_index = chain(*repeat(range(ds_samples), n_repeat), range(remain_samples))
         return dataset.shuffle(seed=seed).select(sample_index)
 
-    # Sample k indices directly in O(k) instead of shuffling all n indices.
-    # random.sample on range(n) uses Floyd's algorithm and is O(k) time/space,
-    # avoiding the O(n) shuffle overhead on large datasets when k << n.
-    rng = random.Random(seed)
-    sample_index = rng.sample(range(ds_samples), sample_number)
+    # `datasets.Dataset.shuffle(seed)` is implemented as
+    # `np.random.default_rng(seed).permutation(n)` followed by `select`, so
+    # slicing the permutation keeps exactly the rows that `main` selects while
+    # avoiding the full shuffled index mapping. `random.sample` is O(k) but
+    # builds a Python list and changes the selected rows for the same seed.
+    rng = np.random.default_rng(seed)
+    sample_index = rng.permutation(ds_samples)[:sample_number]
     return dataset.select(sample_index)

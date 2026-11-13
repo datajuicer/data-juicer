@@ -38,11 +38,9 @@ def _compile_patterns() -> dict:
     end = r"(?:(?a:\b)|(?=[^\x00-\x7f]))"
     return {
         # Unix: /Users/..., /home/..., /tmp/..., /opt/...
-        "path_unix": re.compile(
-            r"(^|[\s\"'(\[=])(/(?:Users?|home|tmp|etc|var|opt|Applications)" r"[^\s\"')\]]*(?:/[^\s\"')\]]*)*)"
-        ),
+        "path_unix": re.compile(r"(^|[\s\"'(\[=])(/(?:Users?|home|tmp|etc|var|opt|Applications)[^\s\"')\]]*)"),
         # Windows: C:\, D:\, \\server\share
-        "path_win": re.compile(r"(^|[\s\"'(\[=])([A-Za-z]:\\[^\s\"')\]]*(?:\\[^\s\"')\]]*)*)"),
+        "path_win": re.compile(r"(^|[\s\"'(\[=])([A-Za-z]:\\[^\s\"')\]]*)"),
         "path_win_unc": re.compile(r"(^|[\s\"'(\[=])(\\\\[^\s\"')\]]+)"),
         # Email: local@domain.tld (gwm.cn, qq.com, etc.)
         "email": re.compile(r"[a-zA-Z0-9][\w.+-]*@[\w.-]+\.(?:[a-zA-Z]{2,}|\w{2,})"),
@@ -55,9 +53,9 @@ def _compile_patterns() -> dict:
         # 我的password), but not an ASCII letter or digit. secret, token, credential and
         # auth may not follow "_" either, since pad_token or is_secret holds no secret.
         "secret_kv": re.compile(
-            r"((?:(?<![0-9A-Za-z])(?:api[_-]?key|apikey|password|passwd|license[_-]?key"
+            r"((?<![0-9A-Za-z])(?:(?:api[_-]?key|apikey|password|passwd|license[_-]?key"
             r"|(?:access|refresh|auth|api|session|hf|github)[_-]token|(?:client|api)[_-]secret)"
-            r"|(?<![0-9A-Za-z_])(?:secret|token|credential|(auth(?:orization)?)))"
+            r"|(?<!_)(?:secret|token|credential|(auth(?:orization)?)))"
             r"[\"']?\s*[:=：][^\S\r\n]*(?:\r?\n[^\S\r\n]+)?"
             r"(?:([\"'])|(?(2)(?:bearer|basic|digest|token)[ \t]+(?=[^\s#])))?)"
             r"((?(3)(?:\\.|(?!\3)[^\\\n])+|(?:\[[^\s\]]*\]|[^\s\"',}\]]+)))",
@@ -85,12 +83,12 @@ def _compile_patterns() -> dict:
         "platform_open_id": re.compile(r"(?a:\b)(ou_|u_|uid_)[0-9a-zA-Z_-]{16,64}" + end),
         # Chinese mobile (simple). ASCII lookarounds instead of \b, because \b
         # does not separate CJK characters from digits (我的手机号13812345678).
-        "phone_cn": re.compile(r"(?<![0-9A-Za-z])1[3-9]\d{9}(?![0-9A-Za-z])"),
+        "phone_cn": re.compile(r"1(?<![0-9A-Za-z]1)[3-9]\d{9}(?![0-9A-Za-z])"),
         # Generic phone (international, simple)
         "phone_intl": re.compile(r"\+\d{1,4}[-.\s]?\d{6,14}" + end),
         # Chinese ID card (18 digits)
         "id_card_cn": re.compile(
-            r"(?<![0-9A-Za-z])[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
+            r"[1-9](?<![0-9A-Za-z][1-9])\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
             r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?![0-9A-Za-z])"
         ),
         # PEM / SSH keys & certs (strip whole block first)
@@ -111,7 +109,7 @@ def _compile_patterns() -> dict:
             r"\[(?=[0-9a-fA-F:.]*::|(?:[0-9a-fA-F.]*:){6})[0-9a-fA-F:.]{3,}\](?::\d{1,5}(?!\d))?",
         ),
         "mac": re.compile(
-            r"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}" + end,
+            r"[0-9A-Fa-f](?<![0-9A-Fa-f:][0-9A-Fa-f])[0-9A-Fa-f][:-]" r"(?:[0-9A-Fa-f]{2}[:-]){4}[0-9A-Fa-f]{2}" + end,
         ),
     }
 
@@ -229,38 +227,81 @@ class PiiRedactionMapper(Mapper):
     def _redact_text(self, text: str) -> str:
         if not text or not isinstance(text, str):
             return text
+        markers = {}
+        plain_text = type(text) is str
+
+        def substitute(pattern, replacement, required, ignore_case=False):
+            nonlocal text, plain_text
+            possible = True
+            if plain_text:
+                possible = False
+                search_text = text
+                if ignore_case:
+                    search_text = markers.get(None)
+                    if search_text is None:
+                        # Case folding covers the extra Unicode letters matched by
+                        # IGNORECASE; removing dots also covers dotted capital I.
+                        search_text = text.casefold().replace("\u0307", "").replace("ı", "i")
+                        markers[None] = search_text
+                for marker in required:
+                    cache_key = (marker, ignore_case)
+                    present = markers.get(cache_key)
+                    if present is None:
+                        present = markers[cache_key] = marker in search_text
+                    if present:
+                        possible = True
+                        break
+            if possible:
+                result = pattern.sub(replacement, text)
+                if result is not text:
+                    markers.clear()
+                    plain_text = type(result) is str
+                text = result
+            elif type(replacement) is not str or "\\" in replacement:
+                # Validate replacement templates even when no match is possible.
+                pattern.sub(replacement, "")
+
         # Order: broad blocks / URL-like first, then finer tokens.
         if self.mask_pem:
-            text = self._pem_block.sub(self.pem_replacement, text)
+            substitute(self._pem_block, self.pem_replacement, ("-----BEGIN ",))
         if self.mask_jwt:
-            text = self._jwt_re.sub(self.jwt_replacement, text)
+            substitute(self._jwt_re, self.jwt_replacement, ("eyJ",))
         if self.mask_urls:
-            text = self._url_re.sub(self.url_replacement, text)
+            substitute(self._url_re, self.url_replacement, ("http",))
         if self.mask_ips:
-            text = self._ipv4_re.sub(self.ip_replacement, text)
-            text = self._ipv6_re.sub(self.ip_replacement, text)
+            substitute(self._ipv4_re, self.ip_replacement, (".",))
+            substitute(self._ipv6_re, self.ip_replacement, ("[",))
         if self.mask_macs:
-            text = self._mac_re.sub(self.mac_replacement, text)
+            substitute(self._mac_re, self.mac_replacement, (":", "-"))
         if self.mask_paths:
-            text = self._path_unix.sub(r"\1" + self.path_replacement, text)
-            text = self._path_win.sub(r"\1" + self.path_replacement, text)
-            text = self._path_win_unc.sub(r"\1" + self.path_replacement, text)
+            substitute(
+                self._path_unix,
+                r"\1" + self.path_replacement,
+                ("/User", "/home", "/tmp", "/etc", "/var", "/opt", "/Applications"),
+            )
+            substitute(self._path_win, r"\1" + self.path_replacement, (":\\",))
+            substitute(self._path_win_unc, r"\1" + self.path_replacement, ("\\\\",))
         if self.mask_emails:
-            text = self._email_re.sub(self.email_replacement, text)
+            substitute(self._email_re, self.email_replacement, ("@",))
         if self.mask_secrets:
-            text = self._secret_kv.sub(r"\1" + self.secret_replacement, text)
+            substitute(
+                self._secret_kv,
+                r"\1" + self.secret_replacement,
+                ("key", "pass", "token", "secret", "credential", "auth"),
+                ignore_case=True,
+            )
         if self.mask_ids:
-            text = self._id_kv.sub(r"\1" + self.id_replacement, text)
+            substitute(self._id_kv, r"\1" + self.id_replacement, ("id",), ignore_case=True)
         if self.mask_channel_ids:
-            text = self._channel_kv.sub(r"\1" + self.channel_id_replacement, text)
+            substitute(self._channel_kv, r"\1" + self.channel_id_replacement, ("channel",), ignore_case=True)
         if self.mask_platform_open_ids:
-            text = self._feishu_open_id.sub(self.channel_id_replacement, text)
-            text = self._platform_open_id.sub(self.channel_id_replacement, text)
+            substitute(self._feishu_open_id, self.channel_id_replacement, ("_",))
+            substitute(self._platform_open_id, self.channel_id_replacement, ("_",))
         if self.mask_phones:
-            text = self._phone_cn.sub(self.phone_replacement, text)
-            text = self._phone_intl.sub(self.phone_replacement, text)
+            substitute(self._phone_cn, self.phone_replacement, ("13", "14", "15", "16", "17", "18", "19"))
+            substitute(self._phone_intl, self.phone_replacement, ("+",))
         if self.mask_id_cards:
-            text = self._id_card_cn.sub(self.id_card_replacement, text)
+            substitute(self._id_card_cn, self.id_card_replacement, ("19", "20"))
         for pat, repl in self._extra_compiled:
             text = pat.sub(repl, text)
         return text

@@ -101,7 +101,7 @@ class RayAdaptiveMapperActor:
         self.mapper = OOMSafeAdaptiveMapper(
             self._process_slice,
             self.controller,
-            oom_cleanup=_cleanup_cuda,
+            oom_cleanup=self._cleanup_after_oom,
             label=self.stage_id,
             observation_callback=self._observe,
         )
@@ -231,6 +231,12 @@ class RayAdaptiveMapperActor:
         if self._profile_rpc("publish", request, observations, self.actor_id, self._seeded_context == context):
             self.profile_diagnostics["published"] += 1
 
+    def _cleanup_after_oom(self):
+        _cleanup_cuda()
+        backend_cleanup = getattr(self.op, "elastic_juicer_oom_cleanup", None)
+        if backend_cleanup is not None:
+            backend_cleanup()
+
     def _process_slice(self, batch):
         if isinstance(batch, pa.Table):
             batch = batch.to_pydict()
@@ -249,6 +255,11 @@ class RayAdaptiveMapperActor:
         return output
 
     def __call__(self, batch):
+        from .conditional_flow import invoke_selected
+
+        return invoke_selected(self.op, batch, self._call_batch)
+
+    def _call_batch(self, batch):
         self._observations = None
         request = self._prepare_profile(batch)
         self._prepare_recovery(batch)

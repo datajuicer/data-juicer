@@ -103,6 +103,7 @@ partition:
   gpu_probe_sample_offset: 0                                # leading rows skipped when collecting the preflight sample; use it when the dataset head is not representative
   gpu_probe_sample_shuffle: false                           # set true to randomize block order before sampling, avoiding biased measurements on datasets ordered by size or source
   gpu_probe_sample_seed: 42                                 # seed for the shuffled preflight sample; null draws a different sample on every run and therefore never reuses gpu_probe_results.json
+  compute_flow: null                                      # opt-in resident GPU segments; see docs/elasticjuicer_compute_flow.md
   execution_group_size: auto                               # logical checkpoint partitions sharing one GPU actor lifecycle; auto limits model-init overhead
   max_initialization_overhead_ratio: 0.1                    # maximum estimated model initialization share for each execution group
   target_size_mb: 256                                       # target size in MB for auto-mode planning; results below optimizer minimums are clamped with a warning

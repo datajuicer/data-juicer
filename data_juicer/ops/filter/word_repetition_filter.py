@@ -96,7 +96,9 @@ class WordRepetitionFilter(Filter):
                     samples[Fields.context][idx][refined_words_key] = words
             freq_word_ngrams = {}
             for i in range(len(words) - self.n + 1):
-                word_ngram = " ".join(words[i : i + self.n])
+                # Use tuple as key instead of " ".join() to avoid
+                # string concatenation overhead for each n-gram
+                word_ngram = tuple(words[i : i + self.n])
                 freq_word_ngrams[word_ngram] = freq_word_ngrams.get(word_ngram, 0) + 1
 
             if len(freq_word_ngrams) == 0:

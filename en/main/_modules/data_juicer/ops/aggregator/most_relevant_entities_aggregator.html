@@ -578,6 +578,10 @@
             <span class="n">result</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="s2">""</span>
+        <span class="c1"># no entity list in the response: return nothing so that the caller</span>
+        <span class="c1"># retries, since split_text_by_punctuation("") returns [""]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">split_text_by_punctuation</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">result</span></div>

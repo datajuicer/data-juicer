@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 import yaml
 from jsonargparse import Namespace
@@ -674,20 +675,12 @@ class BuildBaseParserTest(DataJuicerTestCaseBase):
         cfg = parser.parse_args(["--auto", "--partition.gpu_probe_timeout_seconds=300"])
         self.assertEqual(cfg.partition.gpu_probe_timeout_seconds, 300.0)
 
-    def test_gpu_profile_and_execution_group_defaults(self):
+    def test_gpu_profile_defaults(self):
         parser = build_base_parser()
         cfg = parser.parse_args(["--auto"])
 
         self.assertEqual(cfg.partition.gpu_probe_warmup_batches, 1)
         self.assertEqual(cfg.partition.gpu_probe_steady_batches, 3)
-        self.assertEqual(cfg.partition.execution_group_size, "auto")
-        self.assertEqual(cfg.partition.max_initialization_overhead_ratio, 0.1)
-
-    def test_execution_group_accepts_explicit_positive_integer(self):
-        parser = build_base_parser()
-        cfg = parser.parse_args(["--auto", "--partition.execution_group_size=8"])
-
-        self.assertEqual(cfg.partition.execution_group_size, 8)
 
     def test_config_and_auto_mutually_exclusive(self):
         parser = build_base_parser()
@@ -751,6 +744,51 @@ class NamespaceToArgListTest(DataJuicerTestCaseBase):
 
 
 class SaveCliArgumentsTest(DataJuicerTestCaseBase):
+
+    def test_explicit_empty_args_do_not_capture_host_arguments(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(sys, "argv", ["host", "--foreign", "value"]):
+                save_cli_arguments(Namespace(work_dir=tmpdir, _original_args=[]))
+            with open(os.path.join(tmpdir, "cli.yaml")) as stream:
+                self.assertEqual(yaml.safe_load(stream), {"arguments": []})
+
+    def test_explicit_init_args_and_failed_resume_preserve_original_invocation(self):
+        from pathlib import Path
+
+        from data_juicer.config import init_configs
+        from data_juicer.utils import logger_utils
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "input.jsonl"
+            source.write_text('{"text": "hello"}\n')
+            config = root / "job.yaml"
+            config.write_text(
+                yaml.safe_dump(
+                    {
+                        "executor_type": "ray_partitioned",
+                        "dataset_path": str(source),
+                        "export_path": str(root / "output.jsonl"),
+                        "work_dir": str(root / "work"),
+                        "strict_preflight": False,
+                        "process": [{"whitespace_normalization_mapper": {"num_proc": 1}}],
+                    }
+                )
+            )
+            args = ["--config", str(config), "--np", "1"]
+            with (
+                patch.object(sys, "argv", ["host", "--foreign", "value"]),
+                patch.object(logger_utils, "LOGGER_SETUP", True),
+            ):
+                cfg = init_configs(args)
+                cli = Path(cfg.work_dir) / "cli.yaml"
+                original = cli.read_bytes()
+                self.assertEqual(yaml.safe_load(original)["arguments"], args)
+                rejected = init_configs(["--config", str(config), "--np", "2", "--resume", cfg.job_id])
+                self.assertFalse(rejected._same_yaml_config)
+                self.assertEqual(cli.read_bytes(), original)
+                resumed = init_configs(args + ["--resume", cfg.job_id])
+                self.assertTrue(resumed._same_yaml_config)
 
     def test_saves_to_cli_yaml(self):
         with tempfile.TemporaryDirectory() as tmpdir:

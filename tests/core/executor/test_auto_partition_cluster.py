@@ -499,9 +499,8 @@ class OptimizerFallbackTest(DataJuicerTestCaseBase):
 class SampleBasedSplitTest(DataJuicerTestCaseBase):
     """A fresh split always cuts at row boundaries, never at Ray block boundaries.
 
-    ``_split_dataset_deterministic`` routes every mode through
-    ``_split_into_row_balanced_partitions``, so the requested partition count is
-    honoured exactly and no partition comes back empty. The block-based
+    ``_split_into_row_balanced_partitions`` serves every mode, so the requested
+    partition count is honoured exactly and no partition comes back empty. The block-based
     ``Dataset.split(n)`` path it replaced handed out whole blocks, which yields
     empty trailing partitions whenever there are fewer blocks than partitions.
     """
@@ -513,17 +512,7 @@ class SampleBasedSplitTest(DataJuicerTestCaseBase):
             partition_mode="manual",
             ckpt_manager=SimpleNamespace(checkpoint_enabled=False),
         )
-        fake._enable_deterministic_execution = lambda: None
-        fake._load_partitioning_info = lambda: None
-        fake._collect_partition_metadata = lambda p, i, **kw: SimpleNamespace(
-            partition_id=i, row_count=0, first_row_hash="", content_hash="",
-            start_row=0, end_row=0,
-        )
-        fake._save_partitioning_info = lambda info: None
         fake._balanced_split_indices = PartitionedRayExecutor._balanced_split_indices
-        fake._split_into_row_balanced_partitions = lambda ds: (
-            PartitionedRayExecutor._split_into_row_balanced_partitions(fake, ds)
-        )
         return fake
 
     @staticmethod
@@ -544,7 +533,7 @@ class SampleBasedSplitTest(DataJuicerTestCaseBase):
         data, materialized = self._mock_data(total_rows=6, num_parts=3)
         fake = self._make_executor(partition_size_cfg=2, num_partitions=3)
 
-        PartitionedRayExecutor._split_dataset_deterministic(fake, SimpleNamespace(data=data))
+        PartitionedRayExecutor._split_into_row_balanced_partitions(fake, SimpleNamespace(data=data))
 
         materialized.split_at_indices.assert_called_once_with([2, 4])
         data.split.assert_not_called()
@@ -553,7 +542,7 @@ class SampleBasedSplitTest(DataJuicerTestCaseBase):
         data, materialized = self._mock_data(total_rows=100, num_parts=1)
         fake = self._make_executor(partition_size_cfg=100, num_partitions=1)
 
-        partitions, _ = PartitionedRayExecutor._split_dataset_deterministic(fake, SimpleNamespace(data=data))
+        partitions = PartitionedRayExecutor._split_into_row_balanced_partitions(fake, SimpleNamespace(data=data))
 
         self.assertEqual(partitions, [materialized])
         data.materialize.assert_called_once_with()
@@ -565,7 +554,7 @@ class SampleBasedSplitTest(DataJuicerTestCaseBase):
         data, materialized = self._mock_data(total_rows=1000, num_parts=4)
         fake = self._make_executor(partition_size_cfg=None, num_partitions=4)
 
-        PartitionedRayExecutor._split_dataset_deterministic(fake, SimpleNamespace(data=data))
+        PartitionedRayExecutor._split_into_row_balanced_partitions(fake, SimpleNamespace(data=data))
 
         materialized.split_at_indices.assert_called_once_with([250, 500, 750])
         data.split.assert_not_called()
@@ -580,7 +569,7 @@ class SampleBasedSplitTest(DataJuicerTestCaseBase):
         fake = self._make_executor(partition_size_cfg=500, num_partitions=4)
         fake.partition_mode = "auto"
 
-        PartitionedRayExecutor._split_dataset_deterministic(fake, SimpleNamespace(data=data))
+        PartitionedRayExecutor._split_into_row_balanced_partitions(fake, SimpleNamespace(data=data))
 
         materialized.split_at_indices.assert_called_once_with([250, 500, 750])
         data.split.assert_not_called()

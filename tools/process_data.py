@@ -38,7 +38,7 @@ def main():
             raise ValueError(f"Unsupported executor type: {cfg.executor_type}")
 
     with timing_context("Running executor"):
-        executor.run()
+        executor.run(skip_return=True)
 
 
 if __name__ == "__main__":

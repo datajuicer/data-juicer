@@ -91,7 +91,10 @@ class RemoveRepeatSentencesMapper(Mapper):
         super().__init__(*args, **kwargs)
         self.lowercase = lowercase
         self.min_repeat_sentence_length = min_repeat_sentence_length
-        self.remove_regex = re.compile(r"[^a-zA-Z0-9\u4e00-\u9fa5\n\t ]") if ignore_special_character else None
+        # keep the letters (with their combining marks) and numbers of every
+        # script: dropping e.g. Cyrillic or Hangul letters leaves only the
+        # spaces, so different sentences compare equal and are removed
+        self.remove_regex = re.compile(r"[^\p{L}\p{M}\p{N}\n\t ]") if ignore_special_character else None
 
         if tokenizer is None:
             self._tokenize = split_sentence

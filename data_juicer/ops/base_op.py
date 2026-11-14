@@ -146,6 +146,13 @@ def wrap_mapper_with_tracer(process_method, op_name, text_key, tracer, is_batche
 
             processed_batch_dict = sample_to_dict(processed_batch)
 
+            # Rows can only be paired by position when the op kept the number
+            # of rows. An op that splits or drops samples, or a batch emptied
+            # by a skipped op error, has no such pairs.
+            num_processed = len(next(iter(processed_batch_dict.values()), []))
+            if num_processed != num_samples:
+                return processed_batch
+
             # Collect changes for each sample
             for i in range(num_samples):
                 if check_tracer_collect_complete(tracer, op_name):

@@ -890,6 +890,14 @@ process:
   - average_line_length_filter:                             # filter text with the average length of lines out of specific range.
       min_len: 10                                             # the min length of filter range
       max_len: 10000                                          # the max length of filter range
+  - benchmark_contamination_filter:                         # filter samples overlapping with a benchmark corpus.
+      benchmark_path: null                                    # path to the benchmark file (.jsonl/.json/.txt, optionally .gz)
+      benchmark_text_key: "text"                              # field of the benchmark record holding the text to match
+      ngram_size: 13                                          # the size of the n-grams used for matching
+      tokenization: "char"                                    # "char" for CJK, "word" for space-delimited languages
+      lowercase: true                                         # whether to lowercase the text before matching
+      normalize_whitespace: true                              # whether to collapse consecutive whitespaces
+      threshold: 0.0                                          # drop samples whose contamination ratio exceeds this value
   - character_repetition_filter:                            # filter text with the character repetition ratio out of specific range
       rep_len: 10                                             # repetition length for char-level n-gram
       min_ratio: 0.0                                          # the min ratio of filter range

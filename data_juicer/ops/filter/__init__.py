@@ -3,6 +3,7 @@ from .audio_duration_filter import AudioDurationFilter
 from .audio_nmf_snr_filter import AudioNMFSNRFilter
 from .audio_size_filter import AudioSizeFilter
 from .average_line_length_filter import AverageLineLengthFilter
+from .benchmark_contamination_filter import BenchmarkContaminationFilter
 from .character_repetition_filter import CharacterRepetitionFilter
 from .flagged_words_filter import FlaggedWordFilter
 from .general_field_filter import GeneralFieldFilter
@@ -65,6 +66,7 @@ __all__ = [
     "AudioNMFSNRFilter",
     "AudioSizeFilter",
     "AverageLineLengthFilter",
+    "BenchmarkContaminationFilter",
     "CharacterRepetitionFilter",
     "FlaggedWordFilter",
     "ImageAestheticsFilter",

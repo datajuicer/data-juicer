@@ -172,6 +172,14 @@ class DocumentLineDeduplicatorTest(DataJuicerTestCaseBase):
         op = DocumentLineDeduplicator(frequency_threshold=2)
         self._run_line_dedup(dataset, tgt_list, op)
 
+    def test_single_document_drops_line_hashes_column(self):
+        """The temporary hash column is removed for a single document too."""
+        dataset = Dataset.from_list([{"text": "Hello\nWorld"}])
+        op = DocumentLineDeduplicator(frequency_threshold=2)
+        result = op.run(dataset)
+        self.assertEqual(result.column_names, ["text"])
+        self.assertEqual(result.to_list(), [{"text": "Hello\nWorld"}])
+
     def test_compute_hash_skips_existing(self):
         """compute_hash does not overwrite pre-existing line_hashes."""
         from data_juicer.utils.constant import HashKeys

@@ -93,6 +93,12 @@ from .remove_words_with_incorrect_substrings_mapper import (
     RemoveWordsWithIncorrectSubstringsMapper,
 )
 from .replace_content_mapper import ReplaceContentMapper
+from .robot_depth_estimation_mapper import RobotDepthEstimationMapper
+from .robot_destination_grounding_mapper import RobotDestinationGroundingMapper
+from .robot_gripper_anchor_mapper import RobotGripperAnchorMapper
+from .robot_gripper_tracking_mapper import RobotGripperTrackingMapper
+from .robot_interaction_geometry_mapper import RobotInteractionGeometryMapper
+from .robot_object_tracking_mapper import RobotObjectTrackingMapper
 from .s3_download_file_mapper import S3DownloadFileMapper
 from .s3_upload_file_mapper import S3UploadFileMapper
 from .sdxl_prompt2prompt_mapper import SDXLPrompt2PromptMapper
@@ -243,6 +249,12 @@ __all__ = [
     "RemoveTableTextMapper",
     "RemoveWordsWithIncorrectSubstringsMapper",
     "ReplaceContentMapper",
+    "RobotDepthEstimationMapper",
+    "RobotDestinationGroundingMapper",
+    "RobotGripperAnchorMapper",
+    "RobotGripperTrackingMapper",
+    "RobotInteractionGeometryMapper",
+    "RobotObjectTrackingMapper",
     "S3DownloadFileMapper",
     "LLMExtractMapper",
     "S3UploadFileMapper",

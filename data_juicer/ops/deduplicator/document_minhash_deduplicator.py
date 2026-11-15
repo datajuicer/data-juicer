@@ -126,7 +126,10 @@ class DocumentMinhashDeduplicator(Deduplicator):
       not include punctuations.
     - For 'sentencepiece' tokenization, a tokenizer model path is required.
     - The deduplication process involves clustering and filtering, and only unique samples
-      or the first sample in a cluster are retained."""
+      or the first sample in a cluster are retained.
+    - Shingle hashes are folded in bounded blocks instead of materializing every shingle
+      and every hash, so peak memory does not grow with the number of shingles in one
+      document."""
 
     def __init__(
         self,
@@ -232,6 +235,42 @@ class DocumentMinhashDeduplicator(Deduplicator):
             dtype=np.uint64,
         ).T
 
+    def _iter_shingle_hashes(self, text):
+        """Yield the 32-bit hash of each shingle without keeping them all.
+
+        The old implementation materialized a set of every shingle (and then a
+        second array of every hash).  MinHash only needs the minimum over the
+        multiset, so duplicate shingles are harmless and the shingles can be
+        consumed one at a time.
+        """
+        window_size = self.window_size
+        if self.tokenization == "character":
+            for i in range(len(text) - window_size + 1):
+                yield sha1_hash32(str.encode(text[i : i + window_size]))
+        elif self.tokenization == "punctuation":
+            tokens = self.punctuation_pattern.split(text)
+            for i in range(len(tokens) - window_size + 1):
+                yield sha1_hash32(str.encode(" ".join(tokens[i : i + window_size])))
+        elif self.tokenization == "space":
+            tokens = split_on_whitespace(text)
+            for i in range(len(tokens) - window_size + 1):
+                yield sha1_hash32(str.encode(" ".join(tokens[i : i + window_size])))
+        elif self.tokenization == "sentencepiece":
+            tokens = self.tokenizer.encode(text, out_type=str)
+            for i in range(len(tokens) - window_size + 1):
+                yield sha1_hash32(str.encode("".join(tokens[i : i + window_size])))
+        else:
+            raise NotImplementedError(f"Unimplemented tokenization method [{self.tokenization}]")
+
+    def _fold_minhash_block(self, block, hash_values):
+        """Fold one bounded block of shingle hashes into ``hash_values``."""
+        hv = np.asarray(block, dtype=np.uint64)
+        phv = np.bitwise_and(
+            (hv[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME,
+            MAX_HASH,
+        )
+        np.minimum(hash_values, phv.min(axis=0), out=hash_values)
+
     def compute_hash(self, sample):
         """
         Compute minhash values for the sample.
@@ -250,49 +289,22 @@ class DocumentMinhashDeduplicator(Deduplicator):
         if self.ignore_pattern:
             text = self.ignore_pattern.sub("", text)
 
-        # get tokens for different tokenization method
-        tokens = set()
-        if self.tokenization == "character":
-            tokens = {str.encode(text[i : i + self.window_size]) for i in range(len(text) - self.window_size + 1)}
-        elif self.tokenization == "punctuation":
-            tokens = self.punctuation_pattern.split(text)
-            tokens = {
-                str.encode(" ".join(tokens[i : i + self.window_size]))
-                for i in range(len(tokens) - self.window_size + 1)
-            }
-        elif self.tokenization == "space":
-            tokens = split_on_whitespace(text)
-            tokens = {
-                str.encode(" ".join(tokens[i : i + self.window_size]))
-                for i in range(len(tokens) - self.window_size + 1)
-            }
-        elif self.tokenization == "sentencepiece":
-            tokens = self.tokenizer.encode(text, out_type=str)
-            tokens = {
-                str.encode("".join(tokens[i : i + self.window_size])) for i in range(len(tokens) - self.window_size + 1)
-            }
-        else:
-            raise NotImplementedError(f"Unimplemented tokenization method [{self.tokenization}]")
+        # Fold shingle hashes in bounded blocks instead of materializing the
+        # full shingle set and a second full array of hashes.  ``np.minimum``
+        # is associative, so the result is identical to the previous blockwise
+        # implementation over ``np.unique`` shingles.
+        bytes_per_token = self.num_permutation * np.dtype(np.uint64).itemsize
+        tokens_per_block = max(1, _MINHASH_PERMUTATION_BLOCK_BYTES // bytes_per_token)
+        hash_values = np.full(self.num_permutation, MAX_HASH, dtype=np.uint64)
+        block = []
+        for token_hash in self._iter_shingle_hashes(text):
+            block.append(token_hash)
+            if len(block) == tokens_per_block:
+                self._fold_minhash_block(block, hash_values)
+                block.clear()
+        if block:
+            self._fold_minhash_block(block, hash_values)
 
-        # compute minhash value
-        hv = np.fromiter((sha1_hash32(token) for token in tokens), dtype=np.uint64, count=len(tokens))
-        if len(hv) == 0:
-            hash_values = np.full(self.num_permutation, MAX_HASH, dtype=np.uint64)
-        else:
-            bytes_per_token = self.num_permutation * np.dtype(np.uint64).itemsize
-            tokens_per_block = max(1, _MINHASH_PERMUTATION_BLOCK_BYTES // bytes_per_token)
-            hash_values = None
-            for start in range(0, len(hv), tokens_per_block):
-                block = hv[start : start + tokens_per_block]
-                phv = np.bitwise_and(
-                    (block[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME,
-                    MAX_HASH,
-                )
-                block_min = phv.min(axis=0)
-                if hash_values is None:
-                    hash_values = block_min
-                else:
-                    np.minimum(hash_values, block_min, out=hash_values)
         sample[HashKeys.minhash] = [bytes(hash_values[start:end].byteswap().data) for start, end in self.hash_ranges]
         return sample
 

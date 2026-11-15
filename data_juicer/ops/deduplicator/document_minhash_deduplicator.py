@@ -314,6 +314,10 @@ class DocumentMinhashDeduplicator(Deduplicator):
 
         # no need to deduplicate because too few samples
         if len(dataset) <= 1:
+            # Keep the early return consistent with the main path: the bytes
+            # minhash column must not be exported.
+            if HashKeys.minhash in dataset.column_names:
+                dataset = dataset.remove_columns([HashKeys.minhash])
             return dataset, {}
 
         minhashes = dataset[HashKeys.minhash]
@@ -401,6 +405,10 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
 
         # no need to deduplicate because too few samples
         if len(dataset) <= 1:
+            # Keep the early return consistent with the main path: the bytes
+            # minhash column must not be exported.
+            if HashKeys.minhash in dataset.column_names:
+                dataset = dataset.remove_columns([HashKeys.minhash])
             return dataset, {}
 
         minhashes = dataset[HashKeys.minhash]

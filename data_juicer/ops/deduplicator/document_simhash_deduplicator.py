@@ -90,6 +90,14 @@ class DocumentSimhashDeduplicator(Deduplicator):
         self.punctuation_pattern = regex.compile(r"\p{P}")
 
         # about deduplication
+        if num_blocks > 64:
+            raise ValueError(f"num_blocks must be at most 64 for a 64-bit SimHash, got {num_blocks}.")
+        if hamming_distance >= num_blocks:
+            raise ValueError(
+                f"hamming_distance ({hamming_distance}) must be less than "
+                f"num_blocks ({num_blocks}); otherwise a block-level match "
+                f"cannot bound the Hamming distance."
+            )
         self.num_blocks = num_blocks
         self.hamming_distance = hamming_distance
 

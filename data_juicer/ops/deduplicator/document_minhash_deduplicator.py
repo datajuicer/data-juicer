@@ -367,17 +367,9 @@ class DocumentMinhashDeduplicator(Deduplicator):
                 if len(dup_pairs) >= show_num:
                     break
 
-        # filtering -- only keep those samples whose parent index is itself,
-        # including:
-        # 1. samples that form a cluster by themselves
-        # 2. the first sample in a cluster that includes multiple samples
-        def _filter_minhash_dup_helper(sample, index):
-            return union_find.find(index) == index
-
-        dataset = dataset.filter(
-            _filter_minhash_dup_helper,
-            with_indices=True,
-        )
+        # Keep roots only. `select` avoids a Python UDF call for every row.
+        keep_indices = [index for index in range(len(dataset)) if union_find.find(index) == index]
+        dataset = dataset.select(keep_indices)
         logger.info(f"Keep {len(dataset)} samples after MinHash dedup.")
 
         return dataset, dup_pairs

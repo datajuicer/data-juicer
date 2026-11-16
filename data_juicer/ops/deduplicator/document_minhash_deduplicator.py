@@ -27,6 +27,10 @@ OP_NAME = "document_minhash_deduplicator"
 MERSENNE_PRIME = np.uint64((1 << 61) - 1)
 MAX_HASH = np.uint64((1 << 32) - 1)
 _MINHASH_PERMUTATION_BLOCK_BYTES = 8 * 1024 * 1024
+# Sampling the first shingles of a block avoids paying set() on high-entropy
+# text while still deduplicating blocks with many repeated shingles.
+_SHINGLE_DEDUP_SAMPLE = 256
+_SHINGLE_DEDUP_SAMPLE_RATIO = 0.95
 
 
 def sha1_hash32(data):
@@ -262,8 +266,22 @@ class DocumentMinhashDeduplicator(Deduplicator):
             raise NotImplementedError(f"Unimplemented tokenization method [{self.tokenization}]")
 
     def _fold_minhash_block(self, block, hash_values):
-        """Deduplicate one block's shingles, then fold their hashes."""
-        unique_shingles = set(block)
+        """Deduplicate repeated shingles, then fold their hashes.
+
+        A small sample decides whether the block is duplicate-heavy enough to
+        justify a full set(). Skipping the set on high-entropy blocks keeps the
+        previous runtime profile; it cannot change the signature because
+        duplicates never change the per-permutation minimum.
+        """
+        sample = block[:_SHINGLE_DEDUP_SAMPLE]
+        if len(sample) == _SHINGLE_DEDUP_SAMPLE:
+            sample_unique = len(set(sample))
+            if sample_unique >= _SHINGLE_DEDUP_SAMPLE_RATIO * len(sample):
+                unique_shingles = block
+            else:
+                unique_shingles = set(block)
+        else:
+            unique_shingles = set(block)
         if not unique_shingles:
             return
         hv = np.fromiter((sha1_hash32(shingle) for shingle in unique_shingles), dtype=np.uint64)

@@ -548,10 +548,12 @@ deduplication</p></li>
 <li><p><strong>num_bands</strong> -- number of bands in LSH. Default it's None, and
 it will be determined by an optimal params computation
 algorithm by minimize the weighted sum of probs of False
-Positives and False Negatives</p></li>
+Positives and False Negatives. It must be provided together
+with num_rows_per_band.</p></li>
 <li><p><strong>num_rows_per_band</strong> -- number of rows in each band in LSH.
 Default it's None, and it will be determined by an optimal
-params computation algorithm</p></li>
+params computation algorithm. It must be provided together
+with num_bands.</p></li>
 <li><p><strong>tokenizer_model</strong> -- path for the sentencepiece model, used for
 sentencepiece tokenization.</p></li>
 </ul>

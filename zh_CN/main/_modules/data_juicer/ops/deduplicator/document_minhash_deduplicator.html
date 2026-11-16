@@ -634,10 +634,12 @@
 <span class="sd">        :param num_bands: number of bands in LSH. Default it's None, and</span>
 <span class="sd">            it will be determined by an optimal params computation</span>
 <span class="sd">            algorithm by minimize the weighted sum of probs of False</span>
-<span class="sd">            Positives and False Negatives</span>
+<span class="sd">            Positives and False Negatives. It must be provided together</span>
+<span class="sd">            with num_rows_per_band.</span>
 <span class="sd">        :param num_rows_per_band: number of rows in each band in LSH.</span>
 <span class="sd">            Default it's None, and it will be determined by an optimal</span>
-<span class="sd">            params computation algorithm</span>
+<span class="sd">            params computation algorithm. It must be provided together</span>
+<span class="sd">            with num_bands.</span>
 <span class="sd">        :param tokenizer_model: path for the sentencepiece model, used for</span>
 <span class="sd">            sentencepiece tokenization.</span>
 <span class="sd">        """</span>
@@ -674,7 +676,15 @@
 
         <span class="c1"># initialize deduplication parameters</span>
         <span class="c1"># check number of bands and rows</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows_per_band</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_rows_per_band</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="c1"># Otherwise a lone num_bands / num_rows_per_band would be</span>
+            <span class="c1"># silently overwritten by the optimal params computation.</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"`num_bands` and `num_rows_per_band` must be set together, "</span>
+                <span class="sa">f</span><span class="s2">"got num_bands=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span><span class="si">}</span><span class="s2"> and "</span>
+                <span class="sa">f</span><span class="s2">"num_rows_per_band=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_rows_per_band</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">num_bands</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_rows_per_band</span> <span class="o">=</span> <span class="n">optimal_param</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">jaccard_threshold</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">num_permutation</span><span class="p">,</span>

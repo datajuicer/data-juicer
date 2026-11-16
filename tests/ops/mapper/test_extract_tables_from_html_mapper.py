@@ -107,6 +107,17 @@ class ExtractTablesFromHtmlMapperTest(DataJuicerTestCaseBase):
         sample = op.process_single({'text': html, Fields.meta: {}})
         self.assertEqual(sample[Fields.meta][MetaKeys.html_tables], [[['Sales', '1', '2']]])
 
+    def test_without_header_skips_thead_rows_and_keeps_row_headers(self):
+        html = ("<table>"
+                "<thead><tr><td>Metric</td><th>2024</th></tr></thead>"
+                "<tbody><tr><th>Revenue</th><td>10</td></tr></tbody>"
+                "</table>")
+        for include_header, expected in [(False, [[['Revenue', '10']]]),
+                                         (True, [[['Metric', '2024'], ['Revenue', '10']]])]:
+            op = ExtractTablesFromHtmlMapper(retain_html_tags=False, include_header=include_header)
+            dataset = op.run(Dataset.from_list([{'text': html}]))
+            self.assertEqual(dataset[0][Fields.meta][MetaKeys.html_tables], expected)
+
     def test_multiple_tables(self):
         ds_list = [{
             'text': self.raw_html + self.raw_html

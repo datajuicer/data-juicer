@@ -494,7 +494,7 @@
 <span class="sd">    duplicates by comparing these hashes. It operates in Ray distributed mode, supporting</span>
 <span class="sd">    'ray_actor' or 'redis' backends for deduplication. The hash method can be set during</span>
 <span class="sd">    initialization, with supported methods listed in `HASH_METHOD`. If a sample does not</span>
-<span class="sd">    contain an image, it is assigned an empty hash value. The operator loads images from the</span>
+<span class="sd">    contain an image, it is always kept. The operator loads images from the</span>
 <span class="sd">    specified keys and computes their combined hash for comparison."""</span>
 
 <div class="viewcode-block" id="RayImageDeduplicator.__init__">
@@ -524,8 +524,9 @@
 <div class="viewcode-block" id="RayImageDeduplicator.calculate_hash">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_image_deduplicator.html#data_juicer.ops.deduplicator.ray_image_deduplicator.RayImageDeduplicator.calculate_hash">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># a sample without images is never a duplicate, as in image_deduplicator</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_key</span><span class="p">]:</span>
-            <span class="k">return</span> <span class="n">RayBasicDeduplicator</span><span class="o">.</span><span class="n">EMPTY_HASH_VALUE</span>
+            <span class="k">return</span> <span class="kc">None</span>
 
         <span class="c1"># load images</span>
         <span class="n">loaded_image_keys</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_key</span><span class="p">]</span>

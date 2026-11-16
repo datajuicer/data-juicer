@@ -455,7 +455,7 @@
 <p>This operator computes the MD5 hash of video streams in each sample and compares them to
 identify duplicates. It uses Ray distributed mode for parallel processing. The hash is
 computed by demuxing the video streams and updating the MD5 hash with each video packet.
-If a sample does not contain a valid video, it is assigned an empty hash value. The
+If a sample does not contain a valid video, it is always kept. The
 operator supports ‘ray_actor’ or ‘redis’ backends for deduplication.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.ray_video_deduplicator.RayVideoDeduplicator.__init__">
@@ -470,7 +470,8 @@ operator supports ‘ray_actor’ or ‘redis’ backends for deduplication.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.ray_video_deduplicator.RayVideoDeduplicator.calculate_hash">
 <span class="sig-name descname"><span class="pre">calculate_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_video_deduplicator.html#RayVideoDeduplicator.calculate_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.ray_video_deduplicator.RayVideoDeduplicator.calculate_hash" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate hash value for the sample.</p>
+<dd><p>Calculate hash value for the sample, or None if the sample has
+nothing to deduplicate on (e.g. no image), which keeps it.</p>
 </dd></dl>
 
 </dd></dl>

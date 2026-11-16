@@ -466,7 +466,7 @@
 <span class="sd">    This operator computes the MD5 hash of video streams in each sample and compares them to</span>
 <span class="sd">    identify duplicates. It uses Ray distributed mode for parallel processing. The hash is</span>
 <span class="sd">    computed by demuxing the video streams and updating the MD5 hash with each video packet.</span>
-<span class="sd">    If a sample does not contain a valid video, it is assigned an empty hash value. The</span>
+<span class="sd">    If a sample does not contain a valid video, it is always kept. The</span>
 <span class="sd">    operator supports 'ray_actor' or 'redis' backends for deduplication."""</span>
 
 <div class="viewcode-block" id="RayVideoDeduplicator.__init__">
@@ -485,8 +485,9 @@
 <div class="viewcode-block" id="RayVideoDeduplicator.calculate_hash">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_video_deduplicator.html#data_juicer.ops.deduplicator.RayVideoDeduplicator.calculate_hash">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># a sample without videos is never a duplicate, as in video_deduplicator</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">video_key</span><span class="p">]:</span>
-            <span class="k">return</span> <span class="n">RayBasicDeduplicator</span><span class="o">.</span><span class="n">EMPTY_HASH_VALUE</span>
+            <span class="k">return</span> <span class="kc">None</span>
 
         <span class="c1"># load videos</span>
         <span class="n">loaded_video_keys</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">video_key</span><span class="p">]</span>

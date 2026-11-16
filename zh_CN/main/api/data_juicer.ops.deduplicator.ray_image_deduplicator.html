@@ -469,7 +469,7 @@
 duplicates by comparing these hashes. It operates in Ray distributed mode, supporting
 'ray_actor' or 'redis' backends for deduplication. The hash method can be set during
 initialization, with supported methods listed in <cite>HASH_METHOD</cite>. If a sample does not
-contain an image, it is assigned an empty hash value. The operator loads images from the
+contain an image, it is always kept. The operator loads images from the
 specified keys and computes their combined hash for comparison.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.ray_image_deduplicator.RayImageDeduplicator.__init__">
@@ -485,7 +485,8 @@ specified keys and computes their combined hash for comparison.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.ray_image_deduplicator.RayImageDeduplicator.calculate_hash">
 <span class="sig-name descname"><span class="pre">calculate_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_image_deduplicator.html#RayImageDeduplicator.calculate_hash"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.ray_image_deduplicator.RayImageDeduplicator.calculate_hash" title="链接到此定义。">¶</a></dt>
-<dd><p>Calculate hash value for the sample.</p>
+<dd><p>Calculate hash value for the sample, or None if the sample has
+nothing to deduplicate on (e.g. no image), which keeps it.</p>
 </dd></dl>
 
 </dd></dl>

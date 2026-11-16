@@ -560,7 +560,8 @@ it is implemented as Filter sub-class.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator.calculate_hash">
 <span class="sig-name descname"><span class="pre">calculate_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_basic_deduplicator.html#RayBasicDeduplicator.calculate_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.ray_basic_deduplicator.RayBasicDeduplicator.calculate_hash" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate hash value for the sample.</p>
+<dd><p>Calculate hash value for the sample, or None if the sample has
+nothing to deduplicate on (e.g. no image), which keeps it.</p>
 </dd></dl>
 
 <dl class="py method">

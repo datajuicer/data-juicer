@@ -640,7 +640,8 @@
 <div class="viewcode-block" id="RayBasicDeduplicator.calculate_hash">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.deduplicator.ray_basic_deduplicator.html#data_juicer.ops.deduplicator.RayBasicDeduplicator.calculate_hash">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Calculate hash value for the sample."""</span>
+<span class="w">        </span><span class="sd">"""Calculate hash value for the sample, or None if the sample has</span>
+<span class="sd">        nothing to deduplicate on (e.g. no image), which keeps it."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 
@@ -650,7 +651,7 @@
         <span class="c1"># compute hash</span>
         <span class="n">md5_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_hash</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
         <span class="c1"># check existing</span>
-        <span class="n">sample</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">is_unique</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">is_unique</span><span class="p">(</span><span class="n">md5_value</span><span class="p">)</span>
+        <span class="n">sample</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">is_unique</span><span class="p">]</span> <span class="o">=</span> <span class="n">md5_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">is_unique</span><span class="p">(</span><span class="n">md5_value</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sample</span></div>
 
 

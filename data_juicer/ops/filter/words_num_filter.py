@@ -1,3 +1,4 @@
+import re
 import sys
 
 from data_juicer.utils.constant import Fields, InterVars, StatsKeys
@@ -13,6 +14,7 @@ OP_NAME = "words_num_filter"
 # split/refine logic, but the word and refined-word lists are released before
 # the next chunk instead of growing with the whole document.
 _WORD_COUNT_CHUNK_CHARS = 64 * 1024
+_WORD_COUNT_SEPARATOR = re.compile(r"[ \n\t]")
 
 
 def _count_words_streaming(text):
@@ -29,8 +31,8 @@ def _count_words_streaming(text):
     while start < text_len:
         end = min(start + _WORD_COUNT_CHUNK_CHARS, text_len)
         if end < text_len:
-            while end < text_len and text[end] not in " \n\t":
-                end += 1
+            match = _WORD_COUNT_SEPARATOR.search(text, end)
+            end = match.start() if match is not None else text_len
         words = get_words_from_document(text[start:end])
         count += len(words_refinement(words, strip_chars=SPECIAL_CHARACTERS))
         start = end

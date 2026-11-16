@@ -60,6 +60,12 @@ class WordsNumFilterStreamingTest(DataJuicerTestCaseBase):
         expected = [reference_count(text) for text in texts]
         self.assertEqual(got, expected)
 
+    def test_no_separator_long_text_matches_reference(self):
+        texts = ["a" * 200_000, ("a " * 1000) + ("b" * 100_000)]
+        got = self._run(texts)
+        expected = [reference_count(text) for text in texts]
+        self.assertEqual(got, expected)
+
     def test_cached_stat_is_not_recomputed(self):
         op = WordsNumFilter()
         samples = {

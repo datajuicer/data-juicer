@@ -481,14 +481,23 @@
     <span class="k">if</span> <span class="n">sample_number</span> <span class="o">==</span> <span class="n">ds_samples</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">dataset</span>
 
-    <span class="n">sample_index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">sample_number</span><span class="p">)</span>
+    <span class="c1"># When sampling more samples than the dataset size, repeat the dataset</span>
+    <span class="k">if</span> <span class="n">sample_number</span> <span class="o">&gt;</span> <span class="n">ds_samples</span><span class="p">:</span>
+        <span class="n">sample_index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">sample_number</span><span class="p">)</span>
+        <span class="n">n_repeat</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">sample_number</span> <span class="o">/</span> <span class="n">ds_samples</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">n_repeat</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">remain_samples</span> <span class="o">=</span> <span class="n">sample_number</span> <span class="o">-</span> <span class="n">n_repeat</span> <span class="o">*</span> <span class="n">ds_samples</span>
+            <span class="n">sample_index</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="n">repeat</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">ds_samples</span><span class="p">),</span> <span class="n">n_repeat</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">remain_samples</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">sample_index</span><span class="p">)</span>
 
-    <span class="n">n_repeat</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">sample_number</span> <span class="o">/</span> <span class="n">ds_samples</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
-    <span class="k">if</span> <span class="n">n_repeat</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">remain_samples</span> <span class="o">=</span> <span class="n">sample_number</span> <span class="o">-</span> <span class="n">n_repeat</span> <span class="o">*</span> <span class="n">ds_samples</span>
-        <span class="n">sample_index</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="n">repeat</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">ds_samples</span><span class="p">),</span> <span class="n">n_repeat</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">remain_samples</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">sample_index</span><span class="p">)</span></div>
+    <span class="c1"># `datasets.Dataset.shuffle(seed)` is implemented as</span>
+    <span class="c1"># `np.random.default_rng(seed).permutation(n)` followed by `select`, so</span>
+    <span class="c1"># slicing the permutation keeps exactly the rows that `main` selects while</span>
+    <span class="c1"># avoiding the full shuffled index mapping. `random.sample` is O(k) but</span>
+    <span class="c1"># builds a Python list and changes the selected rows for the same seed.</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">sample_index</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">ds_samples</span><span class="p">)[:</span><span class="n">sample_number</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">sample_index</span><span class="p">)</span></div>
 
 </pre></div>
 

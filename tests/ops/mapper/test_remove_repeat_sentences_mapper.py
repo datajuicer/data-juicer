@@ -102,6 +102,19 @@ class RemoveRepeatSentencesMapperTest(DataJuicerTestCaseBase):
         op = RemoveRepeatSentencesMapper()
         self._run_helper(samples, op)
 
+    def test_dot_between_non_ascii_digits_is_not_a_sentence_boundary(self):
+
+        samples = [{
+            'text': 'Price rose to ١.٥ dollars. It fell to ٢.٥ dollars.',
+            'target': 'Price rose to ١.٥ dollars. It fell to ٢.٥ dollars.'
+        }, {
+            'text': 'Price rose to ١.٥ dollars. Price rose to ١.٥ dollars.',
+            'target': 'Price rose to ١.٥ dollars.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
     def test_decimal_point_is_not_a_sentence_boundary(self):
 
         samples = [{

@@ -1,6 +1,6 @@
 import unittest
 
-from datasets import Dataset
+from datasets import Dataset, Features, Sequence, Value
 
 from data_juicer.ops.deduplicator.document_minhash_deduplicator import (
     DocumentMinhashDeduplicator,
@@ -31,6 +31,18 @@ class MinhashSingleSampleTest(unittest.TestCase):
             }
         )
         op = DocumentMinhashDeduplicatorWithUid()
+        result, _ = op.process(dataset)
+        self.assertNotIn(HashKeys.minhash, result.column_names)
+
+    def test_empty_dataset_drops_minhash_column(self):
+        features = Features(
+            {
+                "text": Value("string"),
+                HashKeys.minhash: Sequence(Value("binary")),
+            }
+        )
+        dataset = Dataset.from_dict({"text": [], HashKeys.minhash: []}, features=features)
+        op = DocumentMinhashDeduplicator()
         result, _ = op.process(dataset)
         self.assertNotIn(HashKeys.minhash, result.column_names)
 

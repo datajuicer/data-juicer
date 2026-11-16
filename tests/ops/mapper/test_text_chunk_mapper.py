@@ -430,6 +430,13 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
         self.assertEqual(len(chunks), num_chunks)
         self.assertEqual(''.join(chunks), text)
 
+    def test_split_pattern_empty_match_at_start_raises(self):
+        """A split_pattern whose only match is an empty string at the start
+        raises instead of looping forever on the same text."""
+        op = TextChunkMapper(max_len=8, split_pattern=r'(?=Chapter)')
+        with self.assertRaisesRegex(ValueError, 'does not shrink'):
+            op.get_text_chunks('Chapter One')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -107,6 +107,12 @@ class TextChunkMapper(Mapper):
                     left_text = text[self.max_len - self.overlap_len :]
             else:
                 last_match = matches[-1]
+                if last_match.end() == 0:
+                    raise ValueError(
+                        f"split_pattern {self.split_pattern!r} matches only an "
+                        "empty string at the start of the remaining text, so "
+                        "the text does not shrink and cannot be chunked."
+                    )
                 cur_text = sub_text[: last_match.start()]
                 left_text = text[last_match.end() :]
 

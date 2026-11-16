@@ -81,5 +81,26 @@ class WordsNumFilterStreamingTest(DataJuicerTestCaseBase):
         self.assertIn("__dj__words-None-text", samples[Fields.context][0])
 
 
+    def test_matches_reference_across_chunk_boundaries(self):
+        from data_juicer.ops.filter import words_num_filter as mod
+
+        original = mod._WORD_COUNT_CHUNK_CHARS
+        mod._WORD_COUNT_CHUNK_CHARS = 7
+        try:
+            texts = [
+                "alpha beta gamma delta",
+                "a" * 20 + " b",
+                "中文" * 20 + " 测试",
+                "one\r\ntwo\tthree four",
+                "x y z",
+                "longwordwithoutseparators",
+            ]
+            got = self._run(texts)
+            expected = [reference_count(text) for text in texts]
+            self.assertEqual(got, expected)
+        finally:
+            mod._WORD_COUNT_CHUNK_CHARS = original
+
+
 if __name__ == "__main__":
     unittest.main()

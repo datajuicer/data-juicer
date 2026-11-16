@@ -169,6 +169,47 @@ class BenchmarkContaminationFilterTest(DataJuicerTestCaseBase):
             BenchmarkContaminationFilter(benchmark_path=self.bench_path, tokenization="sentence")
         with self.assertRaises(ValueError):
             BenchmarkContaminationFilter(benchmark_path=self.bench_path, ngram_size=0)
+    def test_second_benchmark_does_not_reuse_stats(self):
+        """Two benchmarks in one recipe must not share their stats fields.
+
+        The base filter reuses a stats field that is already present, so a
+        second contamination filter would otherwise read the ratio computed
+        against the first benchmark and keep a sample that is contaminated
+        against its own benchmark.
+        """
+        bench_a = os.path.join(self.tmp_dir, "bench_a.jsonl")
+        bench_b = os.path.join(self.tmp_dir, "bench_b.jsonl")
+        with open(bench_a, "w", encoding="utf-8") as fout:
+            fout.write(json.dumps({"text": LONG_TAIL}, ensure_ascii=False) + "\n")
+        with open(bench_b, "w", encoding="utf-8") as fout:
+            fout.write(json.dumps({"text": BENCH_EN}, ensure_ascii=False) + "\n")
+
+        dataset = Dataset.from_list([{"text": BENCH_EN}])
+        dataset = dataset.add_column(
+            name=Fields.stats, column=[{}] * dataset.num_rows
+        )
+
+        # benchmark A is unrelated: the sample is kept and its ratio is 0
+        op_a = BenchmarkContaminationFilter(benchmark_path=bench_a)
+        dataset = dataset.map(op_a.compute_stats, batch_size=1)
+        self.assertEqual(dataset[0][Fields.stats]["contamination_ratio"], 0.0)
+
+        # benchmark B contains the sample verbatim: it must be dropped,
+        # which only works when B writes to its own stats fields
+        op_b = BenchmarkContaminationFilter(
+            benchmark_path=bench_b,
+            contamination_ratio_key="contamination_ratio_b",
+            contamination_ngram_count_key="contamination_ngram_count_b",
+        )
+        dataset = dataset.map(op_b.compute_stats, batch_size=1)
+        stats = dataset[0][Fields.stats]
+        self.assertEqual(stats["contamination_ratio_b"], 1.0)
+        self.assertGreater(stats["contamination_ngram_count_b"], 0)
+        # the first benchmark's stats are left untouched
+        self.assertEqual(stats["contamination_ratio"], 0.0)
+
+        filtered = dataset.filter(op_b.process, batch_size=1)
+        self.assertEqual(filtered.num_rows, 0)
 
 
 if __name__ == "__main__":

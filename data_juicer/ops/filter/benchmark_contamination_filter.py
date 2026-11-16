@@ -47,6 +47,8 @@ class BenchmarkContaminationFilter(Filter):
         lowercase: bool = True,
         normalize_whitespace: bool = True,
         threshold: float = 0.0,
+        contamination_ratio_key: str = StatsKeys.contamination_ratio,
+        contamination_ngram_count_key: str = StatsKeys.contamination_ngram_count,
         *args,
         **kwargs,
     ):
@@ -88,6 +90,15 @@ class BenchmarkContaminationFilter(Filter):
             items reach a median ratio of 0.09 with ``ngram_size=13``, so
             a threshold around 0.2~0.3 keeps the precision above 0.9
             while still catching near duplicates.
+        :param contamination_ratio_key: the stats field that stores the
+            overlap ratio and that this operator reads back. Give each
+            benchmark its own field name when several contamination
+            filters run in one recipe: the base filter reuses an
+            existing stats field, so with the default name a second
+            filter would silently skip its own computation and keep a
+            sample contaminated against its benchmark.
+        :param contamination_ngram_count_key: the stats field that
+            stores the number of matching n-grams.
         :param args: extra args
         :param kwargs: extra args
         """
@@ -106,6 +117,8 @@ class BenchmarkContaminationFilter(Filter):
         self.lowercase = lowercase
         self.normalize_whitespace = normalize_whitespace
         self.threshold = threshold
+        self.contamination_ratio_key = contamination_ratio_key
+        self.contamination_ngram_count_key = contamination_ngram_count_key
 
         self._index = self._build_index(benchmark_path)
 
@@ -280,20 +293,20 @@ class BenchmarkContaminationFilter(Filter):
     # ---------------------------------------------------------------- #
     def compute_stats_single(self, sample, context=False):
         # check if it's computed already
-        if StatsKeys.contamination_ratio in sample[Fields.stats]:
+        if self.contamination_ratio_key in sample[Fields.stats]:
             return sample
 
         text = self._normalize(sample.get(self.text_key))
         hashes = np.unique(self._ngram_hashes(text))
         if hashes.size == 0:
-            sample[Fields.stats][StatsKeys.contamination_ngram_count] = 0
-            sample[Fields.stats][StatsKeys.contamination_ratio] = 0.0
+            sample[Fields.stats][self.contamination_ngram_count_key] = 0
+            sample[Fields.stats][self.contamination_ratio_key] = 0.0
             return sample
 
         hits = self._count_hits(hashes)
-        sample[Fields.stats][StatsKeys.contamination_ngram_count] = hits
-        sample[Fields.stats][StatsKeys.contamination_ratio] = hits / hashes.size
+        sample[Fields.stats][self.contamination_ngram_count_key] = hits
+        sample[Fields.stats][self.contamination_ratio_key] = hits / hashes.size
         return sample
 
     def process_single(self, sample):
-        return sample[Fields.stats][StatsKeys.contamination_ratio] <= self.threshold
+        return sample[Fields.stats][self.contamination_ratio_key] <= self.threshold

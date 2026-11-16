@@ -612,6 +612,10 @@
 <span class="sd">            to sample texts that contained it.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># nothing to remove, but the temporary column must not reach the</span>
+            <span class="c1"># output, as on the other return paths</span>
+            <span class="k">if</span> <span class="n">HashKeys</span><span class="o">.</span><span class="n">line_hashes</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">([</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">line_hashes</span><span class="p">])</span>
             <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="p">{}</span>
 
         <span class="c1"># --- count document frequency for each line hash ---------------</span>

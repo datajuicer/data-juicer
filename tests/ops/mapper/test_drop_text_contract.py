@@ -8,10 +8,12 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pyarrow as pa
+import pyarrow.parquet as pq
 from datasets import Dataset, Features, LargeList, List, Value
 from datasets.formatting.formatting import LazyBatch, PythonFormatter
 
 from data_juicer.core.data.dj_dataset import NestedDataset, NestedQueryDict, nested_obj_factory, nested_query
+from data_juicer.core.exporter import Exporter
 from data_juicer.ops.mapper import extract_event_mapper, extract_keyword_mapper, extract_support_text_mapper
 from data_juicer.ops.mapper.drop_text import read_text_from_sample, remove_text_from_dataset, remove_text_from_sample
 from data_juicer.utils.constant import Fields, MetaKeys
@@ -71,6 +73,21 @@ class DropTextContractTest(unittest.TestCase):
 
     def test_nested_text(self):
         self.check_direct_and_dataset("payload.text", False)
+
+    def test_parquet_after_removing_last_nested_field(self):
+        for payload, expected in [
+            ({"text": "source"}, {"id": 1}),
+            ({"text": "source", "lang": "en"}, {"id": 1, "payload": {"lang": "en"}}),
+            ({"parts": [{"text": "source"}]}, {"id": 1}),
+        ]:
+            with self.subTest(payload=payload), tempfile.TemporaryDirectory() as directory:
+                op = self.make_keyword_op()
+                op.text_key = "payload.parts.text" if "parts" in payload else "payload.text"
+                row = {"id": 1, "payload": payload, Fields.meta: {"keyword": ["cached"]}}
+                result = op.run(NestedDataset(Dataset.from_list([row])))
+                path = Path(directory, "output.parquet")
+                Exporter(str(path), export_in_parallel=False).export(result)
+                self.assertEqual(pq.read_table(path).to_pylist(), [expected])
 
     def test_existing_nested_text(self):
         self.check_direct_and_dataset("payload.text", True)
@@ -305,11 +322,10 @@ class DropTextContractTest(unittest.TestCase):
         result = op.run(NestedDataset(Dataset.from_list([deepcopy(row)])))[0]
         self.assertEqual(result["payload"], [{"other": "keep"}])
 
-    def test_read_matches_nested_query(self):
+    def test_read_matches_nested_query_for_resolved_paths(self):
         cases = [
             ("text", {"text": "source"}),
             ("text", {"text": None}),
-            ("missing.text", {"other": "keep"}),
             ("payload.text", {"payload": {"text": "source", "other": "keep"}}),
             ("payload.text", {"payload": None}),
             ("payload.text", {"payload": []}),
@@ -319,8 +335,6 @@ class DropTextContractTest(unittest.TestCase):
             ("payload.text", {"payload.text": None, "payload": {"text": "nested"}, "text": "sibling"}),
             ("a.b.c", {"a.b": {"c": "wrong"}, "a": {"b": {"c": "source"}}}),
             ("a.b.c", {"a": {"b.c": "literal", "b": {"c": "nested"}}}),
-            ("a.b.c", {"a.b": {"c": "not a fallback"}}),
-            ("a.b.c", {"a.b": [{"c": "not a fallback"}]}),
         ]
         for text_key, row in cases:
             for kind in (dict, NestedQueryDict, LazyBatch):
@@ -335,6 +349,28 @@ class DropTextContractTest(unittest.TestCase):
                         else kind(source)
                     )
                     self.assertEqual(read_text_from_sample(sample, text_key), expected)
+
+    def test_missing_text_preserves_entry_point_behavior(self):
+        op = self.make_keyword_op()
+        op.drop_text = False
+        row = {"other": "keep", Fields.meta: {}}
+        client = Mock(return_value='("content_keywords" "word")')
+        with patch.object(extract_keyword_mapper, "get_model", return_value=client):
+            with self.assertRaisesRegex(KeyError, "text"):
+                op.process_single(deepcopy(row))
+            with self.assertRaisesRegex(KeyError, "text"):
+                op.process(pa.Table.from_pylist([deepcopy(row)]))
+            with self.assertRaisesRegex(KeyError, "text"):
+                op.run(NestedDataset(Dataset.from_list([deepcopy(row)])))
+            client.assert_not_called()
+        wrapped = nested_obj_factory(deepcopy(row))
+        self.assertIsNone(read_text_from_sample(wrapped, "text"))
+        self.assertIsNone(read_text_from_sample({"text": None}, "text"))
+        for key, row in [("missing.text", {"other": "keep"}), ("a.b.c", {"a.b": {"c": "keep"}})]:
+            batch = LazyBatch(pa.Table.from_pylist([row]), PythonFormatter())
+            for sample in (row, batch):
+                with self.subTest(key=key, sample_type=type(sample)), self.assertRaises(KeyError):
+                    read_text_from_sample(sample, key)
 
     def test_keyword_struct_list_contract(self):
         row = {

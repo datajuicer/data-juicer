@@ -582,10 +582,15 @@
         <span class="k">return</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="s2">"@"</span> <span class="ow">in</span> <span class="n">text</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span>
-    <span class="n">secret_pat</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?i)(?:^|[^a-z0-9_])(?:"</span> <span class="sa">r</span><span class="s2">"api[_-]?key|apikey|secret|token|password|passwd|credential|bearer)\b"</span>
+    <span class="c1"># \b finds no boundary between CJK text and an ASCII word (我的password是, 连上vpn)</span>
+    <span class="c1"># or inside CJK text (公司内网的), so ASCII cues use ASCII-only boundaries and the</span>
+    <span class="c1"># CJK cues need none (but 内网 in 国内网站 / 境内网络 is not an intranet).</span>
+    <span class="n">secret_pat</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">r</span><span class="s2">"(?i)(?:^|[^a-z0-9_])(?:"</span> <span class="sa">r</span><span class="s2">"api[_-]?key|apikey|secret|token|password|passwd|credential|bearer)(?![a-z0-9_])"</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">secret_pat</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">True</span>
-    <span class="n">intranet</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?i)\b(?:内网|局域网|vpn|ssh\s|rdp://|mysql://|redis://)\b"</span>
+    <span class="n">intranet</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"(?i)(?&lt;![国境])内网|局域网|(?a:\b)(?:vpn(?a:\b)|(?:ssh\s|rdp://|mysql://|redis://)\b)"</span>
     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">intranet</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">True</span>
     <span class="c1"># Long alphanumeric runs (possible tokens / hashes)</span>
@@ -595,6 +600,7 @@
 
 
 <span class="c1"># High-precision contextual cues (no extra deps). Intentionally conservative to limit false API calls.</span>
+<span class="c1"># English titles use ASCII-only boundaries, so a name next to CJK text still counts (请联系Dr. Wang处理).</span>
 <span class="n">_NAME_LIKE_RULE_PAT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
     <span class="sa">r</span><span class="s2">"(?:"</span>
     <span class="sa">r</span><span class="s2">"(?:^|[\s，,。.!！?？;；:：])"</span>
@@ -606,7 +612,7 @@
     <span class="sa">r</span><span class="s2">"|"</span>
     <span class="sa">r</span><span class="s2">"[\u4e00-\u9fff]{2,4}(?:先生|女士|老师|大夫|经理|主任|院长|博士|教授|同志)(?=[\s，,。.!！?？;；]|$)"</span>
     <span class="sa">r</span><span class="s2">"|"</span>
-    <span class="sa">r</span><span class="s2">"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b"</span>
+    <span class="sa">r</span><span class="s2">"(?a:\b)(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?a:\b)"</span>
     <span class="sa">r</span><span class="s2">")"</span><span class="p">,</span>
     <span class="n">re</span><span class="o">.</span><span class="n">UNICODE</span><span class="p">,</span>
 <span class="p">)</span>

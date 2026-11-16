@@ -235,37 +235,38 @@ class DocumentMinhashDeduplicator(Deduplicator):
             dtype=np.uint64,
         ).T
 
-    def _iter_shingle_hashes(self, text):
-        """Yield the 32-bit hash of each shingle without keeping them all.
+    def _iter_shingles(self, text):
+        """Yield encoded shingles without hashing or keeping them all.
 
-        The old implementation materialized a set of every shingle (and then a
-        second array of every hash).  MinHash only needs the minimum over the
-        multiset, so duplicate shingles are harmless and the shingles can be
-        consumed one at a time.
+        The caller folds one bounded block at a time and deduplicates encoded
+        shingles before SHA-1, so repeated shingles do not pay hashing or
+        permutation cost. MinHash's minimum is unchanged by duplicates.
         """
         window_size = self.window_size
         if self.tokenization == "character":
             for i in range(len(text) - window_size + 1):
-                yield sha1_hash32(str.encode(text[i : i + window_size]))
+                yield str.encode(text[i : i + window_size])
         elif self.tokenization == "punctuation":
             tokens = self.punctuation_pattern.split(text)
             for i in range(len(tokens) - window_size + 1):
-                yield sha1_hash32(str.encode(" ".join(tokens[i : i + window_size])))
+                yield str.encode(" ".join(tokens[i : i + window_size]))
         elif self.tokenization == "space":
             tokens = split_on_whitespace(text)
             for i in range(len(tokens) - window_size + 1):
-                yield sha1_hash32(str.encode(" ".join(tokens[i : i + window_size])))
+                yield str.encode(" ".join(tokens[i : i + window_size]))
         elif self.tokenization == "sentencepiece":
             tokens = self.tokenizer.encode(text, out_type=str)
             for i in range(len(tokens) - window_size + 1):
-                yield sha1_hash32(str.encode("".join(tokens[i : i + window_size])))
+                yield str.encode("".join(tokens[i : i + window_size]))
         else:
             raise NotImplementedError(f"Unimplemented tokenization method [{self.tokenization}]")
 
     def _fold_minhash_block(self, block, hash_values):
-        """Fold one bounded block of shingle hashes into ``hash_values``."""
-        # Repeated hashes cannot change the per-permutation minima.
-        hv = np.asarray(list(set(block)), dtype=np.uint64)
+        """Deduplicate one block's shingles, then fold their hashes."""
+        unique_shingles = set(block)
+        if not unique_shingles:
+            return
+        hv = np.fromiter((sha1_hash32(shingle) for shingle in unique_shingles), dtype=np.uint64)
         phv = np.bitwise_and(
             (hv[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME,
             MAX_HASH,
@@ -298,8 +299,8 @@ class DocumentMinhashDeduplicator(Deduplicator):
         tokens_per_block = max(1, _MINHASH_PERMUTATION_BLOCK_BYTES // bytes_per_token)
         hash_values = np.full(self.num_permutation, MAX_HASH, dtype=np.uint64)
         block = []
-        for token_hash in self._iter_shingle_hashes(text):
-            block.append(token_hash)
+        for shingle in self._iter_shingles(text):
+            block.append(shingle)
             if len(block) == tokens_per_block:
                 self._fold_minhash_block(block, hash_values)
                 block.clear()

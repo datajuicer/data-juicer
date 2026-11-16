@@ -1135,6 +1135,15 @@ class DocumentMinhashDeduplicatorBandParamTest(DataJuicerTestCaseBase):
             num_permutations=256, num_bands=32, num_rows_per_band=8)
         self.assertEqual(op.hash_ranges[-1], (248, 256))
 
+    def test_only_one_band_param_rejected(self):
+        # a lone num_bands / num_rows_per_band used to be silently ignored
+        # and replaced by the optimal params computation
+        with self.assertRaises(ValueError):
+            DocumentMinhashDeduplicator(num_permutations=256, num_bands=8)
+        with self.assertRaises(ValueError):
+            DocumentMinhashDeduplicator(
+                num_permutations=256, num_rows_per_band=8)
+
 
 if __name__ == '__main__':
     unittest.main()

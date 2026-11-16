@@ -166,10 +166,12 @@ class DocumentMinhashDeduplicator(Deduplicator):
         :param num_bands: number of bands in LSH. Default it's None, and
             it will be determined by an optimal params computation
             algorithm by minimize the weighted sum of probs of False
-            Positives and False Negatives
+            Positives and False Negatives. It must be provided together
+            with num_rows_per_band.
         :param num_rows_per_band: number of rows in each band in LSH.
             Default it's None, and it will be determined by an optimal
-            params computation algorithm
+            params computation algorithm. It must be provided together
+            with num_bands.
         :param tokenizer_model: path for the sentencepiece model, used for
             sentencepiece tokenization.
         """
@@ -206,7 +208,15 @@ class DocumentMinhashDeduplicator(Deduplicator):
 
         # initialize deduplication parameters
         # check number of bands and rows
-        if self.num_bands is None or self.num_rows_per_band is None:
+        if (self.num_bands is None) != (self.num_rows_per_band is None):
+            # Otherwise a lone num_bands / num_rows_per_band would be
+            # silently overwritten by the optimal params computation.
+            raise ValueError(
+                "`num_bands` and `num_rows_per_band` must be set together, "
+                f"got num_bands={self.num_bands} and "
+                f"num_rows_per_band={self.num_rows_per_band}."
+            )
+        if self.num_bands is None:
             self.num_bands, self.num_rows_per_band = optimal_param(
                 self.jaccard_threshold,
                 self.num_permutation,

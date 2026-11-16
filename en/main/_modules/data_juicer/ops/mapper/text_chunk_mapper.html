@@ -535,32 +535,44 @@
 <div class="viewcode-block" id="TextChunkMapper.recursively_chunk">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.text_chunk_mapper.html#data_juicer.ops.mapper.text_chunk_mapper.TextChunkMapper.recursively_chunk">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">recursively_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="p">)</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-            <span class="n">total_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-            <span class="n">sub_text</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">])</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">total_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-            <span class="n">sub_text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">]</span>
-
-        <span class="k">if</span> <span class="n">total_len</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">text</span><span class="p">]</span>
-
-        <span class="n">matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_pattern</span><span class="p">,</span> <span class="n">sub_text</span><span class="p">))</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">matches</span><span class="p">:</span>
-            <span class="n">cur_text</span> <span class="o">=</span> <span class="n">sub_text</span>
+        <span class="c1"># cut one chunk off the front per iteration; recursing once per chunk</span>
+        <span class="c1"># hits the recursion limit on long texts</span>
+        <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">left_text</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_len</span> <span class="p">:])</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="p">)</span>
+                <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                <span class="n">total_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+                <span class="n">sub_text</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">left_text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_len</span> <span class="p">:]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">last_match</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">cur_text</span> <span class="o">=</span> <span class="n">sub_text</span><span class="p">[:</span> <span class="n">last_match</span><span class="o">.</span><span class="n">start</span><span class="p">()]</span>
-            <span class="n">left_text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="n">last_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="p">:]</span>
+                <span class="n">total_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                <span class="n">sub_text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">]</span>
 
-        <span class="n">chunks</span> <span class="o">=</span> <span class="p">[</span><span class="n">cur_text</span><span class="p">]</span> <span class="k">if</span> <span class="n">cur_text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="k">return</span> <span class="n">chunks</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursively_chunk</span><span class="p">(</span><span class="n">left_text</span><span class="p">)</span></div>
+            <span class="k">if</span> <span class="n">total_len</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">:</span>
+                <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">chunks</span>
+
+            <span class="n">matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_pattern</span><span class="p">,</span> <span class="n">sub_text</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">matches</span><span class="p">:</span>
+                <span class="n">cur_text</span> <span class="o">=</span> <span class="n">sub_text</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">left_text</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_len</span> <span class="p">:])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">left_text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_len</span> <span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">last_match</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">last_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"split_pattern </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">split_pattern</span><span class="si">!r}</span><span class="s2"> matches only an "</span>
+                        <span class="s2">"empty string at the start of the remaining text, so "</span>
+                        <span class="s2">"the text does not shrink and cannot be chunked."</span>
+                    <span class="p">)</span>
+                <span class="n">cur_text</span> <span class="o">=</span> <span class="n">sub_text</span><span class="p">[:</span> <span class="n">last_match</span><span class="o">.</span><span class="n">start</span><span class="p">()]</span>
+                <span class="n">left_text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="n">last_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="p">:]</span>
+
+            <span class="k">if</span> <span class="n">cur_text</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_text</span><span class="p">)</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">left_text</span></div>
 
 
 <div class="viewcode-block" id="TextChunkMapper.get_text_chunks">

@@ -462,7 +462,7 @@
 
 
 <div class="viewcode-block" id="get_global_intrinsics">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.get_global_intrinsics">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.get_global_intrinsics">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_global_intrinsics</span><span class="p">(</span><span class="n">ks</span><span class="p">):</span>
     <span class="n">fx</span> <span class="o">=</span> <span class="n">ks</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">fy</span> <span class="o">=</span> <span class="n">ks</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
@@ -480,7 +480,7 @@
 
 
 <div class="viewcode-block" id="VideoUndistortMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUndistortMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoUndistortMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -488,7 +488,7 @@
 <span class="sd">    and distortion coefficients."""</span>
 
 <div class="viewcode-block" id="VideoUndistortMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUndistortMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">output_video_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -543,7 +543,7 @@
 
 
 <div class="viewcode-block" id="VideoUndistortMapper.concatenate_ts_files">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper.concatenate_ts_files">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUndistortMapper.concatenate_ts_files">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">concatenate_ts_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">video_name</span><span class="p">,</span> <span class="n">batch_counts</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Concatenate batch TS files into final mp4."""</span>
         <span class="n">inputs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s2">"inputs.txt"</span><span class="p">)</span>
@@ -567,7 +567,7 @@
 
 
 <div class="viewcode-block" id="VideoUndistortMapper.create_ffmpeg_writer">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper.create_ffmpeg_writer">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUndistortMapper.create_ffmpeg_writer">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_ffmpeg_writer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">fps</span><span class="p">,</span> <span class="n">crf</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Spawn an ffmpeg async encoding process for writing raw frames."""</span>
         <span class="k">return</span> <span class="p">(</span>
@@ -596,7 +596,7 @@
 
 
 <div class="viewcode-block" id="VideoUndistortMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.VideoUndistortMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoUndistortMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">undistorted_video_field</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>

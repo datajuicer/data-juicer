@@ -465,7 +465,7 @@
 
 
 <div class="viewcode-block" id="VideoHumantrackFaceDemographicMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoHumantrackFaceDemographicMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -479,7 +479,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="VideoHumantrackFaceDemographicMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">original_data_save_path</span><span class="o">=</span><span class="s2">"./outputs/demographic"</span><span class="p">,</span>
@@ -505,7 +505,7 @@
 
 
 <div class="viewcode-block" id="VideoHumantrackFaceDemographicMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
             <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -618,7 +618,7 @@
 
 
 <div class="viewcode-block" id="VideoHumantrackFaceDemographicMapper.find_median">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.find_median">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper.find_median">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">int_list</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Finds the median of a list of integers.</span>
@@ -643,7 +643,7 @@
 
 
 <div class="viewcode-block" id="VideoHumantrackFaceDemographicMapper.most_frequent_element_ratio">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.most_frequent_element_ratio">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper.most_frequent_element_ratio">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">most_frequent_element_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_list</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Finds the most frequent element in a list of strings and its proportion.</span>
@@ -664,7 +664,7 @@
 
 
 <div class="viewcode-block" id="VideoHumantrackFaceDemographicMapper.top_3_emotions">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.top_3_emotions">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper.top_3_emotions">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">top_3_emotions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emotion_list</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Calculates the average score for each emotion and returns the top 3 emotions with the highest average scores.</span>

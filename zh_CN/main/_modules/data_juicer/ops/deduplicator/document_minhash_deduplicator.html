@@ -798,6 +798,10 @@
 
         <span class="c1"># no need to deduplicate because too few samples</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Keep the early return consistent with the main path: the bytes</span>
+            <span class="c1"># minhash column must not be exported.</span>
+            <span class="k">if</span> <span class="n">HashKeys</span><span class="o">.</span><span class="n">minhash</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">([</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">minhash</span><span class="p">])</span>
             <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="p">{}</span>
 
         <span class="n">minhashes</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">minhash</span><span class="p">]</span>
@@ -883,6 +887,10 @@
 
         <span class="c1"># no need to deduplicate because too few samples</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Keep the early return consistent with the main path: the bytes</span>
+            <span class="c1"># minhash column must not be exported.</span>
+            <span class="k">if</span> <span class="n">HashKeys</span><span class="o">.</span><span class="n">minhash</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">([</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">minhash</span><span class="p">])</span>
             <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="p">{}</span>
 
         <span class="n">minhashes</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">HashKeys</span><span class="o">.</span><span class="n">minhash</span><span class="p">]</span>

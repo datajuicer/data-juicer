@@ -89,6 +89,71 @@ class DropTextContractTest(unittest.TestCase):
                 Exporter(str(path), export_in_parallel=False).export(result)
                 self.assertEqual(pq.read_table(path).to_pylist(), [expected])
 
+    def test_sample_cleanup_after_removing_last_nested_field(self):
+        cases = [
+            ("payload.text", {"payload": {"text": "source"}}, {}),
+            ("payload.text", {"payload": {"text": "source", "lang": "en"}}, {"payload": {"lang": "en"}}),
+            ("payload.parts.text", {"payload": {"parts": [{"text": "source"}]}}, {}),
+            ("payload.parts.text", {"payload": {"parts": [{"text": "source"}, None]}}, {}),
+            ("payload.parts.text", {"payload": {"parts": []}}, {"payload": {"parts": []}}),
+            ("payload.parts.text", {"payload": {"parts": None}}, {"payload": {"parts": None}}),
+            ("payload.text", {"payload": {"text": "source", "other": {}}}, {"payload": {"other": {}}}),
+        ]
+        for text_key, row, expected in cases:
+            with self.subTest(text_key=text_key, row=row):
+                source = deepcopy(row)
+                result = remove_text_from_sample(deepcopy(row), text_key)
+                self.assertEqual(result, expected)
+                self.assertEqual(remove_text_from_sample(result, text_key), expected)
+                self.assertEqual(row, source)
+
+    def test_ray_parquet_after_removing_last_nested_field(self):
+        import ray
+
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        owns_cluster = not ray.is_initialized()
+        if owns_cluster:
+            ray.init(
+                address="local",
+                num_cpus=2,
+                include_dashboard=False,
+                object_store_memory=256 * 1024**2,
+                log_to_driver=False,
+            )
+        try:
+            cases = [
+                ("payload.text", {"text": "source"}, None),
+                ("payload.text", {"text": "source", "lang": "en"}, {"lang": "en"}),
+                ("payload.parts.text", {"parts": [{"text": "source"}]}, None),
+                (
+                    "payload.parts.text",
+                    {"parts": [{"text": "source", "lang": "en"}, None]},
+                    {"parts": [{"lang": "en"}, None]},
+                ),
+            ]
+            for text_key, payload, expected_payload in cases:
+                for drop_text in (False, True):
+                    with self.subTest(text_key=text_key, payload=payload, drop_text=drop_text):
+                        op = self.make_keyword_op()
+                        op.text_key = text_key
+                        op.drop_text = drop_text
+                        row = {"id": 1, "payload": deepcopy(payload), Fields.meta: {"keyword": ["cached"]}}
+                        expected = {"id": 1, Fields.meta: {"keyword": ["cached"]}}
+                        if not drop_text:
+                            expected["payload"] = payload
+                        elif expected_payload is not None:
+                            expected["payload"] = expected_payload
+                        dataset = RayDataset(ray.data.from_items([row]), auto_op_parallelism=False)
+                        result = dataset.process(op)
+                        self.assertEqual(result.data.take_all(), [expected])
+                        with tempfile.TemporaryDirectory() as directory:
+                            result.data.write_parquet(directory)
+                            self.assertEqual(pq.read_table(directory).to_pylist(), [expected])
+        finally:
+            if owns_cluster:
+                ray.shutdown()
+
     def test_existing_nested_text(self):
         self.check_direct_and_dataset("payload.text", True)
 

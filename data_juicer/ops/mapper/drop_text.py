@@ -33,6 +33,8 @@ def _has_text_path(row, text_key):
 def _empty_struct(feature):
     while isinstance(feature, (List, LargeList)):
         feature = feature.feature
+    if isinstance(feature, list):
+        return bool(feature) and all(item is None or _empty_struct(item) for item in feature)
     return isinstance(feature, Mapping) and not feature
 
 
@@ -42,7 +44,7 @@ def _remove_text(value, text_key, source, *, prune_empty=False):
     if isinstance(value, list):
         removed = False
         for item in value:
-            if _remove_text(item, text_key, item):
+            if _remove_text(item, text_key, item, prune_empty=prune_empty):
                 removed = True
         return removed
     if not isinstance(value, MutableMapping) or not isinstance(source, Mapping):
@@ -62,7 +64,7 @@ def _remove_text(value, text_key, source, *, prune_empty=False):
 
 
 def remove_text_from_sample(sample, text_key):
-    _remove_text(sample, text_key, sample)
+    _remove_text(sample, text_key, sample, prune_empty=True)
     return sample
 
 

@@ -480,10 +480,10 @@
 
 
 <div class="viewcode-block" id="TempDirManager">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor.html#data_juicer.core.executor.TempDirManager">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor.html#data_juicer.core.executor.ray_executor.TempDirManager">[文档]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TempDirManager</span><span class="p">:</span>
 <div class="viewcode-block" id="TempDirManager.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor.html#data_juicer.core.executor.TempDirManager.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor.html#data_juicer.core.executor.ray_executor.TempDirManager.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_dir</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tmp_dir</span> <span class="o">=</span> <span class="n">tmp_dir</span></div>
 
@@ -507,7 +507,7 @@
 
 
 <div class="viewcode-block" id="RayExecutor">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.html#data_juicer.core.executor.RayExecutor">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor.html#data_juicer.core.executor.ray_executor.RayExecutor">[文档]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RayExecutor</span><span class="p">(</span><span class="n">ExecutorBase</span><span class="p">,</span> <span class="n">DAGExecutionMixin</span><span class="p">,</span> <span class="n">EventLoggingMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Executor based on Ray.</span>
@@ -521,7 +521,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="RayExecutor.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.html#data_juicer.core.executor.RayExecutor.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor.html#data_juicer.core.executor.ray_executor.RayExecutor.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Namespace</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -611,7 +611,7 @@
 
 
 <div class="viewcode-block" id="RayExecutor.run">
-<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.html#data_juicer.core.executor.RayExecutor.run">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.core.executor.ray_executor.html#data_juicer.core.executor.ray_executor.RayExecutor.run">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_data_np</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PositiveInt</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">skip_export</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">skip_return</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Running the dataset process pipeline</span>

@@ -549,6 +549,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">punctuation_pattern</span> <span class="o">=</span> <span class="n">regex</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\p</span><span class="si">{P}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="c1"># about deduplication</span>
+        <span class="k">if</span> <span class="n">num_blocks</span> <span class="o">&gt;</span> <span class="mi">64</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"num_blocks must be at most 64 for a 64-bit SimHash, got </span><span class="si">{</span><span class="n">num_blocks</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">hamming_distance</span> <span class="o">&gt;=</span> <span class="n">num_blocks</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"hamming_distance (</span><span class="si">{</span><span class="n">hamming_distance</span><span class="si">}</span><span class="s2">) must be less than "</span>
+                <span class="sa">f</span><span class="s2">"num_blocks (</span><span class="si">{</span><span class="n">num_blocks</span><span class="si">}</span><span class="s2">); otherwise a block-level match "</span>
+                <span class="sa">f</span><span class="s2">"cannot bound the Hamming distance."</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_blocks</span> <span class="o">=</span> <span class="n">num_blocks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hamming_distance</span> <span class="o">=</span> <span class="n">hamming_distance</span></div>
 

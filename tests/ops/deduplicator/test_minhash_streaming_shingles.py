@@ -118,6 +118,25 @@ class DocumentMinhashStreamingShinglesTest(DataJuicerTestCaseBase):
         repeated = op.compute_hash({"text": "alpha " * 200})
         self.assertEqual(unique[HashKeys.minhash], repeated[HashKeys.minhash])
 
+    def test_repeated_shingles_across_blocks_and_partial_tail(self):
+        from unittest.mock import patch
+
+        op = self._make_op("character", window_size=1)
+        # Two full blocks share hashes. The short final block contributes a new hash.
+        text = "aabb" + "abba" + "cc"
+        block_bytes = 4 * op.num_permutation * np.dtype(np.uint64).itemsize
+        target = DocumentMinhashDeduplicator.__module__ + "._MINHASH_PERMUTATION_BLOCK_BYTES"
+        sizes = []
+        original_fold = op._fold_minhash_block
+
+        def record(block, minima):
+            sizes.append(len(block))
+            return original_fold(block, minima)
+
+        with patch(target, block_bytes), patch.object(op, "_fold_minhash_block", side_effect=record):
+            self._assert_matches_reference(op, [text])
+        self.assertEqual(sizes, [4, 4, 2])
+
     def test_empty_text_uses_max_hash(self):
         op = self._make_op("space")
         result = op.compute_hash({"text": ""})

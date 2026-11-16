@@ -128,8 +128,8 @@ class DocumentMinhashDeduplicator(Deduplicator):
     - The deduplication process involves clustering and filtering, and only unique samples
       or the first sample in a cluster are retained.
     - Shingle hashes are folded in bounded blocks instead of materializing every shingle
-      and every hash, so peak memory does not grow with the number of shingles in one
-      document."""
+      and every hash. Shingle hash and permutation buffers are bounded by the block
+      size. Tokenization may still materialize all tokens for a document."""
 
     def __init__(
         self,
@@ -264,7 +264,8 @@ class DocumentMinhashDeduplicator(Deduplicator):
 
     def _fold_minhash_block(self, block, hash_values):
         """Fold one bounded block of shingle hashes into ``hash_values``."""
-        hv = np.asarray(block, dtype=np.uint64)
+        # Repeated hashes cannot change the per-permutation minima.
+        hv = np.asarray(list(set(block)), dtype=np.uint64)
         phv = np.bitwise_and(
             (hv[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME,
             MAX_HASH,

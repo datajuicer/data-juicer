@@ -618,6 +618,13 @@
 
             <span class="n">processed_batch_dict</span> <span class="o">=</span> <span class="n">sample_to_dict</span><span class="p">(</span><span class="n">processed_batch</span><span class="p">)</span>
 
+            <span class="c1"># Rows can only be paired by position when the op kept the number</span>
+            <span class="c1"># of rows. An op that splits or drops samples, or a batch emptied</span>
+            <span class="c1"># by a skipped op error, has no such pairs.</span>
+            <span class="n">num_processed</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">processed_batch_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="p">[]))</span>
+            <span class="k">if</span> <span class="n">num_processed</span> <span class="o">!=</span> <span class="n">num_samples</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">processed_batch</span>
+
             <span class="c1"># Collect changes for each sample</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">check_tracer_collect_complete</span><span class="p">(</span><span class="n">tracer</span><span class="p">,</span> <span class="n">op_name</span><span class="p">):</span>

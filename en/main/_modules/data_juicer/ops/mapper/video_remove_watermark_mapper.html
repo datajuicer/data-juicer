@@ -474,7 +474,7 @@
 
 
 <div class="viewcode-block" id="VideoRemoveWatermarkMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoRemoveWatermarkMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_remove_watermark_mapper.html#data_juicer.ops.mapper.video_remove_watermark_mapper.VideoRemoveWatermarkMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoRemoveWatermarkMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -490,7 +490,7 @@
 <span class="sd">    file if no save directory is provided."""</span>
 
 <div class="viewcode-block" id="VideoRemoveWatermarkMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoRemoveWatermarkMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_remove_watermark_mapper.html#data_juicer.ops.mapper.video_remove_watermark_mapper.VideoRemoveWatermarkMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">roi_strings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"0,0,0.1,0.1"</span><span class="p">],</span>
@@ -661,7 +661,7 @@
         <span class="k">return</span> <span class="n">av</span><span class="o">.</span><span class="n">VideoFrame</span><span class="o">.</span><span class="n">from_ndarray</span><span class="p">(</span><span class="n">new_np_frame</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"bgr24"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="VideoRemoveWatermarkMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoRemoveWatermarkMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_remove_watermark_mapper.html#data_juicer.ops.mapper.video_remove_watermark_mapper.VideoRemoveWatermarkMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># there is no video in this sample</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">video_key</span><span class="p">]:</span>

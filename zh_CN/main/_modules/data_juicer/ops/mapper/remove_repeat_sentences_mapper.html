@@ -553,7 +553,14 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lowercase</span> <span class="o">=</span> <span class="n">lowercase</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_repeat_sentence_length</span> <span class="o">=</span> <span class="n">min_repeat_sentence_length</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remove_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[^a-zA-Z0-9\u4e00-\u9fa5\n\t ]"</span><span class="p">)</span> <span class="k">if</span> <span class="n">ignore_special_character</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="c1"># keep the letters (with their combining marks) and numbers of every</span>
+        <span class="c1"># script: dropping e.g. Cyrillic or Hangul letters leaves only the</span>
+        <span class="c1"># spaces, so different sentences compare equal and are removed.</span>
+        <span class="c1"># Variation selectors and enclosing marks (the U+FE0F after an emoji,</span>
+        <span class="c1"># the U+20E3 keycap) belong to symbols, so they are removed too.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_regex</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[^\p</span><span class="si">{L}</span><span class="s2">\p</span><span class="si">{Mn}</span><span class="s2">\p</span><span class="si">{Mc}</span><span class="s2">\p</span><span class="si">{N}</span><span class="s2">\n\t ]|\p</span><span class="si">{Variation_Selector}</span><span class="s2">"</span><span class="p">)</span> <span class="k">if</span> <span class="n">ignore_special_character</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">tokenizer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize</span> <span class="o">=</span> <span class="n">split_sentence</span>

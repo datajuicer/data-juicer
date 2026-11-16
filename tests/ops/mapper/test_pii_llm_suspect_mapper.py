@@ -33,6 +33,12 @@ class TestPiiLlmSuspectHelpers(DataJuicerTestCaseBase):
     def test_heuristic_negative(self):
         self.assertFalse(_heuristic_trigger("hello world only"))
 
+    def test_heuristic_cues_next_to_cjk(self):
+        for text in ("我的password是hunter2", "请帮我登录公司内网的管理后台", "先连上vpn再访问"):
+            self.assertTrue(_heuristic_trigger(text), text)
+        for text in ("the tokenizer config", "openvpn client setup", "这些国内网站访问很快"):
+            self.assertFalse(_heuristic_trigger(text), text)
+
     def test_name_rule_zh_intro(self):
         self.assertTrue(_name_like_rule_trigger("我叫张三想咨询流程"))
 
@@ -44,6 +50,9 @@ class TestPiiLlmSuspectHelpers(DataJuicerTestCaseBase):
 
     def test_name_rule_negative_plain(self):
         self.assertFalse(_name_like_rule_trigger("hello world only generic text"))
+
+    def test_name_rule_en_title_next_to_cjk(self):
+        self.assertTrue(_name_like_rule_trigger("请联系Dr. Wang处理"))
 
     def test_normalize_spacy_models_list_and_legacy(self):
         self.assertEqual(
@@ -154,6 +163,26 @@ class TestPiiLlmSuspectMapper(DataJuicerTestCaseBase):
         meta = out[Fields.meta][MetaKeys.pii_llm_suspect]
         self.assertTrue(meta.get("skipped"))
         self.assertEqual(meta.get("reason"), "heuristic_gate")
+
+    @patch("data_juicer.ops.mapper.pii_llm_suspect_mapper.prepare_model")
+    @patch("data_juicer.ops.mapper.pii_llm_suspect_mapper.get_model")
+    def test_heuristic_gate_opens_on_secret_next_to_cjk(self, mock_get, mock_prepare):
+        def fake_client(messages, **kwargs):
+            return '{"suspected": [], "likely_clean": true}'
+
+        mock_prepare.return_value = lambda device="cpu": None
+        mock_get.return_value = fake_client
+
+        m = PiiLlmSuspectMapper(
+            api_model="qwen-turbo",
+            gate_mode="heuristic",
+            heuristic_name_rules=False,
+        )
+        sample = {Fields.meta: {}, "query": "数据库password为Abc12345"}
+        out = m.process_single(sample)
+        self.assertTrue(mock_get.called)
+        meta = out[Fields.meta][MetaKeys.pii_llm_suspect]
+        self.assertFalse(meta.get("skipped"))
 
     @patch("data_juicer.ops.mapper.pii_llm_suspect_mapper.prepare_model")
     @patch("data_juicer.ops.mapper.pii_llm_suspect_mapper.get_model")

@@ -111,6 +111,35 @@ class RemoveRepeatSentencesMapperTest(DataJuicerTestCaseBase):
         op = RemoveRepeatSentencesMapper()
         self._run_helper(samples, op)
 
+    def test_letters_of_other_scripts_are_not_special_characters(self):
+
+        samples = [{
+            'text': 'Я люблю тебя. Он пошёл домой. Я люблю тебя.',
+            'target': 'Я люблю тебя. Он пошёл домой.'
+        }, {
+            'text': '나는 학생 입니다. 그는 의사 입니다.',
+            'target': '나는 학생 입니다. 그는 의사 입니다.'
+        }, {
+            'text': 'Ελπίζω να είσαι καλά. Θα τα πούμε αύριο.',
+            'target': 'Ελπίζω να είσαι καλά. Θα τα πούμε αύριο.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
+    def test_emoji_variation_selector_and_keycap_are_special_characters(self):
+
+        samples = [{
+            'text': 'Daily forecast\u2600\ufe0f. Daily forecast.',
+            'target': 'Daily forecast\u2600\ufe0f.'
+        }, {
+            'text': 'Press 1\ufe0f\u20e3 now. Press 1 now.',
+            'target': 'Press 1\ufe0f\u20e3 now.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
     def test_custom_tokenizer_callable(self):
 
         from nltk.tokenize import sent_tokenize

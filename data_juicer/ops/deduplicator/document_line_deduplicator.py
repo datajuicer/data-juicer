@@ -147,6 +147,10 @@ class DocumentLineDeduplicator(Deduplicator):
             to sample texts that contained it.
         """
         if len(dataset) <= 1:
+            # nothing to remove, but the temporary column must not reach the
+            # output, as on the other return paths
+            if HashKeys.line_hashes in dataset.column_names:
+                dataset = dataset.remove_columns([HashKeys.line_hashes])
             return dataset, {}
 
         # --- count document frequency for each line hash ---------------

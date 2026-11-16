@@ -33,6 +33,34 @@ _OBJECT_EDGE_DTYPE = np.dtype([("u", object), ("v", object)])
 HASH_PAIR_BLOCK_BYTES = 8 << 20
 HASH_BOUNDARY_CHUNK_ROWS = 1 << 20
 
+# Keep in sync with document_minhash_deduplicator._MINHASH_PERMUTATION_BLOCK_BYTES.
+_MINHASH_PERMUTATION_BLOCK_BYTES = 8 * 1024 * 1024
+
+
+def _minhash_values_from_tokens(tokens, perm_a, perm_b, num_permutation, block_bytes=_MINHASH_PERMUTATION_BLOCK_BYTES):
+    """Compute MinHash minima without materializing the full N x P matrix.
+
+    The permutation matrix is the dominant transient allocation for a long
+    document. Fold it in bounded blocks; uint32 min is associative and
+    commutative, so applying the same truncation before the minimum gives
+    element-wise identical results to the full-matrix implementation.
+    """
+    hv = np.fromiter((sha1_hash32(token) for token in tokens), dtype=np.uint64, count=len(tokens))
+    if len(hv) == 0:
+        return np.full(num_permutation, MAX_HASH, dtype=np.uint32)
+    bytes_per_token = num_permutation * np.dtype(np.uint64).itemsize
+    tokens_per_block = max(1, block_bytes // bytes_per_token)
+    hash_values = None
+    for start in range(0, len(hv), tokens_per_block):
+        block = hv[start : start + tokens_per_block]
+        phv = ((block[:, None] * perm_a[None, :] + perm_b) % MERSENNE_PRIME).astype(np.uint32)
+        block_min = phv.min(axis=0)
+        if hash_values is None:
+            hash_values = block_min
+        else:
+            np.minimum(hash_values, block_min, out=hash_values)
+    return hash_values
+
 
 def _empty_edge_array():
     return np.empty(0, dtype=EDGE_DTYPE)
@@ -883,9 +911,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
 
             tokens = self.tokenization_func(text)
             if len(tokens) > 0:
-                hv = np.array([sha1_hash32(token) for token in tokens], dtype=np.uint64)
-                phv = ((hv[:, None] * self.perm_a[None, :] + self.perm_b) % MERSENNE_PRIME).astype(np.uint32)
-                hash_values = phv.min(axis=0)
+                hash_values = _minhash_values_from_tokens(tokens, self.perm_a, self.perm_b, self.num_permutation)
                 for i, (start, end) in enumerate(self.hash_ranges):
                     hash_value = i.to_bytes(4, "big") + hash_values[start:end].tobytes()
                     hash_table_id = hash_values[start] % self.union_find_parallel_num

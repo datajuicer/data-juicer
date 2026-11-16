@@ -93,8 +93,12 @@ class RemoveRepeatSentencesMapper(Mapper):
         self.min_repeat_sentence_length = min_repeat_sentence_length
         # keep the letters (with their combining marks) and numbers of every
         # script: dropping e.g. Cyrillic or Hangul letters leaves only the
-        # spaces, so different sentences compare equal and are removed
-        self.remove_regex = re.compile(r"[^\p{L}\p{M}\p{N}\n\t ]") if ignore_special_character else None
+        # spaces, so different sentences compare equal and are removed.
+        # Variation selectors and enclosing marks (the U+FE0F after an emoji,
+        # the U+20E3 keycap) belong to symbols, so they are removed too.
+        self.remove_regex = (
+            re.compile(r"[^\p{L}\p{Mn}\p{Mc}\p{N}\n\t ]|\p{Variation_Selector}") if ignore_special_character else None
+        )
 
         if tokenizer is None:
             self._tokenize = split_sentence

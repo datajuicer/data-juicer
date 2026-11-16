@@ -841,17 +841,9 @@
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dup_pairs</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">show_num</span><span class="p">:</span>
                     <span class="k">break</span>
 
-        <span class="c1"># filtering -- only keep those samples whose parent index is itself,</span>
-        <span class="c1"># including:</span>
-        <span class="c1"># 1. samples that form a cluster by themselves</span>
-        <span class="c1"># 2. the first sample in a cluster that includes multiple samples</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">_filter_minhash_dup_helper</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">union_find</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="n">index</span>
-
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">_filter_minhash_dup_helper</span><span class="p">,</span>
-            <span class="n">with_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="c1"># Keep roots only. `select` avoids a Python UDF call for every row.</span>
+        <span class="n">keep_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span> <span class="k">if</span> <span class="n">union_find</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="n">index</span><span class="p">]</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">keep_indices</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Keep </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples after MinHash dedup."</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">dup_pairs</span></div>

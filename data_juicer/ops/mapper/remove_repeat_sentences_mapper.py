@@ -7,17 +7,22 @@ from ..base_op import OPERATORS, Mapper
 
 
 def _break_on_sentence_punct(match):
-    """Put a newline after sentence punctuation, but not inside a number.
+    """Put a newline after sentence punctuation, but not inside a number or word.
 
-    A '.' with a digit on both sides is a decimal point or a version dot.
-    Treating it as a sentence end makes the fractional piece its own sentence,
-    so a later different sentence that shares those digits loses them.
+    A '.' with a digit on both sides is a decimal point or a version dot, in
+    any script. A '.' with an ASCII letter or digit on both sides is also part
+    of a domain, URL or file name (example.com, setup.py). Treating either as
+    a sentence end makes the piece after the dot its own sentence, so a later
+    different sentence that shares that piece loses it.
     """
     punct = match.group(1)
     nxt = match.group(2)
     prev = match.string[match.start() - 1] if match.start() else ""
-    if punct == "." and prev.isdigit() and nxt.isdigit():
-        return match.group(0)
+    if punct == ".":
+        if prev.isdigit() and nxt.isdigit():
+            return match.group(0)
+        if (prev + nxt).isascii() and prev.isalnum() and nxt.isalnum():
+            return match.group(0)
     return punct + "\n" + nxt
 
 

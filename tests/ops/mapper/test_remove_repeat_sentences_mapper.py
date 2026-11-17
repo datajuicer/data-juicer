@@ -83,6 +83,38 @@ class RemoveRepeatSentencesMapperTest(DataJuicerTestCaseBase):
         op = RemoveRepeatSentencesMapper()
         self._run_helper(samples, op)
 
+    def test_dot_inside_a_word_is_not_a_sentence_boundary(self):
+
+        samples = [{
+            'text': 'Docs are at example.com for you. Mirrors live at test.com for you.',
+            'target': 'Docs are at example.com for you. Mirrors live at test.com for you.'
+        }, {
+            'text': 'See https://github.com/org/repo for code. The demo is at https://gitlab.com/org/repo for code.',
+            'target': 'See https://github.com/org/repo for code. The demo is at https://gitlab.com/org/repo for code.'
+        }, {
+            'text': 'Open config.yaml and save. Open config.yaml and save.',
+            'target': 'Open config.yaml and save.'
+        }, {
+            'text': '今天很好.明天也好.今天很好.',
+            'target': '今天很好.明天也好.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
+    def test_dot_between_non_ascii_digits_is_not_a_sentence_boundary(self):
+
+        samples = [{
+            'text': 'Price rose to ١.٥ dollars. It fell to ٢.٥ dollars.',
+            'target': 'Price rose to ١.٥ dollars. It fell to ٢.٥ dollars.'
+        }, {
+            'text': 'Price rose to ١.٥ dollars. Price rose to ١.٥ dollars.',
+            'target': 'Price rose to ١.٥ dollars.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
     def test_decimal_point_is_not_a_sentence_boundary(self):
 
         samples = [{

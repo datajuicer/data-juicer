@@ -26,7 +26,10 @@ class RemoveBibliographyMapper(Mapper):
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
-        self.pattern = r"(\\appendix|"
+        # \appendix, or \appendices in IEEEtran, as a whole command: \appendixname and other
+        # longer commands must not remove the rest of the text
+        self.pattern = r"(\\appendi(?:x|ces)(?![a-zA-Z])|"
+        self.pattern += r"\\begin\{appendices\}|"
         self.pattern += r"\\begin\{references\}|"
         self.pattern += r"\\begin\{REFERENCES\}|"
         self.pattern += r"\\begin\{thebibliography\}|"

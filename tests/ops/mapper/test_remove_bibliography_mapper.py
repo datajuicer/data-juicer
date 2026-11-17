@@ -41,6 +41,48 @@ class RemoveBibliographyMapperTest(DataJuicerTestCaseBase):
 
         self._run_remove_bibliography(samples)
 
+    def test_longer_command_starting_with_appendix_is_kept(self):
+
+        preamble = ('\\documentclass{article}\n\\renewcommand{\\appendixname}{Supplement}\n'
+                    '\\begin{document}\n\\section{Intro}\nBody text.\n')
+        body = ('\\section{Intro}\nAs shown in \\appendixname~A, the loss falls.\n'
+                '\\section{Method}\nMore text.\n')
+        samples = [{
+            'text': preamble,
+            'target': preamble
+        }, {
+            'text': body,
+            'target': body
+        }]
+
+        self._run_remove_bibliography(samples)
+
+    def test_appendix_command_removes_the_rest(self):
+
+        samples = [{
+            'text': 'Body text.\n\\appendix\n\\section{Proofs}\nProof.\n',
+            'target': 'Body text.\n'
+        }, {
+            'text': 'Body text.\n\\appendix\\section{Proofs}\nProof.\n',
+            'target': 'Body text.\n'
+        }, {
+            'text': 'Body text.\n\\appendix',
+            'target': 'Body text.\n'
+        }, {
+            'text': '正文。\n\\appendix附录内容',
+            'target': '正文。\n'
+        }, {
+            # IEEEtran
+            'text': 'Body text.\n\\appendices\n\\section{Proofs}\nProof.\n',
+            'target': 'Body text.\n'
+        }, {
+            # the appendix package
+            'text': 'Body text.\n\\begin{appendices}\n\\section{Proofs}\n\\end{appendices}\n',
+            'target': 'Body text.\n'
+        }]
+
+        self._run_remove_bibliography(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

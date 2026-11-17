@@ -173,6 +173,21 @@ class ArxivExtractorTest(DataJuicerTestCaseBase):
         self.assertNotIn("Drop", cleaned)
 
     @TEST_TAG("standalone")
+    def test_clean_tex_keeps_the_text_after_appendixname(self):
+        extractor = ArxivExtractor()
+        content = (
+            "\\section{Intro}\n"
+            "As shown in \\appendixname~A, the loss falls.\n"
+            "\\section{Method}\n"
+            "Keep this.\n"
+            "\\appendices\nDrop"
+        )
+        macros = extractor._build_non_arg_macros_dict(content)
+        cleaned = extractor._clean_tex_file(content, {r"\\takesarg": "unused"}, macros)
+        self.assertIn("Keep this.", cleaned)
+        self.assertNotIn("Drop", cleaned)
+
+    @TEST_TAG("standalone")
     def test_clean_tex_without_section_is_empty(self):
         self.assertEqual(ArxivExtractor()._clean_tex_file("plain text", {}, {}), "")
 

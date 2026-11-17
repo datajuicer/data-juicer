@@ -82,6 +82,42 @@ class ExtractTablesFromHtmlMapperTest(DataJuicerTestCaseBase):
         op = ExtractTablesFromHtmlMapper(retain_html_tags=False, include_header=False)
         self._run_mapper(op, ds_list)
 
+    def test_without_header_keeps_rows_with_row_headers(self):
+        html = ("<table>"
+                "<tr><th>Country</th><th>Capital</th></tr>"
+                "<tr><th>France</th><td>Paris</td></tr>"
+                "<tr><th>Japan</th><td>Tokyo</td></tr>"
+                "</table>")
+        op = ExtractTablesFromHtmlMapper(retain_html_tags=False, include_header=False)
+        sample = op.process_single({'text': html, Fields.meta: {}})
+        self.assertEqual(sample[Fields.meta][MetaKeys.html_tables],
+                         [[['France', 'Paris'], ['Japan', 'Tokyo']]])
+
+        op = ExtractTablesFromHtmlMapper(retain_html_tags=False, include_header=True)
+        sample = op.process_single({'text': html, Fields.meta: {}})
+        self.assertEqual(sample[Fields.meta][MetaKeys.html_tables],
+                         [[['Country', 'Capital'], ['France', 'Paris'], ['Japan', 'Tokyo']]])
+
+    def test_without_header_skips_header_row_with_empty_corner_cell(self):
+        html = ("<table>"
+                "<tr><td></td><th>2020</th><th>2021</th></tr>"
+                "<tr><th>Sales</th><td>1</td><td>2</td></tr>"
+                "</table>")
+        op = ExtractTablesFromHtmlMapper(retain_html_tags=False, include_header=False)
+        sample = op.process_single({'text': html, Fields.meta: {}})
+        self.assertEqual(sample[Fields.meta][MetaKeys.html_tables], [[['Sales', '1', '2']]])
+
+    def test_without_header_skips_thead_rows_and_keeps_row_headers(self):
+        html = ("<table>"
+                "<thead><tr><td>Metric</td><th>2024</th></tr></thead>"
+                "<tbody><tr><th>Revenue</th><td>10</td></tr></tbody>"
+                "</table>")
+        for include_header, expected in [(False, [[['Revenue', '10']]]),
+                                         (True, [[['Metric', '2024'], ['Revenue', '10']]])]:
+            op = ExtractTablesFromHtmlMapper(retain_html_tags=False, include_header=include_header)
+            dataset = op.run(Dataset.from_list([{'text': html}]))
+            self.assertEqual(dataset[0][Fields.meta][MetaKeys.html_tables], expected)
+
     def test_multiple_tables(self):
         ds_list = [{
             'text': self.raw_html + self.raw_html

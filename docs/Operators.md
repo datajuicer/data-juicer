@@ -43,7 +43,7 @@ Data-Juicer 中的算子分为以下 8 种类型。
 |------|:------:|-------------|
 | [aggregator](#aggregator) | 4 | Aggregate for batched samples, such as summary or conclusion. 对批量样本进行汇总，如得出总结或结论。 |
 | [deduplicator](#deduplicator) | 10 | Detects and removes duplicate samples. 识别、删除重复样本。 |
-| [filter](#filter) | 58 | Filters out low-quality samples. 过滤低质量样本。 |
+| [filter](#filter) | 59 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
 | [mapper](#mapper) | 138 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
@@ -103,6 +103,7 @@ All the specific operators are listed below, each featured with several capabili
 | audio_nmf_snr_filter | 📣Audio 💻CPU 🟢Stable | Keep data samples whose audio Signal-to-Noise Ratios (SNRs) are within a specified range. 保留音频信噪比 (snr) 在指定范围内的数据样本。 | [info](operators/filter/audio_nmf_snr_filter.md) | - |
 | audio_size_filter | 📣Audio 💻CPU 🟢Stable | Keep data samples based on the size of their audio files. 根据音频文件的大小保留数据样本。 | [info](operators/filter/audio_size_filter.md) | - |
 | average_line_length_filter | 🔤Text 💻CPU 🟢Stable | Filter to keep samples with average line length within a specific range. 过滤器，以保持平均线长度在特定范围内的样本。 | [info](operators/filter/average_line_length_filter.md) | - |
+| benchmark_contamination_filter | 🔤Text 💻CPU 🟡Beta | Filter out samples that are contaminated by a benchmark corpus. 过滤出被基准语料库污染的样本。 | - | - |
 | character_repetition_filter | 🔤Text 💻CPU 🟢Stable | Filter to keep samples with character-level n-gram repetition ratio within a specific range. 过滤器将具有字符级n-gram重复比的样本保持在特定范围内。 | [info](operators/filter/character_repetition_filter.md) | - |
 | flagged_words_filter | 🔤Text 💻CPU 🟢Stable | Filter to keep samples with flagged-word ratio in a specified range. 过滤器将标记词比率的样本保留在指定范围内。 | [info](operators/filter/flagged_words_filter.md) | - |
 | general_field_filter | 💻CPU 🟡Beta | Filter to keep samples based on a general field filter condition. 根据常规字段筛选条件保留样本。 | [info](operators/filter/general_field_filter.md) | - |

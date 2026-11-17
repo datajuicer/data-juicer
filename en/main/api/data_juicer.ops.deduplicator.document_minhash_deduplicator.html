@@ -511,6 +511,9 @@ by an optimal parameter computation algorithm. Important notes:
 <li><p>For ‘sentencepiece’ tokenization, a tokenizer model path is required.</p></li>
 <li><p>The deduplication process involves clustering and filtering, and only unique samples
 or the first sample in a cluster are retained.</p></li>
+<li><p>Shingle hashes are folded in bounded blocks instead of materializing every shingle
+and every hash. Shingle hash and permutation buffers are bounded by the block
+size. Tokenization may still materialize all tokens for a document.</p></li>
 </ul>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.deduplicator.document_minhash_deduplicator.DocumentMinhashDeduplicator.__init__">

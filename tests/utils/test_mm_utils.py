@@ -346,6 +346,23 @@ class MMTest(DataJuicerTestCaseBase):
         with self.assertRaises(ValueError):
             insert_texts_after_placeholders('no place holders', ['<ph1>', '<ph2>'], ['f', 'g'])
 
+    def test_insert_texts_after_repeated_placeholders(self):
+        # the captioning mappers pass [SpecialTokens.image] * img_count: the
+        # i-th text belongs right after the i-th occurrence of the token
+        test_data = [
+            ('<ph><ph>', ['<ph>', '<ph>'], ['f', 'g'], ' ', '<ph> f <ph> g '),
+            ('a<ph>b<ph>c<ph>', ['<ph>'] * 3, ['f', 'g', 'h'], '', 'a<ph>fb<ph>gc<ph>h'),
+            # placeholders listed out of string order still find their own spot
+            ('a<ph2>b<ph1>c', ['<ph1>', '<ph2>'], ['f', 'g'], '', 'a<ph2>gb<ph1>fc'),
+            ('<a>x<b>y<a>', ['<b>', '<a>', '<a>'], ['1', '2', '3'], '', '<a>2x<b>1y<a>3'),
+        ]
+        for string, phs, new_txts, delimiter, tgt_res in test_data:
+            self.assertEqual(insert_texts_after_placeholders(string, phs, new_txts, delimiter), tgt_res)
+
+        with self.assertRaises(ValueError):
+            # more texts than occurrences of the placeholder
+            insert_texts_after_placeholders('<ph>', ['<ph>', '<ph>'], ['f', 'g'])
+
     def test_timecode_string_to_seconds(self):
         test_data = [
             ('23:59:59.123', 86399.123),

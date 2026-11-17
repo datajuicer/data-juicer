@@ -1001,22 +1001,24 @@ def insert_texts_after_placeholders(original_string, placeholders, new_texts, de
     if len(placeholders) != len(new_texts):
         raise ValueError("The number of placeholders and new_texts must be equal")
 
-    modified_string = original_string
+    # Each text goes after the next unused occurrence of its placeholder, so a
+    # repeated placeholder (e.g. one image token per image) gets one text each.
+    insert_positions = []
+    search_from = {}
     for placeholder, new_text in zip(placeholders, new_texts):
-        # Find the index of the next occurrence of the placeholder
-        index = modified_string.find(placeholder)
+        index = original_string.find(placeholder, search_from.get(placeholder, 0))
         if index == -1:
             raise ValueError(f"Placeholder '{placeholder}' not found in the string")
-        # Insert new_text at the found index position
-        modified_string = (
-            modified_string[: index + len(placeholder)]
-            + delimiter_in_insert_pos
-            + new_text
-            + delimiter_in_insert_pos
-            + modified_string[index + len(placeholder) :]
-        )
+        search_from[placeholder] = index + len(placeholder)
+        insert_positions.append((index + len(placeholder), new_text))
 
-    return modified_string
+    pieces = []
+    last = 0
+    for pos, new_text in sorted(insert_positions, key=lambda item: item[0]):
+        pieces += [original_string[last:pos], delimiter_in_insert_pos, new_text, delimiter_in_insert_pos]
+        last = pos
+    pieces.append(original_string[last:])
+    return "".join(pieces)
 
 
 def timecode_string_to_seconds(timecode: str):

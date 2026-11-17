@@ -455,7 +455,7 @@
 
 
 <div class="viewcode-block" id="ExtractTablesFromHtmlMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractTablesFromHtmlMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_tables_from_html_mapper.html#data_juicer.ops.mapper.extract_tables_from_html_mapper.ExtractTablesFromHtmlMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExtractTablesFromHtmlMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -469,7 +469,7 @@
 <span class="sd">    been extracted, the operator will not reprocess the sample."""</span>
 
 <div class="viewcode-block" id="ExtractTablesFromHtmlMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractTablesFromHtmlMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_tables_from_html_mapper.html#data_juicer.ops.mapper.extract_tables_from_html_mapper.ExtractTablesFromHtmlMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tables_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MetaKeys</span><span class="o">.</span><span class="n">html_tables</span><span class="p">,</span>
@@ -497,7 +497,7 @@
 
 
 <div class="viewcode-block" id="ExtractTablesFromHtmlMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.ExtractTablesFromHtmlMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.extract_tables_from_html_mapper.html#data_juicer.ops.mapper.extract_tables_from_html_mapper.ExtractTablesFromHtmlMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables_field_name</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">]:</span>
@@ -522,14 +522,22 @@
         <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
             <span class="n">extracted_rows</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s2">"tr"</span><span class="p">):</span>
-                <span class="n">is_header_row</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"th"</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="n">cells</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">find_all</span><span class="p">([</span><span class="s2">"td"</span><span class="p">,</span> <span class="s2">"th"</span><span class="p">],</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="c1"># rows in &lt;thead&gt; are header rows; elsewhere a header row has</span>
+                <span class="c1"># &lt;th&gt; cells and no &lt;td&gt; with text (an empty corner cell is</span>
+                <span class="c1"># allowed), and a &lt;th&gt; next to &lt;td&gt; values is a row header in a</span>
+                <span class="c1"># body row</span>
+                <span class="n">is_header_row</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"thead"</span> <span class="ow">or</span> <span class="p">(</span>
+                    <span class="nb">any</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"th"</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">cells</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"td"</span> <span class="ow">and</span> <span class="n">cell</span><span class="o">.</span><span class="n">get_text</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">cells</span><span class="p">)</span>
+                <span class="p">)</span>
 
                 <span class="c1"># skip rows based on the include_header flag</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_header</span> <span class="ow">and</span> <span class="n">is_header_row</span><span class="p">:</span>
                     <span class="k">continue</span>
 
                 <span class="c1"># extract text content from cells</span>
-                <span class="n">row_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">cell</span><span class="o">.</span><span class="n">get_text</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">find_all</span><span class="p">([</span><span class="s2">"td"</span><span class="p">,</span> <span class="s2">"th"</span><span class="p">],</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+                <span class="n">row_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">cell</span><span class="o">.</span><span class="n">get_text</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">cells</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">row_data</span><span class="p">:</span>
                     <span class="n">extracted_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row_data</span><span class="p">)</span>
 

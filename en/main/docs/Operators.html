@@ -492,7 +492,7 @@ Data-Juicer 中的算子分为以下 8 种类型。</p>
 <td><p>Detects and removes duplicate samples. 识别、删除重复样本。</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.core.html#data_juicer.core.NestedDataset.filter" title="data_juicer.core.NestedDataset.filter"><span class="xref myst py py-meth">filter</span></a></p></td>
-<td class="text-center"><p>58</p></td>
+<td class="text-center"><p>59</p></td>
 <td><p>Filters out low-quality samples. 过滤低质量样本。</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.format.formatter.html#module-data_juicer.format.formatter" title="data_juicer.format.formatter"><span class="xref myst py py-mod">formatter</span></a></p></td>
@@ -707,319 +707,325 @@ Data-Juicer 中的算子分为以下 8 种类型。</p>
 <td><p><a class="reference internal" href="operators/filter/average_line_length_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>character_repetition_filter</p></td>
+<tr class="row-odd"><td><p>benchmark_contamination_filter</p></td>
+<td><p>🔤Text 💻CPU 🟡Beta</p></td>
+<td><p>Filter out samples that are contaminated by a benchmark corpus. 过滤出被基准语料库污染的样本。</p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>character_repetition_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with character-level n-gram repetition ratio within a specific range. 过滤器将具有字符级n-gram重复比的样本保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/character_repetition_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>flagged_words_filter</p></td>
+<tr class="row-odd"><td><p>flagged_words_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with flagged-word ratio in a specified range. 过滤器将标记词比率的样本保留在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/flagged_words_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>general_field_filter</p></td>
+<tr class="row-even"><td><p>general_field_filter</p></td>
 <td><p>💻CPU 🟡Beta</p></td>
 <td><p>Filter to keep samples based on a general field filter condition. 根据常规字段筛选条件保留样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/general_field_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>image_aesthetics_filter</p></td>
+<tr class="row-odd"><td><p>image_aesthetics_filter</p></td>
 <td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples with aesthetics scores within a specific range. 过滤以保持美学分数在特定范围内的样品。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_aesthetics_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>image_aspect_ratio_filter</p></td>
+<tr class="row-even"><td><p>image_aspect_ratio_filter</p></td>
 <td><p>🏞Image 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with image aspect ratio within a specific range. 过滤器，以保持样本的图像纵横比在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_aspect_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>image_face_count_filter</p></td>
+<tr class="row-odd"><td><p>image_face_count_filter</p></td>
 <td><p>🏞Image 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with the number of faces within a specific range. 过滤以保持样本的面数在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_face_count_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>image_face_ratio_filter</p></td>
+<tr class="row-even"><td><p>image_face_ratio_filter</p></td>
 <td><p>🏞Image 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with face area ratios within a specific range. 过滤以保持面面积比在特定范围内的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_face_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>image_nsfw_filter</p></td>
+<tr class="row-odd"><td><p>image_nsfw_filter</p></td>
 <td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples whose images have nsfw scores in a specified range. 过滤器保留其图像的nsfw分数在指定范围内的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_nsfw_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>image_pair_similarity_filter</p></td>
+<tr class="row-even"><td><p>image_pair_similarity_filter</p></td>
 <td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep image pairs with similarities between images within a specific range. 过滤器将图像之间具有相似性的图像对保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_pair_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>image_shape_filter</p></td>
+<tr class="row-odd"><td><p>image_shape_filter</p></td>
 <td><p>🏞Image 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with image shape (width, height) within specific ranges. 过滤器，以保持样本的图像形状 (宽度，高度) 在特定的范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_shape_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>image_size_filter</p></td>
+<tr class="row-even"><td><p>image_size_filter</p></td>
 <td><p>🏞Image 💻CPU 🟢Stable</p></td>
 <td><p>Keep data samples whose image size (in Bytes/KB/MB/…) is within a specific range. 保留图像大小 (以字节/KB/MB/… 为单位) 在特定范围内的数据样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_size_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>image_subplot_filter</p></td>
+<tr class="row-odd"><td><p>image_subplot_filter</p></td>
 <td><p>🏞Image 💻CPU 🟡Beta</p></td>
 <td><p>Filter to detect and remove samples with images containing subplots. 过滤器来检测和删除包含子图的图像样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_subplot_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>image_text_matching_filter</p></td>
+<tr class="row-even"><td><p>image_text_matching_filter</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples with image-text matching scores within a specific range. 过滤器将图像文本匹配分数的样本保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_text_matching_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>image_text_similarity_filter</p></td>
+<tr class="row-odd"><td><p>image_text_similarity_filter</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples with image-text similarity within a specified range. 过滤器将具有图像-文本相似性的样本保持在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_text_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>image_watermark_filter</p></td>
+<tr class="row-even"><td><p>image_watermark_filter</p></td>
 <td><p>🏞Image 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples whose images have no watermark with high probability. 过滤器以保持其图像没有水印的样本具有高概率。</p></td>
 <td><p><a class="reference internal" href="operators/filter/image_watermark_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>in_context_influence_filter</p></td>
+<tr class="row-odd"><td><p>in_context_influence_filter</p></td>
 <td><p>🚀GPU 🟢Stable</p></td>
 <td><p>Filter to keep texts based on their in-context influence on a validation set. 过滤以根据文本在上下文中对验证集的影响来保留文本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/in_context_influence_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>instruction_following_difficulty_filter</p></td>
+<tr class="row-even"><td><p>instruction_following_difficulty_filter</p></td>
 <td><p>🚀GPU 🟡Beta</p></td>
 <td><p>Filter to keep texts based on their instruction following difficulty (IFD, <a class="reference external" href="https://arxiv.org/abs/2308.12032">https://arxiv.org/abs/2308.12032</a>) score. 过滤以保持文本基于他们的指令跟随难度 (IFD， <a class="reference external" href="https://arxiv.org/abs/">https://arxiv.org/abs/</a> 2308.12032) 分数。</p></td>
 <td><p><a class="reference internal" href="operators/filter/instruction_following_difficulty_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2308.12032">IFD</a></p></td>
 </tr>
-<tr class="row-even"><td><p>language_id_score_filter</p></td>
+<tr class="row-odd"><td><p>language_id_score_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples in a specific language with a confidence score above a threshold. 过滤器以保留置信度高于阈值的特定语言的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/language_id_score_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>llm_analysis_filter</p></td>
+<tr class="row-even"><td><p>llm_analysis_filter</p></td>
 <td><p>🚀GPU 🌊vLLM 🧩HF 🔗API 🟡Beta</p></td>
 <td><p>Base filter class for leveraging LLMs to analyze and filter data samples. 用于利用LLMs分析和过滤数据样本的基本筛选器类。</p></td>
 <td><p><a class="reference internal" href="operators/filter/llm_analysis_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>llm_condition_filter</p></td>
+<tr class="row-odd"><td><p>llm_condition_filter</p></td>
 <td><p>🔤Text 🚀GPU 🌊vLLM 🧩HF 🔗API 🟡Beta</p></td>
 <td><p>Filter by user-given natural language condition (LLM yes/no). 按用户给定的自然语言条件进行过滤 (LLM是/否)。</p></td>
 <td><p><a class="reference internal" href="operators/filter/llm_condition_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>llm_difficulty_score_filter</p></td>
+<tr class="row-even"><td><p>llm_difficulty_score_filter</p></td>
 <td><p>💻CPU 🟡Beta</p></td>
 <td><p>Filter to keep samples with high difficulty scores estimated by an LLM. 过滤器以保留由LLM估计的高难度分数的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/llm_difficulty_score_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>llm_perplexity_filter</p></td>
+<tr class="row-odd"><td><p>llm_perplexity_filter</p></td>
 <td><p>🚀GPU 🧩HF 🟡Beta</p></td>
 <td><p>Filter to keep samples with perplexity scores within a specified range, computed using a specified LLM. 过滤器将困惑分数的样本保留在指定范围内，使用指定的LLM计算。</p></td>
 <td><p><a class="reference internal" href="operators/filter/llm_perplexity_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>llm_quality_score_filter</p></td>
+<tr class="row-even"><td><p>llm_quality_score_filter</p></td>
 <td><p>💻CPU 🟡Beta</p></td>
 <td><p>Filter to keep samples with a high quality score estimated by a language model. 过滤器，以保留具有语言模型估计的高质量分数的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/llm_quality_score_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>llm_task_relevance_filter</p></td>
+<tr class="row-odd"><td><p>llm_task_relevance_filter</p></td>
 <td><p>💻CPU 🟡Beta</p></td>
 <td><p>Filter to keep samples with high relevance scores to validation tasks estimated by an LLM. 过滤器以保留与LLM估计的验证任务具有高相关性分数的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/llm_task_relevance_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>maximum_line_length_filter</p></td>
+<tr class="row-even"><td><p>maximum_line_length_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with a maximum line length within a specified range. 筛选器将最大行长度的样本保持在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/maximum_line_length_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>perplexity_filter</p></td>
+<tr class="row-odd"><td><p>perplexity_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with perplexity score in a specified range. 过滤以保持困惑分数在指定范围内的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/perplexity_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>phrase_grounding_recall_filter</p></td>
+<tr class="row-even"><td><p>phrase_grounding_recall_filter</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples based on the phrase grounding recall of phrases extracted from text in images. 根据从图像中的文本中提取的短语接地召回来过滤以保留样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/phrase_grounding_recall_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>special_characters_filter</p></td>
+<tr class="row-odd"><td><p>special_characters_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with special-character ratio within a specific range. 过滤器，以将具有特殊字符比率的样本保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/special_characters_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>specified_field_filter</p></td>
+<tr class="row-even"><td><p>specified_field_filter</p></td>
 <td><p>💻CPU 🟢Stable</p></td>
 <td><p>Filter samples based on the specified field information. 根据指定的字段信息筛选样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/specified_field_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>specified_numeric_field_filter</p></td>
+<tr class="row-odd"><td><p>specified_numeric_field_filter</p></td>
 <td><p>💻CPU 🟢Stable</p></td>
 <td><p>Filter samples based on a specified numeric field value. 根据指定的数值字段值筛选样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/specified_numeric_field_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>stopwords_filter</p></td>
+<tr class="row-even"><td><p>stopwords_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with stopword ratio within a specified range. 过滤器将停止词比率的样本保持在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/stopwords_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>suffix_filter</p></td>
+<tr class="row-odd"><td><p>suffix_filter</p></td>
 <td><p>💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with specified suffix. 过滤器以保留具有指定后缀的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/suffix_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>text_action_filter</p></td>
+<tr class="row-even"><td><p>text_action_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep texts that contain a minimum number of actions. 过滤以保留包含最少数量操作的文本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/text_action_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>text_embd_similarity_filter</p></td>
+<tr class="row-odd"><td><p>text_embd_similarity_filter</p></td>
 <td><p>🔤Text 🚀GPU 🔗API 🟡Beta</p></td>
 <td><p>Filter to keep texts whose average embedding similarity to a set of given validation texts falls within a specific range. 过滤器，以保留与一组给定验证文本的平均嵌入相似度在特定范围内的文本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/text_embd_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2503.01807">Echo Embeddings</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>text_entity_dependency_filter</p></td>
+<tr class="row-even"><td><p>text_entity_dependency_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Identify and filter text samples based on entity dependencies. 根据实体依赖关系识别和过滤文本样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/text_entity_dependency_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>text_length_filter</p></td>
+<tr class="row-odd"><td><p>text_length_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with total text length within a specific range. 过滤以保持文本总长度在特定范围内的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/text_length_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>text_pair_similarity_filter</p></td>
+<tr class="row-even"><td><p>text_pair_similarity_filter</p></td>
 <td><p>🔤Text 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep text pairs with similarities within a specific range. 过滤以将具有相似性的文本对保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/text_pair_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>token_num_filter</p></td>
+<tr class="row-odd"><td><p>token_num_filter</p></td>
 <td><p>🔤Text 💻CPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples with a total token number within a specified range. 筛选器将总令牌数的样本保留在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/token_num_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_aesthetics_filter</p></td>
+<tr class="row-even"><td><p>video_aesthetics_filter</p></td>
 <td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep data samples with aesthetics scores for specified frames in the videos within a specific range. 过滤器将视频中指定帧的美学得分数据样本保留在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_aesthetics_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_aspect_ratio_filter</p></td>
+<tr class="row-odd"><td><p>video_aspect_ratio_filter</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with video aspect ratio within a specific range. 过滤器将视频纵横比的样本保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_aspect_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_duration_filter</p></td>
+<tr class="row-even"><td><p>video_duration_filter</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Keep data samples whose videos’ durations are within a specified range. 保留视频持续时间在指定范围内的数据样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_duration_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_face_ratio_filter</p></td>
+<tr class="row-odd"><td><p>video_face_ratio_filter</p></td>
 <td><p>🎬Video 💻CPU 🟡Beta</p></td>
 <td><p>Keep data samples whose videos’ face-to-frame ratios are within a specified range. 保留视频的脸帧比在指定范围内的数据样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_face_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>video_frames_text_similarity_filter</p></td>
+<tr class="row-even"><td><p>video_frames_text_similarity_filter</p></td>
 <td><p>🔮Multimodal 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples based on the similarity between video frame images and text within a specific range. 根据视频帧图像和文本之间的相似性进行过滤，以保持样本在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_frames_text_similarity_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_motion_score_filter</p></td>
+<tr class="row-odd"><td><p>video_motion_score_filter</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with video motion scores from OpenCV within a specific range. 过滤器将来自OpenCV的视频运动分数的样本保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_motion_score_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_motion_score_ptlflow_filter</p></td>
+<tr class="row-even"><td><p>video_motion_score_ptlflow_filter</p></td>
 <td><p>🎬Video 🚀GPU 🟡Beta</p></td>
 <td><p>Filter to keep samples with video motion scores from ptlflow within a specified range. 过滤器以将来自ptlflow的具有视频运动分数的样本保持在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_motion_score_ptlflow_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_motion_score_raft_filter</p></td>
+<tr class="row-odd"><td><p>video_motion_score_raft_filter</p></td>
 <td><p>🎬Video 🚀GPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with video motion scores within a specified range. 过滤器将视频运动分数的样本保持在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_motion_score_raft_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2003.12039">RAFT</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>video_nsfw_filter</p></td>
+<tr class="row-even"><td><p>video_nsfw_filter</p></td>
 <td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples whose videos have nsfw scores in a specified range. 过滤器以保留其视频的nsfw分数在指定范围内的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_nsfw_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_ocr_area_ratio_filter</p></td>
+<tr class="row-odd"><td><p>video_ocr_area_ratio_filter</p></td>
 <td><p>🎬Video 🚀GPU 🟢Stable</p></td>
 <td><p>Keep data samples whose detected text area ratios for specified frames in the video are within a specified range. 保留检测到的视频中指定帧的文本面积比率在指定范围内的数据样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_ocr_area_ratio_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_resolution_filter</p></td>
+<tr class="row-even"><td><p>video_resolution_filter</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Keep data samples whose videos’ resolutions are within a specified range. 保留视频分辨率在指定范围内的数据样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_resolution_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_tagging_from_frames_filter</p></td>
+<tr class="row-odd"><td><p>video_tagging_from_frames_filter</p></td>
 <td><p>🎬Video 🚀GPU 🟢Stable</p></td>
 <td><p>Filter to keep samples whose videos contain specified tags. 过滤器以保留其视频包含指定标签的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_tagging_from_frames_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_watermark_filter</p></td>
+<tr class="row-even"><td><p>video_watermark_filter</p></td>
 <td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Filter to keep samples whose videos have no watermark with high probability. 过滤器以保持其视频具有高概率没有水印的样本。</p></td>
 <td><p><a class="reference internal" href="operators/filter/video_watermark_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>word_repetition_filter</p></td>
+<tr class="row-odd"><td><p>word_repetition_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with word-level n-gram repetition ratio within a specific range. 过滤器将单词级n-gram重复比率的样本保持在特定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/word_repetition_filter.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>words_num_filter</p></td>
+<tr class="row-even"><td><p>words_num_filter</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Filter to keep samples with a total word count within a specified range. 过滤器将样本的总字数保持在指定范围内。</p></td>
 <td><p><a class="reference internal" href="operators/filter/words_num_filter.html"><span class="std std-doc">info</span></a></p></td>

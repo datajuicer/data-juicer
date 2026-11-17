@@ -825,7 +825,7 @@
 
 
 <div class="viewcode-block" id="AgentDialogNormalizeMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_dialog_normalize_mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper">[文档]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AgentDialogNormalizeMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -848,7 +848,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="AgentDialogNormalizeMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_dialog_normalize_mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"messages"</span><span class="p">,</span>
@@ -894,7 +894,7 @@
 
 
 <div class="viewcode-block" id="AgentDialogNormalizeMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_dialog_normalize_mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper.process_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentDialogNormalizeMapper.process_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">messages_key</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="n">choices</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">choices_key</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>

@@ -433,6 +433,117 @@ parameter.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.filter.BenchmarkContaminationFilter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.filter.</span></span><span class="sig-name descname"><span class="pre">BenchmarkContaminationFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/filter/benchmark_contamination_filter.html#BenchmarkContaminationFilter"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.filter.BenchmarkContaminationFilter" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Filter" title="data_juicer.ops.base_op.Filter"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filter</span></code></a></p>
+<p>Filter out samples that are contaminated by a benchmark corpus.</p>
+<p>Train-test contamination happens when a training corpus accidentally
+contains text that also appears in an evaluation set. Models that
+memorize such samples report inflated benchmark scores. This operator
+detects the overlap by matching n-grams between every sample and a
+reference benchmark file, and drops the samples whose overlap ratio
+exceeds a configurable threshold.</p>
+<p>Unlike the deduplication operators, which compare a corpus against
+itself, this operator compares a corpus against an external reference
+file, so it can be used as the last step before fine-tuning or as an
+audit tool for an existing dataset.</p>
+<p>The reference benchmark is read once when the operator is created and
+is stored as a sorted array of 64-bit n-gram hashes, which keeps the
+memory footprint small enough to be shared by many worker processes.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.filter.BenchmarkContaminationFilter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">benchmark_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">benchmark_text_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'text'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ngram_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">13</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'char'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lowercase</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_whitespace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contamination_ratio_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'contamination_ratio'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contamination_ngram_count_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'contamination_ngram_count'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/filter/benchmark_contamination_filter.html#BenchmarkContaminationFilter.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.filter.BenchmarkContaminationFilter.__init__" title="链接到此定义。">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>benchmark_path</strong> -- path to the benchmark file used as the
+reference. Supported formats are <code class="docutils literal notranslate"><span class="pre">.jsonl</span></code>, <code class="docutils literal notranslate"><span class="pre">.json</span></code> and
+<code class="docutils literal notranslate"><span class="pre">.txt</span></code> (optionally gzipped, e.g. <code class="docutils literal notranslate"><span class="pre">.jsonl.gz</span></code>). A <code class="docutils literal notranslate"><span class="pre">.txt</span></code>
+file is read as one document per line. This argument is
+required in practice; when it is left empty the operator logs
+a warning and keeps every sample, so that config validation
+and <code class="docutils literal notranslate"><span class="pre">--help</span></code> keep working.</p></li>
+<li><p><strong>benchmark_text_key</strong> -- the field of each benchmark record that
+holds the text to match against. Records of a <code class="docutils literal notranslate"><span class="pre">.jsonl</span></code> or
+<code class="docutils literal notranslate"><span class="pre">.json</span></code> file must be dicts that contain this field.</p></li>
+<li><p><strong>ngram_size</strong> -- the size of the n-grams used for matching. 13
+is the value commonly used for decontamination in the
+literature; smaller values increase recall but also flag
+samples that merely share common phrasing.</p></li>
+<li><p><strong>tokenization</strong> -- <code class="docutils literal notranslate"><span class="pre">'char'</span></code> to build n-grams over characters,
+which works for languages without word delimiters such as
+Chinese, or <code class="docutils literal notranslate"><span class="pre">'word'</span></code> to build them over whitespace
+separated tokens.</p></li>
+<li><p><strong>lowercase</strong> -- whether to lowercase the text before matching.</p></li>
+<li><p><strong>normalize_whitespace</strong> -- whether to collapse consecutive
+whitespace characters into a single space and strip the
+ends of the text.</p></li>
+<li><p><strong>threshold</strong> -- samples whose contamination ratio is greater
+than this value are filtered out. The ratio is the number of
+distinct n-grams of the sample that also occur in the
+benchmark divided by the number of distinct n-grams of the
+sample. The default of <code class="docutils literal notranslate"><span class="pre">0.0</span></code> drops any sample with a single
+matching n-gram, which is the right behaviour when the corpus
+and the benchmark come from different domains, e.g. a web
+crawl checked against a math benchmark. When both sides are
+from the same domain, template generated data shares short
+phrasing even without any real leak: on GSM8K, clean training
+items reach a median ratio of 0.09 with <code class="docutils literal notranslate"><span class="pre">ngram_size=13</span></code>, so
+a threshold around 0.2~0.3 keeps the precision above 0.9
+while still catching near duplicates.</p></li>
+<li><p><strong>contamination_ratio_key</strong> -- the stats field that stores the
+overlap ratio and that this operator reads back. Give each
+benchmark its own field name when several contamination
+filters run in one recipe: the base filter reuses an
+existing stats field, so with the default name a second
+filter would silently skip its own computation and keep a
+sample contaminated against its benchmark.</p></li>
+<li><p><strong>contamination_ngram_count_key</strong> -- the stats field that
+stores the number of matching n-grams.</p></li>
+<li><p><strong>args</strong> -- extra args</p></li>
+<li><p><strong>kwargs</strong> -- extra args</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.filter.BenchmarkContaminationFilter.compute_stats_single">
+<span class="sig-name descname"><span class="pre">compute_stats_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/filter/benchmark_contamination_filter.html#BenchmarkContaminationFilter.compute_stats_single"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.filter.BenchmarkContaminationFilter.compute_stats_single" title="链接到此定义。">¶</a></dt>
+<dd><p>Compute stats for the sample which is used as a metric to decide
+whether to filter this sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample</strong> -- input sample.</p></li>
+<li><p><strong>context</strong> -- whether to store context information of intermediate
+vars in the sample temporarily.</p></li>
+</ul>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p>sample with computed stats</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.filter.BenchmarkContaminationFilter.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/filter/benchmark_contamination_filter.html#BenchmarkContaminationFilter.process_single"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.filter.BenchmarkContaminationFilter.process_single" title="链接到此定义。">¶</a></dt>
+<dd><p>For sample level, sample --&gt; Boolean.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> -- sample to decide whether to filter</p>
+</dd>
+<dt class="field-even">返回<span class="colon">:</span></dt>
+<dd class="field-even"><p>true for keeping and false for filtering</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="data_juicer.ops.filter.CharacterRepetitionFilter">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.filter.</span></span><span class="sig-name descname"><span class="pre">CharacterRepetitionFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/filter/character_repetition_filter.html#CharacterRepetitionFilter"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.filter.CharacterRepetitionFilter" title="链接到此定义。">¶</a></dt>
 <dd><p>基类：<a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Filter" title="data_juicer.ops.base_op.Filter"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filter</span></code></a></p>
@@ -4137,6 +4248,12 @@ vars in the sample temporarily.</p></li>
 <li><a class="reference internal" href="#data_juicer.ops.filter.AverageLineLengthFilter.__init__"><code class="docutils literal notranslate"><span class="pre">AverageLineLengthFilter.__init__()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.ops.filter.AverageLineLengthFilter.compute_stats_batched"><code class="docutils literal notranslate"><span class="pre">AverageLineLengthFilter.compute_stats_batched()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.ops.filter.AverageLineLengthFilter.process_batched"><code class="docutils literal notranslate"><span class="pre">AverageLineLengthFilter.process_batched()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.filter.BenchmarkContaminationFilter"><code class="docutils literal notranslate"><span class="pre">BenchmarkContaminationFilter</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.filter.BenchmarkContaminationFilter.__init__"><code class="docutils literal notranslate"><span class="pre">BenchmarkContaminationFilter.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.filter.BenchmarkContaminationFilter.compute_stats_single"><code class="docutils literal notranslate"><span class="pre">BenchmarkContaminationFilter.compute_stats_single()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.filter.BenchmarkContaminationFilter.process_single"><code class="docutils literal notranslate"><span class="pre">BenchmarkContaminationFilter.process_single()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#data_juicer.ops.filter.CharacterRepetitionFilter"><code class="docutils literal notranslate"><span class="pre">CharacterRepetitionFilter</span></code></a><ul>

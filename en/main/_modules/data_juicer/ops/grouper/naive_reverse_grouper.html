@@ -455,7 +455,7 @@
 
 
 <div class="viewcode-block" id="NaiveReverseGrouper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.grouper.naive_reverse_grouper.html#data_juicer.ops.grouper.NaiveReverseGrouper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.grouper.html#data_juicer.ops.grouper.NaiveReverseGrouper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"naive_reverse_grouper"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NaiveReverseGrouper</span><span class="p">(</span><span class="n">Grouper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Split batched samples into individual samples.</span>
@@ -471,7 +471,7 @@
 <span class="sd">    - If no samples are present in the dataset, the original dataset is returned."""</span>
 
 <div class="viewcode-block" id="NaiveReverseGrouper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.grouper.naive_reverse_grouper.html#data_juicer.ops.grouper.NaiveReverseGrouper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.grouper.html#data_juicer.ops.grouper.NaiveReverseGrouper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_meta_export_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
@@ -486,7 +486,7 @@
 
 
 <div class="viewcode-block" id="NaiveReverseGrouper.process">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.grouper.naive_reverse_grouper.html#data_juicer.ops.grouper.NaiveReverseGrouper.process">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.grouper.html#data_juicer.ops.grouper.NaiveReverseGrouper.process">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">dataset</span>

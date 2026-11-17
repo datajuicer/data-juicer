@@ -475,7 +475,7 @@
 
 
 <div class="viewcode-block" id="VideoExtractFramesMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_extract_frames_mapper.html#data_juicer.ops.mapper.video_extract_frames_mapper.VideoExtractFramesMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoExtractFramesMapper">[docs]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@LOADED_VIDEOS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
@@ -514,7 +514,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="VideoExtractFramesMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_extract_frames_mapper.html#data_juicer.ops.mapper.video_extract_frames_mapper.VideoExtractFramesMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoExtractFramesMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">frame_sampling_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"all_keyframes"</span><span class="p">,</span>
@@ -645,7 +645,7 @@
         <span class="k">return</span> <span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">saved_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">original_filename</span><span class="si">}</span><span class="s2">__dj_hash_#</span><span class="si">{</span><span class="n">hash_val</span><span class="si">}</span><span class="s2">#"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="VideoExtractFramesMapper.extract_frames">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_extract_frames_mapper.html#data_juicer.ops.mapper.video_extract_frames_mapper.VideoExtractFramesMapper.extract_frames">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoExtractFramesMapper.extract_frames">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">extract_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">video</span><span class="p">):</span>
         <span class="c1"># extract frame videos</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_sampling_method</span> <span class="o">==</span> <span class="s2">"all_keyframes"</span><span class="p">:</span>
@@ -718,7 +718,7 @@
             <span class="k">return</span> <span class="n">cur_frames_bytes</span>
 
 <div class="viewcode-block" id="VideoExtractFramesMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_extract_frames_mapper.html#data_juicer.ops.mapper.video_extract_frames_mapper.VideoExtractFramesMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoExtractFramesMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's generated already</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_field</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_field</span><span class="p">]:</span>

@@ -454,17 +454,22 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_break_on_sentence_punct</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Put a newline after sentence punctuation, but not inside a number.</span>
+<span class="w">    </span><span class="sd">"""Put a newline after sentence punctuation, but not inside a number or word.</span>
 
-<span class="sd">    A '.' with a digit on both sides is a decimal point or a version dot.</span>
-<span class="sd">    Treating it as a sentence end makes the fractional piece its own sentence,</span>
-<span class="sd">    so a later different sentence that shares those digits loses them.</span>
+<span class="sd">    A '.' with a digit on both sides is a decimal point or a version dot, in</span>
+<span class="sd">    any script. A '.' with an ASCII letter or digit on both sides is also part</span>
+<span class="sd">    of a domain, URL or file name (example.com, setup.py). Treating either as</span>
+<span class="sd">    a sentence end makes the piece after the dot its own sentence, so a later</span>
+<span class="sd">    different sentence that shares that piece loses it.</span>
 <span class="sd">    """</span>
     <span class="n">punct</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">nxt</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">prev</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">string</span><span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="k">else</span> <span class="s2">""</span>
-    <span class="k">if</span> <span class="n">punct</span> <span class="o">==</span> <span class="s2">"."</span> <span class="ow">and</span> <span class="n">prev</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">nxt</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">punct</span> <span class="o">==</span> <span class="s2">"."</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">prev</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">nxt</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">prev</span> <span class="o">+</span> <span class="n">nxt</span><span class="p">)</span><span class="o">.</span><span class="n">isascii</span><span class="p">()</span> <span class="ow">and</span> <span class="n">prev</span><span class="o">.</span><span class="n">isalnum</span><span class="p">()</span> <span class="ow">and</span> <span class="n">nxt</span><span class="o">.</span><span class="n">isalnum</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">punct</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">nxt</span>
 
 

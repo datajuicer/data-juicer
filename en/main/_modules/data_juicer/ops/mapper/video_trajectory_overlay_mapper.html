@@ -461,7 +461,7 @@
 
 
 <div class="viewcode-block" id="VideoTrajectoryOverlayMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_trajectory_overlay_mapper.html#data_juicer.ops.mapper.video_trajectory_overlay_mapper.VideoTrajectoryOverlayMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoTrajectoryOverlayMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VideoTrajectoryOverlayMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Prepare VLM-ready frames by sampling and overlaying hand trajectories.</span>
@@ -493,7 +493,7 @@
     <span class="n">PALM_JOINT_INDEX</span> <span class="o">=</span> <span class="mi">9</span>
 
 <div class="viewcode-block" id="VideoTrajectoryOverlayMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_trajectory_overlay_mapper.html#data_juicer.ops.mapper.video_trajectory_overlay_mapper.VideoTrajectoryOverlayMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoTrajectoryOverlayMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">segment_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"atomic_action_segments"</span><span class="p">,</span>
@@ -848,7 +848,7 @@
         <span class="k">return</span> <span class="s2">"unknown"</span>
 
 <div class="viewcode-block" id="VideoTrajectoryOverlayMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.video_trajectory_overlay_mapper.html#data_juicer.ops.mapper.video_trajectory_overlay_mapper.VideoTrajectoryOverlayMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoTrajectoryOverlayMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">Fields</span><span class="o">.</span><span class="n">meta</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">sample</span>

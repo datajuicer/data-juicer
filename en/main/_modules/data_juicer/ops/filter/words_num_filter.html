@@ -445,7 +445,8 @@
       <div class="content-wrapper">
         <article class="article" role="main">
   <h1>Source code for data_juicer.ops.filter.words_num_filter</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.constant</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fields</span><span class="p">,</span> <span class="n">InterVars</span><span class="p">,</span> <span class="n">StatsKeys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.model_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span><span class="p">,</span> <span class="n">prepare_model</span>
@@ -456,9 +457,37 @@
 
 <span class="n">OP_NAME</span> <span class="o">=</span> <span class="s2">"words_num_filter"</span>
 
+<span class="c1"># Count long documents in bounded chunks: each chunk reuses the exact</span>
+<span class="c1"># split/refine logic, but the word and refined-word lists are released before</span>
+<span class="c1"># the next chunk instead of growing with the whole document.</span>
+<span class="n">_WORD_COUNT_CHUNK_CHARS</span> <span class="o">=</span> <span class="mi">64</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">_WORD_COUNT_SEPARATOR</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[ \n\t]"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_count_words_streaming</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Count words with the same semantics as ``words_refinement``.</span>
+
+<span class="sd">    ``get_words_from_document`` splits on space/newline/tab and drops empty</span>
+<span class="sd">    pieces; ``words_refinement`` strips ``SPECIAL_CHARACTERS`` from each word</span>
+<span class="sd">    and drops words that become empty.  Chunks are cut on a separator so a word</span>
+<span class="sd">    is never split across two chunks.</span>
+<span class="sd">    """</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">text_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">text_len</span><span class="p">:</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">_WORD_COUNT_CHUNK_CHARS</span><span class="p">,</span> <span class="n">text_len</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">end</span> <span class="o">&lt;</span> <span class="n">text_len</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">_WORD_COUNT_SEPARATOR</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">text_len</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">get_words_from_document</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">])</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">words_refinement</span><span class="p">(</span><span class="n">words</span><span class="p">,</span> <span class="n">strip_chars</span><span class="o">=</span><span class="n">SPECIAL_CHARACTERS</span><span class="p">))</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">end</span>
+    <span class="k">return</span> <span class="n">count</span>
+
 
 <div class="viewcode-block" id="WordsNumFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.words_num_filter.html#data_juicer.ops.filter.words_num_filter.WordsNumFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.WordsNumFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@INTER_WORDS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">WordsNumFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -474,7 +503,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="WordsNumFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.words_num_filter.html#data_juicer.ops.filter.words_num_filter.WordsNumFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.WordsNumFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"en"</span><span class="p">,</span>
@@ -509,7 +538,7 @@
 
 
 <div class="viewcode-block" id="WordsNumFilter.compute_stats_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.words_num_filter.html#data_juicer.ops.filter.words_num_filter.WordsNumFilter.compute_stats_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.WordsNumFilter.compute_stats_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">samples_list</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]</span>
         <span class="n">samples_stats</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]</span>
@@ -518,6 +547,12 @@
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">stat</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samples_stats</span><span class="p">):</span>
             <span class="c1"># check if it's computed already</span>
             <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">num_words</span> <span class="ow">in</span> <span class="n">stat</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># Without a tokenizer or fusion context, the word list and the</span>
+            <span class="c1"># refined list are only consumed by len(); count them in bounded</span>
+            <span class="c1"># chunks instead of materializing the whole document twice.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_key</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">context</span><span class="p">:</span>
+                <span class="n">samples_stats</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">num_words</span><span class="p">]</span> <span class="o">=</span> <span class="n">_count_words_streaming</span><span class="p">(</span><span class="n">samples_list</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">context</span> <span class="ow">and</span> <span class="n">words_key</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">context</span><span class="p">][</span><span class="n">idx</span><span class="p">]:</span>
                 <span class="n">words</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">context</span><span class="p">][</span><span class="n">idx</span><span class="p">][</span><span class="n">words_key</span><span class="p">]</span>
@@ -535,7 +570,7 @@
 
 
 <div class="viewcode-block" id="WordsNumFilter.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.words_num_filter.html#data_juicer.ops.filter.words_num_filter.WordsNumFilter.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.html#data_juicer.ops.filter.WordsNumFilter.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">map</span><span class="p">(</span>

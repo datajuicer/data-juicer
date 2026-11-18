@@ -1552,22 +1552,24 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">placeholders</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_texts</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"The number of placeholders and new_texts must be equal"</span><span class="p">)</span>
 
-    <span class="n">modified_string</span> <span class="o">=</span> <span class="n">original_string</span>
+    <span class="c1"># Each text goes after the next unused occurrence of its placeholder, so a</span>
+    <span class="c1"># repeated placeholder (e.g. one image token per image) gets one text each.</span>
+    <span class="n">insert_positions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">search_from</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">placeholder</span><span class="p">,</span> <span class="n">new_text</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">placeholders</span><span class="p">,</span> <span class="n">new_texts</span><span class="p">):</span>
-        <span class="c1"># Find the index of the next occurrence of the placeholder</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="n">modified_string</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">placeholder</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">original_string</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="n">search_from</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Placeholder '</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="s2">' not found in the string"</span><span class="p">)</span>
-        <span class="c1"># Insert new_text at the found index position</span>
-        <span class="n">modified_string</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">modified_string</span><span class="p">[:</span> <span class="n">index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">placeholder</span><span class="p">)]</span>
-            <span class="o">+</span> <span class="n">delimiter_in_insert_pos</span>
-            <span class="o">+</span> <span class="n">new_text</span>
-            <span class="o">+</span> <span class="n">delimiter_in_insert_pos</span>
-            <span class="o">+</span> <span class="n">modified_string</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">placeholder</span><span class="p">)</span> <span class="p">:]</span>
-        <span class="p">)</span>
+        <span class="n">search_from</span><span class="p">[</span><span class="n">placeholder</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">placeholder</span><span class="p">)</span>
+        <span class="n">insert_positions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">placeholder</span><span class="p">),</span> <span class="n">new_text</span><span class="p">))</span>
 
-    <span class="k">return</span> <span class="n">modified_string</span></div>
+    <span class="n">pieces</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">last</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">new_text</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">insert_positions</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">pieces</span> <span class="o">+=</span> <span class="p">[</span><span class="n">original_string</span><span class="p">[</span><span class="n">last</span><span class="p">:</span><span class="n">pos</span><span class="p">],</span> <span class="n">delimiter_in_insert_pos</span><span class="p">,</span> <span class="n">new_text</span><span class="p">,</span> <span class="n">delimiter_in_insert_pos</span><span class="p">]</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="n">pos</span>
+    <span class="n">pieces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">original_string</span><span class="p">[</span><span class="n">last</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pieces</span><span class="p">)</span></div>
 
 
 

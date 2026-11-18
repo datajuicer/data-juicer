@@ -2,7 +2,8 @@ import os
 import unittest
 from unittest.mock import Mock, patch, sentinel
 
-from transformers import BatchEncoding
+import torch
+from transformers import BatchEncoding, GPT2Config, GPT2LMHeadModel
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.video_captioning_from_vlm_mapper import \
@@ -144,45 +145,41 @@ class VideoCaptioningFromVLMMapperTest(DataJuicerTestCaseBase):
 
 class VideoCaptioningFromVLMMapperRegressionTest(unittest.TestCase):
 
-    def _make_mapper(self):
-        op = object.__new__(VideoCaptioningFromVLMMapper)
-        op.text_key = 'text'
-        op.video_key = 'videos'
-        op.keep_original_sample = False
-        return op
+    def _make_mapper(self, **kwargs):
+        module = 'data_juicer.ops.mapper.video_captioning_from_vlm_mapper'
+        with patch(f'{module}.prepare_model', return_value=sentinel.model_key):
+            return VideoCaptioningFromVLMMapper(
+                hf_model='test-model', accelerator='cpu',
+                keep_original_sample=False, **kwargs)
 
     def test_hf_generation_uses_configured_token_limit(self):
-        op = self._make_mapper()
-        op.accelerator = 'cpu'
-        op.num_newly_generated_samples = 1
-        op.model_key = sentinel.model_key
-        op.caption_num = 1
-        op.prompt_key = None
-        op.prompt = None
-        op.system_prompt = None
-        op.enable_vllm = False
-        op.keep_candidate_mode = 'random_any'
-        op.sampling_params = {'do_sample': False, 'max_new_tokens': 64}
         sample = {'text': SpecialTokens.video, 'videos': ['video.mp4']}
-        inputs = BatchEncoding({'input_ids': [[1, 2]]})
-        model = Mock(device='cpu')
-        model.generate.return_value = [[1, 2, 3]]
+        inputs = BatchEncoding({'input_ids': torch.tensor([[1]])})
+        model = GPT2LMHeadModel(GPT2Config(
+            vocab_size=4, n_positions=8, n_embd=8, n_layer=1, n_head=1,
+            bos_token_id=1, eos_token_id=2, pad_token_id=0,
+            forced_bos_token_id=2)).eval()
         processor = Mock()
         processor.apply_chat_template.return_value = inputs
         processor.batch_decode.return_value = ['generated caption']
         module = 'data_juicer.ops.mapper.video_captioning_from_vlm_mapper'
 
-        with patch(f'{module}.get_model', return_value=(model, processor)), \
-                patch(f'{module}.load_data_with_context',
-                      return_value=(sample, {'video.mp4': sentinel.video})), \
-                patch(f'{module}.close_video') as close_video:
-            output = op._process_single_sample(sample)
+        for sampling_params, token_limit in (
+                (None, 1024), ({'do_sample': False, 'max_new_tokens': 64}, 64)):
+            with self.subTest(sampling_params=sampling_params):
+                op = self._make_mapper(sampling_params=sampling_params)
+                with patch(f'{module}.get_model', return_value=(model, processor)), \
+                        patch(f'{module}.load_data_with_context',
+                              return_value=(sample, {'video.mp4': sentinel.video})), \
+                        patch(f'{module}.close_video') as close_video, \
+                        patch.object(model, 'generate', wraps=model.generate) as generate:
+                    output = op._process_single_sample(sample)
 
-        model.generate.assert_called_once_with(input_ids=[[1, 2]],
-                                               do_sample=False,
-                                               max_new_tokens=64)
-        self.assertIn('generated caption', output[0]['text'])
-        close_video.assert_called_once_with(sentinel.video)
+                generate.assert_called_once_with(input_ids=inputs.input_ids,
+                                                 do_sample=False,
+                                                 max_new_tokens=token_limit)
+                self.assertIn('generated caption', output[0]['text'])
+                close_video.assert_called_once_with(sentinel.video)
 
     def test_batch_preserves_generated_samples(self):
         sample = {'text': 'original', 'videos': ['video.mp4'], 'id': 7}
@@ -202,7 +199,14 @@ class VideoCaptioningFromVLMMapperRegressionTest(unittest.TestCase):
         for samples in ({'text': [], 'videos': []},
                         {'text': ['no video'], 'videos': [[]]}):
             with self.subTest(samples=samples):
-                self.assertEqual(self._make_mapper().process_batched(samples), {})
+                self.assertEqual(self._make_mapper().process_batched(samples),
+                                 {key: [] for key in samples})
+
+    def test_map_drops_samples_without_videos(self):
+        dataset = Dataset.from_list([
+            {'text': 'no video', 'videos': [], 'id': 7}])
+        output = dataset.map(self._make_mapper().process, num_proc=1)
+        self.assertEqual(len(output), 0)
 
 
 if __name__ == '__main__':

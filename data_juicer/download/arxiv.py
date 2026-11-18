@@ -266,10 +266,9 @@ class ArxivExtractor(DocumentExtractor):
         # find the first occurrence of either \appendix or \bibliography and
         # replace everything after it with an empty string
         pattern = r"("
-        # \appendix, or \appendices in IEEEtran, as a whole command: \appendixname and other
-        # longer commands must not remove the rest of the file
-        pattern += r"\\appendi(?:x|ces)(?![a-zA-Z])|"
-        pattern += r"\\begin\{appendices\}|"
+        # \appendix, \appendices (IEEEtran) or \appendixpage (the appendix package), each as a
+        # whole command: \appendixname and other longer commands must not remove the rest of the file
+        pattern += r"\\(?:appendix|appendices|appendixpage)(?![a-zA-Z])|"
         pattern += r"\\begin\{references\}|"
         pattern += r"\\begin\{REFERENCES\}|"
         pattern += r"\\begin\{thebibliography\}|"

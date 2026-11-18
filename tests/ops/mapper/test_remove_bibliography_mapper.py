@@ -77,7 +77,7 @@ class RemoveBibliographyMapperTest(DataJuicerTestCaseBase):
             'target': 'Body text.\n'
         }, {
             # the appendix package
-            'text': 'Body text.\n\\begin{appendices}\n\\section{Proofs}\n\\end{appendices}\n',
+            'text': 'Body text.\n\\appendixpage\n\\begin{appendices}\n\\section{Proofs}\n\\end{appendices}\n',
             'target': 'Body text.\n'
         }]
 

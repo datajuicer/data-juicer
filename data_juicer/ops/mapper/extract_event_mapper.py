@@ -163,9 +163,6 @@ class ExtractEventMapper(Mapper):
             events.append(cur_events)
             characters.append(cur_characters)
 
-        if self.drop_text:
-            remove_text_from_sample(samples, self.text_key)
-
         new_samples = []
         for i in range(len(events)):
             for event, character in zip(events[i], characters[i]):
@@ -173,6 +170,10 @@ class ExtractEventMapper(Mapper):
                 cur_sample[Fields.meta][self.event_desc_key] = event
                 cur_sample[Fields.meta][self.relevant_char_key] = character
                 new_samples.append(cur_sample)
+
+        # HF map must also lose the input source column before merging expanded rows.
+        if self.drop_text:
+            remove_text_from_sample(samples, self.text_key)
 
         if len(new_samples) == 0:
             logger.warning("Extract Not event in the batch of samples!")
@@ -182,5 +183,6 @@ class ExtractEventMapper(Mapper):
         keys = new_samples[0].keys()
         for key in keys:
             res_samples[key] = [s[key] for s in new_samples]
-
+        if self.drop_text:
+            remove_text_from_sample(res_samples, self.text_key)
         return res_samples

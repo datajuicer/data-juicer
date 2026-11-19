@@ -200,12 +200,12 @@ class ExtractEntityAttributeMapper(Mapper):
         res = self._process_single_text(read_text_from_sample(sample, self.text_key), rank=rank)
         entities, attributes, descs, demo_lists = res
 
-        if self.drop_text:
-            remove_text_from_sample(sample, self.text_key)
-
         sample[Fields.meta][self.entity_key] = entities
         sample[Fields.meta][self.attribute_key] = attributes
         sample[Fields.meta][self.attribute_desc_key] = descs
         sample[Fields.meta][self.support_text_key] = demo_lists
+
+        if self.drop_text:
+            remove_text_from_sample(sample, self.text_key)
 
         return sample

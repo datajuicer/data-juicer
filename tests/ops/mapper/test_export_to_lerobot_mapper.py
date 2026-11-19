@@ -159,6 +159,63 @@ class ExportToLeRobotMapperTest(DataJuicerTestCaseBase):
         staging_dir = os.path.join(self.output_dir, 'staging')
         self.assertFalse(os.path.exists(staging_dir))
 
+    def _assert_finalized_indices(self, episode_frame_ids):
+        """Check global row indices without changing video frame alignment."""
+        import pyarrow.parquet as pq
+
+        samples = [
+            self._make_sample(self.vid3_path, num_frames=len(frame_ids),
+                              valid_frame_ids=frame_ids)
+            for frame_ids in episode_frame_ids
+        ]
+        op = ExportToLeRobotMapper(output_dir=self.output_dir, fps=10)
+        dataset = Dataset.from_list(samples)
+        results = dataset.map(op.process, num_proc=1, with_rank=True).to_list()
+
+        # Finalization orders episodes by UUID, not input order.
+        episodes = []
+        for result, frame_ids in zip(results, episode_frame_ids):
+            exports = result[Fields.meta]['lerobot_export']
+            self.assertEqual(len(exports), 1)
+            episodes.append((exports[0]['uuid'], frame_ids))
+
+        ExportToLeRobotMapper.finalize_dataset(self.output_dir, fps=10)
+
+        offset = 0
+        for ep_idx, (_, frame_ids) in enumerate(sorted(episodes)):
+            path = os.path.join(self.output_dir, 'data', 'chunk-000',
+                                f'episode_{ep_idx:06d}.parquet')
+            df = pq.read_table(path).to_pandas()
+            self.assertEqual(df['index'].tolist(),
+                             list(range(offset, offset + len(frame_ids))))
+            self.assertEqual(df['episode_index'].tolist(),
+                             [ep_idx] * len(frame_ids))
+            self.assertEqual(df['frame_index'].tolist(), frame_ids)
+            np.testing.assert_allclose(df['timestamp'].to_numpy(),
+                                       np.array(frame_ids) / 10)
+            offset += len(frame_ids)
+
+        with open(os.path.join(self.output_dir, 'meta', 'info.json')) as f:
+            info = json.load(f)
+        self.assertEqual(info['total_frames'], offset)
+        self.assertEqual(info['total_episodes'], len(episode_frame_ids))
+
+    def test_finalize_sparse_frame_indices(self):
+        """Sparse video frame IDs must not become global row indices."""
+        self._assert_finalized_indices([[0, 3, 7, 12, 15]])
+
+    def test_finalize_sparse_frame_indices_multiple_episodes(self):
+        """Sparse episodes must have disjoint, contiguous global row indices."""
+        self._assert_finalized_indices([[0, 3, 7, 12, 15]] * 2)
+
+    def test_finalize_nonzero_frame_indices(self):
+        """Global row indices must start at zero even if video frames do not."""
+        self._assert_finalized_indices([[2, 3, 4]])
+
+    def test_finalize_dense_frame_indices_multiple_episodes(self):
+        """Dense episodes with different lengths must remain contiguous."""
+        self._assert_finalized_indices([[0, 1, 2, 3, 4], [0, 1, 2]])
+
     def test_empty_action_data(self):
         """Test with empty action data - should not export anything."""
         sample = {

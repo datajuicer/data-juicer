@@ -809,7 +809,7 @@ class Mapper(OP):
 
         free_models()
         if source_features is not None:
-            from data_juicer.ops.mapper.drop_text import remove_text_from_dataset
+            from data_juicer.utils.text_field_utils import remove_text_from_dataset
 
             # Keep the original path when a literal dotted key was already removed.
             new_dataset = remove_text_from_dataset(new_dataset, self.text_key, source_features)

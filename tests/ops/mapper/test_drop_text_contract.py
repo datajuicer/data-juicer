@@ -21,7 +21,7 @@ from data_juicer.ops.mapper import (
     extract_keyword_mapper,
     extract_support_text_mapper,
 )
-from data_juicer.ops.mapper.drop_text import read_text_from_sample, remove_text_from_dataset, remove_text_from_sample
+from data_juicer.utils.text_field_utils import read_text_from_sample, remove_text_from_dataset, remove_text_from_sample
 from data_juicer.utils.constant import Fields, MetaKeys
 
 

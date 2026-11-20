@@ -36,6 +36,7 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
             '--partition.mode', 'manual',
             '--partition.size', '5',
             '--override_num_blocks', '1',
+            '--checkpoint.enabled', 'false',
         ])
         cfg.export_path = os.path.join(self.tmp_dir, 'test_end2end_execution_manual', 'res.jsonl')
         cfg.work_dir = os.path.join(self.tmp_dir, 'test_end2end_execution_manual')
@@ -46,16 +47,6 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
         self.assertTrue(os.path.exists(cfg.export_path))
         self.assertEqual(executor.num_partitions, 2)
 
-        with open(os.path.join(cfg.checkpoint_dir, 'partitioning_info.json')) as f:
-            partitioning_info = json.load(f)
-        # partition.size decides the partition *count* (11 rows / 5 -> 2); the row
-        # boundaries are then balanced, so the extra row goes to the leading
-        # partition instead of piling up in the tail.
-        self.assertEqual(
-            [partition['row_count'] for partition in partitioning_info['partitions']],
-            [6, 5],
-        )
-
     @TEST_TAG('ray')
     def test_end2end_manual_size_with_single_partition(self):
         """A sample target larger than most of the dataset creates one partition."""
@@ -64,6 +55,7 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
             '--partition.mode', 'manual',
             '--partition.size', '10',
             '--override_num_blocks', '1',
+            '--checkpoint.enabled', 'false',
         ])
         cfg.export_path = os.path.join(self.tmp_dir, 'test_manual_size_single_partition', 'res.jsonl')
         cfg.work_dir = os.path.join(self.tmp_dir, 'test_manual_size_single_partition')
@@ -72,12 +64,6 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
         executor.run()
 
         self.assertEqual(executor.num_partitions, 1)
-        with open(os.path.join(cfg.checkpoint_dir, 'partitioning_info.json')) as f:
-            partitioning_info = json.load(f)
-        self.assertEqual(
-            [partition['row_count'] for partition in partitioning_info['partitions']],
-            [11],
-        )
 
     @TEST_TAG('ray')
     def test_end2end_execution_with_checkpointing(self):
@@ -97,40 +83,12 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
         # check result files
         self.assertTrue(os.path.exists(cfg.export_path))
         
-        # check checkpoint directory exists
-        checkpoint_dir = cfg.checkpoint_dir
-        self.assertTrue(os.path.exists(checkpoint_dir))
-        
-        # check that checkpoint files were created
-        checkpoint_files = [f for f in os.listdir(checkpoint_dir) if f.endswith('.parquet')]
-        self.assertGreater(len(checkpoint_files), 0, "No checkpoint files were created")
-        
-        # verify checkpoint file naming convention
-        for checkpoint_file in checkpoint_files:
-            self.assertTrue(checkpoint_file.startswith('checkpoint_op_'), 
-                          f"Checkpoint file {checkpoint_file} doesn't follow naming convention")
-            self.assertTrue('_partition_' in checkpoint_file, 
-                          f"Checkpoint file {checkpoint_file} doesn't contain partition info")
-            self.assertTrue(checkpoint_file.endswith('.parquet'), 
-                          f"Checkpoint file {checkpoint_file} doesn't have .parquet extension")
-        
-        # test checkpoint loading functionality
-        executor2 = PartitionedRayExecutor(cfg)
-        
-        # test find_latest_checkpoint method (on checkpoint manager)
-        for partition_id in range(2):
-            latest_checkpoint = executor2.ckpt_manager.find_latest_checkpoint(partition_id)
-            if latest_checkpoint:
-                op_idx, _, checkpoint_path = latest_checkpoint
-                self.assertIsInstance(op_idx, int)
-                self.assertTrue(os.path.exists(checkpoint_path))
-                self.assertTrue(checkpoint_path.endswith('.parquet'))
-
-        # test resolve_checkpoint_filename method (on checkpoint manager)
-        test_filename = executor2.ckpt_manager.resolve_checkpoint_filename(0, 1)
-        expected_pattern = 'checkpoint_op_0000_partition_0001.parquet'
-        self.assertEqual(test_filename, expected_pattern)
-
+        # Every Mapper/Filter batch is committed under the checkpoint directory.
+        recovery_dir = os.path.join(cfg.checkpoint_dir, 'partition_recovery')
+        self.assertTrue(os.path.isfile(os.path.join(recovery_dir, 'run.json')))
+        commits = os.listdir(os.path.join(recovery_dir, 'commits'))
+        self.assertGreater(len(commits), 0, "No checkpoint commits were created")
+        self.assertEqual(executor.num_partitions, 1)
 
     @TEST_TAG('ray')
     def test_dag_execution_initialization(self):
@@ -236,27 +194,17 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
             '--checkpoint.enabled', 'true'
         ])
 
-        # Test EVERY_OP strategy
         cfg.checkpoint = {'strategy': 'every_op'}
         executor = PartitionedRayExecutor(cfg)
-        self.assertEqual(executor.ckpt_manager.checkpoint_strategy.value, 'every_op')
+        self.assertTrue(executor.ckpt_manager.checkpoint_enabled)
 
-        # Test EVERY_N_OPS strategy
-        cfg.checkpoint = {'strategy': 'every_n_ops', 'n_ops': 2}
-        executor = PartitionedRayExecutor(cfg)
-        self.assertEqual(executor.ckpt_manager.checkpoint_strategy.value, 'every_n_ops')
-        self.assertEqual(executor.ckpt_manager.checkpoint_n_ops, 2)
+        for removed in ('every_n_ops', 'manual'):
+            cfg.checkpoint = {'strategy': removed}
+            with self.assertRaisesRegex(ValueError, 'Unsupported checkpoint.strategy'):
+                PartitionedRayExecutor(cfg)
 
-        # Test MANUAL strategy
-        cfg.checkpoint = {'strategy': 'manual', 'op_names': ['text_length_filter']}
-        executor = PartitionedRayExecutor(cfg)
-        self.assertEqual(executor.ckpt_manager.checkpoint_strategy.value, 'manual')
-        self.assertIn('text_length_filter', executor.ckpt_manager.checkpoint_op_names)
-
-        # Test DISABLED strategy
         cfg.checkpoint = {'strategy': 'disabled'}
         executor = PartitionedRayExecutor(cfg)
-        self.assertEqual(executor.ckpt_manager.checkpoint_strategy.value, 'disabled')
         self.assertFalse(executor.ckpt_manager.checkpoint_enabled)
 
     @TEST_TAG('ray')
@@ -485,30 +433,6 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
         self.assertEqual(executor.num_partitions, 1)
 
     @TEST_TAG('ray')
-    def test_checkpoint_every_n_ops_strategy(self):
-        """Test checkpointing with EVERY_N_OPS strategy."""
-        cfg = init_configs([
-            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2',
-            '--checkpoint.enabled', 'true',
-            '--checkpoint.strategy', 'every_n_ops',
-            '--checkpoint.n_ops', '2'
-        ])
-        cfg.export_path = os.path.join(self.tmp_dir, 'test_every_n_ops', 'res.jsonl')
-        cfg.work_dir = os.path.join(self.tmp_dir, 'test_every_n_ops')
-
-        executor = PartitionedRayExecutor(cfg)
-
-        # Verify strategy configuration
-        self.assertEqual(executor.ckpt_manager.checkpoint_strategy.value, 'every_n_ops')
-        self.assertEqual(executor.ckpt_manager.checkpoint_n_ops, 2)
-
-        # Run and verify
-        executor.run()
-        self.assertTrue(os.path.exists(cfg.export_path))
-
-    @TEST_TAG('ray')
     def test_checkpoint_disabled(self):
         """Test execution with checkpointing disabled."""
         cfg = init_configs([
@@ -618,28 +542,6 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
         self.assertIn('summary', status)
         self.assertIn('execution_plan_length', status)
 
-    @TEST_TAG('ray')
-    def test_operation_grouping_integration(self):
-        """Test that operation grouping works correctly in execution."""
-        cfg = init_configs([
-            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2',
-            '--checkpoint.enabled', 'true',
-            '--checkpoint.strategy', 'every_n_ops',
-            '--checkpoint.n_ops', '2'
-        ])
-        cfg.export_path = os.path.join(self.tmp_dir, 'test_op_grouping', 'res.jsonl')
-        cfg.work_dir = os.path.join(self.tmp_dir, 'test_op_grouping')
-
-        executor = PartitionedRayExecutor(cfg)
-
-        # Get operation groups from checkpoint manager
-        # Note: This tests the grouping logic is accessible
-        from data_juicer.utils.ckpt_utils import CheckpointStrategy
-        self.assertEqual(executor.ckpt_manager.checkpoint_strategy, CheckpointStrategy.EVERY_N_OPS)
-
-
 class PartitionedRayExecutorEdgeCasesTest(DataJuicerTestCaseBase):
     """Additional edge case tests for PartitionedRayExecutor."""
 
@@ -680,55 +582,6 @@ class PartitionedRayExecutorEdgeCasesTest(DataJuicerTestCaseBase):
         num_ops = len(cfg.process)
         expected_nodes = num_ops * 8  # ops * partitions
         self.assertEqual(len(executor.pipeline_dag.nodes), expected_nodes)
-
-    @TEST_TAG('ray')
-    def test_checkpoint_file_naming_consistency(self):
-        """Test checkpoint file naming is consistent across partitions."""
-        from data_juicer.utils.ckpt_utils import RayCheckpointManager, CheckpointStrategy
-
-        ckpt_dir = os.path.join(self.tmp_dir, 'test_ckpt_naming')
-        os.makedirs(ckpt_dir, exist_ok=True)
-
-        mgr = RayCheckpointManager(
-            ckpt_dir=ckpt_dir,
-            checkpoint_enabled=True,
-            checkpoint_strategy=CheckpointStrategy.EVERY_OP,
-        )
-
-        # Test filename generation for various op/partition combinations
-        test_cases = [
-            (0, 0, "checkpoint_op_0000_partition_0000.parquet"),
-            (0, 1, "checkpoint_op_0000_partition_0001.parquet"),
-            (5, 3, "checkpoint_op_0005_partition_0003.parquet"),
-            (99, 15, "checkpoint_op_0099_partition_0015.parquet"),
-        ]
-
-        for op_idx, partition_id, expected in test_cases:
-            filename = mgr.resolve_checkpoint_filename(op_idx, partition_id)
-            self.assertEqual(filename, expected,
-                f"Mismatch for op={op_idx}, partition={partition_id}")
-
-    @TEST_TAG('ray')
-    def test_checkpoint_manual_with_nonexistent_ops(self):
-        """Test MANUAL checkpoint strategy with non-existent operation names."""
-        from data_juicer.utils.ckpt_utils import RayCheckpointManager, CheckpointStrategy
-
-        ckpt_dir = os.path.join(self.tmp_dir, 'test_ckpt_manual_nonexistent')
-        os.makedirs(ckpt_dir, exist_ok=True)
-
-        mgr = RayCheckpointManager(
-            ckpt_dir=ckpt_dir,
-            checkpoint_enabled=True,
-            checkpoint_strategy=CheckpointStrategy.MANUAL,
-            checkpoint_op_names=["nonexistent_op_1", "nonexistent_op_2"],
-        )
-
-        # Should not checkpoint any operation that doesn't match
-        self.assertFalse(mgr.should_checkpoint(0, "text_filter"))
-        self.assertFalse(mgr.should_checkpoint(1, "mapper"))
-
-        # Should checkpoint matching operations
-        self.assertTrue(mgr.should_checkpoint(2, "nonexistent_op_1"))
 
     @TEST_TAG('ray')
     def test_auto_mode_execution(self):

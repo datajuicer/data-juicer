@@ -13,7 +13,6 @@ from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
     adaptive_batching_enabled,
 )
 from data_juicer.core.elasticjuicer.stage_identity import assign_stage_identities
-from data_juicer.core.executor.ray_executor_partitioned import _LOGICAL_PARTITION_COLUMN
 from data_juicer.ops import Filter, Mapper
 
 
@@ -39,8 +38,6 @@ class ThresholdMapper(Mapper):
             raise RuntimeError("CUDA out of memory")
         if self.failure == "rows":
             return {key: value[:-1] for key, value in samples.items()}
-        if self.failure == "tags":
-            samples.pop(_LOGICAL_PARTITION_COLUMN)
         samples["value"] = [value * 2 for value in samples["id"]]
         return samples
 
@@ -63,18 +60,16 @@ def make_batch(n=9):
     return {
         "id": list(range(n)),
         "meta": [{"attempts": 0} for _ in range(n)],
-        _LOGICAL_PARTITION_COLUMN: [i // 3 for i in range(n)],
     }
 
 
 @pytest.mark.parametrize("arrow", [False, True])
-def test_actor_retries_without_losing_rows_tags_or_replaying_mutation(arrow):
+def test_actor_retries_without_losing_rows_or_replaying_mutation(arrow):
     actor = make_actor(skip_op_error=True)
     original = make_batch()
     batch = pa.Table.from_pydict(original) if arrow else deepcopy(original)
     output = actor(batch)
     assert output["id"] == original["id"]
-    assert output[_LOGICAL_PARTITION_COLUMN] == original[_LOGICAL_PARTITION_COLUMN]
     assert output["meta"] == [{"attempts": 1}] * 9
     assert output["value"] == [i * 2 for i in range(9)]
     assert actor.mapper.oom_retries >= 2
@@ -99,9 +94,8 @@ def test_terminal_oom_is_never_silently_skipped():
         actor(make_batch())
 
 
-@pytest.mark.parametrize("failure", ["rows", "tags"])
-def test_contract_failure_is_never_silently_skipped(failure):
-    actor = make_actor(failure=failure, skip_op_error=True)
+def test_contract_failure_is_never_silently_skipped():
+    actor = make_actor(failure="rows", skip_op_error=True)
     with pytest.raises(AdaptiveBatchContractError):
         actor(make_batch())
 
@@ -159,7 +153,7 @@ def test_ray_dispatch_preserves_outer_batch_and_actor_resources(enabled):
     dataset.data = Mock()
     dataset._adaptive_batching = enabled
     data = dataset.data
-    dataset._run_single_op(op, {"id", "meta", _LOGICAL_PARTITION_COLUMN})
+    dataset._run_single_op(op, {"id", "meta"})
     args, kwargs = data.map_batches.call_args
     assert args[0] is (RayAdaptiveMapperActor if enabled else ThresholdMapper)
     assert kwargs["batch_size"] == 8

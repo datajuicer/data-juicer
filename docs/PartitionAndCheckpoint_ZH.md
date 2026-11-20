@@ -4,12 +4,10 @@
 
 ## 概述
 
-`ray_partitioned` 执行器将数据集分割成分区，并使用可配置的检查点进行处理。失败的作业可以从最后一个检查点恢复。
+`ray_partitioned` 执行器在 Ray Data 上处理数据集，并可以为每个算子保存检查点。失败的作业可以从已提交的结果继续。
 
 **检查点策略：**
-- `every_n_ops` - 每 N 个操作检查点（默认，平衡方案）
-- `every_op` - 每个操作后检查点（最高容错性，影响性能）
-- `manual` - 仅在指定操作后检查点（适合已知的耗时操作）
+- `every_op` - 每个 Mapper/Filter batch 的输出都提交（默认）
 - `disabled` - 不检查点（最佳性能）
 
 ## 目录结构
@@ -20,9 +18,12 @@
 ├── gpu_probe_results.json         # 自动探测的 GPU Operator 资源
 ├── events_{timestamp}.jsonl      # 机器可读事件日志
 ├── dag_execution_plan.json       # DAG 执行计划
-├── checkpoints/                  # 检查点数据
-│   ├── partitioning_info.json    # 保存的行号边界和分区内容 hash
-│   └── checkpoint_op_*.parquet/  # 各操作、各分区的检查点
+├── checkpoints/                  # checkpoint_dir
+│   └── partition_recovery/
+│       ├── run.json              # 输入指纹和 recipe 身份
+│       ├── commits/              # 每次提交一个不可变 manifest
+│       ├── exports/              # 每次导出尝试一条记录
+│       └── data/                 # manifest 引用的 Parquet 文件
 ├── logs/                         # 人类可读日志
 └── metadata/                     # 作业元数据
 ```
@@ -48,10 +49,8 @@ partition:
   gpu_probe_sample_offset: 0          # preflight 取样时跳过的开头行数
   gpu_probe_sample_shuffle: false     # true 时先随机化 block 顺序再取样
   gpu_probe_sample_seed: 42           # 随机取样的种子；null 表示每次运行都重新取样，因此永不复用报告
-  execution_group_size: "auto"       # 共用一次 GPU Actor 生命周期的逻辑分区数
-  max_initialization_overhead_ratio: 0.1  # 每个执行组允许的模型初始化时间占比
   target_size_mb: 256    # 目标分区大小（128、256、512 或 1024）
-  size: 5000             # 自动分析失败时的回退值
+  size: 5000             # 自动分析失败时的回退值；启用检查点时为每次提交的输入行数上限
   max_size_mb: 256       # 回退最大大小
 ```
 
@@ -64,9 +63,9 @@ partition:
   max_concurrent_partitions: "auto"
 ```
 
-分区按精确行号边界切分，各分区行数最多相差一行。这里特意没有使用 Ray 的 `Dataset.split(n)`：它按整块（block）分配，当数据块数少于 `num_of_partitions` 时会产生空的尾部分区（单块 10 行切 4 份会得到 `[10, 0, 0, 0]`），块大小不均时即使块数足够也会造成分区严重倾斜。空分区并非零成本——每个空分区仍会构建算子图、占用一次 Actor 生命周期并写出 checkpoint；而倾斜会破坏 execution group 定容所依赖的“各分区行数均匀”假设。当分区数超过总行数时，会在任何 Actor 启动前直接报错，而不是静默下调：分区数是续跑校验的依据，必须与请求值一致。
+分区按精确行号边界切分，各分区行数最多相差一行。这里特意没有使用 Ray 的 `Dataset.split(n)`：它按整块（block）分配，当数据块数少于 `num_of_partitions` 时会产生空的尾部分区（单块 10 行切 4 份会得到 `[10, 0, 0, 0]`），块大小不均时即使块数足够也会造成分区严重倾斜。当分区数超过总行数时，会在任何 Actor 启动前直接报错。
 
-逻辑分区数与 GPU 执行并发现在相互独立：逻辑分区只决定 checkpoint 粒度、恢复边界和单分区数据上限；GPU Actor 数由 preflight 的稳态吞吐和集群资源统一规划。多个逻辑分区会组成 execution group，共用一次 Ray Actor pool 生命周期，但在每个 checkpoint 点仍按原逻辑分区分别落盘。`execution_group_size: "auto"` 会根据模型初始化时间、稳态吞吐、数据量和 `max_initialization_overhead_ratio` 选择组大小；显式正整数可覆盖该选择。续跑时可能存在不同 checkpoint 位置，因此会安全回退到逐分区串行执行。
+分区只在没有算子被检查点覆盖时生效。启用检查点的运行会把整个数据集放进同一个 Ray Data 计划流式处理，恢复提交在 batch 完成时才形成（见[检查点](#检查点)），因此 `partition.mode` 和 `num_of_partitions` 不影响它。
 
 自动 Actor 规划先给每个待规划 GPU 阶段分配一个 Actor，然后反复给当前 pipeline 瓶颈阶段增加 Actor。每次增加都必须同时满足集群 CPU、Ray GPU 调度份额、每张卡的实测显存份额、每卡 Actor 上限以及有效 batch 数上限。若连“每阶段一个 Actor”的最低方案都无法放入集群，会在正式任务启动前直接报错，不会通过增加分区或超配显存来规避。
 
@@ -109,30 +108,25 @@ process:
 ```yaml
 checkpoint:
   enabled: true
-  strategy: every_n_ops  # every_n_ops（默认）, every_op, manual, disabled
-  n_ops: 5               # 默认：每 5 个操作检查点
-  op_names:              # 用于 manual 策略 - 在耗时操作后检查点
-    - ray_document_deduplicator
-    - extract_keyword_mapper
+  strategy: every_op     # every_op（默认）或 disabled
+partition:
+  size: 5000             # 每次提交的输入行数上限
+checkpoint_dir: s3://bucket/jobs/my_job   # 可选；默认 <work_dir>/checkpoints
 ```
 
-选择 `every_op`、`every_n_ops`、`manual` 或 `disabled` 作为保存策略。使用 `every_n_ops` 时，将 `n_ops` 设置为正整数；使用 `manual` 时，在 `op_names` 中填写配方里的算子名。
+recipe 开头连续的每个 Mapper/Filter 都是保存点。数据始终留在 Ray Data 上：算子像不加检查点时一样经 object store 读写 block，每个 worker 在把输出 batch 往下游传之前，顺带把一份副本写到 `checkpoint_dir`。恢复提交在这一刻形成，而不是在读入数据时预先切好：一次提交记录这个 batch 消费了哪些输入行、产出了哪些 Parquet 文件，因此 Mapper 扩行或 Filter 全部过滤都能被准确记录。被检查点覆盖的阶段向 Ray 传入 `batch_size=None`，不会为凑满 `partition.size` 合并小 block；每个 Ray block 内切为最多 `partition.size` 输入行的提交，算子内部推理的 `batch_size` 不变。未设置 `partition.size` 时，该上限按 preflight 吞吐取约 30 秒的工作量（限制在 64–2048 行），没有吞吐数据时为 512。
 
-启用检查点后，首次运行会保存
-`checkpoints/partitioning_info.json`。该文件为每个逻辑分区记录：
+遇到第一个 Deduplicator、`Pipeline` 或其他需要一次看到全部数据的算子时，检查点前缀结束。该算子及其后的所有算子在合并后的输出上原样运行、不保存检查点，并会打印告警指出是哪个算子。
 
-- 输入数据中的 `start_row`（包含）和 `end_row`（不包含）；
-- 分区样本行数；
-- 覆盖完整分区内容的稳定 hash；
-- 写入 metadata 时使用的分区 hash 算法。
+提交由一个固定在 driver 节点上的协调 Ray actor 负责，它只处理元数据：分配提交序号，并拒绝输入行与另一个已提交 batch 重叠的提交。重试时，worker 在运行算子前按阶段及已消费血缘查找持久化提交；若已存在，直接读取原输出，不再运行算子。并发尝试以先提交者为准，后提交者复用其输出。每次提交以“仅在不存在时创建”的 manifest 发布，因此提交永远不会被覆盖。
 
-即使新进程中的 Ray 物理 block 布局发生变化，显式续跑也可以用这些信息重建首次运行的逻辑分区。完整分区 hash 对样本顺序敏感、不依赖 Ray batch 边界，并且会在复用任何 checkpoint 前完成校验。
+`checkpoint_dir` 必须对所有 Ray worker 可见。支持共享 POSIX 路径和 `s3://`（AWS S3 或 MinIO 等 S3 兼容服务，通过 `boto3` 的 `If-None-Match` 条件写入）；其他协议会在启动时报错。
 
 ### 检查点与临时文件
 
-使用 `checkpoint.enabled` 开关检查点，用 `checkpoint.strategy` 选择保存时机。检查点以 Parquet 数据集的形式保存在 `checkpoint_dir`，默认目录为 `<work_dir>/checkpoints`。保留该目录即可恢复中断的作业。
+作业结束后检查点会保留，以便续跑。运行退出时，执行器会清理临时工作文件。
 
-运行退出时，执行器会清理临时工作文件。检查点单独存储，仍可用于恢复作业。
+检查点清理只删除本次尝试拥有、且已确认未提交的文件。进程被强制终止、或远端写入结果不明时，仍可能留下孤立文件；系统不会扫描并删除所有“尚未被引用”的文件，因为其他 worker 可能仍在写入或提交它们。具体边界见[提交协议](RecoveryPartitionProtocol.md#storage)。空的检查点导出保持目录形式，以便继续恢复。
 
 ## 使用方法
 
@@ -170,12 +164,17 @@ dj-process --config config.yaml --resume my_experiment_001
 
 1. 定位原任务的工作目录和检查点目录；
 2. 确认当前配置与首次运行配置一致；
-3. 读取保存的分区数、行号边界和内容 hash；
-4. 使用保存的行号边界重建首次运行的逻辑分区；
-5. 校验所有分区的完整内容 hash；
-6. 加载已完成的 checkpoint，仅处理尚未完成的部分。
+3. 重新读取输入并计算指纹，与 `run.json` 中的指纹、行数、schema 和被检查点覆盖的算子配置比较；
+4. 以最多 32 个并行存储 `get` 读取提交 manifest，按 stage 顺序登记提交，算出每个算子还有哪些输入行没有消费；
+5. 每个算子只处理这些行，加上上一个算子已提交、但本算子尚未消费的行（由 worker 从存储读取）；
+6. 导出后校验每一条输入行都被恰好消费和交付一次；
+7. 校验通过后，才删除之前中断的运行留下的导出文件。
 
-如果 metadata 缺失、行号边界非法、输入内容发生变化或内容 hash 不一致，显式续跑会报错停止，并保留已有 checkpoint，不会将其删除。
+`partition.size` 不属于身份信息，续跑时可以修改。如果记录的输入指纹、行数、schema 或被检查点覆盖的算子配置不匹配，显式续跑会报错停止，并保留已有 checkpoint。用已有检查点的作业 ID 新建运行会被拒绝，而不会与旧检查点混用。
+
+用户需要保证源输入的行身份和读取顺序稳定：同一源输入行号在续跑时仍应指向同一条逻辑记录。输入指纹只是额外的误用检查，不承诺核验所有 payload 字节完全一致。非 JSON 值使用展示字符串，可能省略 tensor 中间的元素；引用的媒体文件、模型文件内容也不在哈希范围内。内容一致性由用户通过数据集和版本管理保证，逻辑输入改变时应创建新作业。
+
+导出与算子同时进行，所以作业中断时导出目录里通常已有一部分结果。续跑会用新的文件名重新写出完整结果，只有在自己的导出写完并通过校验后，才删除之前的文件，因此续跑失败不会丢失已导出的内容。导出目录中不是本作业写出的文件会保留，并打印警告。Lance 格式的部分导出需要先手动删除再续跑。
 
 `--job_id` 用于指定作业名称。恢复作业时，在原命令上添加 `--resume`，并使用首次运行的作业 ID。
 
@@ -190,14 +189,11 @@ dj-process --config config.yaml \
 ### 检查点策略
 
 ```bash
-# 每个操作
+# 每个 Mapper/Filter（启用检查点时的默认值）
 dj-process --config config.yaml --checkpoint.strategy every_op
 
-# 每 N 个操作
-dj-process --config config.yaml --checkpoint.strategy every_n_ops --checkpoint.n_ops 3
-
-# 手动
-dj-process --config config.yaml --checkpoint.strategy manual --checkpoint.op_names op1,op2
+# 不保存检查点
+dj-process --config config.yaml --checkpoint.strategy disabled
 ```
 
 ## 自动配置
@@ -279,89 +275,32 @@ events = job_utils.load_event_logs()
 
 ## 性能考虑
 
-### 检查点与 Ray 优化的权衡
+### 检查点成本
 
-**关键洞察：检查点会干扰 Ray 的自动优化。**
+检查点不会在算子之间插入物化屏障：Ray Data 仍像不加检查点时一样融合、流水线化和调度算子。额外开销来自：每个算子输出 batch 的旁路写入、每次提交一个小 manifest、启动时对输入做一次指纹扫描，以及导出前去掉内部血缘列。对于很轻的文本算子，写入成本可能高于失败后重跑；短作业建议关闭检查点。
 
-Ray 通过融合操作和流水线处理数据来优化执行。每个检查点都会强制物化，从而打破优化窗口：
-
-```
-无检查点：          op1 → op2 → op3 → op4 → op5
-                    |___________________________|
-                         Ray 优化整个窗口
-
-every_op：          op1 | op2 | op3 | op4 | op5
-                    每个 | 处物化（5 个屏障）
-
-every_n_ops(5)：    op1 → op2 → op3 → op4 → op5 |
-                    |_____________________________|
-                         Ray 优化全部 5 个操作
-```
-
-### 检查点成本分析
-
-| 成本类型 | 典型值 |
-|----------|--------|
-| 检查点写入 | ~2-5 秒 |
-| 轻量操作执行 | ~1-2 秒 |
-| 耗时操作执行 | 分钟到小时 |
-
-**对于轻量操作，检查点的成本比失败后重新执行更高。**
-
-管道分析示例：
-```
-filter(1秒) → mapper(2秒) → deduplicator(300秒) → filter(1秒)
-
-策略              | 开销    | 保护价值
-------------------|---------|------------------
-every_op          | ~20秒   | 失败时节省 1-304秒
-仅在 dedup 后     | ~5秒    | 失败时节省 300秒
-disabled          | 0秒     | 重新执行全部
-```
-
-### 策略建议
-
-| 作业时长 | 建议策略 | 理由 |
-|----------|----------|------|
-| < 10 分钟 | `disabled` | 重新执行成本低 |
-| 10-60 分钟 | `every_n_ops` (n=5) | 平衡保护 |
-| > 60 分钟且有耗时操作 | `manual` | 仅在耗时操作后检查点 |
-| 不稳定的基础设施 | `every_n_ops` (n=2-3) | 接受开销换取可靠性 |
-
-### 操作分类
-
-**耗时操作（建议在这些操作后检查点）：**
-- `*_deduplicator` - 全局状态，计算耗时
-- `*_embedding_*` - 模型推理
-- `*_model_*` - 模型推理
-- `*_vision_*` - 图像/视频处理
-- `*_audio_*` - 音频处理
-
-**轻量操作（可跳过检查点）：**
-- `*_filter` - 简单过滤
-- `clean_*` - 文本清理
-- `remove_*` - 字段移除
+两个可选需求需要保留最终计算结果：设置 `export_shard_size` 时，会物化导出输入以精确统计大小；Python API 请求返回数据集时，会物化检查点前缀之后的算子结果，供导出和后续读取共同使用。CLI 不使用返回值，显式设置 `skip_return=True`。检查点前缀外的 Filter 如果配置了统计导出，也会保留一次统计计算的结果，供统计写入和过滤共同使用。
 
 ### 存储建议
 
 - 事件日志：快速存储（SSD）
-- 检查点：大容量存储
+- 检查点：所有 worker 共享、容量足以容纳每个算子输出的存储
 
-### 分区大小权衡
+### 提交大小权衡
 
-- 较小分区：更好的容错性，更多调度开销
-- 较大分区：更少开销，更粗粒度的恢复
+- 较小的 `partition.size`：失败时丢失的工作更少，manifest 和文件更多
+- 较大的 `partition.size`：文件更少，失败后需要重算的行更多
 
 ## 故障排除
 
 **作业恢复失败：**
 ```bash
 ls -la ./outputs/{work_dir}/{job_id}/job_summary.json
-ls -la ./outputs/{work_dir}/{job_id}/checkpoints/
-cat ./outputs/{work_dir}/{job_id}/checkpoints/partitioning_info.json
+ls -la ./outputs/{work_dir}/{job_id}/checkpoints/partition_recovery/commits/
+cat ./outputs/{work_dir}/{job_id}/checkpoints/partition_recovery/run.json
 ```
 
-请使用首次运行打印的 resume token，并通过 `--resume` 重新执行相同的 recipe。可以在错误日志中检查配置不一致、分区 metadata 缺失、行号边界非法或分区内容 hash 不匹配。显式续跑校验失败时不会删除已有 checkpoint。
+请使用首次运行打印的 resume token，并通过 `--resume` 重新执行相同的 recipe。可以在错误日志中检查配置不一致、输入内容/读取顺序/算子配置变化，或存在提交但缺少 `run.json`。显式续跑校验失败时不会删除已有 checkpoint。
 
 **检查 Ray 状态：**
 ```bash

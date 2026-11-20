@@ -16,9 +16,11 @@ Run these tests with:
 import json
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 import uuid
+from unittest import mock
 
 from data_juicer.config import init_configs
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
@@ -48,79 +50,65 @@ class PartitionedExecutorIntegrationTest(DataJuicerTestCaseBase):
 
     @TEST_TAG('ray')
     def test_checkpoint_resume_after_interruption(self):
-        """Test resuming from checkpoint after simulated interruption.
-
-        This test:
-        1. Runs processing with checkpointing until op 1 completes
-        2. Simulates interruption
-        3. Creates new executor with same job_id
-        4. Verifies it resumes from checkpoint
-        """
-        # First run - process partially with checkpoints
-        cfg = init_configs([
+        """An interrupted job resumed with --resume recomputes only uncommitted work."""
+        work_dir = os.path.join(self.tmp_dir, 'test_resume')
+        args = [
             '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2',
-            '--checkpoint.enabled', 'true',
-            '--checkpoint.strategy', 'every_op'
-        ])
-        cfg.export_path = os.path.join(self.tmp_dir, 'test_resume', 'res.jsonl')
-        cfg.work_dir = os.path.join(self.tmp_dir, 'test_resume')
-
-        executor1 = PartitionedRayExecutor(cfg)
-        executor1.run()
-
-        # Verify checkpoints were created
-        checkpoint_dir = cfg.checkpoint_dir
-        self.assertTrue(os.path.exists(checkpoint_dir))
-        checkpoint_files = [f for f in os.listdir(checkpoint_dir) if f.endswith('.parquet')]
-        self.assertGreater(len(checkpoint_files), 0)
-
-        # Get the job_id for resumption
-        job_id = cfg.job_id
-
-        # Second run - resume with same job_id
-        cfg2 = init_configs([
-            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2',
+            '--partition.size', '4',
+            '--executor_type', 'ray_partitioned',
             '--checkpoint.enabled', 'true',
             '--checkpoint.strategy', 'every_op',
-            '--job_id', job_id  # Use same job_id to trigger resume
-        ])
-        cfg2.export_path = cfg.export_path
-        cfg2.work_dir = cfg.work_dir
+            '--work_dir', work_dir,
+            '--export_path', os.path.join(work_dir, 'res.jsonl'),
+        ]
+        cfg = _cli_configs(args)
+        PartitionedRayExecutor(cfg).run()
+        exported = _read_export(cfg.export_path)
+        commits = _commit_names(cfg.checkpoint_dir)
+        last_stage = max(int(name.split('-')[0]) for name in commits)
 
-        executor2 = PartitionedRayExecutor(cfg2)
+        # Simulate a crash before the last operator committed anything.
+        commit_dir = os.path.join(cfg.checkpoint_dir, 'partition_recovery', 'commits')
+        for name in commits:
+            if int(name.split('-')[0]) == last_stage:
+                os.remove(os.path.join(commit_dir, name))
+        for name in os.listdir(cfg.work_dir):
+            if name.startswith('events_') and name.endswith('.jsonl'):
+                path = os.path.join(cfg.work_dir, name)
+                with open(path) as f:
+                    events = [line for line in f if json.loads(line).get('event_type') != 'job_complete']
+                with open(path, 'w') as f:
+                    f.writelines(events)
+        # The export of the interrupted run stays behind, as it does after a real crash.
+        first_files = set(os.listdir(cfg.export_path))
 
-        # Verify checkpoint manager can find existing checkpoints
-        for partition_id in range(2):
-            latest = executor2.ckpt_manager.find_latest_checkpoint(partition_id)
-            # Should find checkpoint from first run
-            if latest:
-                op_idx, _, path = latest
-                self.assertTrue(os.path.exists(path))
+        cfg2 = _cli_configs(args + ['--resume', cfg.job_id])
+        PartitionedRayExecutor(cfg2).run()
+
+        resumed = _commit_names(cfg.checkpoint_dir)
+        self.assertTrue(set(commits) - set(resumed) <= {n for n in commits if int(n.split('-')[0]) == last_stage})
+        self.assertTrue({n for n in commits if int(n.split('-')[0]) < last_stage} <= set(resumed))
+        self.assertTrue(any(int(n.split('-')[0]) == last_stage for n in set(resumed) - set(commits)))
+        self.assertFalse(first_files & set(os.listdir(cfg2.export_path)))
+        self.assertEqual(sorted(_read_export(cfg2.export_path)), sorted(exported))
 
     @TEST_TAG('ray')
-    def test_checkpoint_resume_partial_completion(self):
-        """Test resume when some partitions completed but not all."""
+    def test_checkpoint_commits_cover_every_operator(self):
+        """Every checkpointed Mapper/Filter stage records commits."""
         cfg = init_configs([
             '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '4',
+            '--partition.size', '4',
             '--checkpoint.enabled', 'true',
             '--checkpoint.strategy', 'every_op'
         ])
-        cfg.export_path = os.path.join(self.tmp_dir, 'test_partial_resume', 'res.jsonl')
-        cfg.work_dir = os.path.join(self.tmp_dir, 'test_partial_resume')
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_commit_stages', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_commit_stages')
 
         executor = PartitionedRayExecutor(cfg)
         executor.run()
 
-        # All partitions should have checkpoints
-        for partition_id in range(4):
-            latest = executor.ckpt_manager.find_latest_checkpoint(partition_id)
-            self.assertIsNotNone(latest, f"Partition {partition_id} should have checkpoint")
+        stages = {int(name.split('-')[0]) for name in _commit_names(cfg.checkpoint_dir)}
+        self.assertEqual(stages, set(range(len(cfg.process))))
 
     # ==================== Convergence Point Tests ====================
 
@@ -252,10 +240,12 @@ class PartitionedExecutorIntegrationTest(DataJuicerTestCaseBase):
     @TEST_TAG('ray')
     def test_event_logging_creates_jsonl(self):
         """Test that event logging creates proper JSONL file."""
+        # Partition events come from ordinary partitioning, which checkpointing replaces.
         cfg = init_configs([
             '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
             '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2'
+            '--partition.num_of_partitions', '2',
+            '--checkpoint.enabled', 'false',
         ])
         cfg.event_logging = {'enabled': True}
         cfg.export_path = os.path.join(self.tmp_dir, 'test_events_jsonl', 'res.jsonl')
@@ -398,37 +388,6 @@ class PartitionedExecutorIntegrationTest(DataJuicerTestCaseBase):
     # ==================== Multi-Partition Coordination Tests ====================
 
     @TEST_TAG('ray')
-    def test_partition_isolation(self):
-        """Test that partitions don't interfere with each other."""
-        cfg = init_configs([
-            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '4',
-            '--checkpoint.enabled', 'true',
-            '--checkpoint.strategy', 'every_op'
-        ])
-        cfg.export_path = os.path.join(self.tmp_dir, 'test_isolation', 'res.jsonl')
-        cfg.work_dir = os.path.join(self.tmp_dir, 'test_isolation')
-
-        executor = PartitionedRayExecutor(cfg)
-        executor.run()
-
-        # Each partition should have its own checkpoints
-        checkpoint_dir = cfg.checkpoint_dir
-
-        for partition_id in range(4):
-            # Find checkpoints for this partition
-            partition_ckpts = [
-                f for f in os.listdir(checkpoint_dir)
-                if f.endswith('.parquet') and f'_partition_{partition_id:04d}' in f
-            ]
-
-            # Should have checkpoints (depends on number of ops)
-            # At minimum, verify no cross-partition contamination
-            for ckpt in partition_ckpts:
-                self.assertIn(f'_partition_{partition_id:04d}', ckpt)
-
-    @TEST_TAG('ray')
     def test_high_partition_count(self):
         """Stress test with many partitions."""
         cfg = init_configs([
@@ -478,62 +437,44 @@ class CheckpointResumeIntegrationTest(DataJuicerTestCaseBase):
 
     @TEST_TAG('ray')
     def test_resume_skips_completed_operations(self):
-        """Test that resume properly skips already-completed operations."""
-        cfg = init_configs([
+        """Resuming a completed job neither commits nor exports again."""
+        work_dir = os.path.join(self.tmp_dir, 'test_skip_completed')
+        args = [
             '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2',
+            '--executor_type', 'ray_partitioned',
             '--checkpoint.enabled', 'true',
-            '--checkpoint.strategy', 'every_op'
-        ])
-        cfg.export_path = os.path.join(self.tmp_dir, 'test_skip_completed', 'res.jsonl')
-        cfg.work_dir = os.path.join(self.tmp_dir, 'test_skip_completed')
-
-        # First run - complete all operations
-        executor1 = PartitionedRayExecutor(cfg)
-        executor1.run()
-
-        # Count checkpoint files
-        checkpoint_files_after_run1 = len([
-            f for f in os.listdir(cfg.checkpoint_dir)
-            if f.endswith('.parquet')
-        ])
-
-        # Second run with same config - should detect completion
-        executor2 = PartitionedRayExecutor(cfg)
-
-        # Find latest checkpoint for each partition
-        for partition_id in range(2):
-            latest = executor2.ckpt_manager.find_latest_checkpoint(partition_id)
-            self.assertIsNotNone(latest,
-                f"Should find checkpoint for partition {partition_id}")
-
-    @TEST_TAG('ray')
-    def test_resume_with_every_n_ops_strategy(self):
-        """Test resume with EVERY_N_OPS checkpoint strategy."""
-        cfg = init_configs([
-            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
-            '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2',
-            '--checkpoint.enabled', 'true',
-            '--checkpoint.strategy', 'every_n_ops',
-            '--checkpoint.n_ops', '2'
-        ])
-        cfg.export_path = os.path.join(self.tmp_dir, 'test_every_n_resume', 'res.jsonl')
-        cfg.work_dir = os.path.join(self.tmp_dir, 'test_every_n_resume')
-
-        executor = PartitionedRayExecutor(cfg)
-        executor.run()
-
-        # Verify checkpoints exist at expected intervals
-        checkpoint_files = [
-            f for f in os.listdir(cfg.checkpoint_dir)
-            if f.endswith('.parquet')
+            '--checkpoint.strategy', 'every_op',
+            '--work_dir', work_dir,
+            '--export_path', os.path.join(work_dir, 'res.jsonl'),
         ]
+        cfg = _cli_configs(args)
+        PartitionedRayExecutor(cfg).run()
+        commits_after_run1 = _commit_names(cfg.checkpoint_dir)
+        exported_after_run1 = _read_export(cfg.export_path)
 
-        # With n_ops=2, checkpoints should be at ops 1, 3, 5, etc. (0-indexed: 1, 3, 5)
-        # Actual number depends on total ops in config
-        self.assertGreater(len(checkpoint_files), 0)
+        cfg2 = _cli_configs(args + ['--resume', cfg.job_id])
+        self.assertIsNone(PartitionedRayExecutor(cfg2).run())
+        self.assertEqual(_commit_names(cfg.checkpoint_dir), commits_after_run1)
+        self.assertEqual(_read_export(cfg.export_path), exported_after_run1)
+
+
+def _cli_configs(args):
+    # Resume validation compares the command line recorded by the first run.
+    with mock.patch.object(sys, 'argv', ['dj-process', *args]):
+        return init_configs(args)
+
+
+def _commit_names(checkpoint_dir):
+    return sorted(os.listdir(os.path.join(checkpoint_dir, 'partition_recovery', 'commits')))
+
+
+def _read_export(path):
+    paths = sorted(os.path.join(path, name) for name in os.listdir(path)) if os.path.isdir(path) else [path]
+    rows = []
+    for shard in paths:
+        with open(shard) as f:
+            rows.extend(line for line in f if line.strip())
+    return rows
 
 
 if __name__ == '__main__':

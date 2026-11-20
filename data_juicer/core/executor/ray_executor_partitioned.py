@@ -16,7 +16,7 @@ import os
 import shutil
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
@@ -32,6 +32,7 @@ from data_juicer.core.data.dataset_builder import (
 from data_juicer.core.data.ray_dataset import RayDataset
 from data_juicer.core.elasticjuicer.stage_identity import (
     assign_stage_identities,
+    operator_fingerprint,
     stamped_stage_identity,
 )
 from data_juicer.core.executor import ExecutorBase
@@ -39,8 +40,9 @@ from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin, EventType
 from data_juicer.core.ray_exporter import RayExporter
 from data_juicer.ops import Filter, Mapper, load_ops
+from data_juicer.ops.base_op import OP
 from data_juicer.ops.op_fusion import fuse_operators
-from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
+from data_juicer.utils.ckpt_utils import RayCheckpointManager
 from data_juicer.utils.config_utils import ConfigAccessor
 from data_juicer.utils.file_utils import is_remote_path
 from data_juicer.utils.lazy_loader import LazyLoader
@@ -54,69 +56,13 @@ _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE = 5
 _DEFAULT_GPU_PROBE_WARMUP_BATCHES = 1
 _DEFAULT_GPU_PROBE_STEADY_BATCHES = 3
 _DEFAULT_GPU_PROBE_SAMPLE_SEED = 42
-_DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO = 0.10
-_LOGICAL_PARTITION_COLUMN = "__data_juicer_logical_partition_id__"
-_PARTITION_CONTENT_HASH_ALGORITHM = "sha256-sequence-v1"
-_PARTITION_CONTENT_HASH_MODULUS = 1 << 256
-_PARTITION_CONTENT_HASH_BASE = int.from_bytes(hashlib.sha256(b"data-juicer-partition-sequence-v1").digest(), "big") | 1
 
 
-def _canonical_row_bytes(row: Dict) -> bytes:
-    """Serialize one row consistently for partition content hashing."""
-    try:
-        serialized = json.dumps(row, sort_keys=True, default=str, separators=(",", ":"), ensure_ascii=False)
-    except Exception:
-        serialized = str(row)
-    return serialized.encode("utf-8")
-
-
-def _hash_partition_batch(batch):
-    """Return an order-sensitive rolling hash for one Arrow batch."""
-    import pyarrow
-
-    sequence_hash = 0
-    rows = batch.to_pylist()
-    for row in rows:
-        digest = int.from_bytes(hashlib.sha256(_canonical_row_bytes(row)).digest(), "big")
-        sequence_hash = (sequence_hash * _PARTITION_CONTENT_HASH_BASE + digest) % _PARTITION_CONTENT_HASH_MODULUS
-
-    return pyarrow.table(
-        {
-            "row_count": [len(rows)],
-            "sequence_hash": [f"{sequence_hash:064x}"],
-        }
-    )
-
-
-def _combine_partition_hash_partials(partials: List[Dict]) -> tuple:
-    """Combine ordered batch hashes without depending on batch boundaries."""
-    row_count = 0
-    sequence_hash = 0
-    for partial in partials:
-        partial_count = int(partial["row_count"])
-        sequence_hash = (
-            sequence_hash * pow(_PARTITION_CONTENT_HASH_BASE, partial_count, _PARTITION_CONTENT_HASH_MODULUS)
-            + int(partial["sequence_hash"], 16)
-        ) % _PARTITION_CONTENT_HASH_MODULUS
-        row_count += partial_count
-
-    payload = f"{_PARTITION_CONTENT_HASH_ALGORITHM}:{row_count}:{sequence_hash:064x}"
-    return hashlib.sha256(payload.encode("ascii")).hexdigest(), row_count
-
-
-def _add_logical_partition_id(batch, partition_id: int):
-    """Attach the checkpoint partition identity without changing row order."""
-    import pyarrow
-
-    if _LOGICAL_PARTITION_COLUMN in batch.column_names:
-        index = batch.column_names.index(_LOGICAL_PARTITION_COLUMN)
-        batch = batch.remove_column(index)
-    values = pyarrow.array([partition_id] * batch.num_rows, type=pyarrow.int64())
-    return batch.append_column(_LOGICAL_PARTITION_COLUMN, values)
-
-
-def _matches_logical_partition(row: Dict, partition_id: int) -> bool:
-    return row[_LOGICAL_PARTITION_COLUMN] == partition_id
+def _checkpoint_config_value(value):
+    """Serialize nested operators without their process-specific object addresses."""
+    if isinstance(value, OP):
+        return {"operator_fingerprint": operator_fingerprint(value)}
+    return str(value)
 
 
 class TempDirManager:
@@ -154,84 +100,6 @@ class PartitionResult:
     dataset: Optional[Any] = None
     success: bool = False
     error: Optional[str] = None
-
-
-@dataclass
-class PartitionMetadata:
-    """Metadata for a single partition to enable validation on resume.
-
-    Stores information about each partition that can be used to verify
-    that re-partitioning produces the same result on job resumption.
-    """
-
-    partition_id: int
-    row_count: int
-    first_row_hash: str  # Hash of first row for validation
-    last_row_hash: str  # Hash of last row for validation
-    content_hash: str = ""  # Stable hash of the complete partition contents
-    start_row: Optional[int] = None  # Inclusive row offset in the ordered input
-    end_row: Optional[int] = None  # Exclusive row offset in the ordered input
-
-    def to_dict(self) -> Dict:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: Dict) -> "PartitionMetadata":
-        return cls(**data)
-
-
-@dataclass
-class PartitioningInfo:
-    """Complete partitioning information for a job.
-
-    Stored alongside checkpoints to enable validation that re-partitioning
-    on resume produces identical partitions.
-    """
-
-    num_partitions: int
-    total_rows: int
-    partitions: List[PartitionMetadata] = field(default_factory=list)
-    deterministic: bool = True  # Whether deterministic splitting was used
-    hash_algorithm: str = _PARTITION_CONTENT_HASH_ALGORITHM
-
-    def to_dict(self) -> Dict:
-        return {
-            "num_partitions": self.num_partitions,
-            "total_rows": self.total_rows,
-            "deterministic": self.deterministic,
-            "hash_algorithm": self.hash_algorithm,
-            "partitions": [p.to_dict() for p in self.partitions],
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict) -> "PartitioningInfo":
-        partitions = [PartitionMetadata.from_dict(p) for p in data.get("partitions", [])]
-        return cls(
-            num_partitions=data["num_partitions"],
-            total_rows=data["total_rows"],
-            deterministic=data.get("deterministic", True),
-            hash_algorithm=data.get("hash_algorithm", _PARTITION_CONTENT_HASH_ALGORITHM),
-            partitions=partitions,
-        )
-
-    def save(self, path: str) -> None:
-        """Save partitioning info to JSON file."""
-        with open(path, "w") as f:
-            json.dump(self.to_dict(), f, indent=2)
-        logger.info(f"Saved partitioning info to {path}")
-
-    @classmethod
-    def load(cls, path: str) -> Optional["PartitioningInfo"]:
-        """Load partitioning info from JSON file."""
-        if not os.path.exists(path):
-            return None
-        try:
-            with open(path, "r") as f:
-                data = json.load(f)
-            return cls.from_dict(data)
-        except Exception as e:
-            logger.warning(f"Failed to load partitioning info from {path}: {e}")
-            return None
 
 
 class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
@@ -277,38 +145,29 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             getattr(self.cfg, "checkpoint_dir", os.path.join(self.work_dir, "checkpoints"))
         )
 
+        checkpoint_enabled = False
         if checkpoint_cfg:
             # Use ConfigAccessor to handle both dict and object configurations
-            checkpoint_enabled = ConfigAccessor.get(checkpoint_cfg, "enabled", True)
-            strategy_str = ConfigAccessor.get(checkpoint_cfg, "strategy", "every_op")
-            checkpoint_n_ops = ConfigAccessor.get(checkpoint_cfg, "n_ops", 1)
-            checkpoint_op_names = ConfigAccessor.get(checkpoint_cfg, "op_names", [])
+            strategy = ConfigAccessor.get(checkpoint_cfg, "strategy", "every_op")
+            if strategy not in ("every_op", "disabled"):
+                raise ValueError(
+                    f"Unsupported checkpoint.strategy={strategy!r}; use 'every_op' or 'disabled'. "
+                    "Every checkpointed operator is its own save point."
+                )
+            checkpoint_enabled = bool(ConfigAccessor.get(checkpoint_cfg, "enabled", True)) and strategy == "every_op"
+        if checkpoint_enabled:
+            from data_juicer.core.executor.partition_protocol import open_store
 
-            # Parse checkpoint strategy with validation
-            try:
-                checkpoint_strategy = CheckpointStrategy(strategy_str)
-            except ValueError:
-                logger.warning(f"Unknown checkpoint strategy: {strategy_str}, defaulting to EVERY_OP")
-                checkpoint_strategy = CheckpointStrategy.EVERY_OP
-        else:
-            checkpoint_enabled = False
-            checkpoint_strategy = CheckpointStrategy.DISABLED
-            checkpoint_n_ops = 1
-            checkpoint_op_names = []
+            open_store(checkpoint_dir)
 
-        # Initialize Ray checkpoint manager
         self.ckpt_manager = RayCheckpointManager(
             ckpt_dir=checkpoint_dir,
             checkpoint_enabled=checkpoint_enabled,
-            checkpoint_strategy=checkpoint_strategy,
-            checkpoint_n_ops=checkpoint_n_ops,
-            checkpoint_op_names=checkpoint_op_names,
             event_logger=self,
         )
 
         logger.info(f"Checkpointing: {'enabled' if self.ckpt_manager.checkpoint_enabled else 'disabled'}")
         if self.ckpt_manager.checkpoint_enabled:
-            logger.info(f"Checkpoint strategy: {self.ckpt_manager.checkpoint_strategy.value}")
             logger.info(f"Checkpoint directory: {self.ckpt_manager.ckpt_dir}")
 
         # Initialize RayExporter for final output
@@ -408,12 +267,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             partition_cfg,
             "gpu_probe_sample_seed",
             _DEFAULT_GPU_PROBE_SAMPLE_SEED,
-        )
-        execution_group_size = ConfigAccessor.get(partition_cfg, "execution_group_size", "auto")
-        max_initialization_overhead_ratio = ConfigAccessor.get(
-            partition_cfg,
-            "max_initialization_overhead_ratio",
-            _DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO,
         )
         partition_size = ConfigAccessor.get(partition_cfg, "size", None)
         max_size_mb = ConfigAccessor.get(partition_cfg, "max_size_mb", 64)
@@ -561,28 +414,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     f"{gpu_probe_sample_seed!r}; using {_DEFAULT_GPU_PROBE_SAMPLE_SEED}"
                 )
                 self.gpu_probe_sample_seed = _DEFAULT_GPU_PROBE_SAMPLE_SEED
-        if isinstance(execution_group_size, str) and execution_group_size.strip().lower() == "auto":
-            self.execution_group_size = "auto"
-        else:
-            try:
-                if isinstance(execution_group_size, bool) or int(execution_group_size) < 1:
-                    raise ValueError
-                self.execution_group_size = int(execution_group_size)
-            except (TypeError, ValueError):
-                logger.warning(f"Invalid partition.execution_group_size={execution_group_size!r}; using auto")
-                self.execution_group_size = "auto"
-        try:
-            ratio = float(max_initialization_overhead_ratio)
-            if isinstance(max_initialization_overhead_ratio, bool) or not 0 < ratio < 1:
-                raise ValueError
-            self.max_initialization_overhead_ratio = ratio
-        except (TypeError, ValueError):
-            logger.warning(
-                "Invalid partition.max_initialization_overhead_ratio="
-                f"{max_initialization_overhead_ratio!r}; using "
-                f"{_DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO}"
-            )
-            self.max_initialization_overhead_ratio = _DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO
         self.partition_size_cfg = partition_size
         self.max_size_mb = max_size_mb
 
@@ -956,23 +787,18 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # only after the generic schema/environment validation has succeeded.
         self._configure_pre_partition_resources(dataset, ops)
 
-        # A resumed job must reuse the saved partition count before DAG
-        # initialization. Auto mode can otherwise choose a different count if
-        # the Ray cluster resources changed between runs.
-        if resume_requested:
-            saved_info = self._load_partitioning_info()
-            if saved_info is None:
-                raise RuntimeError(
-                    "Explicit resume requires saved partitioning_info.json; "
-                    "existing checkpoints were left unchanged."
-                )
-            self.num_partitions = saved_info.num_partitions
-            logger.info(f"Using saved partition count for resume: {self.num_partitions}")
+        checkpointed_ops = self._checkpoint_prefix_length(ops)
+        if resume_requested and not checkpointed_ops:
+            logger.warning("No operator of this pipeline is checkpointed; the resumed job recomputes everything.")
+
         # Handle auto partition mode BEFORE initializing DAG
         # (DAG needs final partition count). At this point GPU preflight and
         # automatic operator parallelism have both populated the real
         # per-worker requests used by the cluster-aware bounds.
-        if not resume_requested and self.partition_mode == "auto":
+        if checkpointed_ops:
+            self.num_partitions = 1
+            logger.info("Checkpointing selected; skipping ordinary input partitioning.")
+        elif self.partition_mode == "auto":
             self._configure_auto_partitioning(dataset, ops)
         elif self.partition_size_cfg is not None:
             # split_at_indices() materializes the input too. Retaining that
@@ -1009,19 +835,48 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         }
         self.log_job_start(job_config, self.num_partitions)
 
-        # Detect convergence points for global operations
-        convergence_points = self._detect_convergence_points(self.cfg)
+        recovery = None
+        try:
+            if checkpointed_ops:
+                self._pre_execute_operations_with_dag_monitoring(ops[:checkpointed_ops])
+                checkpoint_started = time.time()
+                final_dataset, recovery = self._process_with_partition_recovery(dataset, ops[:checkpointed_ops])
+                if checkpointed_ops < len(ops):
+                    final_dataset = self._process_merged(final_dataset.data, ops[checkpointed_ops:])
+                    if not skip_return:
+                        # Export and API reads must share this execution, including
+                        # stateful and nondeterministic operators after the prefix.
+                        final_dataset.data = final_dataset.data.materialize()
+            else:
+                # Detect convergence points for global operations
+                convergence_points = self._detect_convergence_points(self.cfg)
+                if convergence_points:
+                    logger.info(f"Found convergence points at operations: {convergence_points}")
+                    final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
+                else:
+                    logger.info("No convergence points found, processing with simple partitioning")
+                    final_dataset = self._process_with_simple_partitioning(dataset, ops)
 
-        if convergence_points:
-            logger.info(f"Found convergence points at operations: {convergence_points}")
-            final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
-        else:
-            logger.info("No convergence points found, processing with simple partitioning")
-            final_dataset = self._process_with_simple_partitioning(dataset, ops)
-
-        # Export final dataset
-        logger.info("Exporting final dataset...")
-        self.exporter.export(final_dataset.data, columns=columns)
+            # Export final dataset
+            logger.info("Exporting final dataset...")
+            attempt = recovery.export_attempt() if recovery is not None else None
+            self.exporter.export(final_dataset.data, columns=columns, attempt=attempt)
+            if recovery is not None:
+                # Keep the completion order visible: verify delivery and publish
+                # committed statistics before removing earlier export attempts.
+                recovery.finish()
+                self.exporter.complete_attempt(attempt)
+                # Operators stream together, so only the whole prefix duration is known.
+                self._post_execute_operations_with_dag_monitoring(
+                    ops[:checkpointed_ops],
+                    metrics={"duration": time.time() - checkpoint_started, "input_rows": recovery.source_rows},
+                )
+                if not skip_return and checkpointed_ops == len(ops):
+                    # The streamed plan needs the coordinator; re-reading starts from storage instead.
+                    final_dataset = self._wrap_with_precomputed_parallelism(recovery.committed_output())
+        finally:
+            if recovery is not None:
+                recovery.close()
 
         job_duration = time.time() - job_start_time
         logger.info(f"✅ Job completed successfully in {job_duration:.2f}s")
@@ -1050,23 +905,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             logger.info("No temporary files found to clean up")
 
     def _process_with_simple_partitioning(self, dataset: RayDataset, ops: List):
-        """
-        Process dataset with real partitioning using Ray Data's split and union.
-
-        Uses deterministic splitting to ensure reproducible partitions for
-        checkpoint resumption.
-        """
+        """Process dataset with real partitioning using Ray Data's split and union."""
         logger.info("Processing with real partitioning using Ray Data's split and union...")
 
-        # Split the dataset deterministically with metadata collection
-        partitions, partitioning_info = self._split_dataset_deterministic(dataset)
-        logger.info(
-            f"Partitioning complete: {partitioning_info.num_partitions} partitions, "
-            f"{partitioning_info.total_rows} total rows"
-        )
-
-        if self._should_use_execution_groups(dataset, ops):
-            return self._process_partition_execution_groups(partitions, partitioning_info, ops)
+        partitions = self._split_into_row_balanced_partitions(dataset)
+        logger.info(f"Partitioning complete: {len(partitions)} partitions")
 
         # Process partitions concurrently. Each worker thread drives one Ray
         # Dataset execution; the actual data processing still runs on Ray.
@@ -1130,218 +973,78 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Return as RayDataset wrapper
         return RayDataset(merged_dataset, cfg=self.cfg)
 
-    def _should_use_execution_groups(self, dataset: RayDataset, ops: List) -> bool:
-        """Return whether logical partitions can safely share one GPU execution."""
-        if getattr(self, "_is_resuming", False):
-            logger.info("Using per-partition execution while resuming heterogeneous checkpoints.")
-            return False
-        has_gpu_actor = any(
-            getattr(op, "accelerator", None) == "cuda"
-            and (float(getattr(op, "num_gpus", 0) or 0) > 0 or op.use_ray_actor())
+    def _resolve_recovery_partition_size(self, ops: List) -> int:
+        if self.partition_size_cfg is not None:
+            return int(self.partition_size_cfg)
+        rates = [float(op._gpu_rows_per_second) for op in ops if float(getattr(op, "_gpu_rows_per_second", 0) or 0) > 0]
+        target = math.ceil(min(rates) * 30) if rates else 512
+        return max(64, min(2048, target))
+
+    def _checkpoint_prefix_length(self, ops: List) -> int:
+        """Count the leading operators that are checkpointed batch by batch.
+
+        A global operator (Deduplicator, Pipeline, shared-state Filter) needs
+        all of its input at once, so it and everything after it run unchanged
+        and without checkpoints.
+        """
+        ckpt_manager = getattr(self, "ckpt_manager", None)
+        if ckpt_manager is None or not ckpt_manager.checkpoint_enabled:
+            return 0
+        for index, op in enumerate(ops):
+            if (
+                not isinstance(op, (Mapper, Filter))
+                or getattr(op, "_prepare_for_ray_map_batches", None) is not None
+                or getattr(op, "converge_after", False)
+            ):
+                logger.warning(
+                    f"Checkpointing covers the first {index} operator(s); {getattr(op, '_name', type(op).__name__)} "
+                    "and later operators need all rows at once and run without checkpoints."
+                )
+                return index
+        return len(ops)
+
+    def _process_with_partition_recovery(self, dataset: RayDataset, ops: List):
+        """Stream Mapper/Filter stages through Ray Data and commit every batch.
+
+        Returns the lazily processed dataset and the recovery handle, which the
+        caller must ``finish()`` after the export and ``close()`` afterwards.
+        """
+        from data_juicer.core.executor.partition_protocol import open_store
+        from data_juicer.core.executor.partition_snapshot import open_run
+        from data_juicer.core.executor.ray_partition_runner import PartitionRecovery
+
+        store = open_store(os.path.join(self.ckpt_manager.ckpt_dir, "partition_recovery"))
+        resuming = bool(getattr(self, "_is_resuming", False))
+        partition_size = self._resolve_recovery_partition_size(ops)
+        config_payload = [
+            {
+                "operator": f"{type(op).__module__}.{type(op).__qualname__}",
+                "args": op._init_args,
+                "kwargs": op._init_kwargs,
+            }
             for op in ops
+        ]
+        config_hash = hashlib.sha256(
+            json.dumps(config_payload, sort_keys=True, default=_checkpoint_config_value, ensure_ascii=False).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+        source_rows, source = open_run(
+            store, dataset.data, config_fingerprint=config_hash, stage_count=len(ops), resuming=resuming
         )
-        if not has_gpu_actor:
-            return False
-        if any(not isinstance(op, (Mapper, Filter)) for op in ops):
-            logger.info("GPU execution grouping is disabled because the segment contains a dataset-level operator.")
-            return False
-        try:
-            names = self._schema_names(dataset.data)
-        except Exception:
-            names = set()
-        if _LOGICAL_PARTITION_COLUMN in names:
-            raise RuntimeError(f"Input dataset contains reserved execution-group column {_LOGICAL_PARTITION_COLUMN!r}.")
-        return True
-
-    def _resolve_execution_group_size(
-        self,
-        partitioning_info: PartitioningInfo,
-        ops: List,
-    ) -> int:
-        """Choose how many logical partitions reuse one set of actor pools."""
-        total_partitions = max(1, partitioning_info.num_partitions)
-        configured = getattr(self, "execution_group_size", "auto")
-        if not (isinstance(configured, str) and configured.lower() == "auto"):
-            return min(total_partitions, max(1, int(configured)))
-
-        plan = getattr(self, "_resolved_throughput_actor_plan", None) or {}
-        stages = plan.get("operators") or []
-        if not stages or partitioning_info.total_rows <= 0:
-            return total_partitions
-
-        # Every stage actor pool is constructed once per execution group. The
-        # stages themselves are sequential, while actors within one stage are
-        # generally initialized concurrently; max(init) per stage is therefore
-        # a useful conservative wall-time estimate.
-        initialization_seconds = sum(float(stage.get("initialization_seconds", 0) or 0) for stage in stages)
-        source_capacity = min(float(stage.get("source_equivalent_rows_per_second", 0) or 0) for stage in stages)
-        if initialization_seconds <= 0 or source_capacity <= 0:
-            return total_partitions
-
-        rows_per_partition = partitioning_info.total_rows / total_partitions
-        processing_seconds = rows_per_partition / source_capacity
-        ratio = getattr(
-            self,
-            "max_initialization_overhead_ratio",
-            _DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO,
-        )
-        required_processing = initialization_seconds * (1 - ratio) / ratio
-        group_size = math.ceil(required_processing / max(processing_seconds, 1e-9))
-        return min(total_partitions, max(1, group_size))
-
-    @staticmethod
-    def _tag_execution_partition(partition, partition_id: int):
-        return partition.map_batches(
-            _add_logical_partition_id,
-            fn_kwargs={"partition_id": partition_id},
-            batch_format="pyarrow",
-        )
-
-    @staticmethod
-    def _logical_partition_view(dataset, partition_id: int):
-        return dataset.filter(
-            _matches_logical_partition,
-            fn_kwargs={"partition_id": partition_id},
-        ).drop_columns([_LOGICAL_PARTITION_COLUMN])
-
-    @staticmethod
-    def _schema_names(dataset) -> set:
-        schema = dataset.schema()
-        return set(getattr(schema, "names", None) or getattr(schema, "columns", None) or [])
-
-    def _process_partition_execution_groups(
-        self,
-        partitions: List,
-        partitioning_info: PartitioningInfo,
-        ops: List,
-    ) -> RayDataset:
-        """Run multiple checkpoint partitions through one actor-pool lifecycle."""
-        group_size = self._resolve_execution_group_size(partitioning_info, ops)
-        execution_group_count = math.ceil(len(partitions) / group_size)
-        plan = {
-            "logical_partitions": len(partitions),
-            "execution_group_size": group_size,
-            "execution_groups": execution_group_count,
-            "actor_pool_initializations_per_operator": execution_group_count,
-            "checkpoint_granularity": "logical_partition",
-        }
-        try:
-            self.cfg._resolved_execution_group_plan = plan
-        except (AttributeError, TypeError):
-            pass
         logger.info(
-            f"GPU execution grouping: {len(partitions)} logical checkpoint partitions -> "
-            f"{execution_group_count} execution group(s), up to {group_size} partitions per actor lifecycle."
+            f"Checkpointing {len(ops)} operator(s) over {source_rows} input rows in commits of up to "
+            f"{partition_size} rows (store={store}, resuming={resuming})"
         )
-
-        processed_groups = []
-        for start in range(0, len(partitions), group_size):
-            group_partitions = partitions[start : start + group_size]
-            partition_ids = list(range(start, start + len(group_partitions)))
-            for partition_id in partition_ids:
-                self._log_event(
-                    event_type=EventType.PARTITION_START,
-                    message=(
-                        f"Starting logical partition {partition_id + 1}/{len(partitions)} "
-                        f"in shared GPU execution group"
-                    ),
-                    partition_id=partition_id,
-                )
-
-            tagged = [
-                self._tag_execution_partition(partition, partition_id)
-                for partition, partition_id in zip(group_partitions, partition_ids)
-            ]
-            combined = tagged[0]
-            for tagged_partition in tagged[1:]:
-                combined = combined.union(tagged_partition)
-            try:
-                processed = self._process_execution_group_with_checkpointing(
-                    self._wrap_with_precomputed_parallelism(combined),
-                    partition_ids,
-                    ops,
-                )
-            except Exception as error:
-                for partition_id in partition_ids:
-                    self.log_partition_failed(partition_id, str(error), retry_count=0)
-                raise
-
-            processed_groups.append(processed.data)
-            for partition_id in partition_ids:
-                self._log_event(
-                    event_type=EventType.PARTITION_COMPLETE,
-                    message=(
-                        f"Completed logical partition {partition_id + 1}/{len(partitions)} "
-                        f"in shared GPU execution group"
-                    ),
-                    partition_id=partition_id,
-                )
-
-        merged = processed_groups[0]
-        for processed in processed_groups[1:]:
-            merged = merged.union(processed)
-        return RayDataset(merged, cfg=self.cfg)
-
-    def _process_execution_group_with_checkpointing(
-        self,
-        dataset: RayDataset,
-        partition_ids: List[int],
-        ops: List,
-    ) -> RayDataset:
-        """Execute once, while writing independent checkpoints for each tag."""
-        if not self.ckpt_manager.checkpoint_enabled:
-            current = dataset.process(ops)
-            current.data = current.data.materialize()
-            if _LOGICAL_PARTITION_COLUMN not in self._schema_names(current.data):
-                raise RuntimeError(
-                    "An operator removed the internal logical-partition tag; "
-                    "shared GPU execution cannot preserve checkpoint identity."
-                )
-            current.data = current.data.drop_columns([_LOGICAL_PARTITION_COLUMN])
-            return current
-
-        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
-        current = dataset
-        for group_idx, (start_idx, end_idx, group_ops) in enumerate(op_groups):
-            if not group_ops:
-                continue
-            input_rows = current.data.count()
-            started = time.time()
-            for partition_id in partition_ids:
-                if self.pipeline_dag:
-                    self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
-            current = current.process(group_ops)
-            current.data = current.data.materialize()
-            if _LOGICAL_PARTITION_COLUMN not in self._schema_names(current.data):
-                raise RuntimeError(f"Operation group {group_idx + 1} removed the internal logical-partition tag.")
-            duration = time.time() - started
-            output_rows = current.data.count()
-            metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-            for partition_id in partition_ids:
-                if self.pipeline_dag:
-                    self._post_execute_operations_with_dag_monitoring(
-                        group_ops,
-                        partition_id=partition_id,
-                        metrics=metrics,
-                    )
-
-            last_op_idx = end_idx - 1
-            last_op_name = ops[last_op_idx]._name
-            if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
-                for partition_id in partition_ids:
-                    logical_dataset = self._wrap_with_precomputed_parallelism(
-                        self._logical_partition_view(current.data, partition_id)
-                    )
-                    self.ckpt_manager.save_checkpoint(
-                        logical_dataset,
-                        last_op_idx,
-                        last_op_name,
-                        partition_id,
-                        cfg=self.cfg,
-                    )
-
-        current.data = current.data.drop_columns([_LOGICAL_PARTITION_COLUMN])
-        return current
+        recovery = PartitionRecovery(store, source, source_rows, len(ops), partition_size)
+        runner = self._wrap_with_precomputed_parallelism(source)
+        dataset.data = None
+        del source
+        try:
+            return runner.process(ops, partition_recovery=recovery), recovery
+        except BaseException:
+            recovery.close()
+            raise
 
     def _process_partition(
         self,
@@ -1366,7 +1069,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             # tracing). Give every concurrent partition its own instances.
             partition_ops = self._clone_partition_operators(ops) if isolate_operators else ops
             partition_dataset = self._wrap_with_precomputed_parallelism(partition)
-            processed_partition = self._process_with_checkpointing(partition_dataset, partition_id, partition_ops)
+            processed_partition = self._run_partition_ops(partition_dataset, partition_id, partition_ops)
         except Exception as error:
             self.log_partition_failed(partition_id, str(error), retry_count=0)
             raise
@@ -1378,6 +1081,25 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         )
 
         return partition_id, processed_partition.data
+
+    def _run_partition_ops(self, partition_dataset, partition_id: int, ops: List):
+        input_rows = partition_dataset.data.count()
+        started = time.time()
+        if self.pipeline_dag:
+            self._pre_execute_operations_with_dag_monitoring(ops, partition_id=partition_id)
+        processed_partition = partition_dataset.process(ops)
+        processed_partition.data = processed_partition.data.materialize()
+        if self.pipeline_dag:
+            self._post_execute_operations_with_dag_monitoring(
+                ops,
+                partition_id=partition_id,
+                metrics={
+                    "duration": time.time() - started,
+                    "input_rows": input_rows,
+                    "output_rows": processed_partition.data.count(),
+                },
+            )
+        return processed_partition
 
     @staticmethod
     def _clone_partition_operators(ops: List) -> List:
@@ -1545,7 +1267,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         """Allocate auto GPU actors to balance measured pipeline throughput.
 
         Logical partitions are deliberately absent from this calculation. The
-        result is one global actor budget for the execution group, constrained
+        result is one global actor budget for the streamed plan, constrained
         by CPU, per-device scheduling fractions, measured GPU memory, and the
         amount of useful data available to each stage.
         """
@@ -2130,161 +1852,28 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Process merged dataset with post-convergence operations
         if post_convergence_ops:
-            logger.info("Processing merged dataset with global operations...")
-            merged_ray_dataset = self._wrap_with_precomputed_parallelism(merged_dataset)
+            return self._process_merged(merged_dataset, post_convergence_ops)
+        # No post-convergence operations, just return the merged result
+        return RayDataset(merged_dataset, cfg=self.cfg)
 
-            # Pre-execute DAG monitoring (log operation start events)
-            if self.pipeline_dag:
-                self._pre_execute_operations_with_dag_monitoring(post_convergence_ops, partition_id=0)
+    def _process_merged(self, merged_dataset, ops: List) -> RayDataset:
+        """Run global operations over the merged dataset."""
+        logger.info("Processing merged dataset with global operations...")
+        merged_ray_dataset = self._wrap_with_precomputed_parallelism(merged_dataset)
 
-            # Execute operations
-            final_dataset = merged_ray_dataset.process(post_convergence_ops)
+        # Pre-execute DAG monitoring (log operation start events)
+        if self.pipeline_dag:
+            self._pre_execute_operations_with_dag_monitoring(ops, partition_id=0)
 
-            # Post-execute DAG monitoring (log operation completion events)
-            if self.pipeline_dag:
-                self._post_execute_operations_with_dag_monitoring(post_convergence_ops, partition_id=0)
+        # Execute operations
+        final_dataset = merged_ray_dataset.process(ops)
 
-            logger.info("Global operations completed. Final dataset ready for export")
-            return final_dataset
-        else:
-            # No post-convergence operations, just return the merged result
-            return RayDataset(merged_dataset, cfg=self.cfg)
+        # Post-execute DAG monitoring (log operation completion events)
+        if self.pipeline_dag:
+            self._post_execute_operations_with_dag_monitoring(ops, partition_id=0)
 
-    def _process_with_checkpointing(self, dataset: RayDataset, partition_id: int, ops: List) -> RayDataset:
-        """
-        Process dataset with checkpointing support.
-        Groups operations and checkpoints between groups based on strategy.
-        """
-        logger.info(f"Processing partition {partition_id} with checkpointing support...")
-
-        if not self.ckpt_manager.checkpoint_enabled:
-            logger.info(f"Checkpointing disabled, processing all operations at once for partition {partition_id}")
-
-            # Get input row count before processing
-            input_rows = dataset.data.count()
-            start_time = time.time()
-
-            # Pre-execute DAG monitoring (log operation start events)
-            if self.pipeline_dag:
-                self._pre_execute_operations_with_dag_monitoring(ops, partition_id=partition_id)
-
-            # Execute operations (lazy)
-            processed_dataset = dataset.process(ops)
-
-            # Force materialization to get real execution (required for union anyway)
-            processed_dataset.data = processed_dataset.data.materialize()
-
-            # Get metrics after execution
-            duration = time.time() - start_time
-            output_rows = processed_dataset.data.count()
-
-            logger.info(f"Partition {partition_id}: Processed {input_rows}→{output_rows} rows in {duration:.2f}s")
-
-            # Post-execute DAG monitoring with real metrics
-            if self.pipeline_dag:
-                metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-                self._post_execute_operations_with_dag_monitoring(ops, partition_id=partition_id, metrics=metrics)
-
-            return processed_dataset
-
-        # check the latest checkpoint for the partition
-        latest_checkpoint = self.ckpt_manager.find_latest_checkpoint(partition_id)
-
-        # Group operations based on checkpoint strategy
-        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
-        logger.info(f"Grouped {len(ops)} operations into {len(op_groups)} groups for checkpointing")
-        logger.info(f"Detailed op groups: {op_groups}")
-
-        current_dataset = dataset
-
-        for group_idx, (start_idx, end_idx, group_ops) in enumerate(op_groups):
-            logger.info(
-                f"Processing partition {partition_id}, group {group_idx + 1}/{len(op_groups)}: operations {start_idx}-{end_idx-1}"
-            )
-
-            if latest_checkpoint and latest_checkpoint[0] >= end_idx:
-                logger.info(
-                    f"Partition {partition_id}: All operations in group {group_idx + 1} already processed (checkpoint at op {latest_checkpoint[0]}, group ends at {end_idx-1}), skipping"
-                )
-                continue
-
-            if latest_checkpoint and latest_checkpoint[0] >= start_idx:
-                logger.info(f"Partition {partition_id}: Resuming from checkpoint at operation {latest_checkpoint[0]}")
-                current_dataset = self.ckpt_manager.load_checkpoint(
-                    latest_checkpoint[0], latest_checkpoint[1], partition_id, cfg=self.cfg
-                )
-                if current_dataset is None:
-                    logger.warning(f"Partition {partition_id}: Failed to load checkpoint, starting from beginning")
-                    current_dataset = dataset
-                    group_ops = ops[start_idx:end_idx]  # Start from beginning of group
-                    logger.info(
-                        f"Partition {partition_id}: Will process {len(group_ops)} operations from beginning of group"
-                    )
-                else:
-                    current_dataset._auto_proc = False
-                    logger.info(
-                        f"Partition {partition_id}: Successfully loaded checkpoint, resuming from operation {latest_checkpoint[0] + 1}"
-                    )
-                    group_ops = ops[latest_checkpoint[0] + 1 : end_idx]  # Resume from checkpoint
-                    if not group_ops:
-                        logger.info(
-                            f"Partition {partition_id}: All operations in this group already processed, skipping"
-                        )
-                        continue
-                    else:
-                        logger.info(
-                            f"Partition {partition_id}: Will process {len(group_ops)} remaining operations from checkpoint"
-                        )
-
-            # Process the group of operations
-            if group_ops:
-                logger.info(
-                    f"Partition {partition_id}: Processing {len(group_ops)} operations in group {group_idx + 1}"
-                )
-
-                # Get input row count before processing
-                input_rows = current_dataset.data.count()
-                start_time = time.time()
-
-                # Pre-execute DAG monitoring (log operation start events)
-                if self.pipeline_dag:
-                    self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
-
-                # Execute operations (lazy)
-                current_dataset = current_dataset.process(group_ops)
-
-                # Force materialization (required for checkpointing anyway)
-                current_dataset.data = current_dataset.data.materialize()
-
-                # Get metrics after execution
-                duration = time.time() - start_time
-                output_rows = current_dataset.data.count()
-
-                logger.info(
-                    f"Partition {partition_id}, group {group_idx + 1}: Processed {input_rows}→{output_rows} rows in {duration:.2f}s"
-                )
-
-                # Post-execute DAG monitoring with real metrics
-                if self.pipeline_dag:
-                    metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-                    self._post_execute_operations_with_dag_monitoring(
-                        group_ops, partition_id=partition_id, metrics=metrics
-                    )
-
-            # Checkpoint after the last operation in the group
-            if group_ops:
-                last_op_idx = end_idx - 1
-                last_op_name = ops[last_op_idx]._name
-                if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
-                    logger.info(
-                        f"Partition {partition_id}: Creating checkpoint after operation {last_op_idx}: {last_op_name}"
-                    )
-                    # Data already materialized above, safe to checkpoint
-                    self.ckpt_manager.save_checkpoint(
-                        current_dataset, last_op_idx, last_op_name, partition_id, cfg=self.cfg
-                    )
-
-        return current_dataset
+        logger.info("Global operations completed. Final dataset ready for export")
+        return final_dataset
 
     def _find_work_directory(self, job_id: str) -> Optional[str]:
         """Find the work directory based on job_id."""
@@ -2406,8 +1995,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     def _enable_deterministic_execution(self) -> None:
         """Enable deterministic execution order in Ray Data.
 
-        This keeps the global row order stable so saved row boundaries can be
-        reapplied with split_at_indices() during explicit resume.
+        This keeps the input row order stable, so checkpoint commits that name
+        input rows by offset keep their meaning when a job is resumed.
         """
         try:
             ctx = ray.data.DataContext.get_current()
@@ -2415,178 +2004,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             logger.info("Enabled deterministic execution (preserve_order=True)")
         except Exception as e:
             logger.warning(f"Could not enable deterministic execution: {e}")
-
-    def _compute_row_hash(self, row: Dict) -> str:
-        """Compute a hash of a row for partition validation.
-
-        Uses a stable JSON serialization to ensure consistent hashing.
-        """
-        # Sort keys for deterministic serialization
-        try:
-            row_str = json.dumps(row, sort_keys=True, default=str)
-            return hashlib.md5(row_str.encode()).hexdigest()[:16]
-        except Exception:
-            # Fallback for non-serializable rows
-            return hashlib.md5(str(row).encode()).hexdigest()[:16]
-
-    def _collect_partition_metadata(
-        self,
-        partition,
-        partition_id: int,
-        start_row: Optional[int] = None,
-        compute_content_hash: bool = True,
-    ) -> PartitionMetadata:
-        """Collect metadata from a partition for validation on resume.
-
-        The complete content hash is independent of Ray block boundaries but
-        sensitive to row order within the partition. It is used for strict
-        explicit resume validation; the first-row hash remains for backward
-        compatibility.
-        """
-        if compute_content_hash:
-            content_hash, row_count = self._compute_partition_content_hash(partition)
-        else:
-            content_hash = ""
-            row_count = partition.count()
-
-        # Get first row for hashing (cheap operation)
-        first_row_hash = ""
-
-        try:
-            first_rows = partition.take(1)
-            if first_rows:
-                first_row_hash = self._compute_row_hash(first_rows[0])
-        except Exception as e:
-            logger.warning(f"Could not compute row hash for partition {partition_id}: {e}")
-
-        return PartitionMetadata(
-            partition_id=partition_id,
-            row_count=row_count,
-            first_row_hash=first_row_hash,
-            last_row_hash="",  # Skip last_row_hash for efficiency
-            content_hash=content_hash,
-            start_row=start_row,
-            end_row=start_row + row_count if start_row is not None else None,
-        )
-
-    def _compute_partition_content_hash(self, partition) -> tuple:
-        """Compute an order-sensitive, block-boundary-independent hash."""
-        # preserve_order is enabled before the source Dataset is created, so
-        # take_all() returns these one-row partials in partition row order.
-        partials = partition.map_batches(_hash_partition_batch, batch_format="pyarrow").take_all()
-        return _combine_partition_hash_partials(partials)
-
-    def _get_partitioning_info_path(self) -> str:
-        """Get the path to the partitioning info file."""
-        return os.path.join(self.ckpt_manager.ckpt_dir, "partitioning_info.json")
-
-    def _save_partitioning_info(self, info: PartitioningInfo) -> None:
-        """Save partitioning info alongside checkpoints."""
-        os.makedirs(self.ckpt_manager.ckpt_dir, exist_ok=True)
-        info.save(self._get_partitioning_info_path())
-
-    def _load_partitioning_info(self) -> Optional[PartitioningInfo]:
-        """Load partitioning info from checkpoint directory."""
-        return PartitioningInfo.load(self._get_partitioning_info_path())
-
-    def _validate_partitions(self, partitions: List, saved_info: PartitioningInfo) -> bool:
-        """Validate that current partitions match saved partitioning info.
-
-        Returns True if partitions match (safe to use checkpoints),
-        False if there's a mismatch (must restart from scratch).
-
-        Validation checks:
-        1. Partition count matches
-        2. Row count per partition matches
-        3. Complete partition content hash matches when available
-        4. First row hash matches for backward compatibility
-        """
-        if len(partitions) != saved_info.num_partitions:
-            logger.error(f"Partition count mismatch: current={len(partitions)}, " f"saved={saved_info.num_partitions}")
-            return False
-
-        for i, partition in enumerate(partitions):
-            saved_meta = saved_info.partitions[i] if i < len(saved_info.partitions) else None
-
-            if saved_meta is None:
-                logger.error(f"No saved metadata for partition {i}")
-                return False
-
-            if saved_meta.content_hash:
-                current_hash, current_count = self._compute_partition_content_hash(partition)
-            else:
-                current_hash = ""
-                current_count = partition.count()
-
-            if current_count != saved_meta.row_count:
-                logger.error(
-                    f"Partition {i} row count mismatch: current={current_count}, " f"saved={saved_meta.row_count}"
-                )
-                return False
-
-            if saved_meta.content_hash and current_hash != saved_meta.content_hash:
-                logger.error(
-                    f"Partition {i} content hash mismatch: " f"current={current_hash}, saved={saved_meta.content_hash}"
-                )
-                return False
-
-            # Validate first row hash (skip if not available)
-            if saved_meta.first_row_hash:
-                try:
-                    first_rows = partition.take(1)
-                    if first_rows:
-                        current_hash = self._compute_row_hash(first_rows[0])
-                        if current_hash != saved_meta.first_row_hash:
-                            logger.error(
-                                f"Partition {i} first row hash mismatch: "
-                                f"current={current_hash}, saved={saved_meta.first_row_hash}"
-                            )
-                            return False
-                except Exception as e:
-                    logger.warning(f"Could not validate partition {i} hash: {e}")
-
-        logger.info("Partition validation passed - safe to use checkpoints")
-        return True
-
-    def _split_at_saved_boundaries(self, dataset: RayDataset, saved_info: PartitioningInfo) -> List:
-        """Recreate partitions using row boundaries saved by the first run."""
-        if saved_info.num_partitions != self.num_partitions:
-            raise RuntimeError(
-                "Cannot resume with a different partition count: "
-                f"current={self.num_partitions}, saved={saved_info.num_partitions}"
-            )
-        if len(saved_info.partitions) != saved_info.num_partitions:
-            raise RuntimeError(
-                "Saved partition metadata is incomplete: "
-                f"expected={saved_info.num_partitions}, actual={len(saved_info.partitions)}"
-            )
-
-        split_indices = []
-        expected_start = 0
-        for partition_id, meta in enumerate(saved_info.partitions):
-            start_row = meta.start_row if meta.start_row is not None else expected_start
-            end_row = meta.end_row if meta.end_row is not None else start_row + meta.row_count
-            if start_row != expected_start or end_row - start_row != meta.row_count:
-                raise RuntimeError(
-                    f"Saved row boundaries are invalid for partition {partition_id}: "
-                    f"start={start_row}, end={end_row}, rows={meta.row_count}, "
-                    f"expected_start={expected_start}"
-                )
-            expected_start = end_row
-            if partition_id < saved_info.num_partitions - 1:
-                split_indices.append(end_row)
-
-        if expected_start != saved_info.total_rows:
-            raise RuntimeError(
-                "Saved row boundaries do not cover the saved total row count: "
-                f"boundaries_end={expected_start}, total_rows={saved_info.total_rows}"
-            )
-
-        if saved_info.num_partitions == 1:
-            return [dataset.data.materialize()]
-
-        logger.info(f"Recreating partitions at saved row boundaries: {split_indices}")
-        return dataset.data.split_at_indices(split_indices)
 
     @staticmethod
     def _balanced_split_indices(total_rows: int, num_partitions: int) -> List[int]:
@@ -2650,110 +2067,3 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             f"Splitting {total_rows} rows into {self.num_partitions} partitions at row boundaries: {split_indices}"
         )
         return data.split_at_indices(split_indices)
-
-    def _split_dataset_deterministic(self, dataset: RayDataset) -> tuple:
-        """Split dataset deterministically and collect metadata.
-
-        Returns:
-            tuple: (partitions, partitioning_info)
-        """
-        # Enable deterministic execution
-        self._enable_deterministic_execution()
-
-        # Check for existing partitioning info (resumption case)
-        saved_info = self._load_partitioning_info()
-        resume_requested = getattr(self.cfg, "_resume_requested", False)
-
-        if resume_requested:
-            if saved_info is None:
-                raise RuntimeError(
-                    "Explicit resume requires saved partitioning_info.json; "
-                    "existing checkpoints were left unchanged."
-                )
-            if saved_info.hash_algorithm != _PARTITION_CONTENT_HASH_ALGORITHM:
-                raise RuntimeError(
-                    "Explicit resume cannot validate the saved partition hash algorithm: "
-                    f"saved={saved_info.hash_algorithm}, "
-                    f"supported={_PARTITION_CONTENT_HASH_ALGORITHM}. "
-                    "Existing checkpoints were left unchanged."
-                )
-            if any(
-                not meta.content_hash or meta.start_row is None or meta.end_row is None
-                for meta in saved_info.partitions
-            ):
-                raise RuntimeError(
-                    "Explicit resume requires content hashes and row boundaries "
-                    "created by this version. Existing checkpoints were left unchanged."
-                )
-
-            logger.info("Explicit resume requested; recreating saved partition row boundaries...")
-            partitions = self._split_at_saved_boundaries(dataset, saved_info)
-            logger.info(f"Recreated {len(partitions)} partitions from saved boundaries")
-            if not self._validate_partitions(partitions, saved_info):
-                raise RuntimeError(
-                    "Saved partition content hashes do not match the current input. "
-                    "Refusing to resume; existing checkpoints were left unchanged."
-                )
-            logger.info("Saved partition hashes validated successfully - resuming checkpoints")
-            return partitions, saved_info
-
-        # Split the dataset
-        partitions = self._split_into_row_balanced_partitions(dataset)
-        logger.info(f"Created {len(partitions)} partitions (deterministic mode)")
-
-        # If resuming, validate partitions match
-        if saved_info is not None:
-            logger.info("Found existing partitioning info, validating...")
-            if self._validate_partitions(partitions, saved_info):
-                logger.info("Partitions validated successfully - resuming with existing checkpoints")
-                return partitions, saved_info
-            else:
-                logger.warning(
-                    "Partition validation FAILED - partitions don't match saved info. "
-                    "This can happen if the input data changed or Ray's internal state differs. "
-                    "Clearing checkpoints and starting fresh."
-                )
-                self._clear_invalid_checkpoints()
-                saved_info = None
-
-        # Collect metadata for new partitions
-        logger.info("Collecting partition metadata for checkpoint validation...")
-        partition_metadata = []
-        next_start_row = 0
-        compute_content_hash = self.ckpt_manager.checkpoint_enabled
-
-        for i, partition in enumerate(partitions):
-            meta = self._collect_partition_metadata(
-                partition,
-                i,
-                start_row=next_start_row,
-                compute_content_hash=compute_content_hash,
-            )
-            partition_metadata.append(meta)
-            next_start_row = meta.end_row
-            logger.debug(f"Partition {i}: {meta.row_count} rows, hash={meta.first_row_hash[:8]}...")
-
-        total_rows = sum(meta.row_count for meta in partition_metadata)
-
-        partitioning_info = PartitioningInfo(
-            num_partitions=self.num_partitions,
-            total_rows=total_rows,
-            partitions=partition_metadata,
-            deterministic=True,
-        )
-
-        # Save partitioning info
-        self._save_partitioning_info(partitioning_info)
-
-        return partitions, partitioning_info
-
-    def _clear_invalid_checkpoints(self) -> None:
-        """Clear checkpoints when partition validation fails."""
-        if os.path.exists(self.ckpt_manager.ckpt_dir):
-            logger.warning(f"Clearing invalid checkpoints in {self.ckpt_manager.ckpt_dir}")
-            try:
-                shutil.rmtree(self.ckpt_manager.ckpt_dir)
-            except OSError as e:
-                logger.warning(f"Remove ckpt dir with shutil.rmtree() failed: {e}, " "will try os.rmdir()")
-                os.rmdir(self.ckpt_manager.ckpt_dir)
-            os.makedirs(self.ckpt_manager.ckpt_dir, exist_ok=True)

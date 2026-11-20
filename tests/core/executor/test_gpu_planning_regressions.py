@@ -124,57 +124,12 @@ class LazyLoadingMapper(Mapper):
         return samples
 
 
-def test_auto_group_accounts_for_first_call_model_loading():
-    op = LazyLoadingMapper(batch_size=1, accelerator="cpu")
-    LazyLoadingMapper.clock = 0
-    with patch.object(probe.time, "monotonic", side_effect=lambda: LazyLoadingMapper.clock):
-        _, profile = probe._profile_probe_target(probe._op_spec(op), [{"id": 1}], 1, 3)
-    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
-    executor.execution_group_size = "auto"
-    executor.max_initialization_overhead_ratio = 0.1
-    executor._resolved_throughput_actor_plan = {
-        "operators": [
-            {
-                "initialization_seconds": profile["initialization"],
-                "source_equivalent_rows_per_second": profile["steady_rows_per_second"],
-            }
-        ]
-    }
-    size = executor._resolve_execution_group_size(SimpleNamespace(num_partitions=8, total_rows=80), [op])
-    assert size == 8, {"group_size": size, "profile": profile}
-
-
 def test_gpu_actor_placement_uses_best_fit_for_fractional_requests():
     specs = [
         {"num_gpus": fraction, "memory_fraction": fraction, "max_per_device": 5}
         for fraction in (0.7, 0.6, 0.3, 0.2, 0.2)
     ]
     assert PartitionedRayExecutor._gpu_actor_requests_fit(specs, [1] * len(specs), 2)
-
-
-def test_auto_group_accounts_for_profiled_explicit_gpu_actor_initialization():
-    explicit = make_op("explicit", actors=1)
-    automatic = make_op("automatic", actors=None)
-    explicit._gpu_init_seconds = 30
-    automatic._gpu_init_seconds = 0.01
-    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
-    executor.cfg = SimpleNamespace()
-    executor.execution_group_size = "auto"
-    executor.max_initialization_overhead_ratio = 0.1
-    executor.max_gpu_workers_per_device = 5
-    executor._auto_parallel_op_ids = {id(automatic)}
-    executor._explicit_actor_op_ids = {id(explicit)}
-    topology = SimpleNamespace(total_cpus=8, total_gpus=1)
-    with patch("data_juicer.utils.ray_cluster_utils.detect_cluster_topology", return_value=topology):
-        plan = executor._configure_throughput_aware_gpu_parallelism([explicit, automatic], total_samples=80)
-
-    size = executor._resolve_execution_group_size(
-        SimpleNamespace(num_partitions=8, total_rows=80),
-        [explicit, automatic],
-    )
-    assert explicit.num_proc == 1
-    assert [stage["name"] for stage in plan["operators"]] == ["explicit", "automatic"]
-    assert size == 8
 
 
 def test_planner_does_not_scale_non_bottleneck_when_bottleneck_cannot_grow():

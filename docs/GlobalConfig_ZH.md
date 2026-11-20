@@ -104,10 +104,8 @@
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `checkpoint.enabled` | bool | `true` | 启用分区检查点 |
-| `checkpoint.strategy` | str | `every_n_ops` | 策略：`every_op` / `every_n_ops` / `manual` / `disabled` |
-| `checkpoint.n_ops` | int | `5` | `every_n_ops` 策略的间隔 |
-| `checkpoint.op_names` | list | `[]` | `manual` 策略下检查点的算子名列表 |
+| `checkpoint.enabled` | bool | `true` | 启用检查点 |
+| `checkpoint.strategy` | str | `every_op` | `every_op` 提交开头连续 Mapper/Filter 的每个 batch；`disabled` 关闭检查点 |
 
 ---
 

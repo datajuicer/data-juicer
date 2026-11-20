@@ -160,6 +160,8 @@ class MetaKeys(object):
     role_relation = "role_relation"
     # # html tables
     html_tables = "html_tables"
+    # # html page metadata
+    html_metadata = "html_metadata"
     # # LLM-based structured extraction (user-configurable output_schema)
     llm_extract = "llm_extract"
     # # LLM semantic ops: token/cost usage per call (prompt_tokens, completion_tokens, total_tokens, cost_estimate)

@@ -2,11 +2,11 @@
 
 Filter to keep samples with a high quality score estimated by a language model.
 
-This operator uses a language model to evaluate the quality of each sample across multiple dimensions, including accuracy, grammar, informativeness, and coherence. The LLM provides a numerical score for each dimension on a 1-5 scale, where 1 is the lowest and 5 is the highest. The overall quality score is used to decide whether to keep or filter out the sample based on the specified minimum and maximum score thresholds. The evaluation results are cached in the 'llm_quality_score' and 'llm_quality_record' fields. Important flags and tags from the LLM's analysis may also be stored in the sample's stats.
+This operator uses a language model to evaluate accuracy, grammar, informativeness, and coherence. The default prompt requests a score from 1 to 5 for each dimension. The stored `llm_quality_score` is the average of the dimensions selected by `dim_required_keys`, divided by 5; all four dimensions are used by default. Ratings from 1 to 5 yield quality scores from 0.2 to 1.0. Both `min_score` and `max_score` use this normalized scale. For example, an average rating of 4.5 corresponds to `min_score: 0.9`. Custom prompts use the same formula, so their rating scale determines the resulting score range. Scores are used directly, with no clamping or automatic calibration across scales. Evaluation results are cached in 'llm_quality_score' and 'llm_quality_record'; flags and tags may also be stored in the sample's stats.
 
 用于保留由语言模型估计出高质量分数的样本的过滤器。
 
-该算子使用语言模型评估每个样本在多个维度上的质量，包括准确性、语法、信息量和连贯性。LLM为每个维度提供一个1-5分的数值评分，其中1分最低，5分最高。总体质量分数用于根据指定的最小和最大分数阈值来决定是否保留或过滤掉样本。评估结果缓存在'llm_quality_score'和'llm_quality_record'字段中。LLM分析的重要标志和标签也可能存储在样本的stats中。
+该算子使用语言模型评估样本的准确性、语法、信息量和连贯性。默认提示词要求每个维度按1-5分评分。`llm_quality_score`取`dim_required_keys`所选维度的平均分，再除以5；默认使用全部四个维度。1-5分对应的质量分数范围为0.2-1.0，`min_score`和`max_score`均使用这一归一化尺度。例如，平均评分4.5对应`min_score: 0.9`。自定义提示词也使用相同公式，最终分数范围取决于其评分尺度。计算结果直接用于过滤，不做截断或跨尺度自动校准。评估结果缓存在'llm_quality_score'和'llm_quality_record'字段中，标志和标签也可能存储在样本的stats中。
 
 Type 算子类型: **filter**
 
@@ -16,8 +16,8 @@ Tags 标签: gpu, vllm, hf, api
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
 | `api_or_hf_model` | <class 'str'> | `'gpt-4o'` | API or huggingface model name. |
-| `min_score` | <class 'float'> | `0.5` | The min score threshold to keep the sample. |
-| `max_score` | <class 'float'> | `1.0` | The max score threshold to keep the sample. |
+| `min_score` | <class 'float'> | `0.5` | Minimum threshold on mean(selected scores) / 5; use 0.9 for an average of 4.5. 所选维度平均分除以5后的下限；平均分4.5对应0.9。 |
+| `max_score` | <class 'float'> | `1.0` | Maximum threshold on mean(selected scores) / 5; 1.0 corresponds to an average of 5. 所选维度平均分除以5后的上限；1.0对应平均分5。 |
 | `is_hf_model` | <class 'bool'> | `False` | If true, use Transformers for loading hugging face or local llm. |
 | `api_endpoint` | typing.Optional[str] | `None` | URL endpoint for the API. |
 | `response_path` | typing.Optional[str] | `None` | Path to extract content from the API response. Defaults to 'choices.0.message.content'. |
@@ -30,8 +30,23 @@ Tags 标签: gpu, vllm, hf, api
 | `enable_vllm` | <class 'bool'> | `False` | If true, use VLLM for loading hugging face or local llm. |
 | `model_params` | typing.Dict | `{}` | Parameters for initializing the API model. |
 | `sampling_params` | typing.Dict | `{}` | Extra parameters passed to the API call. e.g {'temperature': 0.9, 'top_p': 0.95} |
-| `dim_required_keys` | typing.Optional[typing.List[str]] | `None` | A list of keys used to calculate the average dimension score, only the dimension scores associated with these keys are used in the average calculation. |
+| `dim_required_keys` | typing.Optional[typing.List[str]] | `None` | Keys in dimension_scores to average before dividing by 5; defaults to accuracy, grammar, informativeness, coherence. 在dimension_scores中选择参与平均后除以5的维度；默认使用accuracy、grammar、informativeness、coherence。 |
 | `kwargs` |  | `''` | Extra keyword arguments. |
+
+### YAML example 配置示例
+
+Select accuracy and coherence only, and keep samples with their average score at least 4.5 (quality score at least 0.9). Both selected keys must be present in the model's `dimension_scores` output.
+
+仅选择准确性和连贯性，保留这两个维度平均评分至少为4.5（质量分数至少为0.9）的样本。模型输出的`dimension_scores`中必须包含这两个键。
+
+```yaml
+process:
+  - llm_quality_score_filter:
+      api_or_hf_model: gpt-4o
+      dim_required_keys: [accuracy, coherence]
+      min_score: 0.9
+      max_score: 1.0
+```
 
 ## 📊 Effect demonstration 效果演示
 ### test_default_case

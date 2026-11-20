@@ -92,6 +92,19 @@ def test_actor_retains_learning_across_outer_batches():
     assert max(map(len, actor.op.calls)) < 4
 
 
+def test_backend_cleanup_runs_before_retry_without_losing_rows(monkeypatch):
+    from data_juicer.core.elasticjuicer import ray_adaptive_mapper
+
+    actor = make_actor()
+    cleanups = []
+    monkeypatch.setattr(ray_adaptive_mapper, "_cleanup_cuda", lambda: cleanups.append("torch"))
+    actor.op.elastic_juicer_oom_cleanup = lambda: cleanups.append("backend")
+    result = actor(make_batch())
+    assert result["id"] == make_batch()["id"]
+    assert actor.mapper.oom_retries > 0
+    assert cleanups == ["torch", "backend"] * actor.mapper.oom_retries
+
+
 def test_terminal_oom_is_never_silently_skipped():
     actor = make_actor(threshold=0, skip_op_error=True)
     actor.mapper.max_floor_retries = 0

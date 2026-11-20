@@ -35,6 +35,19 @@ class FakeData:
     def union(self, other):
         return FakeData(self.partition_ids + other.partition_ids)
 
+    def materialize(self):
+        return self
+
+    def get_internal_block_refs(self):
+        return self.partition_ids
+
+
+@pytest.fixture(autouse=True)
+def block_ref_dataset_factory(monkeypatch):
+    # Keep the real ordered-concatenation helper under test; only replace the
+    # Ray Dataset factory used to reassemble these opaque fake block refs.
+    monkeypatch.setattr("ray.data.from_arrow_refs", lambda refs: FakeData(refs))
+
 
 class FakeRayDataset:
     def __init__(self, data, cfg=None):
@@ -424,9 +437,7 @@ def test_execution_group_runs_once_and_keeps_partition_scoped_checkpoints():
 
         def process(self, ops):
             type(self).process_calls += 1
-            return GroupedRayDataset(
-                GroupedData([{**row, "value": row["value"] + 1} for row in self.data.rows])
-            )
+            return GroupedRayDataset(GroupedData([{**row, "value": row["value"] + 1} for row in self.data.rows]))
 
     saved = {}
 

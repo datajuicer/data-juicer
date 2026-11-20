@@ -617,13 +617,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">enable_vllm</span> <span class="o">=</span> <span class="n">enable_vllm</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">sampling_params</span><span class="p">:</span>
-            <span class="n">sampling_params</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">"do_sample"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-                <span class="s2">"temperature"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-                <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
-                <span class="s2">"top_k"</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-                <span class="s2">"stop_token_ids"</span><span class="p">:</span> <span class="p">[],</span>
-            <span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_vllm</span><span class="p">:</span>
+                <span class="n">sampling_params</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">"temperature"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+                    <span class="s2">"top_k"</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="s2">"stop_token_ids"</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sampling_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"do_sample"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"max_new_tokens"</span><span class="p">:</span> <span class="mi">1024</span><span class="p">}</span>
 
         <span class="n">sampling_params</span> <span class="o">=</span> <span class="n">update_sampling_params</span><span class="p">(</span><span class="n">sampling_params</span><span class="p">,</span> <span class="n">hf_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_vllm</span><span class="p">)</span>
 
@@ -746,7 +748,7 @@
                         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
                         <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
                             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">caption_num</span><span class="p">):</span>
-                                <span class="n">generated_ids</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_params</span><span class="p">)</span>
+                                <span class="n">generated_ids</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_params</span><span class="p">)</span>
                                 <span class="n">generated_ids_trimmed</span> <span class="o">=</span> <span class="p">[</span>
                                     <span class="n">out_ids</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">in_ids</span><span class="p">):]</span> <span class="k">for</span> <span class="n">in_ids</span><span class="p">,</span> <span class="n">out_ids</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">generated_ids</span><span class="p">)</span>
                                 <span class="p">]</span>
@@ -872,8 +874,8 @@
                 <span class="n">samples_after_generation</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">generated_samples</span><span class="p">)</span>
         <span class="c1"># reconstruct samples from "list of dicts" to "dict of lists"</span>
         <span class="n">res_samples</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples_after_generation</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">res_samples</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples_after_generation</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">}</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="n">samples_after_generation</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
             <span class="n">res_samples</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples_after_generation</span><span class="p">]</span>

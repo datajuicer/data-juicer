@@ -456,7 +456,7 @@
 
 
 <div class="viewcode-block" id="LatexMergeTexMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_merge_tex_mapper.html#data_juicer.ops.mapper.latex_merge_tex_mapper.LatexMergeTexMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.LatexMergeTexMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LatexMergeTexMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Extracts and concatenates all ``.tex`` files from a compressed</span>
@@ -477,7 +477,7 @@
 <span class="sd">    ``latex_figure_context_extractor_mapper``."""</span>
 
 <div class="viewcode-block" id="LatexMergeTexMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_merge_tex_mapper.html#data_juicer.ops.mapper.latex_merge_tex_mapper.LatexMergeTexMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.LatexMergeTexMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">compressed_file_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"compressed_file"</span><span class="p">,</span>
@@ -624,7 +624,7 @@
         <span class="k">return</span> <span class="n">contents</span>
 
 <div class="viewcode-block" id="LatexMergeTexMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.latex_merge_tex_mapper.html#data_juicer.ops.mapper.latex_merge_tex_mapper.LatexMergeTexMapper.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.LatexMergeTexMapper.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compressed_file_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>

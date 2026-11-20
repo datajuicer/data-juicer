@@ -747,7 +747,9 @@
         <span class="c1"># find the first occurrence of either \appendix or \bibliography and</span>
         <span class="c1"># replace everything after it with an empty string</span>
         <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"("</span>
-        <span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">appendix|"</span>
+        <span class="c1"># \appendix, \appendices (IEEEtran) or \appendixpage (the appendix package), each as a</span>
+        <span class="c1"># whole command: \appendixname and other longer commands must not remove the rest of the file</span>
+        <span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">(?:appendix|appendices|appendixpage)(?![a-zA-Z])|"</span>
         <span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">begin\{references\}|"</span>
         <span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">begin\{REFERENCES\}|"</span>
         <span class="n">pattern</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">"</span><span class="se">\\</span><span class="s2">begin\{thebibliography\}|"</span>

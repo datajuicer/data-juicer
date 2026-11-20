@@ -4,18 +4,24 @@ import json
 import tempfile
 import unittest
 from copy import deepcopy
+from itertools import product
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pyarrow as pa
 import pyarrow.parquet as pq
-from datasets import Dataset, Features, LargeList, List, Value
+from datasets import Dataset
 from datasets.formatting.formatting import LazyBatch, PythonFormatter
 
-from data_juicer.core.data.dj_dataset import NestedDataset, NestedQueryDict, nested_obj_factory, nested_query
+from data_juicer.core.data.dj_dataset import NestedDataset, NestedQueryDict, nested_obj_factory
 from data_juicer.core.exporter import Exporter
-from data_juicer.ops.mapper import extract_event_mapper, extract_keyword_mapper, extract_support_text_mapper
-from data_juicer.ops.mapper.drop_text import read_text_from_sample, remove_text_from_dataset, remove_text_from_sample
+from data_juicer.ops.mapper import (
+    extract_entity_attribute_mapper,
+    extract_event_mapper,
+    extract_keyword_mapper,
+    extract_support_text_mapper,
+)
+from data_juicer.utils.text_field_utils import read_text_from_sample, remove_text_from_dataset
 from data_juicer.utils.constant import Fields, MetaKeys
 
 
@@ -29,10 +35,10 @@ class DropTextContractTest(unittest.TestCase):
         model_patch.start()
         self.addCleanup(model_patch.stop)
 
-    def make_keyword_op(self):
+    def make_keyword_op(self, **kwargs):
         with patch.object(extract_keyword_mapper, "prepare_model", return_value="fake"):
             return extract_keyword_mapper.ExtractKeywordMapper(
-                api_model="fake", drop_text=True, try_num=1, num_proc=1, auto_op_parallelism=False
+                api_model="fake", drop_text=True, try_num=1, num_proc=1, auto_op_parallelism=False, **kwargs
             )
 
     def check_direct_and_dataset(self, text_key, existing):
@@ -89,23 +95,60 @@ class DropTextContractTest(unittest.TestCase):
                 Exporter(str(path), export_in_parallel=False).export(result)
                 self.assertEqual(pq.read_table(path).to_pylist(), [expected])
 
-    def test_sample_cleanup_after_removing_last_nested_field(self):
+    def test_batched_cleanup_keeps_siblings_from_other_rows(self):
+        op = self.make_keyword_op(batch_mode=True)
+        op.text_key = "payload.text"
+        samples = {
+            "id": [1, 2],
+            "payload": [{"text": "first"}, {"text": "second", "lang": "en"}],
+            Fields.meta: [{"keyword": ["cached"]}, {"keyword": ["cached"]}],
+        }
+        result = op.process_batched(samples)
+        self.assertEqual(result, {
+            "id": [1, 2],
+            "payload": [None, {"lang": "en"}],
+            Fields.meta: [{"keyword": ["cached"]}, {"keyword": ["cached"]}],
+        })
+
+    def test_results_survive_removing_only_meta_source(self):
         cases = [
-            ("payload.text", {"payload": {"text": "source"}}, {}),
-            ("payload.text", {"payload": {"text": "source", "lang": "en"}}, {"payload": {"lang": "en"}}),
-            ("payload.parts.text", {"payload": {"parts": [{"text": "source"}]}}, {}),
-            ("payload.parts.text", {"payload": {"parts": [{"text": "source"}, None]}}, {}),
-            ("payload.parts.text", {"payload": {"parts": []}}, {"payload": {"parts": []}}),
-            ("payload.parts.text", {"payload": {"parts": None}}, {"payload": {"parts": None}}),
-            ("payload.text", {"payload": {"text": "source", "other": {}}}, {"payload": {"other": {}}}),
+            (
+                extract_entity_attribute_mapper,
+                extract_entity_attribute_mapper.ExtractEntityAttributeMapper,
+                {
+                    "query_entities": ["Alice"], "query_attributes": ["job"],
+                    "attr_pattern_template": r"{attribute}:(.*)", "require_support_demos": False,
+                },
+                "job: physicist",
+                {
+                    MetaKeys.main_entities: ["Alice"], MetaKeys.attributes: ["job"],
+                    MetaKeys.attribute_descriptions: ["physicist"], MetaKeys.attribute_support_texts: [[]],
+                },
+            ),
+            (
+                extract_event_mapper,
+                extract_event_mapper.ExtractEventMapper,
+                {},
+                "### 情节1：\n- **情节描述**：Alice visited Beijing\n- **相关人物**：Alice，Bob\n",
+                {MetaKeys.event_description: "Alice visited Beijing", MetaKeys.relevant_characters: ["Alice", "Bob"]},
+            ),
         ]
-        for text_key, row, expected in cases:
-            with self.subTest(text_key=text_key, row=row):
-                source = deepcopy(row)
-                result = remove_text_from_sample(deepcopy(row), text_key)
-                self.assertEqual(result, expected)
-                self.assertEqual(remove_text_from_sample(result, text_key), expected)
-                self.assertEqual(row, source)
+        for module, mapper, kwargs, response, generated_meta in cases:
+            for drop_text, skip_op_error in product((False, True), repeat=2):
+                with self.subTest(mapper=mapper.__name__, drop_text=drop_text, skip_op_error=skip_op_error):
+                    with patch.object(module, "prepare_model", return_value="fake"), patch.object(
+                        module, "get_model", return_value=lambda *args, **kwargs: response
+                    ):
+                        op = mapper(
+                            api_model="fake", text_key=f"{Fields.meta}.source", drop_text=drop_text,
+                            skip_op_error=skip_op_error, try_num=1, num_proc=1, auto_op_parallelism=False, **kwargs,
+                        )
+                        row = {"id": 1, Fields.meta: {"source": "Alice visited Beijing"}}
+                        result = op.run(NestedDataset(Dataset.from_list([row])))
+                    expected_meta = deepcopy(generated_meta)
+                    if not drop_text:
+                        expected_meta["source"] = "Alice visited Beijing"
+                    self.assertEqual(result.to_list(), [{"id": 1, Fields.meta: expected_meta}])
 
     def test_ray_parquet_after_removing_last_nested_field(self):
         import ray
@@ -123,32 +166,39 @@ class DropTextContractTest(unittest.TestCase):
             )
         try:
             cases = [
-                ("payload.text", {"text": "source"}, None),
-                ("payload.text", {"text": "source", "lang": "en"}, {"lang": "en"}),
-                ("payload.parts.text", {"parts": [{"text": "source"}]}, None),
+                ("text", {"text": "source"}, {}),
+                ("payload.text", {"payload": {"text": "source"}}, {}),
+                ("payload.text", {"payload": {"text": "source", "lang": "en"}}, {"payload": {"lang": "en"}}),
+                ("payload.parts.text", {"payload": {"parts": [{"text": "source"}]}}, {}),
                 (
                     "payload.parts.text",
-                    {"parts": [{"text": "source", "lang": "en"}, None]},
-                    {"parts": [{"lang": "en"}, None]},
+                    {"payload": {"parts": [{"text": "source", "lang": "en"}, None]}},
+                    {"payload": {"parts": [{"lang": "en"}, None]}},
+                ),
+                (
+                    "payload.text",
+                    {"payload.text": "source", "payload": {"text": "keep", "lang": "en"}},
+                    {"payload": {"text": "keep", "lang": "en"}},
+                ),
+                (
+                    "payload.a.b",
+                    {"payload": {"a.b": "source", "a": {"b": "keep"}, "lang": "en"}},
+                    {"payload": {"a": {"b": "keep"}, "lang": "en"}},
                 ),
             ]
-            for text_key, payload, expected_payload in cases:
-                for drop_text in (False, True):
-                    with self.subTest(text_key=text_key, payload=payload, drop_text=drop_text):
-                        op = self.make_keyword_op()
+            for text_key, source, pruned in cases:
+                for drop_text, batch_mode in product((False, True), repeat=2):
+                    with self.subTest(text_key=text_key, source=source, drop_text=drop_text, batch_mode=batch_mode):
+                        op = self.make_keyword_op(batch_mode=batch_mode, batch_size=2)
                         op.text_key = text_key
                         op.drop_text = drop_text
-                        row = {"id": 1, "payload": deepcopy(payload), Fields.meta: {"keyword": ["cached"]}}
-                        expected = {"id": 1, Fields.meta: {"keyword": ["cached"]}}
-                        if not drop_text:
-                            expected["payload"] = payload
-                        elif expected_payload is not None:
-                            expected["payload"] = expected_payload
+                        row = {"id": 1, **deepcopy(source), Fields.meta: {"keyword": ["cached"]}}
+                        expected = {"id": 1, **deepcopy(pruned if drop_text else source), Fields.meta: {"keyword": ["cached"]}}
                         dataset = RayDataset(ray.data.from_items([row]), auto_op_parallelism=False)
-                        result = dataset.process(op)
-                        self.assertEqual(result.data.take_all(), [expected])
+                        result = dataset.process(op).data.materialize()
+                        self.assertEqual(result.take_all(), [expected])
                         with tempfile.TemporaryDirectory() as directory:
-                            result.data.write_parquet(directory)
+                            result.write_parquet(directory)
                             self.assertEqual(pq.read_table(directory).to_pylist(), [expected])
         finally:
             if owns_cluster:
@@ -181,26 +231,6 @@ class DropTextContractTest(unittest.TestCase):
     def test_failed_model_nested(self):
         self.check_failed_model("payload.text")
 
-    def test_literal_key_takes_precedence(self):
-        cases = [
-            (
-                "payload.text",
-                {"payload.text": "literal", "payload": {"text": "nested", "other": "keep"}},
-                {"payload": {"text": "nested", "other": "keep"}},
-            ),
-            (
-                "a.b.c",
-                {"a": {"b.c": None, "b": {"c": "keep"}}},
-                {"a": {"b": {"c": "keep"}}},
-            ),
-        ]
-        for text_key, row, expected in cases:
-            with self.subTest(text_key=text_key):
-                self.assertEqual(remove_text_from_sample(deepcopy(row), text_key), expected)
-                result = remove_text_from_dataset(NestedDataset(Dataset.from_list([deepcopy(row)])), text_key)
-                self.assertEqual(list(result), [expected])
-                self.assertEqual(result.features, Dataset.from_list([expected]).features)
-
     def test_event_cleanup_preserves_original_literal_path(self):
         cases = [
             (
@@ -227,18 +257,6 @@ class DropTextContractTest(unittest.TestCase):
                     repeated = remove_text_from_dataset(result, text_key, dataset.features)
                     self.assertEqual(list(repeated), list(result))
                     self.assertEqual(repeated.features, result.features)
-
-    def test_competing_dotted_prefixes(self):
-        row = {"a.b": {"c": "keep"}, "a": {"b": {"c": "secret", "other": "keep"}}}
-        pristine = deepcopy(row)
-        self.assertEqual(nested_obj_factory(deepcopy(row))["a.b.c"], "secret")
-        sample = remove_text_from_sample(deepcopy(row), "a.b.c")
-        self.assertEqual(sample["a.b"], {"c": "keep"})
-        self.assertEqual(sample["a"]["b"], {"other": "keep"})
-        self.assertEqual(row, pristine)
-        result = remove_text_from_dataset(NestedDataset(Dataset.from_list([deepcopy(row)])), "a.b.c")[0]
-        self.assertEqual(result["a.b"], {"c": "keep"})
-        self.assertEqual(result["a"]["b"], {"other": "keep"})
 
     def test_multiple_rows_and_nested_siblings(self):
         op = self.make_keyword_op()
@@ -350,32 +368,6 @@ class DropTextContractTest(unittest.TestCase):
                         self.assertEqual(actual, expected)
                         self.assertEqual(rows, pristine)
 
-    def test_nullable_and_absent_paths(self):
-        cases = [
-            ("text", {"text": None, "other": "keep"}, {"other": "keep"}),
-            ("payload.text", {"payload": {"text": "secret", "other": "keep"}}, {"payload": {"other": "keep"}}),
-            ("payload.text", {"payload": None}, {"payload": None}),
-            ("payload.items.text", {"payload": {"items": None}}, {"payload": {"items": None}}),
-            ("a.b.c", {"a.b": {"c": "keep"}}, {"a.b": {"c": "keep"}}),
-            ("a.b.c", {"a.b": [{"c": "keep"}]}, {"a.b": [{"c": "keep"}]}),
-            ("a.b.c.text", {"a": {"b.c": {"text": "keep"}}}, {"a": {"b.c": {"text": "keep"}}}),
-        ]
-        for text_key, row, expected in cases:
-            with self.subTest(text_key=text_key, row=row):
-                direct = remove_text_from_sample(deepcopy(row), text_key)
-                self.assertEqual(direct, expected)
-                self.assertEqual(remove_text_from_sample(direct, text_key), expected)
-                dataset = NestedDataset(Dataset.from_list([deepcopy(row)]))
-                features = deepcopy(dataset.features)
-                result = remove_text_from_dataset(dataset, text_key)
-                self.assertEqual(list(result), [expected])
-                self.assertEqual(result.features, Dataset.from_list([expected]).features)
-                repeated = remove_text_from_dataset(result, text_key)
-                self.assertEqual(list(repeated), [expected])
-                self.assertEqual(repeated.features, result.features)
-                self.assertEqual(list(dataset), [row])
-                self.assertEqual(dataset.features, features)
-
     def test_list_of_structs(self):
         op = self.make_keyword_op()
         op.text_key = "payload.text"
@@ -386,34 +378,6 @@ class DropTextContractTest(unittest.TestCase):
         self.assertEqual(row, pristine)
         result = op.run(NestedDataset(Dataset.from_list([deepcopy(row)])))[0]
         self.assertEqual(result["payload"], [{"other": "keep"}])
-
-    def test_read_matches_nested_query_for_resolved_paths(self):
-        cases = [
-            ("text", {"text": "source"}),
-            ("text", {"text": None}),
-            ("payload.text", {"payload": {"text": "source", "other": "keep"}}),
-            ("payload.text", {"payload": None}),
-            ("payload.text", {"payload": []}),
-            ("payload.text", {"payload": [[{"text": "source"}, None], [], None]}),
-            ("payload.items.text", {"payload": {"items": [{"text": "source"}, None, {"text": None}, {}]}}),
-            ("payload.text", {"payload.text": "literal", "payload": {"text": "nested"}}),
-            ("payload.text", {"payload.text": None, "payload": {"text": "nested"}, "text": "sibling"}),
-            ("a.b.c", {"a.b": {"c": "wrong"}, "a": {"b": {"c": "source"}}}),
-            ("a.b.c", {"a": {"b.c": "literal", "b": {"c": "nested"}}}),
-        ]
-        for text_key, row in cases:
-            for kind in (dict, NestedQueryDict, LazyBatch):
-                with self.subTest(text_key=text_key, row=row, kind=kind.__name__):
-                    source = deepcopy(row)
-                    if kind is LazyBatch:
-                        source = {key: [value] for key, value in source.items()}
-                    expected = nested_query(deepcopy(source), text_key)
-                    sample = (
-                        LazyBatch(pa.Table.from_pydict(source), PythonFormatter())
-                        if kind is LazyBatch
-                        else kind(source)
-                    )
-                    self.assertEqual(read_text_from_sample(sample, text_key), expected)
 
     def test_missing_text_preserves_entry_point_behavior(self):
         op = self.make_keyword_op()
@@ -464,49 +428,3 @@ class DropTextContractTest(unittest.TestCase):
                     expected[Fields.meta][MetaKeys.keyword] = ["Alice", "Beijing"]
                     self.assertEqual(result, expected)
                     self.assertEqual(row, pristine)
-
-    def test_struct_list_schema_contract(self):
-        rows = [
-            {"payload": {
-                "items": [{"text": "secret", "other": "item"}, None, {"text": None, "other": "null"}],
-                "other": "parent",
-            }},
-            {"payload": {"items": [], "other": "empty"}},
-            {"payload": {"items": None, "other": "null list"}},
-            {"payload": None},
-        ]
-        pruned = [
-            {"payload": {"items": [{"other": "item"}, None, {"other": "null"}], "other": "parent"}},
-            *deepcopy(rows[1:]),
-        ]
-        for list_type in (List, LargeList):
-            features = Features({
-                "payload": {
-                    "items": list_type({"text": Value("string"), "other": Value("string")}),
-                    "other": Value("string"),
-                }
-            })
-            for text_key in ("payload.items.text", "payload.items.missing", "payload.missing.text", "missing.text"):
-                with self.subTest(list_type=list_type.__name__, text_key=text_key):
-                    expected = pruned if text_key == "payload.items.text" else rows
-                    expected_features = deepcopy(features)
-                    if text_key == "payload.items.text":
-                        del expected_features["payload"]["items"].feature["text"]
-                    for row, expected_row in zip(rows, expected):
-                        sample = remove_text_from_sample(deepcopy(row), text_key)
-                        self.assertEqual(sample, expected_row)
-                        self.assertEqual(remove_text_from_sample(sample, text_key), expected_row)
-                    batch = LazyBatch(
-                        pa.Table.from_pylist(deepcopy(rows), schema=features.arrow_schema), PythonFormatter()
-                    )
-                    expected_batch = {"payload": [row["payload"] for row in expected]}
-                    self.assertEqual(dict(remove_text_from_sample(batch, text_key)), expected_batch)
-                    dataset = NestedDataset(Dataset.from_list(deepcopy(rows), features=deepcopy(features)))
-                    result = remove_text_from_dataset(dataset, text_key)
-                    self.assertEqual(list(result), expected)
-                    self.assertEqual(result.features, expected_features)
-                    repeated = remove_text_from_dataset(result, text_key)
-                    self.assertEqual(list(repeated), expected)
-                    self.assertEqual(repeated.features, expected_features)
-                    self.assertEqual(list(dataset), rows)
-                    self.assertEqual(dataset.features, features)

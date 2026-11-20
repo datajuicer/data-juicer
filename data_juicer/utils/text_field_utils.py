@@ -1,4 +1,4 @@
-"""Remove an extraction mapper's source text from rows and datasets."""
+"""Read and remove source text fields in rows and datasets."""
 
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy

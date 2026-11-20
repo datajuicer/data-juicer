@@ -89,6 +89,17 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
+<summary>[Unreleased] Release v1.6.3: <b>Benchmark Contamination Filter; Lower-Memory Processing; Export & Operator Fixes</b></summary>
+
+* 🧪 *Benchmark Contamination Filter* — New `benchmark_contamination_filter` checks character or word n-gram overlap against a reference benchmark in JSONL, JSON, or TXT format, optionally gzipped. Set `benchmark_path` to enable it. The default `threshold: 0.0` drops any sample with a matching n-gram; tune it for same-domain data. Use distinct stats keys for each benchmark when chaining these filters.
+* 📝 *LLM Extraction Output* — Seven extraction mappers consistently remove the configured source field with `drop_text: true`, including nested and literal dotted paths, cached results, and batched output. Attribute and event extraction retain generated metadata when the source text is inside that metadata. Empty parent structs are removed so Parquet export works; sibling fields and `drop_text: false` remain intact.
+* 🧮 *Lower-Memory Processing* — Top-k and range selectors maintain bounded heaps; the frequency selector counts values before collecting selected indices; image OHEM removes a redundant scan. MinHash folds shingles and permutations in bounded blocks, and `words_num_filter` counts words in chunks on its default path. Tokenization can still retain the document's token list.
+* 🗄️ *Export & Loading Fixes* — Local shard names retain the full file stem, stats files stay separate from data exports, and shard write failures reach the caller. Hugging Face IDs work through `dataset_path`. LeRobot exports use contiguous global row indices independently of source frame IDs.
+* 🛡️ *PII & Text Fixes* — PII redaction preserves media paths in ordinary lists, recognizes more prefixed secret/ID keys, and skips regex scans when required markers are absent. Text processing preserves fullwidth digits and dots inside words, compares repeated sentences across scripts, avoids recursive chunking, and matches LaTeX appendix commands at command boundaries.
+* 🔧 *Deduplication, Video & Diagnostics* — Invalid MinHash band settings and SimHash block/distance settings fail early. Ray image/video deduplication keeps samples without media. Video captioning forwards backend-specific generation settings and returns generated batches. Tracing skips positional pairing when a mapper changes the batch row count, and the log summary counts current OP error messages. The MinHash extension build uses C++17 and compiler-specific OpenMP flags for GCC/MSVC.
+</details>
+
+<details open>
 <summary>[2026-11-03] Release v1.6.2: <b>Selector & Filter Boundary Fixes; Broader PII Redaction; Faster Dedup & Field Selectors</b></summary>
 
 * 🎯 *Boundary-Correct Selectors & Filters* — explicit `top_ratio: 0` and zero-row random selections now keep zero rows; single-sided `range_specified_field_selector` bounds apply instead of returning the whole dataset; `topk_specified_field_selector` ranks top-level numeric strings numerically and tolerates `None`; `specified_numeric_field_filter` keeps `0` and `0.0`; `suffix_filter` normalizes `txt`, `.TXT` and `.txt` alike.
@@ -107,7 +118,7 @@ for s in res_ds:
 * 🗂️ *Loading, Analysis & Tool Fixes* — The HuggingFace load strategy applies `limit` after loading; datasets allotted zero samples under `max_sample_num` are skipped; the lenient JSONL cache refreshes when source files change; overall analysis keeps stats columns whose first value is null; the visualization app no longer raises `KeyError` when no filter has tunable stats; the GPT evaluator excludes failed judge calls from averages and reports their count.
 </details>
 
-<details open>
+<details>
 <summary>[2026-09-08] Release v1.6.0: <b>Juicer Model Release; Cluster-Aware Partitioning; Config Validation; LiteLLM Backend</b></summary>
 
 * 🧮 *Cluster-Aware Partitioning* — Automatic partition counts use live Ray cluster resources. Manual `partition.size` targets split data at row boundaries, including inputs with fewer blocks than partitions.

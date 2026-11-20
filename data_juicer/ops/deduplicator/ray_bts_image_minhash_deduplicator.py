@@ -855,8 +855,7 @@ class RayImageBTSMinhashDeduplicatorWithUid(RayImageBTSMinhashDeduplicator):
 
         dataset = dataset.map_batches(
             band_existing_uid,
-            batch_format="pyarrow",
-            zero_copy_batch=True,
+            **self._get_map_batches_kwargs(),
         ).materialize()
 
         end_time = time.time()
@@ -870,8 +869,7 @@ class RayImageBTSMinhashDeduplicatorWithUid(RayImageBTSMinhashDeduplicator):
         start_time = time.time()
         result = dataset.map_batches(
             self.filter_with_union_find,
-            batch_format="pyarrow",
-            zero_copy_batch=True,
+            **self._get_map_batches_kwargs(),
         )
 
         end_time = time.time()

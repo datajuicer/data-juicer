@@ -14,7 +14,6 @@ import torch
 from PIL import Image, ImageFile
 from ray.data._internal import util as ray_data_util
 
-from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.deduplicator import (
     ray_bts_image_minhash_deduplicator as image_minhash,
 )
@@ -22,6 +21,18 @@ from data_juicer.ops.deduplicator.ray_bts_image_minhash_deduplicator import (
     RayImageBTSMinhashDeduplicator,
 )
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
+
+
+def make_test_images(directory):
+    paths = [str(Path(directory) / f"img{i}.png") for i in range(4)]
+    original = Image.new("RGB", (224, 224), color=(255, 0, 0))
+    original.save(paths[0])
+    original.save(paths[1])
+    near_duplicate = np.array(original).copy()
+    near_duplicate[:8, :8] = [254, 1, 1]
+    Image.fromarray(near_duplicate).save(paths[2])
+    Image.new("RGB", (224, 224), color=(0, 0, 255)).save(paths[3])
+    return paths
 
 
 class RayImageBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):
@@ -34,25 +45,7 @@ class RayImageBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):
         if not os.path.exists(cls.work_dir):
             os.makedirs(cls.work_dir)
 
-        # 准备测试图片路径
-        cls.img_paths = [
-            os.path.join(cls.work_dir, "img1.jpg"),
-            os.path.join(cls.work_dir, "img2.jpg"),
-            os.path.join(cls.work_dir, "img3.jpg"),
-            os.path.join(cls.work_dir, "img4.jpg"),
-        ]
-        cls._generate_test_images()
-
-    @classmethod
-    def _generate_test_images(cls):
-        img1 = Image.new("RGB", (224, 224), color=(255, 0, 0))
-        img1.save(cls.img_paths[0])
-        img1.save(cls.img_paths[1])
-        img3_np = np.array(img1).copy()
-        img3_np[0, 0] = [254, 1, 1]
-        Image.fromarray(img3_np).save(cls.img_paths[2])
-        img4 = Image.new("RGB", (224, 224), color=(0, 0, 255))
-        img4.save(cls.img_paths[3])
+        cls.img_paths = make_test_images(cls.work_dir)
 
     @classmethod
     def tearDownClass(cls):
@@ -60,35 +53,35 @@ class RayImageBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):
             shutil.rmtree(cls.work_dir)
         super().tearDownClass()
 
-    def _run_minhash_dedup(self, dataset: Dataset, target_list, op):
-        check_keys = [op.image_key] if hasattr(op, "image_key") else ["images"]
-        res_list = self.run_single_op(dataset, op, check_keys)
-        self.assertEqual(len(res_list), len(target_list))
+    def _assert_retained_images(self, rows, samples, image_key):
+        retained_ids = [row["sample_id"] for row in rows]
+        self.assertEqual(len(retained_ids), 2)
+        self.assertEqual(retained_ids.count(3), 1)
+        self.assertEqual(len(set(retained_ids) & {0, 1, 2}), 1)
+        for row in rows:
+            np.testing.assert_equal(row[image_key], samples[row["sample_id"]][image_key])
 
     @TEST_TAG("ray")
     def test_image_path_deduplication(self):
-        ds_list = [{"images": [p]} for p in self.img_paths]
-        tgt_list = [{"images": [self.img_paths[0]]}, {"images": [self.img_paths[3]]}]
+        ds_list = [{"images": [p], "sample_id": i} for i, p in enumerate(self.img_paths)]
 
         dataset = self.generate_dataset(ds_list)
         op = RayImageBTSMinhashDeduplicator(jaccard_threshold=0.85, work_dir=self.work_dir, minhash_batch_size=2)
-        self._run_minhash_dedup(dataset, tgt_list, op)
+        rows = self.run_single_op(dataset, op, [op.image_key, "sample_id"])
+        self._assert_retained_images(rows, ds_list, op.image_key)
 
     @TEST_TAG("ray")
     def test_image_bytes_deduplication(self):
         ds_list = []
-        for p in self.img_paths:
+        for i, p in enumerate(self.img_paths):
             with open(p, "rb") as f:
-                ds_list.append({"image_bytes": f.read()})
-
-        tgt_list = ds_list[:1] + ds_list[3:4]
+                ds_list.append({"image_bytes": f.read(), "sample_id": i})
 
         dataset = self.generate_dataset(ds_list)
         op = RayImageBTSMinhashDeduplicator(jaccard_threshold=0.85, work_dir=self.work_dir)
 
-        check_keys = [op.image_bytes_key] if hasattr(op, "image_bytes_key") else ["image_bytes"]
-        res_list = self.run_single_op(dataset, op, check_keys)
-        self.assertEqual(len(res_list), len(tgt_list))
+        rows = self.run_single_op(dataset, op, [op.image_bytes_key, "sample_id"])
+        self._assert_retained_images(rows, ds_list, op.image_bytes_key)
 
 
 class ImageMinHashRegressionTest(unittest.TestCase):
@@ -107,6 +100,20 @@ class ImageMinHashRegressionTest(unittest.TestCase):
         ).T
         self.original_permutations = np.stack((self.perm_a, self.perm_b))
         self.tokens = np.array([[0, 1, 63, 127, 1023, 8191], [9, 9, 51, 512, 4095, 8190]], dtype=np.int64)
+
+    def test_near_duplicate_fixture_survives_encoding(self):
+        paths = make_test_images(self.work_dir)
+        arrays = []
+        for path in paths:
+            with Image.open(path) as image:
+                self.assertEqual(image.format, "PNG")
+                arrays.append(np.array(image.convert("RGB")))
+        np.testing.assert_array_equal(arrays[0], arrays[1])
+        changed_pixels = np.any(arrays[0] != arrays[2], axis=-1)
+        self.assertEqual(int(changed_pixels.sum()), 8 * 8)
+        self.assertLess(float(changed_pixels.mean()), 0.01)
+        self.assertNotEqual(Path(paths[0]).read_bytes(), Path(paths[2]).read_bytes())
+        self.assertTrue(np.all(np.any(arrays[0] != arrays[3], axis=-1)))
 
     def _actor(self, use_cuda=False):
         logits = torch.full((*self.tokens.shape, 8192), -1.0, device="cuda" if use_cuda else "cpu")
@@ -378,6 +385,28 @@ class ImageMinHashRegressionTest(unittest.TestCase):
             op.run(dataset)
         self.assertEqual(graph.parent, {11: 7})
 
+    def test_with_uid_propagates_task_memory(self):
+        for task_memory in (None, 64 * 1024**2):
+            with self.subTest(task_memory=task_memory):
+                op = self._op(
+                    image_minhash.RayImageBTSMinhashDeduplicatorWithUid, task_memory=task_memory
+                )
+                dataset = Mock()
+                materialized = dataset.map_batches.return_value.materialize.return_value
+                with (
+                    patch.object(op, "_ensure_actors"),
+                    patch.object(op, "_compute_minhash", return_value=dataset),
+                    patch.object(op, "merge"),
+                ):
+                    result = op.run(dataset)
+                self.assertIs(result, materialized.map_batches.return_value)
+                expected = {"batch_format": "pyarrow", "zero_copy_batch": True}
+                if task_memory is not None:
+                    expected["memory"] = task_memory
+                for stage in (dataset, materialized):
+                    with self.subTest(stage=stage):
+                        self.assertEqual(stage.map_batches.call_args.kwargs, expected)
+
     def test_compute_minhash_resource_floor_and_shared_permutations(self):
         for use_cuda in (False, True):
             with self.subTest(use_cuda=use_cuda):
@@ -496,6 +525,7 @@ class ImageMinHashRayRegressionTest(DataJuicerTestCaseBase):
                 union_find_parallel_num=1,
                 minhash_batch_size=2,
                 actor_memory=1024**2,
+                task_memory=1024**2,
             )
 
     def _dataset(self, labels, signatures, uids=None):

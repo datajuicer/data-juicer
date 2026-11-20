@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import Field, PositiveInt
 from typing_extensions import Annotated
 
-from data_juicer.utils.common_utils import stats_to_number
+from data_juicer.utils.common_utils import iter_column, stats_to_number
 
 from ..base_op import OPERATORS, Selector
 
@@ -13,13 +13,15 @@ from ..base_op import OPERATORS, Selector
 class RangeSpecifiedFieldSelector(Selector):
     """Selects a range of samples based on the sorted values of a specified field.
 
-    This operator selects samples whose values for a specified field fall within a given
-    range. The range can be defined using percentiles or ranks, and the operator will use
-    the more inclusive bounds if both are provided. The field values are first sorted in
-    ascending order, and then the samples are selected based on the lower and upper bounds.
-    If no bounds are provided, the original dataset is returned. The operator ensures that
-    the specified field exists in the dataset and handles multi-level fields by separating
-    keys with dots."""
+    This operator ranks samples by the values of a specified field in ascending order
+    and selects samples within a given rank or percentile range.
+    Either bound may be omitted: an omitted lower bound defaults to 0, and an omitted
+    upper bound defaults to the dataset size. When both percentile and rank constraints
+    are provided, the larger lower bound and the smaller upper bound are used.
+    If no bounds are provided, the original dataset and its order are preserved.
+    Datasets with zero or one sample are returned unchanged. The operator ensures that
+    the specified field exists in the dataset and supports nested fields with keys
+    separated by dots."""
 
     def __init__(
         self,
@@ -72,9 +74,12 @@ class RangeSpecifiedFieldSelector(Selector):
         if len(dataset) <= 1 or not self.field_key:
             return dataset
 
-        if self.lower_percentile is None and self.lower_rank is None:
-            return dataset
-        if self.upper_percentile is None and self.upper_rank is None:
+        if (
+            self.lower_percentile is None
+            and self.lower_rank is None
+            and self.upper_percentile is None
+            and self.upper_rank is None
+        ):
             return dataset
 
         lower_bound, upper_bound = 0, len(dataset)
@@ -87,16 +92,52 @@ class RangeSpecifiedFieldSelector(Selector):
         if self.upper_rank is not None:
             upper_bound = min(upper_bound, self.upper_rank)
         upper_bound = max(lower_bound, upper_bound)
+        if upper_bound <= 0:
+            return dataset.select([])
 
         field_keys = self.field_key.split(".")
         assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
+        # Stream the column and maintain a max-heap (using negated values) of size upper_bound
+        # to keep the upper_bound smallest values. This avoids materializing the entire
+        # field_value_list (O(n) memory) — peak memory drops to O(upper_bound).
+        heap = []  # min-heap of (-value, -idx), simulating a max-heap
+
+        for idx, item in enumerate(iter_column(dataset, field_keys[0])):
+            field_value = item
+            for key in field_keys[1:]:
+                assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
+                field_value = field_value[key]
+            field_value = stats_to_number(field_value)
+
+            neg_value = -field_value
+            # Use -idx as second tuple element so that, on ties, the later row
+            # sits on top of the heap and gets evicted first — preserving the
+            # original stable selection (earlier rows are kept).
+            heap_entry = (neg_value, -idx)
+
+            if len(heap) < upper_bound:
+                heapq.heappush(heap, heap_entry)
+            elif neg_value > heap[0][0]:
+                # heap[0] is the smallest neg_value = largest value in current top.
+                # Replace when current value is smaller than the current upper_bound-th smallest.
+                heapq.heapreplace(heap, heap_entry)
+
+        # Sort heap entries by (value, idx) ascending to match nsmallest's stable order.
+        # The heap itself is not sorted — we must restore ascending value order and
+        # original row order for ties before the second-stage nlargest.
+        heap_entries = [(-neg_val, -neg_idx) for (neg_val, neg_idx) in heap]
+        heap_entries.sort(key=lambda x: (x[0], x[1]))
+        select_index = [idx for (val, idx) in heap_entries]
+        sub_dataset = dataset.select(select_index)
+
+        # Second pass on sub_dataset (size upper_bound) — already small enough to materialize.
         def get_field_value_list(cur_dataset, field_keys):
             if len(field_keys) == 1:
-                field_value_list = cur_dataset[field_keys[0]]
+                field_value_list = list(iter_column(cur_dataset, field_keys[0]))
             else:
                 field_value_list = []
-                for item in cur_dataset[field_keys[0]]:
+                for item in iter_column(cur_dataset, field_keys[0]):
                     field_value = item
                     for key in field_keys[1:]:
                         assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
@@ -104,10 +145,6 @@ class RangeSpecifiedFieldSelector(Selector):
                     field_value_list.append(field_value)
             field_value_list = [stats_to_number(s) for s in field_value_list]
             return field_value_list
-
-        field_value_list = get_field_value_list(dataset, field_keys)
-        select_index = heapq.nsmallest(int(upper_bound), range(len(dataset)), field_value_list.__getitem__)
-        sub_dataset = dataset.select(select_index)
 
         field_value_list = get_field_value_list(sub_dataset, field_keys)
         select_index = heapq.nlargest(

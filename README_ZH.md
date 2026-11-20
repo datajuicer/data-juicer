@@ -88,6 +88,25 @@ for s in res_ds:
 ## 📰 动态
 
 <details open>
+<summary>[2026-11-03] Release v1.6.2: <b>选择器与过滤器边界修复；PII 脱敏覆盖更全；去重与字段选择器提速</b></summary>
+
+* 🎯 选择器与过滤器边界修复 — 显式设置 `top_ratio: 0` 和随机选择得到零行时，现在保留零条样本；`range_specified_field_selector` 只设置单侧边界时按该边界生效，不再返回整个数据集；`topk_specified_field_selector` 对顶层数值字符串按数值排序，并可容忍 `None`；`specified_numeric_field_filter` 保留 `0` 和 `0.0`；`suffix_filter` 统一归一化 `txt`、`.TXT` 与 `.txt`。
+* 🛡️ PII 脱敏覆盖更全 — `pii_redaction_mapper` 新增对 JWT、国际电话、MAC 地址、飞书/钉钉 open ID 及方括号 IPv6 地址的脱敏；紧邻中文的手机号、身份证号及上述 token 也能识别；秘密值和 ID 值（`user_id: 42`、`{"user_id": "u-123"}`、`Authorization: Bearer ...`）整体脱敏并保留键名、分隔符和引号，支持全角 `：`，且值不会误吞下一行（缩进换行除外）；`clean_email_mapper` 匹配大写域名；`clean_ip_mapper` 匹配压缩写法的 IPv6 及内嵌 IPv4 的 IPv6 地址。
+* ⚡ 去重、加载与字段选择器提速 — 精确去重、simhash 去重、图像去重和视频去重只读取哈希列来计算保留行，不再解码其他列；行去重只从哈希列统计行哈希；MinHash 分带冲突在扫描过程中直接合并；`unify_format` 在所有文本列都无空值时跳过 None 过滤；四个字段选择器按每批 1 万行读取目标列。
+* 🔧 媒体、加载与作业修复 — 图像算子将结果回写为 PNG 字节，后续图像算子可正常读取；视频逐帧处理保留音轨；宽松 JSONL 保留带 BOM 的首条记录，并支持大写或大小写混合后缀的 `.jsonl.gz`/`.jsonl.zst` 分片；行内 LaTeX 注释不再吞掉前一个字符；`expand_macro_mapper` 可展开文本末尾或紧邻另一个宏的宏；作业进度从完成事件的 metadata 读取指标；`nltk` 升级至 3.10.4，GitPython 升级至 3.2.1。
+</details>
+
+<details open>
+<summary>[2026-10-19] Release v1.6.1: <b>吞吐感知的 GPU Actor 规划；自适应 GPU 微批；更省内存的 Ray MinHash 去重</b></summary>
+
+* 🎛️ 吞吐感知的 GPU Actor 规划 — `ray_partitioned` 在正式执行前进行 GPU 预检，测量各 GPU 算子的显存、稳态吞吐和输出比例，并独立于分区数规划 actor 数量；同一执行组内的分区共用 actor pool，避免重复加载模型。默认开启，设置 `partition.gpu_preflight_enabled: false` 可沿用显式配置的 GPU 资源。
+* 🪄 自适应 GPU 微批（需手动开启）— 设置 `elastic_juicer_adaptive_batching: true` 后，符合条件的 CUDA Mapper 在 OOM 时以更小的微批重试同一批数据，输入压力缓解后再谨慎恢复批大小；`elastic_juicer_profile_seed: true` 可在同一次 `ray_partitioned` 运行中，将兼容的批大小边界复用到后续执行组和替换的 actor。两项默认关闭。
+* 🧮 更省内存的 Ray MinHash 去重 — `ray_bts_minhash_deduplicator` 改用紧凑的 NumPy 数组保存边缓冲区和哈希键，代替 Python 对象，降低内存开销，配置和结果不变。
+* 🔧 算子修复 — `clean_html_mapper` 兼容 selectolax 1.0；`remove_specific_chars_mapper` 转义正则字符，不再误删 `|`；`remove_header_mapper` 的默认参数 `drop_no_head=True` 开始生效，会清空不含 LaTeX 头部的文本；实体关系与支撑文本抽取算子正确处理 `drop_text`；`general_field_filter` 条件支持负数；`text_embd_similarity_filter` 使用本地 Hugging Face embedding 时，输入文本不再混入模型对象的 repr。
+* 🗂️ 加载、分析与工具修复 — HuggingFace 加载策略改为加载后再应用 `limit`；设置 `max_sample_num` 时跳过分得 0 条样本的数据集；宽松 JSONL 加载在源文件变化后刷新缓存；整体分析不再因首个值为空而丢弃统计列；可视化应用在没有可调统计量的过滤器时不再报 `KeyError`；GPT 评估器从均值中排除失败的评审调用并报告其数量。
+</details>
+
+<details open>
 <summary>[2026-09-08] Release v1.6.0: <b>Juicer 模型发布；集群感知分区；配置校验；LiteLLM 后端</b></summary>
 
 * 🧮 集群感知分区 — 自动分区数量根据实时 Ray 集群资源确定；手动 `partition.size` 按样本行切分，在输入 block 数少于分区数时也能正确划分数据。
@@ -100,7 +119,7 @@ for s in res_ds:
 * 🔧 健壮性修复 — 修复融合过滤器缓存隔离、MinHash 状态复用与空输入、去重器执行模式声明、文本空分块、gzip JSONL 的 HPO 采样及 pandas 扩展 dtype 处理；导入 HPO 模块不再启动 sweep。
 </details>
 
-<details open>
+<details>
 <summary>[2026-08-25] Juicer 模型发布：<b>自然语言数据精炼；本地部署；Playground</b></summary>
 
 * 🧃 自然语言数据精炼 — [Juicer](docs/Juicer_ZH.md) 可遵循自然语言指令完成文本清洗、过滤与语义标注。
@@ -108,7 +127,7 @@ for s in res_ds:
 * 🧪 Playground — 在 [Juicer Playground](https://github.com/datajuicer/data-juicer-hub/tree/main/juicer_playground) 中体验数据精炼配方。
 </details>
 
-<details open>
+<details>
 <summary>[2026-08-07] Release v1.5.5: <b>外部算子插件；HDFS I/O 与 Ray Data 优化；多节点弹性分片</b></summary>
 
 * 🧩 外部算子插件 — 第三方算子现在可作为独立 pip 包分发，并通过 Python entry points 自动注册。

@@ -1,63 +1,63 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10, <4"
 resolution-markers = [
     "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
-    "python_full_version == '3.13.*' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
     "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.13.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and platform_machine == 'aarch64' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'win32'",
+    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
+    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
+    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
+    "python_full_version == '3.13.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and platform_machine == 'aarch64' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and platform_machine == 'aarch64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
-    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'win32'",
-    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'win32'",
-    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux'",
-    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'linux'",
-    "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'win32'",
-    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
-    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
-    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
-    "python_full_version >= '3.14' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version == '3.11.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'win32'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'win32'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'x86_64' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version < '3.11' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'darwin'",
     "python_full_version < '3.11' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'win32'",
     "python_full_version < '3.11' and platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
@@ -2872,14 +2872,14 @@ wheels = [
 
 [[package]]
 name = "gitpython"
-version = "3.1.44"
+version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gitdb" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/89/37df0b71473153574a5cdef8f242de422a0f5d26d7a9e231e6f169b4ad14/gitpython-3.1.44.tar.gz", hash = "sha256:c87e30b26253bf5418b01b0660f818967f3c503193838337fe5e573331249269", size = 214196, upload-time = "2025-01-02T07:32:43.59Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/ff/fee293f1ec3e1b64db6eb270e00964f29c086d769201474cedb8d1608930/gitpython-3.2.1.tar.gz", hash = "sha256:0f1229ec5c057bdabdeeda8bda4f17bda679ab33dbccc00f24e6a480553c8613", size = 241688, upload-time = "2026-10-14T12:20:20.589Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/9a/4114a9057db2f1462d5c8f8390ab7383925fe1ac012eaa42402ad65c2963/GitPython-3.1.44-py3-none-any.whl", hash = "sha256:9e0e10cda9bed1ee64bc9a6de50e7e38a9c9943241cd7f585f6df3ed28011110", size = 207599, upload-time = "2025-01-02T07:32:40.731Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/50/2a923c4dc02522ff9567f07c67ed1deca6d5fa9474f4708168b8088dfa37/gitpython-3.2.1-py3-none-any.whl", hash = "sha256:d66b0832aa8755c1a84892937282df0befb16c97e5a64aeebd68be9c5e323f53", size = 231548, upload-time = "2026-10-14T12:20:18.844Z" },
 ]
 
 [[package]]
@@ -5766,7 +5766,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/71/6c/a485fcaf573db12b5
 
 [[package]]
 name = "nltk"
-version = "3.10.3"
+version = "3.10.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -5775,9 +5775,9 @@ dependencies = [
     { name = "regex" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/e6/fe51d2bb1a3b446f59c5c8165999a9fee208bc346af90a7cbf7657bc0d75/nltk-3.10.3.tar.gz", hash = "sha256:bb9327a461c3811c2fa4900e03840401f2126adfb30c0072827c433bd2444ea4", size = 5137152, upload-time = "2026-08-12T23:46:37.258Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/cb/bbaa9be58e95d21729c6b9194376610230e0755f6de0bf38b6acc0dce079/nltk-3.10.4.tar.gz", hash = "sha256:44679f4e9220abfd496d2c8cdb22f8425ccbe557604f9aa5cacb1c44003dabc1", size = 4300570, upload-time = "2026-10-21T11:34:35.851Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/6d/ebd2af4640b12168fdf0cb74b6118df2f32a2f62ec7e0c06fbfd80706639/nltk-3.10.3-py3-none-any.whl", hash = "sha256:ff9598a8e20518ee0d557745890cc4435b9578489e2dcbc69c4f81fa060caf7c", size = 1798643, upload-time = "2026-08-12T23:44:13.478Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/04/e7816813e409ca874ba2fcc35455db0e4130b79eb277e1f9edd270ca3c69/nltk-3.10.4-py3-none-any.whl", hash = "sha256:769ba5413f265b7d3e87cd163cc28efa01e29eeef8bb6080bc907949d9fcfb51", size = 1722994, upload-time = "2026-10-21T11:34:27.975Z" },
 ]
 
 [[package]]
@@ -6188,7 +6188,7 @@ wheels = [
 
 [[package]]
 name = "nvidia-dali-cuda120"
-version = "2.3.0"
+version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astunparse" },
@@ -6204,8 +6204,8 @@ dependencies = [
     { name = "six" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/37/1035148b978b19f4939dc85893f166784db37489c0402cfad95fa06f5821/nvidia_dali_cuda120-2.3.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:1a8b8bd7af36557e1705104a5c0377e9d1ac2a059677ced24514bbb9d456e0e8", size = 286709709, upload-time = "2026-08-28T17:00:58.796Z" },
-    { url = "https://files.pythonhosted.org/packages/06/96/dcb17d1d595b96cf0584a0b81c56297d30aa25b7da84f72ed3d93b8e9210/nvidia_dali_cuda120-2.3.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:df5d30a956270a9447c5c39018f76677be14b95ebfbfbe0fd748e908a88ba19d", size = 412961965, upload-time = "2026-08-28T18:22:00.892Z" },
+    { url = "https://files.pythonhosted.org/packages/81/61/17578be8044a4c8bd5f189a71db74693bdfb4cd7f41a8ba2b7101cefab48/nvidia_dali_cuda120-2.4.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:46657b99bea7c21812cb8e83c67522764d118864c4b71a623b52b048f858271e", size = 298497162, upload-time = "2026-10-26T07:56:46.347Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/46/0f07a6c48b6d6a49402b4754e47342f4466bb428a0a69016980c014aa2a0/nvidia_dali_cuda120-2.4.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:8be1bf9137cf4e3a62b51db5de818226ef6c81ec17791672d06ed5351d6e8eb1", size = 424473190, upload-time = "2026-10-26T07:59:15.246Z" },
 ]
 
 [[package]]
@@ -6262,20 +6262,20 @@ wheels = [
 
 [[package]]
 name = "nvidia-nvjpeg2k-cu12"
-version = "0.11.0.51"
+version = "0.12.0.58"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/e3/fd40b4f29fb0ee1ee7684d4b6e910df29b1fc936c0f4d1ef3de48a379c65/nvidia_nvjpeg2k_cu12-0.11.0.51-py3-none-manylinux2014_aarch64.whl", hash = "sha256:e8250b441e5f0913fc64a564d0146286b74d2868e7e34686be623985007de0c5", size = 9273024, upload-time = "2026-07-08T21:26:51.361Z" },
-    { url = "https://files.pythonhosted.org/packages/5d/84/b16d782bea194757025cb12a4847f695fe20093ee0ab699ec438847f7afe/nvidia_nvjpeg2k_cu12-0.11.0.51-py3-none-manylinux2014_x86_64.whl", hash = "sha256:bf61ac1a79ade69b08c2bc605b2e6d1c52179dd9ef8f10e078cf1432e864ddb9", size = 9333433, upload-time = "2026-07-08T21:27:12.775Z" },
+    { url = "https://files.pythonhosted.org/packages/24/1e/a0ab2731dd7b20be4722fddc495563b6f3cde53ea7ffa97094f00014a7db/nvidia_nvjpeg2k_cu12-0.12.0.58-py3-none-manylinux2014_aarch64.whl", hash = "sha256:ba20ce61a3929b77265fc64b9d105f37a13e77ba6db197aad7c0d65a5618b837", size = 9565545, upload-time = "2026-10-28T21:36:36.274Z" },
+    { url = "https://files.pythonhosted.org/packages/69/69/f61ae09f7bdcdda22bfabad7eadec1f781b33cb47a1f9b4e67a375737c66/nvidia_nvjpeg2k_cu12-0.12.0.58-py3-none-manylinux2014_x86_64.whl", hash = "sha256:9fd28574f72e04a54b406c602fea5141d035f1011646697ac0fcc768062f41ba", size = 9620768, upload-time = "2026-10-28T21:36:58.71Z" },
 ]
 
 [[package]]
 name = "nvidia-nvtiff-cu12"
-version = "0.8.0.82"
+version = "0.9.0.86"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/99/38c9fbc5371d495686778bf4eebaa61bbf1e5479bcf4ad8fb54336c7087f/nvidia_nvtiff_cu12-0.8.0.82-py3-none-manylinux2014_aarch64.whl", hash = "sha256:d43df05cce456d98f02773f832f95a24ca16352effed7646dde39bf8a8ee8738", size = 4274433, upload-time = "2026-07-08T21:18:35.628Z" },
-    { url = "https://files.pythonhosted.org/packages/13/cd/4fe54aabe5b4f4ef0eab5723bd74bc4ff34a9951afddb7657749fe4f3be5/nvidia_nvtiff_cu12-0.8.0.82-py3-none-manylinux2014_x86_64.whl", hash = "sha256:2d4a2ea3b749d78fe446df496235469a4cb71eb64deff907e74f02eaa4a70cdf", size = 4340095, upload-time = "2026-07-08T21:18:57.193Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/93/82e57e126e8edce8e36c5245ee48fd2abc1cb0f2a75d05735d806af7981d/nvidia_nvtiff_cu12-0.9.0.86-py3-none-manylinux2014_aarch64.whl", hash = "sha256:de8905219fec744b913847ed746bfbda3b6d848062da131a11ffc4bff17ef5c0", size = 4283015, upload-time = "2026-10-28T21:52:16.955Z" },
+    { url = "https://files.pythonhosted.org/packages/64/7b/41a37763c8e9bd96f17cfda747ba3647341103a34f71f25750f3345c8369/nvidia_nvtiff_cu12-0.9.0.86-py3-none-manylinux2014_x86_64.whl", hash = "sha256:39d0ae1a81ba25163e51e275c79762572b78503a93445600b471d5f4c459b867", size = 4347284, upload-time = "2026-10-28T21:52:40.029Z" },
 ]
 
 [[package]]
@@ -7470,6 +7470,7 @@ all = [
     { name = "vllm" },
     { name = "wandb" },
     { name = "wordcloud" },
+    { name = "yacs" },
 ]
 audio = [
     { name = "audiomentations" },
@@ -7503,6 +7504,7 @@ dev = [
     { name = "sphinx-copybutton" },
     { name = "toml" },
     { name = "wandb" },
+    { name = "yacs" },
 ]
 distributed = [
     { name = "bitarray" },
@@ -7663,8 +7665,8 @@ requires-dist = [
     { name = "nlpaug", marker = "extra == 'nlp'" },
     { name = "nlpcda", marker = "extra == 'all'" },
     { name = "nlpcda", marker = "extra == 'nlp'" },
-    { name = "nltk", marker = "extra == 'all'", specifier = "==3.10.3" },
-    { name = "nltk", marker = "extra == 'nlp'", specifier = "==3.10.3" },
+    { name = "nltk", marker = "extra == 'all'", specifier = "==3.10.4" },
+    { name = "nltk", marker = "extra == 'nlp'", specifier = "==3.10.4" },
     { name = "numpy", specifier = ">=1.26.4" },
     { name = "nvidia-dali-cuda120", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'all') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'all')" },
     { name = "nvidia-dali-cuda120", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'vision') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'vision')" },
@@ -7776,6 +7778,8 @@ requires-dist = [
     { name = "wget" },
     { name = "wordcloud", marker = "extra == 'all'", specifier = "==1.9.4" },
     { name = "wordcloud", marker = "extra == 'tools'", specifier = "==1.9.4" },
+    { name = "yacs", marker = "extra == 'all'", specifier = ">=0.1.8" },
+    { name = "yacs", marker = "extra == 'dev'", specifier = ">=0.1.8" },
     { name = "zstandard" },
 ]
 provides-extras = ["ai-services", "all", "audio", "dev", "distributed", "generic", "nlp", "tools", "vision"]
@@ -12133,6 +12137,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/0f/f8/f6c61fd794229cc3848d144f73754a0c107854372d7261419dcbbd286299/xxhash-3.5.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4e2febf914ace002132aa09169cc572e0d8959d0f305f93d5828c4836f9bc5a6", size = 32020, upload-time = "2024-08-17T09:20:13.537Z" },
     { url = "https://files.pythonhosted.org/packages/79/d3/c029c99801526f859e6b38d34ab87c08993bf3dcea34b11275775001638a/xxhash-3.5.0-pp310-pypy310_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5d3a10609c51da2a1c0ea0293fc3968ca0a18bd73838455b5bca3069d7f8e32b", size = 40515, upload-time = "2024-08-17T09:20:14.669Z" },
     { url = "https://files.pythonhosted.org/packages/62/e3/bef7b82c1997579c94de9ac5ea7626d01ae5858aa22bf4fcb38bf220cb3e/xxhash-3.5.0-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:5a74f23335b9689b66eb6dbe2a931a88fcd7a4c2cc4b1cb0edba8ce381c7a1da", size = 30064, upload-time = "2024-08-17T09:20:15.925Z" },
+]
+
+[[package]]
+name = "yacs"
+version = "0.1.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/44/3e/4a45cb0738da6565f134c01d82ba291c746551b5bc82e781ec876eb20909/yacs-0.1.8.tar.gz", hash = "sha256:efc4c732942b3103bea904ee89af98bcd27d01f0ac12d8d4d369f1e7a2914384", size = 11100, upload-time = "2020-08-10T16:37:47.755Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/4f/fe9a4d472aa867878ce3bb7efb16654c5d63672b86dc0e6e953a67018433/yacs-0.1.8-py3-none-any.whl", hash = "sha256:99f893e30497a4b66842821bac316386f7bd5c4f47ad35c9073ef089aa33af32", size = 14747, upload-time = "2020-08-10T16:37:46.4Z" },
 ]
 
 [[package]]

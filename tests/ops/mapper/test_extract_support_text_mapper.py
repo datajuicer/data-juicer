@@ -1,4 +1,7 @@
+import copy
 import unittest
+
+from unittest.mock import patch
 
 from loguru import logger
 
@@ -126,6 +129,50 @@ class ExtractSupportTextMapperTest(DataJuicerTestCaseBase):
             summary_key='my_summary',
             support_text_key='my_support_text',
         )
+
+
+class ExtractSupportTextMapperDropTextTest(DataJuicerTestCaseBase):
+    """``drop_text`` must remove the source text from the output.
+
+    The parameter is documented as "If drop the text in the output." and is
+    honoured by the other LLM extractor mappers, which all end their
+    ``process_single`` with::
+
+        if self.drop_text:
+            sample.pop(self.text_key)
+
+    This op stored the flag without reading it, so ``drop_text: true`` returned
+    the sample with the raw text still attached - silently, and with the source
+    text then carried through every downstream step.
+
+    The model is patched out, so no API key is needed.
+    """
+
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.get_model',
+           return_value=lambda messages, **kwargs: 'extracted text')
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.prepare_model', return_value='fake-model-key')
+    def test_drop_text_removes_the_source_text(self, _mock_prepare, _mock_get):
+        op = ExtractSupportTextMapper(api_model='fake', drop_text=True, try_num=1)
+        sample = {'text': 'the original source text', Fields.meta: {}}
+        sample[Fields.meta][MetaKeys.event_description] = 'a summary'
+
+        result = op.process_single(copy.deepcopy(sample))
+
+        self.assertNotIn('text', result)
+        self.assertIn(MetaKeys.support_text, result[Fields.meta])
+
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.get_model',
+           return_value=lambda messages, **kwargs: 'extracted text')
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.prepare_model', return_value='fake-model-key')
+    def test_source_text_is_kept_when_drop_text_is_false(self, _mock_prepare, _mock_get):
+        op = ExtractSupportTextMapper(api_model='fake', drop_text=False, try_num=1)
+        sample = {'text': 'the original source text', Fields.meta: {}}
+        sample[Fields.meta][MetaKeys.event_description] = 'a summary'
+
+        result = op.process_single(copy.deepcopy(sample))
+
+        self.assertIn('text', result)
+        self.assertEqual(result['text'], 'the original source text')
 
 
 if __name__ == '__main__':

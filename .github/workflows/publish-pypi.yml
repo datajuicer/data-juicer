@@ -39,7 +39,7 @@ jobs:
         python -c "import data_juicer; print(data_juicer.__version__)"
         dj-process --help
     - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      uses: pypa/gh-action-pypi-publish@v1.14.2
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}

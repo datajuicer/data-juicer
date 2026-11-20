@@ -30,6 +30,14 @@ class ExpandMacroMapperTest(DataJuicerTestCaseBase):
 
         self._run_expand_macro(samples)
 
+    def test_macro_at_end_or_followed_by_macro(self):
+        samples = [{
+            'text': '\\newcommand{\\R}{\\mathbb{R}}\nLet $x \\in \\R$ and $y \\in \\R\\R',
+            'target': '\\newcommand{\\mathbb{R}}{\\mathbb{R}}\nLet $x \\in \\mathbb{R}$ and $y \\in \\mathbb{R}\\mathbb{R}'
+        }]
+
+        self._run_expand_macro(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

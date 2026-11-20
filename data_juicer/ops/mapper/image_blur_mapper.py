@@ -4,7 +4,11 @@ import numpy as np
 
 from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import transfer_filename
-from data_juicer.utils.mm_utils import load_data_with_context, load_image
+from data_juicer.utils.mm_utils import (
+    image_to_bytes,
+    load_data_with_context,
+    load_image,
+)
 
 from ..base_op import OPERATORS, Mapper
 from ..op_fusion import LOADED_IMAGES
@@ -110,7 +114,7 @@ class ImageBlurMapper(Mapper):
                 if processed[value] != value:
                     sample[Fields.source_file][i] = value
             if self.image_bytes_key in sample and i < len(sample[self.image_bytes_key]):
-                sample[self.image_bytes_key][i] = images[processed[value]].tobytes()
+                sample[self.image_bytes_key][i] = image_to_bytes(images[processed[value]])
 
         sample[self.image_key] = [processed[key] for key in loaded_image_keys]
         return sample

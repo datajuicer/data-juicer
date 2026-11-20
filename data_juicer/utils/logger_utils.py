@@ -211,15 +211,14 @@ def setup_logger(save_dir, distributed_rank=0, filename="log.txt", mode="o", lev
 
 
 def make_log_summarization(max_show_item=10):
-    error_pattern = r"^An error occurred in (.*?) when " r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
+    # The OP fault-tolerance wrappers log "An error occurred in {op}: {error} -- {traceback}".
+    # Older versions logged "An error occurred in {op} when processing sample(s) "{sample}" --
+    # {error type}: {error} -- {traceback}".
+    error_pattern = r'^An error occurred in (.*?)(?: when processing samples? ".*?" -- (.*?))?: (.*?) -- (.*)$'
     log_file = get_log_file_path()
     if log_file is None:
         return
     log_file = log_file.replace("_ERROR", "").replace("_WARNING", "").replace("_DEBUG", "")
-    error_log_file = add_suffix_to_filename(log_file, "_ERROR")
-    warning_log_file = add_suffix_to_filename(log_file, "_WARNING")
-    error_pattern = r"^An error occurred in (.*?) when " r"processing samples? \"(.*?)\" -- (.*?): (.*?) -- (.*?)$"
-    log_file = get_log_file_path().replace("_ERROR", "").replace("_WARNING", "").replace("_DEBUG", "")
     error_log_file = add_suffix_to_filename(log_file, "_ERROR")
     warning_log_file = add_suffix_to_filename(log_file, "_WARNING")
 
@@ -234,7 +233,14 @@ def make_log_summarization(max_show_item=10):
                 error_msg = error_log["record"]["message"]
                 find_res = re.findall(error_pattern, error_msg, flags=re.DOTALL)
                 if len(find_res) > 0:
-                    op_name, sample, err_type, err_msg, _ = find_res[0]
+                    op_name, err_type, err_msg, err_detail = find_res[0]
+                    if not err_type:
+                        # the traceback ends with "{error type}: {error}"
+                        first_msg_line = err_msg.split("\n", 1)[0]
+                        tail = err_detail.rstrip()
+                        if first_msg_line and f": {first_msg_line}" in tail:
+                            tail = tail[: tail.rfind(f": {first_msg_line}")]
+                        err_type = tail.rsplit("\n", 1)[-1]
                     error = (op_name, err_type, err_msg)
                     error_dict.setdefault(error, 0)
                     error_dict[error] += 1

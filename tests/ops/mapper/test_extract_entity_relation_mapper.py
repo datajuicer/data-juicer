@@ -1,4 +1,7 @@
+import copy
 import unittest
+
+from unittest.mock import patch
 
 from loguru import logger
 
@@ -64,7 +67,7 @@ class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
         # export OPENAI_API_KEY=your_dashscope_key
         op = ExtractEntityRelationMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op)
-    
+
     def test_entity_types(self):
         op = ExtractEntityRelationMapper(
             api_model=DEFAULT_API_MODEL,
@@ -72,7 +75,7 @@ class ExtractEntityRelationMapperTest(DataJuicerTestCaseBase):
             entity_types=['人物', '组织', '地点', '物件', '武器', '武功'],
         )
         self._run_op(op)
-    
+
     def test_max_gleaning(self):
         op = ExtractEntityRelationMapper(
             api_model=DEFAULT_API_MODEL,
@@ -173,6 +176,48 @@ class ExtractEntityRelationEdgeCaseTest(DataJuicerTestCaseBase):
             result[Fields.meta][MetaKeys.entity], [{'existing': True}])
         self.assertEqual(
             result[Fields.meta][MetaKeys.relation], [{'existing': True}])
+
+
+class ExtractEntityRelationMapperDropTextTest(DataJuicerTestCaseBase):
+    """``drop_text`` must remove the source text from the output.
+
+    The parameter is documented as "If drop the text in the output." and is
+    honoured by the other LLM extractor mappers, which all end their
+    ``process_single`` with::
+
+        if self.drop_text:
+            sample.pop(self.text_key)
+
+    This op stored the flag without reading it, so ``drop_text: true`` returned
+    the sample with the raw text still attached - silently, and with the source
+    text then carried through every downstream step.
+
+    The model is patched out, so no API key is needed.
+    """
+
+    @patch('data_juicer.ops.mapper.extract_entity_relation_mapper.get_model',
+           return_value=lambda messages, **kwargs: 'extracted text')
+    @patch('data_juicer.ops.mapper.extract_entity_relation_mapper.prepare_model', return_value='fake-model-key')
+    def test_drop_text_removes_the_source_text(self, _mock_prepare, _mock_get):
+        op = ExtractEntityRelationMapper(api_model='fake', drop_text=True, try_num=1)
+        sample = {'text': 'the original source text', Fields.meta: {}}
+
+        result = op.process_single(copy.deepcopy(sample))
+
+        self.assertNotIn('text', result)
+        self.assertIn(MetaKeys.entity, result[Fields.meta])
+
+    @patch('data_juicer.ops.mapper.extract_entity_relation_mapper.get_model',
+           return_value=lambda messages, **kwargs: 'extracted text')
+    @patch('data_juicer.ops.mapper.extract_entity_relation_mapper.prepare_model', return_value='fake-model-key')
+    def test_source_text_is_kept_when_drop_text_is_false(self, _mock_prepare, _mock_get):
+        op = ExtractEntityRelationMapper(api_model='fake', drop_text=False, try_num=1)
+        sample = {'text': 'the original source text', Fields.meta: {}}
+
+        result = op.process_single(copy.deepcopy(sample))
+
+        self.assertIn('text', result)
+        self.assertEqual(result['text'], 'the original source text')
 
 
 if __name__ == '__main__':

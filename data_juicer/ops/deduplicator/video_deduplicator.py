@@ -84,40 +84,41 @@ class VideoDeduplicator(Deduplicator):
         if len(dataset) <= 1:
             return dataset, {}
 
+        # read the hash columns once: iterating dataset[column] decodes it
+        # row by row
+        if self.consider_text:
+            sample_hashes = list(zip(dataset[HashKeys.videohash][:], dataset[HashKeys.hash][:]))
+        else:
+            sample_hashes = dataset[HashKeys.videohash][:]
+
         dup_hashes = None
         if show_num > 0:
             # sample duplicate pairs
             if self.consider_text:
                 hash2ids: Dict[Tuple[int, int], Set[int]] = defaultdict(set)
-                hashes = zip(dataset[HashKeys.videohash], dataset[HashKeys.hash])
             else:
                 hash2ids: Dict[int, Set[int]] = defaultdict(set)
-                hashes = dataset[HashKeys.videohash]
-            for sid, hash_val in enumerate(hashes):
+            for sid, hash_val in enumerate(sample_hashes):
                 if hash_val:
                     hash2ids[hash_val].add(sid)
             dup_samples = sorted(list(hash2ids.items()), key=lambda x: len(x[1]), reverse=True)
             dup_hashes = set([item[0] for item in dup_samples if len(item[1]) > 1][:show_num])
 
-        def _filter_dup_helper(sample, hashes):
-            if self.consider_text:
-                hash = (sample[HashKeys.videohash], sample[HashKeys.hash])
-            else:
-                hash = sample[HashKeys.videohash]
-            if not hash:
-                return True
-            if show_num > 0 and hash in dup_hashes and len(dup_pairs[hash]) < 2:
-                # tracer is open and not enough duplicate sample pairs
-                dup_pairs[hash].append(sample)
-            if hash in hashes:
-                return False
-            else:
-                hashes.add(hash)
-                return True
-
+        # keep the first sample of each hash, and every sample without one;
+        # the kept indices are computed from the hash columns alone, so the
+        # other columns are never decoded
         hashes = set()
         dup_pairs = {hash_v: [] for hash_v in dup_hashes} if dup_hashes else {}
-        dataset = dataset.filter(
-            _filter_dup_helper, fn_kwargs=dict(hashes=hashes), load_from_cache_file=False if show_num > 0 else True
-        )  # num_proc=1
+        keep = []
+        for idx, hash in enumerate(sample_hashes):
+            if not hash:
+                keep.append(idx)
+                continue
+            if show_num > 0 and hash in dup_hashes and len(dup_pairs[hash]) < 2:
+                # tracer is open and not enough duplicate sample pairs
+                dup_pairs[hash].append(dataset[idx])
+            if hash not in hashes:
+                hashes.add(hash)
+                keep.append(idx)
+        dataset = dataset.select(keep)
         return dataset, dup_pairs

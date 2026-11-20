@@ -3,7 +3,7 @@ import datetime
 import io
 import os
 import re
-import shutil
+from fractions import Fraction
 from typing import ClassVar, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -212,6 +212,13 @@ def load_file_byte(path):
 
 def load_image_byte(path):
     return load_file_byte(path)
+
+
+def image_to_bytes(image):
+    """Encode a PIL image as PNG file bytes, which ``load_image`` can read back."""
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 def image_path_to_base64(image_path):
@@ -534,9 +541,13 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
     # create the output video
     output_container = load_video(output_video, "w")
 
-    # add the audio stream into the output video with template of input audio
-    for input_audio_stream in container.streams.audio:
-        output_container.add_stream(template=input_audio_stream)
+    # add the audio stream into the output video with template of input audio,
+    # its packets are copied as they are while demuxing the video
+    output_audio_streams = {
+        input_audio_stream.index: output_container.add_stream(template=input_audio_stream)
+        for input_audio_stream in container.streams.audio
+    }
+    audio_streams_to_copy = list(container.streams.audio)
 
     # add the video stream into the output video according to input video
     for input_video_stream in container.streams.video:
@@ -550,7 +561,13 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
         output_video_stream.width = input_video_stream.codec_context.width
         output_video_stream.height = input_video_stream.codec_context.height
 
-        for packet in container.demux(input_video_stream):
+        for packet in container.demux(input_video_stream, *audio_streams_to_copy):
+            if packet.stream.type == "audio":
+                # skip the empty packet that ends each stream
+                if packet.dts is not None:
+                    packet.stream = output_audio_streams[packet.stream.index]
+                    output_container.mux(packet)
+                continue
             for frame in packet.decode():
                 new_frame = frame_func(frame)
                 if new_frame != frame:
@@ -564,6 +581,8 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
         # flush all packets
         for packet in output_video_stream.encode():
             output_container.mux(packet)
+        # the audio only needs to be copied once
+        audio_streams_to_copy = []
 
     # close the output videos
     if isinstance(input_video, str):
@@ -573,7 +592,9 @@ def process_each_frame(input_video: Union[str, "av.container.InputContainer"], o
     if frame_modified:
         return output_video
     else:
-        shutil.rmtree(output_video, ignore_errors=True)
+        # the output is a file, so shutil.rmtree would fail and leave it behind
+        if os.path.isfile(output_video):
+            os.remove(output_video)
         return input_video if isinstance(input_video, str) else input_video.name
 
 
@@ -935,36 +956,38 @@ def extract_audio_from_video(
 # Others
 def size_to_bytes(size):
     alphabets_list = [char for char in size if char.isalpha()]
-    numbers_list = [char for char in size if char.isdigit()]
+    numbers_list = [char for char in size if char.isdigit() or char == "."]
 
-    if len(numbers_list) == 0:
+    if not any(char.isdigit() for char in numbers_list):
         raise ValueError(f"Your input `size` does not contain numbers: {size}")
 
-    size_numbers = int(float("".join(numbers_list)))
+    # keep the decimal point, so "1.5GB" is 1.5 GiB rather than 15 GiB, and
+    # use a Fraction so that large sizes stay exact
+    size_numbers = Fraction("".join(numbers_list))
 
     if len(alphabets_list) == 0:
         # by default, if users do not specify the units, the number will be
         # regarded as in bytes
-        return size_numbers
+        return int(size_numbers)
 
     suffix = "".join(alphabets_list).lower()
 
     if suffix == "kb" or suffix == "kib":
-        return size_numbers << 10
+        return int(size_numbers * (1 << 10))
     elif suffix == "mb" or suffix == "mib":
-        return size_numbers << 20
+        return int(size_numbers * (1 << 20))
     elif suffix == "gb" or suffix == "gib":
-        return size_numbers << 30
+        return int(size_numbers * (1 << 30))
     elif suffix == "tb" or suffix == "tib":
-        return size_numbers << 40
+        return int(size_numbers * (1 << 40))
     elif suffix == "pb" or suffix == "pib":
-        return size_numbers << 50
+        return int(size_numbers * (1 << 50))
     elif suffix == "eb" or suffix == "eib":
-        return size_numbers << 60
+        return int(size_numbers * (1 << 60))
     elif suffix == "zb" or suffix == "zib":
-        return size_numbers << 70
+        return int(size_numbers * (1 << 70))
     elif suffix == "yb" or suffix == "yib":
-        return size_numbers << 80
+        return int(size_numbers * (1 << 80))
     else:
         raise ValueError(
             f"You specified unidentifiable unit: {suffix}, "
@@ -978,22 +1001,24 @@ def insert_texts_after_placeholders(original_string, placeholders, new_texts, de
     if len(placeholders) != len(new_texts):
         raise ValueError("The number of placeholders and new_texts must be equal")
 
-    modified_string = original_string
+    # Each text goes after the next unused occurrence of its placeholder, so a
+    # repeated placeholder (e.g. one image token per image) gets one text each.
+    insert_positions = []
+    search_from = {}
     for placeholder, new_text in zip(placeholders, new_texts):
-        # Find the index of the next occurrence of the placeholder
-        index = modified_string.find(placeholder)
+        index = original_string.find(placeholder, search_from.get(placeholder, 0))
         if index == -1:
             raise ValueError(f"Placeholder '{placeholder}' not found in the string")
-        # Insert new_text at the found index position
-        modified_string = (
-            modified_string[: index + len(placeholder)]
-            + delimiter_in_insert_pos
-            + new_text
-            + delimiter_in_insert_pos
-            + modified_string[index + len(placeholder) :]
-        )
+        search_from[placeholder] = index + len(placeholder)
+        insert_positions.append((index + len(placeholder), new_text))
 
-    return modified_string
+    pieces = []
+    last = 0
+    for pos, new_text in sorted(insert_positions, key=lambda item: item[0]):
+        pieces += [original_string[last:pos], delimiter_in_insert_pos, new_text, delimiter_in_insert_pos]
+        last = pos
+    pieces.append(original_string[last:])
+    return "".join(pieces)
 
 
 def timecode_string_to_seconds(timecode: str):

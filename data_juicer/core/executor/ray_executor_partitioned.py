@@ -30,6 +30,10 @@ from data_juicer.core.data.dataset_builder import (
     deprecated_load_data_np_kwargs,
 )
 from data_juicer.core.data.ray_dataset import RayDataset
+from data_juicer.core.elasticjuicer.stage_identity import (
+    assign_stage_identities,
+    stamped_stage_identity,
+)
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin, EventType
@@ -822,7 +826,36 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         """
         # Use TempDirManager to ensure cleanup of temporary files
         with TempDirManager(self.tmp_dir):
-            return self._run_impl(load_data_np, skip_return)
+            try:
+                return self._run_impl(load_data_np, skip_return)
+            finally:
+                session = getattr(self, "_stage_profile_session", None)
+                if session is not None:
+                    try:
+                        self.cfg._resolved_stage_profile_summary = session.finish()
+                    except Exception as error:
+                        logger.warning(f"StageProfile finalization failed: {type(error).__name__}")
+                        self.cfg._resolved_stage_profile_summary = None
+                    finally:
+                        self.cfg._stage_profile_session = None
+                        self._stage_profile_session = None
+
+    def _start_stage_profiles(self, ops):
+        if not self.cfg.get("elastic_juicer_profile_seed", False):
+            return
+        if not self.cfg.get("elastic_juicer_adaptive_batching", False):
+            raise ValueError("elastic_juicer_profile_seed requires elastic_juicer_adaptive_batching=true")
+        from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
+            adaptive_batching_enabled,
+        )
+        from data_juicer.core.elasticjuicer.stage_profile import StageProfileSession
+
+        if not any(adaptive_batching_enabled(op, True) for op in ops):
+            return
+        session = StageProfileSession(self.cfg._resolved_stage_identities, self.work_dir)
+        if session.start():
+            self._stage_profile_session = session
+            self.cfg._stage_profile_session = session
 
     def _run_impl(self, load_data_np: Optional[PositiveInt] = None, skip_return=False):
         """
@@ -955,6 +988,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # Initialize DAG execution planning with final partition count
         # Pass ops to avoid redundant loading
         self._initialize_dag_execution(self.cfg, ops=ops)
+        self._start_stage_profiles(ops)
 
         # Log job start with DAG context
         # Handle both dataset_path (string) and dataset (dict) configurations
@@ -1679,6 +1713,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 profiled_stages.append(
                     {
                         "name": getattr(op, "_name", type(op).__name__),
+                        "stage_id": stamped_stage_identity(op),
                         "actors": count,
                         "steady_rows_per_second": throughput,
                         "source_input_ratio": max(source_ratio, 1e-9),
@@ -2327,6 +2362,15 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
     def _prepare_operators(self):
         """Prepare process operators."""
         ops = load_ops(self.cfg.process)
+        if getattr(self.cfg, "elastic_juicer_adaptive_batching", False):
+            from data_juicer.core.elasticjuicer.ray_adaptive_mapper import (
+                adaptive_batching_enabled,
+            )
+
+            if getattr(self.cfg, "op_fusion", False):
+                raise ValueError("elastic_juicer_adaptive_batching currently requires op_fusion=false")
+            for op in ops:
+                adaptive_batching_enabled(op, True)
 
         # Check for op_fusion configuration with safe attribute access
         if hasattr(self.cfg, "op_fusion") and self.cfg.op_fusion:
@@ -2337,6 +2381,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
             )
 
+        self.cfg._resolved_stage_identities = assign_stage_identities(ops)
         return ops
 
     def _override_strategy_methods(self):

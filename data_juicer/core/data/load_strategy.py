@@ -352,6 +352,22 @@ class DefaultLocalDataLoadStrategy(DefaultDataLoadStrategy):
         return formatter.load_dataset(load_data_np, self.cfg)
 
 
+def validate_limit(limit: Optional[int]) -> None:
+    """
+    Validate that a dataset row limit is a non-negative integer.
+
+    Args:
+        limit: Maximum number of rows to keep, or None for no limit
+
+    Raises:
+        ValueError: If limit is not a non-negative integer
+    """
+    if limit is None:
+        return
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+        raise ValueError(f"limit must be a non-negative integer, got {limit!r}")
+
+
 @DataLoadStrategyRegistry.register("default", "remote", "huggingface")
 class DefaultHuggingfaceDataLoadStrategy(DefaultDataLoadStrategy):
     """
@@ -362,8 +378,21 @@ class DefaultHuggingfaceDataLoadStrategy(DefaultDataLoadStrategy):
         "required_fields": ["path"],
         "optional_fields": ["split", "limit", "name", "data_files", "data_dir"],
         "field_types": {"path": str},
-        "custom_validators": {},
+        "custom_validators": {"limit": validate_limit},
     }
+
+    @staticmethod
+    def _apply_limit(ds, limit):
+        """
+        Keep at most ``limit`` rows of a loaded dataset (per split for dataset dicts).
+        """
+        if isinstance(ds, datasets.DatasetDict):
+            return datasets.DatasetDict({k: v.select(range(min(limit, len(v)))) for k, v in ds.items()})
+        if isinstance(ds, datasets.IterableDatasetDict):
+            return datasets.IterableDatasetDict({k: v.take(limit) for k, v in ds.items()})
+        if isinstance(ds, datasets.IterableDataset):
+            return ds.take(limit)
+        return ds.select(range(min(limit, len(ds))))
 
     def load_data(self, **kwargs):
         num_proc = kwargs.pop("num_proc", 1)
@@ -373,10 +402,12 @@ class DefaultHuggingfaceDataLoadStrategy(DefaultDataLoadStrategy):
             data_files=self.ds_config.get("data_files", None),
             data_dir=self.ds_config.get("data_dir", None),
             name=self.ds_config.get("name", None),
-            limit=self.ds_config.get("limit", None),
             num_proc=num_proc,
             **kwargs,
         )
+        limit = self.ds_config.get("limit", None)
+        if limit is not None:
+            ds = self._apply_limit(ds, limit)
         return unify_format(ds, text_keys=self.cfg.text_keys, num_proc=num_proc, global_cfg=self.cfg)
 
 

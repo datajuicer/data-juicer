@@ -14,7 +14,7 @@ from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import prepare_sentencepiece_model
 
 from ..base_op import OPERATORS, Deduplicator
-from .document_minhash_deduplicator import MAX_HASH, optimal_param
+from .document_minhash_deduplicator import MAX_HASH, check_band_params, optimal_param
 
 ray = LazyLoader("ray")
 
@@ -515,6 +515,7 @@ class RayBTSMinhashCppDeduplicator(Deduplicator):
                 self.jaccard_threshold,
                 self.num_permutation,
             )
+        check_band_params(self.num_bands, self.num_rows_per_band, self.num_permutation)
 
         cpu_num = int(ray.cluster_resources().get("CPU"))
         if union_find_parallel_num == "auto":

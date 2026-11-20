@@ -167,6 +167,31 @@ class GeneralFieldFilterTest(DataJuicerTestCaseBase):
         op = GeneralFieldFilter(filter_condition="(num < 10 or num > 20) and flag == True and text!='sample3'")
         self._run_general_field_filter(dataset, op, target_list)
 
+    def test_negative_number_literal(self):
+        # A negative literal like "-0.5" is parsed by `ast` as a UnaryOp
+        # (USub) wrapping a positive Constant, not as a negative Constant.
+        # Filter conditions comparing against a negative threshold (common
+        # for signed stats such as sentiment/score deltas) must not crash.
+        ds_list = [
+            {'text': 'sample1', 'score': -1.0},
+            {'text': 'sample2', 'score': -0.2},
+            {'text': 'sample3', 'score': 0.5},
+        ]
+        target_list = [{'text': 'sample2'}, {'text': 'sample3'}]
+        dataset = Dataset.from_list(ds_list)
+        op = GeneralFieldFilter(filter_condition="score > -0.5")
+        self._run_general_field_filter(dataset, op, target_list)
+
+    def test_unary_not_and_plus(self):
+        ds_list = [
+            {'text': 'sample1', 'num': 3, 'flag': True},
+            {'text': 'sample2', 'num': 3, 'flag': False},
+        ]
+        target_list = [{'text': 'sample2'}]
+        dataset = Dataset.from_list(ds_list)
+        op = GeneralFieldFilter(filter_condition="not flag and num == +3")
+        self._run_general_field_filter(dataset, op, target_list)
+
 
 if __name__ == '__main__':
     unittest.main()

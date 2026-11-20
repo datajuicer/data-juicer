@@ -548,6 +548,39 @@ class FrequencySpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
                                              reverse=False)
         self._run_frequency_selector(dataset, tgt_list, op)
 
+    def test_top_ratio_and_topk_options(self):
+        # three distinct values: en (3 rows), zh (2 rows), fr (1 row)
+        dataset = Dataset.from_list([{
+            'text': str(i),
+            'lang': lang
+        } for i, lang in enumerate(['en', 'en', 'en', 'zh', 'zh', 'fr'])])
+        for kwargs, expected_rows in [
+            ({}, 6),
+            ({'topk': 1}, 3),
+            ({'top_ratio': 0.7}, 5),
+            ({'top_ratio': 0.7, 'topk': 1}, 3),
+            ({'top_ratio': 0.0}, 0),
+            ({'top_ratio': 0.0, 'topk': 1}, 0),
+            ({'top_ratio': 0.1}, 0),
+        ]:
+            with self.subTest(**kwargs):
+                op = FrequencySpecifiedFieldSelector(field_key='lang', **kwargs)
+                result = op.process(dataset)
+                self.assertEqual(len(result), expected_rows)
+                self.assertEqual(result.features, dataset.features)
+
+    def test_single_row_and_empty_datasets_are_returned_unchanged(self):
+        # Like the other selectors, datasets with at most one row skip selection.
+        single = Dataset.from_list([{'text': 'a', 'lang': 'en'}])
+        empty = Dataset.from_dict({'text': [], 'lang': []})
+        for dataset in [single, empty]:
+            for kwargs in [{'top_ratio': 0.0}, {'top_ratio': 0.0, 'topk': 1}, {'topk': 1}]:
+                with self.subTest(rows=len(dataset), **kwargs):
+                    op = FrequencySpecifiedFieldSelector(field_key='lang', **kwargs)
+                    result = op.process(dataset)
+                    self.assertEqual(result.to_list(), dataset.to_list())
+                    self.assertEqual(result.features, dataset.features)
+
 
 if __name__ == '__main__':
     unittest.main()

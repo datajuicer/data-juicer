@@ -19,6 +19,7 @@ from ..common.helper_func import split_on_whitespace
 from .document_minhash_deduplicator import (
     MAX_HASH,
     MERSENNE_PRIME,
+    check_band_params,
     optimal_param,
     sha1_hash32,
 )
@@ -26,6 +27,180 @@ from .document_minhash_deduplicator import (
 ray = LazyLoader("ray")
 
 BATCH_SIZE = 1000
+UID_DTYPE = np.dtype(np.int64)
+EDGE_DTYPE = np.dtype([("u", UID_DTYPE), ("v", UID_DTYPE)])
+_OBJECT_EDGE_DTYPE = np.dtype([("u", object), ("v", object)])
+HASH_PAIR_BLOCK_BYTES = 8 << 20
+HASH_BOUNDARY_CHUNK_ROWS = 1 << 20
+
+# Keep in sync with document_minhash_deduplicator._MINHASH_PERMUTATION_BLOCK_BYTES.
+_MINHASH_PERMUTATION_BLOCK_BYTES = 8 * 1024 * 1024
+
+
+def _minhash_values_from_tokens(tokens, perm_a, perm_b, num_permutation, block_bytes=_MINHASH_PERMUTATION_BLOCK_BYTES):
+    """Compute MinHash minima without materializing the full N x P matrix.
+
+    The permutation matrix is the dominant transient allocation for a long
+    document. Fold it in bounded blocks; uint32 min is associative and
+    commutative, so applying the same truncation before the minimum gives
+    element-wise identical results to the full-matrix implementation.
+    """
+    hv = np.fromiter((sha1_hash32(token) for token in tokens), dtype=np.uint64, count=len(tokens))
+    if len(hv) == 0:
+        return np.full(num_permutation, MAX_HASH, dtype=np.uint32)
+    bytes_per_token = num_permutation * np.dtype(np.uint64).itemsize
+    tokens_per_block = max(1, block_bytes // bytes_per_token)
+    hash_values = None
+    for start in range(0, len(hv), tokens_per_block):
+        block = hv[start : start + tokens_per_block]
+        phv = ((block[:, None] * perm_a[None, :] + perm_b) % MERSENNE_PRIME).astype(np.uint32)
+        block_min = phv.min(axis=0)
+        if hash_values is None:
+            hash_values = block_min
+        else:
+            np.minimum(hash_values, block_min, out=hash_values)
+    return hash_values
+
+
+def _empty_edge_array():
+    return np.empty(0, dtype=EDGE_DTYPE)
+
+
+def _parent_to_arrays(parent):
+    """Convert a parent mapping to compact, order-aligned UID arrays."""
+    size = len(parent)
+    try:
+        uids = np.fromiter(parent.keys(), dtype=UID_DTYPE, count=size)
+        parents = np.fromiter(parent.values(), dtype=UID_DTYPE, count=size)
+    except OverflowError:
+        uids = np.fromiter(parent.keys(), dtype=object, count=size)
+        parents = np.fromiter(parent.values(), dtype=object, count=size)
+    return uids, parents
+
+
+def _group_edges_by_destination(uids, parents, parallel_num):
+    """Pack edges into one array grouped by their destination actor.
+
+    Every edge is sent to the actor owning its source UID and, when the two
+    endpoints have different owners, to the actor owning its parent UID too.
+    The returned offsets delimit the slice for each destination.
+    """
+    if parallel_num <= 0:
+        raise ValueError("parallel_num must be positive")
+    if len(uids) != len(parents):
+        raise ValueError("uids and parents must have the same length")
+    if len(uids) == 0:
+        return _empty_edge_array(), np.zeros(parallel_num + 1, dtype=np.int64)
+
+    use_object_edges = uids.dtype.hasobject or parents.dtype.hasobject
+    if use_object_edges:
+        hash_u = np.fromiter((int(uid) // BATCH_SIZE % parallel_num for uid in uids), dtype=np.intp, count=len(uids))
+        hash_v = np.fromiter(
+            (int(parent) // BATCH_SIZE % parallel_num for parent in parents), dtype=np.intp, count=len(parents)
+        )
+    else:
+        hash_u = (uids // BATCH_SIZE) % parallel_num
+        hash_v = (parents // BATCH_SIZE) % parallel_num
+    cross_partition = hash_u != hash_v
+    cross_count = int(np.count_nonzero(cross_partition))
+
+    size = len(uids) + cross_count
+    destination_dtype = np.min_scalar_type(parallel_num - 1)
+    destinations = np.empty(size, dtype=destination_dtype)
+    destinations[: len(uids)] = hash_u
+    edge_dtype = _OBJECT_EDGE_DTYPE if use_object_edges else EDGE_DTYPE
+    unsorted_edges = np.empty(size, dtype=edge_dtype)
+    unsorted_edges["u"][: len(uids)] = uids
+    unsorted_edges["v"][: len(uids)] = parents
+    if cross_count:
+        destinations[len(uids) :] = hash_v[cross_partition]
+        unsorted_edges["u"][len(uids) :] = uids[cross_partition]
+        unsorted_edges["v"][len(uids) :] = parents[cross_partition]
+    del hash_u, hash_v, cross_partition
+
+    # Union always chooses the smaller root, so the order within a destination
+    # does not affect the resulting connected components.
+    counts = np.bincount(destinations, minlength=parallel_num)
+    offsets = np.empty(parallel_num + 1, dtype=np.int64)
+    offsets[0] = 0
+    np.cumsum(counts, out=offsets[1:])
+    del counts
+
+    order = np.argsort(destinations)
+    del destinations
+    edges = np.empty(size, dtype=edge_dtype)
+    np.take(unsorted_edges["u"], order, out=edges["u"])
+    np.take(unsorted_edges["v"], order, out=edges["v"])
+    return edges, offsets
+
+
+def _union_edges(union_find, edges, chunk_size=1 << 18):
+    """Union compact edges without materializing all Python integers at once."""
+    for start in range(0, len(edges), chunk_size):
+        end = min(start + chunk_size, len(edges))
+        for u, v in zip(edges["u"][start:end].tolist(), edges["v"][start:end].tolist()):
+            union_find.union(u, v)
+
+
+def _hash_pair_dtype(key_size, uid_dtype=UID_DTYPE):
+    """Return a packed dtype that preserves the complete fixed-width key."""
+    if key_size <= 0:
+        raise ValueError("MinHash keys must not be empty")
+    return np.dtype([("key", f"S{key_size}"), ("uid", uid_dtype)])
+
+
+def _union_uid_run(union_find, uids):
+    """Union one equal-key run in chunks of at most the union threshold."""
+    if len(uids) == 1:
+        return int(uids[0])
+    if len(uids) == 0:
+        return None
+
+    if union_find.union_threshold is None:
+        chunk_size = 1 << 18
+    else:
+        chunk_size = max(2, union_find.union_threshold + 1)
+
+    union_list = union_find.union_list
+    current = uids.tolist()
+    while len(current) > chunk_size:
+        chunks = (current[start : start + chunk_size] for start in range(0, len(current), chunk_size))
+        current = [union_list(chunk) if len(chunk) > 1 else chunk[0] for chunk in chunks]
+    return union_list(current)
+
+
+def _compact_hash_pair_block(union_find, pairs, fingerprints):
+    """Reduce repeated keys in a full block to one exact-key representative."""
+    if len(pairs) < 2:
+        return pairs
+    # Python byte hashes are only a cheap duplicate-presence filter here. A
+    # collision merely triggers the exact-key path below and cannot merge keys.
+    if len(np.unique(fingerprints)) == len(pairs):
+        return pairs
+
+    # Sort by key only: union_list roots every run at its minimum UID, so the
+    # UID order inside an equal-key run does not change the result.
+    pairs = pairs[np.argsort(pairs["key"], kind="stable")]
+    boundaries = np.flatnonzero(pairs["key"][1:] != pairs["key"][:-1]) + 1
+    if len(boundaries) == len(pairs) - 1:
+        return pairs
+
+    run_starts = np.empty(len(boundaries) + 1, dtype=np.int64)
+    run_starts[0] = 0
+    run_starts[1:] = boundaries
+    run_ends = np.empty_like(run_starts)
+    run_ends[:-1] = boundaries
+    run_ends[-1] = len(pairs)
+    repeated = run_ends - run_starts > 1
+    for start, end in zip(run_starts[repeated], run_ends[repeated]):
+        start = int(start)
+        end = int(end)
+        representative = _union_uid_run(union_find, pairs["uid"][start:end])
+        pairs["uid"][start] = representative
+        if union_find.union_threshold is not None and end - start > union_find.union_threshold:
+            key = pairs["key"][start : start + 1].tobytes()
+            union_find.hot_key_roots[key] = representative
+    return pairs[run_starts]
 
 
 class IdGenerator:
@@ -42,16 +217,31 @@ class IdGenerator:
 class EdgeBuffer:
 
     def __init__(self):
-        self.edge_dict = {}
+        self.clear()
 
     def clear(self):
-        self.edge_dict = {}
+        self.edges = _empty_edge_array()
+        self.offsets = np.zeros(1, dtype=np.int64)
+        self.consumed = np.empty(0, dtype=np.bool_)
+        self.remaining = 0
 
-    def set_edges(self, edge_dict):
-        self.edge_dict = edge_dict
+    def set_edges(self, edges, offsets):
+        self.edges = edges
+        self.offsets = offsets
+        self.consumed = np.zeros(len(offsets) - 1, dtype=np.bool_)
+        self.remaining = len(self.consumed)
 
     def get_edges(self, key):
-        return self.edge_dict.pop(key, [])
+        if key < 0 or key >= len(self.consumed) or self.consumed[key]:
+            return _empty_edge_array()
+
+        self.consumed[key] = True
+        self.remaining -= 1
+        start, end = self.offsets[key : key + 2]
+        result = self.edges[start:end]
+        if self.remaining == 0:
+            self.clear()
+        return result
 
 
 class BTSUnionFind:
@@ -74,100 +264,216 @@ class BTSUnionFind:
         self.union_threshold = union_threshold
         self.parallel_num = parallel_num
         self.parallel_id = parallel_id
-        self.hash_table = {}
+        self.hash_pair_dtype = None
+        self.hash_pair_block_rows = 0
+        self.hash_pair_blocks = []
+        self.hash_pair_current = None
+        self.hash_pair_current_size = 0
+        self.hash_pair_current_fingerprints = None
+        self.hot_key_roots = {}
         self.parent = {}
         self.old_parent = {}
         self.remote_edge_buffers = remote_edge_buffers
-        self.edge_buffer = []
-        self.edge_list_dict = {}
         self.max_pending_edge_buffer_task = max_pending_edge_buffer_task
         self.num_edge_buffer_task_returns = num_edge_buffer_task_returns
 
     def add_key_value_pairs(self, pairs):
-        for key, value in pairs:
-            if key not in self.hash_table:
-                self.hash_table[key] = []
-            self.hash_table[key].append(value)
-            if len(self.hash_table[key]) > self.union_threshold:
-                self.hash_table[key] = [self.union_list(self.hash_table[key])]
+        if not pairs:
+            return
+
+        keys = [pair[0] for pair in pairs]
+        if not all(issubclass(key_type, bytes) for key_type in set(map(type, keys))):
+            raise TypeError("MinHash keys must be bytes")
+        key_size = len(keys[0])
+        if len(set(map(len, keys))) > 1:
+            raise ValueError("MinHash keys must have a fixed width")
+
+        pair_dtype = _hash_pair_dtype(key_size)
+        if self.hash_pair_dtype is None:
+            self.hash_pair_dtype = pair_dtype
+            self.hash_pair_block_rows = max(1, HASH_PAIR_BLOCK_BYTES // pair_dtype.itemsize)
+        elif key_size != self.hash_pair_dtype["key"].itemsize:
+            raise ValueError("MinHash key width changed within one union-find actor")
+
+        uid_dtype = self.hash_pair_dtype["uid"]
+        uid_values = (int(pair[1]) for pair in pairs) if uid_dtype.hasobject else (pair[1] for pair in pairs)
+        try:
+            uid_array = np.fromiter(uid_values, dtype=uid_dtype, count=len(pairs))
+        except OverflowError:
+            self._promote_hash_pair_uids()
+            uid_array = np.fromiter((int(pair[1]) for pair in pairs), dtype=object, count=len(pairs))
+
+        uid_dtype = self.hash_pair_dtype["uid"]
+
+        first_key = keys[0]
+        if first_key in self.hot_key_roots and keys.count(first_key) == len(keys):
+            values = np.empty(len(uid_array) + 1, dtype=uid_dtype)
+            values[0] = self.hot_key_roots[first_key]
+            values[1:] = uid_array
+            self.hot_key_roots[first_key] = _union_uid_run(self, values)
+            return
+
+        if self.hot_key_roots:
+            hot_values = {}
+            cold_keys = []
+            cold_uids = []
+            for key, uid in zip(keys, uid_array.tolist()):
+                if key in self.hot_key_roots:
+                    if key not in hot_values:
+                        hot_values[key] = [self.hot_key_roots[key]]
+                    hot_values[key].append(uid)
+                else:
+                    cold_keys.append(key)
+                    cold_uids.append(uid)
+            for key, values in hot_values.items():
+                self.hot_key_roots[key] = _union_uid_run(self, np.asarray(values, dtype=uid_dtype))
+            if not cold_keys:
+                return
+            uid_array = np.asarray(cold_uids, dtype=uid_dtype)
+        else:
+            cold_keys = keys
+
+        key_array = np.frombuffer(b"".join(cold_keys), dtype=f"S{key_size}")
+        fingerprints = np.fromiter(map(hash, cold_keys), dtype=UID_DTYPE, count=len(cold_keys))
+        pair_count = len(cold_keys)
+        offset = 0
+        while offset < pair_count:
+            if self.hash_pair_current is None:
+                self.hash_pair_current = np.empty(self.hash_pair_block_rows, dtype=self.hash_pair_dtype)
+                self.hash_pair_current_fingerprints = np.empty(self.hash_pair_block_rows, dtype=UID_DTYPE)
+                self.hash_pair_current_size = 0
+            count = min(self.hash_pair_block_rows - self.hash_pair_current_size, pair_count - offset)
+            destination = slice(self.hash_pair_current_size, self.hash_pair_current_size + count)
+            self.hash_pair_current["key"][destination] = key_array[offset : offset + count]
+            self.hash_pair_current["uid"][destination] = uid_array[offset : offset + count]
+            self.hash_pair_current_fingerprints[destination] = fingerprints[offset : offset + count]
+            self.hash_pair_current_size += count
+            offset += count
+            if self.hash_pair_current_size == self.hash_pair_block_rows:
+                self.hash_pair_blocks.append(
+                    _compact_hash_pair_block(self, self.hash_pair_current, self.hash_pair_current_fingerprints)
+                )
+                self.hash_pair_current = None
+                self.hash_pair_current_fingerprints = None
+                self.hash_pair_current_size = 0
+
+    def _promote_hash_pair_uids(self):
+        """Keep arbitrary Python integer UIDs exact, promoting only on overflow.
+
+        Completed int64 blocks stay compact until flush copies them into the
+        promoted destination. The fallback keeps the fixed-width key and
+        stores Python integers in the UID field; its block byte budget does
+        not include the referenced Python integer objects.
+        """
+        self.hash_pair_dtype = _hash_pair_dtype(self.hash_pair_dtype["key"].itemsize, object)
+        if self.hash_pair_current is not None:
+            current = np.empty(self.hash_pair_block_rows, dtype=self.hash_pair_dtype)
+            size = self.hash_pair_current_size
+            current[:size] = self.hash_pair_current[:size]
+            self.hash_pair_current = current
 
     def flush_key_value_pairs(self):
-        for value in self.hash_table.values():
-            if len(value) > 1:
-                self.union_list(value)
-        self.hash_table = {}
+        if self.hash_pair_current_size:
+            self.hash_pair_blocks.append(self.hash_pair_current[: self.hash_pair_current_size])
+        self.hash_pair_current = None
+        self.hash_pair_current_fingerprints = None
+        self.hash_pair_current_size = 0
+
+        total = sum(len(block) for block in self.hash_pair_blocks)
+        if total == 0:
+            return
+
+        # Copy and release one source block at a time instead of retaining all
+        # source blocks until the destination has been populated.
+        pairs = np.empty(total, dtype=self.hash_pair_dtype)
+        offset = 0
+        while self.hash_pair_blocks:
+            block = self.hash_pair_blocks.pop()
+            pairs[offset : offset + len(block)] = block
+            offset += len(block)
+            del block
+
+        pairs.sort(order="key")
+        keys = pairs["key"]
+        uids = pairs["uid"]
+        run_start = 0
+        for start in range(1, total, HASH_BOUNDARY_CHUNK_ROWS):
+            end = min(start + HASH_BOUNDARY_CHUNK_ROWS, total)
+            boundaries = np.flatnonzero(keys[start:end] != keys[start - 1 : end - 1]) + start
+            if len(boundaries):
+                run_starts = np.empty_like(boundaries)
+                run_starts[0] = run_start
+                run_starts[1:] = boundaries[:-1]
+                repeated = boundaries - run_starts > 1
+                for repeated_start, boundary in zip(run_starts[repeated], boundaries[repeated]):
+                    _union_uid_run(self, uids[int(repeated_start) : int(boundary)])
+                run_start = int(boundaries[-1])
+        _union_uid_run(self, uids[run_start:total])
 
     def balanced_union_find(self):
-        for x, y in self.edge_buffer:
-            self.union(x, y)
-        self.edge_buffer = []
         result_refs = []
         for remote_edge_buffer in self.remote_edge_buffers:
             if len(result_refs) > self.max_pending_edge_buffer_task:
                 ready_refs, result_refs = ray.wait(result_refs, num_returns=self.num_edge_buffer_task_returns)
-                edge_list = ray.get(ready_refs)
-                for edges in edge_list:
-                    for x, y in edges:
-                        self.union(x, y)
+                for edges in ray.get(ready_refs):
+                    _union_edges(self, edges)
                 del ready_refs
             result_refs.append(remote_edge_buffer.get_edges.remote(self.parallel_id))
-        edge_list = ray.get(result_refs)
-        for edges in edge_list:
-            for x, y in edges:
-                self.union(x, y)
-        del edge_list, result_refs
+        for edges in ray.get(result_refs):
+            _union_edges(self, edges)
+        del result_refs
         self.rebalancing()
         return self.old_parent != self.parent
 
-    def distribute_edge(self, u, v):
-        hash_u = u // BATCH_SIZE % self.parallel_num
-        hash_v = v // BATCH_SIZE % self.parallel_num
-        if hash_u not in self.edge_list_dict:
-            self.edge_list_dict[hash_u] = []
-        self.edge_list_dict[hash_u].append((u, v))
-        if hash_u != hash_v:
-            if hash_v not in self.edge_list_dict:
-                self.edge_list_dict[hash_v] = []
-            self.edge_list_dict[hash_v].append((u, v))
-
-    def set_edge_buffer(self):
-        if self.parallel_id in self.edge_list_dict:
-            self.edge_buffer = self.edge_list_dict[self.parallel_id]
-            del self.edge_list_dict[self.parallel_id]
-        else:
-            self.edge_buffer = []
-        ray.get(self.remote_edge_buffers[self.parallel_id].set_edges.remote(self.edge_list_dict))
-        self.edge_list_dict = {}
+    def set_edge_buffer(self, uids, parents):
+        edges, offsets = _group_edges_by_destination(uids, parents, self.parallel_num)
+        ray.get(self.remote_edge_buffers[self.parallel_id].set_edges.remote(edges, offsets))
 
     def edge_redistribution(self):
         self.flush_key_value_pairs()
         self.rebalancing()
-        self.edge_list_dict = {}
-        for u, v in self.parent.items():
-            self.distribute_edge(u, v)
+        uids, parents = _parent_to_arrays(self.parent)
         self.parent = {}
-        self.set_edge_buffer()
+        self.set_edge_buffer(uids, parents)
 
     def communication(self):
-        self.edge_list_dict = {}
-        del_list = []
+        try:
+            edge_uids, edge_parents, deleted_uids = self._collect_communication_edges(UID_DTYPE)
+        except OverflowError:
+            edge_uids, edge_parents, deleted_uids = self._collect_communication_edges(object)
+        self.old_parent = self.parent.copy()
+        for u in deleted_uids:
+            del self.parent[int(u)]
+        self.set_edge_buffer(edge_uids, edge_parents)
+
+    def _collect_communication_edges(self, dtype):
+        edge_uids = np.empty(len(self.parent), dtype=dtype)
+        edge_parents = np.empty(len(self.parent), dtype=dtype)
+        deleted_uids = np.empty(len(self.parent), dtype=dtype)
+        edge_count = 0
+        deleted_count = 0
         for u, v in self.parent.items():
             hash_u = u // BATCH_SIZE % self.parallel_num
-            if self.parent[u] != self.old_parent.get(u, u) or (hash_u != self.parallel_id and v not in self.parent):
-                self.distribute_edge(u, v)
+            if v != self.old_parent.get(u, u) or (hash_u != self.parallel_id and v not in self.parent):
+                edge_uids[edge_count] = u
+                edge_parents[edge_count] = v
+                edge_count += 1
             if hash_u != self.parallel_id:
-                del_list.append(u)
-        self.old_parent = self.parent.copy()
-        for u in del_list:
-            del self.parent[u]
-        self.set_edge_buffer()
+                deleted_uids[deleted_count] = u
+                deleted_count += 1
+        return edge_uids[:edge_count], edge_parents[:edge_count], deleted_uids[:deleted_count]
 
     def find(self, x):
-        if x not in self.parent:
-            return x
-        else:
-            self.parent[x] = self.find(self.parent[x])
-            return self.parent[x]
+        parent = self.parent
+        root = x
+        while root in parent:
+            root = parent[root]
+
+        while x in parent:
+            next_x = parent[x]
+            parent[x] = root
+            x = next_x
+        return root
 
     def union(self, x, y):
         px = self.find(x)
@@ -179,11 +485,13 @@ class BTSUnionFind:
         self.parent[py] = px
 
     def union_list(self, x_list):
-        px_list = [self.find(x) for x in x_list]
+        parent = self.parent
+        find = self.find
+        px_list = [find(x) if x in parent else x for x in x_list]
         p = min(px_list)
         for px in px_list:
             if p != px:
-                self.parent[px] = p
+                parent[px] = p
         return p
 
     def rebalancing(self):
@@ -217,7 +525,6 @@ class BTSUnionFind:
         dup_keys = {x for x in self.parent if x // BATCH_SIZE % self.parallel_num == self.parallel_id}
         self.parent = dup_keys
         self.old_parent = {}
-        self.edge_buffer = []
         ray.get(self.remote_edge_buffers[self.parallel_id].clear.remote())
 
     def dup_idx(self, queries):
@@ -478,6 +785,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
                 self.jaccard_threshold,
                 self.num_permutation,
             )
+        check_band_params(self.num_bands, self.num_rows_per_band, self.num_permutation)
 
         # compute hash ranges and create hash tables
         self.hash_ranges = [
@@ -603,9 +911,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
 
             tokens = self.tokenization_func(text)
             if len(tokens) > 0:
-                hv = np.array([sha1_hash32(token) for token in tokens], dtype=np.uint64)
-                phv = ((hv[:, None] * self.perm_a[None, :] + self.perm_b) % MERSENNE_PRIME).astype(np.uint32)
-                hash_values = phv.min(axis=0)
+                hash_values = _minhash_values_from_tokens(tokens, self.perm_a, self.perm_b, self.num_permutation)
                 for i, (start, end) in enumerate(self.hash_ranges):
                     hash_value = i.to_bytes(4, "big") + hash_values[start:end].tobytes()
                     hash_table_id = hash_values[start] % self.union_find_parallel_num

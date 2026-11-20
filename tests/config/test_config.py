@@ -97,7 +97,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 }, 'nested dict load fail, for nonparametric op')
             self.assertDictEqual(
@@ -135,7 +136,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 }, 'nested dict load fail, un-expected internal value')
 
@@ -224,7 +226,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -264,7 +267,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -304,7 +308,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -344,7 +349,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -384,7 +390,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
 

@@ -66,6 +66,15 @@ class RandomSampleTest(DataJuicerTestCaseBase):
         # ceil(10 * 0.15) = ceil(1.5) = 2
         self.assertEqual(len(result), 2)
 
+    def test_matches_shuffle_selection_for_same_seed(self):
+        """The fast path must keep the rows `shuffle(seed).select()` returns."""
+        ds = self._make_dataset(10)
+        for sample_number in (3, 7):
+            for seed in (0, 1, 123):
+                result = random_sample(ds, sample_number=sample_number, seed=seed)
+                expected = ds.shuffle(seed=seed).select(range(sample_number))
+                self.assertEqual(result["text"], expected["text"])
+
 
 if __name__ == "__main__":
     unittest.main()

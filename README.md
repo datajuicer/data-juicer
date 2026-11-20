@@ -89,6 +89,25 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
+<summary>[2026-11-03] Release v1.6.2: <b>Selector & Filter Boundary Fixes; Broader PII Redaction; Faster Dedup & Field Selectors</b></summary>
+
+* 🎯 *Boundary-Correct Selectors & Filters* — explicit `top_ratio: 0` and zero-row random selections now keep zero rows; single-sided `range_specified_field_selector` bounds apply instead of returning the whole dataset; `topk_specified_field_selector` ranks top-level numeric strings numerically and tolerates `None`; `specified_numeric_field_filter` keeps `0` and `0.0`; `suffix_filter` normalizes `txt`, `.TXT` and `.txt` alike.
+* 🛡️ *Broader PII Redaction* — `pii_redaction_mapper` also redacts JWTs, international phone numbers, MAC addresses, Feishu/DingTalk open IDs and bracketed IPv6 addresses; CN phone and ID numbers and these tokens are caught when they sit directly next to CJK text; secret and ID values (`user_id: 42`, `{"user_id": "u-123"}`, `Authorization: Bearer ...`) are redacted whole while keeping the key, separator and quotes, full-width `：` is accepted, and values no longer run onto the next line unless it is indented. `clean_email_mapper` matches uppercase domains; `clean_ip_mapper` matches compressed IPv6 and IPv6-embedded IPv4 addresses.
+* ⚡ *Faster Dedup, Loading & Field Selectors* — exact, simhash, image and video deduplication compute kept rows from the hash columns instead of decoding every column; line dedup counts line hashes from the hash column; MinHash band collisions are unioned during the scan; `unify_format` skips the None-text filter when no text column has nulls; four field selectors read their column in 10,000-row batches.
+* 🔧 *Media, Loading & Job Fixes* — image OPs write results back as PNG bytes so chained image OPs can read them; video frame processing keeps the audio track; lenient JSONL keeps the BOM-prefixed first record and loads `.jsonl.gz`/`.jsonl.zst` shards whose suffixes are uppercase or mixed-case; inline LaTeX comments no longer consume the preceding character; `expand_macro_mapper` expands macros at the end of the text or directly followed by another macro; job progress reads metrics from completion-event metadata; `nltk` upgraded to 3.10.4 and GitPython to 3.2.1.
+</details>
+
+<details open>
+<summary>[2026-10-19] Release v1.6.1: <b>Throughput-Aware GPU Actor Planning; Adaptive GPU Microbatching; Leaner Ray MinHash Dedup</b></summary>
+
+* 🎛️ *Throughput-Aware GPU Actor Planning* — `ray_partitioned` runs a GPU preflight that measures each GPU operator's memory, steady-state throughput, and output ratio, then plans actor counts independently of the partition count. Partitions in one execution group share an actor pool to avoid repeated model loading. Enabled by default; set `partition.gpu_preflight_enabled: false` to keep explicitly configured GPU resources.
+* 🪄 *Adaptive GPU Microbatching (opt-in)* — With `elastic_juicer_adaptive_batching: true`, eligible CUDA mappers retry the same rows in smaller microbatches after an OOM and cautiously grow back once input pressure eases. `elastic_juicer_profile_seed: true` reuses compatible batch bounds across execution groups and replacement actors within one `ray_partitioned` run. Both are off by default.
+* 🧮 *Leaner Ray MinHash Dedup* — `ray_bts_minhash_deduplicator` keeps edge buffers and hash keys in packed NumPy arrays instead of Python objects, reducing memory overhead with unchanged configuration and results.
+* 🔧 *Operator Fixes* — `clean_html_mapper` works with selectolax 1.0; `remove_specific_chars_mapper` escapes regex characters and no longer strips `|`; `remove_header_mapper` now applies its default `drop_no_head=True` and clears texts without a LaTeX header; the entity-relation and support-text extractors honour `drop_text`; `general_field_filter` accepts negative numbers in conditions; local Hugging Face embeddings in `text_embd_similarity_filter` no longer mix the model's repr into the input text.
+* 🗂️ *Loading, Analysis & Tool Fixes* — The HuggingFace load strategy applies `limit` after loading; datasets allotted zero samples under `max_sample_num` are skipped; the lenient JSONL cache refreshes when source files change; overall analysis keeps stats columns whose first value is null; the visualization app no longer raises `KeyError` when no filter has tunable stats; the GPT evaluator excludes failed judge calls from averages and reports their count.
+</details>
+
+<details open>
 <summary>[2026-09-08] Release v1.6.0: <b>Juicer Model Release; Cluster-Aware Partitioning; Config Validation; LiteLLM Backend</b></summary>
 
 * 🧮 *Cluster-Aware Partitioning* — Automatic partition counts use live Ray cluster resources. Manual `partition.size` targets split data at row boundaries, including inputs with fewer blocks than partitions.
@@ -101,7 +120,7 @@ for s in res_ds:
 * 🔧 *Robustness Fixes* — Fixed fused-filter cache isolation, MinHash state reuse and empty inputs, deduplicator execution-mode declarations, empty text chunks, gzip JSONL HPO sampling, and pandas extension-dtype handling. HPO modules can now be imported without starting a sweep.
 </details>
 
-<details open>
+<details>
 <summary>[2026-08-25] Juicer Model Release: <b>Natural-Language Data Refinement; Local Deployment; Playground</b></summary>
 
 * 🧃 *Natural-Language Data Refinement* — [Juicer](docs/Juicer.md) follows natural-language instructions for text cleaning, filtering, and semantic labeling.
@@ -109,7 +128,7 @@ for s in res_ds:
 * 🧪 *Playground* — Try data-refinement recipes in the [Juicer Playground](https://github.com/datajuicer/data-juicer-hub/tree/main/juicer_playground).
 </details>
 
-<details open>
+<details>
 <summary>[2026-08-07] Release v1.5.5: <b>External OP Plugins; HDFS I/O & Ray Data Optimizations; Elastic Multi-node Sharding</b></summary>
 
 * 🧩 *External OP Plugins* — Third-party operators can now be shipped as standalone pip packages and auto-registered via Python entry points.

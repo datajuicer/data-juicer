@@ -222,6 +222,13 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
                 mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
             )
 
+        if getattr(self.cfg, "elastic_juicer_adaptive_batching", False):
+            from data_juicer.core.elasticjuicer.stage_identity import (
+                assign_stage_identities,
+            )
+
+            self.cfg._resolved_stage_identities = assign_stage_identities(ops)
+
         with TempDirManager(self.tmp_dir):
             # 3. data process with DAG monitoring
             logger.info("Processing data with DAG monitoring...")

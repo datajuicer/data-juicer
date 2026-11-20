@@ -1052,6 +1052,20 @@ class DocumentMinhashDeduplicatorRepeatedCallTest(DataJuicerTestCaseBase):
         self.assertEqual(len(result_b), 2,
                          "UID-based dedup must not carry state between process() calls")
 
+    def test_with_uid_descending_uids_keep_smallest(self):
+        # each sample has a smaller uid than the cluster root so far, which
+        # builds a parent chain as long as the dataset
+        num_samples = 1500
+        ds_list = [{
+            'text': 'the same document text repeated in every sample',
+            HashKeys.uid: num_samples - 1 - i,
+        } for i in range(num_samples)]
+        dataset = Dataset.from_list(ds_list)
+        op = DocumentMinhashDeduplicatorWithUid()
+        dataset = dataset.map(op.compute_hash)
+        result, _ = op.process(dataset)
+        self.assertEqual(result[HashKeys.uid][:], [0])
+
 
 class DocumentMinhashDeduplicatorEmptyInputTest(DataJuicerTestCaseBase):
     """Tests for samples whose text produces zero tokens.
@@ -1105,6 +1119,30 @@ class DocumentMinhashDeduplicatorEmptyInputTest(DataJuicerTestCaseBase):
         self.assertEqual(
             result.select_columns(column_names=['text']).to_list(),
             [{'text': ''}, {'text': 'hello world this is a normal sentence'}])
+
+
+class DocumentMinhashDeduplicatorBandParamTest(DataJuicerTestCaseBase):
+
+    def test_bands_exceeding_permutations_rejected(self):
+        # 30 bands x 10 rows needs 300 permutations: the bands past 256 are
+        # empty and equal for every sample, so all samples would be merged
+        with self.assertRaises(ValueError):
+            DocumentMinhashDeduplicator(
+                num_permutations=256, num_bands=30, num_rows_per_band=10)
+
+        # using every permutation exactly is still allowed
+        op = DocumentMinhashDeduplicator(
+            num_permutations=256, num_bands=32, num_rows_per_band=8)
+        self.assertEqual(op.hash_ranges[-1], (248, 256))
+
+    def test_only_one_band_param_rejected(self):
+        # a lone num_bands / num_rows_per_band used to be silently ignored
+        # and replaced by the optimal params computation
+        with self.assertRaises(ValueError):
+            DocumentMinhashDeduplicator(num_permutations=256, num_bands=8)
+        with self.assertRaises(ValueError):
+            DocumentMinhashDeduplicator(
+                num_permutations=256, num_rows_per_band=8)
 
 
 if __name__ == '__main__':

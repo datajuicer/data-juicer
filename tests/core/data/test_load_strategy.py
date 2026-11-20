@@ -384,6 +384,83 @@ class DataLoadStrategyRegistryTest(DataJuicerTestCaseBase):
 
         self.assertEqual(mock_load_dataset.call_args.kwargs.get("features"), extra_features)
 
+    @patch("data_juicer.core.data.load_strategy.datasets.load_dataset")
+    def test_huggingface_strategy_does_not_forward_limit(self, mock_load_dataset):
+        """``limit`` is not a ``datasets.load_dataset`` argument, so it must not be forwarded."""
+        from datasets import Dataset
+
+        DataLoadStrategyRegistry._strategies = {}
+
+        cfg = Namespace(text_keys=["text"])
+        mock_load_dataset.return_value = Dataset.from_dict({"text": ["a"]})
+
+        for ds_config in (
+            {"type": "huggingface", "path": "dummy/dataset"},
+            {"type": "huggingface", "path": "dummy/dataset", "limit": 2},
+        ):
+            strategy = DefaultHuggingfaceDataLoadStrategy(ds_config, cfg)
+            with patch("data_juicer.core.data.load_strategy.unify_format"):
+                strategy.load_data(num_proc=1)
+            self.assertNotIn("limit", mock_load_dataset.call_args.kwargs)
+
+    @patch("data_juicer.core.data.load_strategy.datasets.load_dataset")
+    def test_huggingface_strategy_limit_caps_rows(self, mock_load_dataset):
+        """``limit`` keeps only that many rows after loading."""
+        from datasets import Dataset
+
+        DataLoadStrategyRegistry._strategies = {}
+
+        cfg = Namespace(text_keys=["text"])
+        mock_load_dataset.return_value = Dataset.from_dict({"text": ["a", "b", "c"]})
+
+        for limit, expected in ((0, []), (2, ["a", "b"]), (10, ["a", "b", "c"])):
+            strategy = DefaultHuggingfaceDataLoadStrategy(
+                {"type": "huggingface", "path": "dummy/dataset", "limit": limit}, cfg
+            )
+            with patch("data_juicer.core.data.load_strategy.unify_format", side_effect=lambda ds, **kw: ds):
+                ds = strategy.load_data(num_proc=1)
+            self.assertEqual(ds["text"], expected)
+
+    @patch("data_juicer.core.data.load_strategy.datasets.load_dataset")
+    def test_huggingface_strategy_limit_caps_dataset_dict(self, mock_load_dataset):
+        """``limit`` is applied per split when no ``split`` is configured."""
+        from datasets import Dataset, DatasetDict
+
+        DataLoadStrategyRegistry._strategies = {}
+
+        cfg = Namespace(text_keys=["text"])
+        mock_load_dataset.return_value = DatasetDict(
+            {"train": Dataset.from_dict({"text": ["a", "b", "c"]}), "test": Dataset.from_dict({"text": ["d"]})}
+        )
+        strategy = DefaultHuggingfaceDataLoadStrategy({"type": "huggingface", "path": "dummy/dataset", "limit": 2}, cfg)
+        with patch("data_juicer.core.data.load_strategy.unify_format", side_effect=lambda ds, **kw: ds):
+            ds = strategy.load_data(num_proc=1)
+        self.assertEqual(ds["train"]["text"], ["a", "b"])
+        self.assertEqual(ds["test"]["text"], ["d"])
+
+    def test_huggingface_strategy_limit_validation(self):
+        from data_juicer.core.data.config_validator import ConfigValidationError
+
+        DataLoadStrategyRegistry._strategies = {}
+
+        cfg = Namespace(text_keys=["text"])
+        for limit in (-1, "10", True):
+            with self.assertRaises(ConfigValidationError):
+                DefaultHuggingfaceDataLoadStrategy(
+                    {"type": "huggingface", "path": "dummy/dataset", "limit": limit}, cfg
+                )
+        for limit in (0, None):
+            DefaultHuggingfaceDataLoadStrategy({"type": "huggingface", "path": "dummy/dataset", "limit": limit}, cfg)
+
+    def test_huggingface_strategy_limit_caps_iterable(self):
+        """``limit`` also applies to streaming datasets and dataset dicts."""
+        from datasets import Dataset, IterableDatasetDict
+
+        it = Dataset.from_dict({"text": ["a", "b", "c"]}).to_iterable_dataset()
+        self.assertEqual([r["text"] for r in DefaultHuggingfaceDataLoadStrategy._apply_limit(it, 2)], ["a", "b"])
+        out = DefaultHuggingfaceDataLoadStrategy._apply_limit(IterableDatasetDict({"train": it}), 1)
+        self.assertEqual([r["text"] for r in out["train"]], ["a"])
+
 
 class TestRayLocalJsonDataLoadStrategy(DataJuicerTestCaseBase):
     def setUp(self):

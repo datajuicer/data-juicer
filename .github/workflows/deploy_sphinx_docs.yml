@@ -21,6 +21,12 @@ on:
         type: boolean
         default: false
 
+# Serialize gh-pages deployments so concurrent runs cannot push from a stale branch.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('docs-preview-{0}', github.run_id) || 'docs-deploy-gh-pages' }}
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   pages:
     runs-on: ubuntu-latest

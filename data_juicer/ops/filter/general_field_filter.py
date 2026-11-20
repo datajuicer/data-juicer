@@ -123,6 +123,16 @@ class ExpressionTransformer(ast.NodeVisitor):
     def visit_Constant(self, node: ast.Constant) -> Any:
         return node.value
 
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
+        operand = self.visit(node.operand)
+        if isinstance(node.op, ast.USub):
+            return -operand
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        if isinstance(node.op, ast.Not):
+            return not operand
+        raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+
     def visit_List(self, node: ast.List) -> list:
         return [self.visit(element) for element in node.elts]
 

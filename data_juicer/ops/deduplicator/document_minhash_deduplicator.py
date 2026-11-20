@@ -4,7 +4,6 @@
 
 import hashlib
 import struct
-from collections import defaultdict
 from typing import Optional
 
 import numpy as np
@@ -43,6 +42,21 @@ def sha1_hash32(data):
     int
     """
     return struct.unpack("<I", hashlib.sha1(data).digest()[:4])[0]
+
+
+def check_band_params(num_bands: int, num_rows_per_band: int, num_perm: int):
+    """
+    Reject LSH band settings that need more rows than there are permutations.
+
+    A band past the last permutation is empty and identical for every sample,
+    which would mark all samples as duplicates of each other.
+    """
+    if num_bands * num_rows_per_band > num_perm:
+        raise ValueError(
+            f"num_bands * num_rows_per_band ({num_bands} * "
+            f"{num_rows_per_band}) must not exceed num_permutations "
+            f"({num_perm})."
+        )
 
 
 def optimal_param(
@@ -112,7 +126,10 @@ class DocumentMinhashDeduplicator(Deduplicator):
       not include punctuations.
     - For 'sentencepiece' tokenization, a tokenizer model path is required.
     - The deduplication process involves clustering and filtering, and only unique samples
-      or the first sample in a cluster are retained."""
+      or the first sample in a cluster are retained.
+    - Shingle hashes are folded in bounded blocks instead of materializing every shingle
+      and every hash. Shingle hash and permutation buffers are bounded by the block
+      size. Tokenization may still materialize all tokens for a document."""
 
     def __init__(
         self,
@@ -152,10 +169,12 @@ class DocumentMinhashDeduplicator(Deduplicator):
         :param num_bands: number of bands in LSH. Default it's None, and
             it will be determined by an optimal params computation
             algorithm by minimize the weighted sum of probs of False
-            Positives and False Negatives
+            Positives and False Negatives. It must be provided together
+            with num_rows_per_band.
         :param num_rows_per_band: number of rows in each band in LSH.
             Default it's None, and it will be determined by an optimal
-            params computation algorithm
+            params computation algorithm. It must be provided together
+            with num_bands.
         :param tokenizer_model: path for the sentencepiece model, used for
             sentencepiece tokenization.
         """
@@ -192,17 +211,26 @@ class DocumentMinhashDeduplicator(Deduplicator):
 
         # initialize deduplication parameters
         # check number of bands and rows
-        if self.num_bands is None or self.num_rows_per_band is None:
+        if (self.num_bands is None) != (self.num_rows_per_band is None):
+            # Otherwise a lone num_bands / num_rows_per_band would be
+            # silently overwritten by the optimal params computation.
+            raise ValueError(
+                "`num_bands` and `num_rows_per_band` must be set together, "
+                f"got num_bands={self.num_bands} and "
+                f"num_rows_per_band={self.num_rows_per_band}."
+            )
+        if self.num_bands is None:
             self.num_bands, self.num_rows_per_band = optimal_param(
                 self.jaccard_threshold,
                 self.num_permutation,
             )
+        check_band_params(self.num_bands, self.num_rows_per_band, self.num_permutation)
 
         # compute hash ranges and create hash tables
         self.hash_ranges = [
             (i * self.num_rows_per_band, (i + 1) * self.num_rows_per_band) for i in range(self.num_bands)
         ]
-        self.hash_tables = [defaultdict(set) for _ in range(self.num_bands)]
+        self._reset_hash_tables()
 
         # generate permutations
         gen = np.random.RandomState(seed=42)
@@ -216,6 +244,44 @@ class DocumentMinhashDeduplicator(Deduplicator):
             ],
             dtype=np.uint64,
         ).T
+
+    def _iter_shingles(self, text):
+        """Yield encoded shingles without hashing or keeping them all.
+
+        The caller folds one bounded block at a time and deduplicates encoded
+        shingles before SHA-1, so repeated shingles do not pay hashing or
+        permutation cost. MinHash's minimum is unchanged by duplicates.
+        """
+        window_size = self.window_size
+        if self.tokenization == "character":
+            for i in range(len(text) - window_size + 1):
+                yield str.encode(text[i : i + window_size])
+        elif self.tokenization == "punctuation":
+            tokens = self.punctuation_pattern.split(text)
+            for i in range(len(tokens) - window_size + 1):
+                yield str.encode(" ".join(tokens[i : i + window_size]))
+        elif self.tokenization == "space":
+            tokens = split_on_whitespace(text)
+            for i in range(len(tokens) - window_size + 1):
+                yield str.encode(" ".join(tokens[i : i + window_size]))
+        elif self.tokenization == "sentencepiece":
+            tokens = self.tokenizer.encode(text, out_type=str)
+            for i in range(len(tokens) - window_size + 1):
+                yield str.encode("".join(tokens[i : i + window_size]))
+        else:
+            raise NotImplementedError(f"Unimplemented tokenization method [{self.tokenization}]")
+
+    def _fold_minhash_block(self, block, hash_values):
+        """Deduplicate one block's shingles, then fold their hashes."""
+        unique_shingles = set(block)
+        if not unique_shingles:
+            return
+        hv = np.fromiter((sha1_hash32(shingle) for shingle in unique_shingles), dtype=np.uint64)
+        phv = np.bitwise_and(
+            (hv[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME,
+            MAX_HASH,
+        )
+        np.minimum(hash_values, phv.min(axis=0), out=hash_values)
 
     def compute_hash(self, sample):
         """
@@ -235,54 +301,29 @@ class DocumentMinhashDeduplicator(Deduplicator):
         if self.ignore_pattern:
             text = self.ignore_pattern.sub("", text)
 
-        # get tokens for different tokenization method
-        tokens = set()
-        if self.tokenization == "character":
-            tokens = {str.encode(text[i : i + self.window_size]) for i in range(len(text) - self.window_size + 1)}
-        elif self.tokenization == "punctuation":
-            tokens = self.punctuation_pattern.split(text)
-            tokens = {
-                str.encode(" ".join(tokens[i : i + self.window_size]))
-                for i in range(len(tokens) - self.window_size + 1)
-            }
-        elif self.tokenization == "space":
-            tokens = split_on_whitespace(text)
-            tokens = {
-                str.encode(" ".join(tokens[i : i + self.window_size]))
-                for i in range(len(tokens) - self.window_size + 1)
-            }
-        elif self.tokenization == "sentencepiece":
-            tokens = self.tokenizer.encode(text, out_type=str)
-            tokens = {
-                str.encode("".join(tokens[i : i + self.window_size])) for i in range(len(tokens) - self.window_size + 1)
-            }
-        else:
-            raise NotImplementedError(f"Unimplemented tokenization method [{self.tokenization}]")
+        # Fold shingle hashes in bounded blocks instead of materializing the
+        # full shingle set and a second full array of hashes.  ``np.minimum``
+        # is associative, so the result is identical to the previous blockwise
+        # implementation over ``np.unique`` shingles.
+        bytes_per_token = self.num_permutation * np.dtype(np.uint64).itemsize
+        tokens_per_block = max(1, _MINHASH_PERMUTATION_BLOCK_BYTES // bytes_per_token)
+        hash_values = np.full(self.num_permutation, MAX_HASH, dtype=np.uint64)
+        block = []
+        for shingle in self._iter_shingles(text):
+            block.append(shingle)
+            if len(block) == tokens_per_block:
+                self._fold_minhash_block(block, hash_values)
+                block.clear()
+        if block:
+            self._fold_minhash_block(block, hash_values)
 
-        # compute minhash value
-        hv = np.fromiter((sha1_hash32(token) for token in tokens), dtype=np.uint64, count=len(tokens))
-        if len(hv) == 0:
-            hash_values = np.full(self.num_permutation, MAX_HASH, dtype=np.uint64)
-        else:
-            bytes_per_token = self.num_permutation * np.dtype(np.uint64).itemsize
-            tokens_per_block = max(1, _MINHASH_PERMUTATION_BLOCK_BYTES // bytes_per_token)
-            hash_values = None
-            for start in range(0, len(hv), tokens_per_block):
-                block = hv[start : start + tokens_per_block]
-                phv = np.bitwise_and(
-                    (block[:, None] * self.perm_a + self.perm_b) % MERSENNE_PRIME,
-                    MAX_HASH,
-                )
-                block_min = phv.min(axis=0)
-                if hash_values is None:
-                    hash_values = block_min
-                else:
-                    np.minimum(hash_values, block_min, out=hash_values)
         sample[HashKeys.minhash] = [bytes(hash_values[start:end].byteswap().data) for start, end in self.hash_ranges]
         return sample
 
     def _reset_hash_tables(self):
-        self.hash_tables = [defaultdict(set) for _ in range(self.num_bands)]
+        # each table maps a band hash to the first sample that has it; a
+        # set per hash would be allocated for every sample in every band
+        self.hash_tables = [{} for _ in range(self.num_bands)]
 
     def process(self, dataset, show_num=0):
         """
@@ -297,6 +338,10 @@ class DocumentMinhashDeduplicator(Deduplicator):
 
         # no need to deduplicate because too few samples
         if len(dataset) <= 1:
+            # Keep the early return consistent with the main path: the bytes
+            # minhash column must not be exported.
+            if HashKeys.minhash in dataset.column_names:
+                dataset = dataset.remove_columns([HashKeys.minhash])
             return dataset, {}
 
         minhashes = dataset[HashKeys.minhash]
@@ -304,26 +349,21 @@ class DocumentMinhashDeduplicator(Deduplicator):
         # when exporting the processed dataset
         dataset = dataset.remove_columns([HashKeys.minhash])
 
-        # make clusters -- construct the minhash lookup tables of seg to ids
+        # make clusters -- union each sample with the first sample that
+        # shares one of its band hashes. Roots are the smallest index of
+        # each cluster, as UnionFind.union always keeps the minimum.
         logger.info(f"Start clustering for {len(dataset)} samples...")
+        union_find = UnionFind()
         batch_size = 10000
         for i in tqdm(
             range(0, len(minhashes), batch_size), dynamic_ncols=True, desc="Iterating MinHashes of samples..."
         ):
             batch = minhashes[i : i + batch_size]
-            for idx, hs in enumerate(batch):
+            for idx, hs in enumerate(batch, start=i):
                 for h, hashtable in zip(hs, self.hash_tables):
-                    hashtable[h].add(idx + i)
-
-        # using UnionFind set to union samples within the same clusters
-        union_find = UnionFind()
-        for table in tqdm(self.hash_tables, dynamic_ncols=True, desc="Clustering"):
-            for cluster in table.values():
-                if len(cluster) <= 1:
-                    continue
-                idx = min(cluster)
-                for x in cluster:
-                    union_find.union(x, idx)
+                    first = hashtable.setdefault(h, idx)
+                    if first != idx:
+                        union_find.union(idx, first)
         logger.info(
             f"There are {len(set(union_find.parent.values()))} "
             f"clusters that includes multiple near-duplicate samples."
@@ -345,17 +385,9 @@ class DocumentMinhashDeduplicator(Deduplicator):
                 if len(dup_pairs) >= show_num:
                     break
 
-        # filtering -- only keep those samples whose parent index is itself,
-        # including:
-        # 1. samples that form a cluster by themselves
-        # 2. the first sample in a cluster that includes multiple samples
-        def _filter_minhash_dup_helper(sample, index):
-            return union_find.find(index) == index
-
-        dataset = dataset.filter(
-            _filter_minhash_dup_helper,
-            with_indices=True,
-        )
+        # Keep roots only. `select` avoids a Python UDF call for every row.
+        keep_indices = [index for index in range(len(dataset)) if union_find.find(index) == index]
+        dataset = dataset.select(keep_indices)
         logger.info(f"Keep {len(dataset)} samples after MinHash dedup.")
 
         return dataset, dup_pairs
@@ -389,6 +421,10 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
 
         # no need to deduplicate because too few samples
         if len(dataset) <= 1:
+            # Keep the early return consistent with the main path: the bytes
+            # minhash column must not be exported.
+            if HashKeys.minhash in dataset.column_names:
+                dataset = dataset.remove_columns([HashKeys.minhash])
             return dataset, {}
 
         minhashes = dataset[HashKeys.minhash]
@@ -398,8 +434,11 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
         uids = dataset[HashKeys.uid]
         uid2idx = {uid: idx for idx, uid in enumerate(uids)}
 
-        # make clusters -- construct the minhash lookup tables of seg to ids
+        # make clusters -- union each sample with the first sample that
+        # shares one of its band hashes. Roots are the smallest uid of each
+        # cluster, as UnionFind.union always keeps the minimum.
         logger.info(f"Start clustering for {len(dataset)} samples...")
+        union_find = UnionFind()
         batch_size = 10000
         for i in tqdm(
             range(0, len(minhashes), batch_size), dynamic_ncols=True, desc="Iterating MinHashes of samples..."
@@ -408,17 +447,9 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
             batch_uid = uids[i : i + batch_size]
             for uid, hs in zip(batch_uid, batch):
                 for h, hashtable in zip(hs, self.hash_tables):
-                    hashtable[h].add(uid)
-
-        # using UnionFind set to union samples within the same clusters
-        union_find = UnionFind()
-        for table in tqdm(self.hash_tables, dynamic_ncols=True, desc="Clustering"):
-            for cluster in table.values():
-                if len(cluster) <= 1:
-                    continue
-                uid = min(cluster)
-                for x in cluster:
-                    union_find.union(x, uid)
+                    first = hashtable.setdefault(h, uid)
+                    if first != uid:
+                        union_find.union(uid, first)
         logger.info(
             f"There are {len(set(union_find.parent.values()))} "
             f"clusters that includes multiple near-duplicate samples."

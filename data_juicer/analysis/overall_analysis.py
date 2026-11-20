@@ -49,8 +49,14 @@ class OverallAnalysis:
             # not an object, return directly
             return col
         # if the type of this column is object, we can decide the actual type
-        # according to the first element.
-        first = col[0]
+        # according to the first valid element. Skipping the missing ones is
+        # necessary because an OP may fail to produce its stats/meta for some
+        # samples: a single missing value must not disqualify the whole column.
+        valid = col.dropna()
+        if len(valid) == 0:
+            logger.warning("There is a column of stats without any valid value, which is skipped for now.")
+            return None
+        first = valid.iloc[0]
         if type(first) not in self.supported_object_types:
             logger.warning(
                 f"There is a column of stats with type "

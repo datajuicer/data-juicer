@@ -42,6 +42,8 @@ load_dataset_kwargs: {}                                     # reader defaults fo
 load_jsonl_lenient: false                                    # if true, stream jsonl* shards with stdlib json and skip bad lines; other suffixes in the same folder are ignored (not HF fallback). Confirm logs contain "[lenient jsonl] ACTIVE".
 
 auto_op_parallelism: true                                   # whether to automatically set num_proc according to system resources. It is true in default.
+elastic_juicer_adaptive_batching: false                      # opted-in CUDA Mapper microbatches; see docs/ElasticJuicerFirstBatch.md
+elastic_juicer_profile_seed: false                           # compatible batch priors within one ray_partitioned run; see docs/ElasticJuicerStageProfile.md
 np: 4                                                       # number of subprocess to process your dataset
 text_keys: 'text'                                           # the key name of field where the sample texts to be processed, e.g., `text`, `instruction`, `output`, ...
                                                             # Note: currently, we support specify only ONE key for each op, for cases requiring multiple keys, users can specify the op multiple times. We will only use the first key of `text_keys` when you set multiple keys.
@@ -888,6 +890,17 @@ process:
   - average_line_length_filter:                             # filter text with the average length of lines out of specific range.
       min_len: 10                                             # the min length of filter range
       max_len: 10000                                          # the max length of filter range
+  - benchmark_contamination_filter:                         # filter samples overlapping with a benchmark corpus.
+      benchmark_path: null                                    # path to the benchmark file (.jsonl/.json/.txt, optionally .gz)
+      benchmark_text_key: "text"                              # field of the benchmark record holding the text to match
+      ngram_size: 13                                          # the size of the n-grams used for matching
+      tokenization: "char"                                    # "char" for CJK, "word" for space-delimited languages
+      lowercase: true                                         # whether to lowercase the text before matching
+      normalize_whitespace: true                              # whether to collapse consecutive whitespaces
+      threshold: 0.0                                          # drop samples whose contamination ratio exceeds this value
+      contamination_ratio_key: "contamination_ratio"         # stats field holding the overlap ratio; give each benchmark
+                                                               # its own name when several contamination filters share a recipe
+      contamination_ngram_count_key: "contamination_ngram_count"   # stats field holding the matching n-gram count
   - character_repetition_filter:                            # filter text with the character repetition ratio out of specific range
       rep_len: 10                                             # repetition length for char-level n-gram
       min_ratio: 0.0                                          # the min ratio of filter range

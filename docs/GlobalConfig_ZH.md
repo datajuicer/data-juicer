@@ -86,6 +86,7 @@
 | `mapper_fusion` | bool | `true` | 融合连续 GPU Mapper（需 op_fusion 开启） |
 | `mapper_fusion_vram_limit` | float | `0.9` | 融合 Mapper 聚合显存上限 |
 | `adaptive_batch_size` | bool | `false` | `default` 执行器中批处理算子的自适应批大小 |
+| `elastic_juicer_profile_seed` | bool | `false` | 在同一次 `ray_partitioned` 运行内复用兼容的 stage batch 经验；要求 `elastic_juicer_adaptive_batching=true` 及算子的输入成本/资源声明。参见 [StageProfile](ElasticJuicerStageProfile.md)。 |
 | `turbo` | bool | `false` | Turbo 模式（batch_size=1 时最大化速度） |
 
 ---

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.drop\_text module
+=========================================
+
+.. automodule:: data_juicer.ops.mapper.drop_text
+   :members:
+   :show-inheritance:
+   :undoc-members:

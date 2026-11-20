@@ -1295,6 +1295,7 @@
 <a class="viewcode-back" href="../../../api/data_juicer.ops.base_op.html#data_juicer.ops.Mapper.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">exporter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tracer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Mapper</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="n">source_features</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">features</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"drop_text"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
 
         <span class="c1"># Wrap process method with tracer for sample-level collection</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.core.tracer</span><span class="w"> </span><span class="kn">import</span> <span class="n">should_trace_op</span>
@@ -1322,6 +1323,11 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">process</span> <span class="o">=</span> <span class="n">original_process</span>
 
         <span class="n">free_models</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">source_features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.ops.mapper.drop_text</span><span class="w"> </span><span class="kn">import</span> <span class="n">remove_text_from_dataset</span>
+
+            <span class="c1"># Keep the original path when a literal dotted key was already removed.</span>
+            <span class="n">new_dataset</span> <span class="o">=</span> <span class="n">remove_text_from_dataset</span><span class="p">(</span><span class="n">new_dataset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">,</span> <span class="n">source_features</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">new_dataset</span></div>
 </div>
 

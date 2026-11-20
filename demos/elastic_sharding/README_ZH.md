@@ -13,6 +13,26 @@
 它不要求维护一个跨节点 Ray 集群。共享文件系统只负责节点间协调，每个节点的 Ray
 运行时相互独立。
 
+该能力现已通过主库命令 `dj-process-sharded` 提供。单机只需执行一次；多机时让调度器
+在所有节点上使用相同的 `job-dir`、`run-id` 和参数执行同一条命令：
+
+```bash
+dj-process-sharded run \
+  --config /mnt/shared/recipes/process.yaml \
+  --job-dir /mnt/shared/data-juicer-jobs/job-001 \
+  --num-shards 32 \
+  --run-id submission-001
+```
+
+命令会先检查 recipe。仅包含 Mapper/Filter 且使用本地 JSONL 输入输出时执行弹性
+分片；包含 Deduplicator、Selector、Grouper、Aggregator、Pipeline 等全数据语义
+算子，或输入输出不满足条件时，会打印原因并由一个协调节点执行一次原始
+`dj-process`。分片已经开始后的运行错误不会降级，以免重复处理完整数据。
+
+分片任务可用 `dj-process-sharded status --job-dir <job-dir>` 查看。终态失败分片可用
+`dj-process-sharded retry --job-dir <job-dir> --all-failed` 重新入队，之后应使用新的
+`run-id` 再次执行 `run`。同一 `job-dir/run-id` 的参数必须保持不变。
+
 > **必须区分 DLC 启动拓扑。** `dlc_job.py dlc` 要求所选作业类型把启动命令广播到
 > 每个 Worker。PAI-DLC MPIJob 并不会这样做：启动命令只在 Launcher 上运行，
 > Launcher 必须通过 `mpirun` 和 DLC 生成的 `/etc/mpi/hostfile` 在每个 GPU
@@ -47,11 +67,13 @@
 - **任务可审计、可恢复**：manifest 固定输入、recipe、Data-Juicer commit、Ray
   配置和分片顺序；每次 attempt 都保留元数据与日志。
 - **避免重复认领**：`O_CREAT|O_EXCL` 原子创建锁，同一时刻只有一个 Worker 能持有
-  一个分片。
+  一个分片。成功或终态失败后，claim 会保留在原路径作为持久 fence，NAS/CPFS
+  短暂的元数据可见性延迟不会让已完成分片重新开放。
 - **支持失败与过期接管**：失败可自动重试；超过锁超时的认领会被其他 Worker 接管。
 - **结果完整性校验**：完成记录包含行数、字节数和 SHA256；合并前会重新校验。
 - **顺序确定**：目录输入按相对路径排序，分片连续，最终结果按 manifest 顺序合并。
-- **低侵入**：实现位于 `demos/elastic_sharding`，不修改现有 executor 或算子行为。
+- **低侵入**：状态机位于 `tools/elastic_sharding.py`，不修改现有 executor、recipe
+  schema 或算子行为；本目录保留调度平台示例和兼容包装器。
 
 ## 与现有方式的区别
 
@@ -59,7 +81,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `tools/data_resplit.py` | 是 | 否 | 否 | 由用户决定 | 否 |
 | `ray_partitioned` | 运行时切分 | 由 Ray 调度 | 由 Ray 作业管理 | 是 | 是 |
-| 本示例 | 预切分 | 共享文件系统 | 锁超时、重试、retry | 是 | 否 |
+| `dj-process-sharded` | 预切分 | 共享文件系统 | 锁超时、重试、retry | 是 | 否 |
 
 本示例适合：
 
@@ -85,7 +107,7 @@ demos/elastic_sharding/
 └── README_ZH.md
 ```
 
-`shard_job.py` 实现共享存储分片状态机。对于 Worker 广播型作业，
+`shard_job.py` 是主库 `dj-process-sharded` 的兼容包装器。对于 Worker 广播型作业，
 `dlc_job.py` 为任意数量的 DLC Worker 协调一次性 prepare 和 finalize。
 `two_node_test.py` 保留原来的严格两节点默认值，仅用于向后兼容。MPIJob Launcher
 应改为在 `prepare` 和 `merge` 之间，通过 `mpirun -np N -npernode 1` 拉起
@@ -459,7 +481,7 @@ python demos/elastic_sharding/dlc_job.py dlc \
   --dataset-path /mnt/shared/input/my_dataset.jsonl \
   --job-dir /mnt/shared/data-juicer-jobs/my-dataset-001 \
   --nodes 4 \
-  --num-shards 16 \
+  --num-shards 4 \
   --ray-address local \
   --output /mnt/shared/output/my_dataset.processed.jsonl
 ```
@@ -470,20 +492,22 @@ python demos/elastic_sharding/dlc_job.py dlc \
 - `--dataset-path` 覆盖 recipe 原来的 `dataset_path`；
 - `--job-dir` 保存这一次任务的所有状态和中间结果；
 - `--output` 指定最终合并文件；
-- 16 个分片由所有存活 Worker 动态认领，每个 Worker 内部使用 Ray。
+- 4 个分片由 4 个存活 Worker 动态认领，每个 Worker 内部使用 Ray。
 
-建议先用少量数据、每节点至少几个分片完成冒烟测试，再扩大输入和分片数。
+建议先用少量数据、每个节点一个分片完成冒烟测试，再扩大输入规模。
 
 ### 如何选择分片数
 
 - 必须满足 `1 <= num_shards <= JSONL 总记录数`。
-- 分片数多于节点数，才能让空闲节点持续认领并缓解单片耗时差异。
-- 一般可以从 `节点数 × 2` 或 `节点数 × 4` 开始。
+- 为获得最佳吞吐，分片数应不大于 Worker 节点数，最好与节点数相等，即每节点一个分片。
+- 分片数少于节点数会让部分节点空闲；分片数多于节点数会让同一 Worker 顺序处理多个
+  分片，并为每个分片启动新的 Data-Juicer 进程。
+- 只有在负载明显不均衡，或需要更细的失败重试粒度时，才建议让分片数多于节点数；
+  此时应确保单片计算量足以摊薄进程和节点本地 Ray 的启动成本。
 - 单片处理时间应明显小于 `lock_timeout_secs`。
-- 分片太少会降低负载均衡效果；分片太多会增加 Ray 启动、元数据和小文件开销。
+- 分片太多还会增加 Ray 启动、元数据和小文件开销。
 - 默认弹性模式不限制单节点 claim 数，所以分片数不必是 Worker 数的整数倍。
-- 使用 `--require-all-nodes` 时，选择 `--nodes` 的整数倍最简单，也能得到清晰的
-  单节点处理上限。
+- 使用 `--require-all-nodes` 时，建议直接让 `--num-shards` 等于 `--nodes`。
 
 ### Recipe 或输入变化时
 
@@ -591,7 +615,8 @@ SHA256 和 Data-Juicer commit。
 | `--all-failed` | 条件必填 | false | 重新入队所有失败分片 |
 | `--shard-id` | 条件必填 | 无 | 指定分片 ID，可重复传入 |
 
-retry 会把旧 failed 元数据和 attempts 移到 `state/history`，不会覆盖历史记录。
+retry 会把旧 failed 元数据、attempts 和终态 claim fence 移到 `state/history`，不会
+覆盖历史记录；移走 fence 是重新入队的最后一步。
 
 ### `merge`
 
@@ -653,6 +678,8 @@ python demos/elastic_sharding/shard_job.py status \
 - `pending`：尚未认领；
 - `running`：存在未超时锁；
 - `stale`：锁年龄超过超时，下一次认领会尝试接管；
+- `committing`：claim 已进入终态，但当前文件系统客户端尚未看到终态标记；
+- `conflict`：标记与 claim 元数据冲突；Worker 会停止，避免重复处理；
 - `done`：完成记录已发布；
 - `failed`：超过重试上限的终态失败。
 
@@ -736,6 +763,9 @@ my-job-001/
 │   ├── done/
 │   ├── failed/
 │   └── history/
+│       ├── failed/
+│       ├── attempts/
+│       └── claims/
 └── merge.json
 ```
 
@@ -759,11 +789,13 @@ DLC 一键入口还会在 `job-dir` 同级创建：
 
 - 同一分片只允许一个可见 claim，但超时接管可能造成旧 attempt 与新 attempt 短暂
   重叠。
+- 成功和终态失败的 claim 会在原文件中改写为 `done` 或 `failed` 并作为 fence 保留；
+  只有显式 `retry` 会归档失败 fence 并重新开放该分片。
 - 每个 attempt 使用独立目录，不会互相覆盖结果。
 - 只有第一个成功原子发布 done 元数据的结果会被接受。
 - `max_retries=3` 表示首次失败后再重试 3 次，共允许 4 次失败 attempt。
 - 分片达到失败上限后写入 `state/failed`，任务退出码为 `2`。
-- `retry` 只应在确认没有活动锁并修复根因后执行。
+- `retry` 只应在修复根因后执行；它会拒绝非终态 claim。
 - 修改 recipe 或输入不是 retry 场景，应新建 `job-dir` 并重新 prepare。
 - DLC prepare/finalize coordinator 在写出阶段结果前被强制终止时，其他实例会等待
   `wait_timeout_secs` 后失败；新的 submission 会使用新的协调 generation，因此在

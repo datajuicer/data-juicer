@@ -33,6 +33,7 @@ dependencies = [
     "pydantic>=2.0", # data validation
     "uv",
     "httpx",
+    "aiohttp", # async downloads; imported by file_utils
     "emoji==2.2.0", # emoji handling
     "tabulate",
     "beautifulsoup4",

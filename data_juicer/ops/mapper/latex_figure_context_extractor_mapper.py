@@ -298,10 +298,8 @@ class LatexFigureContextExtractorMapper(Mapper):
         package).  Commands without the optional [caption] argument
         are also supported.
 
-        Also handles the minipage pattern where a single figure
-        environment contains multiple \\begin{minipage} blocks, each
-        with its own \\caption, \\label, and \\includegraphics.
-        Minipages that contain \\captionof{table} are skipped.
+        Also handles a figure environment that contains multiple
+        \\begin{minipage} blocks (see ``_parse_minipages``).
 
         :param fig_text: the full text of a figure environment.
         :return: a Figure object, a list of Figure objects, or None
@@ -359,30 +357,9 @@ class LatexFigureContextExtractorMapper(Mapper):
             )
         else:
             # No subfigures — check for the minipage pattern.
-            # When a figure environment contains multiple minipages
-            # with separate \caption/\label pairs, each minipage is
-            # treated as an independent figure.  Minipages holding
-            # \captionof{table} are skipped (they are tables).
             minipage_matches = list(self._minipage_pattern.finditer(fig_text))
             if len(minipage_matches) >= 2:
-                figures = []
-                for mp in minipage_matches:
-                    mp_body = mp.group(1)
-                    # Skip table minipages
-                    if self._is_table_minipage(mp_body):
-                        continue
-                    image_paths = self._extract_image_paths(mp_body)
-                    if not image_paths:
-                        continue
-                    figures.append(
-                        Figure(
-                            caption=self._extract_caption(mp_body),
-                            label=self._extract_label(mp_body),
-                            image_paths=image_paths,
-                            sub_figures=[],
-                        )
-                    )
-                return figures if figures else None
+                return self._parse_minipages(fig_text, minipage_matches)
 
             # Single figure (no subfigures, no multi-minipage)
             image_paths = self._extract_image_paths(fig_text)
@@ -395,6 +372,54 @@ class LatexFigureContextExtractorMapper(Mapper):
                 image_paths=image_paths,
                 sub_figures=[],
             )
+
+    def _parse_minipages(self, fig_text, minipage_matches):
+        """Parse a figure environment that holds two or more minipages.
+
+        Minipages holding \\captionof{table} or no \\includegraphics
+        are skipped.  What the rest become depends on the caption and
+        label written outside the minipages:
+
+        - none outside: each minipage is an independent figure;
+        - outside, and no minipage has its own caption or label: the
+          minipages only lay the images out, so they form one figure
+          with the outside caption and label;
+        - outside, and the minipages have their own: the minipages are
+          subfigures of a figure with the outside caption and label.
+
+        :param fig_text: the full text of a figure environment.
+        :param minipage_matches: matches of ``_minipage_pattern`` in
+            ``fig_text``.
+        :return: a Figure, a list of Figure objects, or None if no
+            minipage has images.
+        """
+        panels = []
+        for mp in minipage_matches:
+            mp_body = mp.group(1)
+            if self._is_table_minipage(mp_body):
+                continue
+            panel = self._build_subfigure(self._extract_caption(mp_body), mp_body)
+            if panel.image_paths:
+                panels.append(panel)
+        if not panels:
+            return None
+
+        text_outside = fig_text
+        for mp in reversed(minipage_matches):
+            text_outside = text_outside[: mp.start()] + text_outside[mp.end() :]
+        caption = self._extract_caption(text_outside)
+        label = self._extract_label(text_outside)
+
+        if not (caption or label):
+            return [Figure(caption=p.caption, label=p.label, image_paths=p.image_paths, sub_figures=[]) for p in panels]
+        if not any(p.caption or p.label for p in panels):
+            return Figure(
+                caption=caption,
+                label=label,
+                image_paths=[path for p in panels for path in p.image_paths],
+                sub_figures=[],
+            )
+        return Figure(caption=caption, label=label, image_paths=[], sub_figures=panels)
 
     def _parse_figures(self, latex_source):
         """Parse all figure environments from a LaTeX source.

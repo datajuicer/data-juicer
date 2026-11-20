@@ -4,6 +4,10 @@ from loguru import logger
 from pydantic import PositiveInt
 
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
+from data_juicer.ops.mapper.drop_text import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
 
@@ -104,19 +108,19 @@ class ExtractSupportTextMapper(Mapper):
     def process_single(self, sample, rank=None):
         # check if it's generated already
         if self.support_text_key in sample[Fields.meta]:
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
         client = get_model(self.model_key, rank=rank)
 
         if self.summary_key not in sample[Fields.meta]:
             logger.warning(f"{self.summary_key} does not exist in the meta field!")
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
         summary = sample[Fields.meta][self.summary_key]
         if not isinstance(summary, str):
             logger.warning("Invalid input summary!")
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
-        input_prompt = self.input_template.format(text=sample[self.text_key], summary=summary)
+        input_prompt = self.input_template.format(text=read_text_from_sample(sample, self.text_key), summary=summary)
         messages = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": input_prompt}]
 
         support_text = ""
@@ -135,5 +139,5 @@ class ExtractSupportTextMapper(Mapper):
         sample[Fields.meta][self.support_text_key] = support_text
 
         if self.drop_text:
-            sample.pop(self.text_key)
+            remove_text_from_sample(sample, self.text_key)
         return sample

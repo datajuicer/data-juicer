@@ -11,6 +11,10 @@ from loguru import logger
 from pydantic import NonNegativeInt, PositiveInt
 
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
+from data_juicer.ops.mapper.drop_text import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 from data_juicer.utils.common_utils import is_float
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
@@ -320,14 +324,14 @@ Output:
     def process_single(self, sample, rank=None):
         # check if it's generated already
         if self.entity_key in sample[Fields.meta] and self.relation_key in sample[Fields.meta]:
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
         input_prompt = self.prompt_template.format(
             tuple_delimiter=self.tuple_delimiter,
             record_delimiter=self.record_delimiter,
             completion_delimiter=self.completion_delimiter,
             entity_types=", ".join(self.entity_types),
-            input_text=sample[self.text_key],
+            input_text=read_text_from_sample(sample, self.text_key),
         )
         messages = [{"role": "user", "content": input_prompt}]
 
@@ -357,5 +361,5 @@ Output:
         sample[Fields.meta][self.relation_key] = relations
 
         if self.drop_text:
-            sample.pop(self.text_key)
+            remove_text_from_sample(sample, self.text_key)
         return sample

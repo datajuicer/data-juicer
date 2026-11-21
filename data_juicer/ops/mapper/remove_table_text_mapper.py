@@ -35,7 +35,7 @@ class RemoveTableTextMapper(Mapper):
         super().__init__(*args, **kwargs)
         self.min_col = min_col
         self.max_col = max_col
-        self.pattern = r"(?<=\n)((\S+?)([ |\t](\S+?)){%d}\n+){2,}"
+        self.pattern = r"(?:^|(?<=\n))((\S+?)([ |\t](\S+?)){%d}(?:\n+|$)){2,}"
         # The compiled regexes only depend on the configured column range,
         # so precompile them once instead of recompiling per sample in the
         # hot path.

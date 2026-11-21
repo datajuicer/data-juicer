@@ -101,6 +101,22 @@ class RemoveTableTextMapperTest(DataJuicerTestCaseBase):
 
         self._run_remove_header(samples)
 
+    def test_table_at_text_start_case(self):
+        samples = [{
+            'text': '编号 分行\n① 北京分行\n② 大连分行\nThe end of the table.',
+            'target': 'The end of the table.'
+        }]
+
+        self._run_remove_header(samples)
+
+    def test_table_at_text_end_case(self):
+        samples = [{
+            'text': 'This is a table:\n编号 分行\n① 北京分行\n② 大连分行',
+            'target': 'This is a table:\n'
+        }]
+
+        self._run_remove_header(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

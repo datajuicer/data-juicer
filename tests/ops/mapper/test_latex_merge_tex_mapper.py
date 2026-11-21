@@ -220,6 +220,42 @@ class LatexMergeTexMapperTest(DataJuicerTestCaseBase):
         self.assertIn(small, results[0]["text"])
         self.assertNotIn(big, results[0]["text"])
 
+    # An AppleDouble file as macOS writes it next to main.tex: binary
+    # metadata whose name still ends in .tex.
+    APPLE_DOUBLE = (b"\x00\x05\x16\x07\x00\x02\x00\x00Mac OS X        "
+                    b"\x00\x02\x00\x00\x00\tATTR\x00\x00\x00\x00"
+                    b"com.apple.quarantine\x00q/0081;6655")
+
+    def test_zip_skips_macos_metadata(self):
+        # Finder's "Compress" adds a __MACOSX folder with one AppleDouble
+        # file per file it archives.
+        archive = self._make_zip({
+            "paper/main.tex": TEX_A,
+            "__MACOSX/paper/._main.tex": self.APPLE_DOUBLE,
+            "__MACOSX/paper/notes.tex": self.APPLE_DOUBLE,
+        }, name="finder.zip")
+        results = self._run([self._sample(archive)], LatexMergeTexMapper())
+        self.assertEqual(results[0]["text"], TEX_A)
+
+    def test_tar_skips_apple_double_files(self):
+        # macOS tar stores the metadata as ._<name> beside each file.
+        archive = self._make_tar_gz({
+            "paper/main.tex": TEX_A,
+            "paper/._main.tex": self.APPLE_DOUBLE,
+            "._intro.tex": self.APPLE_DOUBLE,
+        }, name="mac_tar.tar.gz")
+        results = self._run([self._sample(archive)], LatexMergeTexMapper())
+        self.assertEqual(results[0]["text"], TEX_A)
+
+    def test_dot_files_that_are_not_apple_double_are_kept(self):
+        archive = self._make_zip({
+            "main.tex": TEX_A,
+            ".hidden.tex": TEX_B,
+        }, name="dotfile.zip")
+        results = self._run([self._sample(archive)], LatexMergeTexMapper())
+        self._assert_joined_in_either_order(
+            results[0]["text"], TEX_A, TEX_B, "\n\n")
+
 
 if __name__ == "__main__":
     unittest.main()

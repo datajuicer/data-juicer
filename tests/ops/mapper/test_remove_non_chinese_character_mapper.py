@@ -164,6 +164,18 @@ class RemoveNonChineseCharacterlMapperrTest(DataJuicerTestCaseBase):
         self.setUp(True, True, True)
         self._run_remove_non_chinese_character(samples)
 
+    def test_keep_ideographic_zero(self):
+
+        samples = [{
+            'text': '二〇二四年三月，共一〇五人',
+            'target': '二〇二四年三月共一〇五人'
+        }, {
+            'text': '〇 zero',
+            'target': '〇'
+        }]
+        self.setUp(False, False, False)
+        self._run_remove_non_chinese_character(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

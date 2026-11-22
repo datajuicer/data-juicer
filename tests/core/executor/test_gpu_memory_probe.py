@@ -1004,6 +1004,37 @@ def test_matching_report_is_reused_without_replaying_samples(tmp_path):
     assert fresh_op.memory == 111 / 1024
 
 
+def test_resident_admission_can_require_a_fresh_probe(tmp_path):
+    def probe(op, rows, measure):
+        return {"rows": rows, "metrics": metrics(measured=rows[0]["id"])}
+
+    GPUMemoryProbe(str(tmp_path), stage_runner=probe).resolve(
+        FakeDataset([{"id": 100}]), [FakeOp("gpu", accelerator="cuda")]
+    )
+    dataset = FakeDataset([{"id": 300}])
+    op = FakeOp("gpu", accelerator="cuda")
+    GPUMemoryProbe(str(tmp_path), stage_runner=probe, reuse_report=False).resolve(dataset, [op])
+    assert dataset.requested
+    assert op._gpu_memory_fraction > 0.3
+
+
+def test_ordered_probe_deadline_cancels_disposable_task():
+    from ray import exceptions
+
+    from data_juicer.core.executor import gpu_memory_probe
+
+    future = object()
+    fake_ray = Mock(exceptions=exceptions)
+    fake_ray.get.side_effect = exceptions.GetTimeoutError("task is still waiting")
+    with (
+        patch.object(gpu_memory_probe, "ray", fake_ray),
+        pytest.raises(TimeoutError, match="ordered.*5s timeout"),
+    ):
+        GPUMemoryProbe._get_probe_result(future, "ordered", 5)
+    fake_ray.get.assert_called_once_with(future, timeout=5)
+    fake_ray.cancel.assert_called_once_with(future, force=True)
+
+
 def test_hardware_mismatch_reprobes(tmp_path):
     op = FakeOp("gpu", accelerator="cuda")
     GPUMemoryProbe(str(tmp_path), stage_runner=lambda op, rows, measure: {"rows": rows, "metrics": metrics()}).resolve(

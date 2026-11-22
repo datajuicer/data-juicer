@@ -80,6 +80,19 @@ def segment_rejection(ops, options):
     return None
 
 
+def pool_resources(ops, options, nodes):
+    """Check that one GPU node can host the whole pool and input work."""
+    gpu_nodes = [node["Resources"] for node in nodes if node["Alive"] and node["Resources"].get("GPU", 0) > 0]
+    if len(gpu_nodes) != 1:
+        raise _PoolUnavailable("resident compute flow currently requires a single GPU node")
+    cpus = max(float(op.num_cpus or 1) for op in ops)
+    required = {"CPU": cpus * options.workers, "GPU": options.workers}
+    total = gpu_nodes[0]
+    if required["GPU"] > total["GPU"] or required["CPU"] + 1 > total.get("CPU", 0):
+        raise _PoolUnavailable(f"compute-flow pool needs {required} plus one CPU for Ray Data/checkpoint tasks")
+    return cpus, required
+
+
 class _ResidentWorker:
     def __init__(self, specs, max_batch_bytes):
         self.max_batch_bytes = max_batch_bytes
@@ -147,8 +160,16 @@ class PartitionComputeFlowSession:
         self.events.write(json.dumps({"call": self.calls, "pool_number": self.pool_number, **event}) + "\n")
         self.events.flush()
 
-    def fallback(self, reason):
+    def fallback(self, reason, *, required=False):
         self._close_pool()
+        if required:
+            error = ComputeFlowError(
+                f"Resident execution is required because the Ray Data actor pools do not fit: {reason}. "
+                "Reduce worker requirements, add resources, or separate stages with checkpoints."
+            )
+            self.failure = {"type": type(error).__name__, "message": str(error)}
+            self._event(kind="admission_failure", reason=reason)
+            raise error
         if reason not in self.fallbacks:
             self.fallbacks.append(reason)
             logger.info(f"Compute flow uses existing Ray Data execution: {reason}")
@@ -179,14 +200,7 @@ class PartitionComputeFlowSession:
         # waiting for Ray to return their CPU/GPU reservations.
         deadline = time.monotonic() + self.options.startup_timeout_seconds
         gc.collect()
-        cpus = max(float(op.num_cpus or 1) for op in ops)
-        required = {"CPU": cpus * self.options.workers, "GPU": self.options.workers}
-        gpu_nodes = [node for node in ray.nodes() if node["Alive"] and node["Resources"].get("GPU", 0) > 0]
-        if len(gpu_nodes) != 1:
-            raise _PoolUnavailable("GPU topology changed before resident pool creation")
-        total = gpu_nodes[0]["Resources"]
-        if required["GPU"] > total.get("GPU", 0) or required["CPU"] + 1 > total.get("CPU", 0):
-            raise _PoolUnavailable(f"compute-flow pool needs {required} plus one CPU for Ray Data/checkpoint tasks")
+        cpus, required = pool_resources(ops, self.options, ray.nodes())
         # Only one pool exists at a time. Allow Ray's asynchronous actor teardown
         # to finish before replacing it; never stop or take over another job.
         next_collection = time.monotonic() + 1
@@ -238,16 +252,12 @@ class PartitionComputeFlowSession:
         self.signature = signature
         return stages
 
-    def execute(self, dataset, ops):
+    def execute(self, dataset, ops, *, required=False):
         """Return a materialized Dataset, or None for a pre-execution fallback."""
         self.calls += 1
         reason = segment_rejection(ops, self.options)
         if reason:
-            self.fallback(reason)
-            return None
-        gpu_nodes = [node for node in ray.nodes() if node["Alive"] and node["Resources"].get("GPU", 0) > 0]
-        if len(gpu_nodes) != 1:
-            self.fallback("resident compute flow currently requires a single GPU node")
+            self.fallback(reason, required=required)
             return None
         schema = dataset.schema()
         if schema is not None and _ROW_COLUMN in schema.names:
@@ -275,7 +285,7 @@ class PartitionComputeFlowSession:
             try:
                 stages = self._ensure_pool(ops)
             except _PoolUnavailable as error:
-                self.fallback(str(error))
+                self.fallback(str(error), required=required)
                 return None
             result = self._execute_batches(first, source, stages)
             self.executed += 1

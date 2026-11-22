@@ -834,6 +834,7 @@ class GPUMemoryProbe:
         sample_offset: int = 0,
         sample_shuffle: bool = False,
         sample_seed: Optional[int] = None,
+        reuse_report: bool = True,
         stage_runner: Optional[Callable] = None,
         parallel_runner: Optional[Callable] = None,
         hardware_reader: Optional[Callable] = None,
@@ -845,7 +846,9 @@ class GPUMemoryProbe:
         ):
             raise ValueError("max_concurrent_probes must be a positive integer or None")
         if probe_timeout_seconds is not None and (
-            isinstance(probe_timeout_seconds, bool) or float(probe_timeout_seconds) <= 0
+            isinstance(probe_timeout_seconds, bool)
+            or not math.isfinite(float(probe_timeout_seconds))
+            or float(probe_timeout_seconds) <= 0
         ):
             raise ValueError("probe_timeout_seconds must be a positive number or None")
         if isinstance(warmup_batches, bool) or int(warmup_batches) < 0:
@@ -866,12 +869,13 @@ class GPUMemoryProbe:
         self.sample_offset = int(sample_offset)
         self.sample_shuffle = bool(sample_shuffle)
         self.sample_seed = int(sample_seed) if sample_seed is not None else None
+        self.reuse_report = reuse_report
         # Where the sample actually came from, which is not always what was
         # asked for once a sampling preference degrades back to the head.
         self._sample_source = "the dataset head"
         self._stage_runner = stage_runner or self._run_stage_with_ray
         self._parallel_runner = parallel_runner or self._run_parallel_jobs_with_ray
-        self._hardware_reader = hardware_reader or self._read_hardware_with_ray
+        self._hardware_reader = hardware_reader or (lambda: self._read_hardware_with_ray(self.probe_timeout_seconds))
 
     def resolve(self, dataset, ops: Sequence) -> List[Dict[str, Any]]:
         """Load reusable measurements, then probe all remaining target ops."""
@@ -887,7 +891,7 @@ class GPUMemoryProbe:
                 "Configure their memory and num_gpus explicitly."
             )
 
-        existing_records = self._load_report()
+        existing_records = self._load_report() if self.reuse_report else []
         reusable = self._select_reusable_records(candidates, existing_records)
         for index, record in reusable.items():
             self._apply_record(ops[index], record)
@@ -1404,12 +1408,29 @@ class GPUMemoryProbe:
             self.steady_batches if measure_memory else 1,
             getattr(op, "_name", None) or type(op).__name__,
         )
-        return ray.get(future)
+        return self._get_probe_result(future, getattr(op, "_name", type(op).__name__), self.probe_timeout_seconds)
 
     @staticmethod
-    def _read_hardware_with_ray() -> Dict[str, Any]:
+    def _get_probe_result(future, label, timeout):
+        if timeout is None:
+            return ray.get(future)
+        try:
+            return ray.get(future, timeout=timeout)
+        except ray.exceptions.GetTimeoutError as error:
+            try:
+                ray.cancel(future, force=True)
+            except ray.exceptions.RayError:
+                pass
+            raise TimeoutError(
+                f"GPU preflight {label!r} exceeded its {timeout:g}s timeout including resource wait"
+            ) from error
+
+    @staticmethod
+    def _read_hardware_with_ray(timeout=None) -> Dict[str, Any]:
         remote_reader = ray.remote(max_calls=1)(_read_gpu_hardware)
-        return ray.get(remote_reader.options(num_cpus=0, num_gpus=1).remote())
+        return GPUMemoryProbe._get_probe_result(
+            remote_reader.options(num_cpus=0, num_gpus=1).remote(), "cache hardware verification", timeout
+        )
 
     def _select_reusable_records(self, candidates, records) -> Dict[int, Dict[str, Any]]:
         if not records:

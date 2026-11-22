@@ -30,6 +30,7 @@ from data_juicer.core.data.dataset_builder import (
     deprecated_load_data_np_kwargs,
 )
 from data_juicer.core.data.ray_dataset import RayDataset
+from data_juicer.core.elasticjuicer.compute_flow import partition_compute_flow_config
 from data_juicer.core.elasticjuicer.stage_identity import (
     assign_stage_identities,
     stamped_stage_identity,
@@ -54,6 +55,7 @@ _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE = 5
 _DEFAULT_GPU_PROBE_WARMUP_BATCHES = 1
 _DEFAULT_GPU_PROBE_STEADY_BATCHES = 3
 _DEFAULT_GPU_PROBE_SAMPLE_SEED = 42
+_COMPUTE_FLOW_PROBE_TIMEOUT_SECONDS = 600
 _DEFAULT_MAX_INITIALIZATION_OVERHEAD_RATIO = 0.10
 _LOGICAL_PARTITION_COLUMN = "__data_juicer_logical_partition_id__"
 _PARTITION_CONTENT_HASH_ALGORITHM = "sha256-sequence-v1"
@@ -117,6 +119,10 @@ def _add_logical_partition_id(batch, partition_id: int):
 
 def _matches_logical_partition(row: Dict, partition_id: int) -> bool:
     return row[_LOGICAL_PARTITION_COLUMN] == partition_id
+
+
+class _IntervalResourceError(RuntimeError):
+    """Ordinary Ray actor minimums exceed the available resources."""
 
 
 class TempDirManager:
@@ -496,7 +502,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         else:
             try:
                 timeout = float(gpu_probe_timeout_seconds)
-                if isinstance(gpu_probe_timeout_seconds, bool) or timeout <= 0:
+                if isinstance(gpu_probe_timeout_seconds, bool) or not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
                 self.gpu_probe_timeout_seconds = timeout
             except (TypeError, ValueError):
@@ -849,10 +855,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                         self._stage_profile_session = None
 
     def _start_compute_flow(self):
-        from data_juicer.core.elasticjuicer.compute_flow import (
-            partition_compute_flow_config,
-        )
-
         options = partition_compute_flow_config(self.cfg)
         self._compute_flow_session = None
         if options.enabled:
@@ -866,9 +868,14 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         """Execute inside the existing partition/checkpoint transaction boundary."""
         session = getattr(self, "_compute_flow_session", None)
         if session is not None:
-            result = session.execute(dataset.data, ops)
+            from data_juicer.core.elasticjuicer.partition_compute_flow import segment_rejection
+
+            required = tuple(map(id, ops)) in getattr(self, "_resident_required_intervals", ())
+            result = session.execute(dataset.data, ops, required=required)
             if result is not None:
                 return self._wrap_with_precomputed_parallelism(result)
+            if not segment_rejection(ops, session.options):
+                self._validate_compute_flow_fallback(ops)
         return dataset.process(ops)
 
     def _start_stage_profiles(self, ops):
@@ -1456,6 +1463,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
     def _configure_pre_partition_resources(self, dataset, ops: List) -> None:
         """Resolve worker resources before partition sizing and execution."""
+        self._resident_required_intervals = set()
         if not getattr(self, "gpu_preflight_enabled", True):
             logger.info(
                 "GPU preflight is disabled by partition.gpu_preflight_enabled=false; "
@@ -1470,6 +1478,17 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # for actor planning.
         from data_juicer.core.executor.gpu_memory_probe import GPUMemoryProbe
 
+        cfg = getattr(self, "cfg", {})
+        options = partition_compute_flow_config(cfg if hasattr(cfg, "get") else vars(cfg))
+        fresh_probe = options.enabled and not getattr(self, "_is_resuming", False)
+        consider_resident = (
+            fresh_probe
+            and all(isinstance(op, (Mapper, Filter)) for op in ops)
+            and not self._detect_convergence_points(self.cfg)
+        )
+        probe_timeout = getattr(self, "gpu_probe_timeout_seconds", None)
+        if fresh_probe and probe_timeout is None:
+            probe_timeout = _COMPUTE_FLOW_PROBE_TIMEOUT_SECONDS
         GPUMemoryProbe(
             self.work_dir,
             max_gpu_workers_per_device=getattr(
@@ -1478,7 +1497,8 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE,
             ),
             max_concurrent_probes=getattr(self, "max_concurrent_gpu_probes", None),
-            probe_timeout_seconds=getattr(self, "gpu_probe_timeout_seconds", None),
+            probe_timeout_seconds=probe_timeout,
+            reuse_report=not fresh_probe,
             warmup_batches=getattr(
                 self,
                 "gpu_probe_warmup_batches",
@@ -1498,8 +1518,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         if total_samples is not None:
             self._auto_total_samples = total_samples
 
-        # Every partition shares the same operator objects. Automatic actor
-        # parallelism and outer partition concurrency must see probe results.
+        if consider_resident and self._configure_compute_flow_resources(ops, options, total_samples):
+            return
+        self._configure_ray_data_resources(ops, total_samples)
+
+    def _configure_ray_data_resources(self, ops, total_samples):
         self._configure_operator_parallelism(ops)
         self._configure_throughput_aware_gpu_parallelism(ops, total_samples=total_samples)
         self._resolve_max_concurrent_partitions(ops, total_samples=total_samples)
@@ -1508,6 +1531,70 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             getattr(self, "_safe_gpu_workers_per_stage", None),
             total_samples=total_samples,
         )
+
+    def _configure_compute_flow_resources(self, ops, options, total_samples):
+        """Plan the ordinary fallback separately for eligible resident intervals."""
+        from data_juicer.core.elasticjuicer.partition_compute_flow import (
+            _PoolUnavailable,
+            pool_resources,
+            segment_rejection,
+        )
+        from data_juicer.utils.process_utils import RayActorResourceError
+
+        intervals = (
+            self.ckpt_manager.group_operations_for_checkpointing(ops)
+            if self.ckpt_manager.checkpoint_enabled
+            else [(0, len(ops), ops)]
+        )
+        eligible = [not segment_rejection(interval, options) for _, _, interval in intervals]
+        if not any(eligible):
+            return False
+
+        throughput_ids = set()
+        for (_, _, interval), can_use_resident in zip(intervals, eligible):
+            try:
+                self._configure_ray_data_resources(interval, total_samples)
+                if can_use_resident:
+                    self._validate_compute_flow_fallback(interval)
+            except (RayActorResourceError, _IntervalResourceError):
+                if not can_use_resident:
+                    raise
+                try:
+                    pool_resources(interval, options, ray.nodes())
+                except _PoolUnavailable as error:
+                    raise _IntervalResourceError(f"Neither Ray Data nor the resident pool fits: {error}") from error
+                self._resident_required_intervals.add(tuple(map(id, interval)))
+            else:
+                throughput_ids.update(self._throughput_planned_op_ids)
+
+        self._throughput_planned_op_ids = throughput_ids
+        self.max_concurrent_partitions = 1
+        if len(intervals) > 1 or self._resident_required_intervals:
+            self._resolved_throughput_actor_plan = None
+            self.cfg._resolved_throughput_actor_plan = None
+        return True
+
+    def _validate_compute_flow_fallback(self, ops):
+        """Reject an ordinary fallback with unschedulable minimum actor pools."""
+        from data_juicer.utils.ray_cluster_utils import detect_cluster_topology
+
+        topology = detect_cluster_topology()
+        specs, counts, cpus = [], [], 0.0
+        for op in ops:
+            count = op.num_proc[0] if isinstance(op.num_proc, (tuple, list)) else op.num_proc
+            counts.append(max(1, int(count or 1)))
+            cpus += counts[-1] * float(op.num_cpus or 1)
+            specs.append(
+                {
+                    "num_gpus": float(op.num_gpus),
+                    "memory_fraction": float(op._gpu_memory_fraction),
+                    "max_per_device": getattr(self, "max_gpu_workers_per_device", _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE),
+                }
+            )
+        if cpus + 1 > topology.total_cpus or not self._gpu_actor_requests_fit(
+            specs, counts, topology.total_gpus, getattr(topology, "gpu_devices_per_node", ()) or None
+        ):
+            raise _IntervalResourceError("Ray Data actor minimums plus one input CPU exceed the cluster budget.")
 
     def _configure_auto_operator_parallelism(self, ops: List) -> None:
         """Compatibility wrapper for the former auto-only planner."""
@@ -1705,7 +1792,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         if not resources_fit(counts):
             names = ", ".join(spec["name"] for spec in stage_specs)
-            raise RuntimeError(
+            raise _IntervalResourceError(
                 "The Ray cluster cannot host the minimum throughput-aware GPU actor plan "
                 f"(one actor for each profiled stage: {names}). Reduce per-actor GPU memory, "
                 "reduce explicit actor budgets, or add GPU/CPU resources."

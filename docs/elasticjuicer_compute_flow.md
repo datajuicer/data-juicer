@@ -84,6 +84,17 @@ checkpoint identity and recovery decisions remain owned by `PartitionedRayExecut
 
 ## Resource admission
 
+For eligible grouped runs, GPU preflight measures the current input instead
+of reusing the saved report for admission. If no GPU probe timeout is set, each
+probe task has a 600-second limit, including time waiting for Ray resources.
+
+The executor checks the ordinary Ray Data actor minimums separately for each
+checkpoint interval that can use the shared pool. An interval can run on the
+resident pool even when independent Ray Data actor pools would exceed cluster
+capacity. If that resident pool cannot start, the executor fails the interval
+before submitting ordinary mapper work. Split the stages with checkpoints,
+reduce worker requirements, or add resources if this happens.
+
 Each resident worker reserves one whole GPU and the maximum CPU requirement of
 its operators. `workers` controls the **shared** worker count for a selected
 interval, replacing the separate per-operator actor counts there. Existing actor

@@ -27,6 +27,7 @@ from data_juicer.core.elasticjuicer.compute_flow import (
 from data_juicer.core.elasticjuicer.partition_compute_flow import (
     _ROW_COLUMN,
     PartitionComputeFlowSession,
+    _PoolUnavailable,
     segment_rejection,
 )
 from data_juicer.core.elasticjuicer.stage_identity import assign_stage_identities
@@ -252,6 +253,34 @@ def test_public_run_reuses_workers_and_preserves_checkpoints(cluster, measured_p
     ops = executor._prepare_operators()
     resumed = executor._process_with_simple_partitioning(executor.datasetbuilder.load_dataset(), ops)
     assert resumed.data.take_all() == actual
+
+
+@pytest.mark.parametrize("pool_starts", [True, False])
+def test_shared_pool_can_run_when_ordinary_actor_minimums_do_not_fit(
+    cluster, measured_probe, tmp_path, monkeypatch, pool_starts
+):
+    cfg = recipe(tmp_path, checkpoint=False)
+    for item in cfg.process:
+        next(iter(item.values())).update(num_gpus=1, num_proc=2)
+
+    def forbid_fallback(*args, **kwargs):
+        pytest.fail("Ray Data cannot fit the four whole-GPU actors")
+
+    monkeypatch.setattr(RayDataset, "process", forbid_fallback)
+    executor = PartitionedRayExecutor(cfg)
+    if pool_starts:
+        assert_rows(executor.run())
+        assert cfg._resolved_compute_flow_summary["executed_intervals"] == 2
+        wait_for_gpus()
+    else:
+
+        def fail_start(*args):
+            raise _PoolUnavailable("injected startup failure")
+
+        monkeypatch.setattr(PartitionComputeFlowSession, "_ensure_pool", fail_start)
+        with pytest.raises(ComputeFlowError, match="Resident execution is required.*injected startup failure"):
+            executor.run()
+        assert cfg._resolved_compute_flow_summary["failure"]["type"] == "ComputeFlowError"
 
 
 def test_every_op_barriers_and_disabled_path_match(cluster, measured_probe, tmp_path):

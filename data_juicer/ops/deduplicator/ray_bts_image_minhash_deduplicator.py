@@ -565,6 +565,8 @@ class RayImageBTSMinhashDeduplicator(Deduplicator):
                 self.jaccard_threshold,
                 self.num_permutation,
             )
+        if self.num_bands * self.num_rows_per_band > self.num_permutation:
+            raise ValueError("num_bands * num_rows_per_band must not exceed num_permutations")
 
         # compute hash ranges and create hash tables
         self.hash_ranges = [
@@ -783,20 +785,23 @@ class RayImageBTSMinhashDeduplicator(Deduplicator):
         remote_classes = get_remote_classes()
         id_generator = remote_classes["IdGenerator"].remote()
 
-        def band_with_uid(table: pa.Table) -> pa.Table:
+        def assign_uid(table: pa.Table) -> pa.Table:
             num_rows = len(table)
             min_id, max_id = ray.get(id_generator.get_next_id.remote(num_rows))
             uid_list = range(min_id, max_id)
-            self.band_minhash(table["_minhash"], uid_list)
-            new_table = table.append_column(HashKeys.uid, pa.array(list(uid_list)))
-            new_table = new_table.drop_columns(["_minhash"])
-            return new_table
+            return table.append_column(HashKeys.uid, pa.array(list(uid_list)))
+
+        def band_existing_uid(table: pa.Table) -> pa.Table:
+            self.band_minhash(table["_minhash"], table[HashKeys.uid].to_pylist())
+            return table.drop_columns(["_minhash"])
 
         # Lazy result datasets may still reference a previous invocation's files.
         tmp_dir = os.path.join(self.work_dir, ".tmp", ray.get_runtime_context().get_job_id(), uuid4().hex)
         input_dataset = dataset
         dataset = self._compute_minhash(dataset)
-        dataset.map_batches(band_with_uid, **self._get_map_batches_kwargs()).write_parquet(tmp_dir)
+        # Persist UIDs before mutating union-find actors, so retries register
+        # the same row identities even if a worker dies after registration.
+        dataset.map_batches(assign_uid, **self._get_map_batches_kwargs()).write_parquet(tmp_dir)
         # Ray removes the output directory after a successful zero-row write.
         # Return the input's empty result without reading a missing directory or
         # exposing the intermediate MinHash/UID columns.
@@ -812,6 +817,7 @@ class RayImageBTSMinhashDeduplicator(Deduplicator):
         logger.info(f"MinHash time = {end_time - start_time}")
         concurrency = max(1, int(ray.available_resources().get("CPU", 1) // 4))
         new_dataset = ray.data.read_parquet(tmp_dir, concurrency=concurrency)
+        new_dataset = new_dataset.map_batches(band_existing_uid, **self._get_map_batches_kwargs()).materialize()
         start_time = time.time()
         self.merge()
         end_time = time.time()

@@ -356,6 +356,20 @@ class ImageMinHashRegressionTest(unittest.TestCase):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, "positive integer"):
                 self._op(minhash_batch_size=value)
 
+    def test_lsh_bands_cannot_exceed_signature_length(self):
+        for cls in (RayImageBTSMinhashDeduplicator, image_minhash.RayImageBTSMinhashDeduplicatorWithUid):
+            with (
+                self.subTest(variant=cls.__name__),
+                self.assertRaisesRegex(ValueError, "num_bands.*num_rows_per_band.*num_permutations"),
+            ):
+                self._op(cls, num_permutations=2, num_bands=3, num_rows_per_band=1)
+
+    def test_lsh_bands_can_use_all_or_part_of_signature(self):
+        for bands, rows in ((2, 1), (1, 1)):
+            with self.subTest(bands=bands, rows=rows):
+                op = self._op(num_permutations=2, num_bands=bands, num_rows_per_band=rows)
+                self.assertEqual(op.hash_ranges, [(i * rows, (i + 1) * rows) for i in range(bands)])
+
     def test_with_uid_converts_arrow_integers_before_union(self):
         op = self._op(image_minhash.RayImageBTSMinhashDeduplicatorWithUid)
         graph = image_minhash.BTSUnionFind(256, 1, 0, [], 20, 10)
@@ -486,7 +500,8 @@ class ImageMinHashRegressionTest(unittest.TestCase):
                 self.assertIsNone(op.union_find_parallel_num)
                 writer.assert_called_once()
                 ray_mock.data.read_parquet.assert_called_with(writer.call_args.args[0], concurrency=1)
-                filtered = ray_mock.data.read_parquet.return_value.map_batches
+                banded = ray_mock.data.read_parquet.return_value.map_batches.return_value.materialize.return_value
+                filtered = banded.map_batches
                 filter_function = filtered.call_args.args[0]
                 run_op = filter_function.__self__
                 self.assertIsNot(run_op, op)
@@ -543,6 +558,55 @@ class ImageMinHashRayRegressionTest(DataJuicerTestCaseBase):
         self.assertTrue(rows)
         self.assertTrue(all(set(row) == {"label"} for row in rows))
         return {row["label"] for row in rows}
+
+    def _check_worker_retry(self, labels, signatures):
+        import ray
+
+        @ray.remote(num_cpus=0)
+        class Attempts:
+            def __init__(self):
+                self.uids = []
+
+            def record(self, uids):
+                self.uids.append(uids)
+                return len(self.uids) == 1
+
+            def get_uids(self):
+                return self.uids
+
+        for cls in (RayImageBTSMinhashDeduplicator, image_minhash.RayImageBTSMinhashDeduplicatorWithUid):
+            with self.subTest(variant=cls.__name__):
+                attempts = Attempts.remote()
+                self.addCleanup(ray.kill, attempts)
+
+                class RetryingDeduplicator(cls):
+                    def band_minhash(self, minhash_list, uid_list):
+                        uid_list = list(uid_list)
+                        super().band_minhash(minhash_list, uid_list)
+                        if ray.get(attempts.record.remote(uid_list)):
+                            # Fail after the actor mutation but before the batch is returned.
+                            os._exit(1)
+
+                op = self._op(RetryingDeduplicator)
+                uids = None
+                if cls is image_minhash.RayImageBTSMinhashDeduplicatorWithUid:
+                    uids = list(range(len(labels)))
+                rows = op.run(self._dataset(labels, signatures, uids)).take_all()
+                retained = [row["label"] for row in rows]
+                self.assertEqual(len(retained), len(set(map(tuple, signatures))))
+                self.assertIn(labels[-1], retained)
+                self.assertTrue(all(set(row) == {"label"} for row in rows))
+                history = ray.get(attempts.get_uids.remote())
+                self.assertGreaterEqual(len(history), 2)
+                self.assertEqual(history[0], history[1])
+
+    @TEST_TAG("ray")
+    def test_worker_retry_preserves_single_row(self):
+        self._check_worker_retry(["only-row"], [[7, 9]])
+
+    @TEST_TAG("ray")
+    def test_worker_retry_preserves_duplicate_representative_and_unique_row(self):
+        self._check_worker_retry(["original", "duplicate", "unique"], [[7, 9], [7, 9], [1, 2]])
 
     @TEST_TAG("ray")
     def test_reusing_both_variants_preserves_previous_lazy_results(self):

@@ -326,38 +326,79 @@ def test_failure_releases_workers_and_does_not_retry_on_legacy_path(
     wait_for_gpus()
 
 
-def test_public_resume_after_partial_checkpoint_commit(cluster, measured_probe, tmp_path, monkeypatch):
+def exported_rows(path):
+    return [json.loads(line) for shard in sorted(Path(path).glob("*.json")) for line in shard.read_text().splitlines()]
+
+
+@pytest.mark.parametrize("mixed_progress", [False, True])
+def test_public_resume_after_partial_checkpoint_commit(cluster, measured_probe, tmp_path, monkeypatch, mixed_progress):
     failure_file = tmp_path / "transient_failure"
+    audit = tmp_path / "mapper_calls"
+    recipe(tmp_path)
+    path = tmp_path / "recipe.yaml"
+    spec = yaml.safe_load(path.read_text())
+    spec["auto_op_parallelism"] = True
+    spec["checkpoint"]["n_ops"] = 1 if mixed_progress else 3
+    base = dict(spec["process"][0]["compute_flow_test_mapper"], num_proc=-1, num_gpus=1, audit_path=str(audit))
+    spec["process"] = [
+        {
+            "compute_flow_test_mapper": dict(
+                base, scale=scale, failure="transient" if scale == 5 else None, failure_file=str(failure_file)
+            )
+        }
+        for scale in (2, 3, 5)
+    ]
+    path.write_text(yaml.safe_dump(spec))
+    # The Ray node advertises logical GPUs. Only CUDA memory discovery and probe measurements are synthetic.
+    monkeypatch.setattr("data_juicer.utils.ray_utils.ray_available_gpu_memories", lambda: [16000, 16000])
+    monkeypatch.setattr("data_juicer.utils.resource_utils.is_cuda_available", lambda: True)
+    monkeypatch.setattr("data_juicer.ops.base_op.is_cuda_available", lambda: True)
+    args = ["--config", str(path)]
+    reference = init_cli(args)
+    reference.export_path = str(tmp_path / "reference.jsonl")
+    expected = PartitionedRayExecutor(reference).run().data.take_all()
+    assert [r["id"] for r in expected] == list(range(36))
+    assert all(r["value"] == (r["id"] + 1) * 30 and r[Fields.meta]["calls"] == 3 for r in expected)
     failure_file.touch()
-    cfg = recipe(tmp_path, failure="transient", failure_file=str(failure_file))
+    cfg = init_cli(args)
     executor = PartitionedRayExecutor(cfg)
+    if mixed_progress:
+        save = executor.ckpt_manager.save_checkpoint
+
+        def interrupted_save(dataset, op_idx, op_name, partition_id, **kwargs):
+            if partition_id == 3 and op_idx == 0:
+                raise RuntimeError("injected transient failure")
+            return save(dataset, op_idx, op_name, partition_id, **kwargs)
+
+        monkeypatch.setattr(executor.ckpt_manager, "save_checkpoint", interrupted_save)
     with pytest.raises(Exception, match="injected transient failure"):
         executor.run()
-    assert executor.ckpt_manager.find_latest_checkpoint(0)[0] == 1
-    assert executor.ckpt_manager.find_latest_checkpoint(1)[0] == 1
-    assert executor.ckpt_manager.find_latest_checkpoint(2) is None
-    assert cfg._resolved_compute_flow_summary["executed_intervals"] == 1
-    failure_audit = Path(cfg._resolved_compute_flow_summary["artifact_dir"]) / "events.jsonl"
-    failure_events = failure_audit.read_bytes()
-    wait_for_gpus()
+    assert [executor.ckpt_manager.find_latest_checkpoint(i)[0] for i in (0, 1)] == [2, 2]
+    assert executor.ckpt_manager.find_latest_checkpoint(3) is None
+    partial = executor.ckpt_manager.find_latest_checkpoint(2)
+    assert (partial[0] if partial else None) == (0 if mixed_progress else None)
+
     failure_file.unlink()
-    processed_ids = []
-    original = RayDataset.process
+    offset = audit.stat().st_size
+    planned = []
+    probe = GPUMemoryProbe.resolve
 
-    def record_missing_partitions(self, ops, **kwargs):
-        ids = [row["id"] for row in self.data.take_all()]
-        assert not set(ids) & set(range(18)), "checkpointed rows were reprocessed"
-        processed_ids.extend(ids)
-        return original(self, ops, **kwargs)
+    def record_preflight(self, dataset, ops):
+        planned.extend((row["id"], op.scale) for row in dataset.data.take_all() for op in ops)
+        return probe(self, dataset, ops)
 
-    monkeypatch.setattr(RayDataset, "process", record_missing_partitions)
-    resumed_cfg = init_cli(["--config", str(tmp_path / "recipe.yaml"), "--resume", cfg.job_id])
-    resumed = PartitionedRayExecutor(resumed_cfg)
-    assert_rows(resumed.run())
-    assert set(processed_ids) == set(range(18, 36))
-    assert failure_audit.read_bytes() == failure_events
-    assert resumed_cfg._resolved_compute_flow_summary["pools"] == []
-    assert "resume" in resumed_cfg._resolved_compute_flow_summary["fallbacks"][0]
+    monkeypatch.setattr(GPUMemoryProbe, "resolve", record_preflight)
+    resumed_cfg = init_cli([*args, "--resume", cfg.job_id])
+    assert PartitionedRayExecutor(resumed_cfg).run().data.take_all() == expected
+    assert exported_rows(resumed_cfg.export_path) == exported_rows(reference.export_path)
+    with audit.open() as stream:
+        stream.seek(offset)
+        calls = sorted(tuple(map(int, line.split())) for line in stream)
+    assert calls == [
+        (row, scale) for row in range(18, 36) for scale in ((3, 5) if mixed_progress and row < 27 else (2, 3, 5))
+    ]
+    assert resumed_cfg._resolved_compute_flow_summary["executed_intervals"] >= 2
+    assert sorted(planned) == calls
     wait_for_gpus()
 
 

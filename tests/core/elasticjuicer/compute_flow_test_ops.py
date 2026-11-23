@@ -14,10 +14,11 @@ class ComputeFlowTestMapper(Mapper):
     _accelerator = "cuda"
     _supports_adaptive_batching = True
 
-    def __init__(self, scale=2, threshold=2, delay=0.0, failure=None, failure_file=None, **kwargs):
+    def __init__(self, scale=2, threshold=2, delay=0.0, failure=None, failure_file=None, audit_path=None, **kwargs):
         super().__init__(**kwargs)
         self.scale, self.threshold, self.delay, self.failure = scale, threshold, delay, failure
         self.failure_file = failure_file
+        self.audit_path = audit_path
 
     def process_batched(self, samples):
         time.sleep(self.delay)
@@ -35,4 +36,7 @@ class ComputeFlowTestMapper(Mapper):
         if self.failure == "partition":
             samples.pop("__data_juicer_logical_partition_id__")
         samples["value"] = [x * self.scale for x in samples["value"]]
+        if self.audit_path:
+            with open(self.audit_path, "a") as stream:
+                stream.write("".join(f"{row_id} {self.scale}\n" for row_id in samples["id"]))
         return samples

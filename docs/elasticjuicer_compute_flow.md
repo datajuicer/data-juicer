@@ -77,10 +77,12 @@ interval, stage identities and resource requirements match. A different interval
 replaces the pool. The pool is released before a legacy/global-operation path,
 final export, and on all normal or exceptional exits from `run()`.
 
-Checkpoint resume uses the existing per-partition path, including heterogeneous
-resume positions. Completed checkpoint rows are not sent through resident
-workers again. This first version does not use compute flow during recovery;
-checkpoint identity and recovery decisions remain owned by `PartitionedRayExecutor`.
+On resume, the executor validates the saved partition boundaries and input
+hashes. For a linear compute-flow recipe it restores each partition from its
+latest readable checkpoint and exports completed partitions directly. It probes
+and plans each remaining interval on that partition's actual input, using the
+same shared-pool admission and fallback rules as the initial run. Partitions
+resume sequentially so each can use the configured GPU budget.
 
 ## Resource admission
 

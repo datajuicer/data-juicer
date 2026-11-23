@@ -865,17 +865,14 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             self._compute_flow_session = PartitionComputeFlowSession(options, self.work_dir)
 
     def _process_execution_interval(self, dataset, ops):
-        """Execute inside the existing partition/checkpoint transaction boundary."""
+        """Execute a whole dataset or an interval chosen by the executor."""
         session = getattr(self, "_compute_flow_session", None)
         if session is not None:
-            from data_juicer.core.elasticjuicer.partition_compute_flow import segment_rejection
-
             required = tuple(map(id, ops)) in getattr(self, "_resident_required_intervals", ())
             result = session.execute(dataset.data, ops, required=required)
             if result is not None:
                 return self._wrap_with_precomputed_parallelism(result)
-            if not segment_rejection(ops, session.options):
-                self._validate_compute_flow_fallback(ops)
+            self._validate_compute_flow_fallback(ops)
         return dataset.process(ops)
 
     def _start_stage_profiles(self, ops):
@@ -992,7 +989,17 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Profile unresolved GPU resources and plan per-operator parallelism
         # only after the generic schema/environment validation has succeeded.
-        self._configure_pre_partition_resources(dataset, ops)
+        self._dag_ops = ops
+        convergence_points = self._detect_convergence_points(self.cfg)
+        self._plan_on_resume = (
+            is_resuming
+            and self.ckpt_manager.checkpoint_enabled
+            and partition_compute_flow_config(self.cfg).enabled
+            and not convergence_points
+            and all(isinstance(op, (Mapper, Filter)) for op in ops)
+        )
+        if not self._plan_on_resume:
+            self._configure_pre_partition_resources(dataset, ops)
 
         # A resumed job must reuse the saved partition count before DAG
         # initialization. Auto mode can otherwise choose a different count if
@@ -1012,7 +1019,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # per-worker requests used by the cluster-aware bounds.
         if not resume_requested and self.partition_mode == "auto":
             self._configure_auto_partitioning(dataset, ops)
-        elif self.partition_size_cfg is not None:
+        elif not resume_requested and self.partition_size_cfg is not None:
             # split_at_indices() materializes the input too. Retaining that
             # materialization here lets counting and splitting share one stable
             # snapshot instead of executing the lazy input plan repeatedly.
@@ -1047,9 +1054,6 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             "parallel_groups_count": len(self.pipeline_dag.parallel_groups) if self.pipeline_dag else 0,
         }
         self.log_job_start(job_config, self.num_partitions)
-
-        # Detect convergence points for global operations
-        convergence_points = self._detect_convergence_points(self.cfg)
 
         if convergence_points:
             logger.info(f"Found convergence points at operations: {convergence_points}")
@@ -1107,6 +1111,15 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             f"Partitioning complete: {partitioning_info.num_partitions} partitions, "
             f"{partitioning_info.total_rows} total rows"
         )
+
+        if getattr(self, "_plan_on_resume", False):
+            # GPU preflight and the resident pool can each use the whole node.
+            # Give each partition its original unplanned operator settings.
+            results = [
+                self._process_partition(partition, index, len(partitions), ops)[1]
+                for index, partition in enumerate(partitions)
+            ]
+            return self._wrap_with_precomputed_parallelism(self._concatenate_in_order(results))
 
         if self._should_use_execution_groups(dataset, ops):
             return self._process_partition_execution_groups(partitions, partitioning_info, ops)
@@ -1299,9 +1312,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                 self._tag_execution_partition(partition, partition_id)
                 for partition, partition_id in zip(group_partitions, partition_ids)
             ]
-            combined = tagged[0]
-            for tagged_partition in tagged[1:]:
-                combined = combined.union(tagged_partition)
+            combined = self._concatenate_in_order(tagged)
             try:
                 processed = self._process_execution_group_with_checkpointing(
                     self._wrap_with_precomputed_parallelism(combined),
@@ -1324,10 +1335,16 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
                     partition_id=partition_id,
                 )
 
-        merged = processed_groups[0]
-        for processed in processed_groups[1:]:
-            merged = merged.union(processed)
+        merged = self._concatenate_in_order(processed_groups)
         return RayDataset(merged, cfg=self.cfg)
+
+    @staticmethod
+    def _concatenate_in_order(datasets):
+        """Ray union can interleave blocks from different partitions."""
+        if len(datasets) == 1:
+            return datasets[0]
+        refs = [ref for dataset in datasets for ref in dataset.to_arrow_refs()]
+        return ray.data.from_arrow_refs(refs)
 
     def _process_execution_group_with_checkpointing(
         self,
@@ -1480,7 +1497,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         cfg = getattr(self, "cfg", {})
         options = partition_compute_flow_config(cfg if hasattr(cfg, "get") else vars(cfg))
-        fresh_probe = options.enabled and not getattr(self, "_is_resuming", False)
+        fresh_probe = options.enabled and (
+            not getattr(self, "_is_resuming", False) or getattr(self, "_plan_on_resume", False)
+        )
         consider_resident = (
             fresh_probe
             and all(isinstance(op, (Mapper, Filter)) for op in ops)
@@ -1543,7 +1562,7 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         intervals = (
             self.ckpt_manager.group_operations_for_checkpointing(ops)
-            if self.ckpt_manager.checkpoint_enabled
+            if self.ckpt_manager.checkpoint_enabled and not getattr(self, "_plan_on_resume", False)
             else [(0, len(ops), ops)]
         )
         eligible = [not segment_rejection(interval, options) for _, _, interval in intervals]
@@ -1578,19 +1597,27 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         """Reject an ordinary fallback with unschedulable minimum actor pools."""
         from data_juicer.utils.ray_cluster_utils import detect_cluster_topology
 
-        topology = detect_cluster_topology()
         specs, counts, cpus = [], [], 0.0
         for op in ops:
+            if not op.use_ray_actor():
+                continue
             count = op.num_proc[0] if isinstance(op.num_proc, (tuple, list)) else op.num_proc
-            counts.append(max(1, int(count or 1)))
-            cpus += counts[-1] * float(op.num_cpus or 1)
+            minimum = max(1, int(count or 1))
+            cpus += minimum * float(op.num_cpus or 1)
+            if getattr(op, "accelerator", None) != "cuda":
+                continue
+            counts.append(minimum)
+            gpu_fraction = float(op.num_gpus or 1)
             specs.append(
                 {
-                    "num_gpus": float(op.num_gpus),
-                    "memory_fraction": float(op._gpu_memory_fraction),
+                    "num_gpus": gpu_fraction,
+                    "memory_fraction": float(getattr(op, "_gpu_memory_fraction", 0) or gpu_fraction),
                     "max_per_device": getattr(self, "max_gpu_workers_per_device", _DEFAULT_MAX_GPU_WORKERS_PER_DEVICE),
                 }
             )
+        if not specs:
+            return
+        topology = detect_cluster_topology()
         if cpus + 1 > topology.total_cpus or not self._gpu_actor_requests_fit(
             specs, counts, topology.total_gpus, getattr(topology, "gpu_devices_per_node", ()) or None
         ):
@@ -2318,102 +2345,74 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
             return processed_dataset
 
-        # check the latest checkpoint for the partition
-        latest_checkpoint = self.ckpt_manager.find_latest_checkpoint(partition_id)
-
-        # Group operations based on checkpoint strategy
-        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
-        logger.info(f"Grouped {len(ops)} operations into {len(op_groups)} groups for checkpointing")
-        logger.info(f"Detailed op groups: {op_groups}")
-
         current_dataset = dataset
+        next_op = 0
+        for op_idx, _, path in self.ckpt_manager.list_checkpoints(partition_id):
+            if not 0 <= op_idx < len(ops):
+                continue
+            restored = self.ckpt_manager.load_checkpoint(op_idx, ops[op_idx]._name, partition_id, cfg=self.cfg)
+            if restored is None:
+                continue
+            try:
+                restored.data = restored.data.materialize()
+            except (ray.exceptions.RayError, ValueError, OSError) as error:
+                logger.warning(f"Skipping unreadable checkpoint {path}: {error}")
+                continue
+            restored._auto_proc = False
+            current_dataset, next_op = restored, op_idx + 1
+            break
 
-        for group_idx, (start_idx, end_idx, group_ops) in enumerate(op_groups):
-            logger.info(
-                f"Processing partition {partition_id}, group {group_idx + 1}/{len(op_groups)}: operations {start_idx}-{end_idx-1}"
-            )
-
-            if latest_checkpoint and latest_checkpoint[0] >= end_idx:
-                logger.info(
-                    f"Partition {partition_id}: All operations in group {group_idx + 1} already processed (checkpoint at op {latest_checkpoint[0]}, group ends at {end_idx-1}), skipping"
-                )
+        op_groups = self.ckpt_manager.group_operations_for_checkpointing(ops)
+        for group_idx, (start_idx, end_idx, _) in enumerate(op_groups):
+            group_ops = ops[max(start_idx, next_op) : end_idx]
+            if not group_ops:
                 continue
 
-            if latest_checkpoint and latest_checkpoint[0] >= start_idx:
-                logger.info(f"Partition {partition_id}: Resuming from checkpoint at operation {latest_checkpoint[0]}")
-                current_dataset = self.ckpt_manager.load_checkpoint(
-                    latest_checkpoint[0], latest_checkpoint[1], partition_id, cfg=self.cfg
-                )
-                if current_dataset is None:
-                    logger.warning(f"Partition {partition_id}: Failed to load checkpoint, starting from beginning")
-                    current_dataset = dataset
-                    group_ops = ops[start_idx:end_idx]  # Start from beginning of group
-                    logger.info(
-                        f"Partition {partition_id}: Will process {len(group_ops)} operations from beginning of group"
-                    )
-                else:
-                    current_dataset._auto_proc = False
-                    logger.info(
-                        f"Partition {partition_id}: Successfully loaded checkpoint, resuming from operation {latest_checkpoint[0] + 1}"
-                    )
-                    group_ops = ops[latest_checkpoint[0] + 1 : end_idx]  # Resume from checkpoint
-                    if not group_ops:
-                        logger.info(
-                            f"Partition {partition_id}: All operations in this group already processed, skipping"
-                        )
-                        continue
-                    else:
-                        logger.info(
-                            f"Partition {partition_id}: Will process {len(group_ops)} remaining operations from checkpoint"
-                        )
+            logger.info(f"Partition {partition_id}: Processing {len(group_ops)} operations in group {group_idx + 1}")
 
-            # Process the group of operations
-            if group_ops:
-                logger.info(
-                    f"Partition {partition_id}: Processing {len(group_ops)} operations in group {group_idx + 1}"
-                )
+            # Get input row count before processing
+            input_rows = current_dataset.data.count()
+            start_time = time.time()
 
-                # Get input row count before processing
-                input_rows = current_dataset.data.count()
-                start_time = time.time()
+            # Pre-execute DAG monitoring (log operation start events)
+            if self.pipeline_dag:
+                self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
 
-                # Pre-execute DAG monitoring (log operation start events)
-                if self.pipeline_dag:
-                    self._pre_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id)
-
-                # Execute operations (lazy)
+            # Execute operations (lazy)
+            if getattr(self, "_plan_on_resume", False):
+                self._compute_flow_session.release()
+                self._configure_pre_partition_resources(current_dataset, group_ops)
+                current_dataset = self._process_execution_interval(current_dataset, group_ops)
+            else:
                 current_dataset = current_dataset.process(group_ops)
 
-                # Force materialization (required for checkpointing anyway)
-                current_dataset.data = current_dataset.data.materialize()
+            # Force materialization (required for checkpointing anyway)
+            current_dataset.data = current_dataset.data.materialize()
 
-                # Get metrics after execution
-                duration = time.time() - start_time
-                output_rows = current_dataset.data.count()
+            # Get metrics after execution
+            duration = time.time() - start_time
+            output_rows = current_dataset.data.count()
 
-                logger.info(
-                    f"Partition {partition_id}, group {group_idx + 1}: Processed {input_rows}→{output_rows} rows in {duration:.2f}s"
-                )
+            logger.info(
+                f"Partition {partition_id}, group {group_idx + 1}: Processed {input_rows}→{output_rows} rows in {duration:.2f}s"
+            )
 
-                # Post-execute DAG monitoring with real metrics
-                if self.pipeline_dag:
-                    metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
-                    self._post_execute_operations_with_dag_monitoring(
-                        group_ops, partition_id=partition_id, metrics=metrics
-                    )
+            # Post-execute DAG monitoring with real metrics
+            if self.pipeline_dag:
+                metrics = {"duration": duration, "input_rows": input_rows, "output_rows": output_rows}
+                self._post_execute_operations_with_dag_monitoring(group_ops, partition_id=partition_id, metrics=metrics)
 
             # Checkpoint after the last operation in the group
-            if group_ops:
-                last_op_idx = end_idx - 1
-                last_op_name = ops[last_op_idx]._name
-                if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
-                    logger.info(
-                        f"Partition {partition_id}: Creating checkpoint after operation {last_op_idx}: {last_op_name}"
-                    )
-                    # Data already materialized above, safe to checkpoint
-                    self.ckpt_manager.save_checkpoint(
-                        current_dataset, last_op_idx, last_op_name, partition_id, cfg=self.cfg
-                    )
+            last_op_idx = end_idx - 1
+            last_op_name = ops[last_op_idx]._name
+            if self.ckpt_manager.should_checkpoint(last_op_idx, last_op_name):
+                logger.info(
+                    f"Partition {partition_id}: Creating checkpoint after operation {last_op_idx}: {last_op_name}"
+                )
+                # Data already materialized above, safe to checkpoint
+                self.ckpt_manager.save_checkpoint(
+                    current_dataset, last_op_idx, last_op_name, partition_id, cfg=self.cfg
+                )
 
         return current_dataset
 

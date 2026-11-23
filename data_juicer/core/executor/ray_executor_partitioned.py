@@ -1203,10 +1203,11 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
         # Merge all processed partitions back into a single dataset
         logger.info("Merging processed partitions...")
-        if len(processed_partitions) == 1:
-            merged_dataset = processed_partitions[0]
+        if getattr(self, "_is_resuming", False):
+            # Saved row boundaries define the order, even when partitions resume
+            # on the ordinary per-partition path at different checkpoints.
+            merged_dataset = self._concatenate_in_order(processed_partitions)
         else:
-            # Union all partitions
             merged_dataset = processed_partitions[0]
             for partition in processed_partitions[1:]:
                 merged_dataset = merged_dataset.union(partition)

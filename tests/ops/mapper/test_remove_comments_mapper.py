@@ -43,6 +43,23 @@ class RemoveCommentsMapperTest(DataJuicerTestCaseBase):
         }]
         self._run_remove_comments(samples, RemoveCommentsMapper(inline=False))
 
+    def test_no_percent_keeps_text_unchanged(self):
+        # Neither pattern can match without a '%', so the text must pass
+        # through untouched for every switch combination.
+        samples = [
+            {'text': 'Plain text without comments.',
+             'target': 'Plain text without comments.'},
+            {'text': '', 'target': ''},
+            {'text': '中文 and emoji \U0001F600 stay',
+             'target': '中文 and emoji \U0001F600 stay'},
+            {'text': 'a\\b#c{d}\n e', 'target': 'a\\b#c{d}\n e'},
+        ]
+        for op in (RemoveCommentsMapper(),
+                   RemoveCommentsMapper(multiline=False),
+                   RemoveCommentsMapper(inline=False),
+                   RemoveCommentsMapper(inline=False, multiline=False)):
+            self._run_remove_comments(samples, op)
+
     def test_tex_case(self):
 
         samples = [{

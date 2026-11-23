@@ -42,6 +42,9 @@ class RemoveHeaderMapper(Mapper):
         # retry from every offset and cannot use its literal-prefix fast
         # search. Searching the headers on their own and slicing the text
         # gives the same result with a cheaper scan.
+        # Keep the plain-string attribute that existed before this change;
+        # subclass code and callers may read it.
+        self.pattern = headers
         self.header_pattern = re.compile(headers, re.DOTALL)
 
         self.drop_no_head = drop_no_head

@@ -270,7 +270,7 @@ def test_shared_pool_can_run_when_ordinary_actor_minimums_do_not_fit(
     executor = PartitionedRayExecutor(cfg)
     if pool_starts:
         assert_rows(executor.run())
-        assert cfg._resolved_compute_flow_summary["executed_intervals"] == 2
+        assert cfg._resolved_compute_flow_summary["executed_intervals"] == 1
         wait_for_gpus()
     else:
 
@@ -324,10 +324,6 @@ def test_failure_releases_workers_and_does_not_retry_on_legacy_path(
         PartitionedRayExecutor(cfg).run()
     assert cfg._resolved_compute_flow_summary["failure"] is not None
     wait_for_gpus()
-
-
-def exported_rows(path):
-    return [json.loads(line) for shard in sorted(Path(path).glob("*.json")) for line in shard.read_text().splitlines()]
 
 
 @pytest.mark.parametrize("mixed_progress", [False, True])
@@ -436,8 +432,49 @@ def test_tagging_mapper_metadata_setup_matches_ray_data(cluster, measured_probe,
     source.write_text("".join(json.dumps({"id": i, "value": i + 1, "text": str(i)}) + "\n" for i in range(36)))
     cfg = recipe(tmp_path, checkpoint=False)
     assert_rows(PartitionedRayExecutor(cfg).run())
-    assert cfg._resolved_compute_flow_summary["executed_intervals"] == 2
+    assert cfg._resolved_compute_flow_summary["executed_intervals"] == 1
     wait_for_gpus()
+
+
+def exported_rows(path):
+    return [json.loads(line) for shard in sorted(Path(path).glob("*.json")) for line in shard.read_text().splitlines()]
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_no_checkpoint_executes_one_ordered_dataset(cluster, measured_probe, tmp_path, monkeypatch, enabled):
+    cfg = recipe(tmp_path, checkpoint=False, enabled=enabled)
+    executor = PartitionedRayExecutor(cfg)
+    for method in ("_split_dataset_deterministic", "_tag_execution_partition", "_process_partition_execution_groups"):
+        monkeypatch.setattr(executor, method, lambda *args: pytest.fail("unexpected logical partition processing"))
+    load = executor.datasetbuilder.load_dataset
+
+    def multi_block_input(**kwargs):
+        dataset = load(**kwargs)
+        dataset.data = dataset.data.repartition(6, shuffle=False).materialize()
+        return dataset
+
+    monkeypatch.setattr(executor.datasetbuilder, "load_dataset", multi_block_input)
+    with patch.object(executor, "_process_execution_interval", wraps=executor._process_execution_interval) as execute:
+        rows = assert_rows(executor.run())
+    assert [(row["id"], row["value"]) for row in exported_rows(cfg.export_path)] == [
+        (row["id"], row["value"]) for row in rows
+    ]
+    assert execute.call_count == 1
+    if enabled:
+        assert cfg._resolved_compute_flow_summary["executed_intervals"] == 1
+    wait_for_gpus()
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_ordinary_execution_validates_minimums_before_mapper_work(
+    cluster, measured_probe, tmp_path, monkeypatch, enabled
+):
+    cfg = recipe(tmp_path, checkpoint=False, enabled=enabled)
+    for entry in cfg.process:
+        entry["compute_flow_test_mapper"].update(num_proc=2, num_gpus=1, adaptive_batching=not enabled)
+    monkeypatch.setattr(RayDataset, "process", lambda *args, **kwargs: pytest.fail("unschedulable actor pools"))
+    with pytest.raises(RuntimeError, match="Ray Data actor minimums"):
+        PartitionedRayExecutor(cfg).run()
 
 
 def test_mixed_ray_data_and_resident_intervals_collect_handles(cluster, measured_probe, tmp_path):

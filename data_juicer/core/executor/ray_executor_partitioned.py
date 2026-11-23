@@ -1001,6 +1001,13 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         if not self._plan_on_resume:
             self._configure_pre_partition_resources(dataset, ops)
 
+        whole_dataset = (
+            not is_resuming
+            and not resume_requested
+            and not convergence_points
+            and not self.ckpt_manager.checkpoint_enabled
+            and self._whole_dataset_mapper_chain(ops)
+        )
         # A resumed job must reuse the saved partition count before DAG
         # initialization. Auto mode can otherwise choose a different count if
         # the Ray cluster resources changed between runs.
@@ -1017,7 +1024,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         # (DAG needs final partition count). At this point GPU preflight and
         # automatic operator parallelism have both populated the real
         # per-worker requests used by the cluster-aware bounds.
-        if not resume_requested and self.partition_mode == "auto":
+        if whole_dataset:
+            self.num_partitions = 1
+        elif not resume_requested and self.partition_mode == "auto":
             self._configure_auto_partitioning(dataset, ops)
         elif not resume_requested and self.partition_size_cfg is not None:
             # split_at_indices() materializes the input too. Retaining that
@@ -1058,6 +1067,12 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
         if convergence_points:
             logger.info(f"Found convergence points at operations: {convergence_points}")
             final_dataset = self._process_with_convergence(dataset, ops, convergence_points)
+        elif whole_dataset:
+            # One dataset is also the ordinary Ray Data control for the same recipe.
+            if self._compute_flow_session is None:
+                self._validate_compute_flow_fallback(ops)
+            final_dataset = self._process_execution_interval(self._wrap_with_precomputed_parallelism(dataset.data), ops)
+            final_dataset.data = final_dataset.data.materialize()
         else:
             logger.info("No convergence points found, processing with simple partitioning")
             final_dataset = self._process_with_simple_partitioning(dataset, ops)
@@ -1081,6 +1096,15 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             return None
 
         return final_dataset
+
+    def _whole_dataset_mapper_chain(self, ops):
+        """Allow an explicitly configured linear strategy to consume the input directly."""
+        from data_juicer.core.elasticjuicer.partition_compute_flow import segment_rejection
+
+        partition = self.cfg.get("partition") or {}
+        if not self.cfg.get("elastic_juicer_adaptive_batching") or partition.get("compute_flow") is None:
+            return False
+        return segment_rejection(ops, partition_compute_flow_config(self.cfg)) is None
 
     def cleanup_temp_files(self):
         """Manually clean up temporary files from previous runs."""

@@ -60,6 +60,12 @@ stopped to make room.
 
 ## Partitions, checkpoint barriers and resume
 
+When checkpointing is off, an eligible linear Mapper chain runs once on the
+entire Ray Dataset in input order. The executor skips logical partition
+splitting, tagging and merging. To compare ordinary Ray Data on the same input,
+set `partition.compute_flow.enabled: false` in the same recipe and keep the
+other settings. Global operations keep their existing execution barriers.
+
 Logical partition IDs remain attached to every row until the existing checkpoint
 manager saves each partition. Internal sequence IDs additionally check row order
 and row conservation after every resident stage, then disappear from the result.

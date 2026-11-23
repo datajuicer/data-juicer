@@ -1099,7 +1099,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
 
     def _whole_dataset_mapper_chain(self, ops):
         """Allow an explicitly configured linear strategy to consume the input directly."""
-        from data_juicer.core.elasticjuicer.partition_compute_flow import segment_rejection
+        from data_juicer.core.elasticjuicer.partition_compute_flow import (
+            segment_rejection,
+        )
 
         partition = self.cfg.get("partition") or {}
         if not self.cfg.get("elastic_juicer_adaptive_batching") or partition.get("compute_flow") is None:

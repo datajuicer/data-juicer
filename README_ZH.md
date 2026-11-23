@@ -88,7 +88,7 @@ for s in res_ds:
 ## 📰 动态
 
 <details open>
-<summary>[待发布] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>
+<summary>[2026-11-23] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>
 
 * 🧪 基准污染过滤器 — 新增 `benchmark_contamination_filter`，按字符或词的 n-gram 检查样本与参考基准的重叠。参考文件支持 JSONL、JSON、TXT 及其 gzip 压缩格式。设置 `benchmark_path` 后启用。默认 `threshold: 0.0` 会丢弃含任一匹配 n-gram 的样本，同领域数据需调整阈值。串联多个基准过滤器时，各自使用独立的统计字段名。
 * 📝 LLM 抽取输出 — 七个抽取算子在 `drop_text: true` 时统一删除配置的源字段，覆盖嵌套路径、带点的字面键、已有结果及批处理输出。源文本位于 metadata 中时，属性和事件抽取会保留新生成的结果。删除源字段后移除空父结构，保证 Parquet 可导出；保留同级字段及 `drop_text: false` 的行为。

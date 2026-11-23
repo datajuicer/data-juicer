@@ -89,7 +89,7 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
-<summary>[Unreleased] Release v1.6.3: <b>Benchmark Contamination Filter; Lower-Memory Processing; Export & Operator Fixes</b></summary>
+<summary>[2026-11-23] Release v1.6.3: <b>Benchmark Contamination Filter; Lower-Memory Processing; Export & Operator Fixes</b></summary>
 
 * 🧪 *Benchmark Contamination Filter* — New `benchmark_contamination_filter` checks character or word n-gram overlap against a reference benchmark in JSONL, JSON, or TXT format, optionally gzipped. Set `benchmark_path` to enable it. The default `threshold: 0.0` drops any sample with a matching n-gram; tune it for same-domain data. Use distinct stats keys for each benchmark when chaining these filters.
 * 📝 *LLM Extraction Output* — Seven extraction mappers consistently remove the configured source field with `drop_text: true`, including nested and literal dotted paths, cached results, and batched output. Attribute and event extraction retain generated metadata when the source text is inside that metadata. Empty parent structs are removed so Parquet export works; sibling fields and `drop_text: false` remain intact.

@@ -1,4 +1,6 @@
+import heapq
 import numbers
+from itertools import islice
 from typing import Optional
 
 from pydantic import Field, PositiveInt
@@ -108,7 +110,16 @@ class FrequencySpecifiedFieldSelector(Selector):
         # Pick the top select_num values by frequency.
         # reverse=True  → most frequent first
         # reverse=False → least frequent first
-        sorted_values = sorted(value_counts.items(), key=lambda x: x[1], reverse=self.reverse)
+        count = int(select_num)
+        if len(value_counts) == len(dataset):
+            # Every frequency is one, so stable ranking is encounter order.
+            sorted_values = list(islice(value_counts.items(), count))
+        elif count * 10 >= len(value_counts):
+            # Full sorting avoids heap overhead when selecting a large fraction.
+            sorted_values = sorted(value_counts.items(), key=lambda x: x[1], reverse=self.reverse)[:count]
+        else:
+            select_groups = heapq.nlargest if self.reverse else heapq.nsmallest
+            sorted_values = select_groups(count, value_counts.items(), key=lambda x: x[1])
         selected_values = set(v for v, count in sorted_values[: int(select_num)])
 
         # Second pass: collect indices grouped by value (O(selected) memory).

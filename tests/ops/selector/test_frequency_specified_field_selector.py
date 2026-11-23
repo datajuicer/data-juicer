@@ -9,6 +9,41 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class FrequencySpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
 
+    def test_stable_topk_matches_frequency_group_reference(self):
+        import math
+        from collections import Counter
+
+        def normalize(value):
+            return ("nan",) if isinstance(value, float) and math.isnan(value) else value
+
+        cases = [
+            ["a", "b", "a", "c", "b", "d", None, None],
+            [1.0, float("nan"), 2.0, float("nan"), None, 1.0, 3.0],
+            ["z", "y", "x", "w"],
+            [f"group-{i}" for i in range(40) for _ in range(i % 5 + 1)],
+        ]
+        options = [{"topk": 1}, {"topk": 3}, {"topk": 100}, {"top_ratio": 0},
+                   {"top_ratio": 0.5}, {"top_ratio": 1}, {"top_ratio": 0.5, "topk": 1}]
+        for values in cases:
+            keys = [normalize(v) for v in values]
+            counts = Counter(keys)
+            for reverse in (True, False):
+                for option in options:
+                    count = len(counts)
+                    if option.get("top_ratio") is not None:
+                        count = int(option["top_ratio"] * len(counts))
+                    if option.get("topk") is not None:
+                        count = min(count, option["topk"])
+                    selected = sorted(counts, key=counts.get, reverse=reverse)[:count]
+                    expected = [i for key in selected for i, value in enumerate(keys) if value == key]
+                    for nested in (True, False):
+                        rows = [{"id": i, "field": {"group": value} if nested else value}
+                                for i, value in enumerate(values)]
+                        data = Dataset.from_list(rows)
+                        op = FrequencySpecifiedFieldSelector(
+                            field_key="field.group" if nested else "field", reverse=reverse, **option)
+                        self.assertEqual(list(op.process(data)["id"]), expected)
+
     def _run_frequency_selector(self, dataset: Dataset, target_list, op):
         dataset = op.process(dataset)
         res_list = dataset.to_list()

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from data_juicer.utils import robot_utils as common
+from data_juicer.utils.model_utils import get_model, prepare_model
 
 
 def resolve_modelscope_model(model_name: str, cache_dir: Path | None) -> Path:
@@ -21,17 +22,13 @@ def resolve_modelscope_model(model_name: str, cache_dir: Path | None) -> Path:
 
 
 def load_sam3(model_name: str, cache_dir: Path | None, torch, device: str, dtype_name: str):
-    from transformers import Sam3Model, Sam3Processor
-
     model_path = resolve_modelscope_model(model_name, cache_dir)
     dtype = common.torch_dtype(torch, dtype_name)
-    model_kwargs: dict[str, Any] = {"local_files_only": True}
-    if dtype is not None:
-        model_kwargs["torch_dtype"] = dtype
-    model = Sam3Model.from_pretrained(model_path, **model_kwargs)
-    model.to(device)
-    model.eval()
-    processor = Sam3Processor.from_pretrained(model_path, local_files_only=True)
+    key = prepare_model(model_type="robot_sam3", pretrained_model_name_or_path=str(model_path), torch_dtype=dtype)
+    rank = int(device.split(":")[1]) if ":" in device else 0
+    model, processor = get_model(key, rank=rank, use_cuda=device.startswith("cuda"))
+    if device == "mps":
+        model.to(device)
     return (model, processor, model_path)
 
 
@@ -126,30 +123,15 @@ def save_candidates(Image, np, candidates, output_dir: Path, max_candidates: int
 
 
 def load_video_tracker(args, torch, device: str):
-    try:
-        from transformers import Sam3TrackerVideoModel, Sam3TrackerVideoProcessor
-    except ImportError as exc:
-        raise RuntimeError(
-            "Missing dependency 'transformers' with Sam3TrackerVideoModel/Sam3TrackerVideoProcessor. Install a SAM3-video-capable Transformers build in the main .venv."
-        ) from exc
-    requested_model_path = Path(args.sam3_video_model)
-    if requested_model_path.exists():
-        model_dir = requested_model_path
-    elif args.sam3_video_cache_dir is not None and (args.sam3_video_cache_dir / args.sam3_video_model).exists():
-        model_dir = args.sam3_video_cache_dir / args.sam3_video_model
-    else:
-        model_dir = common.snapshot_download_model(args.sam3_video_model, args.sam3_video_cache_dir)
+    model_dir = resolve_modelscope_model(args.sam3_video_model, args.sam3_video_cache_dir)
     dtype = common.torch_dtype(torch, args.sam3_video_torch_dtype)
-    model_kwargs: dict[str, Any] = {"local_files_only": True}
-    if dtype is not None:
-        model_kwargs["torch_dtype"] = dtype
-    model = Sam3TrackerVideoModel.from_pretrained(str(model_dir), **model_kwargs)
-    if dtype is not None:
-        model = model.to(device, dtype=dtype)
-    else:
+    key = prepare_model(
+        model_type="robot_sam3", pretrained_model_name_or_path=str(model_dir), tracking=True, torch_dtype=dtype
+    )
+    rank = int(device.split(":")[1]) if ":" in device else 0
+    model, processor = get_model(key, rank=rank, use_cuda=device.startswith("cuda"))
+    if device == "mps":
         model = model.to(device)
-    model.eval()
-    processor = Sam3TrackerVideoProcessor.from_pretrained(str(model_dir), local_files_only=True)
     return (
         model,
         processor,

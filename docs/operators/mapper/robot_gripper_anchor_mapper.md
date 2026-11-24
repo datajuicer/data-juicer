@@ -32,6 +32,8 @@ Each sample includes `source` and `episode_id`.
 
 ## 🔗 Related Links 相关链接
 
+- [Shared workflow and inter-stage contracts / 完整流程与阶段约定](robot_episode_workflow.md)
+
 - [Source code 源代码](../../../data_juicer/ops/mapper/robot_gripper_anchor_mapper.py)
 - [DROID recipe and input preparation](https://github.com/datajuicer/data-juicer-hub/tree/main/demo/embodied_vqa)
 - [Return operator list 返回算子列表](../../Operators.md)

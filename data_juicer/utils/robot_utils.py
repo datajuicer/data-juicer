@@ -67,19 +67,53 @@ np = LazyLoader("numpy")
 pc = LazyLoader("pyarrow.compute", "pyarrow")
 pq = LazyLoader("pyarrow.parquet", "pyarrow")
 
+DEFAULT_TASK_INSTRUCTION_COLUMNS = (
+    "other_information.language_instruction_2",
+    "other_information.language_instruction_3",
+    "other_information.language_instruction_1",
+    "annotation.instruction_add",
+)
 
-def read_instruction(path):
-    row = pq.read_table(path).to_pylist()[0]
-    for key in (
-        "other_information.language_instruction_2",
-        "other_information.language_instruction_3",
-        "other_information.language_instruction_1",
-        "annotation.instruction_add",
-    ):
-        value = row.get(key)
-        if isinstance(value, str) and value.strip():
-            return (value.strip(), key)
+
+def read_instruction(path, columns=None):
+    rows = load_rows(path)
+    if not rows:
+        raise ValueError(f"Empty parquet: {path}")
+    for key in DEFAULT_TASK_INSTRUCTION_COLUMNS if columns is None else columns:
+        value = parse_text(rows[0].get(key))
+        if value:
+            return (value, key)
     raise ValueError(f"No task instruction in {path}")
+
+
+def bbox_center(bbox):
+    if bbox is None:
+        return None
+    return [(float(bbox[0]) + float(bbox[2])) / 2.0, (float(bbox[1]) + float(bbox[3])) / 2.0]
+
+
+def contact_sheet(paths, output):
+    from PIL import Image, ImageDraw
+
+    if not paths:
+        raise ValueError("A contact sheet needs at least one image")
+    tiles = []
+    for index, path in enumerate(paths, 1):
+        with Image.open(path) as source:
+            image = source.convert("RGB")
+            image.thumbnail((768, 432))
+        tile = Image.new("RGB", (768, 462), "white")
+        tile.paste(image, ((768 - image.width) // 2, 30))
+        ImageDraw.Draw(tile).text((12, 8), f"Image {index}", fill="black")
+        tiles.append(tile)
+    columns = min(2, len(tiles))
+    rows = (len(tiles) + columns - 1) // columns
+    sheet = Image.new("RGB", (columns * 768, rows * 462), "white")
+    for index, tile in enumerate(tiles):
+        sheet.paste(tile, (index % columns * 768, index // columns * 462))
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(output, quality=95)
 
 
 def extract_gripper_anchor(path, episode_index, output):

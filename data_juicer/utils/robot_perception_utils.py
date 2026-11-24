@@ -2,22 +2,22 @@
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
 import math
 import os
 import tempfile
 import time
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from loguru import logger
+
 from data_juicer.utils import robot_utils as common
 from data_juicer.utils import sam3_utils as sam3
-from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.model_utils import get_model, prepare_model
 from data_juicer.utils.robot_utils import vlm_settings
 
 SYSTEM_PROMPT = "You are a precise robotic manipulation perception assistant. Return only valid JSON."
@@ -36,36 +36,34 @@ class ChatGenerationConfig:
 
 class VLLMChatClient:
     def __init__(self, model: str, base_url: str, api_key: str, generation: ChatGenerationConfig, timeout: int):
-        self.model = model
-        self.url = f"{base_url.rstrip('/')}/chat/completions"
-        self.api_key = api_key
         self.generation = generation
-        self.timeout = timeout
+        self.model_key = prepare_model(
+            model_type="api",
+            model=None if model == "auto" else model,
+            base_url=base_url.rstrip("/"),
+            api_key=api_key or "EMPTY",
+            timeout=timeout,
+            response_path="choices.0.message",
+        )
 
-    def chat(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
+    def chat(self, messages: list[dict[str, Any]], **kwargs) -> dict[str, Any]:
+        params = {
             "max_tokens": self.generation.max_tokens,
             "temperature": self.generation.temperature,
             "top_p": self.generation.top_p,
             "presence_penalty": self.generation.presence_penalty,
         }
         if self.generation.top_k is not None:
-            payload["top_k"] = self.generation.top_k
+            params["top_k"] = self.generation.top_k
         if self.generation.min_p is not None:
-            payload["min_p"] = self.generation.min_p
+            params["min_p"] = self.generation.min_p
         if self.generation.repetition_penalty != 1.0:
-            payload["repetition_penalty"] = self.generation.repetition_penalty
-        request = urllib.request.Request(
-            self.url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=self.timeout) as response:
-            response_payload = json.loads(response.read().decode("utf-8"))
-        return response_payload["choices"][0]["message"]
+            params["repetition_penalty"] = self.generation.repetition_penalty
+        params.update(kwargs)
+        message = get_model(self.model_key)(messages, **params)
+        if not isinstance(message, dict):
+            raise RuntimeError("VLM request failed or returned no message")
+        return message
 
 
 class ChatJSONClient:
@@ -75,23 +73,11 @@ class ChatJSONClient:
     def chat_json(self, prompt: str, image_paths: list[Path]) -> tuple[dict[str, Any], str, str]:
         content = [common.text_part(prompt)]
         if len(image_paths) > 1:
-            from PIL import Image, ImageDraw
-
-            images = [Image.open(path).convert("RGB") for path in image_paths]
-            max_w = max((image.width for image in images))
-            max_h = max((image.height for image in images))
-            label_h = 32
-            sheet = Image.new("RGB", (max_w * len(images), max_h + label_h), "white")
-            draw = ImageDraw.Draw(sheet)
-            for idx, image in enumerate(images):
-                x = idx * max_w
-                sheet.paste(image, (x, label_h))
-                draw.text((x + 8, 8), f"image {idx + 1}", fill="black")
             tmp = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="vlm_contact_", delete=False)
             tmp_path = Path(tmp.name)
             tmp.close()
-            sheet.save(tmp_path, quality=92)
             try:
+                common.contact_sheet(image_paths, tmp_path)
                 content.append(common.image_part(tmp_path))
             finally:
                 tmp_path.unlink(missing_ok=True)
@@ -126,30 +112,17 @@ def build_vllm_json_client(args) -> ChatJSONClient:
     )
 
 
-Image = LazyLoader("PIL.Image", "Pillow")
-ImageDraw = LazyLoader("PIL.ImageDraw", "Pillow")
+def build_grounding_client(model, endpoint):
+    return VLLMChatClient(
+        model,
+        endpoint,
+        os.environ.get("VLM_API_KEY", "EMPTY"),
+        ChatGenerationConfig(max_tokens=512, top_p=1.0, top_k=None, min_p=None),
+        180,
+    )
 
 
-def contact_sheet(paths, output):
-    tiles = []
-    for i, path in enumerate(paths, 1):
-        with Image.open(path) as image:
-            image = image.convert("RGB")
-            image.thumbnail((768, 432))
-            tile = Image.new("RGB", (768, 462), "white")
-            tile.paste(image, ((768 - image.width) // 2, 30))
-            ImageDraw.Draw(tile).text((12, 8), f"Image {i}", fill="black")
-            tiles.append(tile)
-    columns = min(2, len(tiles))
-    rows = (len(tiles) + columns - 1) // columns
-    sheet = Image.new("RGB", (columns * 768, rows * 462), "white")
-    for i, tile in enumerate(tiles):
-        sheet.paste(tile, (i % columns * 768, i // columns * 462))
-    output.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(output, quality=95)
-
-
-def ground_final_target(root, sampled, target, model=None, endpoint=None):
+def ground_final_target(root, sampled, target, model=None, endpoint=None, client=None):
     """Locate the final target in a selected camera view."""
     root = Path(root)
     views = sorted(sampled)
@@ -168,50 +141,24 @@ def ground_final_target(root, sampled, target, model=None, endpoint=None):
         trace = None
     if trace is None:
         sheet = output.with_suffix(".jpg")
-        contact_sheet(paths, sheet)
-        content = [
-            {"type": "text", "text": prompt},
-            {
-                "type": "image_url",
-                "image_url": {"url": "data:image/jpeg;base64," + base64.b64encode(sheet.read_bytes()).decode()},
-            },
-        ]
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": content}],
-            "temperature": 0,
-            "max_tokens": 512,
-            "chat_template_kwargs": {"enable_thinking": False},
-            "response_format": {"type": "json_object"},
-        }
-        headers = {"Content-Type": "application/json"}
-        if os.environ.get("VLM_API_KEY"):
-            headers["Authorization"] = "Bearer " + os.environ["VLM_API_KEY"]
-        request = urllib.request.Request(
-            endpoint + "/chat/completions", data=json.dumps(payload).encode(), headers=headers
+        common.contact_sheet(paths, sheet)
+        client = client or build_grounding_client(model, endpoint)
+        options = {"response_format": {"type": "json_object"}, "chat_template_kwargs": {"enable_thinking": False}}
+        message = client.chat(
+            [{"role": "user", "content": [common.text_part(prompt), common.image_part(sheet)]}], **options
         )
-        with urllib.request.urlopen(request, timeout=180) as response:
-            raw = json.loads(response.read())["choices"][0]["message"]["content"]
-        selection = json.loads(raw)
+        raw = common.assistant_content(message)
+        selection = common.parse_vlm_json(raw)
         selected = selection.get("image_index")
-        if not isinstance(selected, int) or not 1 <= selected <= len(paths):
+        if isinstance(selected, bool) or not isinstance(selected, int) or not 1 <= selected <= len(paths):
             raise ValueError("Final target is not visible in supplied views")
         point_prompt = f"Point to the visible {target} in this image. Return JSON with point_2d (x,y normalized to [0,1000] over this entire image) and evidence. Locate the object itself, not the gripper, cables, or an empty goal region."
-        payload["messages"][0]["content"] = [
-            {"type": "text", "text": point_prompt},
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": "data:image/jpeg;base64," + base64.b64encode(paths[selected - 1].read_bytes()).decode()
-                },
-            },
-        ]
-        request = urllib.request.Request(
-            endpoint + "/chat/completions", data=json.dumps(payload).encode(), headers=headers
+        message = client.chat(
+            [{"role": "user", "content": [common.text_part(point_prompt), common.image_part(paths[selected - 1])]}],
+            **options,
         )
-        with urllib.request.urlopen(request, timeout=180) as response:
-            point_raw = json.loads(response.read())["choices"][0]["message"]["content"]
-        point_annotation = json.loads(point_raw)
+        point_raw = common.assistant_content(message)
+        point_annotation = common.parse_vlm_json(point_raw)
         trace = {
             "request_sha256": request_hash,
             "prompt": point_prompt,
@@ -246,15 +193,15 @@ def ground_final_target(root, sampled, target, model=None, endpoint=None):
     }
 
 
-DEFAULT_TASK_INSTRUCTION_FALLBACK_COLUMNS = [
-    "other_information.language_instruction_2",
-    "other_information.language_instruction_3",
-    "other_information.language_instruction_1",
-    "annotation.instruction_add",
-]
 OBJECT_SAM3_MODEL = os.environ.get("SAM3_MODEL", "facebook/sam3")
 TARGET_OBJECT_PROMPT = '\nGiven the instruction and the first frame of the video, identify the target object that the robot should directly manipulate.\n\nInstruction: {instruction}\n\nReturn exactly this JSON schema:\n{{\n  "target_object": "target object name extracted from the instruction",\n  "referring_expression": "specific phrase that can be used to point to the target object"\n}}\n\nThe referring_expression must describe the same target object but may include useful visual or spatial attributes from the first frame.\n'.strip()
-POINTING_PROMPT = "\nPoint to the center of {target_object}. Report the object coordinate in JSON format.\n".strip()
+POINTING_PROMPT = (
+    "Point to the center of {target_object} in this image.\n"
+    'Return only JSON with this schema: {{"point_2d": [x, y]}}.\n'
+    "x and y must be 2D coordinates normalized to [0, 1000] across the entire image: "
+    "x=0 is the left edge, x=1000 the right edge, y=0 the top edge and y=1000 the bottom edge. "
+    "Do not return 3D coordinates or coordinates normalized to [0, 1]."
+)
 
 
 class ObjectTrackingContext:
@@ -276,8 +223,8 @@ class ObjectTrackingContext:
         (self.sam3_model, self.sam3_processor, self.sam3_model_path) = sam3.load_sam3(
             args.sam3_model, args.sam3_cache_dir, self.torch, self.device, args.sam3_torch_dtype
         )
-        print(f"[timer] sam3_load: {time.perf_counter() - started:.3f}s", flush=True)
-        print(f"Using SAM3 model: {self.sam3_model_path}", flush=True)
+        logger.info("SAM3 loaded in {:.3f}s", time.perf_counter() - started)
+        logger.info("Using SAM3 model: {}", self.sam3_model_path)
 
     def load_video_tracker(self, args):
         if self.sam3_video_model is None:
@@ -290,17 +237,12 @@ class ObjectTrackingContext:
 def resolve_vllm_model(base_url: str, api_key: str, model: str, timeout: int) -> str:
     if model != "auto":
         return model
-    request = urllib.request.Request(
-        f"{base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {api_key}"}, method="GET"
+    key = prepare_model(
+        model_type="api", model=None, base_url=base_url.rstrip("/"), api_key=api_key or "EMPTY", timeout=timeout
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    for item in payload.get("data") or []:
-        if isinstance(item, dict) and item.get("id"):
-            resolved = str(item["id"])
-            print(f"[vllm] using served model from /models: {resolved}", flush=True)
-            return resolved
-    raise RuntimeError(f"No served model found at {base_url.rstrip('/')}/models")
+    resolved = get_model(key).model
+    logger.info("Using served VLM model: {}", resolved)
+    return resolved
 
 
 def read_first_frame(context: ObjectTrackingContext, video_path: Path, frame_index: int):
@@ -382,12 +324,6 @@ def run_vlm_pointing(
     }
 
 
-def object_bbox_center(bbox: list[float] | None) -> list[float] | None:
-    if bbox is None:
-        return None
-    return [(float(bbox[0]) + float(bbox[2])) / 2.0, (float(bbox[1]) + float(bbox[3])) / 2.0]
-
-
 def distance(a: list[float] | None, b: list[float] | None) -> float | None:
     if a is None or b is None:
         return None
@@ -432,7 +368,7 @@ def choose_best_candidate(
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     candidates = []
     for detection in detections:
-        center = object_bbox_center(detection.get("bbox_from_mask") or detection.get("bbox_from_model"))
+        center = common.bbox_center(detection.get("bbox_from_mask") or detection.get("bbox_from_model"))
         dist = distance(center, point_xy)
         detection["center_xy"] = center
         detection["distance_to_vlm_point_px"] = dist
@@ -443,20 +379,6 @@ def choose_best_candidate(
     topk = candidates[: max(1, int(distance_topk))]
     best = max(topk, key=score_value) if topk else None
     return (best, topk)
-
-
-def get_task_instruction_with_fallback(parquet_path: Path, columns: list[str]) -> tuple[str, str]:
-    rows = common.load_rows(parquet_path)
-    if not rows:
-        raise RuntimeError(f"Empty parquet: {parquet_path}")
-    row = rows[0]
-    checked = []
-    for column in columns:
-        checked.append(column)
-        text = common.parse_text(row.get(column))
-        if text:
-            return (text, column)
-    raise KeyError(f"Task instruction columns are missing or empty: {checked}")
 
 
 def run_target_tracking(
@@ -506,7 +428,7 @@ def track_episode_object(args: SimpleNamespace, context: ObjectTrackingContext, 
     output_dir = args.output_root / episode_id
     output_dir.mkdir(parents=True, exist_ok=True)
     started_total = time.perf_counter()
-    (instruction, instruction_column) = get_task_instruction_with_fallback(parquet_path, args.task_instruction_columns)
+    (instruction, instruction_column) = common.read_instruction(parquet_path, args.task_instruction_columns)
     first_frame = read_first_frame(context, video_path, args.first_video_frame_index)
     (width, height) = first_frame.size
     first_frame_path = output_dir / "first_frame.jpg"
@@ -584,7 +506,7 @@ def track_episode_object(args: SimpleNamespace, context: ObjectTrackingContext, 
 def object_tracking_config() -> SimpleNamespace:
     return SimpleNamespace(
         output_root=Path("outputs"),
-        task_instruction_columns=list(DEFAULT_TASK_INSTRUCTION_FALLBACK_COLUMNS),
+        task_instruction_columns=list(common.DEFAULT_TASK_INSTRUCTION_COLUMNS),
         first_video_frame_index=0,
         run_tracking=False,
         sam3_video_model=OBJECT_SAM3_MODEL,
@@ -666,13 +588,7 @@ class GripperTrackingContext:
 
 def log_timing(stage: str, seconds: float, note: str | None = None) -> None:
     suffix = f" ({note})" if note else ""
-    print(f"[timer] {stage}: {seconds:.3f}s{suffix}", flush=True)
-
-
-def gripper_bbox_center(bbox: list[float] | None) -> list[float]:
-    if bbox is None:
-        return [0.0, 0.0]
-    return [(float(bbox[0]) + float(bbox[2])) / 2.0, (float(bbox[1]) + float(bbox[3])) / 2.0]
+    logger.info("{}: {:.3f}s{}", stage, seconds, suffix)
 
 
 def generate_text_candidates(args, context, anchor_image, output_dir):
@@ -814,7 +730,7 @@ def track_episode_gripper(args: SimpleNamespace, context: GripperTrackingContext
             args.video,
             selected_bbox,
             selected_mask,
-            gripper_bbox_center(selected_bbox),
+            common.bbox_center(selected_bbox) or [0.0, 0.0],
             frame_width,
             frame_height,
             args.sam3_video_obj_id,
@@ -883,8 +799,8 @@ def track_episode_gripper(args: SimpleNamespace, context: GripperTrackingContext
     output_json.write_text(
         json.dumps(common.json_ready(payload), indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    print(f"Wrote gripper detection output: {output_json}")
-    print(f"Selected gripper bbox: {selected_bbox}")
+    logger.info("Wrote gripper detection output: {}", output_json)
+    logger.info("Selected gripper bbox: {}", selected_bbox)
     return {"output_json": output_json, "payload": payload}
 
 

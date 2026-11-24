@@ -1,7 +1,10 @@
 import os
 from pathlib import Path
 
+from loguru import logger
+
 from data_juicer.utils.lazy_loader import LazyLoader
+from data_juicer.utils.model_utils import get_model, prepare_model
 from data_juicer.utils.robot_utils import episode_root, read_json, write_json
 
 from ..base_op import OPERATORS, UNFORKABLE, Mapper
@@ -46,20 +49,18 @@ class RobotDepthEstimationMapper(Mapper):
         self.inference_batch_size = inference_batch_size
         self.process_res = process_res
         self.process_res_method = process_res_method
+        self.model_key = prepare_model(model_type="robot_depth", pretrained_model_name_or_path=self.model_path)
         self._model = None
 
     def process_single(self, sample, rank=None):
         torch = LazyLoader("torch")
-        from depth_anything_3.api import DepthAnything3
-
         from data_juicer.utils.robot_depth_utils import save_prediction_batch
 
         root = episode_root(sample, self.output_dir)
         if sample["source"] != "droid":
             raise ValueError("Episode DA3 input must contain DROID camera frames")
         if self._model is None:
-            device = f"cuda:{rank or 0}" if self.use_cuda() and torch.cuda.is_available() else "cpu"
-            self._model = DepthAnything3.from_pretrained(self.model_path).to(device).eval()
+            self._model = get_model(self.model_key, rank=rank, use_cuda=self.use_cuda())
         model_name = self._model.model_name
         independent = model_name.startswith(("da3metric-", "da3mono-"))
         if not independent and self.inference_batch_size:
@@ -109,7 +110,7 @@ class RobotDepthEstimationMapper(Mapper):
                 for value in values:
                     value["path"] = str(Path(value["path"]).relative_to(root))
                 records.extend(values)
-                print(f"DA3 {camera}: {len(records)}/{count} source frames", flush=True)
+                logger.info("DA3 {}: {}/{} source frames", camera, len(records), count)
             manifest["views"][camera] = {
                 "source_frame_count": count,
                 "fps": fps,

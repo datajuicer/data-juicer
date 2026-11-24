@@ -29,6 +29,7 @@ from data_juicer.ops.mapper.robot_interaction_geometry_mapper import (
 from data_juicer.ops.mapper.robot_object_tracking_mapper import (
     RobotObjectTrackingMapper,
 )
+from data_juicer.utils import model_utils
 from data_juicer.utils import robot_perception_utils as perception
 from data_juicer.utils import robot_utils as robot
 from data_juicer.utils.constant import Fields
@@ -156,18 +157,65 @@ class RobotEpisodeMappersTest(unittest.TestCase):
         views["left"]["frame_indices"] = [0, 2, 4, 6]
         robot.write_json(Path(sample["episode_dir"]) / "ir/sampling.json", {"views": views})
         op = self._op(RobotDepthEstimationMapper)
-        op._model = Mock(model_name="da3metric-large")
-        with self.assertRaisesRegex(ValueError, "every source frame"):
-            op.process_single(sample)
-        op._model.inference.assert_not_called()
+        model = Mock(model_name="da3metric-large")
+        with patch("data_juicer.ops.mapper.robot_depth_estimation_mapper.get_model", return_value=model):
+            with self.assertRaisesRegex(ValueError, "every source frame"):
+                op.process_single(sample)
+        model.inference.assert_not_called()
 
     def test_depth_any_view_requires_whole_view_inference(self):
         sample = self._geometry_inputs()
         op = self._op(RobotDepthEstimationMapper)
-        op._model = Mock(model_name="da3-large")
-        with self.assertRaisesRegex(ValueError, "inference_batch_size=0"):
-            op.process_single(sample)
-        op._model.inference.assert_not_called()
+        model = Mock(model_name="da3-large")
+        with patch("data_juicer.ops.mapper.robot_depth_estimation_mapper.get_model", return_value=model):
+            with self.assertRaisesRegex(ValueError, "inference_batch_size=0"):
+                op.process_single(sample)
+        model.inference.assert_not_called()
+
+    def test_depth_mapper_can_run_twice_after_models_are_freed(self):
+        sample = self._geometry_inputs()
+        loaded = []
+
+        class DepthModel:
+            model_name = "da3metric-large"
+
+            def __init__(self, device):
+                self.device = device
+
+            def to(self, device):
+                self.device = device
+                return self
+
+            def inference(self, image, **kwargs):
+                if self.device != "cuda:0":
+                    raise RuntimeError("Depth model was offloaded to CPU")
+                return SimpleNamespace(depth=np.full((len(image), 4, 4), len(loaded)), is_metric=False)
+
+        def prepare(device, **kwargs):
+            model = DepthModel(device)
+            loaded.append(model)
+            return model
+
+        with (
+            patch.dict(model_utils.MODEL_FUNCTION_MAPPING, {"robot_depth": prepare}),
+            patch.dict(model_utils.MODEL_ZOO, {}, clear=True),
+            patch.object(model_utils, "cuda_device_count", return_value=1),
+            patch("data_juicer.ops.base_op.is_cuda_available", return_value=True),
+        ):
+            op = RobotDepthEstimationMapper(
+                output_dir=str(self.output), accelerator="cuda", num_proc=None, auto_op_parallelism=False
+            )
+            dataset = NestedDataset.from_list([sample])
+            for run in range(2):
+                result = op.run(dataset).to_list()[0]
+                self.assertEqual(len(loaded), run + 1)
+                self.assertEqual(loaded[-1].device, "cpu")
+                self.assertFalse(model_utils.MODEL_ZOO)
+                manifest = robot.read_json(result["depth_ir"])
+                records = manifest["views"]["left"]["frames"]
+                self.assertEqual(len(records), 8)
+                with np.load(Path(result["episode_dir"]) / records[0]["path"]) as prediction:
+                    np.testing.assert_array_equal(prediction["depth"], np.full((4, 4), run + 1))
 
     def _check_six_stage_pipeline(self, through_dataset):
         def read_frame(path, index):

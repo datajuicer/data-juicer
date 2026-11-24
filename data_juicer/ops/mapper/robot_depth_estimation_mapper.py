@@ -50,7 +50,6 @@ class RobotDepthEstimationMapper(Mapper):
         self.process_res = process_res
         self.process_res_method = process_res_method
         self.model_key = prepare_model(model_type="robot_depth", pretrained_model_name_or_path=self.model_path)
-        self._model = None
 
     def process_single(self, sample, rank=None):
         torch = LazyLoader("torch")
@@ -59,9 +58,8 @@ class RobotDepthEstimationMapper(Mapper):
         root = episode_root(sample, self.output_dir)
         if sample["source"] != "droid":
             raise ValueError("Episode DA3 input must contain DROID camera frames")
-        if self._model is None:
-            self._model = get_model(self.model_key, rank=rank, use_cuda=self.use_cuda())
-        model_name = self._model.model_name
+        model = get_model(self.model_key, rank=rank, use_cuda=self.use_cuda())
+        model_name = model.model_name
         independent = model_name.startswith(("da3metric-", "da3mono-"))
         if not independent and self.inference_batch_size:
             raise ValueError("Any-view models require inference_batch_size=0 to retain the whole view context")
@@ -88,7 +86,7 @@ class RobotDepthEstimationMapper(Mapper):
             for begin in range(0, count, batch):
                 images = view["images"][begin : begin + batch]
                 with torch.inference_mode():
-                    prediction = self._model.inference(
+                    prediction = model.inference(
                         image=images, process_res=self.process_res, process_res_method=self.process_res_method
                     )
                 entries = [

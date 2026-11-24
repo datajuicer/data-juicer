@@ -2408,8 +2408,9 @@ class PartitionedRayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin)
             # Execute operations (lazy)
             if getattr(self, "_plan_on_resume", False):
                 self._compute_flow_session.release()
-                self._configure_pre_partition_resources(current_dataset, group_ops)
-                current_dataset = self._process_execution_interval(current_dataset, group_ops)
+                if input_rows > 0:
+                    self._configure_pre_partition_resources(current_dataset, group_ops)
+                    current_dataset = self._process_execution_interval(current_dataset, group_ops)
             else:
                 current_dataset = current_dataset.process(group_ops)
 

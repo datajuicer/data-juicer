@@ -6,9 +6,10 @@ import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 import ray
 import yaml
@@ -396,6 +397,77 @@ def test_public_resume_after_partial_checkpoint_commit(cluster, measured_probe, 
     assert resumed_cfg._resolved_compute_flow_summary["executed_intervals"] >= 2
     assert sorted(planned) == calls
     wait_for_gpus()
+
+
+def test_public_resume_skips_empty_filtered_partition(cluster, measured_probe, tmp_path):
+    (tmp_path / "input.jsonl").write_text(
+        "".join(
+            json.dumps({"id": i, "value": i + 1, "text": "x" if i < 4 else "keep", Fields.meta: {"calls": 0}}) + "\n"
+            for i in range(8)
+        )
+    )
+    recipe(tmp_path)
+    path = tmp_path / "recipe.yaml"
+    spec = yaml.safe_load(path.read_text())
+    spec["partition"]["num_of_partitions"] = 2
+    spec["process"] = [{"text_length_filter": {"min_len": 2}}, spec["process"][0]]
+    spec["checkpoint"] = {"enabled": True, "strategy": "manual", "op_names": ["text_length_filter"]}
+    path.write_text(yaml.safe_dump(spec))
+    args = ["--config", str(path)]
+
+    reference = init_cli(args)
+    reference.export_path = str(tmp_path / "reference.jsonl")
+    PartitionedRayExecutor(reference).run()
+    expected = exported_rows(reference.export_path)
+    assert [(r["id"], r["value"]) for r in expected] == [(i, (i + 1) * 2) for i in range(4, 8)]
+
+    cfg = init_cli(args)
+    executor = PartitionedRayExecutor(cfg)
+    with patch.object(executor.exporter, "export", side_effect=RuntimeError("injected export failure")):
+        with pytest.raises(RuntimeError, match="injected export failure"):
+            executor.run()
+
+    resumed = PartitionedRayExecutor(init_cli([*args, "--resume", cfg.job_id]))
+    with (
+        patch.object(GPUMemoryProbe, "resolve", autospec=True, side_effect=GPUMemoryProbe.resolve) as probe,
+        patch.object(resumed, "_process_execution_interval", wraps=resumed._process_execution_interval) as execute,
+    ):
+        resumed.run()
+    # Ray may omit an empty Parquet shard and replay the CPU filter. Count every
+    # GPU Mapper invocation, including attempts with no sample rows.
+    for calls in (probe.call_args_list, execute.call_args_list):
+        mapper_inputs = [call.args[-2] for call in calls if call.args[-1][0]._name == "compute_flow_test_mapper"]
+        assert len(mapper_inputs) == 1
+        assert [r["id"] for r in mapper_inputs[0].data.take_all()] == list(range(4, 8))
+    assert exported_rows(cfg.export_path) == expected
+
+
+def test_restored_empty_checkpoint_finishes_next_boundary(cluster, tmp_path):
+    executor = PartitionedRayExecutor(recipe(tmp_path, every_op=True))
+    executor._plan_on_resume = True
+    executor._compute_flow_session = Mock(spec=PartitionComputeFlowSession)
+    ops = executor._prepare_operators()
+    executor._initialize_dag_execution(executor.cfg, ops=ops)
+    manager = executor.ckpt_manager
+    # Seed a readable zero-row checkpoint even on Ray versions that omit empty shards.
+    checkpoint = Path(manager.ckpt_dir) / manager.resolve_checkpoint_filename(0, 0)
+    checkpoint.mkdir()
+    pq.write_table(pa.table({"id": pa.array([], type=pa.int64())}), checkpoint / "empty.parquet")
+    with (
+        patch.object(executor, "_configure_pre_partition_resources") as plan,
+        patch.object(executor, "_process_execution_interval") as execute,
+        patch.object(executor, "_post_execute_operations_with_dag_monitoring") as complete,
+        patch.object(manager, "save_checkpoint", wraps=manager.save_checkpoint) as save,
+    ):
+        result = executor._process_with_checkpointing(executor.datasetbuilder.load_dataset(), 0, ops)
+    assert result.data.count() == 0
+    executor._compute_flow_session.release.assert_called_once_with()
+    plan.assert_not_called()
+    execute.assert_not_called()
+    complete.assert_called_once()
+    metrics = complete.call_args.kwargs["metrics"]
+    assert (metrics["input_rows"], metrics["output_rows"]) == (0, 0)
+    save.assert_called_once_with(result, 1, ops[1]._name, 0, cfg=executor.cfg)
 
 
 def test_empty_and_reserved_input_do_not_create_pool(cluster, tmp_path):

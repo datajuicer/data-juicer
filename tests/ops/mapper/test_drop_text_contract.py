@@ -282,6 +282,36 @@ class DropTextContractTest(unittest.TestCase):
                 api_model="fake", drop_text=drop_text, text_key=text_key, num_proc=1, auto_op_parallelism=False
             )
 
+    def test_event_mixed_cache(self):
+        cached_meta = {MetaKeys.event_description: "cached event", MetaKeys.relevant_characters: ["A"]}
+        for cached_first, drop_text, produces_events in product((False, True), repeat=3):
+            with self.subTest(cached_first=cached_first, drop_text=drop_text, produces_events=produces_events):
+                cached = {"id": 1, "text": "cached source", Fields.meta: cached_meta}
+                fresh = {"id": 2, "text": "fresh source", Fields.meta: {}}
+                rows = [cached, fresh] if cached_first else [fresh, cached]
+                op = self.make_event_op(drop_text=drop_text)
+                calls = []
+
+                def extract(text, rank=None):
+                    calls.append(text)
+                    return (["first event", "second event"], [["B"], ["C"]]) if produces_events else ([], [])
+
+                op._process_single_sample = extract
+                op.runtime_np = lambda: None
+                dataset = NestedDataset(Dataset.from_list(rows))
+                result = op.run(dataset).to_list()
+                self.assertEqual(calls, ["fresh source"])
+                expected_fresh = (
+                    [{**fresh, Fields.meta: {MetaKeys.event_description: event, MetaKeys.relevant_characters: names}}
+                     for event, names in [("first event", ["B"]), ("second event", ["C"])]]
+                    if produces_events
+                    else [{**fresh, Fields.meta: dict.fromkeys(cached_meta)}]
+                )
+                expected = [cached, *expected_fresh] if cached_first else [*expected_fresh, cached]
+                if drop_text:
+                    expected = [{key: value for key, value in row.items() if key != "text"} for row in expected]
+                self.assertEqual(result, expected)
+
     def test_event_routes_contract(self):
         cases = [
             ("text", ["first", "second"], None, ["first", "second"]),

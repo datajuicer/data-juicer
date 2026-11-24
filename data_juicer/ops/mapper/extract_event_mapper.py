@@ -151,31 +151,41 @@ class ExtractEventMapper(Mapper):
         return event_list, character_list
 
     def process_batched(self, samples, rank=None):
-        # check if it's generated already
-        if self.event_desc_key in samples[Fields.meta][0] and self.relevant_char_key in samples[Fields.meta][0]:
+        metadata = samples[Fields.meta]
+        cached = [
+            meta is not None
+            and meta.get(self.event_desc_key) is not None
+            and meta.get(self.relevant_char_key) is not None
+            for meta in metadata
+        ]
+        if all(cached):
             if self.drop_text:
                 remove_text_from_sample(samples, self.text_key)
             return samples
 
-        events, characters = [], []
-        for text in read_text_from_sample(samples, self.text_key):
-            cur_events, cur_characters = self._process_single_sample(text, rank=rank)
-            events.append(cur_events)
-            characters.append(cur_characters)
-
         new_samples = []
-        for i in range(len(events)):
-            for event, character in zip(events[i], characters[i]):
-                cur_sample = {key: copy.deepcopy(samples[key][i]) for key in samples}
-                cur_sample[Fields.meta][self.event_desc_key] = event
-                cur_sample[Fields.meta][self.relevant_char_key] = character
+        generated_events = False
+        for i, is_cached in enumerate(cached):
+            row = {key: samples[key][i] for key in samples}
+            if is_cached:
+                new_samples.append(copy.deepcopy(row) if self.drop_text else row)
+                continue
+            text = read_text_from_sample(row, self.text_key)
+            events, characters = self._process_single_sample(text, rank=rank)
+            for event, character in zip(events, characters):
+                cur_sample = copy.deepcopy(row)
+                meta = cur_sample[Fields.meta] or {}
+                meta[self.event_desc_key] = event
+                meta[self.relevant_char_key] = character
+                cur_sample[Fields.meta] = meta
                 new_samples.append(cur_sample)
+                generated_events = True
 
         # HF map must also lose the input source column before merging expanded rows.
         if self.drop_text:
             remove_text_from_sample(samples, self.text_key)
 
-        if len(new_samples) == 0:
+        if not generated_events:
             logger.warning("Extract Not event in the batch of samples!")
             return samples
 

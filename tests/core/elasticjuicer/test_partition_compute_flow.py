@@ -35,7 +35,8 @@ from data_juicer.core.elasticjuicer.stage_identity import assign_stage_identitie
 from data_juicer.core.executor.gpu_memory_probe import GPUMemoryProbe
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
 from data_juicer.utils.constant import Fields
-from tests.core.elasticjuicer.compute_flow_test_ops import ComputeFlowTestMapper
+
+from .compute_flow_test_ops import ComputeFlowTestMapper
 
 
 def options(**kw):

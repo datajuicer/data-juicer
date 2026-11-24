@@ -8,6 +8,38 @@ from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 class RandomSelectorTest(DataJuicerTestCaseBase):
 
+    def test_zero_selection_preserves_schema(self):
+        dataset = Dataset.from_dict({'text': ['first', 'second'], 'score': [1, 2]})
+        for kwargs in [
+            {'select_ratio': 0.0},
+            {'select_ratio': 0.0, 'select_num': 1},
+            {'select_ratio': 0.1},
+            {'select_ratio': 0.1, 'select_num': 1},
+        ]:
+            with self.subTest(**kwargs):
+                result = RandomSelector(**kwargs).process(dataset)
+                self.assertEqual(len(result), 0)
+                self.assertEqual(result.features, dataset.features)
+
+    def test_unspecified_ratio_uses_sample_number(self):
+        dataset = Dataset.from_dict({'text': ['first', 'second', 'third']})
+        result = RandomSelector(select_num=2).process(dataset)
+        self.assertEqual(len(result), 2)
+
+    def test_unspecified_selection_returns_original_dataset(self):
+        dataset = Dataset.from_dict({'text': ['first', 'second']})
+        self.assertEqual(RandomSelector().process(dataset).to_list(), dataset.to_list())
+
+    def test_empty_dataset_returns_original_dataset(self):
+        dataset = Dataset.from_dict({'text': [], 'score': []})
+        result = RandomSelector(select_ratio=0.0).process(dataset)
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.features, dataset.features)
+
+    def test_single_row_returns_original_dataset(self):
+        dataset = Dataset.from_dict({'text': ['first']})
+        self.assertEqual(RandomSelector(select_ratio=0.0).process(dataset).to_list(), dataset.to_list())
+
     def _run_random_selector(self, dataset: Dataset, target_num, op):
         dataset = op.process(dataset)
         res_list = dataset.to_list()

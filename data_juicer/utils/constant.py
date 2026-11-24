@@ -340,6 +340,8 @@ class StatsKeysConstant(object):
     alnum_ratio = "alnum_ratio"
     avg_line_length = "avg_line_length"
     char_rep_ratio = "char_rep_ratio"
+    contamination_ngram_count = "contamination_ngram_count"
+    contamination_ratio = "contamination_ratio"
     flagged_words_ratio = "flagged_words_ratio"
     in_context_influence = "in_context_influence"
     ifd_score = "ifd_score"

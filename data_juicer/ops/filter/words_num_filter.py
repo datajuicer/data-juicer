@@ -1,3 +1,4 @@
+import re
 import sys
 
 from data_juicer.utils.constant import Fields, InterVars, StatsKeys
@@ -8,6 +9,34 @@ from ..common import SPECIAL_CHARACTERS, get_words_from_document, words_refineme
 from ..op_fusion import INTER_WORDS
 
 OP_NAME = "words_num_filter"
+
+# Count long documents in bounded chunks: each chunk reuses the exact
+# split/refine logic, but the word and refined-word lists are released before
+# the next chunk instead of growing with the whole document.
+_WORD_COUNT_CHUNK_CHARS = 64 * 1024
+_WORD_COUNT_SEPARATOR = re.compile(r"[ \n\t]")
+
+
+def _count_words_streaming(text):
+    """Count words with the same semantics as ``words_refinement``.
+
+    ``get_words_from_document`` splits on space/newline/tab and drops empty
+    pieces; ``words_refinement`` strips ``SPECIAL_CHARACTERS`` from each word
+    and drops words that become empty.  Chunks are cut on a separator so a word
+    is never split across two chunks.
+    """
+    count = 0
+    start = 0
+    text_len = len(text)
+    while start < text_len:
+        end = min(start + _WORD_COUNT_CHUNK_CHARS, text_len)
+        if end < text_len:
+            match = _WORD_COUNT_SEPARATOR.search(text, end)
+            end = match.start() if match is not None else text_len
+        words = get_words_from_document(text[start:end])
+        count += len(words_refinement(words, strip_chars=SPECIAL_CHARACTERS))
+        start = end
+    return count
 
 
 @OPERATORS.register_module(OP_NAME)
@@ -64,6 +93,12 @@ class WordsNumFilter(Filter):
         for idx, stat in enumerate(samples_stats):
             # check if it's computed already
             if StatsKeys.num_words in stat:
+                continue
+            # Without a tokenizer or fusion context, the word list and the
+            # refined list are only consumed by len(); count them in bounded
+            # chunks instead of materializing the whole document twice.
+            if self.model_key is None and not context:
+                samples_stats[idx][StatsKeys.num_words] = _count_words_streaming(samples_list[idx])
                 continue
             if context and words_key in samples[Fields.context][idx]:
                 words = samples[Fields.context][idx][words_key]

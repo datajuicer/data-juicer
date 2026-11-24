@@ -19,7 +19,7 @@ class RemoveCommentsMapper(Mapper):
     processes each sample in the batch and applies regular expressions to remove comments.
     The processed text is then updated in the original samples.
 
-    - Inline comments are removed using the pattern `[^\\]%.+$`.
+    - Inline comments are removed without consuming the preceding text or line break.
     - Multiline comments are removed using the pattern `^%.*\n?`.
 
     Important notes:
@@ -51,7 +51,7 @@ class RemoveCommentsMapper(Mapper):
         for idx, text in enumerate(samples[self.text_key]):
             if self.inline:
                 # remove all in comments within a line
-                text = re.sub(pattern=r"[^\\]%.+$", repl=r"", string=text, flags=re.MULTILINE)
+                text = re.sub(pattern=r"(?<=[^\\\r\n])%.+$", repl=r"", string=text, flags=re.MULTILINE)
 
             if self.multiline:
                 text = re.sub(pattern=r"(?m)^%.*\n?", repl=r"", string=text, flags=re.MULTILINE)

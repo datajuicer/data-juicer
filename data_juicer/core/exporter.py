@@ -248,7 +248,11 @@ class Exporter:
                 # If meta/stats were serialized as JSON strings (e.g. \\uXXXX),
                 # parse back to dict so to_json(force_ascii=False) writes UTF-8.
                 ds_stats = Exporter._ensure_meta_stats_dicts_for_export(ds_stats)
-                stats_file = export_path.replace("." + suffix, "_stats.jsonl")
+                # strip the extension rather than replacing "." + suffix: with
+                # export_type set, the path may not end in that suffix, and the
+                # stats file would then take the export path itself and be
+                # overwritten by the dataset
+                stats_file = os.path.splitext(export_path)[0] + "_stats.jsonl"
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
                 # Add storage_options if available (for S3/HDFS export)
                 if self.storage_options is not None:
@@ -340,7 +344,10 @@ class Exporter:
                 else:
                     # For local paths, use standard directory structure
                     dirname = os.path.dirname(os.path.abspath(self.export_path))
-                    basename = os.path.basename(self.export_path).split(".")[0]
+                    # drop only the extension, as for S3/HDFS above: cutting at
+                    # the first dot gives "a.v1.jsonl" and "a.v2.jsonl" the same
+                    # shard names, so one export overwrites the other
+                    basename = os.path.splitext(os.path.basename(self.export_path))[0]
                     os.makedirs(dirname, exist_ok=True)
                     filenames = [
                         os.path.join(
@@ -352,21 +359,28 @@ class Exporter:
                 # export dataset into multiple shards using multiprocessing
                 logger.info(f"Start to exporting to {num_shards} shards.")
                 pool = Pool(self.num_proc)
+                results = []
                 for i in range(num_shards):
                     export_kwargs = {"num_proc": 1}  # Each shard export uses single process
                     # Add storage_options if available (for S3/HDFS export)
                     if self.storage_options is not None:
                         export_kwargs["storage_options"] = self.storage_options
-                    pool.apply_async(
-                        export_method,
-                        args=(
-                            shards[i],
-                            filenames[i],
-                        ),
-                        kwds=export_kwargs,
+                    results.append(
+                        pool.apply_async(
+                            export_method,
+                            args=(
+                                shards[i],
+                                filenames[i],
+                            ),
+                            kwds=export_kwargs,
+                        )
                     )
                 pool.close()
                 pool.join()
+                # re-raise any error from a shard writer instead of reporting a
+                # successful export of empty or missing shards
+                for res in results:
+                    res.get()
                 # Encrypt each local shard after all shards are written.
                 for fname in filenames:
                     self._encrypt_local_file(fname)

@@ -233,8 +233,9 @@ def rewrite_cli_datapath(dataset_path, max_sample_num=None) -> List:
             # local files
             ret["configs"].append({"type": "local", "path": p, "weight": w})
         elif not is_absolute_path(p) and not p.startswith(".") and p.count("/") <= 1:
-            # remote huggingface
-            ret["configs"].append({"type": "huggingface", "path": p, "split": "train"})
+            # remote huggingface, in the type/source form the load strategies
+            # are registered under
+            ret["configs"].append({"type": "remote", "source": "huggingface", "path": p, "split": "train"})
         else:
             #
             raise ValueError(

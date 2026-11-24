@@ -55,8 +55,7 @@ class MaximumLineLengthFilter(Filter):
                 lines = samples_list[idx].splitlines()
                 if context:
                     samples[Fields.context][idx][context_key] = lines
-            line_lengths = list(map(len, lines))
-            samples_stats[idx][StatsKeys.max_line_length] = max(line_lengths) if line_lengths else 0
+            samples_stats[idx][StatsKeys.max_line_length] = max(map(len, lines), default=0)
 
         return samples
 

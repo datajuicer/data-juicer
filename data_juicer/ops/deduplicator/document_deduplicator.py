@@ -79,29 +79,30 @@ class DocumentDeduplicator(Deduplicator):
         if len(dataset) <= 1:
             return dataset, {}
 
+        # read the hash column once: iterating dataset[column] decodes it
+        # row by row
+        sample_hashes = dataset[HashKeys.hash][:]
+
         dup_hashes = None
         if show_num > 0:
             # sample duplicate pairs
             hash2ids: Dict[int, Set[int]] = defaultdict(set)
-            for sid, hash_val in enumerate(dataset[HashKeys.hash]):
+            for sid, hash_val in enumerate(sample_hashes):
                 hash2ids[hash_val].add(sid)
             dup_samples = sorted(list(hash2ids.items()), key=lambda x: len(x[1]), reverse=True)
             dup_hashes = set([item[0] for item in dup_samples if len(item[1]) > 1][:show_num])
 
-        def _filter_dup_helper(sample, hashes):
-            hash = sample[HashKeys.hash]
-            if show_num > 0 and hash in dup_hashes and len(dup_pairs[hash]) < 2:
-                # tracer is open and not enough duplicate sample pairs
-                dup_pairs[hash].append(sample)
-            if hash in hashes:
-                return False
-            else:
-                hashes.add(hash)
-                return True
-
+        # keep the first sample of each hash; the kept indices are computed
+        # from the hash column alone, so the other columns are never decoded
         hashes = set()
         dup_pairs = {hash_v: [] for hash_v in dup_hashes} if dup_hashes else {}
-        dataset = dataset.filter(
-            _filter_dup_helper, fn_kwargs=dict(hashes=hashes), load_from_cache_file=False if show_num > 0 else True
-        )  # num_proc=1
+        keep = []
+        for idx, hash in enumerate(sample_hashes):
+            if show_num > 0 and hash in dup_hashes and len(dup_pairs[hash]) < 2:
+                # tracer is open and not enough duplicate sample pairs
+                dup_pairs[hash].append(dataset[idx])
+            if hash not in hashes:
+                hashes.add(hash)
+                keep.append(idx)
+        dataset = dataset.select(keep)
         return dataset, dup_pairs

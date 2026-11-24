@@ -146,6 +146,13 @@ def wrap_mapper_with_tracer(process_method, op_name, text_key, tracer, is_batche
 
             processed_batch_dict = sample_to_dict(processed_batch)
 
+            # Rows can only be paired by position when the op kept the number
+            # of rows. An op that splits or drops samples, or a batch emptied
+            # by a skipped op error, has no such pairs.
+            num_processed = len(next(iter(processed_batch_dict.values()), []))
+            if num_processed != num_samples:
+                return processed_batch
+
             # Collect changes for each sample
             for i in range(num_samples):
                 if check_tracer_collect_complete(tracer, op_name):
@@ -762,6 +769,7 @@ class Mapper(OP):
 
     def run(self, dataset, *, exporter=None, tracer=None):
         dataset = super(Mapper, self).run(dataset)
+        source_features = dataset.features if getattr(self, "drop_text", False) else None
 
         # Wrap process method with tracer for sample-level collection
         from data_juicer.core.tracer import should_trace_op
@@ -789,6 +797,11 @@ class Mapper(OP):
                 self.process = original_process
 
         free_models()
+        if source_features is not None:
+            from data_juicer.ops.mapper.drop_text import remove_text_from_dataset
+
+            # Keep the original path when a literal dotted key was already removed.
+            new_dataset = remove_text_from_dataset(new_dataset, self.text_key, source_features)
         return new_dataset
 
 

@@ -90,6 +90,14 @@ class DocumentSimhashDeduplicator(Deduplicator):
         self.punctuation_pattern = regex.compile(r"\p{P}")
 
         # about deduplication
+        if num_blocks > 64:
+            raise ValueError(f"num_blocks must be at most 64 for a 64-bit SimHash, got {num_blocks}.")
+        if hamming_distance >= num_blocks:
+            raise ValueError(
+                f"hamming_distance ({hamming_distance}) must be less than "
+                f"num_blocks ({num_blocks}); otherwise a block-level match "
+                f"cannot bound the Hamming distance."
+            )
         self.num_blocks = num_blocks
         self.hamming_distance = hamming_distance
 
@@ -147,35 +155,39 @@ class DocumentSimhashDeduplicator(Deduplicator):
         if len(dataset) <= 1:
             return dataset, {}
 
+        # read the hash column once: iterating dataset[column] decodes it
+        # row by row
+        simhashes_str = dataset[HashKeys.simhash][:]
+        # convert to uint64 for faster integer-keyed dicts
+        simhashes = np.uint64(simhashes_str)
+
         # find matches
         logger.info(f"Start querying {len(dataset)} samples.")
         matches = simhash.find_all(
-            np.uint64(dataset[HashKeys.simhash]),
+            simhashes,
             self.num_blocks,
             self.hamming_distance,
         )
         logger.info(f"Querying done, found {len(matches)} matches.")
 
-        # compute hash diff distribution
+        # compute hash diff distribution. Use dict adjacency (not sets): a
+        # dict with only atomic keys/values is not tracked by the cyclic GC,
+        # whereas a per-node set is, which shows up as GC overhead on large
+        # match graphs.
         graph = defaultdict(dict)
         for x, y in matches:
-            x = str(x)
-            y = str(y)
             graph[x][y] = graph[y][x] = True
 
-        hash2ids: Dict[str, Set[str]] = defaultdict(set)
-        hashes: Set[str] = set(dataset[HashKeys.simhash])
-        hash2cluster: Dict[str, int] = {}
-        visited: Set[str] = set()
+        # clustering with the integer hash values directly
+        unique_hashes = set(simhashes.tolist())
+        hash2cluster: Dict[int, int] = {}
+        visited: Set[int] = set()
         cluster_id: int = 0
-
-        for sid, hash_val in enumerate(dataset[HashKeys.simhash]):
-            hash2ids[hash_val].add(str(sid))
 
         # clustering
         dup_pairs = {}  # store duplicate pairs when show_num > 0
-        while hashes:
-            hash_val = hashes.pop()
+        while unique_hashes:
+            hash_val = unique_hashes.pop()
             if hash_val in visited:
                 continue
 
@@ -206,33 +218,27 @@ class DocumentSimhashDeduplicator(Deduplicator):
         # filter duplicated samples
         # NOTICE: For now, we only keep the first sample in a cluster. Maybe
         # there are some better strategies later.
-        def _filter_simhash_dup_helper(sample, visited_clusters, visited_hashes):
-            sample_hash_val = sample[HashKeys.simhash]
+        # The kept indices are computed from the hash column alone, so the
+        # other columns are never decoded.
+        visited_clusters = set()
+        visited_hashes = set()
+        keep = []
+        for idx, sample_hash_val in enumerate(simhashes):
             if sample_hash_val not in hash2cluster:
                 # single-sample cluster, we need to check hash value still.
-                if sample_hash_val in visited_hashes:
-                    return False
-                else:
+                if sample_hash_val not in visited_hashes:
                     visited_hashes.add(sample_hash_val)
-                    return True
+                    keep.append(idx)
             else:
                 cluster_num = hash2cluster[sample_hash_val]
                 if show_num > 0 and cluster_num in dup_pairs and len(dup_pairs[cluster_num]) < 2:
-                    dup_pairs[cluster_num].append(sample)
+                    dup_pairs[cluster_num].append(dataset[idx])
                 # regular cluster, check cluster number.
-                if cluster_num in visited_clusters:
-                    return False
-                else:
+                if cluster_num not in visited_clusters:
                     visited_clusters.add(cluster_num)
-                    return True
+                    keep.append(idx)
 
-        cluster_record = set()
-        hash_record = set()
-        dataset = dataset.filter(
-            _filter_simhash_dup_helper,
-            fn_kwargs=dict(visited_clusters=cluster_record, visited_hashes=hash_record),
-            load_from_cache_file=False if show_num > 0 else True,
-        )
+        dataset = dataset.select(keep)
         logger.info(f"Keep {len(dataset)} samples after SimHash dedup.")
 
         return dataset, dup_pairs

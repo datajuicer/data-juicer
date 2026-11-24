@@ -3,6 +3,7 @@ import unittest
 import warnings
 
 import numpy as np
+from datasets import Dataset
 
 from data_juicer.utils.common_utils import (
     avg_split_string_list_under_limit,
@@ -11,6 +12,7 @@ from data_juicer.utils.common_utils import (
     dict_to_hash,
     is_float,
     is_string_list,
+    iter_column,
     nested_access,
     stats_to_number,
 )
@@ -30,6 +32,15 @@ class CommonUtilsTest(DataJuicerTestCaseBase):
     def test_dict_to_hash(self):
         self.assertEqual(len(dict_to_hash({'a': 1, 'b': 2})), 64)
         self.assertEqual(len(dict_to_hash({'a': 1, 'b': 2}, hash_length=32)), 32)
+
+    def test_iter_column(self):
+        ds = Dataset.from_dict({'meta': [{'id': i} for i in range(7)]})
+        self.assertEqual([m['id'] for m in iter_column(ds, 'meta', batch_size=3)], list(range(7)))
+        self.assertEqual(list(iter_column(ds, 'meta', batch_size=100)), list(ds['meta']))
+        # a selected subset is read in its index order
+        sub = ds.select([5, 0, 3])
+        self.assertEqual([m['id'] for m in iter_column(sub, 'meta', batch_size=2)], [5, 0, 3])
+        self.assertEqual(list(iter_column(ds.select([]), 'meta')), [])
 
     def test_nested_access(self):
         self.assertEqual(nested_access({'a': {'b': 1}}, 'a.b'), 1)

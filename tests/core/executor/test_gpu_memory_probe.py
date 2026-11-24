@@ -1,12 +1,16 @@
 import json
 import os
 import sys
+import tempfile
+import unittest
+from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
 
+from data_juicer.core.executor import gpu_memory_probe as gpu_probe
 from data_juicer.core.executor.gpu_memory_probe import (
     GPUMemoryProbe,
     _measure_cuda_call,
@@ -23,6 +27,7 @@ from data_juicer.core.executor.gpu_memory_probe import (
 )
 from data_juicer.core.executor.ray_executor_partitioned import PartitionedRayExecutor
 from data_juicer.ops import Filter, Mapper, Pipeline
+from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 
 class FakeDataset:
@@ -1229,3 +1234,461 @@ def test_executor_uses_fixed_resources_when_preflight_is_disabled(tmp_path):
         executor._configure_pre_partition_resources(FakeDataset([{"id": 1}]), [target])
 
     assert order == ["parallelism", "partitions"]
+
+
+class GPUMemoryProbeTest(DataJuicerTestCaseBase):
+    """CPU-only regression coverage for the GPU preflight planner."""
+
+    def _with_tmp_path(self, function, *args):
+        with tempfile.TemporaryDirectory() as directory:
+            return function(Path(directory), *args)
+
+    @TEST_TAG("standalone")
+    def test_positive_numbers(self):
+        self.assertIsNone(gpu_probe._positive_number(True))
+        self.assertIsNone(gpu_probe._positive_number("bad"))
+        self.assertIsNone(gpu_probe._positive_number(0))
+        self.assertEqual(gpu_probe._positive_number("2.5"), 2.5)
+
+    @TEST_TAG("standalone")
+    def test_batch_size_normalization(self):
+        for value, expected in [(True, 1), (None, 1), ("bad", 1), (0, 1), ("3", 3)]:
+            self.assertEqual(gpu_probe._normalized_batch_size(SimpleNamespace(batch_size=value)), expected)
+
+    @TEST_TAG("standalone")
+    def test_gpu_profile_target_selection(self):
+        mapper = DeclaredProbeMapper(accelerator="cuda", batch_size=4)
+        self.assertTrue(gpu_probe.needs_gpu_profile(mapper))
+        mapper.num_gpus = 2
+        self.assertFalse(gpu_probe.needs_gpu_profile(mapper))
+        self.assertFalse(gpu_probe.needs_gpu_profile(FakeOp("plain", accelerator="cuda")))
+
+    @TEST_TAG("standalone")
+    def test_fill_rejects_empty_rows(self):
+        with self.assertRaisesRegex(RuntimeError, "no samples left"):
+            fill_to_batch([], 2)
+
+    @TEST_TAG("standalone")
+    def test_declared_columns(self):
+        self.assertEqual(gpu_probe._declared_columns(SimpleNamespace(cols=" a "), "cols"), {"a"})
+        self.assertEqual(gpu_probe._declared_columns(SimpleNamespace(cols=["a", " ", 2]), "cols"), {"a", "2"})
+        self.assertIsNone(gpu_probe._declared_columns(SimpleNamespace(cols=1), "cols"))
+
+    @TEST_TAG("standalone")
+    def test_column_overlap(self):
+        self.assertTrue(gpu_probe._column_paths_overlap("meta", "meta.score"))
+        self.assertTrue(gpu_probe._column_paths_overlap("meta.*", "meta.score"))
+        self.assertFalse(gpu_probe._columns_overlap({"left"}, {"right"}))
+
+    @TEST_TAG("standalone")
+    def test_dependency_closure_handles_cycles(self):
+        self.assertEqual(gpu_probe._dependency_closure(2, {2: {1}, 1: {0}, 0: {1}}), {0, 1})
+
+    @TEST_TAG("standalone")
+    def test_planner_rejects_unsupported_ops(self):
+        jobs, reasons = plan_parallel_probe_jobs([FakeOp("not_mapper")], {0: FakeOp("not_mapper")})
+        self.assertEqual(jobs, [])
+        self.assertIn("not a Mapper/Filter", reasons[0])
+
+    @TEST_TAG("standalone")
+    def test_planner_rejects_indexed_replay(self):
+        indexed = DeclaredProbeMapper(name="indexed", accelerator="cuda", input_columns=["x"], output_columns=["y"])
+        indexed.index_key = "id"
+        self.assertIn("dataset-level replay", plan_parallel_probe_jobs([indexed], {0: indexed})[1][0])
+
+    @TEST_TAG("standalone")
+    def test_planner_rejects_incompatible_runtime_env(self):
+        target = DeclaredProbeMapper(name="target", accelerator="cuda", input_columns=["x"], output_columns=["y"])
+        ancestor = DeclaredProbeMapper(name="ancestor", input_columns=["x"], output_columns=["x"])
+        ancestor.runtime_env = {"env": "a"}
+        target.runtime_env = {"env": "b"}
+        self.assertIn(
+            "incompatible ancestor runtime_env", plan_parallel_probe_jobs([ancestor, target], {1: target})[1][1]
+        )
+
+    @TEST_TAG("standalone")
+    def test_numeric_sequence_features(self):
+        shaped = SimpleNamespace(shape=(2, 3), dtype="uint8")
+        nested = SimpleNamespace(feature=SimpleNamespace(feature=SimpleNamespace(dtype="float32")))
+        non_numeric = SimpleNamespace(feature=SimpleNamespace(dtype="string"))
+        self.assertEqual(gpu_probe._numeric_sequence_info(shaped), (2, "uint8"))
+        self.assertEqual(gpu_probe._numeric_sequence_info(nested), (2, "float32"))
+        self.assertEqual(gpu_probe._numeric_sequence_info(non_numeric), (0, None))
+
+    @TEST_TAG("standalone")
+    def test_detect_array_columns(self):
+        rows = [{"array": np.zeros((2, 2)), "list": [1, 2]}]
+        self.assertEqual(gpu_probe._array_columns_from_rows(rows), {"array"})
+
+    @TEST_TAG("standalone")
+    def test_array_format_ignores_missing_columns(self):
+        dataset = SimpleNamespace(column_names=["x"])
+        self.assertIs(gpu_probe._dataset_with_array_format(dataset, ["missing"]), dataset)
+
+    @TEST_TAG("standalone")
+    def test_resource_plan_validation(self):
+        with self.assertRaisesRegex(RuntimeError, "invalid GPU capacity"):
+            calculate_resource_plan(1, 0)
+        for invalid in (True, 0):
+            with self.assertRaisesRegex(ValueError, "positive integer"):
+                calculate_resource_plan(1, 100, invalid)
+        self.assertEqual(calculate_resource_plan(1, 100000)["memory_fraction"], 0.01)
+
+    @TEST_TAG("standalone")
+    def test_scheduling_gpu_fraction(self):
+        self.assertEqual(gpu_probe.scheduling_num_gpus("op", 0.5, 0.4), 0.5)
+        with patch.object(gpu_probe.logger, "warning") as warning:
+            self.assertEqual(gpu_probe.scheduling_num_gpus("op", 0.1, 1.2), 1.0)
+            warning.assert_called_once()
+
+    @TEST_TAG("standalone")
+    def test_row_batch_round_trip(self):
+        rows = [{"a": 1}, {"b": 2, "a": 3}]
+        batch = gpu_probe._rows_to_batch(rows)
+        self.assertEqual(batch, {"a": [1, 3], "b": [None, 2]})
+        self.assertEqual(gpu_probe._batch_to_rows(batch), [{"a": 1, "b": None}, {"a": 3, "b": 2}])
+        self.assertEqual(gpu_probe._batch_to_rows({}), [])
+
+    @TEST_TAG("standalone")
+    def test_batch_rejects_inconsistent_columns(self):
+        with self.assertRaisesRegex(RuntimeError, "inconsistent"):
+            gpu_probe._batch_to_rows({"a": [1], "b": [1, 2]})
+
+    @TEST_TAG("standalone")
+    def test_probe_execution_kwargs_preserve_input(self):
+        original = {"num_proc": 8, "auto_op_parallelism": True, "skip_op_error": True}
+        actual = gpu_probe._probe_execution_kwargs(original)
+        self.assertEqual(actual, {"num_proc": None, "auto_op_parallelism": False, "skip_op_error": True})
+        self.assertEqual(original["num_proc"], 8)
+
+    @TEST_TAG("standalone")
+    def test_construct_probe_op_from_spec(self):
+        spec = _op_spec(ProfilingProbeMapper(batch_size=2))
+        self.assertIs(spec["op_class"], ProfilingProbeMapper)
+        self.assertEqual(spec["batch_size"], 2)
+        constructed = gpu_probe._construct_probe_op(spec)
+        self.assertIsInstance(constructed, ProfilingProbeMapper)
+
+    @TEST_TAG("standalone")
+    def test_cuda_memory_snapshot(self):
+        fake_cuda = SimpleNamespace(
+            is_available=lambda: True,
+            device_count=lambda: 1,
+            mem_get_info=lambda device: (600 * 1024**2, 1000 * 1024**2),
+            get_device_properties=lambda device: SimpleNamespace(name="Mock GPU"),
+        )
+        with patch.dict(sys.modules, {"torch": SimpleNamespace(cuda=fake_cuda)}):
+            self.assertEqual(
+                gpu_probe._cuda_memory_snapshot(), {"used_mb": 400, "total_mb": 1000, "gpu_name": "Mock GPU"}
+            )
+        bad_cuda = SimpleNamespace(is_available=lambda: False, device_count=lambda: 0)
+        with patch.dict(sys.modules, {"torch": SimpleNamespace(cuda=bad_cuda)}):
+            with self.assertRaisesRegex(RuntimeError, "exactly one"):
+                gpu_probe._cuda_memory_snapshot()
+
+    @TEST_TAG("standalone")
+    def test_assignment_without_ray_context(self):
+        fake_ray = SimpleNamespace(get_runtime_context=Mock(side_effect=RuntimeError("no ray")))
+        with patch.object(gpu_probe, "ray", fake_ray), patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "2"}):
+            self.assertIn("unavailable", gpu_probe._gpu_assignment_context())
+
+    @TEST_TAG("standalone")
+    def test_probe_stage_profile_restores_environment(self):
+        def fake_measure(function):
+            return (function(), metrics(measured=80))
+
+        marker = gpu_probe._PREFLIGHT_OP_ENV_VAR
+        with (
+            patch.object(gpu_probe, "_measure_cuda_call", side_effect=fake_measure),
+            patch.dict(os.environ, {marker: "outside"}),
+        ):
+            result = _run_probe_stage(
+                CapturingProbeOp,
+                (),
+                {},
+                [{"text": "sample"}],
+                True,
+                warmup_batches=1,
+                steady_batches=2,
+                op_name="capture",
+            )
+            self.assertEqual(os.environ[marker], "outside")
+        self.assertEqual(result["rows"], [{"text": "sample"}])
+        self.assertEqual(result["profile"]["steady_batches"], 2)
+        self.assertEqual(result["metrics"]["measured_memory_mb"], 80)
+
+    @TEST_TAG("standalone")
+    def test_parallel_worker_replays_dependency(self):
+        with patch.object(gpu_probe, "_gpu_assignment_context", return_value="mocked assignment"):
+            test_parallel_worker_replays_cpu_dependency_and_measures_one_target()
+
+    @TEST_TAG("standalone")
+    def test_parallel_worker_rejects_empty_dependency(self):
+        job = {
+            "op_index": 1,
+            "dependencies": [{**_op_spec(ArrayBatchProducer(batch_size=1)), "op_name": "empty"}],
+            "target": _op_spec(ArrayBatchConsumer(accelerator="cuda", batch_size=1)),
+        }
+        with (
+            patch.object(gpu_probe, "_run_probe_op_rows", return_value=[]),
+            patch.object(gpu_probe, "_gpu_assignment_context", return_value="mocked assignment"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "no samples left after dependency"):
+                _run_parallel_probe_job(job, [{"text": "a"}])
+
+    @TEST_TAG("standalone")
+    def test_ordered_measurement_preserves_full_upstream_lineage(self):
+        for first_batch, second_batch in ((1, 4), (2, 4), (4, 4), (8, 4)):
+            with self.subTest(first_batch=first_batch, second_batch=second_batch):
+                self._with_tmp_path(test_ordered_measurement_preserves_full_upstream_lineage, first_batch, second_batch)
+
+    @TEST_TAG("standalone")
+    def test_block_count_fallback(self):
+        probe = GPUMemoryProbe("unused")
+        data = SimpleNamespace(
+            num_blocks=Mock(side_effect=RuntimeError("unknown")),
+            _plan=SimpleNamespace(initial_num_blocks=lambda: 3),
+        )
+        self.assertEqual(probe._block_count(data), 3)
+        self.assertIsNone(probe._block_count(SimpleNamespace(num_blocks=lambda: 0)))
+
+    @TEST_TAG("standalone")
+    def test_constructor_rejects_invalid_options(self):
+        invalid_options = [
+            {"max_gpu_workers_per_device": True},
+            {"max_gpu_workers_per_device": 0},
+            {"max_concurrent_probes": True},
+            {"max_concurrent_probes": 0},
+            {"probe_timeout_seconds": True},
+            {"probe_timeout_seconds": 0},
+            {"warmup_batches": True},
+            {"warmup_batches": -1},
+            {"steady_batches": True},
+            {"steady_batches": 0},
+            {"sample_offset": True},
+            {"sample_offset": -1},
+            {"sample_seed": True},
+        ]
+        for options in invalid_options:
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                GPUMemoryProbe("unused", **options)
+
+    @TEST_TAG("standalone")
+    def test_ray_stage_options_and_arguments(self):
+        op = FakeOp("cpu", batch_size=2)
+        rows = [{"id": 1}]
+        expected = {"rows": rows}
+        remote = Mock()
+        remote.options.return_value = remote
+        remote.remote.return_value = "future"
+        decorator = Mock(return_value=remote)
+        fake_ray = Mock()
+        fake_ray.remote.return_value = decorator
+        fake_ray.get.return_value = expected
+        with patch.object(gpu_probe, "ray", fake_ray):
+            result = GPUMemoryProbe("unused")._run_stage_with_ray(op, rows, False)
+        self.assertIs(result, expected)
+        fake_ray.remote.assert_called_once_with(max_calls=1)
+        decorator.assert_called_once_with(_run_probe_stage)
+        remote.options.assert_called_once_with(num_cpus=1, num_gpus=0)
+        remote.remote.assert_called_once_with(type(op), (), op._init_kwargs, rows, False, 0, 1, "cpu")
+        fake_ray.get.assert_called_once_with("future")
+
+    @TEST_TAG("standalone")
+    def test_ray_hardware_reader_reserves_one_gpu(self):
+        expected = {"gpu_name": "Mock GPU", "total_mb": 1000}
+        remote = Mock()
+        remote.options.return_value = remote
+        remote.remote.return_value = "future"
+        decorator = Mock(return_value=remote)
+        fake_ray = Mock()
+        fake_ray.remote.return_value = decorator
+        fake_ray.get.return_value = expected
+        with patch.object(gpu_probe, "ray", fake_ray):
+            result = GPUMemoryProbe._read_hardware_with_ray()
+        self.assertIs(result, expected)
+        fake_ray.remote.assert_called_once_with(max_calls=1)
+        decorator.assert_called_once_with(gpu_probe._read_gpu_hardware)
+        remote.options.assert_called_once_with(num_cpus=0, num_gpus=1)
+        remote.remote.assert_called_once_with()
+        fake_ray.get.assert_called_once_with("future")
+
+    @TEST_TAG("standalone")
+    def test_target_selection_and_maximum_batch_size(self):
+        test_target_selection_and_maximum_batch_size()
+
+    @TEST_TAG("standalone")
+    def test_batch_fill_and_resource_rounding(self):
+        test_batch_fill_and_resource_rounding()
+
+    @TEST_TAG("standalone")
+    def test_dependency_planner_parallelizes_independent_gpu_mappers(self):
+        test_dependency_planner_parallelizes_independent_gpu_mappers()
+
+    @TEST_TAG("standalone")
+    def test_dependency_planner_keeps_gpu_dependency_and_unknown_contract_ordered(self):
+        test_dependency_planner_keeps_gpu_dependency_and_unknown_contract_ordered()
+
+    @TEST_TAG("standalone")
+    def test_probe_stage_preserves_multidimensional_numpy_arrays_between_ops(self):
+        test_probe_stage_preserves_multidimensional_numpy_arrays_between_ops()
+
+    @TEST_TAG("standalone")
+    def test_direct_batch_replay_preserves_numpy_arrays_without_arrow_round_trip(self):
+        test_direct_batch_replay_preserves_numpy_arrays_without_arrow_round_trip()
+
+    @TEST_TAG("standalone")
+    def test_probe_stage_disables_inner_multiprocessing_and_keeps_recipe_fault_tolerance(self):
+        test_probe_stage_disables_inner_multiprocessing_and_keeps_recipe_fault_tolerance()
+
+    @TEST_TAG("standalone")
+    def test_replay_skips_invalid_rows_when_the_recipe_asks_for_it(self):
+        test_replay_skips_invalid_rows_when_the_recipe_asks_for_it()
+
+    @TEST_TAG("standalone")
+    def test_target_profile_separates_init_warmup_and_steady_batches(self):
+        test_target_profile_separates_init_warmup_and_steady_batches()
+
+    @TEST_TAG("standalone")
+    def test_cuda_measurement_does_not_touch_context_until_target_returns(self):
+        test_cuda_measurement_does_not_touch_context_until_target_returns()
+
+    @TEST_TAG("standalone")
+    def test_resolve_uses_parallel_runner_for_declared_independent_targets(self):
+        self._with_tmp_path(test_resolve_uses_parallel_runner_for_declared_independent_targets)
+
+    @TEST_TAG("standalone")
+    def test_gpu_dependent_target_falls_back_after_independent_parallel_probe(self):
+        self._with_tmp_path(test_gpu_dependent_target_falls_back_after_independent_parallel_probe)
+
+    @TEST_TAG("standalone")
+    def test_parallel_probe_failure_prevents_formal_run(self):
+        self._with_tmp_path(test_parallel_probe_failure_prevents_formal_run)
+
+    @TEST_TAG("standalone")
+    def test_measurement_from_a_fully_skipped_batch_is_rejected(self):
+        self._with_tmp_path(test_measurement_from_a_fully_skipped_batch_is_rejected)
+
+    @TEST_TAG("standalone")
+    def test_empty_mapper_measurement_is_rejected_even_without_skip_op_error(self):
+        self._with_tmp_path(test_empty_mapper_measurement_is_rejected_even_without_skip_op_error)
+
+    @TEST_TAG("standalone")
+    def test_filter_target_that_keeps_no_samples_is_only_reported_as_worst_case(self):
+        self._with_tmp_path(test_filter_target_that_keeps_no_samples_is_only_reported_as_worst_case)
+
+    @TEST_TAG("standalone")
+    def test_ordered_replay_uses_front_sample_and_refills_after_filter(self):
+        self._with_tmp_path(test_ordered_replay_uses_front_sample_and_refills_after_filter)
+
+    @TEST_TAG("standalone")
+    def test_ordered_filter_can_keep_unmeasured_tail_for_downstream(self):
+        self._with_tmp_path(test_ordered_filter_can_keep_unmeasured_tail_for_downstream)
+
+    @TEST_TAG("standalone")
+    def test_ordered_padding_is_not_propagated_as_real_upstream_rows(self):
+        self._with_tmp_path(test_ordered_padding_is_not_propagated_as_real_upstream_rows)
+
+    @TEST_TAG("standalone")
+    def test_ordered_representative_replay_failure_aborts_before_saving_report(self):
+        self._with_tmp_path(test_ordered_representative_replay_failure_aborts_before_saving_report)
+
+    @TEST_TAG("standalone")
+    def test_stage_failure_is_fail_fast(self):
+        self._with_tmp_path(test_stage_failure_is_fail_fast)
+
+    @TEST_TAG("standalone")
+    def test_probe_sample_offset_skips_the_dataset_head(self):
+        self._with_tmp_path(test_probe_sample_offset_skips_the_dataset_head)
+
+    @TEST_TAG("standalone")
+    def test_probe_sample_offset_streams_past_the_head_of_a_ray_dataset(self):
+        self._with_tmp_path(test_probe_sample_offset_streams_past_the_head_of_a_ray_dataset)
+
+    @TEST_TAG("standalone")
+    def test_probe_sample_offset_beyond_the_dataset_falls_back_to_the_head(self):
+        self._with_tmp_path(test_probe_sample_offset_beyond_the_dataset_falls_back_to_the_head)
+
+    @TEST_TAG("standalone")
+    def test_probe_sample_shuffle_reads_a_randomized_block(self):
+        self._with_tmp_path(test_probe_sample_shuffle_reads_a_randomized_block)
+
+    @TEST_TAG("standalone")
+    def test_probe_sample_shuffle_falls_back_to_the_head_without_block_support(self):
+        self._with_tmp_path(test_probe_sample_shuffle_falls_back_to_the_head_without_block_support)
+
+    @TEST_TAG("standalone")
+    def test_probe_sample_shuffle_reports_the_ignored_offset(self):
+        self._with_tmp_path(test_probe_sample_shuffle_reports_the_ignored_offset)
+
+    @TEST_TAG("standalone")
+    def test_single_block_shuffle_hands_the_sample_back_to_the_offset(self):
+        self._with_tmp_path(test_single_block_shuffle_hands_the_sample_back_to_the_offset)
+
+    @TEST_TAG("standalone")
+    def test_seedless_shuffle_report_is_observed_but_never_reused(self):
+        self._with_tmp_path(test_seedless_shuffle_report_is_observed_but_never_reused)
+
+    @TEST_TAG("standalone")
+    def test_seeded_shuffle_report_is_reused(self):
+        self._with_tmp_path(test_seeded_shuffle_report_is_reused)
+
+    @TEST_TAG("standalone")
+    def test_sampling_policy_change_invalidates_cached_plan(self):
+        self._with_tmp_path(test_sampling_policy_change_invalidates_cached_plan)
+
+    @TEST_TAG("standalone")
+    def test_matching_report_is_reused_without_replaying_samples(self):
+        self._with_tmp_path(test_matching_report_is_reused_without_replaying_samples)
+
+    @TEST_TAG("standalone")
+    def test_hardware_mismatch_reprobes(self):
+        self._with_tmp_path(test_hardware_mismatch_reprobes)
+
+    @TEST_TAG("standalone")
+    def test_old_profile_schema_is_reprobed(self):
+        self._with_tmp_path(test_old_profile_schema_is_reprobed)
+
+    @TEST_TAG("standalone")
+    def test_worker_cap_change_invalidates_cached_plan(self):
+        self._with_tmp_path(test_worker_cap_change_invalidates_cached_plan)
+
+    @TEST_TAG("standalone")
+    def test_cached_record_below_measured_memory_share_is_reconciled_on_reuse(self):
+        self._with_tmp_path(test_cached_record_below_measured_memory_share_is_reconciled_on_reuse)
+
+    @TEST_TAG("standalone")
+    def test_explicit_resources_are_a_noop(self):
+        self._with_tmp_path(test_explicit_resources_are_a_noop)
+
+    @TEST_TAG("standalone")
+    def test_explicit_gpu_fraction_is_preserved_while_throughput_is_profiled(self):
+        self._with_tmp_path(test_explicit_gpu_fraction_is_preserved_while_throughput_is_profiled)
+
+    @TEST_TAG("standalone")
+    def test_explicit_gpu_fraction_below_measured_memory_is_raised_to_the_memory_share(self):
+        self._with_tmp_path(test_explicit_gpu_fraction_below_measured_memory_is_raised_to_the_memory_share)
+
+    @TEST_TAG("standalone")
+    def test_pipeline_target_and_pipeline_barrier_fail_before_formal_run(self):
+        self._with_tmp_path(test_pipeline_target_and_pipeline_barrier_fail_before_formal_run)
+
+    @TEST_TAG("standalone")
+    def test_executor_plans_parallelism_after_preflight(self):
+        self._with_tmp_path(test_executor_plans_parallelism_after_preflight)
+
+    @TEST_TAG("standalone")
+    def test_executor_uses_fixed_resources_when_preflight_is_disabled(self):
+        self._with_tmp_path(test_executor_uses_fixed_resources_when_preflight_is_disabled)
+
+    @TEST_TAG("standalone")
+    def test_parallel_probe_concurrency_serializes_by_default_and_bounds_an_explicit_cap(self):
+        self._with_tmp_path(test_parallel_probe_concurrency_serializes_by_default_and_bounds_an_explicit_cap)
+
+    @TEST_TAG("standalone")
+    def test_parallel_probe_timeout_names_stalled_operator_and_cancels_future(self):
+        self._with_tmp_path(test_parallel_probe_timeout_names_stalled_operator_and_cancels_future)
+
+
+if __name__ == "__main__":
+    unittest.main()

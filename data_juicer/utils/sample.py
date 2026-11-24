@@ -24,11 +24,20 @@ def random_sample(dataset, weight=1.0, sample_number=0, seed=None):
     if sample_number == ds_samples:
         return dataset
 
-    sample_index = range(sample_number)
+    # When sampling more samples than the dataset size, repeat the dataset
+    if sample_number > ds_samples:
+        sample_index = range(sample_number)
+        n_repeat = int(np.ceil(sample_number / ds_samples)) - 1
+        if n_repeat > 0:
+            remain_samples = sample_number - n_repeat * ds_samples
+            sample_index = chain(*repeat(range(ds_samples), n_repeat), range(remain_samples))
+        return dataset.shuffle(seed=seed).select(sample_index)
 
-    n_repeat = int(np.ceil(sample_number / ds_samples)) - 1
-    if n_repeat > 0:
-        remain_samples = sample_number - n_repeat * ds_samples
-        sample_index = chain(*repeat(range(ds_samples), n_repeat), range(remain_samples))
-
-    return dataset.shuffle(seed=seed).select(sample_index)
+    # `datasets.Dataset.shuffle(seed)` is implemented as
+    # `np.random.default_rng(seed).permutation(n)` followed by `select`, so
+    # slicing the permutation keeps exactly the rows that `main` selects while
+    # avoiding the full shuffled index mapping. `random.sample` is O(k) but
+    # builds a Python list and changes the selected rows for the same seed.
+    rng = np.random.default_rng(seed)
+    sample_index = rng.permutation(ds_samples)[:sample_number]
+    return dataset.select(sample_index)

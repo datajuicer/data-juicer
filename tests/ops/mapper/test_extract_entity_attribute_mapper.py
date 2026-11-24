@@ -7,6 +7,21 @@ from data_juicer.ops.mapper.extract_entity_attribute_mapper import ExtractEntity
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
+class ExtractEntityAttributeMapperParseTest(DataJuicerTestCaseBase):
+
+    def test_parse_output_multiword_attribute(self):
+        op = ExtractEntityAttributeMapper(api_model="any-model", query_entities=["Harry Potter"], query_attributes=["early life"])
+        raw = "## early life：Raised by the Dursleys.\n### 代表性示例摘录1：\n```\nHe lived under the stairs.\n```\n"
+        attribute, demos = op.parse_output(raw, "early life")
+        self.assertEqual(attribute, "Raised by the Dursleys.")
+        self.assertEqual(demos, ["He lived under the stairs."])
+
+    def test_parse_output_attribute_with_regex_characters(self):
+        op = ExtractEntityAttributeMapper(api_model="any-model", query_entities=["C++"], query_attributes=["性格(简述)"])
+        attribute, _ = op.parse_output("## 性格(简述)：沉稳。\n", "性格(简述)")
+        self.assertEqual(attribute, "沉稳。")
+
+
 @skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class ExtractEntityAttributeMapperTest(DataJuicerTestCaseBase):
 

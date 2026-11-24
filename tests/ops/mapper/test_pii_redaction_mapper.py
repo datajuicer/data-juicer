@@ -30,6 +30,30 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertIn(PLACEHOLDER_JWT, out)
         self.assertIn(PLACEHOLDER_IP, out)
 
+    def test_cn_phone_and_id_card_next_to_cjk_text(self):
+        m = self._m()
+        out = m._redact_text("我的手机号是13812345678，身份证号110101199003071234。")
+        self.assertEqual(out, "我的手机号是[PHONE_REDACTED]，身份证号[ID_CARD_REDACTED]。")
+        # still not matched inside longer ASCII tokens such as hashes
+        self.assertEqual(m._redact_text("sha deadbeef13812345678cafe"), "sha deadbeef13812345678cafe")
+
+    def test_tokens_next_to_cjk_text(self):
+        m = self._m()
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln"
+        cases = {
+            f"令牌是{jwt}，已过期": "令牌是[JWT_REDACTED]，已过期",
+            "电话+8613812345678请回电": "电话[PHONE_REDACTED]请回电",
+            "MAC地址00:1A:2B:3C:4D:5E的设备": "MAC地址[MAC_REDACTED]的设备",
+            "用户ou_0123456789abcdef0123456789abcdef发来消息": "用户[CHANNEL_ID_REDACTED]发来消息",
+            "用户uid_abcdef0123456789xyz发来消息": "用户[CHANNEL_ID_REDACTED]发来消息",
+            "当前channel: feishu通知": "当前channel: [CHANNEL_ID_REDACTED]通知",
+            "当前的channel: 飞书发送": "当前的channel: [CHANNEL_ID_REDACTED]发送",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(m._redact_text(raw), expected)
+        # still not matched inside longer ASCII tokens
+        self.assertEqual(m._redact_text("abcuid_abcdef0123456789xyz"), "abcuid_abcdef0123456789xyz")
+
     def test_extended_ipv6_mac_pem(self):
         m = self._m()  # PEM/IP/MAC on by default
         raw = (
@@ -40,6 +64,17 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertIn(PLACEHOLDER_IP, out)
         self.assertIn(PLACEHOLDER_MAC, out)
         self.assertIn(PLACEHOLDER_PEM, out)
+
+    def test_bracketed_ipv6_without_port(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("[2001:db8::1] is up"), "[IP_REDACTED] is up")
+        self.assertEqual(m._redact_text("ping [fe80::1]."), "ping [IP_REDACTED].")
+        self.assertEqual(m._redact_text("http://[2001:db8::1]/x"), "http://[IP_REDACTED]/x")
+        self.assertEqual(m._redact_text("地址[2001:db8::1]:8080的服务"), "地址[IP_REDACTED]的服务")
+        self.assertEqual(m._redact_text("[1:2:3:4:5:6:7:8]"), "[IP_REDACTED]")
+        # brackets that do not hold an IPv6 address are left alone
+        for text in ("[123]x", "[cafe]x", "[12:01:33]INFO", "[...]", "listen [::]:80"):
+            self.assertEqual(m._redact_text(text), text)
 
     def test_extended_url_off_by_default(self):
         """URL masking is off by default, but JWT and IP are on."""
@@ -72,13 +107,54 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
                 "nested": [{"path": "C:\\Users\\alice\\secret.txt"}],
             },
             "items": ["call 13800138000", {"file_path": "/home/bob/data.json"}],
+            "meta": {"file_paths": ["/home/carol/a.txt"]},
         }
         m._redact_value(payload)
         self.assertIn("dev@example.com", payload["safe"])
         self.assertIn("[PATH_REDACTED]", payload["tool"]["arguments"])
         self.assertIn("[PATH_REDACTED]", payload["tool"]["nested"][0]["path"])
-        self.assertIn("[PHONE_REDACTED]", payload["items"][0])
+        self.assertEqual(payload["items"][0], "call 13800138000")
         self.assertIn("[PATH_REDACTED]", payload["items"][1]["file_path"])
+        self.assertIn("[PATH_REDACTED]", payload["meta"]["file_paths"][0])
+
+    def test_process_single_keeps_media_paths(self):
+        m = self._m()
+        out = m.process_single(
+            {
+                "text": "contact dev@example.com",
+                "images": ["/home/alice/photos/cat.jpg", "/data/imgs/dog.png"],
+                "videos": ["/tmp/clip.mp4"],
+                "audios": ["/Users/bob/a.wav"],
+                "tags": ["user_id: 42"],
+            }
+        )
+        self.assertIn("[EMAIL_REDACTED]", out["text"])
+        self.assertEqual(out["images"], ["/home/alice/photos/cat.jpg", "/data/imgs/dog.png"])
+        self.assertEqual(out["videos"], ["/tmp/clip.mp4"])
+        self.assertEqual(out["audios"], ["/Users/bob/a.wav"])
+        self.assertEqual(out["tags"], ["user_id: 42"])
+
+    def test_process_single_redacts_list_in_redact_keys(self):
+        m = self._m(redact_keys=["notes"], messages_key=None)
+        out = m.process_single({"notes": ["call 13800138000", "plain", "/home/alice/a.txt"]})
+        self.assertIn("[PHONE_REDACTED]", out["notes"][0])
+        self.assertEqual(out["notes"][1], "plain")
+        self.assertIn("[PATH_REDACTED]", out["notes"][2])
+
+    def test_process_single_redacts_nested_lists(self):
+        m = self._m()
+        out = m.process_single({"tool": {"arguments": {"files": ["/home/alice/a.txt"]}}})
+        self.assertEqual(out["tool"]["arguments"]["files"], ["[PATH_REDACTED]"])
+        out = m.process_single({"tool": {"arguments": {"commands": ["token=abc"]}}})
+        self.assertEqual(out["tool"]["arguments"]["commands"], ["token=[REDACTED]"])
+
+        m = self._m(redact_keys=["notes"], messages_key=None)
+        out = m.process_single({"notes": [{"commands": ["token=abc"]}]})
+        self.assertEqual(out["notes"][0]["commands"], ["token=[REDACTED]"])
+        out = m.process_single({"notes": [{"commands": ["token=abc"]}, ["call 13800138000"]]})
+        self.assertEqual(out["notes"], [{"commands": ["token=[REDACTED]"]}, ["call [PHONE_REDACTED]"]])
+        out = m.process_single({"notes": {"commands": ["token=abc"]}})
+        self.assertEqual(out["notes"], {"commands": ["token=[REDACTED]"]})
 
     def test_redact_messages_handles_content_blocks_and_tool_calls(self):
         m = self._m(mask_urls=True)
@@ -155,6 +231,121 @@ class TestPiiRedactionExtended(DataJuicerTestCaseBase):
         self.assertIn("[EMAIL_REDACTED]", out["pair_list"][0])
         self.assertIsInstance(out["pair_tuple"], tuple)
         self.assertIn("[REDACTED]", out["pair_tuple"][0])
+
+    def test_secret_after_auth_scheme(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text("Authorization: Bearer sk-live-abc123def456"),
+            "Authorization: Bearer [REDACTED]",
+        )
+        self.assertEqual(m._redact_text("authorization: Basic dXNlcjpwYXNz"), "authorization: Basic [REDACTED]")
+        self.assertEqual(m._redact_text("password: basic"), "password: [REDACTED]")
+
+    def test_secret_scheme_not_kept_for_other_keys_or_across_lines(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password=basic\nstatus=ok"), "password=[REDACTED]\nstatus=ok")
+        self.assertEqual(m._redact_text("password=basic # comment"), "password=[REDACTED] # comment")
+        self.assertEqual(m._redact_text("Authorization: Basic\nstatus=ok"), "Authorization: [REDACTED]\nstatus=ok")
+        self.assertEqual(m._redact_text("auth=basic # comment"), "auth=[REDACTED] # comment")
+
+    def test_secret_quoted_value_redacted_up_to_closing_quote(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text('password: "correct horse battery staple" ok'),
+            'password: "[REDACTED]" ok',
+        )
+        self.assertEqual(m._redact_text("secret='a, b} c'"), "secret='[REDACTED]'")
+        self.assertEqual(m._redact_text('password="it\'s \\"quoted\\""'), 'password="[REDACTED]"')
+        self.assertEqual(m._redact_text('password: ""'), 'password: ""')
+
+    def test_secret_with_quoted_key(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text('{"api_key": "sk-abc123", "model": "gpt-4"}'),
+            '{"api_key": "[REDACTED]", "model": "gpt-4"}',
+        )
+        self.assertEqual(m._redact_text("{'password': 'hunter2'}"), "{'password': '[REDACTED]'}")
+        self.assertEqual(
+            m._redact_text('{"Authorization": "Bearer sk-live-abc123"}'),
+            '{"Authorization": "[REDACTED]"}',
+        )
+
+    def test_secret_value_already_masked_as_jwt(self):
+        m = self._m()
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln"
+        self.assertEqual(m._redact_text(f"token={jwt}"), "token=[REDACTED]")
+        self.assertEqual(m._redact_text(f"Authorization: Bearer {jwt}"), "Authorization: Bearer [REDACTED]")
+
+    def test_id_keeps_separator_and_quotes(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("user_id: 42"), "user_id: [ID_REDACTED]")
+        self.assertEqual(m._redact_text("request-id = r-9"), "request-id = [ID_REDACTED]")
+        self.assertEqual(m._redact_text("trace_id:'t1'"), "trace_id:'[ID_REDACTED]'")
+        self.assertEqual(m._redact_text('user_id: ""'), 'user_id: ""')
+
+    def test_id_with_quoted_key_and_value(self):
+        m = self._m()
+        self.assertEqual(
+            m._redact_text('{"user_id": "u-123", "name": "x"}'),
+            '{"user_id": "[ID_REDACTED]", "name": "x"}',
+        )
+        self.assertEqual(m._redact_text("{'session_id': 'abc:def'}"), "{'session_id': '[ID_REDACTED]'}")
+
+    def test_kv_key_after_underscore_or_cjk(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("db_password=hunter2"), "db_password=[REDACTED]")
+        self.assertEqual(m._redact_text("GITHUB_TOKEN=ghp_abc123"), "GITHUB_TOKEN=[REDACTED]")
+        self.assertEqual(m._redact_text('{"client_secret": "s3cr3t"}'), '{"client_secret": "[REDACTED]"}')
+        self.assertEqual(m._redact_text("我的password=hunter2"), "我的password=[REDACTED]")
+        self.assertEqual(m._redact_text("parent_user_id: 42"), "parent_user_id: [ID_REDACTED]")
+        self.assertEqual(m._redact_text('{"parent_user_id": "u-123"}'), '{"parent_user_id": "[ID_REDACTED]"}')
+        self.assertEqual(m._redact_text("用户user_id: 42"), "用户user_id: [ID_REDACTED]")
+        # still not matched after an ASCII letter or digit
+        self.assertEqual(m._redact_text("mypassword=x"), "mypassword=x")
+        self.assertEqual(m._redact_text('{"myuser_id": "u1"}'), '{"myuser_id": "u1"}')
+
+    def test_ambiguous_secret_keys_after_underscore(self):
+        m = self._m()
+        for text in [
+            "tokenizer.pad_token = tokenizer.eos_token",
+            '{"eos_token": "</s>", "pad_token": "<pad>"}',
+            "is_secret=False",
+            "use_auth=True",
+            "max_token=512",
+        ]:
+            self.assertEqual(m._redact_text(text), text)
+        self.assertEqual(m._redact_text("HF_TOKEN=hf_abc123"), "HF_TOKEN=[REDACTED]")
+        self.assertEqual(m._redact_text('{"access_token": "abc"}'), '{"access_token": "[REDACTED]"}')
+        self.assertEqual(m._redact_text("refresh_token: abc"), "refresh_token: [REDACTED]")
+        self.assertEqual(m._redact_text("我的token=abc"), "我的token=[REDACTED]")
+
+    def test_kv_with_fullwidth_colon(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password：hunter2"), "password：[REDACTED]")
+        self.assertEqual(m._redact_text("api_key： sk-abc123"), "api_key： [REDACTED]")
+        self.assertEqual(m._redact_text("user_id：12345"), "user_id：[ID_REDACTED]")
+
+    def test_kv_value_does_not_run_onto_the_next_line(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password=\nstatus=ok"), "password=\nstatus=ok")
+        self.assertEqual(m._redact_text("token:\nnext line text"), "token:\nnext line text")
+        self.assertEqual(m._redact_text("user_id=\nstatus=ok"), "user_id=\nstatus=ok")
+        self.assertEqual(m._redact_text("password=\r\nstatus=ok"), "password=\r\nstatus=ok")
+
+    def test_kv_with_unicode_whitespace_after_the_separator(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password:\u3000hunter2"), "password:\u3000[REDACTED]")
+        self.assertEqual(m._redact_text("user_id:\u00a0u-42"), "user_id:\u00a0[ID_REDACTED]")
+        self.assertEqual(m._redact_text("password:\n\u3000hunter2"), "password:\n\u3000[REDACTED]")
+
+    def test_kv_value_on_an_indented_next_line(self):
+        m = self._m()
+        self.assertEqual(m._redact_text("password:\n  hunter2"), "password:\n  [REDACTED]")
+        self.assertEqual(
+            m._redact_text('{\n  "password":\n    "s3cret"\n}'),
+            '{\n  "password":\n    "[REDACTED]"\n}',
+        )
+        self.assertEqual(m._redact_text("user_id:\n  u-42"), "user_id:\n  [ID_REDACTED]")
 
 
 if __name__ == "__main__":

@@ -605,7 +605,8 @@ class ExportToLeRobotMapper(Mapper):
 
                 df["episode_index"] = ep_idx
                 df["task_index"] = ep["task_index"]
-                df["index"] = ep["global_frame_offset"] + df["frame_index"].values
+                # Global row indices are independent of source video frame IDs.
+                df["index"] = ep["global_frame_offset"] + np.arange(len(df), dtype=np.int64)
 
                 dst_parquet = os.path.join(output_dir, "data", chunk_name, f"episode_{ep_idx:06d}.parquet")
                 out_table = pa.Table.from_pandas(df)

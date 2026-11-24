@@ -153,6 +153,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_image_minhash_deduplicator.html">ray_bts_image_minhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
@@ -546,7 +547,7 @@
 
 
 <div class="viewcode-block" id="AgentBadCaseSignalMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_bad_case_signal_mapper.html#data_juicer.ops.mapper.AgentBadCaseSignalMapper">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentBadCaseSignalMapper">[文档]</a>
 <span class="nd">@TAGGING_OPS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AgentBadCaseSignalMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
@@ -581,7 +582,7 @@
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="AgentBadCaseSignalMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_bad_case_signal_mapper.html#data_juicer.ops.mapper.AgentBadCaseSignalMapper.__init__">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentBadCaseSignalMapper.__init__">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"query"</span><span class="p">,</span>
@@ -818,7 +819,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="AgentBadCaseSignalMapper.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.agent_bad_case_signal_mapper.html#data_juicer.ops.mapper.AgentBadCaseSignalMapper.process_single">[文档]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentBadCaseSignalMapper.process_single">[文档]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">meta</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">Fields</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span> <span class="p">{})</span>
         <span class="n">stats</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>

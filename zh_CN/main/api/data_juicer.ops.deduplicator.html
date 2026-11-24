@@ -1000,6 +1000,120 @@ open.</p></li>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.deduplicator.</span></span><span class="sig-name descname"><span class="pre">RayImageBTSMinhashDeduplicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicator"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Deduplicator" title="data_juicer.ops.base_op.Deduplicator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Deduplicator</span></code></a></p>
+<p>A distributed image deduplicator using MinHash LSH and BTS Union-Find on Ray.</p>
+<p>This operator implements a scalable near-duplicate image detection algorithm designed
+for large-scale datasets. It leverages Ray for distributed processing and supports both
+CPU and GPU execution.</p>
+<p>The deduplication process consists of the following steps:
+1. Visual Tokenization: Images are processed by a pre-trained Vision Transformer</p>
+<blockquote>
+<div><p>model (e.g., BEiT) to extract discrete visual tokens. These tokens represent the
+semantic content of the image patches.</p>
+</div></blockquote>
+<ol class="arabic simple" start="2">
+<li><p>MinHash Computation: The set of visual tokens is used to compute MinHash
+signatures. This transforms the high-dimensional image data into a compact
+signature that preserves Jaccard similarity.</p></li>
+<li><p>LSH Banding: MinHash signatures are divided into bands to perform Locality
+Sensitive Hashing (LSH), allowing for efficient retrieval of candidate duplicate pairs.</p></li>
+<li><p>Distributed Union-Find (BTS): A Balanced Tree Structure (BTS) Union-Find
+algorithm is employed to resolve connected components (clusters of duplicate images)
+across distributed workers.</p></li>
+<li><p>Filtering: Based on the connected components, duplicate images are filtered out,
+keeping only one representative image per cluster.</p></li>
+</ol>
+<p>Key Features:
+- Deep Semantic Hashing**: Uses visual tokens from models like BEiT rather than simple pixel-level heuristics.
+- Scalability: Utilizing Ray and the BTS algorithm allows it to scale to billion-level datasets.
+- Performance: Supports NVIDIA DALI for accelerated image decoding and batch inference on GPUs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'microsoft/beit-base-patch16-224-pt22k'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trust_remote_code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_permutations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jaccard_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FieldInfo</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">annotation</span></span><span class="o"><span class="pre">=</span></span><span class="pre">NoneType</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Le</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bands</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_rows_per_band</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">union_find_parallel_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">union_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pending_edge_buffer_task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_edge_buffer_task_returns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pending_filter_tasks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_filter_task_returns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minhash_batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memory_per_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actor_memory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_memory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicator.__init__"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.__init__" title="链接到此定义。">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">参数<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> -- the name of the image model to use for hash computation</p></li>
+<li><p><strong>num_permutations</strong> -- number of permutations in minhash
+computing (default: 256)</p></li>
+<li><p><strong>jaccard_threshold</strong> -- the min jaccard similarity threshold
+in near-duplicate detection. When the jaccard similarity of
+two sample images is &gt;= this threshold, they are regarded as
+similar samples and this op will only keep one of them after
+deduplication (default: 0.7)</p></li>
+<li><p><strong>num_bands</strong> -- number of bands in LSH. Default it's None, and
+it will be determined by an optimal params computation
+algorithm by minimize the weighted sum of probs of False
+Positives and False Negatives</p></li>
+<li><p><strong>num_rows_per_band</strong> -- number of rows in each band in LSH.
+Default it's None, and it will be determined by an optimal
+params computation algorithm</p></li>
+<li><p><strong>union_find_parallel_num</strong> -- number of parallel workers for
+union-find algorithm. Default it's 'auto', and it will be
+determined by half of the number of CPUs.</p></li>
+<li><p><strong>union_threshold</strong> -- threshold for minhash values group to
+perform union-find algorithm. Default it's 256.</p></li>
+<li><p><strong>max_pending_edge_buffer_task</strong> -- max number of pending edge buffer
+ray tasks. Default it's 20.</p></li>
+<li><p><strong>num_edge_buffer_task_returns</strong> -- number of edge buffer tasks for
+<cite>ray.wait</cite> to return. Default it's 10.</p></li>
+<li><p><strong>max_pending_filter_tasks</strong> -- max number of pending filter ray
+tasks. Default it's 20.</p></li>
+<li><p><strong>num_filter_task_returns</strong> -- number of filter tasks for <cite>ray.wait</cite>
+to return. Default it's 10.</p></li>
+<li><p><strong>merge_batch_size</strong> -- batch size for BTS operations. Default
+it's 1000.</p></li>
+<li><p><strong>minhash_batch_size</strong> -- positive batch size for MinHash computation,
+honored on both CPU and GPU. If &quot;auto&quot;, estimate it from available
+memory and memory_per_sample, with a device-specific fallback.</p></li>
+<li><p><strong>memory_per_sample</strong> -- estimated memory needed per sample in MB.
+Used to calculate batch size based on available GPU memory.
+Default is 25 MB per sample.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.band_minhash">
+<span class="sig-name descname"><span class="pre">band_minhash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">minhash_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uid_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicator.band_minhash"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.band_minhash" title="链接到此定义。">¶</a></dt>
+<dd><p>Logic for creating and pusing LSH bands to the union find list</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.merge_op_batch">
+<span class="sig-name descname"><span class="pre">merge_op_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object_refs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicator.merge_op_batch"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.merge_op_batch" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.merge">
+<span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicator.merge"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.merge" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.filter_with_union_find">
+<span class="sig-name descname"><span class="pre">filter_with_union_find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Table</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicator.filter_with_union_find"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.filter_with_union_find" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicator.run"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.run" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicatorWithUid">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.deduplicator.</span></span><span class="sig-name descname"><span class="pre">RayImageBTSMinhashDeduplicatorWithUid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/deduplicator/ray_bts_image_minhash_deduplicator.html#RayImageBTSMinhashDeduplicatorWithUid"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicatorWithUid" title="链接到此定义。">¶</a></dt>
+<dd><p>基类：<a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator" title="data_juicer.ops.deduplicator.ray_bts_image_minhash_deduplicator.RayImageBTSMinhashDeduplicator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator</span></code></a></p>
+<p>A MinhashLSH deduplicator based on RAY.
+... (docstring omitted) ...</p>
+</dd></dl>
+
 </section>
 
 
@@ -1095,6 +1209,16 @@ open.</p></li>
 <li><a class="reference internal" href="#data_juicer.ops.deduplicator.VideoDeduplicator.process"><code class="docutils literal notranslate"><span class="pre">VideoDeduplicator.process()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.__init__"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.band_minhash"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator.band_minhash()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.merge_op_batch"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator.merge_op_batch()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.merge"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator.merge()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.filter_with_union_find"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator.filter_with_union_find()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicator.run"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicator.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data_juicer.ops.deduplicator.RayImageBTSMinhashDeduplicatorWithUid"><code class="docutils literal notranslate"><span class="pre">RayImageBTSMinhashDeduplicatorWithUid</span></code></a></li>
 </ul>
 </li>
 </ul>

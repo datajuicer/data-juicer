@@ -153,6 +153,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_image_minhash_deduplicator.html">ray_bts_image_minhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
@@ -474,7 +475,7 @@
 
 
 <div class="viewcode-block" id="split_sentence">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_repeat_sentences_mapper.html#data_juicer.ops.mapper.remove_repeat_sentences_mapper.split_sentence">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_repeat_sentences_mapper.html#data_juicer.ops.mapper.split_sentence">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">split_sentence</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
     <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"([.。！!？\?])([^’”])"</span><span class="p">,</span> <span class="n">_break_on_sentence_punct</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>  <span class="c1"># noqa</span>
     <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(\.</span><span class="si">{6}</span><span class="s2">)([^’”])"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"\1\n\2"</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>  <span class="c1"># noqa</span>
@@ -500,7 +501,7 @@
 
 
 <div class="viewcode-block" id="RemoveRepeatSentencesMapper">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_repeat_sentences_mapper.html#data_juicer.ops.mapper.remove_repeat_sentences_mapper.RemoveRepeatSentencesMapper">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveRepeatSentencesMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="s2">"remove_repeat_sentences_mapper"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoveRepeatSentencesMapper</span><span class="p">(</span><span class="n">Mapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mapper to remove repeat sentences in text samples.</span>
@@ -516,7 +517,7 @@
     <span class="n">_batched_op</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="RemoveRepeatSentencesMapper.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_repeat_sentences_mapper.html#data_juicer.ops.mapper.remove_repeat_sentences_mapper.RemoveRepeatSentencesMapper.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveRepeatSentencesMapper.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">lowercase</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -584,7 +585,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid tokenizer lambda: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RemoveRepeatSentencesMapper.process_batched">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.remove_repeat_sentences_mapper.html#data_juicer.ops.mapper.remove_repeat_sentences_mapper.RemoveRepeatSentencesMapper.process_batched">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveRepeatSentencesMapper.process_batched">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_batched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_key</span><span class="p">]):</span>
             <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)]</span>

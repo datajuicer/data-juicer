@@ -153,6 +153,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_minhash_deduplicator_with_uid.html">document_minhash_deduplicator_with_uid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/document_simhash_deduplicator.html">document_simhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/image_deduplicator.html">image_deduplicator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_image_minhash_deduplicator.html">ray_bts_image_minhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_cpp_deduplicator.html">ray_bts_minhash_cpp_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator.html">ray_bts_minhash_deduplicator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../docs/operators/deduplicator/ray_bts_minhash_deduplicator_with_uid.html">ray_bts_minhash_deduplicator_with_uid</a></li>
@@ -474,7 +475,7 @@
 
 
 <div class="viewcode-block" id="LLMAnalysisFilter">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.llm_analysis_filter.LLMAnalysisFilter">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.LLMAnalysisFilter">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMAnalysisFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Base filter class for leveraging LLMs to analyze and filter data samples.</span>
@@ -558,7 +559,7 @@
     <span class="n">_accelerator</span> <span class="o">=</span> <span class="s2">"cuda"</span>
 
 <div class="viewcode-block" id="LLMAnalysisFilter.__init__">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.llm_analysis_filter.LLMAnalysisFilter.__init__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.LLMAnalysisFilter.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_or_hf_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gpt-4o"</span><span class="p">,</span>
@@ -670,7 +671,7 @@
 
 
 <div class="viewcode-block" id="LLMAnalysisFilter.build_input">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.llm_analysis_filter.LLMAnalysisFilter.build_input">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.LLMAnalysisFilter.build_input">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_keys</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Not all input keys </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_keys</span><span class="si">}</span><span class="s2"> are in the sample!"</span><span class="p">)</span>
@@ -761,7 +762,7 @@
             <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LLMAnalysisFilter.parse_output">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.llm_analysis_filter.LLMAnalysisFilter.parse_output">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.LLMAnalysisFilter.parse_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_output</span><span class="p">):</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">extract_outer_braces</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()):</span>
@@ -806,7 +807,7 @@
 
 
 <div class="viewcode-block" id="LLMAnalysisFilter.generate_llm_analysis">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.llm_analysis_filter.LLMAnalysisFilter.generate_llm_analysis">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.LLMAnalysisFilter.generate_llm_analysis">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">generate_llm_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_vllm</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_hf_model</span><span class="p">:</span>
             <span class="n">model</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_key</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">())</span>
@@ -840,7 +841,7 @@
 
 
 <div class="viewcode-block" id="LLMAnalysisFilter.compute_stats_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.llm_analysis_filter.LLMAnalysisFilter.compute_stats_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.LLMAnalysisFilter.compute_stats_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># check if it's computed already</span>
         <span class="k">if</span> <span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_analysis_score</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]:</span>
@@ -862,7 +863,7 @@
 
 
 <div class="viewcode-block" id="LLMAnalysisFilter.process_single">
-<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.llm_analysis_filter.LLMAnalysisFilter.process_single">[docs]</a>
+<a class="viewcode-back" href="../../../../api/data_juicer.ops.filter.llm_analysis_filter.html#data_juicer.ops.filter.LLMAnalysisFilter.process_single">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">itm_score</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">Fields</span><span class="o">.</span><span class="n">stats</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">StatsKeys</span><span class="o">.</span><span class="n">llm_analysis_score</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">itm_score</span><span class="p">:</span>

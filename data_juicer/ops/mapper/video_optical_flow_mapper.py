@@ -1,16 +1,17 @@
 import os
 
 import cv2
-import numpy as np
 from pydantic import PositiveInt
 
-import data_juicer
 from data_juicer.ops.load import load_ops
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import (
+    get_video_frame_groups,
+    get_video_visualization_dir,
+)
 
 from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
@@ -64,19 +65,21 @@ class VideoOpticalFlowMapper(Mapper):
 
         self.model_key = prepare_model(model_type="optical_flow_raft")
         self.if_save_visualization = if_save_visualization
-        self.save_visualization_dir = save_visualization_dir
+        self.save_visualization_dir = save_visualization_dir or DATA_JUICER_ASSETS_CACHE
         self.frame_field = MetaKeys.video_frames
         self.tag_field_name = MetaKeys.video_optical_flow_tags
         self.frame_num = frame_num
         self.duration = duration
-        self.frame_dir = frame_dir
+        self.frame_dir = frame_dir or DATA_JUICER_ASSETS_CACHE
 
         self.video_extract_frames_mapper_args = {
             "frame_sampling_method": "uniform",
             "frame_num": frame_num,
             "duration": duration,
-            "frame_dir": frame_dir,
-            "frame_key": MetaKeys.video_frames,
+            "frame_dir": self.frame_dir,
+            "frame_field": self.frame_field,
+            "video_key": self.video_key,
+            "legacy_split_by_text_token": False,
             "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
             "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
@@ -88,68 +91,41 @@ class VideoOpticalFlowMapper(Mapper):
         return transforms(img1_batch, img2_batch)
 
     def process_single(self, sample=None, rank=None):
-
-        # check if it's generated already
-        if self.tag_field_name in sample[Fields.meta]:
+        metadata = sample.setdefault(Fields.meta, {})
+        if self.tag_field_name in metadata:
             return sample
-
-        # there is no video in this sample
-        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
-            sample[Fields.meta][self.tag_field_name] = {"pred_flow": []}
+        groups = get_video_frame_groups(sample, self.frame_field, self.video_key, self.fused_ops[0])
+        result = {"pred_flow": [], "frame_pairs": [], "video_indices": []}
+        if not any(len(paths) > 1 for paths in groups):
+            metadata[self.tag_field_name] = result
             return sample
-
         model, transforms = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
-
-        if rank is not None:
-            device = f"cuda:{str(rank)}"
-        else:
-            device = "cuda"
-
-        if self.frame_field in sample:
-            frames_path = sample[self.frame_field]
-            video_name = os.path.basename(os.path.dirname(frames_path[0]))
-        else:
-            # load videos
-            ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
-
-            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-            dataset = self.fused_ops[0].run(dataset)
-
-            temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-            frames_root = os.path.join(self.frame_dir, temp_frame_name)
-            frame_names = os.listdir(frames_root)
-            frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
-            video_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-
-        if len(frames_path) < 2:
-            sample[Fields.meta][self.tag_field_name] = {"pred_flow": []}
-            return sample
-
-        frame_arr_list = []
-        for temp_img_path_id, temp_img_path in enumerate(frames_path):
-            frame_arr_list.append(cv2.imread(temp_img_path)[:, :, ::-1][None, :])
-
-        frame_tensor = torch.from_numpy(np.concatenate(frame_arr_list, axis=0)).permute(0, 3, 1, 2)
-        img1_batch = frame_tensor.clone()[:-1, :, :, :].to(device)
-        img2_batch = frame_tensor.clone()[1:, :, :, :].to(device)
-
-        img1_batch, img2_batch = self.raft_preprocess(img1_batch, img2_batch, transforms)
-
-        with torch.no_grad():
-            list_of_flows = model(img1_batch, img2_batch)
-            predicted_flow = list_of_flows[-1]
-
-        if self.if_save_visualization:
-            os.makedirs(os.path.join(self.save_visualization_dir, video_name), exist_ok=True)
-
-            flow_imgs = torchvision.utils.flow_to_image(predicted_flow).cpu().permute(0, 2, 3, 1).numpy()
-            for temp_flow_img_id in range(len(flow_imgs)):
-                cv2.imwrite(
-                    os.path.join(self.save_visualization_dir, video_name, f"vis_{str(temp_flow_img_id)}.jpg"),
-                    flow_imgs[temp_flow_img_id],
-                )
-
-        sample[Fields.meta][self.tag_field_name] = {}
-        sample[Fields.meta][self.tag_field_name]["pred_flow"] = predicted_flow.detach().cpu().numpy()
-
+        device = next(model.parameters()).device
+        for video_index, paths in enumerate(groups):
+            previous = None
+            for frame_index, path in enumerate(paths):
+                image = cv2.imread(path)
+                if image is None:
+                    raise ValueError(f"Could not read video frame: {path}")
+                current = torch.from_numpy(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)).permute(2, 0, 1).unsqueeze(0)
+                if previous is not None:
+                    first, second = self.raft_preprocess(previous.to(device), current.to(device), transforms)
+                    with torch.no_grad():
+                        predicted_flow = model(first, second)[-1]
+                    result["pred_flow"].append(predicted_flow[0].detach().cpu().tolist())
+                    result["frame_pairs"].append([paths[frame_index - 1], path])
+                    result["video_indices"].append(video_index)
+                    if self.if_save_visualization:
+                        directory = get_video_visualization_dir(
+                            self.save_visualization_dir, OP_NAME, paths, video_index
+                        )
+                        visualization = (
+                            torchvision.utils.flow_to_image(predicted_flow)[0].cpu().permute(1, 2, 0).numpy()
+                        )
+                        cv2.imwrite(
+                            os.path.join(directory, f"vis_{frame_index - 1}.jpg"),
+                            cv2.cvtColor(visualization, cv2.COLOR_RGB2BGR),
+                        )
+                previous = current
+        metadata[self.tag_field_name] = result
         return sample

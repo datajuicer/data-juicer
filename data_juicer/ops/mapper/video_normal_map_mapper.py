@@ -4,13 +4,15 @@ import cv2
 import numpy as np
 from pydantic import PositiveInt
 
-import data_juicer
 from data_juicer.ops.load import load_ops
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import (
+    get_video_frame_groups,
+    get_video_visualization_dir,
+)
 
 from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
@@ -59,24 +61,28 @@ class VideoNormalMapMapper(Mapper):
         """
 
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(["onnxruntime-gpu"])
+        LazyLoader(
+            "onnxruntime", package_name="onnxruntime-gpu" if self.use_cuda() else "onnxruntime"
+        ).get_available_providers()
 
         self.model_key = prepare_model(model_type="normal_map_metric3d", model_path=model_path)
         self.if_save_visualization = if_save_visualization
-        self.save_visualization_dir = save_visualization_dir
+        self.save_visualization_dir = save_visualization_dir or DATA_JUICER_ASSETS_CACHE
         self.frame_field = MetaKeys.video_frames
         self.tag_field_name = MetaKeys.video_normal_map_tags
         self.frame_num = frame_num
         self.duration = duration
-        self.frame_dir = frame_dir
+        self.frame_dir = frame_dir or DATA_JUICER_ASSETS_CACHE
         self.input_size = (616, 1064)
 
         self.video_extract_frames_mapper_args = {
             "frame_sampling_method": "uniform",
             "frame_num": frame_num,
             "duration": duration,
-            "frame_dir": frame_dir,
-            "frame_key": MetaKeys.video_frames,
+            "frame_dir": self.frame_dir,
+            "frame_field": self.frame_field,
+            "video_key": self.video_key,
+            "legacy_split_by_text_token": False,
             "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
             "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
@@ -112,67 +118,38 @@ class VideoNormalMapMapper(Mapper):
         return onnx_input, pad_info
 
     def process_single(self, sample=None, rank=None):
-
-        # check if it's generated already
-        if self.tag_field_name in sample[Fields.meta]:
+        metadata = sample.setdefault(Fields.meta, {})
+        if self.tag_field_name in metadata:
             return sample
-
-        # there is no video in this sample
-        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
-            sample[Fields.meta][self.tag_field_name] = {"pred_norm": []}
+        groups = get_video_frame_groups(sample, self.frame_field, self.video_key, self.fused_ops[0])
+        result = {"pred_norm": [], "frame_paths": [], "video_indices": []}
+        if not any(groups):
+            metadata[self.tag_field_name] = result
             return sample
-
-        ort_session = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
-
-        if self.frame_field in sample:
-            frames_path = sample[self.frame_field]
-            video_name = os.path.basename(os.path.dirname(frames_path[0]))
-        else:
-            # load videos
-            ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
-
-            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-            dataset = self.fused_ops[0].run(dataset)
-
-            temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-            frames_root = os.path.join(self.frame_dir, temp_frame_name)
-            frame_names = os.listdir(frames_root)
-            frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
-            video_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-
-        if self.if_save_visualization:
-            os.makedirs(os.path.join(self.save_visualization_dir, video_name), exist_ok=True)
-
-        final_pred_norm = []
-
-        for temp_img_path_id, temp_img_path in enumerate(frames_path):
-            rgb_image = cv2.imread(temp_img_path)[:, :, ::-1]  # BGR to RGB
-            original_shape = rgb_image.shape[:2]
-            onnx_input, pad_info = self.prepare_input(rgb_image)
-            outputs = ort_session.run(None, onnx_input)
-
-            # normal map
-            normal = outputs[1].squeeze()
-            normal = normal[
-                :,
-                pad_info[0] : self.input_size[0] - pad_info[1],
-                pad_info[2] : self.input_size[1] - pad_info[3],
-            ]
-            normal = normal.transpose(1, 2, 0)
-            normal = cv2.resize(normal, (original_shape[1], original_shape[0]), interpolation=cv2.INTER_LINEAR)
-            final_pred_norm.append(normal)
-
-            if self.if_save_visualization:
-                normal_vis = (normal + 1.0) / 2.0
-                normal_vis = (normal_vis * 255).clip(0, 255).astype(np.uint8)
-                normal_vis = normal_vis[..., ::-1]
-
-                cv2.imwrite(
-                    os.path.join(self.save_visualization_dir, video_name, f"vis_{str(temp_img_path_id)}.jpg"),
-                    normal_vis,
+        session = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
+        for video_index, paths in enumerate(groups):
+            for frame_index, path in enumerate(paths):
+                image = cv2.imread(path)
+                if image is None:
+                    raise ValueError(f"Could not read video frame: {path}")
+                rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                onnx_input, padding = self.prepare_input(rgb_image)
+                normal = session.run(None, onnx_input)[1][0, :3]
+                normal = normal[
+                    :, padding[0] : self.input_size[0] - padding[1], padding[2] : self.input_size[1] - padding[3]
+                ]
+                normal = cv2.resize(
+                    normal.transpose(1, 2, 0), (image.shape[1], image.shape[0]), interpolation=cv2.INTER_LINEAR
                 )
-
-        sample[Fields.meta][self.tag_field_name] = {}
-        sample[Fields.meta][self.tag_field_name]["pred_norm"] = final_pred_norm
-
+                result["pred_norm"].append(normal.tolist())
+                result["frame_paths"].append(path)
+                result["video_indices"].append(video_index)
+                if self.if_save_visualization:
+                    directory = get_video_visualization_dir(self.save_visualization_dir, OP_NAME, paths, video_index)
+                    visualization = ((normal + 1.0) * 127.5).clip(0, 255).astype(np.uint8)
+                    cv2.imwrite(
+                        os.path.join(directory, f"vis_{frame_index}.jpg"),
+                        cv2.cvtColor(visualization, cv2.COLOR_RGB2BGR),
+                    )
+        metadata[self.tag_field_name] = result
         return sample

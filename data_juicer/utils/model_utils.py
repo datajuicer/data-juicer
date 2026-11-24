@@ -1121,60 +1121,25 @@ def prepare_nltk_pos_tagger(**model_params):
 
 
 def prepare_normal_map_metric3d(model_path, **model_params):
-    device = model_params.pop("device")
-
+    device = model_params.pop("device", "cpu")
     if device == "cpu":
         providers = ["CPUExecutionProvider"]
-
     else:
-        rank = 0
-        if ":" in device:
-            rank = int(device.split(":")[-1])
-
+        rank = int(device.split(":")[-1]) if ":" in device else 0
         providers = [
-            (
-                "CUDAExecutionProvider",
-                {"cudnn_conv_use_max_workspace": "1", "device_id": str(rank)},
-            ),
+            ("CUDAExecutionProvider", {"cudnn_conv_use_max_workspace": "1", "device_id": str(rank)}),
             "CPUExecutionProvider",
         ]
-
-    if not os.path.exists(model_path):
-        if not os.path.exists(DJMC):
-            os.makedirs(DJMC)
-
-        model_dir = os.path.join(DJMC, "metric3d")
-
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
-
-        model_path = os.path.join(model_dir, "onnx/model.onnx")
-        placeholder = os.path.join(model_dir, "placeholder")
-        if not os.path.exists(model_path):
-
-            if not os.path.exists(placeholder):
-                os.makedirs(placeholder)
-
-                modelscope = LazyLoader("modelscope")
-                model_dir = modelscope.hub.file_download.model_file_download(
-                    model_id="onnx-community/metric3d-vit-large", file_path="onnx/model.onnx", local_dir=model_dir
-                )
-
-    import time
-
+    if not os.path.isfile(model_path):
+        huggingface_hub = LazyLoader("huggingface_hub")
+        model_path = huggingface_hub.hf_hub_download(
+            repo_id="onnx-community/metric3d-vit-large",
+            filename="onnx/model.onnx",
+            local_dir=os.path.join(DJMC, "metric3d"),
+        )
     import onnxruntime as ort
 
-    count_turn = 0
-    while not os.path.exists(model_path):
-        if count_turn >= 1000:
-            raise ValueError("Model download failed.")
-        time.sleep(10)
-        logger.info("Downloading model...")
-        count_turn += 1
-
-    ort_session = ort.InferenceSession(model_path, providers=providers)
-
-    return ort_session
+    return ort.InferenceSession(model_path, providers=providers)
 
 
 def prepare_opencv_classifier(model_path, **model_params):

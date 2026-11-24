@@ -6,13 +6,15 @@ import numpy as np
 from PIL import Image
 from pydantic import PositiveInt
 
-import data_juicer
 from data_juicer.ops.load import load_ops
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import (
+    get_video_frame_groups,
+    get_video_visualization_dir,
+)
 
 from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
@@ -74,16 +76,16 @@ class VideoUniversalSegmentationMapper(Mapper):
         """
 
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(["transformers==4.57"], pip_args=["-i https://pypi.tuna.tsinghua.edu.cn/simple"])
+        LazyLoader.check_packages(["transformers"])
 
         self.model_key = prepare_model(model_type="huggingface", pretrained_model_name_or_path=model_path)
         self.if_save_visualization = if_save_visualization
-        self.save_visualization_dir = save_visualization_dir
+        self.save_visualization_dir = save_visualization_dir or DATA_JUICER_ASSETS_CACHE
         self.frame_field = MetaKeys.video_frames
         self.tag_field_name = MetaKeys.video_universal_segmentation_tags
         self.frame_num = frame_num
         self.duration = duration
-        self.frame_dir = frame_dir
+        self.frame_dir = frame_dir or DATA_JUICER_ASSETS_CACHE
         self.if_output_semantic_segmentation = if_output_semantic_segmentation
         self.if_output_instance_segmentation = if_output_instance_segmentation
         self.if_output_panoptic_segmentation = if_output_panoptic_segmentation
@@ -92,8 +94,10 @@ class VideoUniversalSegmentationMapper(Mapper):
             "frame_sampling_method": "uniform",
             "frame_num": frame_num,
             "duration": duration,
-            "frame_dir": frame_dir,
-            "frame_key": MetaKeys.video_frames,
+            "frame_dir": self.frame_dir,
+            "frame_field": self.frame_field,
+            "video_key": self.video_key,
+            "legacy_split_by_text_token": False,
             "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
             "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
@@ -105,8 +109,8 @@ class VideoUniversalSegmentationMapper(Mapper):
         unique_classes = np.unique(predicted_semantic_map)
 
         num_classes = len(model.config.id2label)
-        np.random.seed(42)
-        color_palette = np.random.randint(0, 255, size=(num_classes, 3), dtype=np.uint8)
+        rng = np.random.RandomState(42)
+        color_palette = rng.randint(0, 255, size=(num_classes, 3), dtype=np.uint8)
 
         img_bgr = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
         seg_bgr = np.zeros_like(img_bgr)
@@ -139,7 +143,7 @@ class VideoUniversalSegmentationMapper(Mapper):
                 overlay_bgr, name, (cx - 15, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA
             )
 
-        return seg_bgr
+        return overlay_bgr
 
     def visualization_instance_or_panoptic(self, predicted_results, model, image_pil):
         segmentation_map = predicted_results["segmentation"].cpu().numpy()
@@ -149,7 +153,7 @@ class VideoUniversalSegmentationMapper(Mapper):
         seg_image_bgr = np.zeros_like(image_bgr, dtype=np.uint8)
         label_counters = defaultdict(int)
 
-        np.random.seed(42)
+        rng = np.random.RandomState(42)
         text_labels = []
 
         for segment in segments_info:
@@ -160,7 +164,7 @@ class VideoUniversalSegmentationMapper(Mapper):
             label_counters[label_name] += 1
             instance_name = f"{label_name}-{label_counters[label_name]}"
 
-            color_bgr = np.random.randint(0, 255, size=(3,)).tolist()
+            color_bgr = rng.randint(0, 255, size=(3,)).tolist()
             mask = segmentation_map == segment_id
             seg_image_bgr[mask] = color_bgr
 
@@ -182,149 +186,67 @@ class VideoUniversalSegmentationMapper(Mapper):
         return overlay_bgr
 
     def process_single(self, sample=None, rank=None):
-
-        # check if it's generated already
-        if self.tag_field_name in sample[Fields.meta]:
+        metadata = sample.setdefault(Fields.meta, {})
+        if self.tag_field_name in metadata:
             return sample
-
-        # there is no video in this sample
-        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
-            sample[Fields.meta][self.tag_field_name] = {
-                "semantic_segmentation_map": [],
-                "instance_segmentation_map": [],
-                "instance_segmentation_info": [],
-                "panoptic_segmentation_map": [],
-                "panoptic_segmentation_info": [],
-            }
+        tasks = [
+            task
+            for task, enabled in [
+                ("semantic", self.if_output_semantic_segmentation),
+                ("instance", self.if_output_instance_segmentation),
+                ("panoptic", self.if_output_panoptic_segmentation),
+            ]
+            if enabled
+        ]
+        result = {
+            "semantic_segmentation_map": [],
+            "instance_segmentation_map": [],
+            "instance_segmentation_info": [],
+            "panoptic_segmentation_map": [],
+            "panoptic_segmentation_info": [],
+            "frame_paths": [],
+            "video_indices": [],
+        }
+        if not tasks:
+            metadata[self.tag_field_name] = result
             return sample
-
+        groups = get_video_frame_groups(sample, self.frame_field, self.video_key, self.fused_ops[0])
+        if not any(groups):
+            metadata[self.tag_field_name] = result
+            return sample
         model, processor = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
-
-        if rank is not None:
-            device = f"cuda:{str(rank)}"
-        else:
-            device = "cuda"
-
-        if self.frame_field in sample:
-            frames_path = sample[self.frame_field]
-            video_name = os.path.basename(os.path.dirname(frames_path[0]))
-        else:
-            # load videos
-            ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
-
-            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-            dataset = self.fused_ops[0].run(dataset)
-
-            temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-            frames_root = os.path.join(self.frame_dir, temp_frame_name)
-            frame_names = os.listdir(frames_root)
-            frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
-            video_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-
-        if self.if_save_visualization:
-            os.makedirs(os.path.join(self.save_visualization_dir, video_name), exist_ok=True)
-
-            if self.if_output_semantic_segmentation:
-                os.makedirs(os.path.join(self.save_visualization_dir, video_name, "semantic"), exist_ok=True)
-
-            if self.if_output_instance_segmentation:
-                os.makedirs(os.path.join(self.save_visualization_dir, video_name, "instance"), exist_ok=True)
-
-            if self.if_output_panoptic_segmentation:
-                os.makedirs(os.path.join(self.save_visualization_dir, video_name, "panoptic"), exist_ok=True)
-
-        final_semantic_segmentation_map = []
-
-        final_instance_segmentation_map = []
-        final_instance_segmentation_info = []
-
-        final_panoptic_segmentation_map = []
-        final_panoptic_segmentation_info = []
-
-        for temp_img_path_id, temp_img_path in enumerate(frames_path):
-            temp_img = Image.open(temp_img_path)
-
-            with torch.no_grad():
-
-                # Semantic Segmentation
-                if self.if_output_semantic_segmentation:
-                    semantic_inputs = processor(images=temp_img, task_inputs=["semantic"], return_tensors="pt").to(
-                        device
-                    )
-                    semantic_outputs = model(**semantic_inputs)
-                    predicted_semantic_map = processor.post_process_semantic_segmentation(
-                        semantic_outputs, target_sizes=[temp_img.size[::-1]]
-                    )[0]
-
-                    final_semantic_segmentation_map.append(predicted_semantic_map.detach().cpu().tolist())
-
+        device = model.device
+        for video_index, paths in enumerate(groups):
+            for frame_index, path in enumerate(paths):
+                try:
+                    with Image.open(path) as source:
+                        image = source.convert("RGB")
+                except (OSError, ValueError) as error:
+                    raise ValueError(f"Could not read video frame: {path}") from error
+                for task in tasks:
+                    inputs = processor(images=image, task_inputs=[task], return_tensors="pt").to(device)
+                    with torch.no_grad():
+                        outputs = model(**inputs)
+                        prediction = getattr(processor, f"post_process_{task}_segmentation")(
+                            outputs, target_sizes=[image.size[::-1]]
+                        )[0]
+                    if task == "semantic":
+                        result["semantic_segmentation_map"].append(prediction.detach().cpu().tolist())
+                    else:
+                        result[f"{task}_segmentation_map"].append(prediction["segmentation"].detach().cpu().tolist())
+                        result[f"{task}_segmentation_info"].append(prediction["segments_info"])
                     if self.if_save_visualization:
-                        seg_img = self.visualization_semantic(predicted_semantic_map, model, temp_img)
-                        cv2.imwrite(
-                            os.path.join(
-                                self.save_visualization_dir, video_name, "semantic", f"vis_{str(temp_img_path_id)}.jpg"
-                            ),
-                            seg_img,
+                        directory = os.path.join(
+                            get_video_visualization_dir(self.save_visualization_dir, OP_NAME, paths, video_index), task
                         )
-
-                # Instance Segmentation
-                if self.if_output_instance_segmentation:
-                    instance_inputs = processor(images=temp_img, task_inputs=["instance"], return_tensors="pt").to(
-                        device
-                    )
-                    instance_outputs = model(**instance_inputs)
-                    predicted_instance_map = processor.post_process_instance_segmentation(
-                        instance_outputs, target_sizes=[temp_img.size[::-1]]
-                    )[0]
-
-                    final_instance_segmentation_map.append(
-                        predicted_instance_map["segmentation"].detach().cpu().tolist()
-                    )
-                    final_instance_segmentation_info.append(predicted_instance_map["segments_info"])
-
-                    if self.if_save_visualization:
-                        seg_img = self.visualization_instance_or_panoptic(predicted_instance_map, model, temp_img)
-                        cv2.imwrite(
-                            os.path.join(
-                                self.save_visualization_dir, video_name, "instance", f"vis_{str(temp_img_path_id)}.jpg"
-                            ),
-                            seg_img,
+                        os.makedirs(directory, exist_ok=True)
+                        visualization = (
+                            self.visualization_semantic(prediction, model, image)
+                            if task == "semantic"
+                            else self.visualization_instance_or_panoptic(prediction, model, image)
                         )
-
-                # Panoptic Segmentation
-                if self.if_output_panoptic_segmentation:
-                    panoptic_inputs = processor(images=temp_img, task_inputs=["panoptic"], return_tensors="pt").to(
-                        device
-                    )
-                    panoptic_outputs = model(**panoptic_inputs)
-                    predicted_panoptic_segmentation_map = processor.post_process_panoptic_segmentation(
-                        panoptic_outputs, target_sizes=[temp_img.size[::-1]]
-                    )[0]
-
-                    final_panoptic_segmentation_map.append(
-                        predicted_panoptic_segmentation_map["segmentation"].detach().cpu().tolist()
-                    )
-                    final_panoptic_segmentation_info.append(predicted_panoptic_segmentation_map["segments_info"])
-
-                    if self.if_save_visualization:
-                        seg_img = self.visualization_instance_or_panoptic(
-                            predicted_panoptic_segmentation_map, model, temp_img
-                        )
-                        cv2.imwrite(
-                            os.path.join(
-                                self.save_visualization_dir, video_name, "panoptic", f"vis_{str(temp_img_path_id)}.jpg"
-                            ),
-                            seg_img,
-                        )
-
-        sample[Fields.meta][self.tag_field_name] = {}
-
-        sample[Fields.meta][self.tag_field_name]["semantic_segmentation_map"] = final_semantic_segmentation_map
-
-        sample[Fields.meta][self.tag_field_name]["instance_segmentation_map"] = final_instance_segmentation_map
-        sample[Fields.meta][self.tag_field_name]["instance_segmentation_info"] = final_instance_segmentation_info
-
-        sample[Fields.meta][self.tag_field_name]["panoptic_segmentation_map"] = final_panoptic_segmentation_map
-        sample[Fields.meta][self.tag_field_name]["panoptic_segmentation_info"] = final_panoptic_segmentation_info
-
+                        cv2.imwrite(os.path.join(directory, f"vis_{frame_index}.jpg"), visualization)
+                result["frame_paths"].append(path)
+                result["video_indices"].append(video_index)
+        metadata[self.tag_field_name] = result
         return sample

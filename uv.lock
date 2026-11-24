@@ -7219,6 +7219,7 @@ wheels = [
 name = "py-data-juicer"
 source = { editable = "." }
 dependencies = [
+    { name = "aiohttp" },
     { name = "beautifulsoup4" },
     { name = "datasets" },
     { name = "dep-logic" },
@@ -7451,6 +7452,7 @@ vision = [
 requires-dist = [
     { name = "accelerate", marker = "extra == 'all'" },
     { name = "accelerate", marker = "extra == 'generic'" },
+    { name = "aiohttp" },
     { name = "audiomentations", marker = "extra == 'all'" },
     { name = "audiomentations", marker = "extra == 'audio'" },
     { name = "av", marker = "extra == 'all'", specifier = "==13.1.0" },

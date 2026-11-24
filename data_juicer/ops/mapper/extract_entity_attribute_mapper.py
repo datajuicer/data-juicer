@@ -6,12 +6,12 @@ from loguru import logger
 from pydantic import PositiveInt
 
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
-from data_juicer.ops.mapper.drop_text import (
+from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.text_field_utils import (
     read_text_from_sample,
     remove_text_from_sample,
 )
-from data_juicer.utils.constant import Fields, MetaKeys
-from data_juicer.utils.model_utils import get_model, prepare_model
 
 OP_NAME = "extract_entity_attribute_mapper"
 
@@ -200,12 +200,12 @@ class ExtractEntityAttributeMapper(Mapper):
         res = self._process_single_text(read_text_from_sample(sample, self.text_key), rank=rank)
         entities, attributes, descs, demo_lists = res
 
-        if self.drop_text:
-            remove_text_from_sample(sample, self.text_key)
-
         sample[Fields.meta][self.entity_key] = entities
         sample[Fields.meta][self.attribute_key] = attributes
         sample[Fields.meta][self.attribute_desc_key] = descs
         sample[Fields.meta][self.support_text_key] = demo_lists
+
+        if self.drop_text:
+            remove_text_from_sample(sample, self.text_key)
 
         return sample

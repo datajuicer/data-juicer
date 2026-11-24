@@ -1,0 +1,7 @@
+data\_juicer.ops.grouper.naive\_reverse\_grouper module
+=======================================================
+
+.. automodule:: data_juicer.ops.grouper.naive_reverse_grouper
+   :members:
+   :show-inheritance:
+   :undoc-members:

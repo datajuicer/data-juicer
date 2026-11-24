@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.stopwords\_filter module
+================================================
+
+.. automodule:: data_juicer.ops.filter.stopwords_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

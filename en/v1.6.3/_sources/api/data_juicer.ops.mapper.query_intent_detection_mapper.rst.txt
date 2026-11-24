@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.query\_intent\_detection\_mapper module
+===============================================================
+
+.. automodule:: data_juicer.ops.mapper.query_intent_detection_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data_juicer.ops.grouper
+=======================
+
+.. automodule:: data_juicer.ops.grouper
+   :members:
+   :show-inheritance:
+   :undoc-members:

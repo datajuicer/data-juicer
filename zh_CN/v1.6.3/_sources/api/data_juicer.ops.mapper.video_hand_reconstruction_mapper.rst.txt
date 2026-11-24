@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_hand\_reconstruction\_mapper module
+==================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_hand_reconstruction_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

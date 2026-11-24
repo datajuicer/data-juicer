@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.agent\_skill\_insight\_mapper module
+============================================================
+
+.. automodule:: data_juicer.ops.mapper.agent_skill_insight_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_audio\_detect\_age\_gender\_mapper module
+========================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_audio_detect_age_gender_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

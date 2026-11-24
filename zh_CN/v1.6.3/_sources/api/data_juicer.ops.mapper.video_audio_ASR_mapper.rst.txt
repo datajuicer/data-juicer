@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_audio\_ASR\_mapper module
+========================================================
+
+.. automodule:: data_juicer.ops.mapper.video_audio_ASR_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

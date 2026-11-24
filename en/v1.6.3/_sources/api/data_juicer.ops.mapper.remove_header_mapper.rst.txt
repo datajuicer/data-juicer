@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.remove\_header\_mapper module
+=====================================================
+
+.. automodule:: data_juicer.ops.mapper.remove_header_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

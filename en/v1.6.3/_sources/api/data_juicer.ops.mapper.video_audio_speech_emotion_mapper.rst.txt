@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_audio\_speech\_emotion\_mapper module
+====================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_audio_speech_emotion_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

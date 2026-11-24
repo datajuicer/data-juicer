@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_hand\_action\_compute\_mapper module
+===================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_hand_action_compute_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

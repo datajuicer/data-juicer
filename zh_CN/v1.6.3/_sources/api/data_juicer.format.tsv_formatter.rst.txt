@@ -1,0 +1,7 @@
+data\_juicer.format.tsv\_formatter module
+=========================================
+
+.. automodule:: data_juicer.format.tsv_formatter
+   :members:
+   :show-inheritance:
+   :undoc-members:

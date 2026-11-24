@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.calibrate\_qa\_mapper module
+====================================================
+
+.. automodule:: data_juicer.ops.mapper.calibrate_qa_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

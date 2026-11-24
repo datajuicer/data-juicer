@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.detect\_main\_character\_mapper module
+==============================================================
+
+.. automodule:: data_juicer.ops.mapper.detect_main_character_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

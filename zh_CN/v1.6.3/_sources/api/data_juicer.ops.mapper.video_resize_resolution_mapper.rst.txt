@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_resize\_resolution\_mapper module
+================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_resize_resolution_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

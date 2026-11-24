@@ -1,0 +1,7 @@
+data\_juicer.core.executor.ray\_executor\_partitioned module
+============================================================
+
+.. automodule:: data_juicer.core.executor.ray_executor_partitioned
+   :members:
+   :show-inheritance:
+   :undoc-members:

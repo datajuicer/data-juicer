@@ -1,0 +1,7 @@
+data\_juicer.ops.aggregator.meta\_tags\_aggregator module
+=========================================================
+
+.. automodule:: data_juicer.ops.aggregator.meta_tags_aggregator
+   :members:
+   :show-inheritance:
+   :undoc-members:

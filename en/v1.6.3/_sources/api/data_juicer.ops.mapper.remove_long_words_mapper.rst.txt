@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.remove\_long\_words\_mapper module
+==========================================================
+
+.. automodule:: data_juicer.ops.mapper.remove_long_words_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

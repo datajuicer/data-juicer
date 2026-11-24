@@ -1,0 +1,7 @@
+data\_juicer.ops.filter.video\_watermark\_filter module
+=======================================================
+
+.. automodule:: data_juicer.ops.filter.video_watermark_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

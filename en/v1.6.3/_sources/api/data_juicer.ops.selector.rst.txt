@@ -1,0 +1,7 @@
+data_juicer.ops.selector
+========================
+
+.. automodule:: data_juicer.ops.selector
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_human\_tracks\_extraction\_mapper module
+=======================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_human_tracks_extraction_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.pair\_preference\_mapper module
+=======================================================
+
+.. automodule:: data_juicer.ops.mapper.pair_preference_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

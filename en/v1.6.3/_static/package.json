@@ -1,0 +1,15 @@
+{
+  "name": "ask-ai-widget",
+  "version": "1.0.0",
+  "description": "Ask AI Widget for Data-Juicer Documentation",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "watch": "rollup -c rollup.config.js -w"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "rollup": "^4.9.6"
+  },
+  "private": true
+}

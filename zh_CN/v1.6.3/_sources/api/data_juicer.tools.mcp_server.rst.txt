@@ -1,0 +1,7 @@
+data\_juicer.tools.mcp\_server module
+=====================================
+
+.. automodule:: data_juicer.tools.mcp_server
+   :members:
+   :show-inheritance:
+   :undoc-members:

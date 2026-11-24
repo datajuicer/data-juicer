@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.image\_segment\_mapper module
+=====================================================
+
+.. automodule:: data_juicer.ops.mapper.image_segment_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

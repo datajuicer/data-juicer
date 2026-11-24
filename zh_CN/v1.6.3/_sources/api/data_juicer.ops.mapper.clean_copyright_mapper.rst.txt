@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.clean\_copyright\_mapper module
+=======================================================
+
+.. automodule:: data_juicer.ops.mapper.clean_copyright_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data\_juicer.ops.deduplicator.document\_simhash\_deduplicator module
+====================================================================
+
+.. automodule:: data_juicer.ops.deduplicator.document_simhash_deduplicator
+   :members:
+   :show-inheritance:
+   :undoc-members:

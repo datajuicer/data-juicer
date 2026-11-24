@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.extract\_tables\_from\_html\_mapper module
+==================================================================
+
+.. automodule:: data_juicer.ops.mapper.extract_tables_from_html_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

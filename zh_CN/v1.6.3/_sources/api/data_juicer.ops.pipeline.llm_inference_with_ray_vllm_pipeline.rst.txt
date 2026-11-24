@@ -1,0 +1,7 @@
+data\_juicer.ops.pipeline.llm\_inference\_with\_ray\_vllm\_pipeline module
+==========================================================================
+
+.. automodule:: data_juicer.ops.pipeline.llm_inference_with_ray_vllm_pipeline
+   :members:
+   :show-inheritance:
+   :undoc-members:

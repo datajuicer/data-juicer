@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.chinese\_convert\_mapper module
+=======================================================
+
+.. automodule:: data_juicer.ops.mapper.chinese_convert_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

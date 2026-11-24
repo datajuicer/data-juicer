@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.audio\_ffmpeg\_wrapped\_mapper module
+=============================================================
+
+.. automodule:: data_juicer.ops.mapper.audio_ffmpeg_wrapped_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

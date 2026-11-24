@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_resize\_aspect\_ratio\_mapper module
+===================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_resize_aspect_ratio_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

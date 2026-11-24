@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_atomic\_action\_segment\_mapper module
+=====================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_atomic_action_segment_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+data_juicer.tools.quality_classifier
+====================================
+
+.. automodule:: data_juicer.tools.quality_classifier
+   :members:
+   :show-inheritance:
+   :undoc-members:

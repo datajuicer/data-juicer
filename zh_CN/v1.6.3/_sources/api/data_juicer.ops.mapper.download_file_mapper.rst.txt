@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.download\_file\_mapper module
+=====================================================
+
+.. automodule:: data_juicer.ops.mapper.download_file_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

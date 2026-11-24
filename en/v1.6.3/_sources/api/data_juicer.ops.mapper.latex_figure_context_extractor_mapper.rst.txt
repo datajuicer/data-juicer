@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.latex\_figure\_context\_extractor\_mapper module
+========================================================================
+
+.. automodule:: data_juicer.ops.mapper.latex_figure_context_extractor_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

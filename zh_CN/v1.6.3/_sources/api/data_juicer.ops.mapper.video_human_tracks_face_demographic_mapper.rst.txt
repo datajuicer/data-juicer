@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.video\_human\_tracks\_face\_demographic\_mapper module
+==============================================================================
+
+.. automodule:: data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

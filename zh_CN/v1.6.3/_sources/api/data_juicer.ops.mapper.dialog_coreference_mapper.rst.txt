@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.dialog\_coreference\_mapper module
+==========================================================
+
+.. automodule:: data_juicer.ops.mapper.dialog_coreference_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

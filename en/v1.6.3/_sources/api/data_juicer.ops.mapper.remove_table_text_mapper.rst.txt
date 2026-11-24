@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.remove\_table\_text\_mapper module
+==========================================================
+
+.. automodule:: data_juicer.ops.mapper.remove_table_text_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

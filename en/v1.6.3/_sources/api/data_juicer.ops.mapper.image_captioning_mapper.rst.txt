@@ -1,0 +1,7 @@
+data\_juicer.ops.mapper.image\_captioning\_mapper module
+========================================================
+
+.. automodule:: data_juicer.ops.mapper.image_captioning_mapper
+   :members:
+   :show-inheritance:
+   :undoc-members:

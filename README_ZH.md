@@ -88,7 +88,13 @@ for s in res_ds:
 ## 📰 动态
 
 <details open>
-<summary>[2026-11-23] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>
+
+[2026-11-24] 🚀 团队推出 **Piccolo**，一个通过递归自我改进（RSI）迭代训练的高性能 System-1 决策模型系列，其 27B 模型在 [Decision Index 多模态榜单](https://huggingface.co/spaces/multimodalart/jev-decision-index)的 Private 评分中***排名第一***（截至 2026 年 11 月 24 日），并在团队自建的、面向数据处理决策的评测基准 [DataJevBench](https://github.com/datajuicer/DataJevBench) 上表现出色。欢迎阅读[技术报告](https://arxiv.org/abs/2611.24651v1)、[体验演示](https://decisionplayground.agentscope.io/blog.html)、使用[开源模型](https://huggingface.co/collections/agentscope-ai/piccolo)，并访问 [GitHub 仓库](https://github.com/agentscope-ai/Piccolo)！
+
+</details>
+
+<details open>
+<summary>[2026-11-24] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>
 
 * 🧪 基准污染过滤器 — 新增 `benchmark_contamination_filter`，按字符或词的 n-gram 检查样本与参考基准的重叠。参考文件支持 JSONL、JSON、TXT 及其 gzip 压缩格式。设置 `benchmark_path` 后启用。默认 `threshold: 0.0` 会丢弃含任一匹配 n-gram 的样本，同领域数据需调整阈值。串联多个基准过滤器时，各自使用独立的统计字段名。
 * 📝 LLM 抽取输出 — 七个抽取算子在 `drop_text: true` 时统一删除配置的源字段，覆盖嵌套路径、带点的字面键、已有结果及批处理输出。源文本位于 metadata 中时，属性和事件抽取会保留新生成的结果。删除源字段后移除空父结构，保证 Parquet 可导出；保留同级字段及 `drop_text: false` 的行为。

@@ -89,7 +89,13 @@ for s in res_ds:
 ## 📰 News
 
 <details open>
-<summary>[2026-11-23] Release v1.6.3: <b>Benchmark Contamination Filter; Lower-Memory Processing; Export & Operator Fixes</b></summary>
+
+[2026-11-24] 🚀 The team has released **Piccolo**, a family of powerful System-1 decision models developed through recursive self-improvement (RSI): Piccolo-27B ***ranks first*** by Private score on [Decision Index Vision](https://huggingface.co/spaces/multimodalart/jev-decision-index) (as of November 24, 2026), with strong results on [DataJevBench](https://github.com/datajuicer/DataJevBench), a benchmark developed by us for data-processing decisions. Read the [technical report](https://arxiv.org/abs/2611.24651v1), explore the [demos](https://decisionplayground.agentscope.io/blog.html), try the [open models](https://huggingface.co/collections/agentscope-ai/piccolo), and visit the [repository](https://github.com/agentscope-ai/Piccolo)!
+
+</details>
+
+<details open>
+<summary>[2026-11-24] Release v1.6.3: <b>Benchmark Contamination Filter; Lower-Memory Processing; Export & Operator Fixes</b></summary>
 
 * 🧪 *Benchmark Contamination Filter* — New `benchmark_contamination_filter` checks character or word n-gram overlap against a reference benchmark in JSONL, JSON, or TXT format, optionally gzipped. Set `benchmark_path` to enable it. The default `threshold: 0.0` drops any sample with a matching n-gram; tune it for same-domain data. Use distinct stats keys for each benchmark when chaining these filters.
 * 📝 *LLM Extraction Output* — Seven extraction mappers consistently remove the configured source field with `drop_text: true`, including nested and literal dotted paths, cached results, and batched output. Attribute and event extraction retain generated metadata when the source text is inside that metadata. Empty parent structs are removed so Parquet export works; sibling fields and `drop_text: false` remain intact.

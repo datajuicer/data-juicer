@@ -312,6 +312,30 @@ class DropTextContractTest(unittest.TestCase):
                     expected = [{key: value for key, value in row.items() if key != "text"} for row in expected]
                 self.assertEqual(result, expected)
 
+    def test_event_mixed_cache_with_nullable_literal_text_key(self):
+        cached_meta = {MetaKeys.event_description: "cached event", MetaKeys.relevant_characters: ["A"]}
+        for drop_text in (False, True):
+            with self.subTest(drop_text=drop_text):
+                op = self.make_event_op(drop_text=drop_text, text_key="payload.text")
+                op._process_single_sample = Mock(return_value=(["new event"], [["B"]]))
+                samples = {
+                    "payload.text": ["cached source", None],
+                    "text": ["cached unrelated", "fresh unrelated"],
+                    Fields.meta: [cached_meta, {}],
+                }
+                result = op.process(pa.table(samples))
+                op._process_single_sample.assert_called_once_with(None, rank=None)
+                expected = {
+                    "text": ["cached unrelated", "fresh unrelated"],
+                    Fields.meta: [
+                        cached_meta,
+                        {MetaKeys.event_description: "new event", MetaKeys.relevant_characters: ["B"]},
+                    ],
+                }
+                if not drop_text:
+                    expected["payload.text"] = ["cached source", None]
+                self.assertEqual(result, expected)
+
     def test_event_routes_contract(self):
         cases = [
             ("text", ["first", "second"], None, ["first", "second"]),

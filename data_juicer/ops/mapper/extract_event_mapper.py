@@ -163,6 +163,7 @@ class ExtractEventMapper(Mapper):
                 remove_text_from_sample(samples, self.text_key)
             return samples
 
+        texts = read_text_from_sample(samples, self.text_key)
         new_samples = []
         generated_events = False
         for i, is_cached in enumerate(cached):
@@ -170,8 +171,7 @@ class ExtractEventMapper(Mapper):
             if is_cached:
                 new_samples.append(copy.deepcopy(row) if self.drop_text else row)
                 continue
-            text = read_text_from_sample(row, self.text_key)
-            events, characters = self._process_single_sample(text, rank=rank)
+            events, characters = self._process_single_sample(texts[i], rank=rank)
             for event, character in zip(events, characters):
                 cur_sample = copy.deepcopy(row)
                 meta = cur_sample[Fields.meta] or {}

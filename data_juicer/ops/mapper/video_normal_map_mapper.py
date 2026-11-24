@@ -61,9 +61,12 @@ class VideoNormalMapMapper(Mapper):
         """
 
         super().__init__(*args, **kwargs)
-        LazyLoader(
-            "onnxruntime", package_name="onnxruntime-gpu" if self.use_cuda() else "onnxruntime"
-        ).get_available_providers()
+        providers = LazyLoader("onnxruntime", package_name="onnxruntime-gpu").get_available_providers()
+        if self.use_cuda() and "CUDAExecutionProvider" not in providers:
+            raise RuntimeError(
+                "CUDAExecutionProvider is unavailable. Install a compatible onnxruntime-gpu build "
+                "or set accelerator='cpu'."
+            )
 
         self.model_key = prepare_model(model_type="normal_map_metric3d", model_path=model_path)
         self.if_save_visualization = if_save_visualization

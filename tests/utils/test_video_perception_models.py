@@ -9,6 +9,26 @@ from data_juicer.utils import model_utils
 
 
 class VideoPerceptionModelsTest(unittest.TestCase):
+    def test_metric3d_rejects_session_fallback_to_cpu(self):
+        runtime = Mock()
+        runtime.InferenceSession.return_value.get_providers.return_value = ["CPUExecutionProvider"]
+        with tempfile.NamedTemporaryFile(suffix=".onnx") as checkpoint:
+            with patch.dict(sys.modules, {"onnxruntime": runtime}):
+                with self.assertRaisesRegex(RuntimeError, "CUDAExecutionProvider"):
+                    model_utils.prepare_normal_map_metric3d(checkpoint.name, device="cuda:0")
+
+    def test_metric3d_uses_the_requested_cuda_provider(self):
+        runtime = Mock()
+        session = runtime.InferenceSession.return_value
+        session.get_providers.return_value = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        with tempfile.NamedTemporaryFile(suffix=".onnx") as checkpoint:
+            with patch.dict(sys.modules, {"onnxruntime": runtime}):
+                result = model_utils.prepare_normal_map_metric3d(checkpoint.name, device="cuda:2")
+        self.assertIs(result, session)
+        providers = runtime.InferenceSession.call_args.kwargs["providers"]
+        self.assertEqual(providers[0][0], "CUDAExecutionProvider")
+        self.assertEqual(providers[0][1]["device_id"], "2")
+
     def test_metric3d_recovers_after_an_interrupted_download(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

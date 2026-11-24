@@ -28,6 +28,8 @@ The operator stores results in `__dj__meta__.video_normal_map_tags`:
 operator downloads `onnx/model.onnx` from `onnx-community/metric3d-vit-large`.
 Use `accelerator: cpu` with `onnxruntime`, or `accelerator: cuda` with a compatible
 `onnxruntime-gpu` installation. The default accelerator is CUDA.
+CUDA mode requires an active `CUDAExecutionProvider`; missing or failed provider
+initialization raises an error.
 
 ## Visualization 可视化
 

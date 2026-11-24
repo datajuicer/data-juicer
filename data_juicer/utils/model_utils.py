@@ -1139,7 +1139,13 @@ def prepare_normal_map_metric3d(model_path, **model_params):
         )
     import onnxruntime as ort
 
-    return ort.InferenceSession(model_path, providers=providers)
+    session = ort.InferenceSession(model_path, providers=providers)
+    if device != "cpu" and "CUDAExecutionProvider" not in session.get_providers():
+        raise RuntimeError(
+            "Metric3D could not activate CUDAExecutionProvider. Check onnxruntime-gpu and its CUDA/cuDNN "
+            "dependencies or set accelerator='cpu'."
+        )
+    return session
 
 
 def prepare_opencv_classifier(model_path, **model_params):

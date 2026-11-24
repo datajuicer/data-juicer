@@ -11,9 +11,11 @@ import torch
 from PIL import Image
 
 from data_juicer.core.data import NestedDataset
+from data_juicer.ops.load import load_ops
 from data_juicer.ops.mapper import video_normal_map_mapper as normal
 from data_juicer.ops.mapper import video_optical_flow_mapper as flow
 from data_juicer.ops.mapper import video_universal_segmentation_mapper as segmentation
+from data_juicer.ops.op_env import OPEnvManager
 from data_juicer.utils.constant import Fields, MetaKeys
 
 
@@ -48,6 +50,33 @@ class VideoPerceptionRegressionTest(unittest.TestCase):
         session = Mock()
         session.run.return_value = [np.zeros((1, 1, 8, 8), np.float32), np.ones((1, 3, 8, 8), np.float32)]
         return session
+
+    def test_normal_loads_with_environment_management_in_cpu_mode(self):
+        runtime = Mock()
+        runtime.get_available_providers.return_value = ["CPUExecutionProvider"]
+        with (
+            patch.object(normal, "LazyLoader", return_value=runtime),
+            patch.object(normal, "prepare_model", return_value="offline"),
+            patch.object(normal, "load_ops", return_value=[Mock()]),
+        ):
+            ops = load_ops(
+                [{"video_normal_map_mapper": {"accelerator": "cpu", "frame_dir": str(self.root)}}],
+                op_env_manager=OPEnvManager(),
+            )
+        self.assertIn("onnxruntime-gpu", ops[0].runtime_env["uv"])
+        self.assertNotIn("onnxruntime", ops[0].runtime_env["uv"])
+
+    def test_normal_rejects_cuda_with_cpu_only_runtime(self):
+        runtime = Mock()
+        runtime.get_available_providers.return_value = ["CPUExecutionProvider"]
+        with (
+            patch.object(normal, "LazyLoader", return_value=runtime),
+            patch.object(normal, "prepare_model") as prepare,
+            patch.object(normal.VideoNormalMapMapper, "use_cuda", return_value=True),
+            self.assertRaisesRegex(RuntimeError, "CUDAExecutionProvider"),
+        ):
+            normal.VideoNormalMapMapper(accelerator="cuda")
+        prepare.assert_not_called()
 
     def test_empty_frames_do_not_load_models(self):
         for name, module in [("normal", normal), ("flow", flow), ("segmentation", segmentation)]:

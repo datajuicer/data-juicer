@@ -231,50 +231,50 @@ class RayVideoDeduplicatorTest(DataJuicerTestCaseBase):
         op = RayVideoDeduplicator()
         self._run_video_deduplicator(dataset, tgt_list, op)
 
-    # @TEST_TAG("ray")
-    # def test_no_video(self):
+    @TEST_TAG("ray")
+    def test_no_video(self):
 
-    #     ds_list = [{
-    #         'videos': [],
-    #         'text': '<video> text1'
-    #     }, {
-    #         'videos': [self.video2_path],
-    #         'text': '<video> text2'
-    #     }, {
-    #         'videos': [self.video3_path],
-    #         'text': '<video> text3'
-    #     }, {
-    #         'videos': [],
-    #         'text': '<video> text1'
-    #     }, {
-    #         'videos': [self.video7_path],
-    #         'text': '<video> text5'
-    #     }, {
-    #         'videos': [],
-    #         'text': '<video> text3'
-    #     }, {
-    #         'videos': [self.video9_path],
-    #         'text': '<video> text7'
-    #     }]
-    #     tgt_list = [{
-    #         'videos': [],
-    #         'text': '<video> text1'
-    #     }, {
-    #         'videos': [self.video2_path],
-    #         'text': '<video> text2'
-    #     }, {
-    #         'videos': [self.video3_path],
-    #         'text': '<video> text3'
-    #     }, {
-    #         'videos': [],
-    #         'text': '<video> text1'
-    #     }, {
-    #         'videos': [],
-    #         'text': '<video> text3'
-    #     }]
-    #     dataset = self.generate_dataset(ds_list)
-    #     op = RayVideoDeduplicator()
-    #     self._run_video_deduplicator(dataset, tgt_list, op)
+        ds_list = [{
+            'videos': [],
+            'text': '<video> text1'
+        }, {
+            'videos': [self.video2_path],
+            'text': '<video> text2'
+        }, {
+            'videos': [self.video3_path],
+            'text': '<video> text3'
+        }, {
+            'videos': [],
+            'text': '<video> text1'
+        }, {
+            'videos': [self.video7_path],
+            'text': '<video> text5'
+        }, {
+            'videos': [],
+            'text': '<video> text3'
+        }, {
+            'videos': [self.video9_path],
+            'text': '<video> text7'
+        }]
+        tgt_list = [{
+            'videos': [],
+            'text': '<video> text1'
+        }, {
+            'videos': [self.video2_path],
+            'text': '<video> text2'
+        }, {
+            'videos': [self.video3_path],
+            'text': '<video> text3'
+        }, {
+            'videos': [],
+            'text': '<video> text1'
+        }, {
+            'videos': [],
+            'text': '<video> text3'
+        }]
+        dataset = self.generate_dataset(ds_list)
+        op = RayVideoDeduplicator()
+        self._run_video_deduplicator(dataset, tgt_list, op)
 
     # @TEST_TAG("ray")
     # def test_no_video_consider_text(self):

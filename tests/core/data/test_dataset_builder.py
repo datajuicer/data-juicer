@@ -59,8 +59,26 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
             {'configs': [
                 {'path': 'hf-internal-testing/librispeech_asr_dummy',
                 'split': 'train',
-                'type': 'huggingface'}]},
+                'type': 'remote',
+                'source': 'huggingface'}]},
              ans)
+
+    @patch('data_juicer.core.data.load_strategy.datasets.load_dataset')
+    def test_builder_loads_huggingface_dataset_path(self, mock_load_dataset):
+        """A Hugging Face dataset id in dataset_path is loaded by the HF strategy."""
+        from datasets import Dataset
+        from data_juicer.core.data.load_strategy import DefaultHuggingfaceDataLoadStrategy
+
+        mock_load_dataset.return_value = Dataset.from_dict({'text': ['a', 'b']})
+        cfg = Namespace(dataset_path='hf-org/hf-dataset', text_keys='text')
+
+        builder = DatasetBuilder(cfg, executor_type='default')
+        self.assertIsInstance(builder.load_strategies[0], DefaultHuggingfaceDataLoadStrategy)
+
+        ds = builder.load_dataset()
+        self.assertEqual(ds['text'], ['a', 'b'])
+        self.assertEqual(mock_load_dataset.call_args.args[0], 'hf-org/hf-dataset')
+        self.assertEqual(mock_load_dataset.call_args.kwargs['split'], 'train')
 
     def test_rewrite_cli_datapath_local_wrong_files(self):
         dataset_path = os.path.join(WORK_DIR, "missingDir")
@@ -98,7 +116,7 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
         dataset_path = "1.0 huggingface/dataset"
         expected = {
             'configs': [
-                {'type': 'huggingface', 'path': 'huggingface/dataset', 'split': 'train'}
+                {'type': 'remote', 'source': 'huggingface', 'path': 'huggingface/dataset', 'split': 'train'}
             ]
         }
         result = rewrite_cli_datapath(dataset_path)
@@ -520,6 +538,26 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
             self.assertIn('should be a positive integer', 
                           str(context.exception))
 
+    def test_max_sample_num_zero_share(self):
+        """Test max_sample_num with datasets allotted 0 samples"""
+        cfg = Namespace()
+        cfg.dataset = {
+            'configs': [
+                {
+                    'type': 'local',
+                    'path': 'test_data/sample.jsonl',
+                    'weight': 1.0
+                } for _ in range(4)
+            ],
+            'max_sample_num': 2
+        }
+
+        builder = DatasetBuilder(cfg)
+        self.assertEqual(builder.sample_numbers, [1, 1, 0, 0])
+
+        ds = builder.load_dataset()
+        self.assertEqual(len(ds), 2)
+
     @TEST_TAG('ray')
     def test_builder_ray_config(self):
         """Test loading Ray configuration from YAML"""
@@ -717,6 +755,118 @@ class DatasetBuilderTest(DataJuicerTestCaseBase):
 
         self.assertEqual(captured_kwargs['num_proc'], 1)
         self.assertEqual(captured_kwargs['chunksize'], 99999)
+
+
+class DatasetLoadingOptionsTest(DataJuicerTestCaseBase):
+
+    def test_global_parquet_columns_and_call_override(self):
+        from datasets import Dataset
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'data.parquet')
+            Dataset.from_dict({'text': ['one', 'two'], 'extra': [1, 2]}).to_parquet(path)
+            cfg = Namespace(dataset_path=path, text_keys=['text'], process=[])
+            self.assertEqual(set(DatasetBuilder(cfg).load_dataset().features), {'text', 'extra'})
+
+            cfg.load_dataset_kwargs = {'columns': ['text']}
+            builder = DatasetBuilder(cfg)
+            selected = builder.load_dataset(num_proc=1)
+            self.assertEqual(selected.to_list(), [{'text': 'one'}, {'text': 'two'}])
+
+            overridden = builder.load_dataset(num_proc=1, columns=['text', 'extra'])
+            self.assertEqual(overridden.to_list(), [{'text': 'one', 'extra': 1}, {'text': 'two', 'extra': 2}])
+            self.assertEqual(cfg.load_dataset_kwargs, {'columns': ['text']})
+
+    @TEST_TAG('ray')
+    def test_ray_global_read_options_and_call_override(self):
+        import json
+        import ray
+
+        started_ray = not ray.is_initialized()
+        if started_ray:
+            ray.init(num_cpus=2, include_dashboard=False)
+        try:
+            with tempfile.TemporaryDirectory(dir=WORK_DIR) as tmp:
+                path = os.path.join(tmp, 'data.jsonl')
+                records = [{'text': 'x' * 2048, 'index': i} for i in range(4)]
+                with open(path, 'w') as stream:
+                    for row in records:
+                        stream.write(json.dumps(row) + '\n')
+                cfg = Namespace(dataset_path=path, text_keys=['text'], process=[])
+                self.assertEqual(DatasetBuilder(cfg, 'ray').load_dataset().data.take_all(), records)
+
+                cfg.read_options = {'block_size': 16}
+                cfg.override_num_blocks = 2
+                with self.assertRaises(Exception) as caught:
+                    DatasetBuilder(cfg, 'ray').load_dataset().data.take_all()
+                self.assertIn('block', str(caught.exception).lower())
+
+                loaded = DatasetBuilder(cfg, 'ray').load_dataset(read_options={'block_size': 65536})
+                self.assertEqual(loaded.data.take_all(), records)
+                self.assertEqual(loaded.data.materialize().num_blocks(), 2)
+                self.assertEqual(cfg.read_options, {'block_size': 16})
+        finally:
+            if started_ray:
+                ray.shutdown()
+
+    def test_num_proc_precedence(self):
+        """np is the default, load_dataset_kwargs overrides it, callers win."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'data.jsonl')
+            with open(path, 'w') as stream:
+                stream.write('{"text": "one"}\n')
+            cfg = Namespace(dataset_path=path, text_keys=['text'], process=[], np=4)
+
+            def loaded_num_proc(load_dataset_kwargs, **call_kwargs):
+                cfg.load_dataset_kwargs = load_dataset_kwargs
+                builder = DatasetBuilder(cfg)
+                captured = {}
+                strategy = builder.load_strategies[0]
+                original_load = strategy.load_data
+
+                def spy_load_data(**kwargs):
+                    captured['num_proc'] = kwargs.get('num_proc')
+                    return original_load(**kwargs)
+
+                strategy.load_data = spy_load_data
+                builder.load_dataset(**call_kwargs)
+                return captured['num_proc']
+
+            # `np` seeds the default; the load strategies would fall back to 1.
+            self.assertEqual(loaded_num_proc({}), 4)
+            # A recipe decouples loading from processing parallelism.
+            self.assertEqual(loaded_num_proc({'num_proc': 3}), 3)
+            # An explicit call argument still has the final say.
+            self.assertEqual(loaded_num_proc({'num_proc': 3}, num_proc=2), 2)
+            self.assertEqual(cfg.load_dataset_kwargs, {'num_proc': 3})
+
+    def test_deprecated_load_data_np_kwargs(self):
+        """The deprecated run() argument stays honored, and warns when used."""
+        from loguru import logger
+
+        from data_juicer.core.data.dataset_builder import deprecated_load_data_np_kwargs
+
+        warnings = []
+        handler_id = logger.add(lambda msg: warnings.append(str(msg)), level='WARNING', format='{message}')
+        try:
+            # Unset is the common case: stay silent and leave `np` to apply.
+            self.assertEqual(deprecated_load_data_np_kwargs(None, 'default'), {})
+            self.assertEqual(deprecated_load_data_np_kwargs(None, 'ray'), {})
+            self.assertEqual(warnings, [])
+
+            self.assertEqual(deprecated_load_data_np_kwargs(8, 'default'), {'num_proc': 8})
+            self.assertEqual(deprecated_load_data_np_kwargs(8, 'ray'), {'num_proc': 8})
+        finally:
+            logger.remove(handler_id)
+
+        self.assertEqual(len(warnings), 2)
+        for message in warnings:
+            self.assertIn('load_data_np', message)
+        # The default executor honors the value, so say so rather than let the
+        # warning read as a no-op notice; only the Ray path ignores it.
+        self.assertIn('8 processes', warnings[0])
+        self.assertNotIn('never applied', warnings[0])
+        self.assertIn('never applied', warnings[1])
 
 
 if __name__ == '__main__':

@@ -2,6 +2,8 @@
 # https://github.com/togethercomputer/RedPajama-Data/tree/rp_v1/
 # --------------------------------------------------------
 
+from loguru import logger
+
 from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import OPERATORS, Mapper
@@ -34,11 +36,14 @@ class CleanHtmlMapper(Mapper):
 
     def process_batched(self, samples):
         def _clean_html(raw_html):
+            if not isinstance(raw_html, str):
+                logger.warning("Invalid input text! Expected a string.")
+                return raw_html
             raw_html = raw_html.replace("<li>", "\n*")
             raw_html = raw_html.replace("</li>", "")
             raw_html = raw_html.replace("<ol>", "\n*")
             raw_html = raw_html.replace("</ol>", "")
-            parser = selectolax.parser.HTMLParser(raw_html)
+            parser = selectolax.lexbor.LexborHTMLParser(raw_html)
             return parser.text()
 
         samples[self.text_key] = [_clean_html(text) for text in samples[self.text_key]]

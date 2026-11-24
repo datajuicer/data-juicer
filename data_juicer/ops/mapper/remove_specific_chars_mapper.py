@@ -29,7 +29,7 @@ class RemoveSpecificCharsMapper(Mapper):
 
         super().__init__(*args, **kwargs)
         if chars_to_remove:
-            self.pattern = "[" + "|".join(chars_to_remove) + "]"
+            self.pattern = "[" + "".join(re.escape(c) for c in chars_to_remove) + "]"
         else:
             self.pattern = None
 

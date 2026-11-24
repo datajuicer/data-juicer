@@ -94,9 +94,11 @@
   },
   "configuration": {
     "executor_type": "ray_partitioned",
-    "partition_size": 10000,
-    "max_partition_size_mb": 128,
+    "partition": {
+      "mode": "manual",
+      "size": 10000
+    },
     "storage_format": "parquet",
     "preserve_intermediate_data": true
   }
-} 
+}

@@ -1,10 +1,19 @@
+from datetime import date, datetime, timezone
+
+import json
 import os
+import shutil
 import tempfile
 import unittest
 import jsonlines as jl
+from unittest.mock import patch
+
+import numpy as np
 from datasets import Dataset
 from cryptography.fernet import Fernet
+
 from data_juicer.core import Exporter
+from data_juicer.core import exporter as exporter_module
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 from data_juicer.utils.constant import Fields, HashKeys
 from data_juicer.utils.file_utils import add_suffix_to_filename
@@ -74,6 +83,29 @@ class ExporterTest(DataJuicerTestCaseBase):
         # check exported files
         self.assertTrue(os.path.exists(export_path))
         self.assertTrue(os.path.exists(add_suffix_to_filename(export_path, '_stats')))
+
+    def test_stats_file_when_path_does_not_end_with_suffix(self):
+        # export_type given for a path without that extension, and an
+        # upper-case extension: the stats must not land on the export path
+        for name, export_type in [('result', 'jsonl'), ('result.JSONL', None)]:
+            with self.subTest(name=name):
+                export_dir = os.path.join(self.work_dir, 'stats_path', name.replace('.', '_'))
+                export_path = os.path.join(export_dir, name)
+                exporter = Exporter(
+                    export_path=export_path,
+                    export_type=export_type,
+                    num_proc=1,
+                    keep_stats_in_res_ds=False,
+                    export_stats=True,
+                )
+                exporter.export(self.test_data)
+
+                stats_path = os.path.join(export_dir, 'result_stats.jsonl')
+                self.assertTrue(os.path.exists(stats_path))
+                with jl.open(stats_path) as reader:
+                    self.assertEqual([row[Fields.stats]['a'] for row in reader], [1, 3, 5])
+                with jl.open(export_path) as reader:
+                    self.assertEqual([row['text'] for row in reader], ['text 1', 'text 2', 'text 3'])
 
     def test_different_shard_size(self):
         export_path = os.path.join(self.work_dir, 'shard_size', 'test.json')
@@ -149,6 +181,27 @@ class ExporterTest(DataJuicerTestCaseBase):
                 export_path=os.path.join(self.work_dir, 'txt', 'test.txt'),
             )
 
+    def test_export_shards_keep_dotted_file_name(self):
+        # two exports whose names differ only after the first dot
+        export_dir = os.path.join(self.work_dir, 'shards_dotted')
+        datasets = {
+            'result.v1.jsonl': self.test_data,
+            'result.v2.jsonl': self.test_data.select([0]),
+        }
+        for name, data in datasets.items():
+            Exporter(
+                export_path=os.path.join(export_dir, name),
+                export_shard_size=1024,
+                num_proc=1,
+                export_stats=False,
+            ).export(data)
+
+        for name, data in datasets.items():
+            shard_path = add_suffix_to_filename(os.path.join(export_dir, name), '-00-of-01')
+            self.assertTrue(os.path.exists(shard_path))
+            with jl.open(shard_path) as reader:
+                self.assertEqual(len(list(reader)), len(data))
+
     def test_export_multiple_shards(self):
         export_path = os.path.join(self.work_dir, 'shards', 'test.jsonl')
         exporter = Exporter(
@@ -166,6 +219,19 @@ class ExporterTest(DataJuicerTestCaseBase):
         # check exported files
         self.assertTrue(os.path.exists(add_suffix_to_filename(export_path, '-00-of-01')))
         self.assertTrue(os.path.exists(add_suffix_to_filename(export_path, '_stats')))
+
+    def test_export_multiple_shards_raises_shard_write_error(self):
+        # bytes values are not JSON serializable, so writing any shard fails
+        data = Dataset.from_list([{'text': f'text {i}', 'raw': b'\x00\x01'} for i in range(20)])
+        export_path = os.path.join(self.work_dir, 'shards_error', 'test.jsonl')
+
+        single = Exporter(export_path=export_path, export_shard_size=0, num_proc=1, export_stats=False)
+        with self.assertRaises(TypeError):
+            single.export(data)
+
+        sharded = Exporter(export_path=export_path, export_shard_size=128, num_proc=1, export_stats=False)
+        with self.assertRaises(TypeError):
+            sharded.export(data)
 
     def test_export_compute_stats(self):
         export_path = os.path.join(self.work_dir, 'stats', 'res.jsonl')
@@ -251,6 +317,35 @@ class ExporterEncryptTest(DataJuicerTestCaseBase):
             len(warning_messages) > 0,
             'Expected a loguru WARNING about S3 path skipping encryption',
         )
+
+    @patch("fsspec.implementations.arrow.ArrowFSWrapper")
+    @patch("data_juicer.utils.hdfs_utils.create_pyarrow_hdfs_filesystem")
+    def test_hdfs_path_disables_encryption_with_warning(self, mock_create_hdfs_fs, mock_arrow_wrapper):
+        """HDFS export_path should disable local-file encryption with a warning."""
+        from loguru import logger
+
+        key_file = self._write_key_file()
+        warning_messages = []
+        handler_id = logger.add(
+            lambda msg: warning_messages.append(str(msg)),
+            level='WARNING',
+            format='{message}',
+        )
+        try:
+            exporter = Exporter(
+                export_path='hdfs://namenode:8020/user/data/out.jsonl',
+                encrypt_before_export=True,
+                encryption_key_path=key_file,
+            )
+        finally:
+            logger.remove(handler_id)
+
+        self.assertFalse(exporter.encrypt_before_export)
+        self.assertTrue(
+            len(warning_messages) > 0,
+            'Expected a loguru WARNING about HDFS path skipping encryption',
+        )
+
 
     # ------------------------------------------------------------------
     # _encrypt_local_file helper
@@ -350,6 +445,156 @@ class ExporterEncryptTest(DataJuicerTestCaseBase):
         # Stats file must be encrypted
         self.assertFalse(raw.lstrip().startswith(b'{'))
         self.fernet.decrypt(raw)  # must not raise
+
+
+class CoreExporterFileTest(DataJuicerTestCaseBase):
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp(prefix="dj_exporter_file_")
+        self.Exporter = exporter_module.Exporter
+        self.Fields = exporter_module.Fields
+        self.HashKeys = exporter_module.HashKeys
+        self.dataset = Dataset.from_list([
+            {
+                "text": "text 1",
+                self.Fields.stats: {"score": 1},
+                self.Fields.meta: {"source": "a"},
+                self.HashKeys.hash: "h1",
+            },
+            {
+                "text": "text 2",
+                self.Fields.stats: {"score": 2},
+                self.Fields.meta: {"source": "b"},
+                self.HashKeys.hash: "h2",
+            },
+            {
+                "text": "text 3",
+                self.Fields.stats: {"score": 3},
+                self.Fields.meta: {"source": "c"},
+                self.HashKeys.hash: "h3",
+            },
+        ])
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        super().tearDown()
+
+    def test_meta_stats_json_strings_are_restored_before_export(self):
+        ds = Dataset.from_dict({
+            self.Fields.meta: ['{"source": "zh"}', '{"source": "en"}'],
+            self.Fields.stats: ['{"score": 1}', '{"score": 2}'],
+        })
+
+        fixed = self.Exporter._ensure_meta_stats_dicts_for_export(ds)
+
+        self.assertEqual(fixed[0][self.Fields.meta], {"source": "zh"})
+        self.assertEqual(fixed[0][self.Fields.stats], {"score": 1})
+        self.assertEqual(fixed[1][self.Fields.meta], {"source": "en"})
+        self.assertEqual(fixed[1][self.Fields.stats], {"score": 2})
+
+    def test_invalid_meta_stats_json_strings_are_left_unchanged(self):
+        ds = Dataset.from_dict({
+            self.Fields.meta: ["not-json"],
+            self.Fields.stats: ["also-not-json"],
+        })
+
+        fixed = self.Exporter._ensure_meta_stats_dicts_for_export(ds)
+
+        self.assertEqual(fixed[0][self.Fields.meta], "not-json")
+        self.assertEqual(fixed[0][self.Fields.stats], "also-not-json")
+
+    def test_meta_stats_restore_is_noop_without_columns(self):
+        ds = Dataset.from_list([{"text": "plain"}])
+
+        self.assertIs(self.Exporter._ensure_meta_stats_dicts_for_export(ds), ds)
+
+    def test_row_to_json_serializable_handles_scalars_lists_and_arrow_values(self):
+        class ArrowLike:
+            def as_py(self):
+                return {"nested": np.int64(3)}
+
+        class ListLike:
+            def tolist(self):
+                return [1, 2]
+
+        row = {
+            "scalar": np.int64(7),
+            "array": ListLike(),
+            "nested": [ArrowLike()],
+            "date": date(2024, 1, 2),
+            "datetime": datetime(2024, 1, 2, 3, 4, 5),
+            "datetime_tz": datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc),
+        }
+
+        self.assertEqual(
+            self.Exporter._row_to_json_serializable(row),
+            {
+                "scalar": 7,
+                "array": [1, 2],
+                "nested": [{"nested": 3}],
+                "date": "2024-01-02",
+                "datetime": "2024-01-02T03:04:05",
+                "datetime_tz": "2024-01-02T03:04:05+00:00",
+            },
+        )
+
+    def test_json_jsonl_parquet_exports_and_filtered_shards(self):
+        jsonl_path = os.path.join(self.tmp_dir, "out.jsonl")
+        json_path = os.path.join(self.tmp_dir, "out.json")
+        parquet_path = os.path.join(self.tmp_dir, "out.parquet")
+        shard_path = os.path.join(self.tmp_dir, "shards", "out.jsonl")
+
+        self.Exporter.to_jsonl(self.dataset, jsonl_path)
+        self.Exporter.to_json(self.dataset, json_path, num_proc=1)
+        self.Exporter.to_parquet(self.dataset, parquet_path)
+
+        with open(jsonl_path, encoding="utf-8") as f:
+            rows = [json.loads(line) for line in f]
+        self.assertEqual(rows[0]["text"], "text 1")
+        self.assertTrue(os.path.exists(json_path))
+        self.assertTrue(os.path.exists(parquet_path))
+
+        filtered = self.dataset.filter(lambda row: row["text"] != "text 2")
+        exporter = self.Exporter(
+            export_path=shard_path,
+            export_shard_size=1,
+            export_in_parallel=False,
+            num_proc=1,
+            export_ds=True,
+            keep_stats_in_res_ds=False,
+            keep_hashes_in_res_ds=False,
+            export_stats=False,
+        )
+        exporter.export(filtered)
+
+        shard_files = os.listdir(os.path.dirname(shard_path))
+        self.assertTrue(any(name.endswith(".jsonl") for name in shard_files))
+
+
+class ExporterNoSuffixTest(DataJuicerTestCaseBase):
+    """Regression test: export_path without extension should give clear error."""
+
+    def test_no_suffix_raises_valueerror(self):
+        with self.assertRaises(ValueError) as ctx:
+            Exporter(export_path='s3://bucket/data/result', num_proc=1)
+        self.assertIn('no file extension', str(ctx.exception))
+
+    def test_no_suffix_local_path_raises_valueerror(self):
+        with self.assertRaises(ValueError) as ctx:
+            Exporter(export_path='/tmp/output/dataset', num_proc=1)
+        self.assertIn('no file extension', str(ctx.exception))
+
+    def test_valid_suffix_still_works(self):
+        exp = Exporter(export_path='/tmp/output/data.jsonl', num_proc=1)
+        self.assertEqual(exp.suffix, 'jsonl')
+
+    def test_explicit_export_type_bypasses_suffix(self):
+        exp = Exporter(
+            export_path='s3://bucket/data/result',
+            export_type='jsonl',
+            num_proc=1,
+        )
+        self.assertEqual(exp.suffix, 'jsonl')
 
 
 if __name__ == '__main__':

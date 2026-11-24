@@ -1,18 +1,70 @@
+import copy
 import unittest
+
+from unittest.mock import patch
 
 from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.extract_support_text_mapper import ExtractSupportTextMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
+
+class ExtractSupportTextMapperEdgeCaseTest(DataJuicerTestCaseBase):
+
+    def test_missing_summary_key(self):
+        op = ExtractSupportTextMapper(api_model='fake')
+        sample = {
+            'text': 'some text content',
+            Fields.meta: {},
+        }
+        result = op.process_single(sample)
+        # summary_key not in meta, should return sample unchanged
+        self.assertNotIn(MetaKeys.support_text, result[Fields.meta])
+        self.assertEqual(result['text'], 'some text content')
+
+    def test_non_string_summary(self):
+        op = ExtractSupportTextMapper(api_model='fake')
+        sample = {
+            'text': 'some text content',
+            Fields.meta: {
+                MetaKeys.event_description: ['this', 'is', 'a', 'list'],
+            },
+        }
+        result = op.process_single(sample)
+        # summary is not a string, should return sample unchanged
+        self.assertNotIn(MetaKeys.support_text, result[Fields.meta])
+        self.assertEqual(
+            result[Fields.meta][MetaKeys.event_description],
+            ['this', 'is', 'a', 'list'],
+        )
+
+    def test_already_generated_skip(self):
+        op = ExtractSupportTextMapper(api_model='fake')
+        sample = {
+            'text': 'some text content',
+            Fields.meta: {
+                MetaKeys.support_text: 'existing support text',
+            },
+        }
+        result = op.process_single(sample)
+        # support_text_key already exists, should return early
+        self.assertEqual(
+            result[Fields.meta][MetaKeys.support_text],
+            'existing support text',
+        )
+
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class ExtractSupportTextMapperTest(DataJuicerTestCaseBase):
 
 
-    def _run_op(self, api_model):
+    def _run_op(self, api_model, sampling_params=None, **kwargs):
 
-        op = ExtractSupportTextMapper(api_model=api_model)
+        op = ExtractSupportTextMapper(api_model=api_model,
+                                      sampling_params=sampling_params,
+                                      **kwargs)
 
         raw_text = """△芩婆走到中间，看着众人。
 芩婆：当年，我那老鬼漆木山与李相夷之父乃是挚交。原本李家隐世而居，一日为了救人，得罪附近山匪，夜里便遭了山匪所袭，唯有二子生还，流落街头。
@@ -47,25 +99,80 @@ class ExtractSupportTextMapperTest(DataJuicerTestCaseBase):
 △笛飞声不禁冷笑一下。
 """
         event = "李相显托付单孤刀。"
+        summary_key = kwargs.get('summary_key', MetaKeys.event_description)
+        support_text_key = kwargs.get('support_text_key',
+                                      MetaKeys.support_text)
         samples = [{
             'text': raw_text,
             Fields.meta:{
-                MetaKeys.event_description: event
+                summary_key: event
             }
         }]
 
         dataset = Dataset.from_list(samples)
         dataset = op.run(dataset)
         sample = dataset[0]
-        self.assertIn(MetaKeys.support_text, sample[Fields.meta])
-        logger.info(f"support_text: \n{sample[Fields.meta][MetaKeys.support_text]}")
-        self.assertNotEqual(sample[Fields.meta][MetaKeys.support_text], '')
+        self.assertIn(support_text_key, sample[Fields.meta])
+        logger.info(f"support_text: \n{sample[Fields.meta][support_text_key]}")
+        self.assertNotEqual(sample[Fields.meta][support_text_key], '')
 
     def test(self):
         # before running this test, set below environment variables:
         # export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/
         # export OPENAI_API_KEY=your_dashscope_key
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
+
+    def test_custom_keys(self):
+        self._run_op(
+            DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            summary_key='my_summary',
+            support_text_key='my_support_text',
+        )
+
+
+class ExtractSupportTextMapperDropTextTest(DataJuicerTestCaseBase):
+    """``drop_text`` must remove the source text from the output.
+
+    The parameter is documented as "If drop the text in the output." and is
+    honoured by the other LLM extractor mappers, which all end their
+    ``process_single`` with::
+
+        if self.drop_text:
+            sample.pop(self.text_key)
+
+    This op stored the flag without reading it, so ``drop_text: true`` returned
+    the sample with the raw text still attached - silently, and with the source
+    text then carried through every downstream step.
+
+    The model is patched out, so no API key is needed.
+    """
+
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.get_model',
+           return_value=lambda messages, **kwargs: 'extracted text')
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.prepare_model', return_value='fake-model-key')
+    def test_drop_text_removes_the_source_text(self, _mock_prepare, _mock_get):
+        op = ExtractSupportTextMapper(api_model='fake', drop_text=True, try_num=1)
+        sample = {'text': 'the original source text', Fields.meta: {}}
+        sample[Fields.meta][MetaKeys.event_description] = 'a summary'
+
+        result = op.process_single(copy.deepcopy(sample))
+
+        self.assertNotIn('text', result)
+        self.assertIn(MetaKeys.support_text, result[Fields.meta])
+
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.get_model',
+           return_value=lambda messages, **kwargs: 'extracted text')
+    @patch('data_juicer.ops.mapper.extract_support_text_mapper.prepare_model', return_value='fake-model-key')
+    def test_source_text_is_kept_when_drop_text_is_false(self, _mock_prepare, _mock_get):
+        op = ExtractSupportTextMapper(api_model='fake', drop_text=False, try_num=1)
+        sample = {'text': 'the original source text', Fields.meta: {}}
+        sample[Fields.meta][MetaKeys.event_description] = 'a summary'
+
+        result = op.process_single(copy.deepcopy(sample))
+
+        self.assertIn('text', result)
+        self.assertEqual(result['text'], 'the original source text')
 
 
 if __name__ == '__main__':

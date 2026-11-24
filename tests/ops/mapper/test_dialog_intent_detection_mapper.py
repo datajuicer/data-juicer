@@ -4,10 +4,25 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.dialog_intent_detection_mapper import DialogIntentDetectionMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+
+class DialogIntentDetectionUnitTest(DataJuicerTestCaseBase):
+    """Pure logic tests that do not require an external API."""
+
+    def test_parse_output_extracts_analysis_and_label(self):
+        op = DialogIntentDetectionMapper(api_model="any-model")
+        self.assertEqual(
+            op.parse_output("意图分析：请求资料。\n意图类别：信息查找\n"),
+            ("请求资料。", "信息查找"),
+        )
+
+    def test_parse_output_returns_empty_for_unstructured_input(self):
+        op = DialogIntentDetectionMapper(api_model="any-model")
+        self.assertEqual(op.parse_output("unstructured"), ("", ""))
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
     # before running this test, set below environment variables:
     # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
@@ -54,7 +69,7 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogIntentDetectionMapper(api_model='qwen2.5-72b-instruct')
+        op = DialogIntentDetectionMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -80,8 +95,10 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogIntentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogIntentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_max_round_zero(self):
@@ -107,8 +124,10 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogIntentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=0)
+        op = DialogIntentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=0)
         self._run_op(op, samples)
 
     def test_query(self):
@@ -132,8 +151,10 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogIntentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogIntentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_intent_candidates(self):
@@ -160,7 +181,8 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
         }]
 
         op = DialogIntentDetectionMapper(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             intent_candidates=['评价', '讽刺', '表达困惑']
             )
         self._run_op(op, samples)
@@ -190,9 +212,11 @@ class TestDialogIntentDetectionMapper(DataJuicerTestCaseBase):
 
         labels_key = 'my_label'
         analysis_key = 'my_analysis'
-        op = DialogIntentDetectionMapper(api_model='qwen2.5-72b-instruct',
-                                        labels_key=labels_key,
-                                        analysis_key=analysis_key)
+        op = DialogIntentDetectionMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            labels_key=labels_key,
+            analysis_key=analysis_key)
         self._run_op(op, samples, labels_key=labels_key, analysis_key=analysis_key)
 
 

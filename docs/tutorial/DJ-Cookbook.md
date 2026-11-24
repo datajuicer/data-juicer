@@ -8,15 +8,28 @@
 
 ## Coding with Data-Juicer (DJ)
 - Basics
-  - [Overview of DJ](../../README.md)
+  - [Overview of DJ](https://github.com/datajuicer/data-juicer/blob/main/README.md)
   - [Quick Start](QuickStart.md)
+  - [Processing Data](../ProcessData.md)
+  - [Operator Schemas](../Operators.md)
+  - [Distributed Processing](../Distributed.md)
   - [Configuration](https://datajuicer.github.io/data-juicer-hub/en/main/docs/RecipeGallery.html)
+  - [Dataset Configuration](../DatasetCfg.md)
   - [Data Format Conversion](../../tools/fmt_conversion/README.md)
 - Lookup Materials
   - [DJ OperatorZoo](../Operators.md)
   - [API references](https://datajuicer.github.io/data-juicer/en/main/api)
+- Data Processing In Depth
+  - [Data Export](../Export.md)
+  - [Cache Management](../Cache.md)
+  - [Data Tracing](../Tracing.md)
+- Distributed Processing
+  - [Distributed Data Processing](../Distributed.md)
+  - [Partition and Checkpoint](../PartitionAndCheckpoint.md)
+  - [Job Management](../JobManagement.md)
 - Advanced
   - [Developer Guide](../DeveloperGuide.md)
+  - [Operator Plugins](../OperatorPlugins.md)
   - [Preprocess Tools](../../tools/preprocess/README.md)
   - [Postprocess Tools](../../tools/postprocess/README.md)
   - [Sandbox](https://datajuicer.github.io/data-juicer-sandbox/en/main/index.html)

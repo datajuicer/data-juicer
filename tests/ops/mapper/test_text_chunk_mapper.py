@@ -1,7 +1,9 @@
+import sys
 import unittest
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.text_chunk_mapper import TextChunkMapper
+from data_juicer.utils.constant import DEFAULT_API_MODEL
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -46,6 +48,26 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             },
         ]
         op = TextChunkMapper(split_pattern='\n')
+        self._run_helper(op, ds_list, tgt_list)
+
+    def test_split_pattern_drops_visible_delimiters(self):
+        ds_list = [
+            {
+                'text': 'a_@@@_b_@@@_c'
+            },
+        ]
+        tgt_list = [
+            {
+                'text': 'a'
+            },
+            {
+                'text': 'b'
+            },
+            {
+                'text': 'c'
+            },
+        ]
+        op = TextChunkMapper(split_pattern='_@@@_')
         self._run_helper(op, ds_list, tgt_list)
     
     def test_max_len_text_chunk(self):
@@ -310,7 +332,7 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             max_len=10,
             overlap_len=1,
             split_pattern=None,
-            tokenizer='qwen2.5-72b-instruct',
+            tokenizer=DEFAULT_API_MODEL,
             trust_remote_code=True
         )
         self._run_helper(op, ds_list, tgt_list)
@@ -357,6 +379,63 @@ class TextChunkMapperTest(DataJuicerTestCaseBase):
             trust_remote_code=True
         )
         self._run_helper(op, ds_list, tgt_list)
+
+
+    def test_recursive_chunk_no_empty_fragments(self):
+        """Regression: recursively_chunk must not produce empty strings when
+        split_pattern matches at the start of a chunk boundary."""
+        ds_list = [
+            {'text': '\n\nHello world is a long sentence\n\nFoo bar baz qux'},
+        ]
+        op = TextChunkMapper(max_len=20, split_pattern='\n\n')
+        dataset = Dataset.from_list(ds_list)
+        dataset = dataset.map(op.process, batch_size=1)
+        texts = [d['text'] for d in dataset]
+        for t in texts:
+            self.assertTrue(t.strip(), f"Got empty/whitespace fragment: {repr(t)}")
+
+    def test_max_len_overlap_no_tail_chunk(self):
+        """With overlap_len, the last chunk must not repeat the end of the
+        previous one on its own."""
+        text = "Today is Sunday and it's a happy day!"
+        op = TextChunkMapper(max_len=20, overlap_len=2, split_pattern=None)
+        self.assertEqual(
+            op.get_text_chunks(text),
+            ['Today is Sunday and ', "d it's a happy day!"])
+        op = TextChunkMapper(max_len=10, overlap_len=5, split_pattern=None)
+        self.assertEqual(
+            op.get_text_chunks(text),
+            ['Today is S', ' is Sunday', 'unday and ', " and it's ",
+             "it's a hap", 'a happy da', 'py day!'])
+
+    def test_recursive_chunk_consecutive_delimiters(self):
+        """Consecutive delimiters should not produce empty fragments."""
+        ds_list = [
+            {'text': 'aaa\n\n\n\nbbb'},
+        ]
+        op = TextChunkMapper(max_len=20, split_pattern='\n\n')
+        dataset = Dataset.from_list(ds_list)
+        dataset = dataset.map(op.process, batch_size=1)
+        texts = [d['text'] for d in dataset]
+        for t in texts:
+            self.assertTrue(t.strip(), f"Got empty/whitespace fragment: {repr(t)}")
+
+    def test_split_pattern_long_text_more_chunks_than_recursion_limit(self):
+        """A text that needs more chunks than the recursion limit is still
+        chunked."""
+        num_chunks = sys.getrecursionlimit() + 100
+        text = 'abcdefghi ' * num_chunks
+        op = TextChunkMapper(max_len=10, split_pattern='\n\n')
+        chunks = op.get_text_chunks(text)
+        self.assertEqual(len(chunks), num_chunks)
+        self.assertEqual(''.join(chunks), text)
+
+    def test_split_pattern_empty_match_at_start_raises(self):
+        """A split_pattern whose only match is an empty string at the start
+        raises instead of looping forever on the same text."""
+        op = TextChunkMapper(max_len=8, split_pattern=r'(?=Chapter)')
+        with self.assertRaisesRegex(ValueError, 'does not shrink'):
+            op.get_text_chunks('Chapter One')
 
 
 if __name__ == '__main__':

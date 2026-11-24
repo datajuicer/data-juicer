@@ -53,9 +53,9 @@ class CharacterRepetitionFilter(Filter):
                 continue
 
             cur_text = samples_list[idx]
-            char_ngrams = [cur_text[i : i + self.n] for i in range(len(cur_text) - self.n + 1)]
             freq_char_ngrams = {}
-            for char_ngram in char_ngrams:
+            for i in range(len(cur_text) - self.n + 1):
+                char_ngram = cur_text[i : i + self.n]
                 freq_char_ngrams[char_ngram] = freq_char_ngrams.get(char_ngram, 0) + 1
 
             if len(freq_char_ngrams) == 0:

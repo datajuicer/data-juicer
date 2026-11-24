@@ -24,21 +24,22 @@ JSONL_LENIENT_EXTENSIONS = frozenset({".jsonl", ".jsonl.gz", ".jsonl.zst"})
 
 
 def _iter_text_lines(path: str) -> Iterator[str]:
-    if path.endswith(".jsonl.gz"):
-        with gzip.open(path, "rt", encoding="utf-8", newline="") as handle:
+    lower_path = path.lower()
+    if lower_path.endswith(".jsonl.gz"):
+        with gzip.open(path, "rt", encoding="utf-8-sig", newline="") as handle:
             yield from handle
-    elif path.endswith(".jsonl.zst"):
+    elif lower_path.endswith(".jsonl.zst"):
         with open(path, "rb") as compressed:
             dctx = zstd.ZstdDecompressor()
             with dctx.stream_reader(compressed) as reader:
                 text_stream = io.TextIOWrapper(
                     reader,
-                    encoding="utf-8",
+                    encoding="utf-8-sig",
                     newline="",
                 )
                 yield from text_stream
     else:
-        with open(path, "r", encoding="utf-8", newline="") as handle:
+        with open(path, "r", encoding="utf-8-sig", newline="") as handle:
             yield from handle
 
 
@@ -105,7 +106,19 @@ def dataset_from_lenient_jsonl_files(
 ) -> Dataset:
     """Build a :class:`datasets.Dataset` by streaming all given JSONL files."""
 
-    def _gen(pairs, add_suffix):
+    def _file_stat(path):
+        try:
+            st = os.stat(path)
+        except OSError:
+            return None
+        return (st.st_mtime_ns, st.st_size)
+
+    # ``stats`` is unused by the generator; it is part of ``gen_kwargs`` so the
+    # HF cache fingerprint changes when a file is modified. It must stay
+    # index-aligned with ``pairs`` (HF shards list-valued kwargs together). The
+    # (mtime_ns, size) key is a heuristic: a same-size rewrite that preserves
+    # the mtime is not detected.
+    def _gen(pairs, add_suffix, stats):
         yield from iter_lenient_jsonl_records(
             pairs,
             add_suffix_column=add_suffix,
@@ -116,5 +129,6 @@ def dataset_from_lenient_jsonl_files(
         gen_kwargs={
             "pairs": file_ext_pairs,
             "add_suffix": add_suffix_column,
+            "stats": [_file_stat(path) for path, _ in file_ext_pairs],
         },
     )

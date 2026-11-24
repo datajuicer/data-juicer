@@ -5,12 +5,12 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.llm_difficulty_score_filter import LLMDifficultyScoreFilter
-from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, StatsKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMDifficultyScoreFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen2.5-72b-instruct'
+    api_or_hf_model = DEFAULT_API_MODEL
 
     def _run_test(self, dataset: Dataset, op):
         if Fields.stats not in dataset.features:
@@ -44,7 +44,10 @@ class LLMDifficultyScoreFilterTest(DataJuicerTestCaseBase):
             "In quantum field theory, renormalization addresses infinities arising from loop integrals in Feynman diagrams. By redefining parameters such as mass and charge, physicists ensure finite predictions align with experimental observations. However, this procedure raises philosophical questions about whether these adjustments reflect physical reality or merely mathematical conveniences."
         }]
         dataset = Dataset.from_list(ds_list)
-        op = LLMDifficultyScoreFilter(api_or_hf_model=self.api_or_hf_model)
+        op = LLMDifficultyScoreFilter(
+            api_or_hf_model=self.api_or_hf_model,
+            sampling_params={'enable_thinking': False},
+        )
         dataset= self._run_test(dataset, op)
 
     def test_rft_data(self):
@@ -66,6 +69,7 @@ class LLMDifficultyScoreFilterTest(DataJuicerTestCaseBase):
             api_or_hf_model=self.api_or_hf_model,
             input_keys=['text', 'analysis', 'answer'],
             field_names=['Query', 'Analysis', 'Answer'],
+            sampling_params={'enable_thinking': False},
         )
         dataset= self._run_test(dataset, op)
 

@@ -1,0 +1,71 @@
+# Process config example for dataset
+
+# global parameters
+project_name: 'demo-analyzer'
+dataset_path: './demos/data/demo-dataset-videos2.jsonl'  # path to your dataset directory or file
+np: 4  # number of subprocess to process your dataset
+
+export_path: './outputs/demo-analyzer/demo-analyzer-result.jsonl'
+                                                 # number of subprocess to process your dataset
+                                                            # Note: currently, we support specify only ONE key for each op, for cases requiring multiple keys, users can specify the op multiple times. We will only use the first key of `text_keys` when you set multiple keys.
+open_tracer: false                                          # whether to open the tracer to trace the changes during process. It might take more time when opening tracer
+
+# for multimodal data processing
+video_key: 'videos'                                         # key name of field to store the list of sample video paths.
+video_special_token: '<__dj__video>'                        # the special token that represents a video in the text. In default, it's "<__dj__video>". You can specify your own special token according to your input dataset.
+eoc_special_token: '<|__dj__eoc|>'                          # the special token that represents the end of a chunk in the text. In default, it's "<|__dj__eoc|>". You can specify your own special token according to your input dataset.
+
+keep_stats_in_res_ds: true
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  - video_face_ratio_filter:                                # Filter to retain human-centric videos
+      threshold: 0.2                                           # The lower limit of the ratio of frames with faces to the total number of video frames
+      detect_interval: 4
+      any_or_all: any
+
+  - video_human_tracks_extraction_mapper:                   # Get the body and face trajectory bounding box of people in one shot of the video. To ensure correctness, it should be applied after video_split_by_scene_mapper
+      original_data_save_path: your_path/bounding_box_track    # The location where the specific results of each frame's detection are stored
+      detect_interval: 5
+
+  - video_human_tracks_face_demographic_mapper:             # Get the facial demographics of each person based on the results of video_human_tracks_extraction_mapper
+      original_data_save_path: your_path/bounding_box_track    # The location where the specific results of each frame's detection are stored
+      detect_interval: 5
+
+
+  - video_tagging_from_audio_mapper:                        # Mapper to generate video tags from audio streams extracted from the video.
+      hf_ast: 'MIT/ast-finetuned-audioset-10-10-0.4593'       # Huggingface model name for the audio classification model.
+      tag_field_name: 'video_audio_tags'                    # the field name to store the tags. It's "video_audio_tags" in default.
+      memory: '500MB'
+
+  - video_audio_detect_age_gender_mapper:                   # If the audio is speech, classify the gender and age of the speech
+      hf_audio_mapper: 'audeering/wav2vec2-large-robust-24-ft-age-gender'   # Huggingface model name for speech age and gender classification
+      mem_required: '7GB'
+
+  - video_captioning_from_human_tracks_mapper:              # Based on the results of video_human_tracks_extraction_mapper, focus on the single person in the video for captioning
+      video_describe_model_path: DAMO-NLP-SG/VideoLLaMA3-7B     # model path to VideoLLaMA3-7B
+      trust_remote_code: true
+      temp_video_path: your_path                        # Used to store temporary videos that will be removed finally.
+      mem_required: '25GB'
+
+  - video_captioning_face_attribute_emotion_mapper:         # Based on the results of video_human_tracks_extraction_mapper, focus on judging the gender, age, and race of a single person in the video
+      face_track_query: Please only describe the appearance and facial emotions of the person in the video in detail. Don't mention the background. Less than 80 words.
+      trust_remote_code: true
+      cropping_face_video_temp_path: your_path          # Used to store temporary videos
+      video_describe_model_path: DAMO-NLP-SG/VideoLLaMA3-7B     # Huggingface model DAMO-NLP-SG/VideoLLaMA3-7B
+      mem_required: '25GB'
+
+  - video_active_speaker_detect_mapper:                     # Based on the results of video_human_tracks_extraction_mapper, determine whether each person is an active speaker
+      temp_save_path: your_path                               # Used to store temporary videos
+      active_threshold: 15                                      # Higher values are stricter, reducing false positives from noise but potentially increasing missed detections
+      mem_required: '10GB'
+
+
+  - video_audio_ASR_mapper:                                 # Automatic speech recognition from video speech
+      model_dir_ASR: 'FunAudioLLM/SenseVoiceSmall'              # Huggingface model FunAudioLLM/SenseVoiceSmall
+      mem_required: '20GB'
+
+  - video_audio_speech_emotion_mapper:                      # Speech emotion recognition from video speech
+      model_dir_emo: 'FunAudioLLM/SenseVoiceSmall'              # Huggingface model FunAudioLLM/SenseVoiceSmall
+      mem_required: '20GB'

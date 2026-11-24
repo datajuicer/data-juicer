@@ -525,7 +525,11 @@ def calculate_ray_np(operators):
             # * If ``fn`` is a function and ``concurrency`` is an  int ``n``, Ray Data
             # launches *at most* ``n`` concurrent tasks.
             op.num_cpus = cfg["cpu_required"]
-            op.num_gpus = None
+            # GPU-capable operators can explicitly opt into Ray task mode. Keep
+            # their requested GPU resource so Ray assigns CUDA_VISIBLE_DEVICES
+            # to each task. Clearing it makes the CUDA operator run in a CPU-only
+            # task and can silently drop every sample when skip_op_error is on.
+            op.num_gpus = cfg["gpu_required"] or None
             # if concurrency left to None, the automatic concurrency of ray may be slightly higher, which could lead to OOM
             op.num_proc = num_proc[1] if (auto_proc and isinstance(num_proc, (tuple, list))) else num_proc
 

@@ -69,7 +69,7 @@ class MaximumLineLengthFilterTest(DataJuicerTestCaseBase):
         tgt_context_list = [
             {
                 Fields.context: {
-                    InterVars.lines: tgt[self.text_key].splitlines()
+                    f'{InterVars.lines}-{self.text_key}': tgt[self.text_key].splitlines()
                     }
             } for tgt in self.tgt_list
         ]

@@ -1,0 +1,12 @@
+[submodule "YOLOv8_human"]
+	path = YOLOv8_human
+	url = https://github.com/jahongir7174/YOLOv8-human.git
+	# commit_id = 8f8a65e
+[submodule "Light-ASD"]
+	path = Light-ASD
+	url = https://github.com/Junhua-Liao/Light-ASD.git
+	# commit_id = e4f33e1
+[submodule "SenseVoice"]
+	path = SenseVoice
+	url = https://github.com/FunAudioLLM/SenseVoice.git
+	# commit_id = 771252c

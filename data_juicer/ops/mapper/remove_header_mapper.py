@@ -35,7 +35,7 @@ class RemoveHeaderMapper(Mapper):
         self.pattern += r"\\\bsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
         self.pattern += r"\\\bsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
         self.pattern += r"\\\bsubsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
-        self.pattern += r"\\\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"
+        self.pattern += r"\\\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
         self.pattern += r"\\\bsubparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"
         self.pattern += r")"
 
@@ -45,7 +45,7 @@ class RemoveHeaderMapper(Mapper):
         for idx, text in enumerate(samples[self.text_key]):
             if not re.search(self.pattern, text, flags=re.DOTALL):
                 if self.drop_no_head:
-                    text = ""
+                    samples[self.text_key][idx] = ""
                 continue
             text = re.sub(pattern=self.pattern, repl=r"\2", string=text, flags=re.DOTALL)
 

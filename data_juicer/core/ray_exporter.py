@@ -1,11 +1,13 @@
 import os
 from functools import partial
 from pathlib import Path
+from urllib.parse import urlparse
 
 from loguru import logger
 
 from data_juicer.utils.constant import Fields, HashKeys
-from data_juicer.utils.file_utils import Sizes, byte_size_to_size_str
+from data_juicer.utils.file_utils import Sizes, byte_size_to_size_str, is_remote_path
+from data_juicer.utils.fs_utils import create_filesystem_for_path
 from data_juicer.utils.model_utils import filter_arguments
 from data_juicer.utils.webdataset_utils import reconstruct_custom_webdataset_format
 
@@ -73,11 +75,11 @@ class RayExporter:
         self.encrypt_before_export = encrypt_before_export
         self._fernet = None
         if encrypt_before_export:
-            if export_path.startswith("s3://"):
+            if urlparse(export_path).scheme.lower() in ("s3", "hdfs"):
                 logger.warning(
-                    "encrypt_before_export is True but export_path is an S3 "
-                    "path. Local-file encryption is skipped for S3 exports. "
-                    "Use S3 server-side encryption (SSE) to protect data at rest."
+                    "encrypt_before_export is True but export_path is a remote "
+                    f"path ({export_path}). Local-file encryption is skipped. "
+                    "Use server-side encryption to protect data at rest."
                 )
                 self.encrypt_before_export = False
             else:
@@ -85,27 +87,20 @@ class RayExporter:
 
                 self._fernet = load_fernet_key(encryption_key_path)
 
-        # Check if export_path is S3 and create filesystem if needed
+        # Create a PyArrow filesystem when export_path points to remote
+        # storage (hdfs:// or s3://), consuming the backend-specific keys
+        # from export_extra_args so they won't be forwarded to write methods.
+        # PyArrow's HadoopFileSystem expects paths WITHOUT the hdfs:// scheme,
+        # so we also strip the scheme and use the bare path for writing.
+        self.hdfs_filesystem = None
         self.s3_filesystem = None
-        if export_path.startswith("s3://"):
-            # Extract AWS credentials from export_extra_args (if provided)
-            s3_config = {}
-            if "aws_access_key_id" in self.export_extra_args:
-                s3_config["aws_access_key_id"] = self.export_extra_args.pop("aws_access_key_id")
-            if "aws_secret_access_key" in self.export_extra_args:
-                s3_config["aws_secret_access_key"] = self.export_extra_args.pop("aws_secret_access_key")
-            if "aws_session_token" in self.export_extra_args:
-                s3_config["aws_session_token"] = self.export_extra_args.pop("aws_session_token")
-            if "aws_region" in self.export_extra_args:
-                s3_config["aws_region"] = self.export_extra_args.pop("aws_region")
-            if "endpoint_url" in self.export_extra_args:
-                s3_config["endpoint_url"] = self.export_extra_args.pop("endpoint_url")
-
-            # Create PyArrow S3FileSystem with credentials
-            # This matches the pattern used in RayS3DataLoadStrategy
-            from data_juicer.utils.s3_utils import create_pyarrow_s3_filesystem
-
-            self.s3_filesystem = create_pyarrow_s3_filesystem(s3_config)
+        fs, self.export_extra_args = create_filesystem_for_path(export_path, self.export_extra_args)
+        export_scheme = urlparse(export_path).scheme.lower()
+        if export_scheme == "hdfs":
+            self.hdfs_filesystem = fs
+            logger.info(f"Detected HDFS export path: {export_path}. HDFS filesystem configured.")
+        elif export_scheme == "s3":
+            self.s3_filesystem = fs
             logger.info(f"Detected S3 export path: {export_path}. S3 filesystem configured.")
 
         self.max_shard_size_str = ""
@@ -195,6 +190,16 @@ class RayExporter:
         # Add S3 filesystem if available
         if self.s3_filesystem is not None:
             export_kwargs["export_extra_args"]["filesystem"] = self.s3_filesystem
+        # Add HDFS filesystem if available; PyArrow needs the bare path
+        # (without the hdfs:// scheme) when a filesystem is provided.
+        # Keep the original path for remote-path checks below;
+        # only strip the scheme when passing it to export_method.
+        export_path_for_checks = export_path
+        if self.hdfs_filesystem is not None:
+            from data_juicer.utils.hdfs_utils import strip_hdfs_scheme
+
+            export_kwargs["export_extra_args"]["filesystem"] = self.hdfs_filesystem
+            export_path = strip_hdfs_scheme(export_path)
         if self.export_shard_size > 0:
             # compute the min_rows_per_file for export methods
             dataset_nbytes = dataset.size_bytes()
@@ -204,14 +209,16 @@ class RayExporter:
             rows_per_file = int(dataset_num_rows / num_shards)
             export_kwargs["export_extra_args"]["min_rows_per_file"] = rows_per_file
 
-        # Ensure export directory exists (Ray's write_json treats export_path as a directory)
-        if not export_path.startswith("s3://"):
-            os.makedirs(export_path, exist_ok=True)
+        # Ensure export directory exists (Ray's write_json treats export_path as a directory).
+        # Skip for any remote path (s3://, hdfs://, ...); the remote filesystem
+        # creates directories automatically during write.
+        if not is_remote_path(export_path_for_checks):
+            os.makedirs(export_path_for_checks, exist_ok=True)
 
         result = export_method(dataset, export_path, **export_kwargs)
 
         # Encrypt all exported files in-place after Ray has finished writing
-        if self.encrypt_before_export and self._fernet is not None and not export_path.startswith("s3://"):
+        if self.encrypt_before_export and self._fernet is not None and not is_remote_path(export_path_for_checks):
             from data_juicer.utils.encryption_utils import encrypt_file
 
             export_dir = Path(export_path)

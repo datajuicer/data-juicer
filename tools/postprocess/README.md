@@ -1,6 +1,6 @@
 # Postprocess tools
 
-This folder contains some postprocess scripts for additional processing of your processed dataset using Data-Juicer.
+The scripts in [`tools/postprocess`](.) are used for additional processing of your processed dataset using Data-Juicer, such as token counting, data mixing, and meta-field deserialization.
 
 ## Usage
 

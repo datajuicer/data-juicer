@@ -5,13 +5,13 @@ from data_juicer.utils.resource_utils import is_cuda_available
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 def check_string_in_list(string_list, output):
-    if not string_list: 
+    if not string_list:
         assert False, "输入的列表不能是空的"
-    
+
     for string in string_list:
         if string in output:
             return
-        
+
     assert False, f"没有字符串在输出中"
 
 
@@ -39,7 +39,7 @@ class TextTaggingByPromptMapperTest(DataJuicerTestCaseBase):
             {
             self.text_key: """{\n"instruction": "找出方程 x2 - 3x = 0 的根。",\n"input": "",\n"output": "该方程可以写成 x(x-3)=0。\n\n根据乘法原理，x = 0或x - 3 = 0。\n\n因此，x1 = 0和x2 = 3是方程 x2 - 3x = 0 的两个根。"\n}"""
             }]
-        self._run_tagging(samples)
+        self._run_tagging(samples, sampling_params={'temperature': 0.1})
 
     @unittest.skipUnless(is_cuda_available(), 'vLLM requires CUDA')
     def test_tagging_vllm(self):

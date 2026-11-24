@@ -31,7 +31,7 @@ Tags 标签: cpu, api, text
 ## 📊 Effect demonstration 效果演示
 ### test
 ```python
-ExtractKeywordMapper(api_model='qwen2.5-72b-instruct', response_path=None)
+ExtractKeywordMapper(api_model='qwen3.7-max', response_path=None)
 ```
 
 #### 📥 input data 输入数据

@@ -6,11 +6,31 @@ import regex as re
 from ..base_op import OPERATORS, Mapper
 
 
+def _break_on_sentence_punct(match):
+    """Put a newline after sentence punctuation, but not inside a number or word.
+
+    A '.' with a digit on both sides is a decimal point or a version dot, in
+    any script. A '.' with an ASCII letter or digit on both sides is also part
+    of a domain, URL or file name (example.com, setup.py). Treating either as
+    a sentence end makes the piece after the dot its own sentence, so a later
+    different sentence that shares that piece loses it.
+    """
+    punct = match.group(1)
+    nxt = match.group(2)
+    prev = match.string[match.start() - 1] if match.start() else ""
+    if punct == ".":
+        if prev.isdigit() and nxt.isdigit():
+            return match.group(0)
+        if (prev + nxt).isascii() and prev.isalnum() and nxt.isalnum():
+            return match.group(0)
+    return punct + "\n" + nxt
+
+
 def split_sentence(text):
-    text = re.sub(r"([.。！!？\?])([^’”])", r"\1\n\2", text)  # noqa
+    text = re.sub(r"([.。！!？\?])([^’”])", _break_on_sentence_punct, text)  # noqa
     text = re.sub(r"(\.{6})([^’”])", r"\1\n\2", text)  # noqa
     text = re.sub("(\…{2})([^’”])", r"\1\n\2", text)  # noqa
-    text = re.sub(r"([.。!！？\?\.{6}\…{2}][’”])([^’”])", r"\1\n\2", text)  # noqa
+    text = re.sub(r"([.。!！？\?…][’”])([^’”])", r"\1\n\2", text)  # noqa
     return text.split("\n")
 
 
@@ -76,7 +96,14 @@ class RemoveRepeatSentencesMapper(Mapper):
         super().__init__(*args, **kwargs)
         self.lowercase = lowercase
         self.min_repeat_sentence_length = min_repeat_sentence_length
-        self.remove_regex = re.compile(r"[^a-zA-Z0-9\u4e00-\u9fa5\n\t ]") if ignore_special_character else None
+        # keep the letters (with their combining marks) and numbers of every
+        # script: dropping e.g. Cyrillic or Hangul letters leaves only the
+        # spaces, so different sentences compare equal and are removed.
+        # Variation selectors and enclosing marks (the U+FE0F after an emoji,
+        # the U+20E3 keycap) belong to symbols, so they are removed too.
+        self.remove_regex = (
+            re.compile(r"[^\p{L}\p{Mn}\p{Mc}\p{N}\n\t ]|\p{Variation_Selector}") if ignore_special_character else None
+        )
 
         if tokenizer is None:
             self._tokenize = split_sentence

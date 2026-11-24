@@ -65,6 +65,43 @@ class OverallAnalysisTest(DataJuicerTestCaseBase):
             },
         ]
         self.invalid_dataset = NestedDataset.from_list(invalid_data_list)
+        # the first sample misses its tags (e.g. an OP failed on it), while the
+        # rest of each column is perfectly analyzable
+        first_null_data_list = [
+            {
+                Fields.meta: {
+                    f'{DEFAULT_PREFIX}meta_str1': None,
+                },
+                Fields.stats: {
+                    'stats_num_list': None,
+                    'stats_str': None,
+                }
+            },
+            {
+                Fields.meta: {
+                    f'{DEFAULT_PREFIX}meta_str1': 'assistant',
+                },
+                Fields.stats: {
+                    'stats_num_list': [7, 8, 9],
+                    'stats_str': 'en',
+                }
+            },
+            {
+                Fields.meta: {
+                    f'{DEFAULT_PREFIX}meta_str1': 'system',
+                },
+                Fields.stats: {
+                    'stats_num_list': [10, 11, 12],
+                    'stats_str': 'fr',
+                }
+            },
+        ]
+        self.first_null_dataset = NestedDataset.from_list(first_null_data_list)
+        all_null_data_list = [
+            {Fields.stats: {'stats_str': None}},
+            {Fields.stats: {'stats_str': None}},
+        ]
+        self.all_null_dataset = NestedDataset.from_list(all_null_data_list)
         self.temp_output_path = 'tmp/test_overall_analysis/'
 
     def tearDown(self):
@@ -100,6 +137,24 @@ class OverallAnalysisTest(DataJuicerTestCaseBase):
         self.assertEqual(len(res.columns), 0)
         self.assertTrue(os.path.exists(os.path.join(self.temp_output_path, 'overall.csv')))
         self.assertTrue(os.path.exists(os.path.join(self.temp_output_path, 'overall.md')))
+
+    def test_first_row_is_null(self):
+        # a missing value in the first row must not disqualify the whole column
+        overall_analysis = OverallAnalysis(self.first_null_dataset, self.temp_output_path)
+        res = overall_analysis.analyze()
+        self.assertIn('stats_str', res.columns)
+        self.assertIn('stats_num_list', res.columns)
+        self.assertIn(f'{DEFAULT_PREFIX}meta_str1', res.columns)
+        # the 2 remaining valid values are still counted
+        self.assertEqual(res.loc['count', 'stats_str'], 2)
+        self.assertEqual(res.loc['count', f'{DEFAULT_PREFIX}meta_str1'], 2)
+        self.assertEqual(res.loc['count', 'stats_num_list'], 6)
+
+    def test_all_null_column(self):
+        # a column without any valid value is still skipped
+        overall_analysis = OverallAnalysis(self.all_null_dataset, self.temp_output_path)
+        res = overall_analysis.analyze()
+        self.assertNotIn('stats_str', res.columns)
 
 
 if __name__ == '__main__':

@@ -5,12 +5,12 @@ from loguru import logger
 from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.filter.llm_quality_score_filter import LLMQualityScoreFilter
-from data_juicer.utils.constant import Fields, StatsKeys
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, StatsKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class LLMQualityScoreFilterTest(DataJuicerTestCaseBase):
-    api_or_hf_model = 'qwen2.5-72b-instruct'
+    api_or_hf_model = DEFAULT_API_MODEL
 
     def _run_test(self, dataset: Dataset, op):
         if Fields.stats not in dataset.features:
@@ -44,7 +44,10 @@ class LLMQualityScoreFilterTest(DataJuicerTestCaseBase):
             "Cats are domesticated animals known for their agility, intelligence, and independent nature. Research shows that they spend approximately 70% of their lives sleeping, which helps conserve energy for hunting. Unlike dogs, cats are obligate carnivores, meaning their diet must consist primarily of meat to meet nutritional needs."
         }]
         dataset = Dataset.from_list(ds_list)
-        op = LLMQualityScoreFilter(api_or_hf_model=self.api_or_hf_model)
+        op = LLMQualityScoreFilter(
+            api_or_hf_model=self.api_or_hf_model,
+            sampling_params={'enable_thinking': False},
+        )
         dataset= self._run_test(dataset, op)
 
     def test_rft_data(self):
@@ -66,6 +69,7 @@ class LLMQualityScoreFilterTest(DataJuicerTestCaseBase):
             api_or_hf_model=self.api_or_hf_model,
             input_keys=['text', 'analysis', 'answer'],
             field_names=['Query', 'Analysis', 'Answer'],
+            sampling_params={'enable_thinking': False},
         )
         dataset= self._run_test(dataset, op)
 

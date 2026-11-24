@@ -1,12 +1,15 @@
 import json
 import os
+from datetime import date
 from multiprocessing import Pool
+from urllib.parse import urlparse
 
 from datasets import Dataset as HFDataset
 from loguru import logger
 
 from data_juicer.utils.constant import Fields, HashKeys
 from data_juicer.utils.file_utils import Sizes, byte_size_to_size_str
+from data_juicer.utils.fs_utils import create_filesystem_for_path
 
 
 class Exporter:
@@ -47,8 +50,8 @@ class Exporter:
         :param encrypt_before_export: whether to encrypt each exported file
             in-place immediately after writing. Requires a valid Fernet key
             accessible via ``encryption_key_path`` or the environment
-            variable ``DJ_ENCRYPTION_KEY``. S3 paths are skipped (use S3
-            SSE instead). Default: False.
+            variable ``DJ_ENCRYPTION_KEY``. Remote paths (s3://, hdfs://)
+            are skipped. Default: False.
         :param encryption_key_path: path to a file containing the Fernet key.
             Falls back to the ``DJ_ENCRYPTION_KEY`` environment variable when
             ``None``. Only used when ``encrypt_before_export`` is True.
@@ -74,11 +77,11 @@ class Exporter:
         self.encrypt_before_export = encrypt_before_export
         self._fernet = None
         if encrypt_before_export:
-            if export_path.startswith("s3://"):
+            if urlparse(export_path).scheme.lower() in ("s3", "hdfs"):
                 logger.warning(
-                    "encrypt_before_export is True but export_path is an S3 "
-                    "path. Local-file encryption is skipped for S3 exports. "
-                    "Use S3 server-side encryption (SSE) to protect data at rest."
+                    "encrypt_before_export is True but export_path is a remote "
+                    f"path ({export_path}). Local-file encryption is skipped. "
+                    "Use server-side encryption to protect data at rest."
                 )
                 self.encrypt_before_export = False
             else:
@@ -88,7 +91,8 @@ class Exporter:
 
         # Check if export_path is S3 and create storage_options if needed
         self.storage_options = None
-        if export_path.startswith("s3://"):
+        export_scheme = urlparse(export_path).scheme.lower()
+        if export_scheme == "s3":
             # Extract AWS credentials from kwargs (if provided)
             s3_config = {}
             if "aws_access_key_id" in kwargs:
@@ -136,6 +140,18 @@ class Exporter:
             self.storage_options = storage_options
             logger.info(f"Detected S3 export path: {export_path}. S3 storage_options configured.")
 
+        # Check if export_path is HDFS. Wrap PyArrow HadoopFileSystem via
+        # fsspec ArrowFSWrapper so that dataset.to_json/parquet(path)
+        # routes through fsspec → Arrow, unifying HDFS with the same
+        # storage_options path that S3 already uses.
+        if export_scheme == "hdfs":
+            from fsspec.implementations.arrow import ArrowFSWrapper
+
+            hdfs_pyarrow_fs, kwargs = create_filesystem_for_path(export_path, kwargs)
+            wrapped = ArrowFSWrapper(hdfs_pyarrow_fs)
+            self.storage_options = {"filesystem": wrapped}
+            logger.info(f"Detected HDFS export path: {export_path}. " f"ArrowFSWrapper storage_options configured.")
+
         # get the string format of shard size
         self.max_shard_size_str = byte_size_to_size_str(self.export_shard_size)
 
@@ -164,7 +180,15 @@ class Exporter:
         :param export_path: the path to export datasets.
         :return: the suffix of export_path.
         """
-        suffix = export_path.split(".")[-1].lower()
+        parts = export_path.rsplit(".", 1)
+        if len(parts) < 2 or "/" in parts[-1]:
+            raise ValueError(
+                f"Cannot determine file format from export_path "
+                f"[{export_path}] because it has no file extension. "
+                f"Please add a suffix (e.g. .jsonl, .json, .parquet) "
+                f"or specify export_type explicitly."
+            )
+        suffix = parts[-1].lower()
         return suffix
 
     @staticmethod
@@ -224,9 +248,13 @@ class Exporter:
                 # If meta/stats were serialized as JSON strings (e.g. \\uXXXX),
                 # parse back to dict so to_json(force_ascii=False) writes UTF-8.
                 ds_stats = Exporter._ensure_meta_stats_dicts_for_export(ds_stats)
-                stats_file = export_path.replace("." + suffix, "_stats.jsonl")
+                # strip the extension rather than replacing "." + suffix: with
+                # export_type set, the path may not end in that suffix, and the
+                # stats file would then take the export path itself and be
+                # overwritten by the dataset
+                stats_file = os.path.splitext(export_path)[0] + "_stats.jsonl"
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
-                # Add storage_options if available (for S3 export)
+                # Add storage_options if available (for S3/HDFS export)
                 if self.storage_options is not None:
                     export_kwargs["storage_options"] = self.storage_options
                 Exporter.to_jsonl(ds_stats, stats_file, **export_kwargs)
@@ -255,7 +283,7 @@ class Exporter:
                 # export the whole dataset into one single file.
                 logger.info("Export dataset into a single file...")
                 export_kwargs = {"num_proc": self.num_proc if self.export_in_parallel else 1}
-                # Add storage_options if available (for S3 export)
+                # Add storage_options if available (for S3/HDFS export)
                 if self.storage_options is not None:
                     export_kwargs["storage_options"] = self.storage_options
                 export_method(dataset, export_path, **export_kwargs)
@@ -281,10 +309,11 @@ class Exporter:
 
                 # regard the export path as a directory and set file names for
                 # each shard
-                if self.export_path.startswith("s3://"):
+                if urlparse(self.export_path).scheme.lower() == "s3":
                     # For S3 paths, construct S3 paths for each shard
-                    # Extract bucket and prefix from S3 path
-                    s3_path_parts = self.export_path.replace("s3://", "").split("/", 1)
+                    # Extract bucket and prefix from S3 path (strip the
+                    # scheme case-insensitively).
+                    s3_path_parts = self.export_path.split("://", 1)[1].split("/", 1)
                     bucket = s3_path_parts[0]
                     prefix = s3_path_parts[1] if len(s3_path_parts) > 1 else ""
                     # Remove extension from prefix
@@ -297,10 +326,28 @@ class Exporter:
                         f"s3://{bucket}/{prefix_base}-{num_fmt % index}-of-{num_fmt % num_shards}.{self.suffix}"
                         for index in range(num_shards)
                     ]
+                elif urlparse(self.export_path).scheme.lower() == "hdfs":
+                    # For HDFS paths, construct HDFS URIs for each shard
+                    # (same pattern as S3; strip the scheme case-insensitively).
+                    hdfs_path_parts = self.export_path.split("://", 1)[1].split("/", 1)
+                    authority = hdfs_path_parts[0]
+                    prefix = hdfs_path_parts[1] if len(hdfs_path_parts) > 1 else ""
+                    # Remove extension from prefix
+                    if "." in prefix:
+                        prefix_base = ".".join(prefix.split(".")[:-1])
+                    else:
+                        prefix_base = prefix
+                    filenames = [
+                        f"hdfs://{authority}/{prefix_base}-{num_fmt % index}-of-{num_fmt % num_shards}.{self.suffix}"
+                        for index in range(num_shards)
+                    ]
                 else:
                     # For local paths, use standard directory structure
                     dirname = os.path.dirname(os.path.abspath(self.export_path))
-                    basename = os.path.basename(self.export_path).split(".")[0]
+                    # drop only the extension, as for S3/HDFS above: cutting at
+                    # the first dot gives "a.v1.jsonl" and "a.v2.jsonl" the same
+                    # shard names, so one export overwrites the other
+                    basename = os.path.splitext(os.path.basename(self.export_path))[0]
                     os.makedirs(dirname, exist_ok=True)
                     filenames = [
                         os.path.join(
@@ -312,21 +359,28 @@ class Exporter:
                 # export dataset into multiple shards using multiprocessing
                 logger.info(f"Start to exporting to {num_shards} shards.")
                 pool = Pool(self.num_proc)
+                results = []
                 for i in range(num_shards):
                     export_kwargs = {"num_proc": 1}  # Each shard export uses single process
-                    # Add storage_options if available (for S3 export)
+                    # Add storage_options if available (for S3/HDFS export)
                     if self.storage_options is not None:
                         export_kwargs["storage_options"] = self.storage_options
-                    pool.apply_async(
-                        export_method,
-                        args=(
-                            shards[i],
-                            filenames[i],
-                        ),
-                        kwds=export_kwargs,
+                    results.append(
+                        pool.apply_async(
+                            export_method,
+                            args=(
+                                shards[i],
+                                filenames[i],
+                            ),
+                            kwds=export_kwargs,
+                        )
                     )
                 pool.close()
                 pool.join()
+                # re-raise any error from a shard writer instead of reporting a
+                # successful export of empty or missing shards
+                for res in results:
+                    res.get()
                 # Encrypt each local shard after all shards are written.
                 for fname in filenames:
                     self._encrypt_local_file(fname)
@@ -356,6 +410,8 @@ class Exporter:
             return {k: Exporter._row_to_json_serializable(v) for k, v in obj.items()}
         if isinstance(obj, list):
             return [Exporter._row_to_json_serializable(v) for v in obj]
+        if isinstance(obj, date):
+            return obj.isoformat()
         if hasattr(obj, "item"):  # numpy scalar
             return obj.item()
         if hasattr(obj, "tolist"):

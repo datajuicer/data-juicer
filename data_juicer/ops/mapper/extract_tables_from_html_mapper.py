@@ -68,14 +68,22 @@ class ExtractTablesFromHtmlMapper(Mapper):
         for table in tables:
             extracted_rows = []
             for row in table.find_all("tr"):
-                is_header_row = row.find("th", recursive=False) is not None
+                cells = row.find_all(["td", "th"], recursive=False)
+                # rows in <thead> are header rows; elsewhere a header row has
+                # <th> cells and no <td> with text (an empty corner cell is
+                # allowed), and a <th> next to <td> values is a row header in a
+                # body row
+                is_header_row = row.parent.name == "thead" or (
+                    any(cell.name == "th" for cell in cells)
+                    and not any(cell.name == "td" and cell.get_text(strip=True) for cell in cells)
+                )
 
                 # skip rows based on the include_header flag
                 if not self.include_header and is_header_row:
                     continue
 
                 # extract text content from cells
-                row_data = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"], recursive=False)]
+                row_data = [cell.get_text(strip=True) for cell in cells]
                 if row_data:
                     extracted_rows.append(row_data)
 

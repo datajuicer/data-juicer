@@ -12,11 +12,20 @@ class UnionFind:
         self.parent: Dict[int, int] = {}
 
     def find(self, x):
-        if x not in self.parent:
-            self.parent[x] = x
-        if self.parent[x] != x:
-            self.parent[x] = self.find(self.parent[x])
-        return self.parent[x]
+        # iterative, as parent chains can be longer than the recursion limit
+        parent = self.parent
+        if x not in parent:
+            parent[x] = x
+            return x
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        # path compression
+        while x != root:
+            next_x = parent[x]
+            parent[x] = root
+            x = next_x
+        return root
 
     def union(self, x, y):
         px = self.find(x)
@@ -160,8 +169,9 @@ def words_refinement(
     if lower_case:
         words = [word.lower() for word in words]
     if strip_chars:
-        words = [strip(word, strip_chars) for word in words]
-        words = [word for word in words if word]
+        # Combine strip and non-empty filter into one list comprehension
+        # to avoid creating an intermediate list
+        words = [stripped for word in words if (stripped := strip(word, strip_chars))]
     if use_words_aug:
         augmentation = [
             words_augmentation(words, group_size, words_aug_join_char) for group_size in words_aug_group_sizes

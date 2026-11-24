@@ -101,7 +101,9 @@ class OptimizeQAMapper(Mapper):
         model_params = model_params or {}
         sampling_params = sampling_params or {}
 
-        sampling_params = update_sampling_params(sampling_params, api_or_hf_model, self.enable_vllm)
+        sampling_params = sampling_params.copy()
+        if enable_vllm or is_hf_model:
+            sampling_params = update_sampling_params(sampling_params, api_or_hf_model, self.enable_vllm)
 
         if enable_vllm:
             if not is_ray_mode():

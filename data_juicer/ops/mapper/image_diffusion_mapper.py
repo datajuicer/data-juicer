@@ -10,6 +10,7 @@ from data_juicer.utils.constant import Fields
 from data_juicer.utils.file_utils import transfer_filename
 from data_juicer.utils.mm_utils import (
     SpecialTokens,
+    image_to_bytes,
     load_data_with_context,
     load_image,
     remove_special_tokens,
@@ -155,13 +156,24 @@ class ImageDiffusionMapper(Mapper):
 
         # load captions
         if self.caption_key:
-            captions = ori_sample[self.caption_key]
-            if not isinstance(captions, list):
+            captions = ori_sample.get(self.caption_key)
+            num_images = len(loaded_image_keys)
+            if not captions:
+                # no caption at all (missing key, None or an empty list): an
+                # empty prompt is a valid unconditional prompt for
+                # image-to-image generation, so fall back to it
+                captions = [""] * num_images
+            elif not isinstance(captions, list):
                 # one caption for all images
-                captions = [captions] * len(images)
+                captions = [captions] * num_images
             else:
-                assert len(captions) == len(images), "The num of captions must match the num of images."
-            captions = [remove_special_tokens(c) for c in captions]
+                # a partially filled list carries no hint about which image the
+                # missing captions belong to, so keep failing loudly here; use
+                # None or "" as an explicit placeholder to skip a single image
+                assert len(captions) == num_images, "The num of captions must match the num of images."
+            # a blank entry inside the list is an explicit "no guidance for this
+            # image" placeholder, so normalize it instead of skipping
+            captions = [remove_special_tokens(c) if isinstance(c, str) else "" for c in captions]
         else:
             caption_samples = {
                 self.text_key: [SpecialTokens.image] * len(images),
@@ -195,7 +207,7 @@ class ImageDiffusionMapper(Mapper):
                 if self.image_bytes_key in generated_samples[aug_id] and index < len(
                     generated_samples[aug_id][self.image_bytes_key]
                 ):
-                    generated_samples[aug_id][self.image_bytes_key][index] = images[diffusion_image_key].tobytes()
+                    generated_samples[aug_id][self.image_bytes_key][index] = image_to_bytes(images[diffusion_image_key])
             generated_samples[aug_id][self.image_key] = diffusion_image_keys
 
         return generated_samples
@@ -226,6 +238,10 @@ class ImageDiffusionMapper(Mapper):
                 samples_after_generation.extend(generated_samples)
 
         # reconstruct samples from "list of dicts" to "dict of lists"
+        if not samples_after_generation:
+            # every sample in this batch was skipped (e.g. no images at all);
+            # keep the "dict of lists" schema so downstream stays consistent
+            return {key: [] for key in samples}
         keys = samples_after_generation[0].keys()
         res_samples = {}
         for key in keys:

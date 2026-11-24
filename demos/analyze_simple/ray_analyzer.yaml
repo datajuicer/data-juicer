@@ -1,0 +1,22 @@
+# Analyzer config for Ray mode
+project_name: 'demo-ray-analyzer'
+dataset_path: './demos/data/demo-dataset.jsonl' 
+
+executor_type: 'ray'  # Set the executor type to "ray"
+ray_address: 'auto'  # Set an automatic Ray address
+
+export_path: './outputs/demo-ray-analyzer'
+
+# process schedule
+# a list of several process operators with their arguments
+process:
+  - text_length_filter:
+      min_len: 10
+      max_len: 10000
+  - words_num_filter:
+      lang: en
+      min_num: 10
+      max_num: 10000
+  - alphanumeric_filter:
+      min_ratio: 0.25
+      max_ratio: 0.9

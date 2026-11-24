@@ -45,7 +45,7 @@ class PerplexityFilter(Filter):
     def compute_stats_batched(self, samples, context=False):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
-        words_key = f"{InterVars.words}-{self.sp_model_key}"
+        words_key = f"{InterVars.words}-{self.sp_model_key}-{self.text_key}"
         tokenizer = get_model(self.sp_model_key)
 
         for idx, stat in enumerate(samples_stats):

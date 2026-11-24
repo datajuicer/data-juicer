@@ -7,11 +7,11 @@ from collections import Counter
 from data_juicer.ops.aggregator import NestedAggregator
 from data_juicer.ops.aggregator import EntityAttributeAggregator
 from data_juicer.ops.mapper import RelationIdentityMapper
-from data_juicer.utils.constant import BatchMetaKeys, Fields, MetaKeys
+from data_juicer.utils.constant import BatchMetaKeys, DEFAULT_API_MODEL, Fields, MetaKeys
 from data_juicer.core.data import NestedDataset as Dataset
 
 
-api_model = 'qwen2.5-72b-instruct'
+api_model = DEFAULT_API_MODEL
 
 main_entity ="孙悟空"
 query_attributes = ["语言风格", "角色性格", "角色武艺和能力"]

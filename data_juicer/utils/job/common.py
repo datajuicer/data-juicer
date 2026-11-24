@@ -7,7 +7,6 @@ Shared utilities for job stopping and monitoring operations.
 
 import json
 import os
-import sys
 import threading
 import time
 from pathlib import Path
@@ -39,10 +38,6 @@ class JobUtils:
         else:
             # Default fallback
             self.work_dir = Path("outputs/partition-checkpoint-eventlog") / job_id
-
-        # Set up logging
-        logger.remove()
-        logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level} | {name}:{function}:{line} - {message}")
 
         if not self.work_dir.exists():
             raise FileNotFoundError(f"Job directory not found: {self.work_dir}")
@@ -214,14 +209,15 @@ class JobUtils:
                     }
 
                 elif event["event_type"] == "op_complete":
+                    metadata = event.get("metadata") or {}
                     op_info = {
                         "name": event.get("operation_name", "Unknown"),
                         "idx": event.get("operation_idx", 0),
-                        "duration": event.get("duration", 0),
-                        "input_rows": event.get("input_rows", 0),
-                        "output_rows": event.get("output_rows", 0),
-                        "throughput": event.get("performance_metrics", {}).get("throughput", 0),
-                        "reduction_ratio": event.get("performance_metrics", {}).get("reduction_ratio", 0),
+                        "duration": metadata.get("duration_seconds", 0),
+                        "input_rows": metadata.get("input_rows", 0),
+                        "output_rows": metadata.get("output_rows", 0),
+                        "throughput": metadata.get("throughput_rows_per_second", 0),
+                        "reduction_ratio": metadata.get("reduction_ratio", 0),
                     }
                     partition_status[partition_id]["completed_ops"].append(op_info)
                     partition_status[partition_id]["current_op"] = None

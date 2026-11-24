@@ -182,7 +182,9 @@ json
         self.enable_vllm = enable_vllm
         self.is_hf_model = is_hf_model
 
-        sampling_params = update_sampling_params(sampling_params, api_or_hf_model, self.enable_vllm)
+        sampling_params = dict(sampling_params) if sampling_params else {}
+        if enable_vllm or is_hf_model:
+            sampling_params = update_sampling_params(sampling_params, api_or_hf_model, self.enable_vllm)
 
         if enable_vllm:
             if not is_ray_mode():

@@ -2,12 +2,16 @@ import os
 import shutil
 import time
 from typing import Optional
+from urllib.parse import urlparse
 
 from jsonargparse import Namespace
 from loguru import logger
 from pydantic import PositiveInt
 
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
@@ -47,7 +51,7 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
     Run Data-Juicer data processing in a distributed cluster.
 
-        1. Support Filter, Mapper and Exact Deduplicator operators for now.
+        1. Only supports operators with _supported_exec_modes containing 'ray'.
         2. Only support loading `.json` files.
         3. Advanced functions, such as checkpoint, are not supported.
 
@@ -92,7 +96,7 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         # 1. export_aws_credentials (export-specific)
         # 2. dataset config (for backward compatibility)
         # 3. environment variables (handled by exporter)
-        if self.cfg.export_path.startswith("s3://"):
+        if urlparse(self.cfg.export_path).scheme.lower() == "s3":
             # Pass export-specific credentials if provided.
             # The RayExporter will handle falling back to environment variables or other credential mechanisms.
             if hasattr(self.cfg, "export_aws_credentials") and self.cfg.export_aws_credentials:
@@ -144,26 +148,50 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         """
         Running the dataset process pipeline
 
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated, and never applied here: no Ray load
+            strategy reads `num_proc`. Use `override_num_blocks` to control
+            read parallelism.
         :param skip_export: whether export the results into disk
         :param skip_return: skip return for API called.
         :return: processed dataset.
         """
+        # Preflight stage 1: validate config before instantiation
+        if getattr(self.cfg, "strict_preflight", True):
+            from data_juicer.core.preflight import pre_instantiation_check
+
+            pre_instantiation_check(self.cfg.process)
+
         # LLM data contains very large single json objects (lines). PyArrow's default block_size
         # for open_json is only 1MB. We increase it massively (e.g. 256MB) to avoid the
         # 'straddling object straddles two block boundaries' ArrowInvalid error.
         #
 
-        read_opts = self.cfg.get("read_options")
-
         # 1. load data
         logger.info("Loading dataset with Ray...")
-        dataset = self.datasetbuilder.load_dataset(num_proc=load_data_np, read_options=read_opts)
+        dataset = self.datasetbuilder.load_dataset(
+            **deprecated_load_data_np_kwargs(load_data_np, self.datasetbuilder.executor_type)
+        )
         columns = dataset.data.columns()
 
         # 2. extract processes
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process, self.op_env_manager)
+
+        # Preflight stage 2: validate ops against dataset schema and environment
+        if getattr(self.cfg, "strict_preflight", True):
+            from data_juicer.core.preflight import post_instantiation_check
+
+            try:
+                dataset_schema = dataset.schema()
+            except (ValueError, AttributeError):
+                dataset_schema = None
+            if dataset_schema:
+                post_instantiation_check(ops, dataset_schema, self.cfg)
+
+        if not ops:
+            logger.warning(
+                "No process operators configured. " "The dataset will be exported as-is without any processing."
+            )
 
         # Initialize DAG execution planning (pass ops to avoid redundant loading)
         self._initialize_dag_execution(self.cfg, ops=ops)
@@ -188,7 +216,18 @@ class RayExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
         if self.cfg.op_fusion:
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops)
+            ops = fuse_operators(
+                ops,
+                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
+
+        if getattr(self.cfg, "elastic_juicer_adaptive_batching", False):
+            from data_juicer.core.elasticjuicer.stage_identity import (
+                assign_stage_identities,
+            )
+
+            self.cfg._resolved_stage_identities = assign_stage_identities(ops)
 
         with TempDirManager(self.tmp_dir):
             # 3. data process with DAG monitoring

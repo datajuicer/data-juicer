@@ -1,4 +1,4 @@
-# VBench metrics
+# VBench 视频质量指标
 
 VBench来自paper："VBench: Comprehensive Benchmark Suite for Video Generative Models"。
 

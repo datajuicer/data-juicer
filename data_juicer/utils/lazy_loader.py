@@ -252,9 +252,8 @@ class LazyLoader(types.ModuleType):
             self._package_name = package_name
 
         # Standardize package_url to use git+ format
-        if package_url and "@" in package_url:
-            # Convert from package@git+ format to git+ format
-            self._package_url = package_url.split("@", 1)[1]
+        if package_url and " @ " in package_url:
+            self._package_url = package_url.split(" @ ", 1)[1]
         else:
             self._package_url = package_url
         self._package_url = self._package_url.strip() if self._package_url else self._package_url
@@ -309,7 +308,15 @@ class LazyLoader(types.ModuleType):
                     repo_url = package_spec[4:]  # Remove 'git+' prefix
                 else:
                     repo_url = package_spec
-                git.Repo.clone_from(repo_url, temp_dir)
+                # Split off a pinned revision (e.g. '...repo.git@<sha>'), which is
+                # pip syntax that git itself does not understand.
+                repo_url, _, revision = repo_url.partition(".git@")
+                if revision:
+                    repo_url += ".git"
+                repo = git.Repo.clone_from(repo_url, temp_dir)
+                if revision:
+                    logger.info(f"Checking out pinned revision {revision}...")
+                    repo.git.checkout(revision)
 
                 # Define all possible dependency files
                 dep_files = {

@@ -1,4 +1,4 @@
-# Auto Evaluation Toolkit
+# 自动评测工具
 
 在训练过程中自动评测您的模型并持续监控指标的变化。
 
@@ -10,9 +10,9 @@
 
 3. 在共享文件系统中安装 Data-Juicer（例如 `/mnt/shared/code/data-juicer`）。
 
-4. 根据 [thirdparty/README_ZH.md](../../thirdparty/README_ZH.md) 在每台机器上安装第三方依赖项（Megatron-LM 和 HELM）。
+4. 根据 [thirdparty/LLM_ecosystems/README_ZH.md](../../thirdparty/LLM_ecosystems/README_ZH.md) 在每台机器上安装第三方依赖项（Megatron-LM 和 HELM）。
 
-5. 准备数据集和 tokenizer，在共享文件系统（例如 `/mnt/shared/dataset`）中使用 Megatron-LM 提供的预处理工具将数据集预处理为 mmap 格式（更多详细信息，请参阅 Megatron-LM 的 [README](../../thirdparty/Megatron-LM/README.md)）。
+5. 准备数据集和 tokenizer，在共享文件系统（例如 `/mnt/shared/dataset`）中使用 Megatron-LM 提供的预处理工具将数据集预处理为 mmap 格式（更多详细信息，请参阅 Megatron-LM 的 [README](https://github.com/NVIDIA/Megatron-LM)）。
 
 6. 在训练机器上运行 Megatron-LM 并将检查点保存在共享文件系统中（例如 `/mnt/shared/checkpoints`）。
 
@@ -21,7 +21,7 @@
 通过 [`evaluator.py`](evaluator.py) 来使用 HELM 或 OpenAI API 自动评估您的模型。
 
 ```shell
-python tools/evaluator.py  \
+python tools/evaluator/evaluator.py  \
     --config <config>      \
     --begin-iteration     <begin_iteration>     \
     [--end-iteration      <end_iteration>]      \

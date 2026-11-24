@@ -16,6 +16,31 @@ class RangeSpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
         target_list = sorted(target_list, key=lambda x: x['text'])
         self.assertEqual(res_list, target_list)
 
+    def test_single_bound_select(self):
+        samples = [{"text": str(score), "score": score, "meta": {"quality": score}} for score in (4, 1, 3, 2, 0)]
+        dataset = Dataset.from_list(samples)
+        cases = (
+            ({"upper_rank": 2}, [0, 1]),
+            ({"lower_rank": 2}, [2, 3, 4]),
+            ({"upper_percentile": 0.4}, [0, 1]),
+            ({"lower_percentile": 0.4}, [2, 3, 4]),
+            ({"upper_percentile": 0.0}, []),
+            ({"lower_percentile": 0.0}, [0, 1, 2, 3, 4]),
+            ({"upper_percentile": 1.0}, [0, 1, 2, 3, 4]),
+            ({"lower_percentile": 1.0}, []),
+        )
+        for field_key in ("score", "meta.quality"):
+            for bounds, expected_scores in cases:
+                with self.subTest(field_key=field_key, bounds=bounds):
+                    op = RangeSpecifiedFieldSelector(field_key=field_key, **bounds)
+                    expected = [sample for sample in samples if sample["score"] in expected_scores]
+                    self._run_range_selector(dataset, expected, op)
+
+    def test_no_bounds_keeps_dataset(self):
+        dataset = Dataset.from_list([{"score": 2}, {"score": 0}, {"score": 1}])
+        op = RangeSpecifiedFieldSelector(field_key="score")
+        self.assertEqual(op.process(dataset).to_list(), dataset.to_list())
+
     def test_percentile_select(self):
         ds_list = [{
             'text': 'Today is Sun',

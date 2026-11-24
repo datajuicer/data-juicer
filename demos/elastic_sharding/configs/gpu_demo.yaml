@@ -1,0 +1,60 @@
+# CPU + GPU shard-safe recipe for the elastic sharding DLC smoke test.
+#
+# The three GPU operators download their Hugging Face models on first use
+# unless the model IDs below are changed to paths visible on every Worker.
+project_name: elastic-sharding-gpu-demo
+dataset_path: ./demos/elastic_sharding/data/gpu-demo-dataset.jsonl
+export_path: ./outputs/elastic-sharding-gpu-demo/processed.jsonl
+executor_type: ray
+ray_address: local
+
+process:
+  # CPU Mapper
+  - whitespace_normalization_mapper:
+      text_key: text
+      num_proc: 1
+      num_cpus: 1
+
+  # GPU Mapper 1: sentiment classification.
+  - query_sentiment_detection_mapper:
+      query_key: text
+      hf_model: mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis
+      zh_to_en_hf_model: null
+      batch_size: 4
+      num_proc: 1
+      num_cpus: 1
+      num_gpus: 1
+      ray_execution_mode: task
+
+  # GPU Mapper 2: topic classification.
+  - query_topic_detection_mapper:
+      query_key: text
+      hf_model: dstefa/roberta-base_topic_classification_nyt_news
+      zh_to_en_hf_model: null
+      batch_size: 4
+      num_proc: 1
+      num_cpus: 1
+      num_gpus: 1
+      ray_execution_mode: task
+
+  # GPU Filter 3: CLIP text-pair similarity.
+  - text_pair_similarity_filter:
+      text_key: text
+      text_key_second: target_text
+      hf_clip: openai/clip-vit-base-patch32
+      min_score: 0.0
+      max_score: 1.0
+      any_or_all: any
+      batch_size: 4
+      num_proc: 1
+      num_cpus: 1
+      num_gpus: 1
+      ray_execution_mode: task
+
+  # CPU Filter
+  - text_length_filter:
+      text_key: text
+      min_len: 1
+      max_len: 10000
+      num_proc: 1
+      num_cpus: 1

@@ -42,7 +42,7 @@ class MaximumLineLengthFilter(Filter):
     def compute_stats_batched(self, samples, context=False):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
-        context_key = f"{InterVars.lines}"
+        context_key = f"{InterVars.lines}-{self.text_key}"
 
         for idx, stat in enumerate(samples_stats):
             # check if it's computed already
@@ -55,8 +55,7 @@ class MaximumLineLengthFilter(Filter):
                 lines = samples_list[idx].splitlines()
                 if context:
                     samples[Fields.context][idx][context_key] = lines
-            line_lengths = list(map(len, lines))
-            samples_stats[idx][StatsKeys.max_line_length] = max(line_lengths) if line_lengths else 0
+            samples_stats[idx][StatsKeys.max_line_length] = max(map(len, lines), default=0)
 
         return samples
 

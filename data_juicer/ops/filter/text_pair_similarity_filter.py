@@ -103,10 +103,13 @@ class TextPairSimilarityFilter(Filter):
         text2 = sample[self.text_key_second]
 
         text_tensors = processor(text=[text1, text2], padding=True, return_tensors="pt").to(model.device)
-        text_features = model.get_text_features(**text_tensors)
-
-        similarity = torch.cosine_similarity(text_features[0], text_features[1], dim=0)
-        sample[Fields.stats][StatsKeys.text_pair_similarity] = [similarity]
+        with torch.no_grad():
+            text_features = model.get_text_features(**text_tensors)
+            similarity = torch.cosine_similarity(text_features[0], text_features[1], dim=0)
+        # Ray may run ``process_single`` in a later CPU-only task. Never leak a
+        # CUDA tensor through the stats column: serializing it here and loading
+        # it in that CPU task makes torch try to restore CUDA storage.
+        sample[Fields.stats][StatsKeys.text_pair_similarity] = [similarity.item()]
 
         return sample
 

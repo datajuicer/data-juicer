@@ -23,11 +23,18 @@ class PunctuationNormalizationMapperTest(DataJuicerTestCaseBase):
 
         samples = [{
             'text':
-            '，。、„”“«»１」「《》´∶：？！（）；–—．～’…━〈〉【】％►',
+            '，。、„”“«»＂」「《》´∶：？！（）；–—．～’…━〈〉【】％►',
             'target':
             ",.,\"\"\"\"\"\"\"\"\"\"'::?!();- - . ~'...-<>[]%-"
         }]
 
+        self._run_punctuation_normalization(samples)
+
+    def test_fullwidth_digits_and_quotes(self):
+        samples = [{
+            'text': '第１期：＂１２３４５６７８９０＂',
+            'target': '第１期:"１２３４５６７８９０"',
+        }]
         self._run_punctuation_normalization(samples)
 
 

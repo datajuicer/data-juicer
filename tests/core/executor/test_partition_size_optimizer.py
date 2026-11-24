@@ -15,6 +15,7 @@ import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from jsonargparse import Namespace
+from loguru import logger
 
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
@@ -174,6 +175,69 @@ class PartitionSizeOptimizerTest(DataJuicerTestCaseBase):
 
         self.assertEqual(target, 512)
 
+    def test_nonpositive_targets_apply_minimums_with_warnings(self):
+        from data_juicer.core.executor.partition_size_optimizer import (
+            DataCharacteristics,
+            LocalResources,
+            ModalityType,
+            PartitionSizeOptimizer,
+        )
+
+        local_resources = LocalResources(
+            cpu_cores=8,
+            available_memory_gb=16.0,
+            total_memory_gb=32.0,
+            gpu_count=0,
+        )
+        image_characteristics = DataCharacteristics(
+            primary_modality=ModalityType.IMAGE,
+            modality_distribution={ModalityType.IMAGE: 100},
+            avg_text_length=0.0,
+            avg_images_per_sample=1.0,
+            avg_audio_per_sample=0.0,
+            avg_video_per_sample=0.0,
+            total_samples=100,
+            sample_size_analyzed=100,
+            memory_per_sample_mb=1.0,
+            processing_complexity_score=1.0,
+            data_skew_factor=0.0,
+        )
+
+        for target_mb in (0, -64):
+            with self.subTest(target_mb=target_mb):
+                self.cfg.partition = Namespace(target_size_mb=target_mb)
+                optimizer = PartitionSizeOptimizer(self.cfg)
+                warning_messages = []
+                sink_id = logger.add(
+                    lambda message: warning_messages.append(str(message)),
+                    level="WARNING",
+                    format="{message}",
+                )
+                try:
+                    text_size = optimizer.calculate_text_partition_size_simple(1000, 1.0, target_mb)
+                    image_size = optimizer.calculate_resource_aware_partition_size(
+                        image_characteristics,
+                        local_resources,
+                        None,
+                        1.0,
+                    )
+                    max_size_mb = optimizer.calculate_optimal_max_size_mb(
+                        image_characteristics,
+                        local_resources,
+                        None,
+                        1.0,
+                    )
+                finally:
+                    logger.remove(sink_id)
+
+                self.assertEqual(text_size, 100)
+                self.assertEqual(image_size, 10)
+                self.assertEqual(max_size_mb, 32)
+                warnings_text = "".join(warning_messages)
+                self.assertIn("optimizer minimum of 100 samples", warnings_text)
+                self.assertIn("optimizer minimum of 10 samples", warnings_text)
+                self.assertIn("optimizer minimum of 32 MB", warnings_text)
+
     def test_calculate_target_partition_mb_low_memory(self):
         """Test dynamic target with low memory (<16GB)."""
         from data_juicer.core.executor.partition_size_optimizer import PartitionSizeOptimizer
@@ -279,6 +343,23 @@ class PartitionSizeOptimizerTest(DataJuicerTestCaseBase):
         self.assertLessEqual(workers, 8)
 
     # ==================== Dataset Characteristics Analysis Tests ====================
+
+    def test_text_keys_configuration_controls_characteristics(self):
+        from datasets import Dataset
+        from data_juicer.core.executor.partition_size_optimizer import ModalityType, PartitionSizeOptimizer
+
+        rows = [
+            {'body': {'content': 'abc'}, 'text': 'ignored', 'images': ['image.jpg']},
+            {'body': {'content': 'abcde'}, 'text': 'ignored', 'images': ['image.jpg']},
+        ]
+        dataset = Dataset.from_list(rows)
+        for keys in ('body.content', ['body.content'], ['body.content', 'text'], []):
+            with self.subTest(text_keys=keys):
+                cfg = Namespace(text_keys=keys)
+                characteristics = PartitionSizeOptimizer(cfg).analyze_dataset_characteristics(dataset)
+                self.assertEqual(characteristics.avg_text_length, 4 if keys else 0)
+                self.assertEqual(characteristics.primary_modality,
+                                 ModalityType.MULTIMODAL if keys else ModalityType.IMAGE)
 
     def test_analyze_dataset_characteristics_text(self):
         """Test dataset analysis for text data."""
@@ -418,6 +499,9 @@ class PartitionSizeOptimizerTest(DataJuicerTestCaseBase):
         self.assertIn("data_characteristics", recommendations)
         self.assertIn("resource_analysis", recommendations)
         self.assertIn("reasoning", recommendations)
+        self.assertIn("modality_configs", recommendations)
+        for config in recommendations["modality_configs"].values():
+            self.assertEqual(set(config), {"default_size", "max_size"})
 
     # ==================== auto_configure_resources Tests ====================
 
@@ -448,21 +532,21 @@ class PartitionSizeOptimizerTest(DataJuicerTestCaseBase):
         for modality in ModalityType:
             self.assertIn(modality, PartitionSizeOptimizer.MODALITY_CONFIGS)
 
-    def test_modality_configs_have_required_fields(self):
-        """Test that modality configs have all required fields."""
+    def test_modality_configs_only_contain_runtime_bounds(self):
         from data_juicer.core.executor.partition_size_optimizer import PartitionSizeOptimizer
 
         for modality, config in PartitionSizeOptimizer.MODALITY_CONFIGS.items():
+            self.assertEqual(
+                set(vars(config)),
+                {"default_partition_size", "max_partition_size"},
+                modality.value,
+            )
             self.assertIsNotNone(config.default_partition_size)
             self.assertIsNotNone(config.max_partition_size)
-            self.assertIsNotNone(config.max_partition_size_mb)
-            self.assertIsNotNone(config.memory_multiplier)
-            self.assertIsNotNone(config.complexity_multiplier)
             self.assertGreater(config.default_partition_size, 0)
             self.assertGreater(config.max_partition_size, config.default_partition_size)
 
-    def test_modality_configs_memory_multipliers(self):
-        """Test that memory multipliers increase with complexity."""
+    def test_heavier_modalities_have_lower_sample_count_bounds(self):
         from data_juicer.core.executor.partition_size_optimizer import (
             ModalityType,
             PartitionSizeOptimizer,
@@ -470,13 +554,13 @@ class PartitionSizeOptimizerTest(DataJuicerTestCaseBase):
 
         configs = PartitionSizeOptimizer.MODALITY_CONFIGS
 
-        # Text should have lowest multiplier
-        self.assertEqual(configs[ModalityType.TEXT].memory_multiplier, 1.0)
-
-        # Video should have highest multiplier
         self.assertGreater(
-            configs[ModalityType.VIDEO].memory_multiplier,
-            configs[ModalityType.IMAGE].memory_multiplier
+            configs[ModalityType.TEXT].max_partition_size,
+            configs[ModalityType.IMAGE].max_partition_size,
+        )
+        self.assertGreater(
+            configs[ModalityType.IMAGE].max_partition_size,
+            configs[ModalityType.VIDEO].max_partition_size,
         )
 
     # ==================== Edge Cases ====================

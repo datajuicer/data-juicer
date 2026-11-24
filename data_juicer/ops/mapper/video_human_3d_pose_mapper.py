@@ -1,33 +1,29 @@
-import glob
 import os
-import shutil
-import tempfile
 from copy import deepcopy
 
-import cv2
 import numpy as np
 import PIL
 from loguru import logger
 from PIL.ImageOps import exif_transpose
 from pydantic import PositiveInt
 
-import data_juicer
 from data_juicer.ops.load import load_ops
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import get_video_frame_groups
 
-from ..base_op import OPERATORS, Mapper
+from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_human_3d_pose_mapper"
 
 torch = LazyLoader("torch")
-torchvision = LazyLoader("torchvision")
 
 
+@TAGGING_OPS.register_module(OP_NAME)
+@UNFORKABLE.register_module(OP_NAME)
 @OPERATORS.register_module(OP_NAME)
 @LOADED_VIDEOS.register_module(OP_NAME)
 class VideoHuman3DPoseMapper(Mapper):
@@ -38,6 +34,7 @@ class VideoHuman3DPoseMapper(Mapper):
     def __init__(
         self,
         model_path: str = "human3r_896L.pth",
+        human3r_repo_path: str = None,
         frame_num: PositiveInt = 3,
         duration: float = 0,
         frame_dir: str = DATA_JUICER_ASSETS_CACHE,
@@ -48,6 +45,7 @@ class VideoHuman3DPoseMapper(Mapper):
         Initialization method.
 
         :param model_path: The path to the Human3R model checkpoint.
+        :param human3r_repo_path: Path to a prepared Human3R checkout and its SMPL assets.
         :param frame_num: The number of frames to be extracted uniformly from
             the video. If it's 1, only the middle frame will be extracted. If
             it's 2, only the first and the last frames will be extracted. If
@@ -66,12 +64,12 @@ class VideoHuman3DPoseMapper(Mapper):
 
         LazyLoader.check_packages(["gsplat", "roma", "pyrender", "smplx"])
 
-        os.environ["PYOPENGL_PLATFORM"] = "egl"
+        os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
         self.frame_field = MetaKeys.video_frames
         self.tag_field_name = MetaKeys.video_human_3d_pose_tags
         self.frame_num = frame_num
         self.duration = duration
-        self.frame_dir = frame_dir
+        self.frame_dir = frame_dir or DATA_JUICER_ASSETS_CACHE
 
         import torch.nn.functional as F
         import torchvision.transforms as tvf
@@ -79,14 +77,18 @@ class VideoHuman3DPoseMapper(Mapper):
         self.tvf = tvf
         self.F = F
 
-        self.model_key = prepare_model(model_type="human_3d_pose_human3r", model_path=model_path)
+        self.model_key = prepare_model(
+            model_type="human_3d_pose_human3r", model_path=model_path, human3r_repo_path=human3r_repo_path
+        )
 
         self.video_extract_frames_mapper_args = {
             "frame_sampling_method": "uniform",
             "frame_num": frame_num,
             "duration": duration,
-            "frame_dir": frame_dir,
-            "frame_key": MetaKeys.video_frames,
+            "frame_dir": self.frame_dir,
+            "frame_field": self.frame_field,
+            "video_key": self.video_key,
+            "legacy_split_by_text_token": False,
             "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
             "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
@@ -176,9 +178,14 @@ class VideoHuman3DPoseMapper(Mapper):
 
         imgs = []
         for path in folder_content:
-            if not path.lower().endswith(supported_images_extensions):
+            if root and not path.lower().endswith(supported_images_extensions):
                 continue
-            img = exif_transpose(PIL.Image.open(os.path.join(root, path))).convert("RGB")
+            image_path = os.path.join(root, path)
+            try:
+                with PIL.Image.open(image_path) as source:
+                    img = exif_transpose(source).convert("RGB")
+            except (OSError, ValueError) as error:
+                raise ValueError(f"Could not read video frame: {image_path}") from error
             W1, H1 = img.size
             if size == 224:
 
@@ -209,7 +216,8 @@ class VideoHuman3DPoseMapper(Mapper):
                 )
             )
 
-        assert imgs, "no images found at " + root
+        if not imgs:
+            raise ValueError("No readable video frames were provided.")
         if verbose:
             logger.info(f" (Found {len(imgs)} images)")
         return imgs
@@ -226,7 +234,7 @@ class VideoHuman3DPoseMapper(Mapper):
         focal = img_size / (2 * np.tan(np.radians(fov) / 2))
         return focal
 
-    def get_camera_parameters(self, img_size, fov=60, p_x=None, p_y=None, device=torch.device("cuda")):
+    def get_camera_parameters(self, img_size, fov=60, p_x=None, p_y=None, device="cpu"):
         """Given image size, fov and principal point coordinates, return K the camera parameter matrix"""
         K = torch.eye(3)
         # Get focal length.
@@ -242,37 +250,6 @@ class VideoHuman3DPoseMapper(Mapper):
         # Add batch dimension
         K = K.unsqueeze(0).to(device)
         return K
-
-    def parse_seq_path(self, p):
-        if os.path.isdir(p):
-            img_paths = sorted(glob.glob(f"{p}/*"))
-            tmpdirname = None
-        else:
-            cap = cv2.VideoCapture(p)
-            if not cap.isOpened():
-                raise ValueError(f"Error opening video file {p}")
-            video_fps = cap.get(cv2.CAP_PROP_FPS)
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            if video_fps == 0:
-                cap.release()
-                raise ValueError(f"Error: Video FPS is 0 for {p}")
-            frame_interval = 1
-            frame_indices = list(range(0, total_frames, frame_interval))
-            logger.info(
-                f" - Video FPS: {video_fps}, Frame Interval: {frame_interval}, Total Frames to Read: {len(frame_indices)}"
-            )
-            img_paths = []
-            tmpdirname = tempfile.mkdtemp()
-            for i in frame_indices:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                frame_path = os.path.join(tmpdirname, f"frame_{i}.jpg")
-                cv2.imwrite(frame_path, frame)
-                img_paths.append(frame_path)
-            cap.release()
-        return img_paths, tmpdirname
 
     def prepare_input(
         self,
@@ -392,97 +369,52 @@ class VideoHuman3DPoseMapper(Mapper):
         return views
 
     def process_single(self, sample=None, rank=None):
-
-        # check if it's generated already
-        if self.tag_field_name in sample[Fields.meta]:
+        metadata = sample.setdefault(Fields.meta, {})
+        if self.tag_field_name in metadata:
             return sample
-
-        # there is no video in this sample
-        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
-            sample[Fields.meta][self.tag_field_name] = {}
-            sample[Fields.meta][self.tag_field_name]["valid_frame_list"] = []
-            sample[Fields.meta][self.tag_field_name]["camera_pose"] = []
-            sample[Fields.meta][self.tag_field_name]["conf"] = []
-            sample[Fields.meta][self.tag_field_name]["smpl_shape"] = []
-            sample[Fields.meta][self.tag_field_name]["smpl_transl"] = []
-            sample[Fields.meta][self.tag_field_name]["smpl_rotmat"] = []
-            sample[Fields.meta][self.tag_field_name]["smpl_expression"] = []
-            sample[Fields.meta][self.tag_field_name]["smpl_id"] = []
-            sample[Fields.meta][self.tag_field_name]["smpl_loc"] = []
+        fields = [
+            "camera_pose",
+            "conf",
+            "smpl_shape",
+            "smpl_transl",
+            "smpl_rotmat",
+            "smpl_expression",
+            "smpl_id",
+            "smpl_loc",
+        ]
+        result = {key: [] for key in ["valid_frame_list", *fields, "frame_paths", "video_indices"]}
+        groups = get_video_frame_groups(sample, self.frame_field, self.video_key, self.fused_ops[0])
+        if not any(groups):
+            metadata[self.tag_field_name] = result
             return sample
-
-        model, inference_recurrent_lighter = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
-
-        if rank is not None:
-            device = f"cuda:{str(rank)}"
-        else:
-            device = "cuda"
-
-        if self.frame_field in sample:
-            frames_path = sample[self.frame_field]
-            frames_root = os.path.dirname(frames_path[0])
-        else:
-            # load videos
-            ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
-
-            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-            dataset = self.fused_ops[0].run(dataset)
-
-            temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-            frames_root = os.path.join(self.frame_dir, temp_frame_name)
-            frame_names = os.listdir(frames_root)
-            frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
-
-        img_paths, tmpdirname = self.parse_seq_path(frames_root)
-        img_mask = [True] * len(img_paths)
-
-        img_res = getattr(model, "mhmr_img_res", None)
-        views = self.prepare_input(
-            img_paths=img_paths,
-            img_mask=img_mask,
-            size=512,
-            revisit=1,
-            update=True,
-            img_res=img_res,
-            reset_interval=100,
-        )
-
-        if tmpdirname is not None:
-            shutil.rmtree(tmpdirname)
-
-        final_valid_frame_list = []
-        final_camera_pose_list = []
-        final_conf_list = []
-        final_smpl_shape_list = []
-        final_smpl_transl_list = []
-        final_smpl_rotmat_list = []
-        final_smpl_expression_list = []
-        final_smpl_id_list = []
-        final_smpl_loc_list = []
-
-        outputs, _ = inference_recurrent_lighter(views, model, device, use_ttt3r=False)
-
-        for temp_frame_output_id, temp_frame_output in enumerate(outputs["pred"]):
-            if "smpl_shape" in temp_frame_output:
-                final_valid_frame_list.append(temp_frame_output_id)
-                final_camera_pose_list.append(torch.squeeze(temp_frame_output["camera_pose"], 0).cpu().numpy())
-                final_conf_list.append(torch.squeeze(temp_frame_output["conf"], 0).cpu().numpy())
-                final_smpl_shape_list.append(torch.squeeze(temp_frame_output["smpl_shape"], 0).cpu().numpy())
-                final_smpl_transl_list.append(torch.squeeze(temp_frame_output["smpl_transl"], 0).cpu().numpy())
-                final_smpl_rotmat_list.append(torch.squeeze(temp_frame_output["smpl_rotmat"], 0).cpu().numpy())
-                final_smpl_expression_list.append(torch.squeeze(temp_frame_output["smpl_expression"], 0).cpu().numpy())
-                final_smpl_id_list.append(torch.squeeze(temp_frame_output["smpl_id"], 0).cpu().numpy())
-                final_smpl_loc_list.append(torch.squeeze(temp_frame_output["smpl_loc"], 0).cpu().numpy())
-
-        sample[Fields.meta][self.tag_field_name] = {}
-        sample[Fields.meta][self.tag_field_name]["valid_frame_list"] = final_valid_frame_list
-        sample[Fields.meta][self.tag_field_name]["camera_pose"] = final_camera_pose_list
-        sample[Fields.meta][self.tag_field_name]["conf"] = final_conf_list
-        sample[Fields.meta][self.tag_field_name]["smpl_shape"] = final_smpl_shape_list
-        sample[Fields.meta][self.tag_field_name]["smpl_transl"] = final_smpl_transl_list
-        sample[Fields.meta][self.tag_field_name]["smpl_rotmat"] = final_smpl_rotmat_list
-        sample[Fields.meta][self.tag_field_name]["smpl_expression"] = final_smpl_expression_list
-        sample[Fields.meta][self.tag_field_name]["smpl_id"] = final_smpl_id_list
-        sample[Fields.meta][self.tag_field_name]["smpl_loc"] = final_smpl_loc_list
-
+        model, inference = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
+        frame_offset = 0
+        for video_index, paths in enumerate(groups):
+            if not paths:
+                continue
+            views = self.prepare_input(
+                img_paths=paths,
+                img_mask=[True] * len(paths),
+                size=512,
+                revisit=1,
+                update=True,
+                img_res=getattr(model, "mhmr_img_res", None),
+                reset_interval=100,
+            )
+            outputs, _ = inference(views, model, model.device, use_ttt3r=False)
+            if len(outputs["pred"]) != len(views):
+                raise ValueError("Human3R returned a different number of predictions than input views.")
+            seen = set()
+            for view, prediction in zip(views, outputs["pred"]):
+                index = view["idx"]
+                if "smpl_shape" not in prediction or index in seen:
+                    continue
+                seen.add(index)
+                result["valid_frame_list"].append(frame_offset + index)
+                result["frame_paths"].append(paths[index])
+                result["video_indices"].append(video_index)
+                for field in fields:
+                    result[field].append(prediction[field].squeeze(0).detach().cpu().tolist())
+            frame_offset += len(paths)
+        metadata[self.tag_field_name] = result
         return sample

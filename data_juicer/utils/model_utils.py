@@ -940,54 +940,49 @@ def prepare_huggingface_model(
     return (model, processor) if return_model else processor
 
 
-def prepare_human_3d_pose_human3r(model_path, **model_params):
+def prepare_human_3d_pose_human3r(model_path, human3r_repo_path=None, **model_params):
+    from filelock import FileLock
+
     device = model_params.pop("device", "cpu")
+    repo = os.path.abspath(human3r_repo_path or os.path.join(DATA_JUICER_ASSETS_CACHE, "Human3R"))
+    os.makedirs(os.path.dirname(repo), exist_ok=True)
+    with FileLock(repo + ".lock"):
+        if not os.path.exists(repo):
+            if human3r_repo_path is not None:
+                raise FileNotFoundError(f"Human3R checkout does not exist: {repo}")
+            subprocess.run(["git", "clone", "https://github.com/fanegg/Human3R.git", repo], check=True)
+        required_assets = [
+            "smplx/SMPLX_NEUTRAL.npz",
+            "smplx/SMPLX_MALE.npz",
+            "smplx/SMPLX_FEMALE.npz",
+            "smplx/smplx2smpl.pkl",
+            "smpl/SMPL_NEUTRAL.pkl",
+            "smpl/SMPL_MALE.pkl",
+            "smpl/SMPL_FEMALE.pkl",
+            "smpl/J_regressor_h36m.npy",
+        ]
+        missing = [name for name in required_assets if not os.path.isfile(os.path.join(repo, "src", "models", name))]
+        if missing:
+            raise FileNotFoundError(
+                f"Missing Human3R assets in {repo}: {', '.join(missing)}. "
+                "Follow Human3R setup instructions and run bash scripts/fetch_smplx.sh from that checkout."
+            )
+        if not os.path.isfile(model_path):
+            huggingface_hub = LazyLoader("huggingface_hub")
+            model_path = huggingface_hub.hf_hub_download(
+                repo_id="faneggg/human3r", filename="human3r_896L.pth", local_dir=DJMC
+            )
+    added_paths = [path for path in [repo, os.path.join(repo, "src")] if path not in sys.path]
+    sys.path[:0] = added_paths
+    try:
+        from src.dust3r.inference import inference_recurrent_lighter
+        from src.dust3r.model import ARCroco3DStereo
 
-    human3r_repo = os.path.join(DATA_JUICER_ASSETS_CACHE, "Human3R")
-    if not os.path.exists(human3r_repo):
-        subprocess.run(["git", "clone", "https://github.com/fanegg/Human3R.git", human3r_repo], check=True)
-
-        raise ValueError(
-            "The Human3R repository has been automatically"
-            f"downloaded to the folder {DATA_JUICER_ASSETS_CACHE}."
-            "Please follow the instructions in the official"
-            "Human3R repository and run bash scripts/fetch_smplx.sh"
-            "to download the required models."
-        )
-
-    sys.path.append(human3r_repo)
-    sys.path.append(os.path.join(human3r_repo, "src"))
-    from src.dust3r.inference import inference_recurrent_lighter
-    from src.dust3r.model import ARCroco3DStereo
-
-    sys.path.remove(human3r_repo)
-    sys.path.remove(os.path.join(human3r_repo, "src"))
-
-    if not os.path.exists(model_path):
-        model_path = os.path.join(DJMC, "human3r_896L.pth")
-        placeholder = os.path.join(DJMC, "human3r/placeholder")
-
-        if not os.path.exists(model_path):
-
-            if not os.path.exists(placeholder):
-                os.makedirs(placeholder)
-
-                huggingface_hub = LazyLoader("huggingface_hub")
-                huggingface_hub.hf_hub_download(repo_id="faneggg/human3r", filename="human3r_896L.pth", local_dir=DJMC)
-
-    import time
-
-    count_turn = 0
-    while not os.path.exists(model_path):
-        if count_turn >= 1000:
-            raise ValueError("Model download failed.")
-        time.sleep(10)
-        logger.info("Downloading model...")
-        count_turn += 1
-
-    model = ARCroco3DStereo.from_pretrained(model_path).to(device)
-    model.eval()
-
+        model = ARCroco3DStereo.from_pretrained(model_path).to(device)
+        model.eval()
+    finally:
+        for path in added_paths:
+            sys.path.remove(path)
     return model, inference_recurrent_lighter
 
 

@@ -53,10 +53,10 @@ class AgentCrossModelPairMapperTest(DataJuicerTestCaseBase):
         self.assertEqual(p0["group_key"], p1["group_key"])
 
 
-@TEST_TAG("ray")
 class AgentCrossModelPairMapperRayPathTest(DataJuicerTestCaseBase):
-    """RayData must use take_all + apply, not map_batches(process)."""
+    """RayData must match global cohorts instead of per-batch process calls."""
 
+    @TEST_TAG("ray")
     def test_process_op_writes_pair_meta(self):
         import ray
         from data_juicer.core.data.ray_dataset import RayDataset

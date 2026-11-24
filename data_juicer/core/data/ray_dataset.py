@@ -227,7 +227,12 @@ class RayDataset(DJDataset):
 
         try:
             batch_size = getattr(op, "batch_size", 1) if op.is_batched_op() else 1
-            if isinstance(op, Mapper) and getattr(type(op), "REQUIRES_FULL_DATASET_PASS", False):
+            if isinstance(op, Mapper) and callable(getattr(op, "run_ray", None)):
+                from data_juicer.utils.model_utils import free_models
+
+                self.data = op.run_ray(self.data)
+                free_models()
+            elif isinstance(op, Mapper) and getattr(type(op), "REQUIRES_FULL_DATASET_PASS", False):
                 # Mappers that override run() with a full-table pass (e.g. cross-model
                 # pairing) are not invoked by map_batches(self.process, ...). Materialize
                 # once, annotate, and rebuild the Ray dataset.

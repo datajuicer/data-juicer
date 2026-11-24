@@ -5,11 +5,8 @@
 # (e.g. same ``sample_id`` with different ``tag.model``). Writes per-row
 # ``meta.agent_cross_model_pair`` for downstream learnable-value / preference data.
 #
-# This operator **must see the full table at once** (grouping is global). The HF
-# executor uses a custom ``run()``; the Ray executor detects
-# :attr:`REQUIRES_FULL_DATASET_PASS` and runs :meth:`apply_full_dataset_annotations`
-# after ``take_all`` (see ``data_juicer.core.data.ray_dataset``). Very large
-# datasets may OOM; shard upstream or run on a node with enough RAM.
+# Exact and normalized-query modes process one cohort at a time. SimHash still
+# needs a global in-memory pass and is intended for small or medium datasets.
 #
 # When there is **no shared lineage id**, set ``group_key_mode`` to
 # ``normalized_query`` (exact match after normalizing ``query``) or
@@ -21,7 +18,9 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import math
 import re
+import uuid
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -41,7 +40,8 @@ def _as_float(x: Any) -> Optional[float]:
     if x is None:
         return None
     try:
-        return float(x)
+        value = float(x)
+        return value if math.isfinite(value) else None
     except (TypeError, ValueError):
         return None
 
@@ -141,8 +141,10 @@ def _pair_record(
 class AgentCrossModelPairMapper(Mapper):
     """Annotate rows that share the same cohort key.
 
-    Set :attr:`REQUIRES_FULL_DATASET_PASS` so Ray (and any executor) runs a
-    full-dataset pass instead of per-batch ``process``.
+    HF sorts an Arrow-backed grouping index and restores input order afterwards.
+    Ray shuffles rows by cohort and annotates groups on workers. Both paths need
+    memory for the largest cohort; Ray does not guarantee input row order.
+    ``simhash_lsh`` still materializes the full table and requires sufficient RAM.
 
     Default: exact ``pair_key_meta`` (e.g. ``agent_lineage_sample_id``). Optional
     **similar cohorts** when lineage ids differ:
@@ -156,9 +158,7 @@ class AgentCrossModelPairMapper(Mapper):
     a cohort found by any of the above modes.
     """
 
-    #: If True, RayData runs ``take_all`` → :meth:`apply_full_dataset_annotations` →
-    # ``from_items`` instead of ``map_batches`` (which would skip the custom
-    # ``run`` and leave pairs empty).
+    # Compatibility for executors without run_ray dispatch; SimHash is global.
     REQUIRES_FULL_DATASET_PASS = True
 
     def __init__(
@@ -242,7 +242,15 @@ class AgentCrossModelPairMapper(Mapper):
             peer_models = sorted(
                 {str(m) for m in models if m is not None and str(m).strip()},
             )
-            has_contrast = len(members) >= self.min_group_size and len(peer_models) >= 2
+            versions_by_model = defaultdict(set)
+            for _, row in members:
+                model = self._meta_get(row, self.model_meta)
+                version = self._meta_get(row, self.version_meta)
+                if model is not None and str(model).strip() and version is not None and str(version).strip():
+                    versions_by_model[str(model)].add(str(version).strip())
+            has_contrast = len(members) >= self.min_group_size and (
+                len(peer_models) >= 2 or any(len(versions) >= 2 for versions in versions_by_model.values())
+            )
 
             for _i, row in members:
                 m = self._meta_dict(row)
@@ -400,6 +408,9 @@ class AgentCrossModelPairMapper(Mapper):
         if not isinstance(dataset, NestedDataset):
             dataset = NestedDataset(dataset)
 
+        if len(dataset) == 0:
+            return dataset
+
         if Fields.meta not in dataset.features:
             dataset = dataset.map(
                 add_same_content_to_new_column,
@@ -409,11 +420,109 @@ class AgentCrossModelPairMapper(Mapper):
                 desc=f"{self._name}_add_meta",
             )
 
-        rows: List[dict] = copy.deepcopy(dataset.to_list())
-        self.apply_full_dataset_annotations(rows)
-        new_ds = NestedDataset.from_list(rows)
+        if self.group_key_mode == "simhash_lsh":
+            rows = dataset.to_list()
+            self.apply_full_dataset_annotations(rows)
+            new_ds = NestedDataset.from_list(rows)
+        else:
+            from datasets import Sequence, Value
+
+            key, position = self._temporary_columns(dataset.column_names)
+
+            def add_group_key(row, index):
+                self._meta_dict(row)
+                row[key] = self._cohort_key(row)
+                row[position] = index
+                return row
+
+            indexed = dataset.map(add_group_key, with_indices=True, num_proc=1).sort([key, position])
+            features = copy.deepcopy(indexed.features)
+            # JSON metadata features already support dynamic keys.
+            if isinstance(features[Fields.meta], dict):
+                features[Fields.meta][MetaKeys.agent_cross_model_pair] = {
+                    "group_key": Value("string"),
+                    "group_size": Value("int64"),
+                    "has_pairwise_contrast": Value("bool"),
+                    "best_model": Value("string"),
+                    "best_version": Value("string"),
+                    "best_quality": Value("float64"),
+                    "my_model": Value("string"),
+                    "my_version": Value("string"),
+                    "my_quality": Value("float64"),
+                    "peer_models": Sequence(Value("string")),
+                    "delta_to_best": Value("float64"),
+                    "quality_spread_in_group": Value("float64"),
+                    "match_basis": Value("string"),
+                }
+            annotated = NestedDataset.from_generator(
+                self._iter_cohorts, gen_kwargs={"dataset": indexed, "key": key}, features=features
+            )
+            new_ds = NestedDataset(annotated).sort(position).remove_columns([key, position])
         free_models()
         return new_ds
+
+    @staticmethod
+    def _temporary_columns(columns):
+        key = "__dj_agent_pair_key__"
+        position = "__dj_agent_pair_position__"
+        while key in columns:
+            key += "_"
+        while position in columns or position == key:
+            position += "_"
+        return key, position
+
+    def _cohort_key(self, row):
+        if self.group_key_mode == "normalized_query":
+            return self._grouping_text(row)
+        key = self._meta_get(row, self.pair_key_meta)
+        return str(key) if key is not None and str(key).strip() else ""
+
+    def _iter_cohorts(self, dataset, key):
+        members = []
+        current = None
+        for row in dataset:
+            group = row[key]
+            if not group:
+                self.apply_full_dataset_annotations([row])
+                yield row
+                continue
+            if members and group != current:
+                self.apply_full_dataset_annotations(members)
+                yield from members
+                members = []
+            members.append(row)
+            current = group
+        if members:
+            self.apply_full_dataset_annotations(members)
+            yield from members
+
+    def run_ray(self, dataset):
+        """Annotate shuffled cohorts without collecting source rows on the driver."""
+        import ray
+
+        if dataset.count() == 0:
+            return dataset
+        if self.group_key_mode == "simhash_lsh":
+            rows = dataset.take_all()
+            self.apply_full_dataset_annotations(rows)
+            return ray.data.from_items(rows)
+        key, _ = self._temporary_columns(dataset.schema().names)
+
+        def add_group_key(row):
+            group = self._cohort_key(row)
+            row[key] = json.dumps(["cohort", group] if group else ["missing", uuid.uuid4().hex])
+            return row
+
+        def annotate_group(table):
+            import pyarrow as pa
+
+            rows = table.to_pylist()
+            for row in rows:
+                row.pop(key)
+            self.apply_full_dataset_annotations(rows)
+            return pa.Table.from_pylist(rows)
+
+        return dataset.map(add_group_key).groupby(key).map_groups(annotate_group, batch_format="pyarrow")
 
 
 # Export helper for recipes / tests (same naming as normalize)

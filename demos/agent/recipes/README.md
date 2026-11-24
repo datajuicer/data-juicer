@@ -24,6 +24,10 @@
 **无同一 `<query, env>` / lineage id 时的 cohort**：在 `agent_cross_model_pair_mapper` 上设置  
 `group_key_mode: normalized_query`（归一化 query 精确同组）或 `simhash_lsh`（近重复 query + 可选 `extra_group_text_key` 把 env 摘要拼进 SimHash 输入）。详见算子 docstring 与 [`TRAIN_DATA_FIELD_GUIDE.md`](TRAIN_DATA_FIELD_GUIDE.md)。
 
+`exact` 和 `normalized_query` 按 cohort 处理：HF 使用 Arrow 排序并在结束后恢复原始行序；Ray 在 worker 上分组处理，不把完整轨迹收集到 driver，输出行序不保证一致。最大 cohort 仍需能放入内存。`simhash_lsh` 保留全表内存处理，仅适用于内存足够的小中型数据集；不要通过任意切分数据来替代全局匹配，否则跨分片对照会丢失。
+
+同组内有两个不同模型，或同一模型的两个明确不同版本，才会设置 `has_pairwise_contrast`；缺失版本不算一个新版本，`min_group_size` 仍生效。非有限质量分数（NaN/Infinity）按缺失处理，并尝试读取配置的 fallback score。
+
 ---
 
 ## Pipeline 阶段一览

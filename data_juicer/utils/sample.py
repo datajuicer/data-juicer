@@ -24,6 +24,11 @@ def random_sample(dataset, weight=1.0, sample_number=0, seed=None):
     if sample_number == ds_samples:
         return dataset
 
+    if 0 < ds_samples < sample_number <= 2 * ds_samples:
+        # Compose a full seeded cycle and the partial second cycle directly.
+        permutation = np.random.default_rng(seed).permutation(ds_samples)
+        return dataset.select(np.resize(permutation, sample_number))
+
     # When sampling more samples than the dataset size, repeat the dataset
     if sample_number > ds_samples:
         sample_index = range(sample_number)

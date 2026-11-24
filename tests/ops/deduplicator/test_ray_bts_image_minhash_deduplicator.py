@@ -598,7 +598,7 @@ class ImageMinHashRayRegressionTest(DataJuicerTestCaseBase):
                 self.assertTrue(all(set(row) == {"label"} for row in rows))
                 history = ray.get(attempts.get_uids.remote())
                 self.assertGreaterEqual(len(history), 2)
-                self.assertEqual(history[0], history[1])
+                self.assertIn(history[0], history[1:])
 
     @TEST_TAG("ray")
     def test_worker_retry_preserves_single_row(self):

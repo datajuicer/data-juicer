@@ -124,10 +124,15 @@ def _heuristic_trigger(text: str) -> bool:
         return True
     if "@" in text:
         return True
-    secret_pat = r"(?i)(?:^|[^a-z0-9_])(?:" r"api[_-]?key|apikey|secret|token|password|passwd|credential|bearer)\b"
+    # \b finds no boundary between CJK text and an ASCII word (我的password是, 连上vpn)
+    # or inside CJK text (公司内网的), so ASCII cues use ASCII-only boundaries and the
+    # CJK cues need none (but 内网 in 国内网站 / 境内网络 is not an intranet).
+    secret_pat = (
+        r"(?i)(?:^|[^a-z0-9_])(?:" r"api[_-]?key|apikey|secret|token|password|passwd|credential|bearer)(?![a-z0-9_])"
+    )
     if re.search(secret_pat, text):
         return True
-    intranet = r"(?i)\b(?:内网|局域网|vpn|ssh\s|rdp://|mysql://|redis://)\b"
+    intranet = r"(?i)(?<![国境])内网|局域网|(?a:\b)(?:vpn(?a:\b)|(?:ssh\s|rdp://|mysql://|redis://)\b)"
     if re.search(intranet, text):
         return True
     # Long alphanumeric runs (possible tokens / hashes)
@@ -137,6 +142,7 @@ def _heuristic_trigger(text: str) -> bool:
 
 
 # High-precision contextual cues (no extra deps). Intentionally conservative to limit false API calls.
+# English titles use ASCII-only boundaries, so a name next to CJK text still counts (请联系Dr. Wang处理).
 _NAME_LIKE_RULE_PAT = re.compile(
     r"(?:"
     r"(?:^|[\s，,。.!！?？;；:：])"
@@ -148,7 +154,7 @@ _NAME_LIKE_RULE_PAT = re.compile(
     r"|"
     r"[\u4e00-\u9fff]{2,4}(?:先生|女士|老师|大夫|经理|主任|院长|博士|教授|同志)(?=[\s，,。.!！?？;；]|$)"
     r"|"
-    r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b"
+    r"(?a:\b)(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?a:\b)"
     r")",
     re.UNICODE,
 )

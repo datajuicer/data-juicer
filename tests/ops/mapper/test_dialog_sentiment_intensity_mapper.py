@@ -4,10 +4,25 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.dialog_sentiment_intensity_mapper import DialogSentimentIntensityMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+
+class DialogSentimentIntensityUnitTest(DataJuicerTestCaseBase):
+    """Pure logic tests that do not require an external API."""
+
+    def test_parse_output_extracts_analysis_and_score(self):
+        op = DialogSentimentIntensityMapper(api_model="any-model")
+        self.assertEqual(
+            op.parse_output("情绪分析：明显积极。\n情绪值：3\n"),
+            ("明显积极。", 3),
+        )
+
+    def test_parse_output_returns_default_for_unstructured_input(self):
+        op = DialogSentimentIntensityMapper(api_model="any-model")
+        self.assertEqual(op.parse_output("unstructured"), ("", 0))
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
     # before running this test, set below environment variables:
     # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
@@ -53,7 +68,7 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen2.5-72b-instruct')
+        op = DialogSentimentIntensityMapper(api_model=DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
         self._run_op(op, samples)
     
     def test_max_round(self):
@@ -79,8 +94,10 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogSentimentIntensityMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_max_round_zero(self):
@@ -106,8 +123,10 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             ]
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=0)
+        op = DialogSentimentIntensityMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=0)
         self._run_op(op, samples)
 
     def test_query(self):
@@ -131,8 +150,10 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
             'response': '「委屈」我也没说什么呀，就是觉得你有点冤枉我了'
         }]
 
-        op = DialogSentimentIntensityMapper(api_model='qwen2.5-72b-instruct',
-                                            max_round=1)
+        op = DialogSentimentIntensityMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            max_round=1)
         self._run_op(op, samples)
 
     def test_rename_keys(self):
@@ -160,9 +181,11 @@ class TestDialogSentimentIntensityMapper(DataJuicerTestCaseBase):
 
         intensities_key = 'my_intensity'
         analysis_key = 'my_analysis'
-        op = DialogSentimentIntensityMapper(api_model='qwen2.5-72b-instruct',
-                                            intensities_key=intensities_key,
-                                            analysis_key=analysis_key)
+        op = DialogSentimentIntensityMapper(
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
+            intensities_key=intensities_key,
+            analysis_key=analysis_key)
         self._run_op(op, samples, intensities_key=intensities_key, analysis_key=analysis_key)
 
 

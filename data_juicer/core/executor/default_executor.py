@@ -1,6 +1,7 @@
 import os
 from time import time
 from typing import Optional, Union
+from urllib.parse import urlparse
 
 from datasets import Dataset
 from jsonargparse import Namespace
@@ -9,7 +10,10 @@ from pydantic import PositiveInt
 
 from data_juicer.core.adapter import Adapter
 from data_juicer.core.data import NestedDataset
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.core.executor import ExecutorBase
 from data_juicer.core.executor.dag_execution_mixin import DAGExecutionMixin
 from data_juicer.core.executor.event_logging_mixin import EventLoggingMixin
@@ -88,7 +92,7 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         # 1. export_aws_credentials (export-specific)
         # 2. dataset config (for backward compatibility)
         # 3. environment variables (handled by exporter)
-        if self.cfg.export_path.startswith("s3://"):
+        if urlparse(self.cfg.export_path).scheme.lower() == "s3":
             # Priority 1: Check for export-specific credentials
             if hasattr(self.cfg, "export_aws_credentials"):
                 export_aws_creds = self.cfg.export_aws_credentials
@@ -143,11 +147,20 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
         Running the dataset process pipeline.
 
         :param dataset: a Dataset object to be executed.
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated; number of workers when loading the
+            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in
+            the configuration instead, or `np` to load with the same
+            parallelism as processing.
         :param skip_export: whether export the results into disk
         :param skip_return: skip return for API called.
         :return: processed dataset.
         """
+        # Preflight stage 1: validate config before instantiation
+        if getattr(self.cfg, "strict_preflight", True):
+            from data_juicer.core.preflight import pre_instantiation_check
+
+            pre_instantiation_check(self.cfg.process)
+
         # 1. format data
         if dataset is not None:
             logger.info(f"Using existing dataset {dataset}")
@@ -156,16 +169,28 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             dataset = self.ckpt_manager.load_ckpt()
         else:
             logger.info("Loading dataset from dataset builder...")
-            if load_data_np is None:
-                load_data_np = self.np
-            load_kwargs = {"num_proc": load_data_np}
-            if getattr(self.cfg, "load_dataset_kwargs", None):
-                load_kwargs.update(dict(self.cfg.load_dataset_kwargs))
-            dataset = self.dataset_builder.load_dataset(**load_kwargs)
+            dataset = self.dataset_builder.load_dataset(
+                **deprecated_load_data_np_kwargs(load_data_np, self.dataset_builder.executor_type)
+            )
 
         # 2. extract processes and optimize their orders
         logger.info("Preparing process operators...")
         ops = load_ops(self.cfg.process)
+
+        # Preflight stage 2: validate ops against dataset schema and environment
+        if getattr(self.cfg, "strict_preflight", True):
+            from data_juicer.core.preflight import post_instantiation_check
+
+            if isinstance(dataset, NestedDataset) and hasattr(dataset, "features") and dataset.features:
+                from data_juicer.core.data.schema import Schema
+
+                schema = Schema.from_hf_features(dataset.features)
+                post_instantiation_check(ops, schema, self.cfg)
+
+        if not ops:
+            logger.warning(
+                "No process operators configured. " "The dataset will be exported as-is without any processing."
+            )
 
         # Initialize DAG execution planning (pass ops to avoid redundant loading)
         self._initialize_dag_execution(self.cfg, ops=ops)
@@ -196,7 +221,12 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
                 probe_res, _ = self.adapter.probe_small_batch(dataset, ops)
 
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops, probe_res)
+            ops = fuse_operators(
+                ops,
+                probe_res,
+                mapper_fusion=getattr(self.cfg, "mapper_fusion", True),
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
 
         # adaptive batch size
         if self.cfg.adaptive_batch_size:
@@ -268,7 +298,10 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
 
         :param dataset_to_sample: Dataset to sample from. If None, will use
             the formatter linked by the executor. Default is None.
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated; number of workers when loading the
+            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in
+            the configuration instead, or `np` to load with the same
+            parallelism as processing.
         :param sample_ratio: The ratio of the sample size to the original
             dataset size. Default is 1.0 (no sampling).
         :param sample_algo: Sampling algorithm to use. Options are "uniform",
@@ -285,12 +318,9 @@ class DefaultExecutor(ExecutorBase, DAGExecutionMixin, EventLoggingMixin):
             dataset = self.ckpt_manager.load_ckpt()
         else:
             logger.info("Loading dataset from dataset builder...")
-            if load_data_np is None:
-                load_data_np = self.np
-            load_kwargs = {"num_proc": load_data_np}
-            if getattr(self.cfg, "load_dataset_kwargs", None):
-                load_kwargs.update(dict(self.cfg.load_dataset_kwargs))
-            dataset = self.dataset_builder.load_dataset(**load_kwargs)
+            dataset = self.dataset_builder.load_dataset(
+                **deprecated_load_data_np_kwargs(load_data_np, self.dataset_builder.executor_type)
+            )
 
         # Perform sampling based on the specified algorithm
         if sample_algo == "uniform":

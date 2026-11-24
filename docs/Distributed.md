@@ -1,4 +1,5 @@
 # Distributed Data Processing in Data-Juicer
+EN | [中文](Distributed_ZH.md)
 
 ## Overview
 
@@ -16,7 +17,7 @@ More details can be found in our paper, [Data-Juicer 2.0: Cloud-Scale Adaptive D
 
 ### Ray Mode in Data-Juicer
 
-- For most implementations of Data-Juicer [operators](Operators.md), the core processing functions are engine-agnostic. Interoperability is primarily managed in [RayDataset](../data_juicer/core/ray_data.py) and [RayExecutor](../data_juicer/core/executor/ray_executor.py), which are subclasses of the base `DJDataset` and `BaseExecutor`, respectively, and support both Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) and [Actors](https://docs.ray.io/en/latest/ray-core/actors.html).
+- For most implementations of Data-Juicer [operators](Operators.md), the core processing functions are engine-agnostic. Interoperability is primarily managed in [RayDataset](../data_juicer/core/data/ray_dataset.py) and [RayExecutor](../data_juicer/core/executor/ray_executor.py), which are subclasses of the base `DJDataset` and `BaseExecutor`, respectively, and support both Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) and [Actors](https://docs.ray.io/en/latest/ray-core/actors.html).
 - The exception is the deduplication operators, which are challenging to scale in standalone mode. We provide these operators named as [`ray_xx_deduplicator`](../data_juicer/ops/deduplicator/).
 
 ### Subset Splitting
@@ -55,13 +56,38 @@ We tested the MinHash-based RayDeduplicator on datasets sized at 200GB, 1TB, and
 | 4 * 160 | 11.13 min  | 50.83 min | 285.43 min |
 | 8 * 160 | 7.47 min   | 30.08 min | 168.10 min |
 
+## Distributed Data Analysis
+
+In addition to distributed data processing, Data-Juicer also supports distributed data analysis via [RayAnalyzer](../data_juicer/core/ray_analyzer.py), the distributed counterpart to the local `Analyzer`.
+
+### How It Works
+
+RayAnalyzer uses the same `dj-analyze` CLI entry point as the local Analyzer. When `executor_type` is set to `ray` in the config, `dj-analyze` automatically dispatches to `RayAnalyzer`. The workflow is:
+
+1. **Load data** via Ray's distributed data loading (JSON, CSV, Parquet).
+2. **Compute stats** by running each Filter's `compute_stats` function through Ray `map_batches` — the same stats computation as local mode, but distributed.
+3. **Aggregate overall statistics** using Ray native aggregation operators (`Mean`, `Std`, `Min`, `Max`) — no pandas materialization, making it suitable for datasets of any scale.
+4. **Export** the dataset with stats columns to disk via `RayExporter`.
+
+### Differences from Local Analyzer
+
+| Feature | Local Analyzer | RayAnalyzer |
+|---|---|---|
+| Overall stats (count/mean/std/min/max) | Yes | Yes |
+| Per-column distribution charts | Yes | No |
+| Correlation analysis | Yes | No |
+| Percentiles | Yes | No |
+| Scalability | Single machine | Distributed (Ray cluster) |
+
+RayAnalyzer focuses on computing overall statistics at scale. For detailed visualization and correlation analysis, use the local Analyzer on a sampled subset.
+
 ## Quick Start
 
 Before starting, you should install Data-Juicer and its `dist` requirements:
 
 ```shell
 uv pip install -v -e .  # Install the minimal requirements of Data-Juicer
-uv pip install -v -e ".[dist]"  # Include dependencies on Ray and other distributed libraries
+uv pip install -v -e ".[distributed]"  # Include dependencies on Ray and other distributed libraries
 ```
 
 Then start a Ray cluster (ref to the [Ray doc](https://docs.ray.io/en/latest/ray-core/starting-ray.html) for more details):
@@ -146,3 +172,41 @@ dj-process --config demos/process_on_ray/configs/dedup.yaml
 ```
 
 Data-Juicer will dedup the demo dataset with the demo config file and export the result datasets to the directory specified by the `export_path` argument in the config file.
+
+### Running Example of Ray Analysis
+
+In [`demos/analyze_simple/ray_analyzer.yaml`](../demos/analyze_simple/ray_analyzer.yaml), we set the executor type to "ray" to use the distributed `RayAnalyzer`.
+
+```yaml
+project_name: 'demo-ray-analyzer'
+dataset_path: './demos/data/demo-dataset.jsonl'
+
+executor_type: 'ray'  # Set the executor type to "ray"
+ray_address: 'auto'  # Set an automatic Ray address
+
+export_path: './outputs/demo-ray-analyzer'
+
+process:
+  - text_length_filter:
+      min_len: 10
+      max_len: 10000
+  - words_num_filter:
+      lang: en
+      min_num: 10
+      max_num: 10000
+  - alphanumeric_filter:
+      min_ratio: 0.25
+      max_ratio: 0.9
+```
+
+Run the demo to analyze the dataset:
+
+```shell
+# Run the tool from source
+python tools/analyze_data.py --config demos/analyze_simple/ray_analyzer.yaml
+
+# Use the command-line tool
+dj-analyze --config demos/analyze_simple/ray_analyzer.yaml
+```
+
+`RayAnalyzer` will compute the overall statistics (count, mean, std, min, max) for all numeric stats columns and print the results. The dataset with computed stats will be exported to the path specified by `export_path`.

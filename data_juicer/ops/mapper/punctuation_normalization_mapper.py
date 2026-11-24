@@ -34,7 +34,7 @@ class PunctuationNormalizationMapper(Mapper):
             "“": '"',
             "«": '"',
             "»": '"',
-            "１": '"',
+            "＂": '"',
             "」": '"',
             "「": '"',
             "《": '"',

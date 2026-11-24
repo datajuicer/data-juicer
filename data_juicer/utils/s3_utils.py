@@ -21,6 +21,14 @@ except ImportError:
     # python-dotenv not installed, .env files won't be automatically loaded
     pass
 
+ACCEPTED_CONFIG_KEYS = (
+    "aws_access_key_id",
+    "aws_secret_access_key",
+    "aws_session_token",
+    "aws_region",
+    "endpoint_url",
+)
+
 
 def get_aws_credentials(ds_config: Dict = {}) -> Tuple[str, str, str, str]:
     """
@@ -109,11 +117,14 @@ def validate_s3_path(path: str) -> None:
     """
     Validate that a path is a valid S3 path.
 
+    The scheme check is case-insensitive ('s3://', 'S3://', ... are all
+    accepted), while single-slash forms like 's3:/bucket' are rejected.
+
     Args:
         path: Path to validate
 
     Raises:
         ValueError: If path doesn't start with 's3://'
     """
-    if not path.startswith("s3://"):
+    if not path.lower().startswith("s3://"):
         raise ValueError(f"S3 path must start with 's3://', got: {path}")

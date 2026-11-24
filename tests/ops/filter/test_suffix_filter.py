@@ -83,5 +83,72 @@ class SuffixFilterTest(DataJuicerTestCaseBase):
         self._run_suffix_filter(dataset, tgt_list, op)
 
 
+    def test_string_suffix(self):
+        """Single string suffix (not list) is handled correctly."""
+        ds_list = [
+            {'text': 'hello', Fields.suffix: '.txt'},
+            {'text': 'world', Fields.suffix: '.py'},
+        ]
+        tgt_list = [{'text': 'hello', Fields.suffix: '.txt'}]
+        dataset = Dataset.from_list(ds_list)
+        op = SuffixFilter(suffixes='.txt')
+        self._run_suffix_filter(dataset, tgt_list, op)
+
+    def test_none_suffixes(self):
+        """suffixes=None keeps all samples."""
+        ds_list = [
+            {'text': 'hello', Fields.suffix: '.txt'},
+            {'text': 'world', Fields.suffix: '.py'},
+        ]
+        dataset = Dataset.from_list(ds_list)
+        op = SuffixFilter(suffixes=None)
+        self._run_suffix_filter(dataset, ds_list, op)
+
+    def test_reversed_range(self):
+        """reversed_range=True inverts the filter logic."""
+        ds_list = [
+            {'text': 'hello', Fields.suffix: '.txt'},
+            {'text': 'world', Fields.suffix: '.py'},
+        ]
+        tgt_list = [{'text': 'world', Fields.suffix: '.py'}]
+        dataset = Dataset.from_list(ds_list)
+        op = SuffixFilter(suffixes=['.txt'], reversed_range=True)
+        self._run_suffix_filter(dataset, tgt_list, op)
+
+    def test_suffix_without_dot(self):
+        """Suffixes given without a leading dot match the stored suffix."""
+        ds_list = [
+            {'text': 'hello', Fields.suffix: '.txt'},
+            {'text': 'world', Fields.suffix: '.py'},
+            {'text': 'doc', Fields.suffix: '.docx'},
+        ]
+        tgt_list = [
+            {'text': 'hello', Fields.suffix: '.txt'},
+            {'text': 'doc', Fields.suffix: '.docx'},
+        ]
+        dataset = Dataset.from_list(ds_list)
+        op = SuffixFilter(suffixes=['txt', '.pdf', 'docx'])
+        self._run_suffix_filter(dataset, tgt_list, op)
+
+        dataset = Dataset.from_list(ds_list)
+        op = SuffixFilter(suffixes='txt')
+        self._run_suffix_filter(dataset, tgt_list[:1], op)
+
+    def test_suffix_case_insensitive(self):
+        """Suffixes are matched case-insensitively."""
+        ds_list = [
+            {'text': 'hello', Fields.suffix: '.txt'},
+            {'text': 'world', Fields.suffix: '.py'},
+            {'text': 'upper', Fields.suffix: '.TXT'},
+        ]
+        tgt_list = [
+            {'text': 'hello', Fields.suffix: '.txt'},
+            {'text': 'upper', Fields.suffix: '.TXT'},
+        ]
+        dataset = Dataset.from_list(ds_list)
+        op = SuffixFilter(suffixes=['.TXT'])
+        self._run_suffix_filter(dataset, tgt_list, op)
+
+
 if __name__ == '__main__':
     unittest.main()

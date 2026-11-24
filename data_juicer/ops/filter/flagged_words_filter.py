@@ -91,7 +91,7 @@ class FlaggedWordFilter(Filter):
         # check if it's computed already
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
-        words_key = f"{InterVars.words}-{self.model_key}"
+        words_key = f"{InterVars.words}-{self.model_key}-{self.text_key}"
         tokenizer = get_model(self.model_key)
         for idx, stat in enumerate(samples_stats):
             if StatsKeys.flagged_words_ratio in stat:
@@ -107,6 +107,7 @@ class FlaggedWordFilter(Filter):
             # try to get refined words from context
             refined_words_key = (
                 f"{InterVars.refined_words}"
+                f"-{self.model_key}-{self.text_key}"
                 "-True-SPECIAL_CHARS-"
                 f"{self.use_words_aug}-"
                 f"{self.words_aug_group_sizes}-"

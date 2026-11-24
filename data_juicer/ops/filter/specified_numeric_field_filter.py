@@ -6,13 +6,11 @@ from ..base_op import OPERATORS, Filter
 
 
 def is_number(s):
-    if s:
-        try:
-            float(s)
-            return True
-        except ValueError:
-            pass
-    return False
+    try:
+        float(s)
+        return True
+    except (TypeError, ValueError):
+        return False
 
 
 OP_NAME = "specified_numeric_field_filter"

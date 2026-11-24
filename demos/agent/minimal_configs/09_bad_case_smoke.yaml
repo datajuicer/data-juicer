@@ -1,4 +1,4 @@
-# Minimal：无 LLM，跑通 bad case 信号与分层（对齐 BAD_CASE_INSIGHTS.md 的「可本地验证」路径）
+# Minimal：无 LLM，跑通 bad case 信号与分层（对齐 BAD_CASE_INSIGHTS_ZH.md 的「可本地验证」路径）
 # 不含 llm_analysis / llm_quality / agent_insight_llm；tier 主要来自工具、用量、空回复等启发式。
 project_name: agent-minimal-09-bad-case-smoke
 dataset_path: demos/local/demo-agent-data-content.jsonl

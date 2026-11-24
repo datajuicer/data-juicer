@@ -11,6 +11,7 @@ services:
       - NLTK_DATA=/data/nltk
       - DATA_JUICER_CACHE_HOME=/data/dj
       - EASYOCR_MODULE_PATH=/data/EasyOCR
+      - U2NET_HOME=/data/u2net
       - RAY_ADDRESS=auto
     working_dir: /workspace
     networks:
@@ -41,6 +42,7 @@ services:
       - NLTK_DATA=/data/nltk
       - DATA_JUICER_CACHE_HOME=/data/dj
       - EASYOCR_MODULE_PATH=/data/EasyOCR
+      - U2NET_HOME=/data/u2net
     working_dir: /workspace
     volumes:
       - huggingface_cache:/data

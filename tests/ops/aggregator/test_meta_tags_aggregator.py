@@ -4,10 +4,29 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.aggregator import MetaTagsAggregator
-from data_juicer.utils.constant import Fields, MetaKeys
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+
+class MetaTagsAggregatorUnitTest(DataJuicerTestCaseBase):
+    """Pure logic tests that do not require an external API."""
+
+    def test_keeps_invalid_samples_unchanged(self):
+        op = MetaTagsAggregator(
+            api_model="any-model",
+            meta_tag_key=MetaKeys.dialog_sentiment_labels,
+        )
+
+        no_meta = {"text": "row"}
+        self.assertIs(op.process_single(no_meta), no_meta)
+
+        not_batch = {Fields.meta: {MetaKeys.dialog_sentiment_labels: "happy"}}
+        self.assertIs(op.process_single(not_batch), not_batch)
+
+        invalid_tag = {Fields.meta: [{MetaKeys.dialog_sentiment_labels: 7}]}
+        self.assertIs(op.process_single(invalid_tag), invalid_tag)
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class MetaTagsAggregatorTest(DataJuicerTestCaseBase):
 
     def _run_helper(self, op, samples):
@@ -48,7 +67,8 @@ class MetaTagsAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MetaTagsAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             meta_tag_key=MetaKeys.query_sentiment_label,
         )
         self._run_helper(op, samples)
@@ -77,7 +97,8 @@ class MetaTagsAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MetaTagsAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             meta_tag_key=MetaKeys.query_sentiment_label,
             target_tags=['开心', '难过', '其他']
         )
@@ -106,7 +127,8 @@ class MetaTagsAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MetaTagsAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             meta_tag_key=MetaKeys.dialog_sentiment_labels,
             target_tags=['开心', '难过', '其他']
         )

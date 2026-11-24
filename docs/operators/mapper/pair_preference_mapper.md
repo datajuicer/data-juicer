@@ -31,7 +31,7 @@ Tags 标签: cpu, api, text
 ## 📊 Effect demonstration 效果演示
 ### test
 ```python
-PairPreferenceMapper(api_model='qwen2.5-72b-instruct')
+PairPreferenceMapper(api_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据
@@ -45,7 +45,7 @@ PairPreferenceMapper(api_model='qwen2.5-72b-instruct')
 
 ### test_no_reference
 ```python
-PairPreferenceMapper(api_model='qwen2.5-72b-instruct', system_prompt='修改问答对中的回答，在语言风格、事实性、人物身份、立场等任一方面与原回答相反。必须按照以下标记格式输出，不要输出其他多余内容。\n【回答】\n生成的新回答\n【原因】\n生成该回答的原因', input_template='以下是原始问答对：\n【问题】\n{query}\n【回答】\n{response}')
+PairPreferenceMapper(api_model='qwen3.7-max', system_prompt='修改问答对中的回答，在语言风格、事实性、人物身份、立场等任一方面与原回答相反。必须按照以下标记格式输出，不要输出其他多余内容。\n【回答】\n生成的新回答\n【原因】\n生成该回答的原因', input_template='以下是原始问答对：\n【问题】\n{query}\n【回答】\n{response}')
 ```
 
 #### 📥 input data 输入数据

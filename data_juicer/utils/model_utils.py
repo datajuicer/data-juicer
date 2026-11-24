@@ -3,6 +3,7 @@ import importlib
 import inspect
 import io
 import os
+import shutil
 import subprocess
 import sys
 from contextlib import redirect_stderr
@@ -31,22 +32,24 @@ from .cache_utils import DATA_JUICER_MODELS_CACHE as DJMC
 torch = LazyLoader("torch")
 transformers = LazyLoader("transformers")
 nn = LazyLoader("torch.nn")
-fasttext = LazyLoader("fasttext", "fasttext-wheel")
+fasttext = LazyLoader("fasttext", "fasttext-predict")
 sentencepiece = LazyLoader("sentencepiece")
 kenlm = LazyLoader("kenlm")
 nltk = LazyLoader("nltk")
 aes_pred = LazyLoader("aesthetics_predictor", "simple-aesthetics-predictor")
 vllm = LazyLoader("vllm")
 diffusers = LazyLoader("diffusers")
-ram = LazyLoader("ram", "git+https://github.com/datajuicer/recognize-anything.git")
+ram = LazyLoader("ram", "git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf")
 cv2 = LazyLoader("cv2", "opencv-contrib-python")
 openai = LazyLoader("openai")
+litellm = LazyLoader("litellm")
 ultralytics = LazyLoader("ultralytics")
 tiktoken = LazyLoader("tiktoken")
 dashscope = LazyLoader("dashscope")
 qwen_vl_utils = LazyLoader("qwen_vl_utils", "qwen-vl-utils")
 transformers_stream_generator = LazyLoader(
-    "transformers_stream_generator", "git+https://github.com/datajuicer/transformers-stream-generator.git"
+    "transformers_stream_generator",
+    "git+https://github.com/cmgzn/transformers-stream-generator.git@1b356de822eb1da8e7a35d798e2b973d2f8f3fb9",
 )
 
 MODEL_ZOO = {}
@@ -350,6 +353,175 @@ class ResponsesAPIModel:
             return ""
 
 
+def _split_litellm_credentials(kwargs):
+    """Pull out credential kwargs, keeping the rest as completion params.
+
+    Credentials are returned separately so callers can forward them only when
+    set; when blank, LiteLLM falls back to each provider's own environment
+    variable (e.g. ``ANTHROPIC_API_KEY``, ``GEMINI_API_KEY``, AWS credentials).
+    ``base_url`` is accepted as an alias for LiteLLM's ``api_base``.
+    """
+    call_kwargs = dict(kwargs)
+    api_key = call_kwargs.pop("api_key", None) or None
+    api_base = call_kwargs.pop("api_base", None) or call_kwargs.pop("base_url", None) or None
+    return api_key, api_base, call_kwargs
+
+
+class LiteLLMChatAPIModel:
+    """Chat model backed by the LiteLLM SDK (https://github.com/BerriAI/litellm).
+
+    Unlike :class:`ChatAPIModel`, which raw-POSTs an OpenAI-format body to a
+    ``base_url``, this routes through ``litellm.completion`` so a single
+    ``provider/model`` string reaches 100+ providers - including ones whose auth
+    is not OpenAI-compatible (Amazon Bedrock SigV4, Google Vertex service
+    accounts, Azure AD), which a base-url override alone cannot reach. LiteLLM
+    returns an OpenAI-shaped response, so the existing ``response_path`` parsing
+    is unchanged.
+    """
+
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        :param model: The LiteLLM model string, e.g. ``gpt-4o-mini``,
+            ``anthropic/claude-opus-4-8``, ``gemini/gemini-2.5-flash``,
+            ``bedrock/anthropic.claude-3-5-sonnet-...``. Required.
+        :param endpoint: Kept for interface parity; unused by LiteLLM routing.
+        :param response_path: Dot-separated path to the content. Defaults to
+            ``choices.0.message.content`` (the OpenAI/LiteLLM response shape).
+        :param kwargs: Credentials (``api_key``, ``base_url``/``api_base``) and
+            default completion params (e.g. ``temperature``).
+        """
+        if model is None:
+            raise ValueError(
+                "`model` is required for the LiteLLM API backend, e.g. "
+                "'gpt-4o-mini', 'anthropic/claude-opus-4-8', 'bedrock/...'."
+            )
+        self.model = model
+        self.endpoint = endpoint or "/chat/completions"
+        self.response_path = response_path or "choices.0.message.content"
+        self.last_response = None  # last completion dump (for usage / debugging)
+        self.api_key, self.api_base, self.default_params = _split_litellm_credentials(kwargs)
+
+    def __call__(self, messages, **kwargs):
+        """
+        :param messages: OpenAI-style list of ``{'role', 'content'}`` dicts.
+        :param kwargs: Per-call overrides (merged over the defaults).
+        :return: Parsed response content, or an empty string on error.
+        """
+        # drop_params lets LiteLLM silently drop kwargs a given provider does
+        # not support (e.g. Anthropic rejecting seed/frequency_penalty), so one
+        # call path works across providers.
+        call_kwargs = {"model": self.model, "messages": messages, "drop_params": True}
+        if self.api_key:
+            call_kwargs["api_key"] = self.api_key
+        if self.api_base:
+            call_kwargs["api_base"] = self.api_base
+        call_kwargs.update(self.default_params)
+        call_kwargs.update(kwargs)
+
+        try:
+            response = litellm.completion(**call_kwargs)
+            result = response.model_dump()
+            self.last_response = result
+            return nested_access(result, self.response_path) or ""
+        except Exception as e:
+            logger.exception(e)
+            self.last_response = None
+            return ""
+
+
+class LiteLLMEmbeddingAPIModel:
+    """Embedding model backed by ``litellm.embedding``.
+
+    Mirrors :class:`EmbeddingAPIModel` but routes through LiteLLM, unlocking
+    embedding providers (Voyage, Cohere, Bedrock, Vertex, ...) via one API.
+    """
+
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        :param model: The LiteLLM embedding model string. Required.
+        :param endpoint: Kept for interface parity; unused by LiteLLM routing.
+        :param response_path: Defaults to ``data.0.embedding``.
+        :param kwargs: Credentials and default params (see chat model).
+        """
+        if model is None:
+            raise ValueError("`model` is required for the LiteLLM embedding backend.")
+        self.model = model
+        self.endpoint = endpoint or "/embeddings"
+        self.response_path = response_path or "data.0.embedding"
+        self.api_key, self.api_base, self.default_params = _split_litellm_credentials(kwargs)
+
+    def __call__(self, input, **kwargs):
+        """
+        :param input: Text or list of texts to embed.
+        :param kwargs: Per-call overrides.
+        :return: Extracted embeddings, or an empty list on error.
+        """
+        call_kwargs = {"model": self.model, "input": input, "drop_params": True}
+        if self.api_key:
+            call_kwargs["api_key"] = self.api_key
+        if self.api_base:
+            call_kwargs["api_base"] = self.api_base
+        call_kwargs.update(self.default_params)
+        call_kwargs.update(kwargs)
+
+        try:
+            response = litellm.embedding(**call_kwargs)
+            result = response.model_dump()
+            return nested_access(result, self.response_path) or []
+        except Exception as e:
+            logger.exception(f"LiteLLM embedding API error: {e}")
+            return []
+
+
+class LiteLLMResponsesAPIModel:
+    """Responses-API model backed by ``litellm.responses``.
+
+    Mirrors :class:`ResponsesAPIModel` but routes through LiteLLM, so a single
+    provider/model string reaches every provider LiteLLM exposes through the
+    OpenAI Responses API. LiteLLM returns a Responses-shaped object, so the
+    existing ``output.0.content.0.text`` extraction is unchanged.
+    """
+
+    def __init__(self, model=None, endpoint=None, response_path=None, **kwargs):
+        """
+        :param model: The LiteLLM model string. Required.
+        :param endpoint: Kept for interface parity; unused by LiteLLM routing.
+        :param response_path: Defaults to ``output.0.content.0.text``.
+        :param kwargs: Credentials and default params (see the chat model).
+        """
+        if model is None:
+            raise ValueError("`model` is required for the LiteLLM responses backend.")
+        self.model = model
+        self.endpoint = endpoint or "/responses"
+        self.response_path = response_path or "output.0.content.0.text"
+        self.last_response = None
+        self.api_key, self.api_base, self.default_params = _split_litellm_credentials(kwargs)
+
+    def __call__(self, input, **kwargs):
+        """
+        :param input: The input text/content to send to the Responses API.
+        :param kwargs: Per-call overrides.
+        :return: Parsed response content, or an empty string on error.
+        """
+        call_kwargs = {"model": self.model, "input": input, "drop_params": True}
+        if self.api_key:
+            call_kwargs["api_key"] = self.api_key
+        if self.api_base:
+            call_kwargs["api_base"] = self.api_base
+        call_kwargs.update(self.default_params)
+        call_kwargs.update(kwargs)
+
+        try:
+            response = litellm.responses(**call_kwargs)
+            result = response.model_dump()
+            self.last_response = result
+            return nested_access(result, self.response_path) or ""
+        except Exception as e:
+            logger.exception(f"LiteLLM responses API error: {e}")
+            self.last_response = None
+            return ""
+
+
 def _merge_openai_compatible_env_into_model_params(model_params):
     """Fill OpenAI client kwargs from environment (DashScope REST / OpenAI-compatible).
 
@@ -426,7 +598,14 @@ def _maybe_remap_model_for_dashscope(
 
 
 def prepare_api_model(
-    model, *, endpoint=None, response_path=None, return_processor=False, processor_config=None, **model_params
+    model,
+    *,
+    endpoint=None,
+    response_path=None,
+    return_processor=False,
+    processor_config=None,
+    api_backend=None,
+    **model_params,
 ):
     """Creates a callable API model for interacting with OpenAI-compatible API.
     The callable supports custom response parsing and works with proxy servers
@@ -451,22 +630,57 @@ def prepare_api_model(
     :param processor_config: A dictionary containing configuration parameters
         for initializing a Hugging Face processor. It is only relevant if
         `return_processor` is set to True.
+    :param api_backend: Which request backend to use. ``"openai_compatible"``
+        (default) uses the existing direct OpenAI-compatible POST path.
+        ``"litellm"`` routes chat/embedding calls through the LiteLLM SDK
+        (``litellm.completion`` / ``litellm.embedding``), reaching 100+
+        providers from one ``provider/model`` string, including providers whose
+        auth is not OpenAI-compatible (Bedrock, Vertex, Azure AD). It can also
+        be supplied through operator ``model_params`` (e.g. ``api_backend:
+        litellm`` in a YAML config). The default keeps existing configurations
+        unchanged.
     :param model_params: Additional parameters for configuring the API model.
-        Environment variables ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and
-        ``OPENAI_API_KEY`` / ``DASHSCOPE_API_KEY`` are merged when not set here
-        (OpenAI-compatible / DashScope REST).
+        On the ``openai_compatible`` backend, environment variables
+        ``OPENAI_BASE_URL`` / ``OPENAI_API_URL`` and ``OPENAI_API_KEY`` /
+        ``DASHSCOPE_API_KEY`` are merged when not set here (OpenAI-compatible /
+        DashScope REST). On the ``litellm`` backend this env merging is skipped
+        so it never leaks OpenAI/DashScope credentials onto another provider;
+        explicit ``api_key`` / ``base_url`` in ``model_params`` are still
+        honored, and every other provider reads its own env var via LiteLLM.
     :return: A callable APIModel instance, and optionally a processor
         if `return_processor` is True.
     """
-    model_params = _merge_openai_compatible_env_into_model_params(model_params)
-    endpoint = endpoint or "/chat/completions"
-    model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)
+    # Select the backend first (explicit arg wins over an operator model_params
+    # entry), so the OpenAI/DashScope env merging below is scoped to the
+    # openai_compatible path only.
+    api_backend = api_backend or model_params.pop("api_backend", None) or "openai_compatible"
+    if api_backend not in ("openai_compatible", "litellm"):
+        raise ValueError(f"Unsupported api_backend: {api_backend!r} (expected 'openai_compatible' or 'litellm')")
 
-    ENDPOINT_CLASS_MAP = {
-        "chat": ChatAPIModel,
-        "embeddings": EmbeddingAPIModel,
-        "responses": ResponsesAPIModel,
-    }
+    endpoint = endpoint or "/chat/completions"
+
+    if api_backend == "litellm":
+        # get_model() supplies the local execution device, not an API parameter.
+        model_params.pop("device", None)
+        # LiteLLM routes by the ``provider/model`` string and each provider
+        # reads its own credentials, so we must NOT merge OpenAI/DashScope env
+        # vars into the params here (that would leak one provider's key/base_url
+        # onto another). Explicit api_key/base_url in model_params are honored.
+        # The DashScope base-url remap (which rewrites the model id) is likewise
+        # skipped on this path.
+        ENDPOINT_CLASS_MAP = {
+            "chat": LiteLLMChatAPIModel,
+            "embeddings": LiteLLMEmbeddingAPIModel,
+            "responses": LiteLLMResponsesAPIModel,
+        }
+    else:
+        model_params = _merge_openai_compatible_env_into_model_params(model_params)
+        model = _maybe_remap_model_for_dashscope(model, model_params.get("base_url"), endpoint)
+        ENDPOINT_CLASS_MAP = {
+            "chat": ChatAPIModel,
+            "embeddings": EmbeddingAPIModel,
+            "responses": ResponsesAPIModel,
+        }
 
     API_Class = next((cls for keyword, cls in ENDPOINT_CLASS_MAP.items() if keyword in endpoint.lower()), None)
 
@@ -486,6 +700,13 @@ def prepare_api_model(
 
         try:
             return dashscope.get_tokenizer(check_model_home(model))
+        except Exception:
+            pass
+
+        try:
+            return transformers.AutoTokenizer.from_pretrained(
+                pretrained_model_name_or_path=check_model_home(model), **processor_config
+            )
         except Exception:
             pass
 
@@ -514,8 +735,9 @@ def prepare_api_model(
 def prepare_deepcalib_model(model_path, **model_params):
 
     device = model_params.pop("device", None)
-    if device is None:
-        raise ValueError("video_camera_calibration_static_deepcalib_mapper currently supports GPU usage only.")
+    if device is None or device == "cpu":
+        raise ValueError("CUDA device must be specified for deepcalib model.")
+
     device = device.replace("cuda", "/gpu")
 
     if not os.path.exists(model_path):
@@ -769,7 +991,7 @@ def prepare_human_3d_pose_human3r(model_path, **model_params):
     return model, inference_recurrent_lighter
 
 
-def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **model_params):
+def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, mano_left_path=None, **model_params):
 
     device = model_params.pop("device", "cpu")
 
@@ -780,8 +1002,7 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
 
     sys.path.append(hawor_repo_path)
 
-    from hawor.configs import get_config
-    from lib.models.hawor import HAWOR
+    from data_juicer.ops.common.hawor_func import HAWOR, get_config
 
     if not os.path.exists(mano_right_path):
         raise ValueError(
@@ -792,13 +1013,13 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
         hawor_model_dir = os.path.join(DJMC, "HaWor")
         os.makedirs(hawor_model_dir, exist_ok=True)
         hawor_model_path = os.path.join(hawor_model_dir, "hawor.ckpt")
-        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], hawor_model_path], check=True)
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_model_path"], "-O", hawor_model_path], check=True)
 
     if not os.path.exists(hawor_config_path):
         hawor_model_dir = os.path.join(DJMC, "HaWor")
         os.makedirs(hawor_model_dir, exist_ok=True)
         hawor_config_path = os.path.join(hawor_model_dir, "model_config.yaml")
-        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], hawor_config_path], check=True)
+        subprocess.run(["wget", BACKUP_MODEL_LINKS["hawor_config_path"], "-O", hawor_config_path], check=True)
 
     model_cfg = get_config(hawor_config_path, update_cachedir=True)
 
@@ -823,9 +1044,13 @@ def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, **
 
     from data_juicer.ops.common.mano_func import MANO
 
-    mano_model = MANO(model_path=mano_right_path).to(device)
+    mano_right_model = MANO(model_path=mano_right_path).to(device)
 
-    return hawor_model, model_cfg, mano_model
+    mano_left_model = None
+    if mano_left_path and os.path.exists(mano_left_path):
+        mano_left_model = MANO.build_left(model_path=mano_left_path).to(device)
+
+    return hawor_model, model_cfg, mano_right_model, mano_left_model
 
 
 def prepare_kenlm_model(lang, name_pattern="{}.arpa.bin", **model_params):
@@ -1493,7 +1718,7 @@ def prepare_embedding_model(model_path, **model_params):
         embedding = nn.functional.normalize(embedding, p=2, dim=1)
         return embedding[0].tolist()
 
-    return type("EmbeddingModel", (), {"encode": encode})()
+    return type("EmbeddingModel", (), {"encode": staticmethod(encode)})()
 
 
 def update_sampling_params(
@@ -1503,6 +1728,13 @@ def update_sampling_params(
     fetch_generation_config_from_hf=None,
 ):
     """Update sampling_params with max_tokens/max_new_tokens from model or defaults.
+
+    For vLLM: ensures `max_tokens` is set (vLLM default 16 is too small).
+    For HF local: ensures `max_new_tokens` is set (transformers default 20 is too small).
+
+    This function should NOT be called for API models — API providers have
+    their own defaults, and injecting params like `max_new_tokens` would be
+    invalid for OpenAI-compatible endpoints.
 
     When fetch_generation_config_from_hf is False (e.g. API-only models like
     gemini-2.5-flash via DashScope), skip HuggingFace GenerationConfig fetch to
@@ -1800,6 +2032,274 @@ def prepare_sam_3d_body_model(
     return estimator
 
 
+def prepare_SenseVoiceSmall_model(pretrained_model_name_or_path, **model_params):
+    """
+    Prepare and load light sharegpt4video.
+
+    :param model_name: input model name.
+    """
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models"))
+    diff_file = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models/SenseVoice_changes.diff")
+    )
+    repo_url = "https://github.com/FunAudioLLM/SenseVoice.git"
+
+    final_dir = os.path.join(base_dir, "SenseVoice")
+
+    if not os.path.exists(final_dir):
+        print(f"Starting direct clone from {repo_url}...")
+        try:
+            os.makedirs(base_dir, exist_ok=True)
+            subprocess.run(["git", "clone", "--depth", "1", repo_url, final_dir], check=True)
+
+            if os.path.exists(diff_file):
+                print(f"Applying patch: {diff_file}")
+                subprocess.run(["git", "-C", final_dir, "apply", diff_file], check=True)
+            else:
+                print(f"Warning: Patch file not found at {diff_file}")
+
+        except (subprocess.CalledProcessError, Exception) as e:
+            print(f"Operation failed: {e}")
+            if os.path.exists(final_dir):
+                shutil.rmtree(final_dir)
+            return
+    else:
+        print(f"Directory {final_dir} already exists.")
+
+    from thirdparty.humanvbench_models.SenseVoice.model import SenseVoiceSmall
+
+    logger.info("Loading ASR_model model...")
+    # funasr downloads from ModelScope by default (hub="ms"). Prefer Hugging
+    # Face first (faster for overseas machines), and fall back to ModelScope
+    # if the HF download fails (e.g. network blocked or model missing there).
+    try:
+        ASR_Emo_model, kwargs1 = SenseVoiceSmall.from_pretrained(model=pretrained_model_name_or_path, hub="hf")
+    except Exception as e:
+        logger.warning(
+            f"Loading SenseVoiceSmall from Hugging Face "
+            f"('{pretrained_model_name_or_path}') failed: {e}. "
+            f"Falling back to ModelScope ('iic/SenseVoiceSmall')."
+        )
+        ASR_Emo_model, kwargs1 = SenseVoiceSmall.from_pretrained(model="iic/SenseVoiceSmall", hub="ms")
+
+    ASR_Emo_model.eval()
+    return ASR_Emo_model, kwargs1
+
+
+def prepare_light_asd_model(pretrained_model_name_or_path="weight/finetuning_TalkSet.model", **model_params):
+    """
+    Prepare and load light asd model.
+
+    :param model_name: input model name.
+    """
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models"))
+    pretrained_model_name_or_path = os.path.join(base_dir, "Light-ASD/weight/finetuning_TalkSet.model")
+
+    logger.info("Loading light_asd model...")
+    from ASD import ASD
+
+    model = ASD()
+    model.loadParameters(pretrained_model_name_or_path)
+    model.eval()
+    return model
+
+
+# import sys
+# sys.path.append("../thirdparty/humanvbench_models/Light-ASD")
+def prepare_YOLOv8_human_model(
+    pretrained_model_name_or_path="./thirdparty/humanvbench_models/YOLOv8_human/weights/best.pt", **model_params
+):
+    """
+    Prepare and load light YOLOv8_human.
+
+    :param model_name: input model name.
+    """
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models"))
+    diff_file = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models/YOLOv8_human_changes.diff")
+    )
+    repo_url = "https://github.com/jahongir7174/YOLOv8-human.git"
+
+    old_name = "YOLOv8-human"
+    new_name = "YOLOv8_human"
+
+    target_dir = os.path.join(base_dir, old_name)
+    final_dir = os.path.join(base_dir, new_name)
+
+    if not os.path.exists(final_dir):
+        print(f"Starting direct clone from {repo_url}...")
+        try:
+            os.makedirs(base_dir, exist_ok=True)
+
+            subprocess.run(["git", "clone", "--depth", "1", repo_url, target_dir], check=True)
+
+            print(f"Renaming {old_name} to {new_name}...")
+            os.rename(target_dir, final_dir)
+
+            if os.path.exists(diff_file):
+                print(f"Applying patch: {diff_file}")
+                subprocess.run(["git", "-C", final_dir, "apply", diff_file], check=True)
+                print("Setup completed successfully.")
+            else:
+                print(f"Warning: Patch file not found at {diff_file}")
+
+        except (subprocess.CalledProcessError, Exception) as e:
+            print(f"Operation failed: {e}")
+            for d in [target_dir, final_dir]:
+                if os.path.exists(d):
+                    shutil.rmtree(d)
+            print("Cleanup finished.")
+    else:
+        print(f"Directory {final_dir} already exists. Skipping setup.")
+
+    logger.info("Loading YOLOv8_human model...")
+    pretrained_model_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models/YOLOv8_human/weights/best.pt")
+    )
+    human_detection_model = torch.load(pretrained_model_path, weights_only=False)["model"].float()
+    human_detection_model.half()
+    human_detection_model.eval()
+    return human_detection_model
+
+
+def prepare_face_detect_S3FD_model(model_path=None, **model_params):
+    """
+    Prepare and load light asd model.
+
+    :param model_name: input model name.
+    """
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models"))
+    diff_file = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models/Light-ASD_changes.diff")
+    )
+    repo_url = "https://github.com/Junhua-Liao/Light-ASD.git"
+
+    final_dir = os.path.join(base_dir, "Light-ASD")
+    model_save_dir = os.path.join(final_dir, "model/faceDetector/s3fd")
+
+    if not os.path.exists(final_dir):
+        print(f"Starting direct clone from {repo_url}...")
+        try:
+            os.makedirs(base_dir, exist_ok=True)
+            subprocess.run(["git", "clone", "--depth", "1", repo_url, final_dir], check=True)
+
+            if os.path.exists(diff_file):
+                print(f"Applying patch: {diff_file}")
+                subprocess.run(["git", "-C", final_dir, "apply", diff_file], check=True)
+            else:
+                print(f"Warning: Patch file not found at {diff_file}")
+
+        except (subprocess.CalledProcessError, Exception) as e:
+            print(f"Operation failed: {e}")
+            if os.path.exists(final_dir):
+                shutil.rmtree(final_dir)
+            return
+    else:
+        print(f"Directory {final_dir} already exists.")
+
+    def download_sfd_model(target_dir):
+        model_url = "https://huggingface.co/lithiumice/syncnet/resolve/main/sfd_face.pth"
+        mirror_model_url = "https://hf-mirror.com/lithiumice/syncnet/resolve/main/sfd_face.pth"
+
+        target_path = os.path.join(target_dir, "sfd_face.pth")
+
+        if os.path.exists(target_path):
+            print(f"Model file {target_path} already exists. Skipping download.")
+            return
+
+        print(f"Downloading sfd_face.pth to {target_dir}...")
+        os.makedirs(target_dir, exist_ok=True)
+
+        try:
+            subprocess.run(["wget", "-c", model_url, "-O", target_path], check=True)
+            print("Model download completed successfully.")
+        except subprocess.CalledProcessError:
+            try:
+                subprocess.run(["wget", "-c", mirror_model_url, "-O", target_path], check=True)
+                print("Model download completed successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to download model: {e}")
+                if os.path.exists(target_path):
+                    os.remove(target_path)
+
+    download_sfd_model(model_save_dir)
+    print("Setup and model preparation completed.")
+
+    sys.path.append(
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../thirdparty/humanvbench_models/Light-ASD"))
+    )
+
+    logger.info("Loading face_detect_S3FD_model model...")
+    from model.faceDetector.s3fd import S3FD
+
+    model = S3FD()
+    return model
+
+
+def prepare_wav2vec2_age_gender_model(
+    pretrained_model_name_or_path="audeering/wav2vec2-large-robust-24-ft-age-gender", **model_params
+):
+    from transformers import Wav2Vec2Processor
+    from transformers.models.wav2vec2.modeling_wav2vec2 import (
+        Wav2Vec2Model,
+        Wav2Vec2PreTrainedModel,
+    )
+
+    pretrained_model_name_or_path = check_model_home(pretrained_model_name_or_path)
+
+    class ModelHead(nn.Module):
+        r"""Classification head."""
+
+        def __init__(self, config, num_labels):
+
+            super().__init__()
+
+            self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+            self.dropout = nn.Dropout(config.final_dropout)
+            self.out_proj = nn.Linear(config.hidden_size, num_labels)
+
+        def forward(self, features, **kwargs):
+
+            x = features
+            x = self.dropout(x)
+            x = self.dense(x)
+            x = torch.tanh(x)
+            x = self.dropout(x)
+            x = self.out_proj(x)
+
+            return x
+
+    class AgeGenderModel(Wav2Vec2PreTrainedModel):
+        r"""Speech emotion classifier."""
+
+        def __init__(self, config):
+
+            super().__init__(config)
+
+            self.config = config
+            self.wav2vec2 = Wav2Vec2Model(config)
+            self.age = ModelHead(config, 1)
+            self.gender = ModelHead(config, 3)
+            self.init_weights()
+
+        def forward(
+            self,
+            input_values,
+        ):
+
+            outputs = self.wav2vec2(input_values)
+            hidden_states = outputs[0]
+            hidden_states = torch.mean(hidden_states, dim=1)
+            logits_age = self.age(hidden_states)
+            logits_gender = torch.softmax(self.gender(hidden_states), dim=1)
+
+            return hidden_states, logits_age, logits_gender
+
+    processor = Wav2Vec2Processor.from_pretrained(pretrained_model_name_or_path)
+    model = AgeGenderModel.from_pretrained(pretrained_model_name_or_path, use_safetensors=False)
+    return model, processor
+
+
 MODEL_FUNCTION_MAPPING = {
     "api": prepare_api_model,
     "deepcalib": prepare_deepcalib_model,
@@ -1829,9 +2329,23 @@ MODEL_FUNCTION_MAPPING = {
     "embedding": prepare_embedding_model,
     "sam_3d_body": prepare_sam_3d_body_model,
     "mmlab": prepare_mmlab_model,
+    "Light_ASD": prepare_light_asd_model,
+    "SenseVoiceSmall": prepare_SenseVoiceSmall_model,
+    "YOLOv8_human": prepare_YOLOv8_human_model,
+    "face_detect_S3FD": prepare_face_detect_S3FD_model,
+    "wav2vec2_age_gender": prepare_wav2vec2_age_gender_model,
 }
 
-_MODELS_WITHOUT_FILE_LOCK = {"fasttext", "fastsam", "kenlm", "nltk", "recognizeAnything", "sentencepiece", "spacy"}
+_MODELS_WITHOUT_FILE_LOCK = {
+    "fasttext",
+    "fastsam",
+    "kenlm",
+    "nltk",
+    "recognizeAnything",
+    "sentencepiece",
+    "spacy",
+    "wav2vec2_age_gender",
+}
 
 
 def prepare_model(model_type, **model_kwargs):

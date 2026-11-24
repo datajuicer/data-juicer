@@ -1,6 +1,6 @@
 # LLM Ecosystems
 
-Dependencies of Auto Evaluation Toolkit, see [`tools/evaluator/README.md`](../tools/evaluator/README.md) for more details.
+Dependencies of Auto Evaluation Toolkit, see [`tools/evaluator/README.md`](../../tools/evaluator/README.md) for more details.
 
 ## Installation
 

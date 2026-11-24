@@ -1,11 +1,18 @@
 """Unit tests for AgentBadCaseSignalMapper."""
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 
-from data_juicer.ops.mapper.agent_bad_case_signal_mapper import AgentBadCaseSignalMapper
+import numpy as np
+
+from data_juicer.ops.mapper.agent_bad_case_signal_mapper import (
+    AgentBadCaseSignalMapper,
+    _load_calibration_json,
+    _normalize_recommendation,
+)
 from data_juicer.utils.constant import Fields, MetaKeys, StatsKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
@@ -190,6 +197,157 @@ class TestAgentBadCaseSignalMapper(DataJuicerTestCaseBase):
         out = op.process_single(sample)
         codes = [s["code"] for s in out[Fields.meta][MetaKeys.agent_bad_case_signals]]
         self.assertNotIn("dialog_turn_quality_meta_low", codes)
+
+    def test_calibration_loader_and_recommendation_normalization_edges(self):
+        self.assertIsNone(_load_calibration_json(""))
+
+        with tempfile.TemporaryDirectory() as td:
+            missing_path = os.path.join(td, "data-juicer-calibration-missing.json")
+            self.assertIsNone(_load_calibration_json(missing_path))
+
+            invalid = Path(td) / "invalid.json"
+            invalid.write_text("{not-json", encoding="utf-8")
+            self.assertIsNone(_load_calibration_json(str(invalid)))
+
+            not_dict = Path(td) / "list.json"
+            not_dict.write_text("[]", encoding="utf-8")
+            self.assertIsNone(_load_calibration_json(str(not_dict)))
+
+            valid = Path(td) / "valid.json"
+            valid.write_text(json.dumps({"default": {"max_total_tokens": 10}}), encoding="utf-8")
+            self.assertEqual(_load_calibration_json(str(valid)), {"default": {"max_total_tokens": 10}})
+
+        self.assertEqual(_normalize_recommendation({"recommendation": ["discard", "keep"]}), "discard")
+        self.assertEqual(_normalize_recommendation({"recommendation": np.array(["review"])}), "review")
+        self.assertEqual(_normalize_recommendation('{"recommendation": "\\"Discard\\""}'), "discard")
+        self.assertEqual(_normalize_recommendation("not-json"), "")
+
+    def test_auto_calibration_prefers_json_when_manual_override_disabled(self):
+        cal = {
+            "default": {
+                "max_total_tokens": "80",
+                "max_latency_ms": "20",
+                "perplexity_high_threshold": "30",
+            },
+            "by_request_model": {
+                "m-small": {
+                    "max_total_tokens": "90",
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "cal.json"
+            path.write_text(json.dumps(cal), encoding="utf-8")
+            op = AgentBadCaseSignalMapper(
+                signal_on_tool_fail=False,
+                signal_on_suspect_empty_response=False,
+                auto_calibrate_thresholds=True,
+                calibration_json_path=str(path),
+                calibration_manual_overrides_auto=False,
+                max_total_tokens=200,
+                max_latency_ms=200,
+                signal_on_high_perplexity=True,
+                perplexity_high_threshold=999,
+                min_medium_signals_for_watchlist=1,
+            )
+            sample = {
+                Fields.meta: {
+                    MetaKeys.agent_request_model: "m-small",
+                    MetaKeys.total_tokens: 100,
+                    MetaKeys.agent_total_cost_time_ms: 25,
+                },
+                Fields.stats: {StatsKeys.perplexity: 35},
+                "query": "q",
+                "response": "r",
+            }
+
+            out = op.process_single(sample)
+
+        codes = [s["code"] for s in out[Fields.meta][MetaKeys.agent_bad_case_signals]]
+        self.assertIn("high_token_usage", codes)
+        self.assertIn("high_latency_ms", codes)
+        self.assertIn("high_perplexity", codes)
+        self.assertEqual(out[Fields.meta][MetaKeys.agent_bad_case_tier], "watchlist")
+
+    def test_llm_eval_non_strict_recommendation_is_medium_signal(self):
+        op = AgentBadCaseSignalMapper(
+            signal_on_tool_fail=False,
+            signal_on_suspect_empty_response=False,
+            signal_on_llm_text_quality_low=False,
+            llm_analysis_discard_must_be_strict=False,
+            high_precision_llm_analysis_discard_threshold=0.1,
+            min_medium_signals_for_watchlist=1,
+        )
+        sample = {
+            Fields.meta: {},
+            Fields.stats: {
+                StatsKeys.llm_analysis_score: 0.2,
+                StatsKeys.llm_analysis_record: {"recommendation": "review"},
+            },
+            "query": "q",
+            "response": "r",
+        }
+
+        out = op.process_single(sample)
+
+        signals = out[Fields.meta][MetaKeys.agent_bad_case_signals]
+        self.assertEqual(signals[0]["code"], "llm_agent_analysis_eval_low")
+        self.assertEqual(signals[0]["weight"], "medium")
+        self.assertEqual(out[Fields.meta][MetaKeys.agent_bad_case_tier], "watchlist")
+
+    def test_negative_latency_hard_query_and_dialog_quality_edges(self):
+        op = AgentBadCaseSignalMapper(
+            signal_on_tool_fail=False,
+            signal_on_suspect_empty_response=False,
+            signal_on_llm_analysis_low=False,
+            signal_on_llm_text_quality_low=False,
+            signal_on_negative_sentiment_hint=True,
+            max_latency_ms=5,
+            signal_hard_query_poor_reply=True,
+            hard_query_difficulty_min=0.6,
+            poor_reply_quality_max=0.4,
+            dialog_quality_low_score_threshold=2.0,
+            min_dialog_quality_low_axes_for_signal=1,
+            min_medium_signals_for_watchlist=1,
+        )
+        sample = {
+            Fields.meta: {
+                MetaKeys.agent_total_cost_time_ms: 10,
+                MetaKeys.dialog_sentiment_labels: ["unhappy"],
+                MetaKeys.dialog_memory_consistency: {"skipped": True},
+                MetaKeys.dialog_coreference: {"error": "bad json"},
+                MetaKeys.dialog_topic_shift: {"score": "bad"},
+                MetaKeys.dialog_error_recovery: {"score": 1.5},
+            },
+            Fields.stats: {
+                StatsKeys.llm_difficulty_score: 0.7,
+                StatsKeys.llm_quality_score: 0.3,
+            },
+            "query": "q",
+            "response": "r",
+        }
+
+        out = op.process_single(sample)
+
+        codes = [s["code"] for s in out[Fields.meta][MetaKeys.agent_bad_case_signals]]
+        self.assertIn("high_latency_ms", codes)
+        self.assertIn("negative_sentiment_label_hint", codes)
+        self.assertIn("hard_query_low_reply_quality_conjunction", codes)
+        self.assertIn("dialog_turn_quality_meta_low", codes)
+        self.assertEqual(out[Fields.meta][MetaKeys.agent_bad_case_tier], "watchlist")
+
+    def test_tool_fail_alone_can_be_watchlist(self):
+        op = AgentBadCaseSignalMapper(high_precision_on_tool_fail_alone=False)
+        sample = {
+            Fields.meta: {MetaKeys.tool_fail_count: 1},
+            Fields.stats: {},
+            "query": "short",
+            "response": "ok",
+        }
+
+        out = op.process_single(sample)
+
+        self.assertEqual(out[Fields.meta][MetaKeys.agent_bad_case_tier], "watchlist")
 
 
 if __name__ == "__main__":

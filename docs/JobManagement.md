@@ -21,6 +21,16 @@ Output includes:
 - Checkpoint coverage
 - Timing information
 
+## Execution Plan and DAG Monitoring
+
+`use_dag` controls execution-plan generation and DAG monitoring, which produce the DAG structure the snapshot analyzer reads.
+
+```yaml
+use_dag: null   # null keeps the executor default
+```
+
+With `null`, DAG monitoring is enabled for `ray` and `ray_partitioned` and disabled for `default`. Set `true` to enable it or `false` to disable it.
+
 ## Resource-Aware Partitioning
 
 The system automatically optimizes partition sizes based on cluster resources and data characteristics.
@@ -39,7 +49,7 @@ The optimizer:
 
 ## Logging
 
-Logs are organized per job with rotation and retention:
+Logs are organized per job. The layout below uses `log.txt` as an example; CLI runs generate filenames from the export path and timestamp.
 
 ```
 {job_dir}/
@@ -52,17 +62,21 @@ Logs are organized per job with rotation and retention:
 └── job_summary.json           # Summary (on completion)
 ```
 
-Configure logging:
+Set `event_log_dir` in your recipe to choose the application log directory; it defaults to `<work_dir>/logs`. Machine-readable `events_*.jsonl` files are saved directly in `<work_dir>` for job tracking.
+
+To configure application logging in Python:
 ```python
 from data_juicer.utils.logger_utils import setup_logger
 
 setup_logger(
     save_dir="./outputs",
     filename="log.txt",
-    max_log_size_mb=100,
-    backup_count=5
+    level="INFO",
+    redirect=False
 )
 ```
+
+`setup_logger()` uses `save_dir` and `filename` to configure log output and writes separate files for each log level. Configure rotation and retention through your application's logging integration.
 
 ## API Reference
 

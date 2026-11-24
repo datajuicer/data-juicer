@@ -36,7 +36,7 @@ Tags 标签: gpu, vllm, hf, api
 ## 📊 Effect demonstration 效果演示
 ### test_default_case
 ```python
-LLMAnalysisFilter(api_or_hf_model='qwen2.5-72b-instruct')
+LLMAnalysisFilter(api_or_hf_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据
@@ -51,7 +51,7 @@ This example demonstrates the operator's basic functionality. It evaluates three
 
 ### test_custom_dimension_keys
 ```python
-LLMAnalysisFilter(api_or_hf_model='qwen2.5-72b-instruct', dim_required_keys=['clarity', 'fluency'])
+LLMAnalysisFilter(api_or_hf_model='qwen3.7-max', dim_required_keys=['clarity', 'fluency'])
 ```
 
 #### 📥 input data 输入数据

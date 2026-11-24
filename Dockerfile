@@ -50,7 +50,7 @@ WORKDIR /data-juicer
 # install basic dependencies for Data-Juicer
 ENV UV_HTTP_TIMEOUT=600
 RUN uv pip install --upgrade --no-cache-dir setuptools==69.5.1 setuptools_scm -i https://pypi.tuna.tsinghua.edu.cn/simple --system \
-    && uv pip install --no-cache-dir git+https://github.com/datajuicer/recognize-anything.git -i https://pypi.tuna.tsinghua.edu.cn/simple --system
+    && uv pip install --no-cache-dir git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf -i https://pypi.tuna.tsinghua.edu.cn/simple --system
 
 # copy source code and install
 COPY . .

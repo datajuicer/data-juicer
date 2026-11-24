@@ -10,9 +10,9 @@ Automatically evaluate your model and monitor changes of metrics during the trai
 
 3. Install Data-Juicer in the shared file system (e.g., `/mnt/shared/code/data-juicer`).
 
-4. Install thirdparty dependencies (Megatron-LM and HELM) accoroding to [thirdparty/README.md](../../thirdparty/README.md) on each machine.
+4. Install thirdparty dependencies (Megatron-LM and HELM) accoroding to [thirdparty/LLM_ecosystems/README.md](../../thirdparty/LLM_ecosystems/README.md) on each machine.
 
-5. Prepare your dataset and tokenizer, preprocess your dataset with Megatron-LM into mmap format (see [README](../../thirdparty/Megatron-LM/README.md) of Megatron-LM for more details) in the shared file system (e.g., `/mnt/shared/dataset`).
+5. Prepare your dataset and tokenizer, preprocess your dataset with Megatron-LM into mmap format (see [README](https://github.com/NVIDIA/Megatron-LM) of Megatron-LM for more details) in the shared file system (e.g., `/mnt/shared/dataset`).
 
 6. Run Megatron-LM on training machines and save the checkpoint in the shared file system (e.g., `/mnt/shared/checkpoints`).
 
@@ -21,7 +21,7 @@ Automatically evaluate your model and monitor changes of metrics during the trai
 Use [evaluator.py](evaluator.py) to automatically evaluate your models with HELM and OpenAI API.
 
 ```shell
-python tools/evaluator.py  \
+python tools/evaluator/evaluator.py  \
     --config <config>      \
     --begin-iteration     <begin_iteration>     \
     [--end-iteration      <end_iteration>]      \

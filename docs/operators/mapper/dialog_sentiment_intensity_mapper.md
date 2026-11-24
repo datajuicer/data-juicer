@@ -36,7 +36,7 @@ Tags 标签: cpu, api
 ## 📊 Effect demonstration 效果演示
 ### test_default
 ```python
-DialogSentimentIntensityMapper(api_model='qwen2.5-72b-instruct')
+DialogSentimentIntensityMapper(api_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据
@@ -51,7 +51,7 @@ This example shows the default behavior of the operator, which analyzes the sent
 
 ### test_max_round_zero
 ```python
-DialogSentimentIntensityMapper(api_model='qwen2.5-72b-instruct', max_round=0)
+DialogSentimentIntensityMapper(api_model='qwen3.7-max', max_round=0)
 ```
 
 #### 📥 input data 输入数据

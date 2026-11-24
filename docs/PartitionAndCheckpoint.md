@@ -17,10 +17,12 @@ The `ray_partitioned` executor splits datasets into partitions and processes the
 ```
 {work_dir}/{job_id}/
 ├── job_summary.json              # Job metadata (created on completion)
+├── gpu_probe_results.json         # Auto-probed GPU operator resources
 ├── events_{timestamp}.jsonl      # Machine-readable event log
 ├── dag_execution_plan.json       # DAG execution plan
 ├── checkpoints/                  # Checkpoint data
-├── partitions/                   # Input partitions
+│   ├── partitioning_info.json    # Saved row boundaries and partition hashes
+│   └── checkpoint_op_*.parquet/  # Per-operation partition checkpoints
 ├── logs/                         # Human-readable logs
 └── metadata/                     # Job metadata
 ```
@@ -36,6 +38,18 @@ executor_type: ray_partitioned
 
 partition:
   mode: "auto"
+  max_concurrent_partitions: "auto"  # Resource-aware driver concurrency
+  max_gpu_workers_per_device: 5       # Conservative model-replica cap per GPU
+  max_concurrent_gpu_probes: "auto"   # Probe one target at a time; set an integer to opt into parallel probes
+  gpu_preflight_enabled: true          # false skips preflight and uses explicit resources/actor counts
+  gpu_probe_timeout_seconds: null     # Optional per-probe timeout; null disables termination
+  gpu_probe_warmup_batches: 1         # Warmup batches before steady-state timing
+  gpu_probe_steady_batches: 3         # Batches used for steady-state throughput
+  gpu_probe_sample_offset: 0          # Leading rows skipped when sampling for preflight
+  gpu_probe_sample_shuffle: false     # true randomizes block order before sampling
+  gpu_probe_sample_seed: 42           # Seed for the shuffled sample; null re-samples, and never reuses the report
+  execution_group_size: "auto"       # Logical partitions sharing one GPU actor lifecycle
+  max_initialization_overhead_ratio: 0.1  # Allowed model-init share per execution group
   target_size_mb: 256    # Target partition size (128, 256, 512, or 1024)
   size: 5000             # Fallback if auto-analysis fails
   max_size_mb: 256       # Fallback max size
@@ -47,7 +61,145 @@ partition:
 partition:
   mode: "manual"
   num_of_partitions: 8
+  max_concurrent_partitions: "auto"
 ```
+
+Partitions are cut at exact row boundaries, so every partition holds the same
+row count give or take one row. This is deliberately not Ray's
+`Dataset.split(n)`, which distributes whole blocks: a dataset with fewer blocks
+than `num_of_partitions` would otherwise produce empty trailing partitions (ten
+rows in one block split four ways gives `[10, 0, 0, 0]`), and unevenly sized
+blocks would skew partitions even when there are enough of them. Empty
+partitions are not free -- each one still builds an operator graph, consumes an
+actor lifecycle and writes a checkpoint -- and skew breaks the uniform
+partition-size assumption behind execution-group sizing. A partition count
+larger than the row count therefore fails the job before any actor starts,
+rather than being lowered silently: the count is what a resume is validated
+against, so it must be the one that was asked for.
+
+Logical partitions and GPU execution concurrency are independent. Logical
+partitions define checkpoint/recovery granularity and the per-partition data
+bound. Preflight throughput and cluster resources determine GPU actor counts.
+An execution group sends several logical partitions through one Ray actor-pool
+lifecycle while still writing a separate checkpoint for every logical
+partition. `execution_group_size: "auto"` uses measured initialization time,
+throughput, data volume, and `max_initialization_overhead_ratio`; a positive
+integer overrides it. Resume safely falls back to serial per-partition
+execution because partitions may be at different checkpoint boundaries.
+
+The automatic actor planner starts with one actor per profiled GPU stage and
+adds actors to the current pipeline bottleneck. Every addition must fit the
+cluster CPU budget, Ray GPU scheduling fractions, measured per-device GPU
+memory, the per-device actor cap, and useful-batch limits. If the cluster
+cannot host the one-actor-per-stage minimum, execution fails before the formal
+job instead of increasing partitions or oversubscribing GPU memory.
+
+#### GPU memory preflight
+
+For a fixed-resource control run, set `gpu_preflight_enabled: false`. The
+executor will not sample input rows, create disposable probe actors, or write
+`gpu_probe_results.json`. Configure CUDA `num_gpus`, `memory`, and fixed
+`num_proc` values explicitly, and normally disable `auto_op_parallelism` too.
+
+In `ray_partitioned` mode (including manual partitioning), ordinary single-GPU
+CUDA Mapper/Filter operators are profiled before the formal experiment. An op
+without `memory`/`num_gpus` also receives resource estimates. Explicit values
+still win, but throughput is measured for automatic `num_proc` planning:
+
+1. The executor takes a fixed prefix of the input. Its size is the largest
+   `batch_size` among operators that still need probing. A dataset ordered by
+   length, resolution or source makes that prefix unrepresentative and biases
+   both measured memory and throughput. `gpu_probe_sample_shuffle: true`
+   randomizes block order first, so the sample comes from a random block instead
+   of the first one; only block references are reordered, keeping the preflight
+   cost proportional to the sample rather than to the dataset. Alternatively,
+   `gpu_probe_sample_offset` skips a known-unrepresentative prefix. The two are
+   alternatives rather than a combination: a successful shuffle has already left
+   the head, so the offset is reported as ignored. Changing either option
+   invalidates `gpu_probe_results.json`, because measurements from a different
+   part of the dataset are not comparable. A shuffle without
+   `gpu_probe_sample_seed` samples different rows on every run, so its report is
+   written for observability but never reused as a cache.
+2. Operators may declare `input_columns` and `output_columns`, including
+   nested paths such as `__dj__meta__.quality_score`. The executor builds a
+   conservative data-dependency graph from these contracts.
+3. Targets proven independent, with only compatible CPU Mapper/Filter
+   ancestors, can run concurrently. Each disposable Ray worker receives the
+   lightweight source rows, replays its required CPU ancestors locally, and
+   reserves one full GPU for the target. Large intermediate NumPy values are
+   therefore not round-tripped through the driver. The default
+   `max_concurrent_gpu_probes: "auto"` probes one target at a time: concurrent
+   probes initialize several models at once, and neither checkpoint storage nor
+   host-memory bandwidth is a Ray resource, so nothing automatic can tell whether
+   the node can sustain them. Set a positive integer to opt into parallel probing
+   when checkpoints are local or the I/O headroom is known; the value is still
+   bounded by the dependency-safe GPU and CPU slots.
+   Workers log dependency replay and measured-target timing. The driver logs
+   each completion immediately and emits a progress heartbeat every 30 seconds.
+   `gpu_probe_timeout_seconds` can fail a stalled target with its operator name;
+   the default `null` keeps timeout termination disabled.
+4. Missing contracts, GPU-to-GPU dependencies, runtime-environment conflicts,
+   and dataset-level operations conservatively fall back to the original
+   ordered recipe replay. If an earlier filter leaves too few rows, surviving
+   rows are cycled to fill one target batch.
+5. The disposable worker constructs the target only once and separately
+   records model initialization, warmup, and multiple steady-state batches.
+   It reports steady input throughput and output ratio. Defaults are one
+   warmup batch and three measured batches. Replay and measurement use the
+   recipe's `skip_op_error`, so a few invalid rows are skipped exactly as in the
+   formal run instead of aborting the job at preflight. Because one measured
+   batch is repeated, a batch that returns nothing is not a usable measurement:
+   a Mapper that returns no rows always fails preflight with its operator name
+   (with `skip_op_error` the whole batch took the error path, without it the
+   operator returned empty where it should have raised), while a
+   Filter that keeps nothing only warns that its throughput is worst-case.
+   Preflight no longer sets the `DATA_JUICER_GPU_PREFLIGHT_OP` marker, because
+   operators that reacted to it with extra CUDA synchronizations could turn a
+   normal model transfer into a multi-minute stall; custom operators must not
+   depend on observing that variable.
+6. A probe does not poll CUDA from a background thread during model
+   initialization, avoiding `cudaMemGetInfo` contention with large
+   `model.to(cuda)` transfers on the same CUDA context. The disposable worker
+   lets the operator initialize CUDA as a formal actor would, then combines
+   PyTorch's allocator peak with final persistent device usage (which also
+   covers non-PyTorch runtimes such as Paddle). The measured value receives
+   10% headroom and becomes `memory_fraction`. Ray's scheduling `num_gpus` is `max(memory_fraction,
+   1 / max_gpu_workers_per_device)`; the default allows at most five
+   auto-probed model actors per physical GPU.
+7. Resource values, phased timing, throughput, output ratio, probe mode,
+   replayed dependencies, and where the sample actually came from are saved in
+   `{work_dir}/gpu_probe_results.json`. A resume
+   reuses entries when the operator configuration, GPU model/capacity, and
+   timing-batch settings, per-device worker cap, and sampling policy match, and
+   re-probes otherwise. The source YAML is not overwritten.
+
+For example, independent image taggers sharing a CPU resize can opt into the
+parallel path without changing their Python classes:
+
+```yaml
+process:
+  - bucket_resize_mapper:
+      input_columns: [images]
+      output_columns: [_bucket_img]
+  - image_quality_mapper:
+      input_columns: [images, _bucket_img]
+      output_columns: [__dj__meta__.quality_score]
+  - image_rotation_mapper:
+      input_columns: [images, _bucket_img]
+      output_columns: [__dj__meta__.rotation_*]
+```
+
+`None`/omitted metadata means unknown, not empty. Existing recipes therefore
+retain ordered probing until their operators declare a complete contract.
+
+An explicit `memory` or `num_gpus` wins over the measurement, except that a
+`num_gpus` below the measured memory fraction is raised to it with a warning:
+Ray packs actors by `num_gpus` alone, so a smaller request would let it place
+more actors on a device than its memory allows. Preflight currently supports
+ordinary Mapper/Filter operators that fit on one GPU.
+GPU `Pipeline` operators, a `Pipeline` before a pending target, and multi-GPU
+operators require explicit resources. Empty input, probe errors, OOM, and an
+invalid zero peak fail before formal partition workers start.
 
 ### Checkpointing
 
@@ -57,19 +209,31 @@ checkpoint:
   strategy: every_n_ops  # every_n_ops (default), every_op, manual, disabled
   n_ops: 5               # Default: checkpoint every 5 operations
   op_names:              # For manual strategy - checkpoint after expensive ops
-    - document_deduplicator
-    - embedding_mapper
+    - ray_document_deduplicator
+    - extract_keyword_mapper
 ```
 
-### Intermediate Storage
+Choose `every_op`, `every_n_ops`, `manual`, or `disabled`. For `every_n_ops`, set `n_ops` to a positive integer. For `manual`, list operator names from your recipe in `op_names`.
 
-```yaml
-intermediate_storage:
-  format: "parquet"              # parquet, arrow, jsonl
-  compression: "snappy"          # snappy, gzip, none
-  preserve_intermediate_data: true
-  retention_policy: "keep_all"   # keep_all, keep_failed_only, cleanup_all
-```
+When checkpointing is enabled, the initial run saves
+`checkpoints/partitioning_info.json`. For every logical partition, this file
+records:
+
+- `start_row` (inclusive) and `end_row` (exclusive) in the ordered input;
+- the partition row count;
+- a stable hash of the complete partition contents;
+- the partition hash algorithm used by the writer.
+
+These values allow an explicit resume to recreate the original logical
+partitions even when Ray produces a different physical block layout in the new
+process. Complete partition hashes are sensitive to row order, independent of
+Ray batch boundaries, and validated before any checkpoint is reused.
+
+### Checkpoints and Temporary Files
+
+Use `checkpoint.enabled` to turn checkpointing on or off and `checkpoint.strategy` to choose when to save. Checkpoints are saved as Parquet datasets under `checkpoint_dir`, which defaults to `<work_dir>/checkpoints`. Keep this directory to resume an interrupted job.
+
+The executor cleans up its temporary working files when the run exits. Checkpoints are stored separately and remain available for resumption.
 
 ## Usage
 
@@ -82,14 +246,50 @@ dj-process --config config.yaml --partition.mode auto
 # Manual partition mode
 dj-process --config config.yaml --partition.mode manual --partition.num_of_partitions 4
 
-# With custom job ID
+# Optional: start a new job with a custom job ID
 dj-process --config config.yaml --job_id my_experiment_001
+```
+
+When checkpointing is enabled, a new `ray_partitioned` job prints a resume
+token:
+
+```text
+Resume token: 20260805_115141_81270d. Rerun the original command with
+--resume 20260805_115141_81270d to resume this job.
 ```
 
 ### Resuming Jobs
 
 ```bash
-dj-process --config config.yaml --job_id my_experiment_001
+# Use the token printed by the initial run. Keep the input and recipe unchanged.
+dj-process --config config.yaml --resume 20260805_115141_81270d
+
+# A custom ID from the initial run can be used in the same way.
+dj-process --config config.yaml --resume my_experiment_001
+```
+
+`--resume` is supported only by the `ray_partitioned` executor. It performs a
+strict resume in the following order:
+
+1. locate the original work and checkpoint directories;
+2. verify that the current configuration matches the original run;
+3. load the saved partition count, row boundaries, and content hashes;
+4. recreate the original partitions with the saved row boundaries;
+5. validate every complete partition hash;
+6. load completed checkpoints and process only the unfinished work.
+
+If metadata is missing, row boundaries are invalid, the input has changed, or
+a content hash does not match, explicit resume stops with an error and leaves
+the existing checkpoints unchanged.
+
+Use `--job_id` to name a job. To resume it, add `--resume` with the original job ID to the original command.
+
+If both arguments are supplied, their values must be identical:
+
+```bash
+dj-process --config config.yaml \
+  --job_id my_experiment_001 \
+  --resume my_experiment_001
 ```
 
 ### Checkpoint Strategies
@@ -251,7 +451,6 @@ disabled         | 0s        | Re-run everything
 
 - Event logs: fast storage (SSD)
 - Checkpoints: large capacity storage
-- Partitions: local storage
 
 ### Partition Sizing Trade-offs
 
@@ -264,7 +463,13 @@ disabled         | 0s        | Re-run everything
 ```bash
 ls -la ./outputs/{work_dir}/{job_id}/job_summary.json
 ls -la ./outputs/{work_dir}/{job_id}/checkpoints/
+cat ./outputs/{work_dir}/{job_id}/checkpoints/partitioning_info.json
 ```
+
+Use the resume token printed by the original run and rerun the same recipe with
+`--resume`. Check the error log for configuration mismatch, missing partition
+metadata, invalid row boundaries, or partition content hash mismatch. Explicit
+resume does not delete checkpoints when validation fails.
 
 **Check Ray status:**
 ```bash

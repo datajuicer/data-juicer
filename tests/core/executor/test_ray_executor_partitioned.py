@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -33,7 +34,8 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
         cfg = init_configs([
             '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
             '--partition.mode', 'manual',
-            '--partition.num_of_partitions', '2'
+            '--partition.size', '5',
+            '--override_num_blocks', '1',
         ])
         cfg.export_path = os.path.join(self.tmp_dir, 'test_end2end_execution_manual', 'res.jsonl')
         cfg.work_dir = os.path.join(self.tmp_dir, 'test_end2end_execution_manual')
@@ -42,6 +44,40 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
 
         # check result files
         self.assertTrue(os.path.exists(cfg.export_path))
+        self.assertEqual(executor.num_partitions, 2)
+
+        with open(os.path.join(cfg.checkpoint_dir, 'partitioning_info.json')) as f:
+            partitioning_info = json.load(f)
+        # partition.size decides the partition *count* (11 rows / 5 -> 2); the row
+        # boundaries are then balanced, so the extra row goes to the leading
+        # partition instead of piling up in the tail.
+        self.assertEqual(
+            [partition['row_count'] for partition in partitioning_info['partitions']],
+            [6, 5],
+        )
+
+    @TEST_TAG('ray')
+    def test_end2end_manual_size_with_single_partition(self):
+        """A sample target larger than most of the dataset creates one partition."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.size', '10',
+            '--override_num_blocks', '1',
+        ])
+        cfg.export_path = os.path.join(self.tmp_dir, 'test_manual_size_single_partition', 'res.jsonl')
+        cfg.work_dir = os.path.join(self.tmp_dir, 'test_manual_size_single_partition')
+
+        executor = PartitionedRayExecutor(cfg)
+        executor.run()
+
+        self.assertEqual(executor.num_partitions, 1)
+        with open(os.path.join(cfg.checkpoint_dir, 'partitioning_info.json')) as f:
+            partitioning_info = json.load(f)
+        self.assertEqual(
+            [partition['row_count'] for partition in partitioning_info['partitions']],
+            [11],
+        )
 
     @TEST_TAG('ray')
     def test_end2end_execution_with_checkpointing(self):
@@ -367,6 +403,67 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
             self.assertEqual(result, "failed")
 
 
+    # ==================== Path Resolution Tests ====================
+    # These cover the ray-mode path handling in PartitionedRayExecutor:
+    # Ray workers may run with a different working directory than the main
+    # process, so relative work_dir / checkpoint_dir must be resolved to
+    # absolute paths, while remote URIs and empty values must be preserved.
+
+    @TEST_TAG('ray')
+    def test_resolve_relative_path_to_absolute(self):
+        """Relative local paths should be converted to absolute paths."""
+        rel_path = os.path.join('.', 'tmp', 'ckpt')
+        resolved = PartitionedRayExecutor._resolve_local_path(rel_path)
+        self.assertTrue(os.path.isabs(resolved))
+        self.assertEqual(resolved, os.path.abspath(rel_path))
+
+    @TEST_TAG('ray')
+    def test_resolve_absolute_path_preserved(self):
+        """Normalized absolute local paths should pass through unchanged."""
+        abs_path = os.path.abspath(os.path.join(self.tmp_dir, 'checkpoints'))
+        resolved = PartitionedRayExecutor._resolve_local_path(abs_path)
+        self.assertEqual(resolved, abs_path)
+        # Applying resolution again must not change an already-absolute path
+        self.assertEqual(PartitionedRayExecutor._resolve_local_path(resolved), abs_path)
+
+    @TEST_TAG('ray')
+    def test_resolve_remote_uri_not_corrupted(self):
+        """Remote URIs must not be mangled by absolute-path conversion."""
+        for uri in ['s3://bucket/ckpt', 'gs://bucket/ckpt', 'hdfs://ns/ckpt']:
+            resolved = PartitionedRayExecutor._resolve_local_path(uri)
+            self.assertEqual(resolved, uri)
+
+    @TEST_TAG('ray')
+    def test_resolve_empty_path_no_error(self):
+        """Empty/None paths should pass through without raising TypeError."""
+        self.assertIsNone(PartitionedRayExecutor._resolve_local_path(None))
+        self.assertEqual(PartitionedRayExecutor._resolve_local_path(''), '')
+
+    @TEST_TAG('ray')
+    def test_executor_resolves_relative_work_dir_and_checkpoint_dir(self):
+        """End-to-end: relative work_dir/checkpoint_dir become absolute on the
+        executor and its checkpoint manager."""
+        cfg = init_configs([
+            '--config', os.path.join(self.root_path, 'demos/process_on_ray/configs/demo-new-config.yaml'),
+            '--partition.mode', 'manual',
+            '--partition.num_of_partitions', '2',
+            '--checkpoint.enabled', 'true'
+        ])
+        abs_work_dir = os.path.join(self.tmp_dir, 'test_relative_work_dir')
+        os.makedirs(abs_work_dir, exist_ok=True)
+        cfg.export_path = os.path.join(abs_work_dir, 'res.jsonl')
+        # Provide a relative work_dir to mimic './tmp/...' usage
+        cfg.work_dir = os.path.relpath(abs_work_dir, os.getcwd())
+
+        executor = PartitionedRayExecutor(cfg)
+
+        # work_dir on the executor must be absolute and point to the same place
+        self.assertTrue(os.path.isabs(executor.work_dir))
+        self.assertEqual(os.path.realpath(executor.work_dir), os.path.realpath(abs_work_dir))
+        # checkpoint dir handed to the manager must be absolute too, so that
+        # Ray workers write to the correct location
+        self.assertTrue(os.path.isabs(executor.ckpt_manager.ckpt_dir))
+
     # ==================== Edge Case Tests ====================
 
     @TEST_TAG('ray')
@@ -428,6 +525,13 @@ class PartitionedRayExecutorTest(DataJuicerTestCaseBase):
 
         # Verify execution completes without checkpoints
         self.assertTrue(os.path.exists(cfg.export_path))
+
+        detailed_job_start = next(
+            event for event in executor.get_events()
+            if event.event_type.value == 'job_start' and 'config_summary' in event.metadata
+        )
+        self.assertEqual(detailed_job_start.metadata['total_partitions'], 2)
+        self.assertIsNone(detailed_job_start.metadata['config_summary']['partition_size'])
 
         # Checkpoint directory might exist but should be empty or not created
         checkpoint_dir = cfg.checkpoint_dir

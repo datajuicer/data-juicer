@@ -16,7 +16,7 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 
 ### Data-Juicer 的 Ray 处理模式
 
-- 对于 Data-Juicer 的大部分[算子](Operators.md)实现，其核心处理函数是引擎无关的。[RayDataset](../data_juicer/core/ray_data.py) 和 [RayExecutor](../data_juicer/core/executor/ray_executor.py) 封装了与Ray引擎的具体互操作，它们分别是基类 `DJDataset` 和 `BaseExecutor` 的子类，并且都支持 Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) 和 [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) 。
+- 对于 Data-Juicer 的大部分[算子](Operators.md)实现，其核心处理函数是引擎无关的。[RayDataset](../data_juicer/core/data/ray_dataset.py) 和 [RayExecutor](../data_juicer/core/executor/ray_executor.py) 封装了与Ray引擎的具体互操作，它们分别是基类 `DJDataset` 和 `BaseExecutor` 的子类，并且都支持 Ray [Tasks](https://docs.ray.io/en/latest/ray-core/tasks.html) 和 [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) 。
 - 其中，去重算子是例外。它们在单机模式下很难规模化。因此我们提供了针对它们的 Ray 优化版本算子，并以特殊前缀开头：[`ray_xx_deduplicator`](../data_juicer/ops/deduplicator/) 。
 
 ### 数据子集分割
@@ -57,13 +57,38 @@ Data-Juicer 支持基于 [Ray](https://github.com/ray-project/ray) 和阿里巴�
 | 4 * 160 | 11.13 分钟 | 50.83 分钟 | 285.43 分钟 |
 | 8 * 160 | 7.47 分钟  | 30.08 分钟 | 168.10 分钟 |
 
+## 分布式数据分析
+
+除了分布式数据处理外，Data-Juicer 还通过 [RayAnalyzer](../data_juicer/core/ray_analyzer.py) 支持分布式数据分析，它是本地 `Analyzer` 的分布式版本。
+
+### 工作原理
+
+RayAnalyzer 使用与本地 Analyzer 相同的 `dj-analyze` 命令行入口。当配置文件中 `executor_type` 设置为 `ray` 时，`dj-analyze` 会自动调度到 `RayAnalyzer`。工作流程如下：
+
+1. **加载数据** — 通过 Ray 的分布式数据加载能力（支持 JSON、CSV、Parquet）。
+2. **计算统计信息** — 通过 Ray `map_batches` 分布式执行每个 Filter 的 `compute_stats` 函数，与本地模式使用相同的统计计算逻辑。
+3. **聚合总体统计** — 使用 Ray 原生聚合算子（`Mean`、`Std`、`Min`、`Max`）计算总体统计信息，无需 pandas 物化，适用于任意规模的数据集。
+4. **导出** — 通过 `RayExporter` 将带有统计列的数据集导出到磁盘。
+
+### 与本地 Analyzer 的差异
+
+| 特性 | 本地 Analyzer | RayAnalyzer |
+|---|---|---|
+| 总体统计（count/mean/std/min/max） | 支持 | 支持 |
+| 逐列分布图表 | 支持 | 不支持 |
+| 相关性分析 | 支持 | 不支持 |
+| 分位数 | 支持 | 不支持 |
+| 可扩展性 | 单机 | 分布式（Ray 集群） |
+
+RayAnalyzer 专注于在大规模数据上计算总体统计信息。如果需要详细的可视化和相关性分析，建议对采样子集使用本地 Analyzer。
+
 ## 快速开始
 
 在开始前，你应该安装 Data-Juicer 以及它的 `dist` 依赖需求：
 
 ```shell
 uv pip install -v -e .  # 安装 Data-Juicer 的最小依赖需求
-uv pip install -v -e ".[dist]"  # 包括 Ray 以及其他分布式相关的依赖库
+uv pip install -v -e ".[distributed]"  # 包括 Ray 以及其他分布式相关的依赖库
 ```
 
 然后启动一个 Ray 集群（参考 [Ray 文档](https://docs.ray.io/en/latest/ray-core/starting-ray.html) ）：
@@ -147,3 +172,41 @@ dj-process --config demos/process_on_ray/configs/dedup.yaml
 ```
 
 Data-Juicer 会使用示例配置文件对示例数据集去重，并将结果数据集导出到配置文件中 `export_path` 参数指定的目录中。
+
+### 运行 Ray 分析样例
+
+在 [`demos/analyze_simple/ray_analyzer.yaml`](../demos/analyze_simple/ray_analyzer.yaml) 配置文件中，我们将执行器类型设置为 "ray" 来使用分布式的 `RayAnalyzer`。
+
+```yaml
+project_name: 'demo-ray-analyzer'
+dataset_path: './demos/data/demo-dataset.jsonl'
+
+executor_type: 'ray'  # 将执行器类型设置为 "ray"
+ray_address: 'auto'  # 设置为自动 Ray 地址
+
+export_path: './outputs/demo-ray-analyzer'
+
+process:
+  - text_length_filter:
+      min_len: 10
+      max_len: 10000
+  - words_num_filter:
+      lang: en
+      min_num: 10
+      max_num: 10000
+  - alphanumeric_filter:
+      min_ratio: 0.25
+      max_ratio: 0.9
+```
+
+运行该示例来分析数据集：
+
+```shell
+# 从源码运行分析工具
+python tools/analyze_data.py --config demos/analyze_simple/ray_analyzer.yaml
+
+# 使用命令行工具
+dj-analyze --config demos/analyze_simple/ray_analyzer.yaml
+```
+
+`RayAnalyzer` 会计算所有数值统计列的总体统计信息（count、mean、std、min、max）并打印结果。带有计算好的统计列的数据集将导出到 `export_path` 指定的路径。

@@ -1,6 +1,8 @@
 import numbers
 from typing import List
 
+from data_juicer.utils.common_utils import iter_column
+
 from ..base_op import OPERATORS, Selector
 
 
@@ -43,7 +45,7 @@ class TagsSpecifiedFieldSelector(Selector):
         assert field_keys[0] in dataset.features.keys(), "'{}' not in {}".format(field_keys[0], dataset.features.keys())
 
         selected_index = []
-        for i, item in enumerate(dataset[field_keys[0]]):
+        for i, item in enumerate(iter_column(dataset, field_keys[0])):
             field_value = item
             for key in field_keys[1:]:
                 assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())

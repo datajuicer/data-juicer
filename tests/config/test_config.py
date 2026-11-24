@@ -97,7 +97,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 }, 'nested dict load fail, for nonparametric op')
             self.assertDictEqual(
@@ -135,7 +136,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 }, 'nested dict load fail, un-expected internal value')
 
@@ -224,7 +226,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -264,7 +267,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -304,7 +308,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -344,7 +349,8 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
             # work_dir now includes job_id suffix due to resolve_job_directories
@@ -384,9 +390,28 @@ class ConfigTest(DataJuicerTestCaseBase):
                         'ray_execution_mode': None,
                         'runtime_env': None,
                         'batch_mode': None,
-                        'auto_op_parallelism': True
+                        'auto_op_parallelism': True,
+                        'adaptive_batching': None
                     }
                 })
+
+    def test_partitioned_ray_config_keeps_operator_parallelism_automatic(self):
+        previous_ray_mode = os.environ.get(RAY_JOB_ENV_VAR)
+        os.environ[RAY_JOB_ENV_VAR] = "0"
+        try:
+            cfg = init_configs(
+                args=["--config", test_yaml_path, "--executor_type", "ray_partitioned"],
+                load_configs_only=True,
+            )
+        finally:
+            if previous_ray_mode is None:
+                os.environ.pop(RAY_JOB_ENV_VAR, None)
+            else:
+                os.environ[RAY_JOB_ENV_VAR] = previous_ray_mode
+
+        first_op_args = next(iter(cfg.process[0].values()))
+        self.assertNotIn("num_proc", first_op_args)
+        self.assertTrue(load_ops(cfg.process)[0].use_auto_proc())
 
     def test_op_params_parsing(self):
         from jsonargparse import ArgumentParser
@@ -421,13 +446,11 @@ class ConfigTest(DataJuicerTestCaseBase):
         self.assertEqual(cfg.executor_type, 'default')
         self.assertEqual(cfg.ray_address, 'auto')
         self.assertEqual(cfg.text_keys, 'text')
-        self.assertEqual(cfg.add_suffix, False)
         self.assertEqual(cfg.export_path, './outputs/')
         self.assertEqual(cfg.suffixes, None)
         
         # Test default values are of correct type
         self.assertIsInstance(cfg.executor_type, str)
-        self.assertIsInstance(cfg.add_suffix, bool)
         self.assertIsInstance(cfg.export_path, str)
 
     def test_cli_override(self):
@@ -500,18 +523,12 @@ class ConfigTest(DataJuicerTestCaseBase):
             with self.assertRaises(NotImplementedError):
                 init_configs(args=[
                     '--auto',
-                ], which_entry="NoneAnalyzerClass")
+                ], allow_auto=False)
 
             # in analyzer
-            from data_juicer.core import Analyzer
-            cfg = init_configs(args=[
-                '--config', test_yaml_path,
-            ])
-            analyzer = Analyzer(cfg)
-
             cfg_auto = init_configs(args=[
                 '--auto',
-            ], which_entry=analyzer)
+            ], allow_auto=True)
             self.assertTrue(cfg_auto.auto)
             self.assertGreater(len(cfg_auto.process), 0)
 
@@ -1074,6 +1091,145 @@ from . import new_op4
             os.unlink(temp_config_path)
 
 
+class ConfigRuntimeConsistencyTest(DataJuicerTestCaseBase):
+
+    def test_removed_settings_are_rejected_in_cli_and_yaml(self):
+        from data_juicer.config.config import build_base_parser
+
+        removed = {
+            'intermediate_storage.preserve_intermediate_data': True,
+            'intermediate_storage.cleanup_temp_files': False,
+            'intermediate_storage.cleanup_on_success': True,
+            'intermediate_storage.retention_policy': 'keep_all',
+            'intermediate_storage.max_retention_days': 7,
+            'intermediate_storage.format': 'jsonl',
+            'intermediate_storage.compression': 'gzip',
+            'intermediate_storage.write_partitions': True,
+            'preserve_intermediate_data': True,
+            'resource_optimization.auto_configure': True,
+            'max_log_size_mb': 1,
+            'backup_count': 2,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'config.yaml')
+            for name, value in removed.items():
+                for source in ('cli', 'yaml'):
+                    with self.subTest(name=name, source=source):
+                        config = {'process': []}
+                        args = ['--config', path]
+                        if source == 'yaml':
+                            parent = config
+                            parts = name.split('.')
+                            for part in parts[:-1]:
+                                parent = parent.setdefault(part, {})
+                            parent[parts[-1]] = value
+                        else:
+                            args += ['--' + name, str(value).lower()]
+                        with open(path, 'w') as stream:
+                            yaml.safe_dump(config, stream)
+                        error = StringIO()
+                        with redirect_stderr(error), self.assertRaises(SystemExit) as caught:
+                            build_base_parser().parse_args(args)
+                        self.assertEqual(caught.exception.code, 2)
+                        self.assertIn(name.split('.')[0], error.getvalue())
+
+    def test_invalid_checkpoint_and_read_settings_fail_at_parse_time(self):
+        from data_juicer.config.config import build_base_parser
+
+        for name, value in [
+            ('checkpoint.strategy', 'every_partition'),
+            ('checkpoint.n_ops', '0'),
+            ('checkpoint.n_ops', '-1'),
+            ('override_num_blocks', '0'),
+            ('override_num_blocks', '-1'),
+        ]:
+            with self.subTest(name=name, value=value):
+                with redirect_stderr(StringIO()), self.assertRaises(SystemExit) as caught:
+                    build_base_parser().parse_args(['--auto', '--' + name, value])
+                self.assertEqual(caught.exception.code, 2)
+
+    def test_parsed_checkpoint_strategies_select_expected_operations(self):
+        from data_juicer.config.config import build_base_parser
+        from data_juicer.utils.ckpt_utils import CheckpointStrategy, RayCheckpointManager
+
+        expected = {
+            'every_op': [0, 1, 2, 3, 4],
+            'every_n_ops': [2],
+            'manual': [1],
+            'disabled': [],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            for strategy, indices in expected.items():
+                with self.subTest(strategy=strategy):
+                    cfg = build_base_parser().parse_args([
+                        '--auto', '--checkpoint.strategy', strategy,
+                        '--checkpoint.n_ops', '3', '--checkpoint.op_names', '[op_1]',
+                    ])
+                    manager = RayCheckpointManager(
+                        tmp, checkpoint_enabled=cfg.checkpoint.enabled,
+                        checkpoint_strategy=CheckpointStrategy(cfg.checkpoint.strategy),
+                        checkpoint_n_ops=cfg.checkpoint.n_ops,
+                        checkpoint_op_names=cfg.checkpoint.op_names,
+                    )
+                    actual = [i for i in range(5) if manager.should_checkpoint(i, f'op_{i}')]
+                    self.assertEqual(actual, indices)
+
+    def test_lenient_jsonl_yaml_controls_real_loading(self):
+        from datasets.exceptions import DatasetGenerationError
+        from data_juicer.core.data.dataset_builder import DatasetBuilder
+
+        old_env = os.environ.pop('DATA_JUICER_JSONL_LENIENT', None)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                data_path = os.path.join(tmp, 'data.jsonl')
+                path = os.path.join(tmp, 'config.yaml')
+                with open(data_path, 'w') as stream:
+                    stream.write('{"text": "first"}\nnot json\n{"text": "last"}\n')
+                for enabled in (False, True):
+                    with self.subTest(enabled=enabled):
+                        with open(path, 'w') as stream:
+                            yaml.safe_dump({
+                                'dataset_path': data_path, 'np': 1,
+                                'load_jsonl_lenient': enabled, 'process': [],
+                                'work_dir': tmp, 'export_path': os.path.join(tmp, 'result.jsonl'),
+                            }, stream)
+                        cfg = init_configs(['--config', path], load_configs_only=True)
+                        builder = DatasetBuilder(cfg)
+                        if enabled:
+                            self.assertEqual(list(builder.load_dataset(num_proc=1)['text']), ['first', 'last'])
+                        else:
+                            with self.assertRaises(DatasetGenerationError):
+                                builder.load_dataset(num_proc=1)
+        finally:
+            if old_env is not None:
+                os.environ['DATA_JUICER_JSONL_LENIENT'] = old_env
+
+    def test_use_dag_yaml_controls_plan_without_changing_processing(self):
+        from data_juicer.core.executor.default_executor import DefaultExecutor
+
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, 'data.jsonl')
+            with open(data_path, 'w') as stream:
+                stream.write('{"text": "hello\\u3000world"}\n')
+            for enabled in (None, False, True):
+                with self.subTest(enabled=enabled):
+                    path = os.path.join(tmp, f'config-{enabled}.yaml')
+                    with open(path, 'w') as stream:
+                        yaml.safe_dump({
+                            'dataset_path': data_path, 'np': 1, 'use_dag': enabled,
+                            'work_dir': os.path.join(tmp, str(enabled)),
+                            'export_path': os.path.join(tmp, str(enabled), 'result.jsonl'),
+                            'process': [{'whitespace_normalization_mapper': {}}],
+                        }, stream)
+                    cfg = init_configs(['--config', path], load_configs_only=True)
+                    executor = DefaultExecutor(cfg)
+                    result = executor.run()
+                    self.assertEqual(list(result['text']), ['hello world'])
+                    self.assertEqual(executor.pipeline_dag is not None, enabled is True)
+                    self.assertEqual(os.path.isfile(os.path.join(cfg.work_dir, 'dag_execution_plan.json')),
+                                     enabled is True)
+
+
 class EncryptionConfigTest(DataJuicerTestCaseBase):
     """Tests for encryption-related config parameters and post-parse logic."""
 
@@ -1199,6 +1355,149 @@ class EncryptionConfigTest(DataJuicerTestCaseBase):
         })
         cfg = init_configs(args=['--config', yaml_path])
         self.assertIsNone(cfg.cache_compress)
+
+
+class PartitionTargetSizeConfigTest(DataJuicerTestCaseBase):
+
+    def _load(self, extra_args=None):
+        return init_configs(
+            ['--auto'] + (extra_args or []),
+            allow_auto=True,
+            load_configs_only=True,
+        )
+
+    def _load_with_warnings(self, extra_args):
+        import warnings
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            cfg = self._load(extra_args)
+        deprecations = [warning for warning in caught if issubclass(warning.category, DeprecationWarning)]
+        return cfg, deprecations
+
+    def _load_config_all_partition(self, extra_args=None):
+        """Load the reference partition stanza in an otherwise minimal config."""
+        config_all_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+            'data_juicer',
+            'config',
+            'config_all.yaml',
+        )
+        with open(config_all_path) as f:
+            partition = yaml.safe_load(f)['partition']
+
+        config = {
+            'project_name': 'partition_config_all_test',
+            'dataset_path': test_yaml_path,
+            'export_path': os.path.join(tempfile.gettempdir(), 'partition_config_all_test.jsonl'),
+            'process': [],
+            'partition': partition,
+        }
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.safe_dump(config, f)
+            config_path = f.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.unlink(config_path))
+        return init_configs(
+            ['--config', config_path] + (extra_args or []),
+            load_configs_only=True,
+        )
+
+    def test_default_and_explicit_target_size(self):
+        self.assertEqual(self._load().partition.target_size_mb, 256)
+        cfg = self._load(['--partition.target_size_mb', '64'])
+        self.assertEqual(cfg.partition.target_size_mb, 64)
+
+    def test_non_positive_target_size_is_preserved_for_optimizer_clamping(self):
+        for value in ('0', '-1'):
+            with self.subTest(value=value):
+                cfg = self._load(['--partition.target_size_mb', value])
+                self.assertEqual(cfg.partition.target_size_mb, int(value))
+
+    def test_obsolete_flat_max_size_is_rejected(self):
+        with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit) as cm:
+                self._load(['--max_partition_size_mb', '64'])
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_nested_partition_size(self):
+        self.assertIsNone(self._load().partition.size)
+        self.assertEqual(self._load().partition.num_of_partitions, 4)
+        cfg = self._load(['--partition.mode', 'manual', '--partition.size', '500'])
+        self.assertEqual(cfg.partition.size, 500)
+        self.assertIsNone(cfg.partition.num_of_partitions)
+        with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit):
+                self._load(['--partition.size', '0'])
+
+    def test_config_all_allows_manual_size_cli_override(self):
+        default_cfg = self._load_config_all_partition()
+        self.assertEqual(default_cfg.partition.num_of_partitions, 4)
+
+        size_cfg = self._load_config_all_partition([
+            '--partition.mode', 'manual',
+            '--partition.size', '500',
+        ])
+        self.assertEqual(size_cfg.partition.size, 500)
+        self.assertIsNone(size_cfg.partition.num_of_partitions)
+
+    def test_flat_partition_size_bridges_and_warns(self):
+        for value in ('2000', '10000'):
+            with self.subTest(value=value):
+                cfg, warnings = self._load_with_warnings(['--partition_size', value])
+                self.assertEqual(cfg.partition.size, int(value))
+                self.assertEqual(len(warnings), 1)
+                self.assertIn('--partition_size', str(warnings[0].message))
+
+    def test_nested_partition_size_takes_precedence(self):
+        cfg, warnings = self._load_with_warnings(
+            ['--partition_size', '2000', '--partition.size', '3000']
+        )
+        self.assertEqual(cfg.partition.size, 3000)
+        self.assertEqual(len(warnings), 1)
+
+    def test_manual_size_and_count_are_mutually_exclusive(self):
+        with self.assertRaisesRegex(ValueError, 'mutually exclusive'):
+            self._load([
+                '--partition.mode', 'manual',
+                '--partition.size', '500',
+                '--partition.num_of_partitions', '8',
+            ])
+
+    def test_auto_partition_count_sentinel_can_use_size_fallback(self):
+        cfg = self._load([
+            '--partition.mode', 'manual',
+            '--partition.size', '500',
+            '--partition.num_of_partitions', 'auto',
+        ])
+        self.assertEqual(cfg.partition.size, 500)
+        self.assertEqual(cfg.partition.num_of_partitions, 'auto')
+
+    def test_manual_legacy_size_does_not_override_explicit_count(self):
+        import warnings
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            cfg = self._load([
+                '--partition.mode', 'manual',
+                '--partition_size', '500',
+                '--partition.num_of_partitions', '8',
+            ])
+        self.assertIsNone(cfg.partition.size)
+        self.assertEqual(cfg.partition.num_of_partitions, 8)
+        self.assertEqual(
+            [warning.category for warning in caught],
+            [DeprecationWarning, UserWarning],
+        )
+        self.assertIn('Ignoring deprecated partition_size', str(caught[1].message))
+
+    def test_manual_legacy_size_bridges_when_count_is_omitted(self):
+        cfg, warnings = self._load_with_warnings([
+            '--partition.mode', 'manual',
+            '--partition_size', '500',
+        ])
+        self.assertEqual(cfg.partition.size, 500)
+        self.assertIsNone(cfg.partition.num_of_partitions)
+        self.assertEqual(len(warnings), 1)
 
 
 if __name__ == '__main__':

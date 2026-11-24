@@ -1,7 +1,7 @@
 import unittest
 
 from data_juicer.core import NestedDataset
-from data_juicer.ops.base_op import OP
+from data_juicer.ops.base_op import Mapper, OP
 from data_juicer.ops.load import load_ops
 from data_juicer.ops.op_fusion import fuse_operators, GeneralFusedOP
 from data_juicer.utils.constant import Fields
@@ -2138,6 +2138,244 @@ class FusedFilterFingerprintTest(DataJuicerTestCaseBase):
         fused_b = FusedFilter('fused', [f1b, f2b])
 
         self.assertNotEqual(Hasher.hash(fused_a), Hasher.hash(fused_b))
+
+
+class _MockUpperCaseMapper(Mapper):
+    """Mapper that uppercases text and returns a NEW dict."""
+    _batched_op = True
+
+    def __init__(self, text_key='text', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_key = text_key
+        self._name = 'mock_upper_case_mapper'
+
+    def process_batched(self, samples, **kwargs):
+        new_samples = samples.copy()
+        new_samples[self.text_key] = [t.upper() for t in samples[self.text_key]]
+        return new_samples
+
+
+class _MockSuffixMapper(Mapper):
+    """Mapper that appends a suffix and returns a NEW dict."""
+    _batched_op = True
+
+    def __init__(self, suffix='_DONE', text_key='text', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_key = text_key
+        self.suffix = suffix
+        self._name = 'mock_suffix_mapper'
+
+    def process_batched(self, samples, **kwargs):
+        new_samples = samples.copy()
+        new_samples[self.text_key] = [t + self.suffix for t in samples[self.text_key]]
+        return new_samples
+
+
+class _MockInPlaceMapper(Mapper):
+    """Mapper that mutates in-place (masks the new-dict bug)."""
+    _batched_op = True
+
+    def __init__(self, text_key='text', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_key = text_key
+        self._name = 'mock_inplace_mapper'
+
+    def process_batched(self, samples, **kwargs):
+        samples[self.text_key] = [t.lower() for t in samples[self.text_key]]
+        return samples
+
+
+class GeneralFusedOPMapperBugTest(DataJuicerTestCaseBase):
+    """Regression: mapper results must chain correctly in GeneralFusedOP."""
+
+    def _make_fused_op(self, ops):
+        fused = GeneralFusedOP.__new__(GeneralFusedOP)
+        fused._name = 'GeneralFusedOP:test'
+        fused.fused_ops = ops
+        fused.accelerator = 'cpu'
+        fused.batch_size = 10
+        fused.num_proc = 1
+        return fused
+
+    def test_two_new_dict_mappers_results_chained(self):
+        fused_op = self._make_fused_op([
+            _MockUpperCaseMapper(), _MockSuffixMapper(suffix='_DONE')])
+        samples = {
+            'text': ['hello', 'world'],
+            Fields.stats: [{}, {}],
+        }
+        result = fused_op.process_batched(samples)
+        self.assertEqual(result['text'], ['HELLO_DONE', 'WORLD_DONE'])
+
+    def test_single_mapper_result_returned(self):
+        fused_op = self._make_fused_op([_MockUpperCaseMapper()])
+        samples = {
+            'text': ['hello', 'world'],
+            Fields.stats: [{}, {}],
+        }
+        result = fused_op.process_batched(samples)
+        self.assertEqual(result['text'], ['HELLO', 'WORLD'])
+
+    def test_inplace_then_newdict_mapper(self):
+        fused_op = self._make_fused_op([
+            _MockInPlaceMapper(), _MockSuffixMapper(suffix='_END')])
+        samples = {
+            'text': ['HELLO', 'WORLD'],
+            Fields.stats: [{}, {}],
+        }
+        result = fused_op.process_batched(samples)
+        self.assertEqual(result['text'], ['hello_END', 'world_END'])
+
+
+class FusedContextKeyIsolationTest(DataJuicerTestCaseBase):
+    """Fusion must not change any statistic.
+
+    Ops in a fused group share one `Fields.context` dict. The cache key for
+    each intermediate variable therefore has to identify everything the
+    cached value depends on -- the source column (`text_key`) and the
+    tokenizer (`model_key`). If two ops in the same group disagree on either
+    one but build the same key, the second op silently reads the first op's
+    value and reports a statistic for a column it never looked at.
+    """
+
+    def _fused_vs_unfused(self, process_list, row):
+        """Compute stats and the keep/drop decision, fused and unfused."""
+
+        def make_batch():
+            batch = {key: [value] for key, value in row.items()}
+            batch[Fields.stats] = [{}]
+            batch[Fields.context] = [{}]
+            return batch
+
+        fused_ops = fuse_operators(load_ops(process_list))
+        self.assertEqual(len(fused_ops), 1,
+                         'ops under test are expected to fuse into one op')
+
+        fused_batch = make_batch()
+        fused_ops[0].compute_stats_batched(fused_batch)
+        fused_stats = fused_batch[Fields.stats][0]
+        fused_keep = bool(list(fused_ops[0].process_batched(fused_batch))[0])
+
+        # Every unfused op gets its own batch and therefore its own context,
+        # so it cannot read another op's intermediate value. That makes the
+        # unfused run the reference behaviour the fused run has to match.
+        unfused_stats, unfused_keep = {}, True
+        for op in load_ops(process_list):
+            batch = make_batch()
+            op.compute_stats_batched(batch)
+            unfused_stats.update(batch[Fields.stats][0])
+            unfused_keep &= bool(list(op.process_batched(batch))[0])
+
+        return fused_stats, unfused_stats, fused_keep, unfused_keep
+
+    def _assert_fusion_transparent(self, process_list, row, expected_stats,
+                                   expected_keep):
+        fused_stats, unfused_stats, fused_keep, unfused_keep = \
+            self._fused_vs_unfused(process_list, row)
+
+        self.assertEqual(sorted(unfused_stats), sorted(expected_stats))
+        self.assertEqual(sorted(fused_stats), sorted(expected_stats))
+        for key, expected in expected_stats.items():
+            self.assertAlmostEqual(unfused_stats[key], expected, places=6)
+            self.assertAlmostEqual(fused_stats[key], expected, places=6)
+        self.assertEqual(unfused_keep, expected_keep)
+        self.assertEqual(fused_keep, expected_keep)
+
+    def test_inter_words_ops_differing_in_text_key(self):
+        process_list = [{
+            'words_num_filter': {
+                'lang': 'en',
+                'min_num': 1,
+                'max_num': 10000,
+                'tokenization': False,
+                'text_key': 'text'
+            }
+        }, {
+            'word_repetition_filter': {
+                'lang': 'en',
+                'rep_len': 2,
+                'min_ratio': 0.0,
+                'max_ratio': 1.0,
+                'tokenization': False,
+                'text_key': 'translation'
+            }
+        }]
+        # 'text' is all-identical 2-grams, 'translation' has no repetition, so
+        # reading the wrong column flips word_rep_ratio from 0.0 to 1.0, which
+        # also pushes the sample past max_ratio and drops it.
+        row = {
+            'text': 'ha ha ha ha ha ha ha ha',
+            'translation': 'alpha beta gamma delta epsilon zeta eta theta'
+        }
+        self._assert_fusion_transparent(process_list,
+                                        row,
+                                        expected_stats={
+                                            'num_words': 8,
+                                            'word_rep_ratio': 0.0
+                                        },
+                                        expected_keep=True)
+
+    def test_inter_lines_ops_differing_in_text_key(self):
+        process_list = [{
+            'average_line_length_filter': {
+                'min_len': 1,
+                'max_len': 100000,
+                'text_key': 'text'
+            }
+        }, {
+            'maximum_line_length_filter': {
+                'min_len': 10,
+                'max_len': 100000,
+                'text_key': 'translation'
+            }
+        }]
+        # 'text' splits into three 1-char lines, 'translation' is one long
+        # line, so reading the wrong column reports max_line_length 1 not 30,
+        # which falls below min_len and drops the sample.
+        row = {'text': 'a\nb\nc', 'translation': 'x' * 30}
+        self._assert_fusion_transparent(process_list,
+                                        row,
+                                        expected_stats={
+                                            'avg_line_length': 5 / 3,
+                                            'max_line_length': 30
+                                        },
+                                        expected_keep=True)
+
+    def test_inter_words_ops_differing_in_tokenizer(self):
+        # Tokenized word_repetition_filter followed by untokenized
+        # stopwords_filter on the same field. The tokenized version uses
+        # SentencePiece which produces different word tokens than simple
+        # whitespace splitting. With a broken cache key (missing model_key),
+        # the second op would read the first op's tokenized words and report
+        # the wrong stopwords_ratio.
+        process_list = [{
+            'word_repetition_filter': {
+                'lang': 'en',
+                'rep_len': 2,
+                'tokenization': True,
+                'text_key': 'text'
+            }
+        }, {
+            'stopwords_filter': {
+                'lang': 'en',
+                'min_ratio': 0.3,
+                'tokenization': False,
+                'text_key': 'text'
+            }
+        }]
+        # 3 of the 9 whitespace-split words are English stopwords ('the',
+        # 'over', 'the'), so stopwords_ratio is 1/3 and the sample is kept.
+        # SentencePiece splits the same sentence into more, partly sub-word
+        # tokens that the stopwords list does not match; reading those from the
+        # shared context yields 0.0, below min_ratio, and drops the sample.
+        row = {'text': 'the quick brown fox jumps over the lazy dog'}
+        self._assert_fusion_transparent(process_list,
+                                        row,
+                                        expected_stats={
+                                            'word_rep_ratio': 0.0,
+                                            'stopwords_ratio': 1 / 3
+                                        },
+                                        expected_keep=True)
 
 
 if __name__ == '__main__':

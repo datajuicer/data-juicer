@@ -89,7 +89,7 @@ class StopWordsFilter(Filter):
             return sample
 
         # try to get words from context
-        words_key = f"{InterVars.words}-{self.model_key}"
+        words_key = f"{InterVars.words}-{self.model_key}-{self.text_key}"
         if context and words_key in sample[Fields.context]:
             words = sample[Fields.context][words_key]
         else:
@@ -102,7 +102,9 @@ class StopWordsFilter(Filter):
 
         # try to get refined words from context
         refined_words_key = (
-            f"{InterVars.refined_words}-True-SPECIAL_CHARS-"
+            f"{InterVars.refined_words}"
+            f"-{self.model_key}-{self.text_key}"
+            "-True-SPECIAL_CHARS-"
             f"{self.use_words_aug}-"
             f"{self.words_aug_group_sizes}-"
             f"{self.words_aug_join_char}"

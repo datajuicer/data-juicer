@@ -1,6 +1,6 @@
 # Metrics for video generation
 
-This folder contains some postprocess scripts for evaluation of generated videos.
+The scripts in [`tools/mm_eval/inception_metrics`](.) are used to compute quality metrics (FVD, ISV, etc.) for model-generated videos.
 
 ## Usage
 

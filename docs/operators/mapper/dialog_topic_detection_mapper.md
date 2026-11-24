@@ -38,7 +38,7 @@ Tags 标签: cpu, api
 ## 📊 Effect demonstration 效果演示
 ### test_default
 ```python
-DialogTopicDetectionMapper(api_model='qwen2.5-72b-instruct')
+DialogTopicDetectionMapper(api_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据

@@ -3,6 +3,7 @@ from .audio_duration_filter import AudioDurationFilter
 from .audio_nmf_snr_filter import AudioNMFSNRFilter
 from .audio_size_filter import AudioSizeFilter
 from .average_line_length_filter import AverageLineLengthFilter
+from .benchmark_contamination_filter import BenchmarkContaminationFilter
 from .character_repetition_filter import CharacterRepetitionFilter
 from .flagged_words_filter import FlaggedWordFilter
 from .general_field_filter import GeneralFieldFilter
@@ -46,6 +47,7 @@ from .token_num_filter import TokenNumFilter
 from .video_aesthetics_filter import VideoAestheticsFilter
 from .video_aspect_ratio_filter import VideoAspectRatioFilter
 from .video_duration_filter import VideoDurationFilter
+from .video_face_ratio_filter import VideoFaceRatioFilter
 from .video_frames_text_similarity_filter import VideoFramesTextSimilarityFilter
 from .video_motion_score_filter import VideoMotionScoreFilter
 from .video_motion_score_ptlflow_filter import VideoMotionScorePtlflowFilter
@@ -64,6 +66,7 @@ __all__ = [
     "AudioNMFSNRFilter",
     "AudioSizeFilter",
     "AverageLineLengthFilter",
+    "BenchmarkContaminationFilter",
     "CharacterRepetitionFilter",
     "FlaggedWordFilter",
     "ImageAestheticsFilter",
@@ -116,6 +119,7 @@ __all__ = [
     "WordRepetitionFilter",
     "WordsNumFilter",
     "GeneralFieldFilter",
+    "VideoFaceRatioFilter",
 ]
 
 NON_STATS_FILTERS = [

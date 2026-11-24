@@ -45,6 +45,25 @@ class MANO(smplx.MANOLayer):
         mano_output.joints = joints
         return mano_output
 
+    @classmethod
+    def build_left(cls, model_path, fix_shapedirs=True):
+        """Build a LEFT-hand MANO model.
+
+        HaWoR uses a separate MANO_LEFT.pkl with is_rhand=False and a
+        shapedirs bug-fix (https://github.com/vchoutas/smplx/issues/48).
+
+        Args:
+            model_path: Path to MANO_LEFT.pkl
+            fix_shapedirs: Apply the left-hand shapedirs fix (default True).
+
+        Returns:
+            MANO model configured for left hand.
+        """
+        model = cls(model_path=model_path, is_rhand=False)
+        if fix_shapedirs:
+            model.shapedirs[:, 0, :] *= -1
+        return model
+
     def query(self, hmr_output):
         batch_size = hmr_output["pred_rotmat"].shape[0]
         pred_rotmat = hmr_output["pred_rotmat"].reshape(batch_size, -1, 3, 3)

@@ -1,20 +1,33 @@
 # DJ-Cookbook
 ## 资源合集
-- [KDD'24 相关教程](https://datajuicer.github.io/data-juicer/en/main/_static/tutorial_kdd24.html)
+- [KDD'24 相关教程](https://datajuicer.github.io/data-juicer/zh_CN/main/_static/tutorial_kdd24.html)
 - [Awesome LLM-Data](../awesome_llm_data.md)
 - ["坏"数据展览](../BadDataExhibition_ZH.md)
 
 ## 编写Data-Juicer (DJ) 代码
 - 基础
-  - [DJ概览](../../README_ZH.md)
+  - [DJ概览](https://github.com/datajuicer/data-juicer/blob/main/README_ZH.md)
   - [快速上手](QuickStart_ZH.md)
+  - [处理数据](../ProcessData_ZH.md)
+  - [算子提要](../Operators.md)
+  - [分布式处理](../Distributed_ZH.md)
   - [配置](https://datajuicer.github.io/data-juicer-hub/zh_CN/main/docs/RecipeGallery_ZH.html)
+  - [数据集配置](../DatasetCfg_ZH.md)
   - [数据格式转换](../../tools/fmt_conversion/README_ZH.md)
 - 信息速查
   - [算子库](../Operators.md)
   - [API参考](https://datajuicer.github.io/data-juicer/zh_CN/main/api)
+- 数据处理进阶
+  - [数据导出](../Export_ZH.md)
+  - [缓存管理](../Cache_ZH.md)
+  - [数据追踪](../Tracing_ZH.md)
+- 分布式处理
+  - [分布式数据处理](../Distributed_ZH.md)
+  - [分区与检查点](../PartitionAndCheckpoint_ZH.md)
+  - [作业管理](../JobManagement_ZH.md)
 - 进阶
   - [开发者指南](../DeveloperGuide_ZH.md)
+  - [算子插件](../OperatorPlugins_ZH.md)
   - [预处理工具](../../tools/preprocess/README_ZH.md)
   - [后处理工具](../../tools/postprocess/README_ZH.md)
   - [沙盒](https://datajuicer.github.io/data-juicer-sandbox/zh_CN/main/index_ZH.html)

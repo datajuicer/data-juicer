@@ -67,7 +67,7 @@ class WordRepetitionFilter(Filter):
     def compute_stats_batched(self, samples, context=False):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
-        words_key = f"{InterVars.words}-{self.model_key}"
+        words_key = f"{InterVars.words}-{self.model_key}-{self.text_key}"
 
         for idx, stat in enumerate(samples_stats):
             # check if it's computed already
@@ -85,16 +85,18 @@ class WordRepetitionFilter(Filter):
                     samples[Fields.context][idx][words_key] = words
 
             # try to get refined words from context
-            refined_words_key = f"{InterVars.refined_words}-" f"True-SPECIAL_CHARS-False-[2]-"
+            refined_words_key = (
+                f"{InterVars.refined_words}-{self.model_key}-{self.text_key}-" f"True-SPECIAL_CHARS-False-[2]-"
+            )
             if context and refined_words_key in samples[Fields.context][idx]:
                 words = samples[Fields.context][idx][refined_words_key]
             else:
                 words = words_refinement(words, lower_case=True, strip_chars=SPECIAL_CHARACTERS)
                 if context:
                     samples[Fields.context][idx][refined_words_key] = words
-            word_ngrams = [" ".join(words[i : i + self.n]) for i in range(len(words) - self.n + 1)]
             freq_word_ngrams = {}
-            for word_ngram in word_ngrams:
+            for i in range(len(words) - self.n + 1):
+                word_ngram = " ".join(words[i : i + self.n])
                 freq_word_ngrams[word_ngram] = freq_word_ngrams.get(word_ngram, 0) + 1
 
             if len(freq_word_ngrams) == 0:

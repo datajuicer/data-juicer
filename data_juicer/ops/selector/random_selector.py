@@ -50,11 +50,15 @@ class RandomSelector(Selector):
         if self.select_ratio is None and self.select_num is None:
             return dataset
 
-        if not self.select_ratio:
+        if self.select_ratio is None:
             select_num = self.select_num
         else:
             select_num = int(self.select_ratio * len(dataset))
             if self.select_num and self.select_num < select_num:
                 select_num = self.select_num
+
+        # random_sample treats zero as an unspecified count and falls back to its weight.
+        if select_num == 0:
+            return dataset.select([])
 
         return random_sample(dataset, sample_number=select_num)

@@ -74,6 +74,10 @@ class ActorBackend(Backend):
             RemoteDedupSet = self._RemoteDedupSet or get_remote_dedup_set()
             self._dedup_sets = [RemoteDedupSet.remote() for _ in range(self.dedup_set_num)]
 
+    def prepare_for_ray_execution(self):
+        """Create shared actors before this backend is serialized to Ray tasks."""
+        self._ensure_actors()
+
     def is_unique(self, md5_value: str):
         self._ensure_actors()
         dedup_set_id = int.from_bytes(md5_value.encode(), byteorder="little") % MERSENNE_PRIME % self.dedup_set_num
@@ -103,6 +107,7 @@ class RayBasicDeduplicator(Filter):
 
     # TODO: Set a more reasonable value
     EMPTY_HASH_VALUE = "EMPTY"
+    _supported_exec_modes = ("ray", "ray_partitioned")
 
     def __init__(
         self,
@@ -133,15 +138,21 @@ class RayBasicDeduplicator(Filter):
         else:
             raise ValueError(f"Unknown backend: {backend}")
 
+    def _prepare_for_ray_map_batches(self):
+        if isinstance(self.backend, ActorBackend):
+            self.backend.prepare_for_ray_execution()
+        return True
+
     def calculate_hash(self, sample, context=False):
-        """Calculate hash value for the sample."""
+        """Calculate hash value for the sample, or None if the sample has
+        nothing to deduplicate on (e.g. no image), which keeps it."""
         raise NotImplementedError
 
     def compute_stats_single(self, sample, context=False):
         # compute hash
         md5_value = self.calculate_hash(sample, context)
         # check existing
-        sample[HashKeys.is_unique] = self.backend.is_unique(md5_value)
+        sample[HashKeys.is_unique] = md5_value is None or self.backend.is_unique(md5_value)
         return sample
 
     def process_single(self, sample):

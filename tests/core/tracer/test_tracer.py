@@ -624,6 +624,25 @@ class TracerTest(DataJuicerTestCaseBase):
         expected = [{'text': 'filtered text 1'}]
         self.assertEqual(expected, trace_records)
 
+    def test_batched_mapper_wrapper_skips_batches_that_change_row_count(self):
+        """Rows are not paired by position when a batched mapper drops or
+        splits samples, e.g. a batch emptied by a skipped op error."""
+        from data_juicer.ops.base_op import wrap_mapper_with_tracer
+        tracer = Tracer(self.work_dir, op_list_to_trace=['test_mapper'])
+        trace_file_path = os.path.join(self.work_dir, 'trace', 'sample_trace-test_mapper.jsonl')
+
+        def drop_all(samples):
+            return {key: [] for key in samples}
+
+        def split_first(samples):
+            return {'text': ['a', 'b', samples['text'][1]]}
+
+        for process, expected in [(drop_all, {'text': []}),
+                                  (split_first, {'text': ['a', 'b', 'y']})]:
+            wrapped = wrap_mapper_with_tracer(process, 'test_mapper', 'text', tracer, True)
+            self.assertEqual(wrapped({'text': ['a b', 'y']}), expected)
+        self.assertFalse(os.path.exists(trace_file_path))
+
 
 if __name__ == '__main__':
     unittest.main()

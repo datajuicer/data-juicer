@@ -1,6 +1,8 @@
 import json
 import unittest
 import os
+from unittest.mock import MagicMock, patch
+
 from data_juicer.utils.unittest_utils import TEST_TAG, DataJuicerTestCaseBase
 
 
@@ -39,7 +41,9 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
     def tearDown(self) -> None:
         super().tearDown()
         if os.path.exists(self.tmp_dir):
-            import shutil; shutil.rmtree(self.tmp_dir)
+            import shutil
+
+            shutil.rmtree(self.tmp_dir)
 
     def _touch_a_file(self, path):
         """Create a file at the given path"""
@@ -143,6 +147,156 @@ class RayDatasetFuncsTest(DataJuicerTestCaseBase):
         dataset = read_json_stream(jsonl_path, read_options=read_options)
         self.assertEqual(len(dataset.take(3)[2]["text"]), len(_text))
 
+    @TEST_TAG("ray")
+    def test_read_json_stream_schema_evolution(self):
+        """Regression test for #936: null -> concrete type schema evolution."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+
+        jsonl_path = os.path.join(self.tmp_dir, "schema_evolution.jsonl")
+        rows = [{"id": i, "meta": {"url": None}} for i in range(30)]
+        rows.append({"id": 999, "meta": {"url": "https://example.com"}})
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(jsonl_path, override_num_blocks=1, read_options=read_options)
+        result = dataset.take_all()
+        self.assertEqual(len(result), 31)
+        self.assertEqual(result[-1]["id"], 999)
+        self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_schema_evolution_with_filesystem(self):
+        """Regression test: schema evolution fallback works with filesystem abstraction."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+        import pyarrow.fs as pafs
+
+        jsonl_path = os.path.join(self.tmp_dir, "schema_evolution_fs.jsonl")
+        rows = [{"id": i, "meta": {"url": None}} for i in range(30)]
+        rows.append({"id": 999, "meta": {"url": "https://example.com"}})
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        fs = pafs.SubTreeFileSystem(self.tmp_dir, pafs.LocalFileSystem())
+        relative_path = "schema_evolution_fs.jsonl"
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(
+            relative_path,
+            filesystem=fs,
+            override_num_blocks=1,
+            read_options=read_options,
+        )
+        result = dataset.take_all()
+        self.assertEqual(len(result), 31)
+        self.assertEqual(result[-1]["id"], 999)
+        self.assertEqual(result[-1]["meta"]["url"], "https://example.com")
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_stable_schema_no_fallback(self):
+        """Verify stable-schema files stream without buffering (no fallback)."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+        import pyarrow.json as js
+
+        jsonl_path = os.path.join(self.tmp_dir, "stable_schema.jsonl")
+        rows = [{"id": i, "meta": {"url": f"https://example.com/{i}"}} for i in range(100)]
+        with open(jsonl_path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        read_options = js.ReadOptions(use_threads=False, block_size=256)
+        dataset = read_json_stream(jsonl_path, override_num_blocks=1, read_options=read_options)
+        result = dataset.take_all()
+        self.assertEqual(len(result), 100)
+        self.assertEqual(result[0]["id"], 0)
+        self.assertEqual(result[99]["meta"]["url"], "https://example.com/99")
+
+    def _write_rows(self, filename, rows):
+        path = os.path.join(self.tmp_dir, filename)
+        with open(path, "w") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        return path
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_read_options_dict_and_unset(self):
+        """read_options accepts dicts, and unset values keep the reader default."""
+        from data_juicer.core.data.ray_dataset import read_json_stream
+
+        rows = [{"id": i, "text": f"row {i}"} for i in range(20)]
+        jsonl_path = self._write_rows("read_options_forms.jsonl", rows)
+
+        # A dict is converted to ReadOptions; an empty dict and None are treated
+        # as unset so Ray's ReadOptions(use_threads=False) default still applies.
+        for read_options in ({"block_size": 1 << 20}, {}, None):
+            with self.subTest(read_options=read_options):
+                dataset = read_json_stream(jsonl_path, read_options=read_options)
+                result = dataset.take_all()
+                self.assertEqual(len(result), 20)
+                self.assertEqual(result[0]["text"], "row 0")
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_read_options_keeps_use_threads_disabled(self):
+        """use_threads defaults to False, and an explicit value is preserved."""
+        import pyarrow.json as js
+
+        from data_juicer.core.data import ray_dataset
+
+        real_read_options = js.ReadOptions
+        calls = []
+
+        def _capture(**kwargs):
+            calls.append(kwargs)
+            return real_read_options(**kwargs)
+
+        rows = [{"id": i} for i in range(5)]
+        jsonl_path = self._write_rows("read_options_threads.jsonl", rows)
+
+        # Ray's datasource also builds a ReadOptions(use_threads=False) default
+        # eagerly, so only the first call comes from read_json_stream itself.
+        for read_options, expected in (
+            ({"block_size": 4096}, {"block_size": 4096, "use_threads": False}),
+            ({"use_threads": True}, {"use_threads": True}),
+        ):
+            with self.subTest(read_options=read_options):
+                calls.clear()
+                with patch.object(js, "ReadOptions", _capture):
+                    ray_dataset.read_json_stream(jsonl_path, read_options=read_options)
+                self.assertEqual(calls[0], expected)
+
+    @TEST_TAG("ray")
+    def test_read_json_stream_old_pyarrow_fallback(self):
+        """Regression test: the pre-20.0.0 PyArrow fallback must materialize.
+
+        The fallback delegates to ray.data.read_json, which has no meta_provider
+        parameter and rejects read_options=None. Both failures only surface when
+        the blocks are read, so this test takes rows rather than just building
+        the dataset.
+        """
+        import pyarrow.json as js
+
+        from data_juicer.core.data.ray_dataset import read_json_stream
+
+        rows = [{"id": i, "text": f"row {i}"} for i in range(10)]
+        jsonl_path = self._write_rows("old_pyarrow_fallback.jsonl", rows)
+
+        # Hide open_json so read_json_stream takes the older-PyArrow branch.
+        open_json = js.__dict__.pop("open_json")
+        try:
+            self.assertFalse(hasattr(js, "open_json"))
+            for read_options in (None, {}, {"block_size": 1 << 20}):
+                with self.subTest(read_options=read_options):
+                    dataset = read_json_stream(jsonl_path, read_options=read_options)
+                    result = dataset.take_all()
+                    self.assertEqual(len(result), 10)
+                    self.assertEqual(result[0]["text"], "row 0")
+        finally:
+            js.__dict__["open_json"] = open_json
+
 
 class TestRayDataset(DataJuicerTestCaseBase):
     def setUp(self):
@@ -203,6 +357,16 @@ class TestRayDataset(DataJuicerTestCaseBase):
         # Test k=1
         texts = self.dataset.get_column("text", k=1)
         self.assertEqual(texts, ["Hello"])
+
+        # Ray's take() defaults to 20 rows, so explicitly requesting or
+        # retrieving all rows must not truncate larger datasets.
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get_column("text", k=25), [str(i) for i in range(25)])
+        self.assertEqual(large_dataset.get_column("text"), [str(i) for i in range(25)])
 
     @TEST_TAG("ray")
     def test_get_column_errors(self):
@@ -301,6 +465,93 @@ class TestRayDataset(DataJuicerTestCaseBase):
         self.assertIsInstance(row, dict)
         self.assertIsInstance(row["text"], str)
         self.assertIsInstance(row["score"], int)
+
+        large_data = [{"text": str(i)} for i in range(25)]
+        large_dataset = RayDataset(ray.data.from_items(large_data))
+        self.assertEqual(large_dataset.get(25), large_data)
+
+    @TEST_TAG("ray")
+    def test_process_does_not_count_before_building_plan(self):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.columns.return_value = ["text"]
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+        dataset._auto_proc = False
+        dataset._run_single_op = MagicMock(return_value={"text"})
+
+        result = dataset.process(MagicMock())
+
+        self.assertIs(result, dataset)
+        ray_data.count.assert_not_called()
+        ray_data.columns.assert_called_once()
+
+    @TEST_TAG("ray")
+    def test_process_skips_empty_dataset_with_known_schema(self):
+        """Empty datasets with a known schema (columns() returns []) must be
+        skipped instead of running operators on zero rows."""
+        import pyarrow
+        import ray
+        from data_juicer.core.data.ray_dataset import RayDataset
+        from data_juicer.ops.mapper.punctuation_normalization_mapper import (
+            PunctuationNormalizationMapper,
+        )
+
+        empty_data = pyarrow.table({"text": []})
+        dataset = RayDataset(ray.data.from_arrow(empty_data))
+        self.assertEqual(dataset.data.columns(), ["text"])
+        self.assertEqual(dataset.data.count(), 0)
+
+        result = dataset.process([PunctuationNormalizationMapper()])
+
+        self.assertIs(result, dataset)
+
+
+class RayComputeStrategyTest(DataJuicerTestCaseBase):
+    def _get_compute_strategy(self, op):
+        from data_juicer.core.data.ray_dataset import RayDataset
+
+        ray_data = MagicMock()
+        ray_data.map_batches.return_value = ray_data
+        dataset = RayDataset.__new__(RayDataset)
+        dataset.data = ray_data
+
+        dataset._run_single_op(op, {"text"})
+
+        compute_strategies = [
+            call.kwargs["compute"] for call in ray_data.map_batches.call_args_list if "compute" in call.kwargs
+        ]
+        self.assertEqual(len(compute_strategies), 1)
+        return compute_strategies[0]
+
+    @TEST_TAG("ray")
+    def test_public_compute_strategies(self):
+        from ray.data import ActorPoolStrategy, TaskPoolStrategy
+
+        from data_juicer.ops.filter.text_length_filter import TextLengthFilter
+        from data_juicer.ops.mapper.python_lambda_mapper import PythonLambdaMapper
+
+        for op_class in [PythonLambdaMapper, TextLengthFilter]:
+            with self.subTest(op=op_class.__name__, mode="task"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="task")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, TaskPoolStrategy)
+                self.assertEqual(compute.size, 2)
+
+            with self.subTest(op=op_class.__name__, mode="actor"):
+                op = op_class(auto_op_parallelism=False, num_proc=2, ray_execution_mode="actor")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, ActorPoolStrategy)
+                self.assertEqual(compute.min_size, 2)
+                self.assertEqual(compute.max_size, 2)
+
+            with self.subTest(op=op_class.__name__, mode="actor", concurrency="elastic"):
+                op = op_class(auto_op_parallelism=False, num_proc=(1, 3), ray_execution_mode="actor")
+                compute = self._get_compute_strategy(op)
+                self.assertIsInstance(compute, ActorPoolStrategy)
+                self.assertEqual(compute.min_size, 1)
+                self.assertEqual(compute.max_size, 3)
 
 
 if __name__ == "__main__":

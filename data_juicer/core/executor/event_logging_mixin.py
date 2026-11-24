@@ -482,12 +482,14 @@ class EventLoggingMixin:
         if "dataset" in config:
             dataset_info["dataset"] = config.get("dataset")
 
+        partition_cfg = config.get("partition", {})
+        partition_size = partition_cfg.get("size") if partition_cfg is not None else None
         metadata = {
             "total_partitions": total_partitions,
             "config_summary": {
                 **dataset_info,
                 "executor_type": config.get("executor_type"),
-                "partition_size": config.get("partition_size"),
+                "partition_size": partition_size,
                 "checkpoint_strategy": config.get("checkpoint_strategy"),
                 "storage_format": config.get("storage_format"),
                 "compression": config.get("compression"),

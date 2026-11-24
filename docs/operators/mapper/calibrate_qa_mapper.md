@@ -31,7 +31,7 @@ Tags 标签: cpu, api, text
 ## 📊 Effect demonstration 效果演示
 ### test
 ```python
-CalibrateQAMapper(api_model='qwen2.5-72b-instruct')
+CalibrateQAMapper(api_model='qwen3.7-max')
 ```
 
 #### 📥 input data 输入数据
@@ -147,12 +147,12 @@ CalibrateQAMapper(api_model='qwen2.5-72b-instruct')
 </pre></details><div class='meta' style='margin:6px 0;'><table class='meta-table' style='border-collapse:collapse; width:100%; border:1px solid #e3e3e3;'><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:8px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>query</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>你还喜欢乔婉娩吗？</td></tr><tr><td style='text-align:left; vertical-align:top; padding:4px 8px; padding-left:8px; font-weight:500; color:#444; border-bottom:1px solid #e3e3e3; white-space:nowrap;'>response</td><td style='text-align:left; vertical-align:top; padding:4px 6px; padding-left:4px; border-bottom:1px solid #e3e3e3;'>乔婉娩啊，曾经确实有过一段情愫，但如今早已风轻云淡。往事如烟，既然是往事，早就该忘记了。</td></tr></table></div></div>
 
 #### ✨ explanation 解释
-This example demonstrates the basic usage of the CalibrateQAMapper. It takes a reference text and a question-answer pair, then uses an API model (in this case, 'qwen2.5-72b-instruct') to generate a more detailed and accurate answer. 
-此示例展示了CalibrateQAMapper的基本用法。它接收一段参考文本和一个问答对，然后使用API模型（此处为'qwen2.5-72b-instruct'）生成更加详细和准确的答案。
+This example demonstrates the basic usage of the CalibrateQAMapper. It takes a reference text and a question-answer pair, then uses an API model (in this case, 'qwen3.7-max') to generate a more detailed and accurate answer. 
+此示例展示了CalibrateQAMapper的基本用法。它接收一段参考文本和一个问答对，然后使用API模型（此处为'qwen3.7-max'）生成更加详细和准确的答案。
 
 ### test_args
 ```python
-CalibrateQAMapper(api_model='qwen2.5-72b-instruct', api_endpoint='https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', response_path='choices.0.message.content')
+CalibrateQAMapper(api_model='qwen3.7-max', api_endpoint='https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', response_path='choices.0.message.content')
 ```
 
 #### 📥 input data 输入数据

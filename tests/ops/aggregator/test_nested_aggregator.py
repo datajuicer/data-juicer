@@ -4,11 +4,39 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.aggregator import NestedAggregator
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+
+class NestedAggregatorUnitTest(DataJuicerTestCaseBase):
+    """Pure logic tests that do not require an external API."""
+
+    def test_rejects_missing_or_non_string_meta(self):
+        op = NestedAggregator(api_model="any-model")
+
+        missing = {Fields.meta: [{"other": "text"}], Fields.batch_meta: {}}
+        self.assertIs(op.process_single(missing), missing)
+
+        not_text = {
+            Fields.meta: [{MetaKeys.event_description: 3}],
+            Fields.batch_meta: {},
+        }
+        self.assertIs(op.process_single(not_text), not_text)
+
+    def test_respects_existing_batch_meta_output(self):
+        op = NestedAggregator(api_model="any-model")
+
+        existing = {
+            Fields.meta: [{MetaKeys.event_description: "text"}],
+            Fields.batch_meta: {MetaKeys.event_description: "kept"},
+        }
+        self.assertIs(op.process_single(existing), existing)
+        self.assertEqual(
+            existing[Fields.batch_meta][MetaKeys.event_description], "kept"
+        )
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class NestedAggregatorTest(DataJuicerTestCaseBase):
 
     def _run_helper(self, op, samples, output_key=MetaKeys.event_description):
@@ -41,7 +69,8 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen2.5-72b-instruct'
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
         )
         self._run_helper(op, samples)
     
@@ -58,7 +87,8 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             input_key='sub_docs',
             output_key='text'
         )
@@ -77,7 +107,8 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             max_token_num=2
         )
         self._run_helper(op, samples)
@@ -95,7 +126,8 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             max_token_num=90
         )
         self._run_helper(op, samples)
@@ -113,7 +145,8 @@ class NestedAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = NestedAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             max_token_num=200
         )
         self._run_helper(op, samples)

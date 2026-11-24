@@ -7,6 +7,7 @@ into existing executors to provide intelligent pipeline analysis and execution t
 
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -38,10 +39,25 @@ class DAGExecutionMixin:
         """Initialize the DAG execution mixin."""
         self.pipeline_dag: Optional[PipelineDAG] = None
         self.dag_initialized = False
+        self._dag_state_lock = threading.RLock()
+        self._dag_thread_state = threading.local()
+        self.current_dag_nodes: Dict[Optional[int], str] = {}
         self.current_dag_node: Optional[str] = None
         self.dag_execution_start_time: Optional[float] = None
         self.dag_execution_strategy: Optional[DAGExecutionStrategy] = None
         self._dag_ops: Optional[List] = None  # Cached operations for DAG planning
+
+    @property
+    def current_dag_node(self) -> Optional[str]:
+        """Return the current DAG node for the calling partition thread."""
+        thread_state = getattr(self, "_dag_thread_state", None)
+        return getattr(thread_state, "current_node", None)
+
+    @current_dag_node.setter
+    def current_dag_node(self, node_id: Optional[str]) -> None:
+        if not hasattr(self, "_dag_thread_state"):
+            self._dag_thread_state = threading.local()
+        self._dag_thread_state.current_node = node_id
 
     def _initialize_dag_execution(self, cfg, ops: List = None) -> None:
         """Initialize DAG execution planning with appropriate strategy.
@@ -245,22 +261,25 @@ class DAGExecutionMixin:
         if not self.pipeline_dag or node_id not in self.pipeline_dag.nodes:
             return
 
-        node = self.pipeline_dag.nodes[node_id]
+        with self._dag_state_lock:
+            node = self.pipeline_dag.nodes[node_id]
 
-        # Validate state transition
-        current_status = node.get("status", "pending")
-        DAGNodeStatusTransition.validate_and_log(node_id, current_status, "running")
+            # Validate state transition
+            current_status = node.get("status", "pending")
+            DAGNodeStatusTransition.validate_and_log(node_id, current_status, "running")
 
-        self.pipeline_dag.mark_node_started(node_id)
-        self.current_dag_node = node_id
-
-        # Log DAG node start
-        if log_method := getattr(self, "log_dag_node_start", None):
+            self.pipeline_dag.mark_node_started(node_id)
+            partition_id = node.get("partition_id")
+            self.current_dag_nodes[partition_id] = node_id
+            self.current_dag_node = node_id
             node_info = {
                 "op_name": node.get("op_name") or node.get("operation_name", ""),
                 "op_type": node.get("op_type") or node.get("node_type", "operation"),
                 "execution_order": node.get("execution_order", 0),
             }
+
+        # Log DAG node start
+        if log_method := getattr(self, "log_dag_node_start", None):
             log_method(node_id, node_info)
 
     def _mark_dag_node_completed(self, node_id: str, duration: float = None) -> None:
@@ -268,48 +287,56 @@ class DAGExecutionMixin:
         if not self.pipeline_dag or node_id not in self.pipeline_dag.nodes:
             return
 
-        node = self.pipeline_dag.nodes[node_id]
+        with self._dag_state_lock:
+            node = self.pipeline_dag.nodes[node_id]
 
-        # Validate state transition
-        current_status = node.get("status", "pending")
-        DAGNodeStatusTransition.validate_and_log(node_id, current_status, "completed")
+            # Validate state transition
+            current_status = node.get("status", "pending")
+            DAGNodeStatusTransition.validate_and_log(node_id, current_status, "completed")
 
-        self.pipeline_dag.mark_node_completed(node_id, duration)
-
-        # Log DAG node completion
-        if log_method := getattr(self, "log_dag_node_complete", None):
+            self.pipeline_dag.mark_node_completed(node_id, duration)
+            partition_id = node.get("partition_id")
+            if self.current_dag_nodes.get(partition_id) == node_id:
+                self.current_dag_nodes.pop(partition_id, None)
+            if self.current_dag_node == node_id:
+                self.current_dag_node = None
             node_info = {
                 "op_name": node.get("op_name") or node.get("operation_name", ""),
                 "op_type": node.get("op_type") or node.get("node_type", "operation"),
                 "execution_order": node.get("execution_order", 0),
             }
-            log_method(node_id, node_info, duration or 0)
 
-        self.current_dag_node = None
+        # Log DAG node completion
+        if log_method := getattr(self, "log_dag_node_complete", None):
+            log_method(node_id, node_info, duration or 0)
 
     def _mark_dag_node_failed(self, node_id: str, error_message: str, duration: float = 0) -> None:
         """Mark a DAG node as failed."""
         if not self.pipeline_dag or node_id not in self.pipeline_dag.nodes:
             return
 
-        node = self.pipeline_dag.nodes[node_id]
+        with self._dag_state_lock:
+            node = self.pipeline_dag.nodes[node_id]
 
-        # Validate state transition
-        current_status = node.get("status", "pending")
-        DAGNodeStatusTransition.validate_and_log(node_id, current_status, "failed")
+            # Validate state transition
+            current_status = node.get("status", "pending")
+            DAGNodeStatusTransition.validate_and_log(node_id, current_status, "failed")
 
-        self.pipeline_dag.mark_node_failed(node_id, error_message)
-
-        # Log DAG node failure
-        if log_method := getattr(self, "log_dag_node_failed", None):
+            self.pipeline_dag.mark_node_failed(node_id, error_message)
+            partition_id = node.get("partition_id")
+            if self.current_dag_nodes.get(partition_id) == node_id:
+                self.current_dag_nodes.pop(partition_id, None)
+            if self.current_dag_node == node_id:
+                self.current_dag_node = None
             node_info = {
                 "op_name": node.get("op_name") or node.get("operation_name", ""),
                 "op_type": node.get("op_type") or node.get("node_type", "operation"),
                 "execution_order": node.get("execution_order", 0),
             }
-            log_method(node_id, node_info, error_message, duration)
 
-        self.current_dag_node = None
+        # Log DAG node failure
+        if log_method := getattr(self, "log_dag_node_failed", None):
+            log_method(node_id, node_info, error_message, duration)
 
     def _log_operation_with_dag_context(
         self, op_name: str, op_idx: int, event_type: str, partition_id: int = 0, **kwargs

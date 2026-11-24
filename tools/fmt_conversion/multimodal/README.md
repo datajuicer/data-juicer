@@ -1,6 +1,6 @@
 # Multimodal Tools
 
-This folder contains some scripts and tools for multimodal datasets before and after using Data-Juicer.
+[`tools/fmt_conversion/multimodal`](.) provides bidirectional conversion between multimodal datasets and the Data-Juicer intermediate format, as well as post-processing path management.
 
 ## Convert Absolute Path to Relative Path
 

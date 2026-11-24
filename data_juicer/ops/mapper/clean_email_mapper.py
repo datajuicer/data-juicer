@@ -29,7 +29,7 @@ class CleanEmailMapper(Mapper):
         """
         super().__init__(*args, **kwargs)
         if pattern is None:
-            self.pattern = r"[A-Za-z0-9.\-+_]+@[a-z0-9.\-+_]+\.[a-z]+"
+            self.pattern = r"[A-Za-z0-9.\-+_]+@[A-Za-z0-9.\-+_]+\.[A-Za-z]+"
         else:
             self.pattern = pattern
             if (len(pattern) > 2) and (

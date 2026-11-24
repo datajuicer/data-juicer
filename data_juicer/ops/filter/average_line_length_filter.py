@@ -41,7 +41,7 @@ class AverageLineLengthFilter(Filter):
     def compute_stats_batched(self, samples, context=False):
         samples_list = samples[self.text_key]
         samples_stats = samples[Fields.stats]
-        context_key = f"{InterVars.lines}"
+        context_key = f"{InterVars.lines}-{self.text_key}"
 
         for idx, stat in enumerate(samples_stats):
             # check if it's computed already

@@ -66,5 +66,46 @@ class GenerateQAFromTextMapperTest(DataJuicerTestCaseBase):
     #                  sampling_params=sampling_params)
 
 
+class ParseOutputTest(DataJuicerTestCaseBase):
+    """Test parse_output method without requiring model initialization."""
+
+    def _create_op(self):
+        """Create a GenerateQAFromTextMapper with a dummy model name.
+        Since prepare_model for huggingface type only stores a partial
+        (no download), this is safe for unit testing."""
+        return GenerateQAFromTextMapper(hf_model='test-model')
+
+    def test_parse_output_normal(self):
+        op = self._create_op()
+        raw_output = ('Human: question1 Assistant: answer1 '
+                      'Human: question2 Assistant: answer2')
+        result = op.parse_output(raw_output)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0][0], 'question1')
+        self.assertEqual(result[0][1], 'answer1')
+        self.assertEqual(result[1][0], 'question2')
+        self.assertEqual(result[1][1], 'answer2')
+
+    def test_parse_output_single_pair(self):
+        op = self._create_op()
+        raw_output = 'Human: single question Assistant: single answer'
+        result = op.parse_output(raw_output)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0], 'single question')
+        self.assertEqual(result[0][1], 'single answer')
+
+    def test_parse_output_empty(self):
+        op = self._create_op()
+        raw_output = ''
+        result = op.parse_output(raw_output)
+        self.assertEqual(result, [])
+
+    def test_parse_output_no_match(self):
+        op = self._create_op()
+        raw_output = 'This text has no QA pattern at all.'
+        result = op.parse_output(raw_output)
+        self.assertEqual(result, [])
+
+
 if __name__ == '__main__':
     unittest.main()

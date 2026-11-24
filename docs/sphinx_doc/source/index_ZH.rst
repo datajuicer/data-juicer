@@ -6,9 +6,4 @@
    :hidden:
 
    docs_index_ZH
-
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-
    api

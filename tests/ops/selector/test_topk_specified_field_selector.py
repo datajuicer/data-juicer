@@ -678,6 +678,111 @@ class TopkSpecifiedFieldSelectorTest(DataJuicerTestCaseBase):
                                         reverse=False)
         self._run_topk_selector(dataset, tgt_list, op)
 
+    def test_top_level_str_select(self):
+        ds_list = [{
+            'text': 'a',
+            'score': '9'
+        }, {
+            'text': 'b',
+            'score': '10'
+        }, {
+            'text': 'c',
+            'score': '2.5'
+        }, {
+            'text': 'd',
+            'score': '100'
+        }]
+        tgt_list = [{
+            'text': 'd',
+            'score': '100'
+        }, {
+            'text': 'b',
+            'score': '10'
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = TopkSpecifiedFieldSelector(field_key='score', topk=2)
+        self._run_topk_selector(dataset, tgt_list, op)
+
+    def test_top_level_none_select(self):
+        ds_list = [{
+            'text': 'a',
+            'score': 3.0
+        }, {
+            'text': 'b',
+            'score': None
+        }, {
+            'text': 'c',
+            'score': 7.0
+        }]
+        dataset = Dataset.from_list(ds_list)
+
+        op = TopkSpecifiedFieldSelector(field_key='score', topk=2)
+        self._run_topk_selector(dataset, [{
+            'text': 'c',
+            'score': 7.0
+        }, {
+            'text': 'a',
+            'score': 3.0
+        }], op)
+
+        op = TopkSpecifiedFieldSelector(field_key='score',
+                                        topk=2,
+                                        reverse=False)
+        self._run_topk_selector(dataset, [{
+            'text': 'a',
+            'score': 3.0
+        }, {
+            'text': 'c',
+            'score': 7.0
+        }], op)
+
+    def test_top_level_large_int_select(self):
+        # 2**53 and 2**53 + 1 collapse to the same float
+        small, large = 2**53, 2**53 + 1
+        for a, b in [(small, large), (-large, -small)]:
+            ds_list = [{'text': 'a', 'score': a}, {'text': 'b', 'score': b}]
+            dataset = Dataset.from_list(ds_list)
+
+            op = TopkSpecifiedFieldSelector(field_key='score', topk=1)
+            self._run_topk_selector(dataset, [{'text': 'b', 'score': b}], op)
+
+            op = TopkSpecifiedFieldSelector(field_key='score',
+                                            topk=1,
+                                            reverse=False)
+            self._run_topk_selector(dataset, [{'text': 'a', 'score': a}], op)
+
+    def test_top_ratio_and_topk_options(self):
+        dataset = Dataset.from_list([{
+            'text': text,
+            'score': score
+        } for text, score in [('a', 1), ('b', 2), ('c', 3), ('d', 4)]])
+        for kwargs, expected_rows in [
+            ({}, 4),
+            ({'topk': 1}, 1),
+            ({'top_ratio': 0.5}, 2),
+            ({'top_ratio': 0.5, 'topk': 1}, 1),
+            ({'top_ratio': 0.0}, 0),
+            ({'top_ratio': 0.0, 'topk': 1}, 0),
+            ({'top_ratio': 0.1}, 0),
+        ]:
+            with self.subTest(**kwargs):
+                op = TopkSpecifiedFieldSelector(field_key='score', **kwargs)
+                result = op.process(dataset)
+                self.assertEqual(len(result), expected_rows)
+                self.assertEqual(result.features, dataset.features)
+
+    def test_single_row_and_empty_datasets_are_returned_unchanged(self):
+        # Like the other selectors, datasets with at most one row skip selection.
+        single = Dataset.from_list([{'text': 'a', 'score': 1}])
+        empty = Dataset.from_dict({'text': [], 'score': []})
+        for dataset in [single, empty]:
+            for kwargs in [{'top_ratio': 0.0}, {'top_ratio': 0.0, 'topk': 1}, {'topk': 1}]:
+                with self.subTest(rows=len(dataset), **kwargs):
+                    op = TopkSpecifiedFieldSelector(field_key='score', **kwargs)
+                    result = op.process(dataset)
+                    self.assertEqual(result.to_list(), dataset.to_list())
+                    self.assertEqual(result.features, dataset.features)
+
 
 if __name__ == '__main__':
     unittest.main()

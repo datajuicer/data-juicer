@@ -12,7 +12,10 @@ from data_juicer.analysis import (
     OverallAnalysis,
 )
 from data_juicer.config import init_configs
-from data_juicer.core.data.dataset_builder import DatasetBuilder
+from data_juicer.core.data.dataset_builder import (
+    DatasetBuilder,
+    deprecated_load_data_np_kwargs,
+)
 from data_juicer.ops import NON_STATS_FILTERS, TAGGING_OPS, Filter, load_ops
 from data_juicer.ops.op_fusion import fuse_operators
 from data_juicer.utils import cache_utils
@@ -39,7 +42,7 @@ class Analyzer:
 
         :param cfg: optional jsonargparse Namespace dict.
         """
-        self.cfg = init_configs(which_entry=self) if cfg is None else cfg
+        self.cfg = init_configs(allow_auto=True) if cfg is None else cfg
 
         self.work_dir = self.cfg.work_dir
 
@@ -83,17 +86,20 @@ class Analyzer:
         Running the dataset analysis pipeline.
 
         :param dataset: a Dataset object to be analyzed.
-        :param load_data_np: number of workers when loading the dataset.
+        :param load_data_np: deprecated; number of workers when loading the
+            dataset. Still applied, but set `load_dataset_kwargs.num_proc` in
+            the configuration instead, or `np` to load with the same
+            parallelism as processing.
         :param skip_export: whether export the results into disk
         :param skip_return: skip return for API called.
         :return: analyzed dataset.
         """
         # 1. format data
-        if load_data_np is None:
-            load_data_np = self.cfg.np
         if dataset is None:
             logger.info("Loading dataset from data formatter...")
-            dataset = self.dataset_builder.load_dataset(num_proc=load_data_np)
+            dataset = self.dataset_builder.load_dataset(
+                **deprecated_load_data_np_kwargs(load_data_np, self.dataset_builder.executor_type)
+            )
         else:
             logger.info(f"Using existing dataset {dataset}")
         if self.cfg.auto:
@@ -113,7 +119,14 @@ class Analyzer:
                 probe_res, _ = adapter.probe_small_batch(dataset, ops)
 
             logger.info(f"Start OP fusion and reordering with strategy " f"[{self.cfg.fusion_strategy}]...")
-            ops = fuse_operators(ops, probe_res)
+            ops = fuse_operators(
+                ops,
+                probe_res,
+                # Analyzer intentionally executes only stats/tagging ops. Auto
+                # mapper fusion could mix them with mappers Analyzer should skip.
+                mapper_fusion=False,
+                mapper_fusion_vram_limit=getattr(self.cfg, "mapper_fusion_vram_limit", 0.9),
+            )
 
         # 2. stats precompute only for filter or tagging ops
         logger.info("Computing the stats of dataset...")
@@ -125,7 +138,7 @@ class Analyzer:
                 dataset = dataset.process(op, work_dir=self.work_dir, open_monitor=self.cfg.open_monitor)
                 op.process = original_process
                 stats_collected = True
-            elif op._name in TAGGING_OPS.modules:
+            elif op._name in TAGGING_OPS.modules or getattr(op, "_contains_tagging_ops", False):
                 dataset = dataset.process(op, work_dir=self.work_dir, open_monitor=self.cfg.open_monitor)
                 stats_collected = True
         if not stats_collected:

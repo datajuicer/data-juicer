@@ -26,17 +26,17 @@ some OPs work well on some datasets but might be useless on others.
 
 | OP                            | Datasets                                                                                                            |
 |-------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `alphanumeric_filter`         | [LCS-558K](#llava-15-pretrain-dataset), [Wikipedia](#wikipedia), [Books](#books)                                    |
+| `alphanumeric_filter`         | [LCS-558K](#lcs-558k), [Wikipedia](#wikipedia), [Books](#books)                                                     |
 | `average_line_length_filter`  | [Github Code](#github-code)                                                                                         |
-| `character_repetition_filter` | [LCS-558K](#llava-15-pretrain-dataset), [Wikipedia](#wikipedia), [Books](#books), [Stack Exchange](#stack-exchange) |
-| `flagged_words_filter`        | [LCS-558K](#llava-15-pretrain-dataset)                                                                              |
-| `image_aspect_ratio_filter`   | [LCS-558K](#llava-15-pretrain-dataset), [MMC4](#mmc4)                                                               |
-| `image_deduplicator`          | [LCS-558K](#llava-15-pretrain-dataset)                                                                              |
-| `image_shape_filter`          | [LCS-558K](#llava-15-pretrain-dataset)                                                                              |
-| `image_size_filter`           | [LCS-558K](#llava-15-pretrain-dataset), [MMC4](#mmc4)                                                               |
-| `image_text_matching_filter`  | [LCS-558K](#llava-15-pretrain-dataset), [MMC4](#mmc4)                                                               |
+| `character_repetition_filter` | [LCS-558K](#lcs-558k), [Wikipedia](#wikipedia), [Books](#books), [Stack Exchange](#stack-exchange)                  |
+| `flagged_words_filter`        | [LCS-558K](#lcs-558k)                                                                                               |
+| `image_aspect_ratio_filter`   | [LCS-558K](#lcs-558k), [MMC4](#mmc4)                                                                                |
+| `image_deduplicator`          | [LCS-558K](#lcs-558k)                                                                                               |
+| `image_shape_filter`          | [LCS-558K](#lcs-558k)                                                                                               |
+| `image_size_filter`           | [LCS-558K](#lcs-558k), [MMC4](#mmc4)                                                                                |
+| `image_text_matching_filter`  | [LCS-558K](#lcs-558k), [MMC4](#mmc4)                                                                                |
 | `language_id_score_filter`    | [Books](#books)                                                                                                     |
-| `perplexity_filter`           | [LCS-558K](#llava-15-pretrain-dataset), [Books](#books), [ArXiv](#arxiv)                                            |
+| `perplexity_filter`           | [LCS-558K](#lcs-558k), [Books](#books), [ArXiv](#arxiv)                                                             |
 | `special_characters_filter`   | [Wikipedia](#wikipedia), [Books](#books)                                                                            |
 | `text_length_filter`          | [Wikipedia](#wikipedia), [ArXiv](#arxiv), [Github Code](#github-code)                                               |
 | `words_num_filter`            | [Stack Exchange](#stack-exchange)                                                                                   |

@@ -107,6 +107,25 @@ class TestPrompts(DataJuicerTestCaseBase):
         self.assertIn("Contains a question.", prompt)
         self.assertIn("yes or no", prompt.lower())
 
+    def test_prompt_strategy_variants_include_examples_and_reasoning(self):
+        schema = {"answer": "Extract the answer."}
+        examples = "Input: A\nOutput: {\"answer\": \"A\"}"
+
+        cot = get_extract_prompt("B", schema, strategy=InferenceStrategy.COT)
+        few = get_extract_prompt("B", schema, strategy=InferenceStrategy.FEW_SHOT, examples=examples)
+        cot_shot = get_condition_prompt(
+            "B",
+            "is a letter",
+            strategy=InferenceStrategy.COT_SHOT,
+            examples="B -> yes",
+            knowledge_grounding="Only uppercase letters count.",
+        )
+
+        self.assertIn("think step by step", cot.lower())
+        self.assertIn(examples, few)
+        self.assertIn("Background", cot_shot)
+        self.assertIn("B -> yes", cot_shot)
+
 
 if __name__ == "__main__":
     unittest.main()

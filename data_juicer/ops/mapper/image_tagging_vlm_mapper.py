@@ -101,7 +101,9 @@ Verify text relevance before combining with visual elements. If text is missing 
         self.tag_field_name = tag_field_name
         self.try_num = try_num
 
-        sampling_params = update_sampling_params(sampling_params, api_or_hf_model, not self.is_api_model)
+        sampling_params = dict(sampling_params) if sampling_params else {}
+        if not self.is_api_model:
+            sampling_params = update_sampling_params(sampling_params, api_or_hf_model, True)
 
         if self.is_api_model:
             self.sampling_params = sampling_params

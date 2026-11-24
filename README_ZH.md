@@ -87,7 +87,7 @@ for s in res_ds:
 
 ## 📰 动态
 
-- [2026-11-24] 🚀 团队推出 **Piccolo**，一个通过递归自我改进（RSI）迭代训练的高性能 System-1 决策模型系列，其 27B 模型在 [Decision Index 多模态榜单](https://huggingface.co/spaces/multimodalart/jev-decision-index)的 Private 评分中***排名第一***（截至 2026 年 11 月 24 日），并在团队自建的、面向数据处理决策的评测基准 [DataJevBench](https://github.com/datajuicer/DataJevBench) 上表现出色。欢迎阅读[技术报告](https://arxiv.org/abs/2611.24651v1)、[体验演示](https://decisionplayground.agentscope.io/blog.html)、使用[开源模型](https://huggingface.co/collections/agentscope-ai/piccolo)，并访问 [GitHub 仓库](https://github.com/agentscope-ai/Piccolo)！
+- [2026-11-24] 🚀 团队推出 **Piccolo**，一个通过**数据驱动的递归自我改进（RSI）**迭代训练的高性能 System-1 决策模型系列，其 27B 模型在 [Decision Index 多模态榜单](https://huggingface.co/spaces/multimodalart/jev-decision-index)的 Private 评分中***排名第一***（截至 2026 年 11 月 24 日），并在团队自建的、面向数据处理决策的评测基准 [DataJevBench](https://github.com/datajuicer/DataJevBench) 上表现出色。欢迎阅读[技术报告](https://arxiv.org/abs/2611.24651v1)、[体验演示](https://decisionplayground.agentscope.io/blog.html)、使用[开源模型](https://huggingface.co/collections/agentscope-ai/piccolo)，并访问 [GitHub 仓库](https://github.com/agentscope-ai/Piccolo)！
 
 <details open>
 <summary>[2026-11-24] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>

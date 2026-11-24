@@ -88,7 +88,7 @@ for s in res_ds:
 
 ## 📰 News
 
-- [2026-11-24] 🚀 The team has released **Piccolo**, a family of powerful System-1 decision models developed through recursive self-improvement (RSI): Piccolo-27B ***ranks first*** by Private score on [Decision Index Vision](https://huggingface.co/spaces/multimodalart/jev-decision-index) (as of November 24, 2026), with strong results on [DataJevBench](https://github.com/datajuicer/DataJevBench), a benchmark developed by us for data-processing decisions. Read the [technical report](https://arxiv.org/abs/2611.24651v1), explore the [demos](https://decisionplayground.agentscope.io/blog.html), try the [open models](https://huggingface.co/collections/agentscope-ai/piccolo), and visit the [repository](https://github.com/agentscope-ai/Piccolo)!
+- [2026-11-24] 🚀 The team has released **Piccolo**, a family of powerful System-1 decision models developed through **data-driven recursive self-improvement (RSI)**: Piccolo-27B ***ranks first*** by Private score on [Decision Index Vision](https://huggingface.co/spaces/multimodalart/jev-decision-index) (as of November 24, 2026), with strong results on [DataJevBench](https://github.com/datajuicer/DataJevBench), a benchmark developed by us for data-processing decisions. Read the [technical report](https://arxiv.org/abs/2611.24651v1), explore the [demos](https://decisionplayground.agentscope.io/blog.html), try the [open models](https://huggingface.co/collections/agentscope-ai/piccolo), and visit the [repository](https://github.com/agentscope-ai/Piccolo)!
 
 <details open>
 <summary>[2026-11-24] Release v1.6.3: <b>Benchmark Contamination Filter; Lower-Memory Processing; Export & Operator Fixes</b></summary>

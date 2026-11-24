@@ -548,6 +548,20 @@ dj-process<span class="w"> </span>--config<span class="w"> </span>demos/process_
 <hr class="docutils" />
 <section id="id6">
 <h2>📰 动态<a class="headerlink" href="#id6" title="链接到此标题。">¶</a></h2>
+<ul class="simple">
+<li><p>[2026-11-24] 🚀 团队推出 <strong>Piccolo</strong>，一个通过<strong>数据驱动的递归自我改进（RSI）</strong> 迭代训练的高性能 System-1 决策模型系列，其 27B 模型在 <a class="reference external" href="https://huggingface.co/spaces/multimodalart/jev-decision-index">Decision Index 多模态榜单</a>的 Private 评分中<em><strong>排名第一</strong></em>（截至 2026 年 11 月 24 日），并在团队自建的、面向数据处理决策的评测基准 <a class="reference external" href="https://github.com/datajuicer/DataJevBench">DataJevBench</a> 上表现出色。欢迎阅读<a class="reference external" href="https://arxiv.org/abs/2611.24651v1">技术报告</a>、<a class="reference external" href="https://decisionplayground.agentscope.io/blog.html">体验演示</a>、使用<a class="reference external" href="https://huggingface.co/collections/agentscope-ai/piccolo">开源模型</a>，并访问 <a class="reference external" href="https://github.com/agentscope-ai/Piccolo">GitHub 仓库</a>！</p></li>
+</ul>
+<details open>
+<summary>[2026-11-24] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>
+<ul class="simple">
+<li><p>🧪 基准污染过滤器 — 新增 <code class="docutils literal notranslate"><span class="pre">benchmark_contamination_filter</span></code>，按字符或词的 n-gram 检查样本与参考基准的重叠。参考文件支持 JSONL、JSON、TXT 及其 gzip 压缩格式。设置 <code class="docutils literal notranslate"><span class="pre">benchmark_path</span></code> 后启用。默认 <code class="docutils literal notranslate"><span class="pre">threshold:</span> <span class="pre">0.0</span></code> 会丢弃含任一匹配 n-gram 的样本，同领域数据需调整阈值。串联多个基准过滤器时，各自使用独立的统计字段名。</p></li>
+<li><p>📝 LLM 抽取输出 — 七个抽取算子在 <code class="docutils literal notranslate"><span class="pre">drop_text:</span> <span class="pre">true</span></code> 时统一删除配置的源字段，覆盖嵌套路径、带点的字面键、已有结果及批处理输出。源文本位于 metadata 中时，属性和事件抽取会保留新生成的结果。删除源字段后移除空父结构，保证 Parquet 可导出；保留同级字段及 <code class="docutils literal notranslate"><span class="pre">drop_text:</span> <span class="pre">false</span></code> 的行为。</p></li>
+<li><p>🧮 降低处理内存开销 — Top-k 和范围选择器使用有界堆；频率选择器先计数，再收集选中行的索引；图像 OHEM 减少一次重复扫描。MinHash 分块处理 shingle 和置换矩阵；<code class="docutils literal notranslate"><span class="pre">words_num_filter</span></code> 的默认路径分块计数。分词仍可能保留整个文档的 token 列表。</p></li>
+<li><p>🗄️ 导出与加载修复 — 本地分片名称保留完整文件主名，统计文件与数据导出分开，分片写入失败会传给调用方。<code class="docutils literal notranslate"><span class="pre">dataset_path</span></code> 支持 Hugging Face 数据集 ID。LeRobot 导出使用连续的全局行索引，不再依赖源视频帧编号。</p></li>
+<li><p>🛡️ PII 与文本修复 — PII 脱敏保留普通列表中的媒体路径，识别更多带前缀的秘密与 ID 键名，并在缺少必要标记时跳过正则扫描。文本处理保留全角数字及词内句点，支持跨文字系统比较重复句子，避免递归分块，并按完整 LaTeX 附录命令截断。</p></li>
+<li><p>🔧 去重、视频与诊断 — 无效的 MinHash 分带配置和 SimHash 分块、距离配置会提前报错。Ray 图像与视频去重保留无媒体样本。视频描述算子按后端传入生成参数，并正确返回生成批次。Mapper 改变批次行数时，Tracer 跳过按位置配对；日志摘要可统计当前格式的算子错误。MinHash 扩展以 C++17 和 GCC/MSVC 对应的 OpenMP 参数构建。</p></li>
+</ul>
+</details>
 <details open>
 <summary>[2026-11-03] Release v1.6.2: <b>选择器与过滤器边界修复；PII 脱敏覆盖更全；去重与字段选择器提速</b></summary>
 <ul class="simple">
@@ -567,7 +581,7 @@ dj-process<span class="w"> </span>--config<span class="w"> </span>demos/process_
 <li><p>🗂️ 加载、分析与工具修复 — HuggingFace 加载策略改为加载后再应用 <code class="docutils literal notranslate"><span class="pre">limit</span></code>；设置 <code class="docutils literal notranslate"><span class="pre">max_sample_num</span></code> 时跳过分得 0 条样本的数据集；宽松 JSONL 加载在源文件变化后刷新缓存；整体分析不再因首个值为空而丢弃统计列；可视化应用在没有可调统计量的过滤器时不再报 <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>；GPT 评估器从均值中排除失败的评审调用并报告其数量。</p></li>
 </ul>
 </details>
-<details open>
+<details>
 <summary>[2026-09-08] Release v1.6.0: <b>Juicer 模型发布；集群感知分区；配置校验；LiteLLM 后端</b></summary>
 <ul class="simple">
 <li><p>🧮 集群感知分区 — 自动分区数量根据实时 Ray 集群资源确定；手动 <code class="docutils literal notranslate"><span class="pre">partition.size</span></code> 按样本行切分，在输入 block 数少于分区数时也能正确划分数据。</p></li>

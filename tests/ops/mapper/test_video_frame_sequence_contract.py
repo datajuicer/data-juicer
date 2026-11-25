@@ -199,6 +199,33 @@ class VideoFrameSequenceContractTest(unittest.TestCase):
         self.assertEqual(models[0].call_args.args[0].device.type, "cpu")
         json.dumps(result)
 
+    def test_cuda_worker_rank_wraps_to_visible_device(self):
+        for module in [face, depth, moge]:
+            with self.subTest(module=module.OP_NAME):
+                operator = self.op(module)
+                operator.use_cuda = Mock(return_value=True)
+                sample = self.sample(self.paths[:1])
+                sample["fps"] = 24
+                models = self.face_model() if module is face else self.depth_model()
+                input_tensor, initial_state = Mock(), Mock()
+                if module is face:
+                    operator.preprocess = Mock(return_value=input_tensor)
+                if module is moge:
+                    operator._process_video_frames_batched = Mock()
+                with (
+                    patch.object(torch.cuda, "device_count", return_value=1),
+                    patch.object(torch, "zeros", return_value=initial_state),
+                    patch.object(module, "get_model", return_value=models),
+                ):
+                    operator.process_single(sample, rank=7)
+                if module is face:
+                    input_tensor.to.assert_called_once_with("cuda:0")
+                    initial_state.to.assert_called_once_with("cuda:0")
+                elif module is depth:
+                    self.assertEqual(models.infer_video_depth.call_args.kwargs["device"], "cuda:0")
+                else:
+                    self.assertEqual(operator._process_video_frames_batched.call_args.args[2], "cuda:0")
+
     def test_face_no_detections_keep_frame_alignment(self):
         operator = self.op(face)
         models = self.face_model()

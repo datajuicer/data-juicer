@@ -172,7 +172,11 @@ class VideoFaceKeypointsMapper(Mapper):
             return sample
 
         ldeq_model, detector, train_args = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
-        device = f"cuda:{rank}" if self.use_cuda() and rank is not None else ("cuda" if self.use_cuda() else "cpu")
+        device = (
+            f"cuda:{rank % torch.cuda.device_count()}"
+            if self.use_cuda() and rank is not None
+            else ("cuda" if self.use_cuda() else "cpu")
+        )
         for video_index, paths in enumerate(groups):
             if not paths:
                 continue

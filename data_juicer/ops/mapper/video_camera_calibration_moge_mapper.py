@@ -311,7 +311,11 @@ class VideoCameraCalibrationMogeMapper(Mapper):
             return sample
 
         model = get_model(self.model_key, rank, self.use_cuda())
-        device = f"cuda:{rank}" if self.use_cuda() and rank is not None else ("cuda" if self.use_cuda() else "cpu")
+        device = (
+            f"cuda:{rank % torch.cuda.device_count()}"
+            if self.use_cuda() and rank is not None
+            else ("cuda" if self.use_cuda() else "cpu")
+        )
         for video_idx, paths in enumerate(frames):
             self._process_video_frames_batched(paths, model, device, tags_list[video_idx])
         return sample

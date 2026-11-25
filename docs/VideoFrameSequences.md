@@ -91,3 +91,48 @@ PYTHONPATH=. python tests/run.py --mode regression --tag standalone \
 
 These tests verify data-flow contracts; they do not establish real checkpoint
 accuracy or full CUDA model compatibility.
+
+## Real Ray and CUDA checks 真实 Ray 与 CUDA 验证
+
+The opt-in Ray suite starts real task and actor workers for all six operators.
+It mocks model predictions, while checking transport, empty-first samples,
+group positions, and frame/result correspondence:
+
+```bash
+DJ_RUN_RAY_TESTS=1 PYTHONPATH=.:tests/ops/mapper python -m pytest -q \
+  tests/ops/mapper/test_video_frame_sequence_ray.py
+```
+
+The opt-in GPU suite uses real checkpoints and requires CUDA. Set
+`DJ_GPU_MODEL_DIR` to a directory containing `apt36k.pth`,
+`yoloe-26x-seg.pt`, `final.pth.tar`, `video_depth_anything_vits.pth`,
+`yolox_l.onnx`, `dw-ll_ucoco_384.onnx`, and `moge-model.pt` (MoGe-2).
+Prepare the model dependencies described by each operator, and point
+`DATA_JUICER_ASSETS_CACHE` to the directory containing the official
+ViTPose and Video-Depth-Anything repositories.
+
+Run models in separate processes to release GPU resources between cases:
+
+```bash
+export DJ_RUN_GPU_TESTS=1
+export DJ_GPU_MODEL_DIR=/path/to/checkpoints
+export PYTHONPATH=.:tests/ops/mapper
+for model in animal face body depth moge; do
+  python -m pytest -q \
+    tests/ops/mapper/test_video_frame_sequence_gpu.py::VideoFrameSequenceGpuTest::test_$model
+done
+DJ_RUN_RAY_TESTS=1 python -m pytest -q \
+  tests/ops/mapper/test_video_frame_sequence_gpu.py::VideoFrameSequenceGpuTest::test_ray_gpu_actor
+```
+
+These checks assert nonempty real predictions, finite numeric outputs,
+CUDA model/provider selection, frame correspondence, and execution in a
+separate GPU Ray actor. They do not benchmark model accuracy.
+Legacy ViTPose requires a compatible NumPy 1.26/MMCV stack; use a matching
+Arrow/datasets version (for example Arrow 22 and datasets 4.7).
+MoGe-2 was verified with official commit
+`b942f00bdc2a2a23ebb474fbe034d487e6dcceec` and its declared utils3d dependency.
+
+Full HaWoR checkpoint inference additionally requires licensed MANO assets.
+The offline/Ray contract tests cover HaWoR data flow, but do not replace
+that full reconstruction check.

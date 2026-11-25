@@ -5,8 +5,11 @@ from data_juicer.core.data import NestedDataset as Dataset
 
 from data_juicer.ops.mapper.video_resize_aspect_ratio_mapper import \
     VideoResizeAspectRatioMapper
+from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import close_video, load_video
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+
+ffmpeg = LazyLoader('ffmpeg', 'ffmpeg-python')
 
 
 class VideoResizeAspectRatioMapperTest(DataJuicerTestCaseBase):
@@ -16,6 +19,7 @@ class VideoResizeAspectRatioMapperTest(DataJuicerTestCaseBase):
     vid1_path = os.path.join(data_path, 'video1.mp4')  # 640x360, 16:9
     vid2_path = os.path.join(data_path, 'video2.mp4')  # 480x640, 3:4
     vid3_path = os.path.join(data_path, 'video3.mp4')  # 362x640, 181:320
+    vid3_no_audio_path = os.path.join(data_path, 'video3-no-audio.mp4')
 
     def _run_op(self, dataset: Dataset, target_list, op, np=1):
         dataset = dataset.map(op.process, num_proc=np)
@@ -144,6 +148,35 @@ class VideoResizeAspectRatioMapperTest(DataJuicerTestCaseBase):
         dataset = Dataset.from_list(ds_list)
         op = VideoResizeAspectRatioMapper(max_ratio='4/3', strategy='decrease')
         self._run_op(dataset, tgt_list, op, np=2)
+
+    def _count_audio_streams(self, video_path):
+        probe = ffmpeg.probe(video_path)
+        return sum(1 for stream in probe['streams']
+                   if stream['codec_type'] == 'audio')
+
+    def test_preserves_audio_when_resizing(self):
+        """Resizing must keep audio streams that were present on the input."""
+        input_audio = self._count_audio_streams(self.vid1_path)
+        self.assertGreater(
+            input_audio, 0,
+            'fixture video1.mp4 should include an audio stream')
+
+        dataset = Dataset.from_list([{'videos': [self.vid1_path]}])
+        op = VideoResizeAspectRatioMapper(max_ratio='4/3', strategy='decrease')
+        dataset = dataset.map(op.process)
+        out_path = dataset.to_list()[0]['videos'][0]
+        self.assertNotEqual(out_path, self.vid1_path)
+        self.assertEqual(self._count_audio_streams(out_path), input_audio)
+
+    def test_silent_video_still_resizes(self):
+        """Videos without audio should still resize successfully."""
+        self.assertEqual(self._count_audio_streams(self.vid3_no_audio_path), 0)
+        dataset = Dataset.from_list([{'videos': [self.vid3_no_audio_path]}])
+        # 362x640 → force a wider ratio so a resize happens
+        op = VideoResizeAspectRatioMapper(min_ratio='1/1', strategy='increase')
+        dataset = dataset.map(op.process)
+        out_path = dataset.to_list()[0]['videos'][0]
+        self.assertEqual(self._count_audio_streams(out_path), 0)
 
 
 if __name__ == '__main__':

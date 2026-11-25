@@ -22,6 +22,7 @@ class VideoResizeResolutionMapperTest(DataJuicerTestCaseBase):
     vid1_path = os.path.join(data_path, 'video1.mp4')
     vid2_path = os.path.join(data_path, 'video2.mp4')
     vid3_path = os.path.join(data_path, 'video3.mp4')
+    vid3_no_audio_path = os.path.join(data_path, 'video3-no-audio.mp4')
 
     def _get_size_list(self, dataset: Dataset):
         res_list = []
@@ -36,6 +37,11 @@ class VideoResizeResolutionMapperTest(DataJuicerTestCaseBase):
                 cur_list.append((width, height))
             res_list.append(cur_list)
         return res_list
+
+    def _count_audio_streams(self, video_path):
+        probe = ffmpeg.probe(video_path)
+        return sum(1 for stream in probe['streams']
+                   if stream['codec_type'] == 'audio')
 
     def _run_video_resize_resolution_mapper(self,
                                             dataset: Dataset,
@@ -182,6 +188,39 @@ class VideoResizeResolutionMapperTest(DataJuicerTestCaseBase):
                                                  op,
                                                  'test_filter_in_parallel',
                                                  np=2)
+
+    def test_preserves_audio_when_resizing(self):
+        """Resizing must keep audio streams that were present on the input."""
+        input_audio = self._count_audio_streams(self.vid1_path)
+        self.assertGreater(
+            input_audio, 0,
+            'fixture video1.mp4 should include an audio stream')
+
+        dataset = Dataset.from_list([{'videos': [self.vid1_path]}])
+        if Fields.stats not in dataset.features:
+            dataset = dataset.add_column(name=Fields.stats,
+                                         column=[{}] * dataset.num_rows)
+        op = VideoResizeResolutionMapper(max_width=320)
+        dataset = dataset.map(op.process)
+        out_path = dataset.to_list()[0]['videos'][0]
+        self.assertNotEqual(out_path, self.vid1_path)
+        self.assertEqual(self._count_audio_streams(out_path), input_audio)
+
+    def test_silent_video_still_resizes(self):
+        """Videos without audio should still resize successfully."""
+        self.assertEqual(self._count_audio_streams(self.vid3_no_audio_path), 0)
+        dataset = Dataset.from_list([{'videos': [self.vid3_no_audio_path]}])
+        if Fields.stats not in dataset.features:
+            dataset = dataset.add_column(name=Fields.stats,
+                                         column=[{}] * dataset.num_rows)
+        op = VideoResizeResolutionMapper(max_width=180)
+        dataset = dataset.map(op.process)
+        out_path = dataset.to_list()[0]['videos'][0]
+        self.assertEqual(self._count_audio_streams(out_path), 0)
+        probe = ffmpeg.probe(out_path)
+        video_stream = next(stream for stream in probe['streams']
+                            if stream['codec_type'] == 'video')
+        self.assertLessEqual(int(video_stream['width']), 180)
 
 
 if __name__ == '__main__':

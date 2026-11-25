@@ -39,6 +39,7 @@ process:
       tag_field_name: 'video_audio_tags'                    # the field name to store the tags. It's "video_audio_tags" in default.
       memory: '500MB'
 
+  # The default age/gender weight has a CC-BY-NC-SA-4.0 model card; review it for production use.
   - video_audio_detect_age_gender_mapper:                   # If the audio is speech, classify the gender and age of the speech
       hf_audio_mapper: 'audeering/wav2vec2-large-robust-24-ft-age-gender'   # Huggingface model name for speech age and gender classification
       mem_required: '7GB'

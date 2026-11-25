@@ -4,6 +4,7 @@ import subprocess
 import numpy as np
 
 from data_juicer.utils.constant import CameraCalibrationKeys, Fields, MetaKeys
+from data_juicer.utils.ffmpeg_utils import run_ffmpeg
 from data_juicer.utils.lazy_loader import LazyLoader
 
 from ..base_op import OPERATORS, Mapper
@@ -97,11 +98,12 @@ class VideoUndistortMapper(Mapper):
                 f.write(f"file '{video_name}_b{i:04d}.ts'\n")
 
         # Merge using ffmpeg concat demuxer
-        ffmpeg.input(inputs_path, format="concat", safe=0).output(
+        stream = ffmpeg.input(inputs_path, format="concat", safe=0).output(
             os.path.join(folder, f"{video_name}.mp4"),
             c="copy",
             movflags="frag_keyframe+empty_moov",
-        ).run(overwrite_output=True)
+        )
+        run_ffmpeg(stream, overwrite_output=True, capture_stderr=True)
 
         # Cleanup temporary TS files and list file
         for i in range(batch_counts):

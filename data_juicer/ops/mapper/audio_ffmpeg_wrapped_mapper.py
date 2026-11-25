@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 
 from data_juicer.utils.constant import Fields
+from data_juicer.utils.ffmpeg_utils import run_ffmpeg
 from data_juicer.utils.file_utils import transfer_filename
 from data_juicer.utils.lazy_loader import LazyLoader
 
@@ -81,7 +82,7 @@ class AudioFFmpegWrappedMapper(Mapper):
             stream = ffmpeg.input(audio_key).filter(self.filter_name, **self.filter_kwargs).output(output_key)
             if self.global_args is not None:
                 stream = stream.global_args(*self.global_args)
-            stream.run(capture_stderr=self.capture_stderr, overwrite_output=self.overwrite_output)
+            run_ffmpeg(stream, capture_stderr=self.capture_stderr, overwrite_output=self.overwrite_output)
             processed[audio_key] = output_key
 
         # when the file is modified, its source file needs to be updated.

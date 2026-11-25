@@ -3,6 +3,7 @@ import os
 from fractions import Fraction
 
 from data_juicer.utils.constant import Fields
+from data_juicer.utils.ffmpeg_utils import run_ffmpeg
 from data_juicer.utils.file_utils import transfer_filename
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.mm_utils import close_video, load_video
@@ -140,11 +141,11 @@ class VideoResizeAspectRatioMapper(Mapper):
             )
             resized_video_key = transfer_filename(video_key, OP_NAME, self.save_dir, **self._init_parameters)
             if not os.path.exists(resized_video_key) or resized_video_key not in loaded_video_keys:
-                args = ["-nostdin", "-v", "quiet", "-y"]
+                args = ["-nostdin", "-v", "error", "-y"]  # only errors, captured for the message
                 stream = ffmpeg.input(video_key)
                 stream = stream.filter("scale", width=scaled_width, height=scaled_height)
                 stream = stream.output(resized_video_key).global_args(*args)
-                stream.run()
+                run_ffmpeg(stream, capture_stderr=True)
             loaded_video_keys[index] = resized_video_key
 
         # when the file is modified, its source file needs to be updated.

@@ -350,6 +350,7 @@
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
@@ -1124,10 +1125,10 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentInsightLLMMapper.__init__">__init__() （data_juicer.ops.mapper.AgentInsightLLMMapper 方法）</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentSkillInsightMapper.__init__">__init__() （data_juicer.ops.mapper.AgentSkillInsightMapper 方法）</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.AgentToolTypeMapper.__init__">__init__() （data_juicer.ops.mapper.AgentToolTypeMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.annotation.annotation_mapper.html#data_juicer.ops.mapper.annotation.annotation_mapper.BaseAnnotationMapper.__init__">__init__() （data_juicer.ops.mapper.annotation.annotation_mapper.BaseAnnotationMapper 方法）</a>
@@ -1514,6 +1515,8 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_hand_reconstruction_mapper.html#data_juicer.ops.mapper.video_hand_reconstruction_mapper.VideoHandReconstructionMapper.__init__">__init__() （data_juicer.ops.mapper.video_hand_reconstruction_mapper.VideoHandReconstructionMapper 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.__init__">__init__() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.video_human_tracks_extraction_mapper.html#data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper.__init__">__init__() （data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.__init__">__init__() （data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper 方法）</a>
@@ -1591,6 +1594,8 @@
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHandReconstructionHaworMapper.__init__">__init__() （data_juicer.ops.mapper.VideoHandReconstructionHaworMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHandReconstructionMapper.__init__">__init__() （data_juicer.ops.mapper.VideoHandReconstructionMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.__init__">__init__() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper.__init__">__init__() （data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper 方法）</a>
 </li>
@@ -5030,8 +5035,6 @@
         <li><a href="api/data_juicer.ops.mapper.video_face_blur_mapper.html#module-data_juicer.ops.mapper.video_face_blur_mapper">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper
 
@@ -5039,6 +5042,8 @@
         <li><a href="api/data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper.html#module-data_juicer.ops.mapper.video_ffmpeg_wrapped_mapper">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     data_juicer.ops.mapper.video_hand_action_compute_mapper
 
@@ -5065,6 +5070,13 @@
 
       <ul>
         <li><a href="api/data_juicer.ops.mapper.video_hand_reconstruction_mapper.html#module-data_juicer.ops.mapper.video_hand_reconstruction_mapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    data_juicer.ops.mapper.video_human_3d_pose_mapper
+
+      <ul>
+        <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#module-data_juicer.ops.mapper.video_human_3d_pose_mapper">module</a>
 </li>
       </ul></li>
       <li>
@@ -5646,6 +5658,13 @@
 
       <ul>
         <li><a href="api/data_juicer.utils.unittest_utils.html#module-data_juicer.utils.unittest_utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    data_juicer.utils.video_perception_utils
+
+      <ul>
+        <li><a href="api/data_juicer.utils.video_perception_utils.html#module-data_juicer.utils.video_perception_utils">module</a>
 </li>
       </ul></li>
       <li>
@@ -7110,6 +7129,10 @@
 </li>
       <li><a href="api/data_juicer.utils.logger_utils.html#data_juicer.utils.logger_utils.get_caller_name">get_caller_name()（在 data_juicer.utils.logger_utils 模块中）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.get_camera_parameters">get_camera_parameters() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_camera_parameters">get_camera_parameters() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.core.data.dj_dataset.html#data_juicer.core.data.dj_dataset.DJDataset.get_column">get_column() （data_juicer.core.data.dj_dataset.DJDataset 方法）</a>
 </li>
       <li><a href="api/data_juicer.core.data.dj_dataset.html#data_juicer.core.data.dj_dataset.NestedDataset.get_column">get_column() （data_juicer.core.data.dj_dataset.NestedDataset 方法）</a>
@@ -7172,6 +7195,10 @@
 </li>
       <li><a href="api/data_juicer.utils.mm_utils.html#data_juicer.utils.mm_utils.get_file_size">get_file_size()（在 data_juicer.utils.mm_utils 模块中）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.get_focalLength_from_fieldOfView">get_focalLength_from_fieldOfView() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_focalLength_from_fieldOfView">get_focalLength_from_fieldOfView() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.tools.DJ_mcp_recipe_flow.html#data_juicer.tools.DJ_mcp_recipe_flow.get_global_config_schema">get_global_config_schema()（在 data_juicer.tools.DJ_mcp_recipe_flow 模块中）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_undistort_mapper.html#data_juicer.ops.mapper.video_undistort_mapper.get_global_intrinsics">get_global_intrinsics()（在 data_juicer.ops.mapper.video_undistort_mapper 模块中）</a>
@@ -7186,10 +7213,10 @@
 </li>
       <li><a href="api/data_juicer.tools.hpo.objects.html#data_juicer.tools.hpo.objects.get_hpo_objective">get_hpo_objective()（在 data_juicer.tools.hpo.objects 模块中）</a>
 </li>
-      <li><a href="api/data_juicer.config.html#data_juicer.config.get_init_configs">get_init_configs()（在 data_juicer.config 模块中）</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/data_juicer.config.html#data_juicer.config.get_init_configs">get_init_configs()（在 data_juicer.config 模块中）</a>
+</li>
       <li><a href="api/data_juicer.config.config.html#data_juicer.config.config.get_init_configs">get_init_configs()（在 data_juicer.config.config 模块中）</a>
 </li>
       <li><a href="api/data_juicer.ops.base_op.html#data_juicer.ops.base_op.Filter.get_keep_boolean">get_keep_boolean() （data_juicer.ops.base_op.Filter 方法）</a>
@@ -7315,6 +7342,10 @@
       <li><a href="api/data_juicer.utils.ASD_mapper_utils.html#data_juicer.utils.ASD_mapper_utils.get_video_array_cv2">get_video_array_cv2()（在 data_juicer.utils.ASD_mapper_utils 模块中）</a>
 </li>
       <li><a href="api/data_juicer.utils.mm_utils.html#data_juicer.utils.mm_utils.get_video_duration">get_video_duration()（在 data_juicer.utils.mm_utils 模块中）</a>
+</li>
+      <li><a href="api/data_juicer.utils.video_perception_utils.html#data_juicer.utils.video_perception_utils.get_video_frame_groups">get_video_frame_groups()（在 data_juicer.utils.video_perception_utils 模块中）</a>
+</li>
+      <li><a href="api/data_juicer.utils.video_perception_utils.html#data_juicer.utils.video_perception_utils.get_video_visualization_dir">get_video_visualization_dir()（在 data_juicer.utils.video_perception_utils 模块中）</a>
 </li>
       <li><a href="api/data_juicer.ops.common.dwpose_func.html#data_juicer.ops.common.dwpose_func.get_warp_matrix">get_warp_matrix()（在 data_juicer.ops.common.dwpose_func 模块中）</a>
 </li>
@@ -7954,10 +7985,10 @@
 </li>
       <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayHdfsDataLoadStrategy.load_data">load_data() （data_juicer.core.data.load_strategy.RayHdfsDataLoadStrategy 方法）</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayHuggingfaceDataLoadStrategy.load_data">load_data() （data_juicer.core.data.load_strategy.RayHuggingfaceDataLoadStrategy 方法）</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayLocalJsonDataLoadStrategy.load_data">load_data() （data_juicer.core.data.load_strategy.RayLocalJsonDataLoadStrategy 方法）</a>
 </li>
       <li><a href="api/data_juicer.core.data.load_strategy.html#data_juicer.core.data.load_strategy.RayS3DataLoadStrategy.load_data">load_data() （data_juicer.core.data.load_strategy.RayS3DataLoadStrategy 方法）</a>
@@ -8027,6 +8058,10 @@
       <li><a href="api/data_juicer.utils.mm_utils.html#data_juicer.utils.mm_utils.load_image">load_image()（在 data_juicer.utils.mm_utils 模块中）</a>
 </li>
       <li><a href="api/data_juicer.utils.mm_utils.html#data_juicer.utils.mm_utils.load_image_byte">load_image_byte()（在 data_juicer.utils.mm_utils 模块中）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.load_images">load_images() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.load_images">load_images() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.utils.mm_utils.html#data_juicer.utils.mm_utils.load_images">load_images()（在 data_juicer.utils.mm_utils 模块中）</a>
 </li>
@@ -8928,6 +8963,8 @@
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_hand_reconstruction_mapper.html#module-data_juicer.ops.mapper.video_hand_reconstruction_mapper">data_juicer.ops.mapper.video_hand_reconstruction_mapper</a>
 </li>
+        <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#module-data_juicer.ops.mapper.video_human_3d_pose_mapper">data_juicer.ops.mapper.video_human_3d_pose_mapper</a>
+</li>
         <li><a href="api/data_juicer.ops.mapper.video_human_tracks_extraction_mapper.html#module-data_juicer.ops.mapper.video_human_tracks_extraction_mapper">data_juicer.ops.mapper.video_human_tracks_extraction_mapper</a>
 </li>
         <li><a href="api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#module-data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper">data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper</a>
@@ -9093,6 +9130,8 @@
         <li><a href="api/data_juicer.utils.text_field_utils.html#module-data_juicer.utils.text_field_utils">data_juicer.utils.text_field_utils</a>
 </li>
         <li><a href="api/data_juicer.utils.unittest_utils.html#module-data_juicer.utils.unittest_utils">data_juicer.utils.unittest_utils</a>
+</li>
+        <li><a href="api/data_juicer.utils.video_perception_utils.html#module-data_juicer.utils.video_perception_utils">data_juicer.utils.video_perception_utils</a>
 </li>
         <li><a href="api/data_juicer.utils.video_utils.html#module-data_juicer.utils.video_utils">data_juicer.utils.video_utils</a>
 </li>
@@ -9425,6 +9464,10 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.pad_image">pad_image() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.pad_image">pad_image() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.common.dwpose_func.html#data_juicer.ops.common.dwpose_func.padRightDownCorner">padRightDownCorner()（在 data_juicer.ops.common.dwpose_func 模块中）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.PairPreferenceMapper">PairPreferenceMapper（data_juicer.ops.mapper 中的类）</a>
@@ -9724,6 +9767,12 @@
       <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_hawor_model">prepare_hawor_model()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
       <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_huggingface_model">prepare_huggingface_model()（在 data_juicer.utils.model_utils 模块中）</a>
+</li>
+      <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_human_3d_pose_human3r">prepare_human_3d_pose_human3r()（在 data_juicer.utils.model_utils 模块中）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.prepare_input">prepare_input() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.prepare_input">prepare_input() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_kenlm_model">prepare_kenlm_model()（在 data_juicer.utils.model_utils 模块中）</a>
 </li>
@@ -10085,12 +10134,12 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveBibliographyMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveBibliographyMapper 方法）</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveCommentsMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveCommentsMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveHeaderMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveHeaderMapper 方法）</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveLongWordsMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveLongWordsMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.RemoveNonChineseCharacterlMapper.process_batched">process_batched() （data_juicer.ops.mapper.RemoveNonChineseCharacterlMapper 方法）</a>
@@ -10617,6 +10666,8 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_hand_reconstruction_mapper.html#data_juicer.ops.mapper.video_hand_reconstruction_mapper.VideoHandReconstructionMapper.process_single">process_single() （data_juicer.ops.mapper.video_hand_reconstruction_mapper.VideoHandReconstructionMapper 方法）</a>
 </li>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper.process_single">process_single() （data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper 方法）</a>
+</li>
       <li><a href="api/data_juicer.ops.mapper.video_human_tracks_extraction_mapper.html#data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper.process_single">process_single() （data_juicer.ops.mapper.video_human_tracks_extraction_mapper.VideoHumanTracksExtractionMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.html#data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper.process_single">process_single() （data_juicer.ops.mapper.video_human_tracks_face_demographic_mapper.VideoHumantrackFaceDemographicMapper 方法）</a>
@@ -10680,6 +10731,8 @@
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHandReconstructionHaworMapper.process_single">process_single() （data_juicer.ops.mapper.VideoHandReconstructionHaworMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHandReconstructionMapper.process_single">process_single() （data_juicer.ops.mapper.VideoHandReconstructionMapper 方法）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper.process_single">process_single() （data_juicer.ops.mapper.VideoHuman3DPoseMapper 方法）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper.process_single">process_single() （data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper 方法）</a>
 </li>
@@ -12065,6 +12118,8 @@
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_height">video_height（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
 </li>
+      <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.MetaKeys.video_human_3d_pose_tags">video_human_3d_pose_tags（data_juicer.utils.constant.MetaKeys 属性）</a>
+</li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_motion_score">video_motion_score（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.StatsKeysConstant.video_nsfw_score">video_nsfw_score（data_juicer.utils.constant.StatsKeysConstant 属性）</a>
@@ -12157,10 +12212,10 @@
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoClipReassemblyMapper">VideoClipReassemblyMapper（data_juicer.ops.mapper 中的类）</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.mapper.video_clip_reassembly_mapper.html#data_juicer.ops.mapper.video_clip_reassembly_mapper.VideoClipReassemblyMapper">VideoClipReassemblyMapper（data_juicer.ops.mapper.video_clip_reassembly_mapper 中的类）</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/data_juicer.ops.deduplicator.html#data_juicer.ops.deduplicator.VideoDeduplicator">VideoDeduplicator（data_juicer.ops.deduplicator 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.deduplicator.video_deduplicator.html#data_juicer.ops.deduplicator.video_deduplicator.VideoDeduplicator">VideoDeduplicator（data_juicer.ops.deduplicator.video_deduplicator 中的类）</a>
@@ -12210,6 +12265,10 @@
       <li><a href="api/data_juicer.ops.mapper.video_hand_reconstruction_mapper.html#data_juicer.ops.mapper.video_hand_reconstruction_mapper.VideoHandReconstructionMapper">VideoHandReconstructionMapper（data_juicer.ops.mapper.video_hand_reconstruction_mapper 中的类）</a>
 </li>
       <li><a href="api/data_juicer.utils.constant.html#data_juicer.utils.constant.HashKeys.videohash">videohash（data_juicer.utils.constant.HashKeys 属性）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHuman3DPoseMapper">VideoHuman3DPoseMapper（data_juicer.ops.mapper 中的类）</a>
+</li>
+      <li><a href="api/data_juicer.ops.mapper.video_human_3d_pose_mapper.html#data_juicer.ops.mapper.video_human_3d_pose_mapper.VideoHuman3DPoseMapper">VideoHuman3DPoseMapper（data_juicer.ops.mapper.video_human_3d_pose_mapper 中的类）</a>
 </li>
       <li><a href="api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.VideoHumantrackFaceDemographicMapper">VideoHumantrackFaceDemographicMapper（data_juicer.ops.mapper 中的类）</a>
 </li>

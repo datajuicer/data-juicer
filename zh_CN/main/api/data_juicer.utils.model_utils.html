@@ -351,6 +351,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
@@ -789,6 +790,11 @@ otherwise, only the processor is returned.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="data_juicer.utils.model_utils.prepare_human_3d_pose_human3r">
+<span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">prepare_human_3d_pose_human3r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">human3r_repo_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#prepare_human_3d_pose_human3r"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.prepare_human_3d_pose_human3r" title="链接到此定义。">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="data_juicer.utils.model_utils.prepare_hawor_model">
 <span class="sig-prename descclassname"><span class="pre">data_juicer.utils.model_utils.</span></span><span class="sig-name descname"><span class="pre">prepare_hawor_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hawor_model_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hawor_config_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mano_right_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mano_left_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/utils/model_utils.html#prepare_hawor_model"><span class="viewcode-link"><span class="pre">[源代码]</span></span></a><a class="headerlink" href="#data_juicer.utils.model_utils.prepare_hawor_model" title="链接到此定义。">¶</a></dt>
 <dd></dd></dl>
@@ -1185,6 +1191,7 @@ It is used to load a mmdeploy model and run inference on given images.</p>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_fastsam_model"><code class="docutils literal notranslate"><span class="pre">prepare_fastsam_model()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_fasttext_model"><code class="docutils literal notranslate"><span class="pre">prepare_fasttext_model()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_huggingface_model"><code class="docutils literal notranslate"><span class="pre">prepare_huggingface_model()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_human_3d_pose_human3r"><code class="docutils literal notranslate"><span class="pre">prepare_human_3d_pose_human3r()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_hawor_model"><code class="docutils literal notranslate"><span class="pre">prepare_hawor_model()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_kenlm_model"><code class="docutils literal notranslate"><span class="pre">prepare_kenlm_model()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.utils.model_utils.prepare_moge_model"><code class="docutils literal notranslate"><span class="pre">prepare_moge_model()</span></code></a></li>

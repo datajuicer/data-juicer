@@ -351,6 +351,7 @@
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
@@ -505,7 +506,7 @@ Data-Juicer 中的算子分为以下 8 种类型。</p>
 <td><p>Group samples to batched samples. 将样本分组，每一组组成一个批量样本。</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../api/data_juicer.ops.mapper.html#module-data_juicer.ops.mapper" title="data_juicer.ops.mapper"><span class="xref myst py py-mod">mapper</span></a></p></td>
-<td class="text-center"><p>138</p></td>
+<td class="text-center"><p>139</p></td>
 <td><p>Edits and transforms samples. 对数据样本进行编辑和转换。</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../api/data_juicer.ops.pipeline.html#module-data_juicer.ops.pipeline" title="data_juicer.ops.pipeline"><span class="xref myst py py-mod">pipeline</span></a></p></td>
@@ -1887,91 +1888,97 @@ Data-Juicer 中的算子分为以下 8 种类型。</p>
 <td><p><a class="reference internal" href="operators/mapper/video_hand_reconstruction_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_human_tracks_extraction_mapper</p></td>
+<tr class="row-odd"><td><p>video_human_3d_pose_mapper</p></td>
+<td><p>🎬Video 🚀GPU 🟡Beta</p></td>
+<td><p>Extract 3D human pose with Human3R (SMPL-X). 使用Human3R (SMPL-X) 提取3D人体姿势。</p></td>
+<td><p><a class="reference internal" href="operators/mapper/video_human_3d_pose_mapper.html"><span class="std std-doc">info</span></a></p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-even"><td><p>video_human_tracks_extraction_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🟡Beta</p></td>
 <td><p>Extract face and human bounding box tracks from videos. 从视频中提取人脸和人体边界框轨迹.</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_human_tracks_extraction_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
 </tr>
-<tr class="row-even"><td><p>video_human_tracks_face_demographic_mapper</p></td>
+<tr class="row-odd"><td><p>video_human_tracks_face_demographic_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟡Beta</p></td>
 <td><p>Mapper to generate samples whose captions are generated based on a video-to-text model and sampled video frame. 映射器生成样本，其字幕是基于视频到文本模型和采样的视频帧生成的。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_human_tracks_face_demographic_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2412.17574">HumanVBench</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>video_object_segmenting_mapper</p></td>
+<tr class="row-even"><td><p>video_object_segmenting_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🧩HF 🟡Beta</p></td>
 <td><p>Text-guided semantic segmentation of valid objects throughout the video (YOLOE + SAM2). 在整个视频中对有效对象进行文本引导的语义分割 (YOLOE SAM2)。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_object_segmenting_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_remove_watermark_mapper</p></td>
+<tr class="row-odd"><td><p>video_remove_watermark_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Remove watermarks from videos based on specified regions. 根据指定区域从视频中删除水印。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_remove_watermark_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_resize_aspect_ratio_mapper</p></td>
+<tr class="row-even"><td><p>video_resize_aspect_ratio_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Resizes videos to fit within a specified aspect ratio range. 调整视频大小以适应指定的宽高比范围。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_resize_aspect_ratio_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_resize_resolution_mapper</p></td>
+<tr class="row-odd"><td><p>video_resize_resolution_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟢Stable</p></td>
 <td><p>Resizes video resolution based on specified width and height constraints. 根据指定的宽度和高度限制调整视频分辨率。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_resize_resolution_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_split_by_duration_mapper</p></td>
+<tr class="row-even"><td><p>video_split_by_duration_mapper</p></td>
 <td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
 <td><p>Splits videos into segments based on a specified duration. 根据指定的持续时间将视频拆分为多个片段。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_split_by_duration_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_split_by_key_frame_mapper</p></td>
+<tr class="row-odd"><td><p>video_split_by_key_frame_mapper</p></td>
 <td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
 <td><p>Splits a video into segments based on key frames. 根据关键帧将视频分割为多个片段。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_split_by_key_frame_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_split_by_scene_mapper</p></td>
+<tr class="row-even"><td><p>video_split_by_scene_mapper</p></td>
 <td><p>🔮Multimodal 💻CPU 🟢Stable</p></td>
 <td><p>Splits videos into scene clips based on detected scene changes. 根据检测到的场景变化将视频拆分为场景剪辑。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_split_by_scene_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_tagging_from_audio_mapper</p></td>
+<tr class="row-odd"><td><p>video_tagging_from_audio_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🧩HF 🟢Stable</p></td>
 <td><p>Generates video tags from audio streams using the Audio Spectrogram Transformer. 使用音频频谱图转换器从音频流生成视频标签。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_tagging_from_audio_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>video_tagging_from_frames_mapper</p></td>
+<tr class="row-even"><td><p>video_tagging_from_frames_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🟢Stable</p></td>
 <td><p>Generates video tags from frames extracted from videos. 从视频中提取的帧生成视频标签。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_tagging_from_frames_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_trajectory_overlay_mapper</p></td>
+<tr class="row-odd"><td><p>video_trajectory_overlay_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟡Beta</p></td>
 <td><p>Prepare VLM-ready frames by sampling and overlaying hand trajectories. 通过采样和覆盖手部轨迹来准备VLM就绪帧。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_trajectory_overlay_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p><a class="reference external" href="https://arxiv.org/abs/2510.21571">arxiv 2510.21571</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>video_undistort_mapper</p></td>
+<tr class="row-even"><td><p>video_undistort_mapper</p></td>
 <td><p>🎬Video 💻CPU 🟡Beta</p></td>
 <td><p>Undistort raw videos with corresponding camera intrinsics and distortion coefficients. 使用相应的相机固有特性和失真系数对原始视频进行失真。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_undistort_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>video_whole_body_pose_estimation_mapper</p></td>
+<tr class="row-odd"><td><p>video_whole_body_pose_estimation_mapper</p></td>
 <td><p>🎬Video 🚀GPU 🟡Beta</p></td>
 <td><p>Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation. 输入包含人的视频，并使用DWPose模型来提取视频中人类主体的身体、手、脚和面部关键点，即2D全身姿态估计。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/video_whole_body_pose_estimation_mapper.html"><span class="std std-doc">info</span></a></p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-odd"><td><p>whitespace_normalization_mapper</p></td>
+<tr class="row-even"><td><p>whitespace_normalization_mapper</p></td>
 <td><p>🔤Text 💻CPU 🟢Stable</p></td>
 <td><p>Normalizes various types of whitespace characters to standard spaces in text samples. 将文本样本中各种类型的空白字符规范化为标准空格。</p></td>
 <td><p><a class="reference internal" href="operators/mapper/whitespace_normalization_mapper.html"><span class="std std-doc">info</span></a></p></td>

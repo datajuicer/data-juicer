@@ -132,6 +132,122 @@
   <section id="module-data_juicer.ops.mapper">
 <span id="data-juicer-ops-mapper"></span><h1>data_juicer.ops.mapper<a class="headerlink" href="#module-data_juicer.ops.mapper" title="Link to this heading">¶</a></h1>
 <dl class="py class">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoHuman3DPoseMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
+<p>Extract 3D human pose with Human3R (SMPL-X).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'human3r_896L.pth'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">human3r_repo_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/home/runner/.cache/data_juicer/assets'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initialization method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_path</strong> – The path to the Human3R model checkpoint.</p></li>
+<li><p><strong>human3r_repo_path</strong> – Path to a prepared Human3R checkout and its SMPL assets.</p></li>
+<li><p><strong>frame_num</strong> – The number of frames to be extracted uniformly from
+the video. If it’s 1, only the middle frame will be extracted. If
+it’s 2, only the first and the last frames will be extracted. If
+it’s larger than 2, in addition to the first and the last frames,
+other frames will be extracted uniformly within the video duration.
+If “duration” &gt; 0, frame_num is the number of frames per segment.</p></li>
+<li><p><strong>duration</strong> – The duration of each segment in seconds.
+If 0, frames are extracted from the entire video.
+If duration &gt; 0, the video is segmented into multiple segments
+based on duration, and frames are extracted from each segment.</p></li>
+<li><p><strong>frame_dir</strong> – Output directory to save extracted frames.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper.pad_image">
+<span class="sig-name descname"><span class="pre">pad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper.pad_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.pad_image" title="Link to this definition">¶</a></dt>
+<dd><p>torch version of ImageOps.pad, equivalent to the combination of contain and pad</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img_tensor</strong> – torch tensor, shape [C, H, W] or [B, C, H, W]</p></li>
+<li><p><strong>target_size</strong> – int, target size (square)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch tensor, shape [C, target_size, target_size] or [B, C, target_size, target_size]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper.load_images">
+<span class="sig-name descname"><span class="pre">load_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">folder_or_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">square_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper.load_images"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.load_images" title="Link to this definition">¶</a></dt>
+<dd><p>open and convert all images in a list or folder to proper input format for DUSt3R</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_focalLength_from_fieldOfView">
+<span class="sig-name descname"><span class="pre">get_focalLength_from_fieldOfView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fov</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">512</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper.get_focalLength_from_fieldOfView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_focalLength_from_fieldOfView" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the focal length of the camera lens by assuming a certain FOV for the entire image
+:param - fov: float, expressed in degree
+:param - img_size: int</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>focal</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_camera_parameters">
+<span class="sig-name descname"><span class="pre">get_camera_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fov</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper.get_camera_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_camera_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Given image size, fov and principal point coordinates, return K the camera parameter matrix</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper.prepare_input">
+<span class="sig-name descname"><span class="pre">prepare_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raymaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raymap_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">revisit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_res</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper.prepare_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.prepare_input" title="Link to this definition">¶</a></dt>
+<dd><p>Prepare input views for inference from a list of image paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img_paths</strong> (<em>list</em>) – List of image file paths.</p></li>
+<li><p><strong>img_mask</strong> (<em>list</em><em> of </em><em>bool</em>) – Flags indicating valid images.</p></li>
+<li><p><strong>size</strong> (<em>int</em>) – Target image size.</p></li>
+<li><p><strong>raymaps</strong> (<em>list</em><em>, </em><em>optional</em>) – List of ray maps.</p></li>
+<li><p><strong>raymap_mask</strong> (<em>list</em><em>, </em><em>optional</em>) – Flags indicating valid ray maps.</p></li>
+<li><p><strong>revisit</strong> (<em>int</em>) – How many times to revisit each view.</p></li>
+<li><p><strong>update</strong> (<em>bool</em>) – Whether to update the state on revisits.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of view dictionaries.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoHuman3DPoseMapper.process_single">
+<span class="sig-name descname"><span class="pre">process_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_human_3d_pose_mapper.html#VideoHuman3DPoseMapper.process_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.process_single" title="Link to this definition">¶</a></dt>
+<dd><p>For sample level, sample –&gt; sample</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample</strong> – sample to process</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>processed sample</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="data_juicer.ops.mapper.AgentBadCaseSignalMapper">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">AgentBadCaseSignalMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/agent_bad_case_signal_mapper.html#AgentBadCaseSignalMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.AgentBadCaseSignalMapper" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
@@ -8114,6 +8230,16 @@ to generate caption</p>
             <p class="toc-title">On this page</p>
             <ul>
 <li><a class="reference internal" href="#">data_juicer.ops.mapper</a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper</span></code></a><ul>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.__init__"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.pad_image"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.pad_image()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.load_images"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.load_images()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_focalLength_from_fieldOfView"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.get_focalLength_from_fieldOfView()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.get_camera_parameters"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.get_camera_parameters()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.prepare_input"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.prepare_input()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.mapper.VideoHuman3DPoseMapper.process_single"><code class="docutils literal notranslate"><span class="pre">VideoHuman3DPoseMapper.process_single()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.AgentBadCaseSignalMapper"><code class="docutils literal notranslate"><span class="pre">AgentBadCaseSignalMapper</span></code></a><ul>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.AgentBadCaseSignalMapper.__init__"><code class="docutils literal notranslate"><span class="pre">AgentBadCaseSignalMapper.__init__()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.ops.mapper.AgentBadCaseSignalMapper.process_single"><code class="docutils literal notranslate"><span class="pre">AgentBadCaseSignalMapper.process_single()</span></code></a></li>

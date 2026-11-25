@@ -46,7 +46,7 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | [filter](#filter) | 59 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 138 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 139 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 3 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 6 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -307,6 +307,7 @@ All the specific operators are listed below, each featured with several capabili
 | video_hand_motion_smooth_mapper | 🎬Video 💻CPU 🟡Beta | Apply smoothing to world-space hand motions and remove outliers. 对世界空间手部运动应用平滑并移除异常值。 | [info](operators/mapper/video_hand_motion_smooth_mapper.md) | [arxiv 2510.21571](https://arxiv.org/abs/2510.21571) |
 | video_hand_reconstruction_hawor_mapper | 🎬Video 🚀GPU 🟡Beta | Use HaWoR and MoGe-2 for hand reconstruction. 使用HaWoR和MoGe-2进行手部重建。 | [info](operators/mapper/video_hand_reconstruction_hawor_mapper.md) | - |
 | video_hand_reconstruction_mapper | 🎬Video 🚀GPU 🔴Alpha | Use the WiLoR model for hand localization and reconstruction. 使用WiLoR模型进行手部定位和重建。 | [info](operators/mapper/video_hand_reconstruction_mapper.md) | - |
+| video_human_3d_pose_mapper | 🎬Video 🚀GPU 🟡Beta | Extract 3D human pose with Human3R (SMPL-X). 使用Human3R (SMPL-X) 提取3D人体姿势。 | [info](operators/mapper/video_human_3d_pose_mapper.md) | - |
 | video_human_tracks_extraction_mapper | 🎬Video 🚀GPU 🟡Beta | Extract face and human bounding box tracks from videos. 从视频中提取人脸和人体边界框轨迹. | [info](operators/mapper/video_human_tracks_extraction_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
 | video_human_tracks_face_demographic_mapper | 🎬Video 💻CPU 🟡Beta | Mapper to generate samples whose captions are generated based on a video-to-text model and sampled video frame. 映射器生成样本，其字幕是基于视频到文本模型和采样的视频帧生成的。 | [info](operators/mapper/video_human_tracks_face_demographic_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
 | video_object_segmenting_mapper | 🎬Video 🚀GPU 🧩HF 🟡Beta | Text-guided semantic segmentation of valid objects throughout the video (YOLOE + SAM2). 在整个视频中对有效对象进行文本引导的语义分割 (YOLOE SAM2)。 | [info](operators/mapper/video_object_segmenting_mapper.md) | - |

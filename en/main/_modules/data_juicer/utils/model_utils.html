@@ -350,6 +350,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_motion_smooth_mapper.html">video_hand_motion_smooth_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_reconstruction_hawor_mapper.html">video_hand_reconstruction_hawor_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_hand_reconstruction_mapper.html">video_hand_reconstruction_mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_3d_pose_mapper.html">video_human_3d_pose_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_extraction_mapper.html">video_human_tracks_extraction_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_human_tracks_face_demographic_mapper.html">video_human_tracks_face_demographic_mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../docs/operators/mapper/video_object_segmenting_mapper.html">video_object_segmenting_mapper</a></li>
@@ -1454,6 +1455,55 @@
             <span class="n">model</span> <span class="o">=</span> <span class="n">pipe</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">processor</span><span class="p">)</span> <span class="k">if</span> <span class="n">return_model</span> <span class="k">else</span> <span class="n">processor</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_human_3d_pose_human3r">
+<a class="viewcode-back" href="../../../api/data_juicer.utils.model_utils.html#data_juicer.utils.model_utils.prepare_human_3d_pose_human3r">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_human_3d_pose_human3r</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">human3r_repo_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">model_params</span><span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">filelock</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileLock</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"device"</span><span class="p">,</span> <span class="s2">"cpu"</span><span class="p">)</span>
+    <span class="n">repo</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">human3r_repo_path</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_JUICER_ASSETS_CACHE</span><span class="p">,</span> <span class="s2">"Human3R"</span><span class="p">))</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">repo</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">FileLock</span><span class="p">(</span><span class="n">repo</span> <span class="o">+</span> <span class="s2">".lock"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">repo</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">human3r_repo_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Human3R checkout does not exist: </span><span class="si">{</span><span class="n">repo</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"git"</span><span class="p">,</span> <span class="s2">"clone"</span><span class="p">,</span> <span class="s2">"https://github.com/fanegg/Human3R.git"</span><span class="p">,</span> <span class="n">repo</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">required_assets</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">"smplx/SMPLX_NEUTRAL.npz"</span><span class="p">,</span>
+            <span class="s2">"smplx/SMPLX_MALE.npz"</span><span class="p">,</span>
+            <span class="s2">"smplx/SMPLX_FEMALE.npz"</span><span class="p">,</span>
+            <span class="s2">"smplx/smplx2smpl.pkl"</span><span class="p">,</span>
+            <span class="s2">"smpl/SMPL_NEUTRAL.pkl"</span><span class="p">,</span>
+            <span class="s2">"smpl/SMPL_MALE.pkl"</span><span class="p">,</span>
+            <span class="s2">"smpl/SMPL_FEMALE.pkl"</span><span class="p">,</span>
+            <span class="s2">"smpl/J_regressor_h36m.npy"</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">required_assets</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="s2">"src"</span><span class="p">,</span> <span class="s2">"models"</span><span class="p">,</span> <span class="n">name</span><span class="p">))]</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Missing Human3R assets in </span><span class="si">{</span><span class="n">repo</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2">. "</span>
+                <span class="s2">"Follow Human3R setup instructions and run bash scripts/fetch_smplx.sh from that checkout."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+            <span class="n">huggingface_hub</span> <span class="o">=</span> <span class="n">LazyLoader</span><span class="p">(</span><span class="s2">"huggingface_hub"</span><span class="p">)</span>
+            <span class="n">model_path</span> <span class="o">=</span> <span class="n">huggingface_hub</span><span class="o">.</span><span class="n">hf_hub_download</span><span class="p">(</span>
+                <span class="n">repo_id</span><span class="o">=</span><span class="s2">"faneggg/human3r"</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">"human3r_896L.pth"</span><span class="p">,</span> <span class="n">local_dir</span><span class="o">=</span><span class="n">DJMC</span>
+            <span class="p">)</span>
+    <span class="n">added_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">path</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">[</span><span class="n">repo</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="s2">"src"</span><span class="p">)]</span> <span class="k">if</span> <span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">]</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">[:</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">added_paths</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">src.dust3r.inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">inference_recurrent_lighter</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">src.dust3r.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARCroco3DStereo</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">ARCroco3DStereo</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">added_paths</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">inference_recurrent_lighter</span></div>
 
 
 
@@ -2865,6 +2915,7 @@
     <span class="s2">"fastsam"</span><span class="p">:</span> <span class="n">prepare_fastsam_model</span><span class="p">,</span>
     <span class="s2">"hawor"</span><span class="p">:</span> <span class="n">prepare_hawor_model</span><span class="p">,</span>
     <span class="s2">"huggingface"</span><span class="p">:</span> <span class="n">prepare_huggingface_model</span><span class="p">,</span>
+    <span class="s2">"human_3d_pose_human3r"</span><span class="p">:</span> <span class="n">prepare_human_3d_pose_human3r</span><span class="p">,</span>
     <span class="s2">"kenlm"</span><span class="p">:</span> <span class="n">prepare_kenlm_model</span><span class="p">,</span>
     <span class="s2">"moge"</span><span class="p">:</span> <span class="n">prepare_moge_model</span><span class="p">,</span>
     <span class="s2">"nltk"</span><span class="p">:</span> <span class="n">prepare_nltk_model</span><span class="p">,</span>

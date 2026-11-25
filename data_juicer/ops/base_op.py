@@ -740,6 +740,17 @@ class Mapper(OP):
         first_key = next(iter(keys))
         num_samples = len(samples[first_key])
 
+        if getattr(self, "drop_text", False):
+            # Rebuild the columns so fields removed by process_single stay removed.
+            # Some rows can retain a parent field that other rows no longer need.
+            processed_samples = [
+                self.process_single({key: samples[key][i] for key in keys}, *args, **kwargs) for i in range(num_samples)
+            ]
+            if not processed_samples:
+                return {key: [] for key in keys}
+            output_keys = dict.fromkeys(key for row in processed_samples for key in row)
+            return {key: [row.get(key) for row in processed_samples] for key in output_keys}
+
         new_keys = {}
         for i in range(num_samples):
             this_sample = {key: samples[key][i] for key in keys}
@@ -798,7 +809,7 @@ class Mapper(OP):
 
         free_models()
         if source_features is not None:
-            from data_juicer.ops.mapper.drop_text import remove_text_from_dataset
+            from data_juicer.utils.text_field_utils import remove_text_from_dataset
 
             # Keep the original path when a literal dotted key was already removed.
             new_dataset = remove_text_from_dataset(new_dataset, self.text_key, source_features)

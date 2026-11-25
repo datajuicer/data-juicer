@@ -6,12 +6,12 @@ from loguru import logger
 from pydantic import PositiveInt
 
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
-from data_juicer.ops.mapper.drop_text import (
+from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.text_field_utils import (
     read_text_from_sample,
     remove_text_from_sample,
 )
-from data_juicer.utils.constant import Fields, MetaKeys
-from data_juicer.utils.model_utils import get_model, prepare_model
 
 OP_NAME = "extract_nickname_mapper"
 

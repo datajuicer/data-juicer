@@ -94,6 +94,8 @@ class MetaKeys(object):
     video_optical_flow_tags = "video_optical_flow_tags"
     # # video universal segmentation tags
     video_universal_segmentation_tags = "video_universal_segmentation_tags"
+    # # video human 3d pose tags
+    video_human_3d_pose_tags = "video_human_3d_pose_tags"
     # # info extracted by VGGT
     vggt_tags = "vggt_tags"
     # # image tags

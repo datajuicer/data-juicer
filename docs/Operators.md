@@ -42,11 +42,11 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | Type 类型 | Number 数量 | Description 描述 |
 |------|:------:|-------------|
 | [aggregator](#aggregator) | 4 | Aggregate for batched samples, such as summary or conclusion. 对批量样本进行汇总，如得出总结或结论。 |
-| [deduplicator](#deduplicator) | 10 | Detects and removes duplicate samples. 识别、删除重复样本。 |
+| [deduplicator](#deduplicator) | 11 | Detects and removes duplicate samples. 识别、删除重复样本。 |
 | [filter](#filter) | 59 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 141 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 142 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 3 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 6 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -88,6 +88,7 @@ All the specific operators are listed below, each featured with several capabili
 | document_minhash_deduplicator | 🔤Text 💻CPU 🟢Stable | Deduplicates samples at the document level using MinHash LSH. 使用MinHash LSH在文档级别删除重复样本。 | [info](operators/deduplicator/document_minhash_deduplicator.md) | - |
 | document_simhash_deduplicator | 🔤Text 💻CPU 🟢Stable | Deduplicates samples at the document level using SimHash. 使用SimHash在文档级别删除重复的样本。 | [info](operators/deduplicator/document_simhash_deduplicator.md) | - |
 | image_deduplicator | 🏞Image 💻CPU 🟢Stable | Deduplicates samples at the document level by exact matching of images. 通过图像的精确匹配在文档级别删除重复的样本。 | [info](operators/deduplicator/image_deduplicator.md) | - |
+| ray_bts_image_minhash_deduplicator | 🏞Image 🚀GPU 🧩HF 🟡Beta | A distributed image deduplicator using MinHash LSH and BTS Union-Find on Ray. 使用MinHash LSH和BTS Union-Find on Ray的分布式图像去重器。 | [info](operators/deduplicator/ray_bts_image_minhash_deduplicator.md) | [BTS Union-Find](https://ieeexplore.ieee.org/document/10598116) |
 | ray_bts_minhash_deduplicator | 🔤Text 💻CPU 🟡Beta | A MinhashLSH deduplicator that operates in Ray distributed mode. 在Ray分布式模式下运行的MinhashLSH重复数据删除程序。 | [info](operators/deduplicator/ray_bts_minhash_deduplicator.md) | [BTS Union-Find](https://ieeexplore.ieee.org/document/10598116) |
 | ray_document_deduplicator | 🔤Text 💻CPU 🟡Beta | Deduplicates samples at the document level using exact matching in Ray distributed mode. 在Ray分布式模式下使用精确匹配在文档级别删除重复的样本。 | [info](operators/deduplicator/ray_document_deduplicator.md) | - |
 | ray_image_deduplicator | 🏞Image 💻CPU 🟡Beta | Deduplicates samples at the document level using exact matching of images in Ray distributed mode. 在光线分布模式下使用图像的精确匹配在文档级别删除重复样本。 | [info](operators/deduplicator/ray_image_deduplicator.md) | - |
@@ -306,6 +307,7 @@ All the specific operators are listed below, each featured with several capabili
 | video_hand_motion_smooth_mapper | 🎬Video 💻CPU 🟡Beta | Apply smoothing to world-space hand motions and remove outliers. 对世界空间手部运动应用平滑并移除异常值。 | [info](operators/mapper/video_hand_motion_smooth_mapper.md) | [arxiv 2510.21571](https://arxiv.org/abs/2510.21571) |
 | video_hand_reconstruction_hawor_mapper | 🎬Video 🚀GPU 🟡Beta | Use HaWoR and MoGe-2 for hand reconstruction. 使用HaWoR和MoGe-2进行手部重建。 | [info](operators/mapper/video_hand_reconstruction_hawor_mapper.md) | - |
 | video_hand_reconstruction_mapper | 🎬Video 🚀GPU 🔴Alpha | Use the WiLoR model for hand localization and reconstruction. 使用WiLoR模型进行手部定位和重建。 | [info](operators/mapper/video_hand_reconstruction_mapper.md) | - |
+| video_human_3d_pose_mapper | 🎬Video 🚀GPU 🟡Beta | Extract 3D human pose with Human3R (SMPL-X). 使用Human3R (SMPL-X) 提取3D人体姿势。 | [info](operators/mapper/video_human_3d_pose_mapper.md) | - |
 | video_human_tracks_extraction_mapper | 🎬Video 🚀GPU 🟡Beta | Extract face and human bounding box tracks from videos. 从视频中提取人脸和人体边界框轨迹. | [info](operators/mapper/video_human_tracks_extraction_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
 | video_human_tracks_face_demographic_mapper | 🎬Video 💻CPU 🟡Beta | Mapper to generate samples whose captions are generated based on a video-to-text model and sampled video frame. 映射器生成样本，其字幕是基于视频到文本模型和采样的视频帧生成的。 | [info](operators/mapper/video_human_tracks_face_demographic_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
 | video_normal_map_mapper | 🎬Video 🚀GPU 🟡Beta | Generate normal maps for videos (with the Metric3D model). 为视频生成法线贴图 (使用Metric3D模型)。 | [info](operators/mapper/video_normal_map_mapper.md) | - |

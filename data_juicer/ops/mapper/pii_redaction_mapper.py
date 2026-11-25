@@ -306,17 +306,39 @@ class PiiRedactionMapper(Mapper):
             text = pat.sub(repl, text)
         return text
 
+    def _names_secret_or_id(self, pattern, key: str) -> bool:
+        """Whether ``key=x`` would have x redacted as a whole by secret_kv or id_kv."""
+        probe = key + "=x"
+        match = pattern.search(probe)
+        return match is not None and match.end() == len(probe)
+
+    def _redact_entry(self, key: Any, value: str) -> str:
+        """Redact a string value of a dict.
+
+        In a JSON string such as ``{"password": "x"}`` the secret and ID patterns
+        see the key next to its value. A dict value has no key in its text, so the
+        key is checked on its own and the whole value is replaced when the key
+        names a secret or an ID.
+        """
+        if value and isinstance(key, str):
+            if self.mask_secrets and self._names_secret_or_id(self._secret_kv, key):
+                return self.secret_replacement
+            if self.mask_ids and self._names_secret_or_id(self._id_kv, key):
+                return self.id_replacement
+        return self._redact_text(value)
+
     def _redact_value(self, val: Any, redact_strings: bool = False) -> None:
         """Recursively redact PII in dict/list; in-place. For str, use _redact_text.
 
-        Strings in a list are redacted when the list is anywhere below a
-        PII_VALUE_KEYS key or ``redact_strings`` is set. Other list strings,
-        such as media paths, are left alone.
+        Strings in lists and dicts are redacted when they are anywhere below a
+        PII_VALUE_KEYS key (such as tool call ``arguments``) or ``redact_strings``
+        is set. Other strings, such as media paths in ``images``, are left alone.
         """
         if isinstance(val, dict):
             for k, v in list(val.items()):
-                if k in PII_VALUE_KEYS and isinstance(v, str):
-                    val[k] = self._redact_text(v)
+                if isinstance(v, str):
+                    if redact_strings or k in PII_VALUE_KEYS:
+                        val[k] = self._redact_entry(k, v)
                 else:
                     self._redact_value(v, redact_strings or k in PII_VALUE_KEYS)
         elif isinstance(val, list):
@@ -326,6 +348,27 @@ class PiiRedactionMapper(Mapper):
                         val[i] = self._redact_text(item)
                 else:
                     self._redact_value(item, redact_strings)
+
+    def _redact_content_blocks(self, blocks: list) -> None:
+        """In-place redact a list of content blocks.
+
+        Covers text blocks, the ``input`` of tool_use blocks and the nested
+        ``content`` list of tool_result blocks.
+        """
+        for i, block in enumerate(blocks):
+            if isinstance(block, dict):
+                for k in ("text", "content"):
+                    if k in block and isinstance(block[k], str):
+                        block[k] = self._redact_text(block[k])
+                if isinstance(block.get("content"), list):
+                    self._redact_content_blocks(block["content"])
+                tool_input = block.get("input")
+                if isinstance(tool_input, str):
+                    block["input"] = self._redact_text(tool_input)
+                elif isinstance(tool_input, (dict, list)):
+                    self._redact_value(tool_input, redact_strings=True)
+            elif isinstance(block, str):
+                blocks[i] = self._redact_text(block)
 
     def _redact_messages(self, messages: Any) -> None:
         """In-place redact all string content inside messages (list of msg)."""
@@ -339,13 +382,7 @@ class PiiRedactionMapper(Mapper):
                 if isinstance(content, str):
                     msg["content"] = self._redact_text(content)
                 elif isinstance(content, list):
-                    for i, block in enumerate(content):
-                        if isinstance(block, dict):
-                            for k in ("text", "content"):
-                                if k in block and isinstance(block[k], str):
-                                    block[k] = self._redact_text(block[k])
-                        elif isinstance(block, str):
-                            content[i] = self._redact_text(block)
+                    self._redact_content_blocks(content)
             # Redact tool_calls / tool_use (e.g. function.arguments with path/email)
             for key in ("tool_calls", "tool_use"):
                 calls = msg.get(key)
@@ -360,13 +397,13 @@ class PiiRedactionMapper(Mapper):
                         if isinstance(args, str):
                             fn["arguments"] = self._redact_text(args)
                         elif isinstance(args, dict):
-                            self._redact_value(args)
+                            self._redact_value(args, redact_strings=True)
                     # Some formats put arguments at top level of call
                     args = call.get("arguments")
                     if isinstance(args, str):
                         call["arguments"] = self._redact_text(args)
                     elif isinstance(args, dict):
-                        self._redact_value(args)
+                        self._redact_value(args, redact_strings=True)
 
     def process_single(self, sample: dict) -> dict:
         for key in self.redact_keys:

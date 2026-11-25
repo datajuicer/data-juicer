@@ -766,10 +766,8 @@
 <span class="sd">        package).  Commands without the optional [caption] argument</span>
 <span class="sd">        are also supported.</span>
 
-<span class="sd">        Also handles the minipage pattern where a single figure</span>
-<span class="sd">        environment contains multiple \\begin{minipage} blocks, each</span>
-<span class="sd">        with its own \\caption, \\label, and \\includegraphics.</span>
-<span class="sd">        Minipages that contain \\captionof{table} are skipped.</span>
+<span class="sd">        Also handles a figure environment that contains multiple</span>
+<span class="sd">        \\begin{minipage} blocks (see ``_parse_minipages``).</span>
 
 <span class="sd">        :param fig_text: the full text of a figure environment.</span>
 <span class="sd">        :return: a Figure object, a list of Figure objects, or None</span>
@@ -827,30 +825,9 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># No subfigures — check for the minipage pattern.</span>
-            <span class="c1"># When a figure environment contains multiple minipages</span>
-            <span class="c1"># with separate \caption/\label pairs, each minipage is</span>
-            <span class="c1"># treated as an independent figure.  Minipages holding</span>
-            <span class="c1"># \captionof{table} are skipped (they are tables).</span>
             <span class="n">minipage_matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_minipage_pattern</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">fig_text</span><span class="p">))</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">minipage_matches</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">figures</span> <span class="o">=</span> <span class="p">[]</span>
-                <span class="k">for</span> <span class="n">mp</span> <span class="ow">in</span> <span class="n">minipage_matches</span><span class="p">:</span>
-                    <span class="n">mp_body</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-                    <span class="c1"># Skip table minipages</span>
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_table_minipage</span><span class="p">(</span><span class="n">mp_body</span><span class="p">):</span>
-                        <span class="k">continue</span>
-                    <span class="n">image_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_image_paths</span><span class="p">(</span><span class="n">mp_body</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">image_paths</span><span class="p">:</span>
-                        <span class="k">continue</span>
-                    <span class="n">figures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="n">Figure</span><span class="p">(</span>
-                            <span class="n">caption</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_extract_caption</span><span class="p">(</span><span class="n">mp_body</span><span class="p">),</span>
-                            <span class="n">label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_extract_label</span><span class="p">(</span><span class="n">mp_body</span><span class="p">),</span>
-                            <span class="n">image_paths</span><span class="o">=</span><span class="n">image_paths</span><span class="p">,</span>
-                            <span class="n">sub_figures</span><span class="o">=</span><span class="p">[],</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="k">return</span> <span class="n">figures</span> <span class="k">if</span> <span class="n">figures</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_minipages</span><span class="p">(</span><span class="n">fig_text</span><span class="p">,</span> <span class="n">minipage_matches</span><span class="p">)</span>
 
             <span class="c1"># Single figure (no subfigures, no multi-minipage)</span>
             <span class="n">image_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_image_paths</span><span class="p">(</span><span class="n">fig_text</span><span class="p">)</span>
@@ -863,6 +840,54 @@
                 <span class="n">image_paths</span><span class="o">=</span><span class="n">image_paths</span><span class="p">,</span>
                 <span class="n">sub_figures</span><span class="o">=</span><span class="p">[],</span>
             <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_minipages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fig_text</span><span class="p">,</span> <span class="n">minipage_matches</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Parse a figure environment that holds two or more minipages.</span>
+
+<span class="sd">        Minipages holding \\captionof{table} or no \\includegraphics</span>
+<span class="sd">        are skipped.  What the rest become depends on the caption and</span>
+<span class="sd">        label written outside the minipages:</span>
+
+<span class="sd">        - none outside: each minipage is an independent figure;</span>
+<span class="sd">        - outside, and no minipage has its own caption or label: the</span>
+<span class="sd">          minipages only lay the images out, so they form one figure</span>
+<span class="sd">          with the outside caption and label;</span>
+<span class="sd">        - outside, and the minipages have their own: the minipages are</span>
+<span class="sd">          subfigures of a figure with the outside caption and label.</span>
+
+<span class="sd">        :param fig_text: the full text of a figure environment.</span>
+<span class="sd">        :param minipage_matches: matches of ``_minipage_pattern`` in</span>
+<span class="sd">            ``fig_text``.</span>
+<span class="sd">        :return: a Figure, a list of Figure objects, or None if no</span>
+<span class="sd">            minipage has images.</span>
+<span class="sd">        """</span>
+        <span class="n">panels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">mp</span> <span class="ow">in</span> <span class="n">minipage_matches</span><span class="p">:</span>
+            <span class="n">mp_body</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_table_minipage</span><span class="p">(</span><span class="n">mp_body</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">panel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_subfigure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extract_caption</span><span class="p">(</span><span class="n">mp_body</span><span class="p">),</span> <span class="n">mp_body</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">panel</span><span class="o">.</span><span class="n">image_paths</span><span class="p">:</span>
+                <span class="n">panels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">panels</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">text_outside</span> <span class="o">=</span> <span class="n">fig_text</span>
+        <span class="k">for</span> <span class="n">mp</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">minipage_matches</span><span class="p">):</span>
+            <span class="n">text_outside</span> <span class="o">=</span> <span class="n">text_outside</span><span class="p">[:</span> <span class="n">mp</span><span class="o">.</span><span class="n">start</span><span class="p">()]</span> <span class="o">+</span> <span class="n">text_outside</span><span class="p">[</span><span class="n">mp</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="p">:]</span>
+        <span class="n">caption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_caption</span><span class="p">(</span><span class="n">text_outside</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_label</span><span class="p">(</span><span class="n">text_outside</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">caption</span> <span class="ow">or</span> <span class="n">label</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">Figure</span><span class="p">(</span><span class="n">caption</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">caption</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">image_paths</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">image_paths</span><span class="p">,</span> <span class="n">sub_figures</span><span class="o">=</span><span class="p">[])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">panels</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">caption</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">label</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">panels</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Figure</span><span class="p">(</span>
+                <span class="n">caption</span><span class="o">=</span><span class="n">caption</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+                <span class="n">image_paths</span><span class="o">=</span><span class="p">[</span><span class="n">path</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">panels</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">image_paths</span><span class="p">],</span>
+                <span class="n">sub_figures</span><span class="o">=</span><span class="p">[],</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Figure</span><span class="p">(</span><span class="n">caption</span><span class="o">=</span><span class="n">caption</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">image_paths</span><span class="o">=</span><span class="p">[],</span> <span class="n">sub_figures</span><span class="o">=</span><span class="n">panels</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parse_figures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">latex_source</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Parse all figure environments from a LaTeX source.</span>

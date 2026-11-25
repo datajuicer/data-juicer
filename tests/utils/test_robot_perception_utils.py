@@ -39,6 +39,8 @@ class RobotPerceptionUtilsTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
+        sam3._sam3_model_key.cache_clear()
+        self.addCleanup(sam3._sam3_model_key.cache_clear)
 
     def _server(self, responses):
         server = ThreadingHTTPServer(("127.0.0.1", 0), RobotAPIHandler)
@@ -114,12 +116,106 @@ class RobotPerceptionUtilsTest(unittest.TestCase):
             server.requests[1][1]["messages"][0]["content"][1]["image_url"]["url"].startswith("data:image/png")
         )
 
+    def test_grounding_cache_is_scoped_to_endpoint(self):
+        first, endpoint_a = self._server([{"content": '{"image_index":1}'}, {"content": '{"point_2d":[100,200]}'}])
+        second, endpoint_b = self._server([{"content": '{"image_index":1}'}, {"content": '{"point_2d":[700,800]}'}])
+        path = self.root / "frame.png"
+        Image.new("RGB", (16, 16), "red").save(path)
+        views = {"left": {"images": [str(path)]}}
+        a = perception.ground_final_target(self.root, views, "cup", "test-vlm", endpoint_a)
+        b = perception.ground_final_target(self.root, views, "cup", "test-vlm", endpoint_b)
+        cached = perception.ground_final_target(self.root, views, "cup", "test-vlm", endpoint_b + "/")
+        self.assertEqual(a["point"], [100, 200])
+        self.assertEqual(b["point"], [700, 800])
+        self.assertEqual(b, cached)
+        self.assertEqual(len(first.requests), 2)
+        self.assertEqual(len(second.requests), 2)
+
+    def test_sam3_contexts_reacquire_models_after_shared_cleanup(self):
+        class Model:
+            def __init__(self, device):
+                self.device = device
+
+            def to(self, device):
+                self.device = device
+                return self
+
+        for kind in ("object-text", "object-video", "gripper-text", "gripper-video"):
+            with self.subTest(kind=kind):
+                key_cache = getattr(sam3, "_sam3_model_key", None)
+                if key_cache is not None:
+                    key_cache.cache_clear()
+                loaded = []
+
+                def prepare(device, **kwargs):
+                    model = Model(device)
+                    loaded.append(model)
+                    return model, object()
+
+                with (
+                    patch.dict(model_utils.MODEL_FUNCTION_MAPPING, {"robot_sam3": prepare}),
+                    patch.dict(model_utils.MODEL_ZOO, {}, clear=True),
+                    patch.object(model_utils, "cuda_device_count", return_value=1),
+                    patch.object(perception.common, "auto_device", return_value="cuda:0"),
+                    patch.object(perception, "resolve_vllm_model", return_value="test-vlm"),
+                    patch.object(perception, "build_vllm_json_client"),
+                ):
+                    if kind.startswith("object"):
+                        args = perception.object_tracking_config()
+                        args.sam3_model = args.sam3_video_model = str(self.root)
+                        context = perception.ObjectTrackingContext(args)
+                    else:
+                        args = perception.gripper_tracking_config()
+                        args.sam3_text_model = args.sam3_video_model = str(self.root)
+                        context = perception.GripperTrackingContext(args)
+                    seen = []
+
+                    def predict(np, torch, model, *args):
+                        seen.append(model)
+                        return {"masks": np.zeros((0, 8, 8), dtype=bool)}, {}
+
+                    def acquire():
+                        if kind == "object-text":
+                            with patch.object(sam3, "run_sam3_text", side_effect=predict):
+                                perception.run_sam3_candidates(
+                                    args, context, Image.new("RGB", (8, 8)), "cup", self.root
+                                )
+                            return seen[-1]
+                        if kind == "object-video":
+                            return context.load_video_tracker(args)[0]
+                        if kind == "gripper-text":
+                            return context.sam3_text(args)[0]
+                        return context.sam3_video(args)[0]
+
+                    first = acquire()
+                    self.assertIs(acquire(), first)
+                    model_utils.free_models()
+                    self.assertEqual(first.device, "cpu")
+                    second = acquire()
+                    self.assertIsNot(second, first)
+                    self.assertEqual(second.device, "cuda:0")
+                    model_utils.free_models()
+                    self.assertEqual(second.device, "cpu")
+                if key_cache is not None:
+                    key_cache.cache_clear()
+
     def test_final_grounding_rejects_no_visible_target(self):
         path = self.root / "last.png"
         Image.new("RGB", (16, 16), "red").save(path)
         with patch.object(perception.VLLMChatClient, "chat", return_value={"content": '{"image_index":0}'}):
             with self.assertRaisesRegex(ValueError, "not visible"):
                 perception.ground_final_target(self.root, {"left": {"images": [str(path)]}}, "cup", "test-vlm")
+
+    def test_shared_cleanup_offloads_models_in_bundles(self):
+        for clear in (False, True):
+            for bundle in (False, tuple, list):
+                with self.subTest(clear=clear, bundle=bundle):
+                    model = Mock()
+                    cached = bundle([model, object()]) if bundle else model
+                    with patch.dict(model_utils.MODEL_ZOO, {"model": cached, "other": object()}, clear=True):
+                        model_utils.free_models(clear_model_zoo=clear)
+                        model.to.assert_called_once_with("cpu")
+                        self.assertEqual(bool(model_utils.MODEL_ZOO), not clear)
 
     def test_sam3_candidates_keep_source_mask_and_score(self):
         masks = np.zeros((2, 8, 8), dtype=bool)

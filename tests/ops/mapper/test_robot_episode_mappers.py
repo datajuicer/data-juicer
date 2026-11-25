@@ -151,6 +151,25 @@ class RobotEpisodeMappersTest(unittest.TestCase):
                 self._op(RobotDepthEstimationMapper, **options)
             prepare.assert_not_called()
 
+    def test_grounding_mapper_refreshes_client_when_endpoint_changes(self):
+        sample = self._geometry_inputs()
+        clients = [Mock(), Mock()]
+        for client, point in zip(clients, ([100, 200], [700, 800])):
+            client.chat.side_effect = [
+                {"content": '{"image_index":1}'},
+                {"content": json.dumps({"point_2d": point})},
+            ]
+        op = self._op(RobotDestinationGroundingMapper, model="test-vlm", endpoint="http://first/v1")
+        with patch.object(perception, "build_grounding_client", side_effect=clients) as build:
+            op.process_single(copy.deepcopy(sample))
+            op.endpoint = "http://second/v1"
+            op.process_single(copy.deepcopy(sample))
+            op.endpoint += "/"
+            op.process_single(copy.deepcopy(sample))
+        self.assertEqual(build.call_count, 2)
+        self.assertEqual([client.chat.call_count for client in clients], [2, 2])
+        self.assertEqual(robot.read_json(Path(sample["episode_dir"]) / "ir/destination.json")["point"], [700, 800])
+
     def test_depth_requires_dense_source_frames(self):
         sample = self._geometry_inputs()
         views = copy.deepcopy(self.views)

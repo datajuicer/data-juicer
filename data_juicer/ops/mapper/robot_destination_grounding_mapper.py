@@ -27,6 +27,7 @@ class RobotDestinationGroundingMapper(Mapper):
         self.output_dir = output_dir
         (self.model, self.endpoint) = (model, endpoint)
         self._client = None
+        self._client_key = None
 
     def process_single(self, sample):
         from data_juicer.utils.robot_perception_utils import (
@@ -38,8 +39,10 @@ class RobotDestinationGroundingMapper(Mapper):
         target = read_json(sample["object_outputs"][0])["vlm_target_object"]["target_object"]
         views = read_json(root / "ir/sampling.json")["views"]
         (model, endpoint) = vlm_settings(self.model, self.endpoint)
-        if self._client is None:
+        key = (model, endpoint.rstrip("/"))
+        if self._client is None or self._client_key != key:
             self._client = build_grounding_client(model, endpoint)
+            self._client_key = key
         grounding = ground_final_target(root, views, target, model, endpoint, client=self._client)
         write_json(root / "ir/destination.json", grounding)
         return sample

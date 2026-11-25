@@ -2358,14 +2358,13 @@ def get_model(model_key=None, rank=None, use_cuda=False):
 
 def free_models(clear_model_zoo=True):
     global MODEL_ZOO
-    for model_key in MODEL_ZOO:
-        try:
-            model = MODEL_ZOO[model_key]
-            model.to("cpu")
-            if clear_model_zoo:
-                del model
-        except Exception:
-            pass
+    for cached in MODEL_ZOO.values():
+        models = cached if isinstance(cached, (tuple, list)) else (cached,)
+        for model in models:
+            try:
+                model.to("cpu")
+            except Exception:
+                pass
     if clear_model_zoo:
         MODEL_ZOO.clear()
     torch.cuda.empty_cache()

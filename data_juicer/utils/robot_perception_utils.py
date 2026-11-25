@@ -131,7 +131,7 @@ def ground_final_target(root, sampled, target, model=None, endpoint=None, client
     prompt = f"Locate the {target} in the final camera views. Select a panel where the object itself is visible. Do not select the gripper, cables, or an intended placement location without the object. Return JSON with image_index (1-based), point_2d (x,y in [0,1000] relative to that panel's original image), and evidence describing the visible object. If the object is not visible in any view, use image_index 0 and point_2d null."
     hashes = [hashlib.sha256(p.read_bytes()).hexdigest() for p in paths]
     (model, endpoint) = vlm_settings(model, endpoint)
-    request_hash = hashlib.sha256(json.dumps([prompt, hashes, model]).encode()).hexdigest()
+    request_hash = hashlib.sha256(json.dumps([prompt, hashes, model, endpoint.rstrip("/")]).encode()).hexdigest()
     output = root / "ir/final_target_grounding.json"
     if output.exists():
         trace = json.loads(output.read_text())
@@ -213,25 +213,18 @@ class ObjectTrackingContext:
             self.torch.backends.cudnn.allow_tf32 = True
         args.vlm_model = resolve_vllm_model(args.vllm_base_url, args.vllm_api_key, args.vlm_model, args.vlm_timeout)
         self.vlm_client = build_vllm_json_client(args)
-        self.sam3_model = None
-        self.sam3_processor = None
         self.sam3_model_path = None
-        self.sam3_video_model = None
-        self.sam3_video_processor = None
         self.sam3_video_metadata = None
-        started = time.perf_counter()
-        (self.sam3_model, self.sam3_processor, self.sam3_model_path) = sam3.load_sam3(
+
+    def load_text_model(self, args):
+        model, processor, self.sam3_model_path = sam3.load_sam3(
             args.sam3_model, args.sam3_cache_dir, self.torch, self.device, args.sam3_torch_dtype
         )
-        logger.info("SAM3 loaded in {:.3f}s", time.perf_counter() - started)
-        logger.info("Using SAM3 model: {}", self.sam3_model_path)
+        return model, processor
 
     def load_video_tracker(self, args):
-        if self.sam3_video_model is None:
-            (self.sam3_video_model, self.sam3_video_processor, self.sam3_video_metadata) = sam3.load_video_tracker(
-                args, self.torch, self.device
-            )
-        return (self.sam3_video_model, self.sam3_video_processor)
+        model, processor, self.sam3_video_metadata = sam3.load_video_tracker(args, self.torch, self.device)
+        return model, processor
 
 
 def resolve_vllm_model(base_url: str, api_key: str, model: str, timeout: int) -> str:
@@ -333,14 +326,13 @@ def distance(a: list[float] | None, b: list[float] | None) -> float | None:
 def run_sam3_candidates(
     args: SimpleNamespace, context: ObjectTrackingContext, image, label: str, output_dir: Path
 ) -> tuple[list[dict[str, Any]], dict[str, Any], float]:
-    if context.sam3_model is None or context.sam3_processor is None:
-        raise RuntimeError("SAM3 model was not initialized")
+    model, processor = context.load_text_model(args)
     started = time.perf_counter()
     (processed, metadata) = sam3.run_sam3_text(
         context.np,
         context.torch,
-        context.sam3_model,
-        context.sam3_processor,
+        model,
+        processor,
         image,
         label,
         context.device,
@@ -561,8 +553,6 @@ class GripperTrackingContext:
         (self.np, self.torch, self.imageio, self.Image, self.ImageDraw) = common.load_common_modules()
         self.device = common.auto_device(self.torch, args.device)
         self._vlm_client = None
-        self._sam3_text = None
-        self._sam3_video = None
 
     def vlm_client(self, args: SimpleNamespace):
         if self._vlm_client is None:
@@ -570,20 +560,12 @@ class GripperTrackingContext:
         return self._vlm_client
 
     def sam3_text(self, args: SimpleNamespace):
-        key = (args.sam3_text_model, args.sam3_text_cache_dir, args.sam3_text_torch_dtype, self.device)
-        if self._sam3_text is None or self._sam3_text[0] != key:
-            (model, processor, model_dir) = sam3.load_sam3(
-                args.sam3_text_model, args.sam3_text_cache_dir, self.torch, self.device, args.sam3_text_torch_dtype
-            )
-            self._sam3_text = (key, model, processor, model_dir)
-        return (self._sam3_text[1], self._sam3_text[2], self._sam3_text[3])
+        return sam3.load_sam3(
+            args.sam3_text_model, args.sam3_text_cache_dir, self.torch, self.device, args.sam3_text_torch_dtype
+        )
 
     def sam3_video(self, args: SimpleNamespace):
-        key = (args.sam3_video_model, args.sam3_video_cache_dir, args.sam3_video_torch_dtype, self.device)
-        if self._sam3_video is None or self._sam3_video[0] != key:
-            (model, processor, metadata) = sam3.load_video_tracker(args, self.torch, self.device)
-            self._sam3_video = (key, model, processor, metadata)
-        return (self._sam3_video[1], self._sam3_video[2], self._sam3_video[3])
+        return sam3.load_video_tracker(args, self.torch, self.device)
 
 
 def log_timing(stage: str, seconds: float, note: str | None = None) -> None:

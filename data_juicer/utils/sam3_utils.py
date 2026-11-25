@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -21,10 +22,18 @@ def resolve_modelscope_model(model_name: str, cache_dir: Path | None) -> Path:
     return common.snapshot_download_model(model_name, cache_dir)
 
 
+@lru_cache(maxsize=128)
+def _sam3_model_key(model_path, tracking, dtype, device):
+    """Cache only loader keys; model ownership stays in MODEL_ZOO."""
+    return prepare_model(
+        model_type="robot_sam3", pretrained_model_name_or_path=model_path, tracking=tracking, torch_dtype=dtype
+    )
+
+
 def load_sam3(model_name: str, cache_dir: Path | None, torch, device: str, dtype_name: str):
     model_path = resolve_modelscope_model(model_name, cache_dir)
     dtype = common.torch_dtype(torch, dtype_name)
-    key = prepare_model(model_type="robot_sam3", pretrained_model_name_or_path=str(model_path), torch_dtype=dtype)
+    key = _sam3_model_key(str(model_path), False, dtype, device)
     rank = int(device.split(":")[1]) if ":" in device else 0
     model, processor = get_model(key, rank=rank, use_cuda=device.startswith("cuda"))
     if device == "mps":
@@ -125,9 +134,7 @@ def save_candidates(Image, np, candidates, output_dir: Path, max_candidates: int
 def load_video_tracker(args, torch, device: str):
     model_dir = resolve_modelscope_model(args.sam3_video_model, args.sam3_video_cache_dir)
     dtype = common.torch_dtype(torch, args.sam3_video_torch_dtype)
-    key = prepare_model(
-        model_type="robot_sam3", pretrained_model_name_or_path=str(model_dir), tracking=True, torch_dtype=dtype
-    )
+    key = _sam3_model_key(str(model_dir), True, dtype, device)
     rank = int(device.split(":")[1]) if ":" in device else 0
     model, processor = get_model(key, rank=rank, use_cuda=device.startswith("cuda"))
     if device == "mps":

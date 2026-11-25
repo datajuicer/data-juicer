@@ -1,6 +1,5 @@
 import os
 
-import cv2
 from pydantic import PositiveInt
 
 from data_juicer.ops.load import load_ops
@@ -17,6 +16,7 @@ from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_optical_flow_mapper"
+cv2 = LazyLoader("cv2", package_name="opencv-python")
 
 torch = LazyLoader("torch")
 torchvision = LazyLoader("torchvision")

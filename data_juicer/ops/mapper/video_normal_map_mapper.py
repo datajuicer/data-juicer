@@ -1,6 +1,5 @@
 import os
 
-import cv2
 import numpy as np
 from pydantic import PositiveInt
 
@@ -18,6 +17,7 @@ from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_normal_map_mapper"
+cv2 = LazyLoader("cv2", package_name="opencv-python")
 
 
 @TAGGING_OPS.register_module(OP_NAME)
@@ -61,7 +61,11 @@ class VideoNormalMapMapper(Mapper):
         """
 
         super().__init__(*args, **kwargs)
-        providers = LazyLoader("onnxruntime", package_name="onnxruntime-gpu").get_available_providers()
+        if self.accelerator == "cuda":
+            runtime = LazyLoader("onnxruntime", package_name="onnxruntime-gpu")
+        else:
+            runtime = LazyLoader("onnxruntime")
+        providers = runtime.get_available_providers()
         if self.use_cuda() and "CUDAExecutionProvider" not in providers:
             raise RuntimeError(
                 "CUDAExecutionProvider is unavailable. Install a compatible onnxruntime-gpu build "
@@ -90,6 +94,14 @@ class VideoNormalMapMapper(Mapper):
             "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
         self.fused_ops = load_ops([{"video_extract_frames_mapper": self.video_extract_frames_mapper_args}])
+
+    def get_env_spec(self):
+        # Static analysis collects both branches; keep only the selected runtime.
+        spec = super().get_env_spec()
+        unused_runtime = "onnxruntime" if self.accelerator == "cuda" else "onnxruntime-gpu"
+        spec.parsed_requirements.pop(unused_runtime, None)
+        spec.pip_pkgs = [str(requirement) for requirement in spec.parsed_requirements.values()]
+        return spec
 
     def prepare_input(self, rgb_image):
 

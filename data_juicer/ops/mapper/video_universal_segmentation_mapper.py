@@ -1,7 +1,6 @@
 import os
 from collections import defaultdict
 
-import cv2
 import numpy as np
 from PIL import Image
 from pydantic import PositiveInt
@@ -20,6 +19,7 @@ from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
 
 OP_NAME = "video_universal_segmentation_mapper"
+cv2 = LazyLoader("cv2", package_name="opencv-python")
 
 torch = LazyLoader("torch")
 

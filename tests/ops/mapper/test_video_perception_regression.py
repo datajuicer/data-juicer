@@ -55,7 +55,7 @@ class VideoPerceptionRegressionTest(unittest.TestCase):
         runtime = Mock()
         runtime.get_available_providers.return_value = ["CPUExecutionProvider"]
         with (
-            patch.object(normal, "LazyLoader", return_value=runtime),
+            patch.object(normal, "LazyLoader", return_value=runtime) as lazy,
             patch.object(normal, "prepare_model", return_value="offline"),
             patch.object(normal, "load_ops", return_value=[Mock()]),
         ):
@@ -63,8 +63,25 @@ class VideoPerceptionRegressionTest(unittest.TestCase):
                 [{"video_normal_map_mapper": {"accelerator": "cpu", "frame_dir": str(self.root)}}],
                 op_env_manager=OPEnvManager(),
             )
+        self.assertIn("onnxruntime", ops[0].runtime_env["uv"])
+        self.assertNotIn("onnxruntime-gpu", ops[0].runtime_env["uv"])
+        lazy.assert_called_once_with("onnxruntime")
+
+    def test_normal_cuda_environment_requires_only_gpu_runtime(self):
+        runtime = Mock()
+        runtime.get_available_providers.return_value = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        with (
+            patch.object(normal, "LazyLoader", return_value=runtime) as lazy,
+            patch.object(normal, "prepare_model", return_value="offline"),
+            patch.object(normal, "load_ops", return_value=[Mock()]),
+        ):
+            ops = load_ops(
+                [{"video_normal_map_mapper": {"accelerator": "cuda", "frame_dir": str(self.root)}}],
+                op_env_manager=OPEnvManager(),
+            )
         self.assertIn("onnxruntime-gpu", ops[0].runtime_env["uv"])
         self.assertNotIn("onnxruntime", ops[0].runtime_env["uv"])
+        lazy.assert_called_once_with("onnxruntime", package_name="onnxruntime-gpu")
 
     def test_normal_rejects_cuda_with_cpu_only_runtime(self):
         runtime = Mock()

@@ -5,6 +5,11 @@
 from ..base_op import OPERATORS, Mapper
 from ..common.special_characters import VARIOUS_WHITESPACES
 
+# Replace configured characters with native string operations rather than
+# allocating a Python list entry for every character. Spaces are already
+# normalized, and internal newlines are intentionally not in this set.
+_WHITESPACE_REPLACEMENTS = tuple(sorted(VARIOUS_WHITESPACES - {" "}))
+
 
 @OPERATORS.register_module("whitespace_normalization_mapper")
 class WhitespaceNormalizationMapper(Mapper):
@@ -34,6 +39,8 @@ class WhitespaceNormalizationMapper(Mapper):
             text = text.strip()
 
             # replace all kinds of whitespaces with ' '
-            samples[self.text_key][idx] = "".join([char if char not in VARIOUS_WHITESPACES else " " for char in text])
+            for character in _WHITESPACE_REPLACEMENTS:
+                text = text.replace(character, " ")
+            samples[self.text_key][idx] = text
 
         return samples

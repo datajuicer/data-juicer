@@ -482,7 +482,9 @@
 <span class="sd">        :param kwargs: extra args</span>
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="s2">"[^</span><span class="se">\u4e00</span><span class="s2">-</span><span class="se">\u9fa5</span><span class="s2">"</span>
+        <span class="c1"># 〇 (U+3007) is outside the 4E00-9FA5 range but is the zero of Chinese</span>
+        <span class="c1"># numerals, as in 二〇二四年, so removing it would change the numbers.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="s2">"[^</span><span class="se">\u4e00</span><span class="s2">-</span><span class="se">\u9fa5\u3007</span><span class="s2">"</span>
         <span class="k">if</span> <span class="n">keep_alphabet</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">+=</span> <span class="s2">"A-Za-z"</span>
         <span class="k">if</span> <span class="n">keep_number</span><span class="p">:</span>

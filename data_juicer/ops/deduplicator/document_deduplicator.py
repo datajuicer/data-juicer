@@ -27,6 +27,8 @@ class DocumentDeduplicator(Deduplicator):
     parameter is set, the operator also returns a specified number of duplicate pairs for
     inspection."""
 
+    _inline_single_cpu_hash = True
+
     def __init__(self, lowercase: bool = False, ignore_non_character: bool = False, *args, **kwargs):
         """
         Initialization method.

@@ -978,6 +978,7 @@ class Filter(OP):
 
 class Deduplicator(OP):
     _supported_exec_modes = ("default",)
+    _inline_single_cpu_hash = False
 
     def __init__(self, *args, **kwargs):
         """
@@ -1032,8 +1033,13 @@ class Deduplicator(OP):
 
     def run(self, dataset, *, exporter=None, tracer=None, reduce=True):
         dataset = super(Deduplicator, self).run(dataset)
+        num_proc = self.runtime_np()
+        use_cuda = self.use_cuda()
+        if self._inline_single_cpu_hash and num_proc == 1 and not use_cuda and not dataset.cache_files:
+            # Avoid transferring the in-memory Arrow table to a single worker.
+            num_proc = None
         new_dataset = dataset.map(
-            self.compute_hash, num_proc=self.runtime_np(), with_rank=self.use_cuda(), desc=self._name + "_compute_hash"
+            self.compute_hash, num_proc=num_proc, with_rank=use_cuda, desc=self._name + "_compute_hash"
         )
         if reduce:
             show_num = tracer.show_num if tracer else 0

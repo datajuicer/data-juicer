@@ -457,6 +457,15 @@
 <span class="n">OP_NAME</span> <span class="o">=</span> <span class="s2">"latex_merge_tex_mapper"</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_macos_metadata</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return True for an entry macOS adds to the archives it creates: an</span>
+<span class="sd">    AppleDouble file (``._main.tex``) or anything under ``__MACOSX/``.</span>
+<span class="sd">    Their names can end in ``.tex``, but they hold binary file metadata,</span>
+<span class="sd">    not LaTeX."""</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"._"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"__MACOSX"</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+
 <div class="viewcode-block" id="LatexMergeTexMapper">
 <a class="viewcode-back" href="../../../../api/data_juicer.ops.mapper.html#data_juicer.ops.mapper.LatexMergeTexMapper">[docs]</a>
 <span class="nd">@OPERATORS</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">OP_NAME</span><span class="p">)</span>
@@ -543,7 +552,7 @@
             <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">tf</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">member</span><span class="o">.</span><span class="n">isfile</span><span class="p">():</span>
                     <span class="k">continue</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">member</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".tex"</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">member</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".tex"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_is_macos_metadata</span><span class="p">(</span><span class="n">member</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
                     <span class="k">continue</span>
                 <span class="k">if</span> <span class="n">max_file_size</span> <span class="ow">and</span> <span class="n">member</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">max_file_size</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
@@ -588,7 +597,7 @@
         <span class="n">total_bytes</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">archive_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">zf</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">zf</span><span class="o">.</span><span class="n">namelist</span><span class="p">():</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".tex"</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".tex"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_is_macos_metadata</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
                     <span class="k">continue</span>
                 <span class="n">info</span> <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="n">getinfo</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">max_file_size</span> <span class="ow">and</span> <span class="n">info</span><span class="o">.</span><span class="n">file_size</span> <span class="o">&gt;</span> <span class="n">max_file_size</span><span class="p">:</span>

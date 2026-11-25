@@ -13,6 +13,7 @@ from pydantic import Field, PositiveInt
 from tqdm import tqdm
 from typing_extensions import Annotated
 
+from data_juicer.utils.common_utils import iter_column
 from data_juicer.utils.constant import HashKeys
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.model_utils import prepare_sentencepiece_model
@@ -432,7 +433,6 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
         # when exporting the processed dataset
         dataset = dataset.remove_columns([HashKeys.minhash])
         uids = dataset[HashKeys.uid]
-        uid2idx = {uid: idx for idx, uid in enumerate(uids)}
 
         # make clusters -- union each sample with the first sample that
         # shares one of its band hashes. Roots are the smallest uid of each
@@ -458,6 +458,7 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
         # record the duplicate sample pairs
         dup_pairs = {}
         if show_num > 0:
+            uid2idx = {uid: idx for idx, uid in enumerate(iter_column(dataset, HashKeys.uid))}
             for i in range(len(dataset)):
                 uid = uids[i]
                 cluster_uid = union_find.find(uid)
@@ -470,15 +471,12 @@ class DocumentMinhashDeduplicatorWithUid(DocumentMinhashDeduplicator):
                 if len(dup_pairs) >= show_num:
                     break
 
-        # filtering -- only keep those samples whose parent index is itself,
-        # including:
-        # 1. samples that form a cluster by themselves
-        # 2. the first sample in a cluster that includes multiple samples
-        def _filter_minhash_dup_helper(sample):
-            uid = sample[HashKeys.uid]
-            return union_find.find(uid) == uid
-
-        dataset = dataset.filter(_filter_minhash_dup_helper)
+        # Keep the minimum UID in each component, in input row order. Read
+        # only the UID column: filtering full rows also decodes text/media.
+        keep_indices = [
+            idx for idx, uid in enumerate(iter_column(dataset, HashKeys.uid)) if union_find.find(uid) == uid
+        ]
+        dataset = dataset.select(keep_indices)
         logger.info(f"Keep {len(dataset)} samples after MinHash dedup.")
 
         return dataset, dup_pairs

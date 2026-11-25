@@ -60,6 +60,27 @@ class RemoveCommentsMapperTest(DataJuicerTestCaseBase):
                    RemoveCommentsMapper(inline=False, multiline=False)):
             self._run_remove_comments(samples, op)
 
+    def test_disabled_options_preserve_null_and_valid_rows(self):
+        samples = [
+            {'text': None, 'id': 0},
+            {'text': 'Body%inline\n%full line', 'id': 1},
+            {'text': 'Plain text', 'id': 2},
+            {'text': '', 'id': 3},
+        ]
+        for skip_op_error in (False, True):
+            with self.subTest(skip_op_error=skip_op_error):
+                op = RemoveCommentsMapper(
+                    inline=False, multiline=False,
+                    skip_op_error=skip_op_error)
+                batch = {'text': [row['text'] for row in samples],
+                         'id': [row['id'] for row in samples]}
+                self.assertIs(op.process_batched(batch), batch)
+                self.assertEqual(batch['text'], [row['text'] for row in samples])
+                dataset = Dataset.from_list(samples)
+                result = dataset.map(op.process, batch_size=2)
+                self.assertEqual(len(result), len(samples))
+                self.assertEqual(result.to_list(), samples)
+
     def test_tex_case(self):
 
         samples = [{

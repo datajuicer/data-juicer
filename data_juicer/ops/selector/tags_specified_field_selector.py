@@ -14,7 +14,9 @@ class TagsSpecifiedFieldSelector(Selector):
     target tags. The field can be multi-level, with levels separated by dots (e.g.,
     'level1.level2'). The operator checks if the specified field exists in the dataset and
     if the field value is a string, number, or None. If the field value matches any of the
-    target tags, the sample is kept. The selection is case-sensitive.
+    target tags, the sample is kept. A list-valued field matches when any element
+    matches a target tag; empty lists do not match. List elements must also be
+    strings, numbers, or None. The selection is case-sensitive.
 
     - The `field_key` parameter specifies the field to check.
     - The `target_tags` parameter is a list of tags to match against the field value.
@@ -50,10 +52,17 @@ class TagsSpecifiedFieldSelector(Selector):
             for key in field_keys[1:]:
                 assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
                 field_value = field_value[key]
-            assert (
-                field_value is None or isinstance(field_value, str) or isinstance(field_value, numbers.Number)
-            ), "The {} item is not String, Numbers or NoneType".format(i)
-            if field_value in self.target_tags:
+            if isinstance(field_value, list):
+                assert all(
+                    value is None or isinstance(value, (str, numbers.Number)) for value in field_value
+                ), "The {} item must contain only Strings, Numbers or None".format(i)
+                matches = any(value in self.target_tags for value in field_value)
+            else:
+                assert (
+                    field_value is None or isinstance(field_value, str) or isinstance(field_value, numbers.Number)
+                ), "The {} item is not String, Numbers or NoneType".format(i)
+                matches = field_value in self.target_tags
+            if matches:
                 selected_index.append(i)
 
         return dataset.select(selected_index)

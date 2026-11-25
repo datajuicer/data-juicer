@@ -2,7 +2,7 @@
 
 Selector to filter samples based on the tags of a specified field.
 
-This operator selects samples where the value of the specified field matches one of the target tags. The field can be multi-level, with levels separated by dots (e.g., 'level1.level2'). The operator checks if the specified field exists in the dataset and if the field value is a string, number, or None. If the field value matches any of the target tags, the sample is kept. The selection is case-sensitive.
+This operator selects samples where the value of the specified field matches one of the target tags. The field can be multi-level, with levels separated by dots (e.g., 'level1.level2'). The operator checks if the specified field exists in the dataset and if the field value is a string, number, None, or a list of these types. If the scalar value or any list element matches a target tag, the sample is kept. The selection is case-sensitive.
 
 - The `field_key` parameter specifies the field to check.
 - The `target_tags` parameter is a list of tags to match against the field value.
@@ -10,7 +10,7 @@ This operator selects samples where the value of the specified field matches one
 
 根据指定字段的标签筛选样本的选择器。
 
-该算子选择指定字段的值与目标标签之一匹配的样本。字段可以是多级的，级别之间用点分隔（例如，'level1.level2'）。该算子检查指定的字段是否存在于数据集中，以及字段值是否为字符串、数字或 None。如果字段值与任何目标标签匹配，则保留该样本。选择区分大小写。
+该算子选择指定字段的值与目标标签之一匹配的样本。字段可以是多级的，级别之间用点分隔（例如，'level1.level2'）。该算子检查指定的字段是否存在于数据集中，以及字段值是否为字符串、数字、None 或由这些类型组成的列表。如果标量值或列表中的任一元素与目标标签匹配，则保留该样本。选择区分大小写。
 
 - `field_key` 参数指定要检查的字段。
 - `target_tags` 参数是要与字段值匹配的标签列表。
@@ -27,6 +27,23 @@ Tags 标签: cpu
 | `target_tags` | typing.List[str] | `None` | Target tags to be select. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |
+
+## Multi-label data 多标签数据
+
+A list-valued field is selected when **any** element matches a target tag. Empty lists do not match; duplicate matching tags do not duplicate rows. Matching remains case-sensitive and preserves input row order. List elements must be strings, numbers, or `None`; nested lists and objects are rejected. A scalar `None` or a `None` list element matches only when `target_tags` contains `None`.
+
+列表字段中任一标签命中即保留该行，空列表不命中，重复标签不会产生重复行。匹配区分大小写并保持输入顺序；不支持嵌套列表或对象。原有单标签及少于两行时直接返回的行为保持不变。
+
+For example, keep documents tagged with math or code without exploding the dataset:
+
+```yaml
+process:
+  - tags_specified_field_selector:
+      field_key: meta.topics
+      target_tags: [math, code]
+```
+
+`{"meta": {"topics": ["math", "reasoning"]}}` matches, while `{"meta": {"topics": ["history"]}}` does not.
 
 ## 📊 Effect demonstration 效果演示
 ### test_tag_select

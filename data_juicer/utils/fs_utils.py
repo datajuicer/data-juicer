@@ -1,0 +1,101 @@
+"""
+Unified filesystem utilities for Data-Juicer.
+
+Provides a single dispatch entry to create a PyArrow FileSystem
+according to the path scheme (s3://, hdfs://), consuming the
+backend-specific keys from an extra-args dict without mutating it.
+
+Convention: this module is the central dispatch extension point for
+remote filesystems. When adding support for a new backend (e.g.
+Iceberg/Delta/Hudi), prefer extending the scheme branches in
+``create_filesystem_for_path`` instead of re-implementing per-callsite
+prefix-detection logic in exporters or load strategies.
+"""
+
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
+from urllib.parse import urlparse
+
+from loguru import logger
+
+if TYPE_CHECKING:
+    import pyarrow.fs
+
+
+def _split_args(extra_args: Dict, consumed_keys: Tuple[str, ...]) -> Tuple[Dict, Dict]:
+    """
+    Split ``extra_args`` into (consumed conf, remaining args) according to
+    ``consumed_keys``, without mutating the input dict.
+
+    :param extra_args: the original extra-args dict.
+    :param consumed_keys: keys to be consumed by the filesystem backend.
+    :return: a tuple of (conf, remaining_args), both are new dicts.
+    """
+    conf = {}
+    remaining_args = {}
+    for key in extra_args:
+        if key in consumed_keys:
+            conf[key] = extra_args[key]
+        else:
+            remaining_args[key] = extra_args[key]
+    return conf, remaining_args
+
+
+def create_filesystem_for_path(
+    path: str,
+    extra_args: Optional[Dict] = None,
+) -> Tuple[Optional["pyarrow.fs.FileSystem"], Dict]:
+    """
+    Create a PyArrow FileSystem for ``path`` according to its scheme.
+
+    - 's3://...': delegate to ``create_pyarrow_s3_filesystem``.
+    - 'hdfs://...': delegate to ``create_pyarrow_hdfs_filesystem``. The
+      config passed to it includes ``path`` so that host/port can be
+      inferred from the path when not explicitly provided.
+    - other (local) paths: no filesystem is created.
+
+    The input ``extra_args`` is never mutated; the backend-specific keys
+    (see ``s3_utils.ACCEPTED_CONFIG_KEYS`` / ``hdfs_utils.ACCEPTED_CONFIG_KEYS``)
+    are consumed and removed from the returned ``remaining_args`` copy instead.
+
+    :param path: the target path to create a filesystem for.
+    :param extra_args: extra config dict that may contain backend-specific
+        keys along with other unrelated keys.
+    :return: a tuple of (fs, remaining_args). ``fs`` is a PyArrow
+        FileSystem instance for remote paths, or None for local paths;
+        ``remaining_args`` is a new dict without the consumed keys.
+    """
+    if not path:
+        raise ValueError(f"Invalid path for filesystem creation: {path!r}")
+    if extra_args is None:
+        extra_args = {}
+
+    # urlparse already lowercases the scheme; keep .lower() as a defensive
+    # guarantee for case-insensitive dispatch
+    scheme = urlparse(path).scheme.lower()
+    if scheme == "s3":
+        from data_juicer.utils.s3_utils import ACCEPTED_CONFIG_KEYS as S3_FS_KEYS
+        from data_juicer.utils.s3_utils import (
+            create_pyarrow_s3_filesystem,
+            validate_s3_path,
+        )
+
+        validate_s3_path(path)
+        logger.info(f"Detected S3 path: {path}. Creating PyArrow S3 filesystem.")
+        s3_conf, remaining_args = _split_args(extra_args, S3_FS_KEYS)
+        return create_pyarrow_s3_filesystem(s3_conf), remaining_args
+
+    if scheme == "hdfs":
+        from data_juicer.utils.hdfs_utils import ACCEPTED_CONFIG_KEYS as HDFS_FS_KEYS
+        from data_juicer.utils.hdfs_utils import (
+            create_pyarrow_hdfs_filesystem,
+            validate_hdfs_path,
+        )
+
+        validate_hdfs_path(path)
+        logger.info(f"Detected HDFS path: {path}. Creating PyArrow HDFS filesystem.")
+        hdfs_conf, remaining_args = _split_args(extra_args, HDFS_FS_KEYS)
+        # include the original path so host/port can be inferred from it
+        hdfs_conf["path"] = path
+        return create_pyarrow_hdfs_filesystem(hdfs_conf), remaining_args
+
+    return None, dict(extra_args)

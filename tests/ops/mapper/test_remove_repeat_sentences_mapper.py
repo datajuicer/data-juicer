@@ -67,6 +67,111 @@ class RemoveRepeatSentencesMapperTest(DataJuicerTestCaseBase):
                                          min_repeat_sentence_length=5)
         self._run_helper(samples, op)
 
+    def test_digit_before_closing_quote(self):
+
+        samples = [{
+            'text': 'The board is 6’ long. The rope is 6’ long.',
+            'target': 'The board is 6’ long. The rope is 6’ long.'
+        }, {
+            'text': 'Use a 2” pipe here. Use a 2” pipe there.',
+            'target': 'Use a 2” pipe here. Use a 2” pipe there.'
+        }, {
+            'text': 'He said “Stop.” He said “Stop.”',
+            'target': 'He said “Stop.”'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
+    def test_dot_inside_a_word_is_not_a_sentence_boundary(self):
+
+        samples = [{
+            'text': 'Docs are at example.com for you. Mirrors live at test.com for you.',
+            'target': 'Docs are at example.com for you. Mirrors live at test.com for you.'
+        }, {
+            'text': 'See https://github.com/org/repo for code. The demo is at https://gitlab.com/org/repo for code.',
+            'target': 'See https://github.com/org/repo for code. The demo is at https://gitlab.com/org/repo for code.'
+        }, {
+            'text': 'Open config.yaml and save. Open config.yaml and save.',
+            'target': 'Open config.yaml and save.'
+        }, {
+            'text': '今天很好.明天也好.今天很好.',
+            'target': '今天很好.明天也好.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
+    def test_dot_between_non_ascii_digits_is_not_a_sentence_boundary(self):
+
+        samples = [{
+            'text': 'Price rose to ١.٥ dollars. It fell to ٢.٥ dollars.',
+            'target': 'Price rose to ١.٥ dollars. It fell to ٢.٥ dollars.'
+        }, {
+            'text': 'Price rose to ١.٥ dollars. Price rose to ١.٥ dollars.',
+            'target': 'Price rose to ١.٥ dollars.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
+    def test_decimal_point_is_not_a_sentence_boundary(self):
+
+        samples = [{
+            'text': 'Item A costs 19.99. Item B costs 20.99.',
+            'target': 'Item A costs 19.99. Item B costs 20.99.'
+        }, {
+            'text': 'Read section 1.25. Read section 2.25.',
+            'target': 'Read section 1.25. Read section 2.25.'
+        }, {
+            'text': 'v1.2.3 is out. v1.2.4 is out.',
+            'target': 'v1.2.3 is out. v1.2.4 is out.'
+        }, {
+            'text': 'The price is 3.14. The price is 3.14.',
+            'target': 'The price is 3.14.'
+        }, {
+            'text': 'It ends with 5. It ends with 5.',
+            'target': 'It ends with 5.'
+        }, {
+            'text': 'It is done. 2 more remain. It is done. 3 remain.',
+            'target': 'It is done. 2 more remain. 3 remain.'
+        }, {
+            'text': '已完成步骤1。2人继续。已完成步骤1。3人离开。',
+            'target': '已完成步骤1。2人继续。3人离开。'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
+    def test_letters_of_other_scripts_are_not_special_characters(self):
+
+        samples = [{
+            'text': 'Я люблю тебя. Он пошёл домой. Я люблю тебя.',
+            'target': 'Я люблю тебя. Он пошёл домой.'
+        }, {
+            'text': '나는 학생 입니다. 그는 의사 입니다.',
+            'target': '나는 학생 입니다. 그는 의사 입니다.'
+        }, {
+            'text': 'Ελπίζω να είσαι καλά. Θα τα πούμε αύριο.',
+            'target': 'Ελπίζω να είσαι καλά. Θα τα πούμε αύριο.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
+    def test_emoji_variation_selector_and_keycap_are_special_characters(self):
+
+        samples = [{
+            'text': 'Daily forecast\u2600\ufe0f. Daily forecast.',
+            'target': 'Daily forecast\u2600\ufe0f.'
+        }, {
+            'text': 'Press 1\ufe0f\u20e3 now. Press 1 now.',
+            'target': 'Press 1\ufe0f\u20e3 now.'
+        }]
+
+        op = RemoveRepeatSentencesMapper()
+        self._run_helper(samples, op)
+
     def test_custom_tokenizer_callable(self):
 
         from nltk.tokenize import sent_tokenize

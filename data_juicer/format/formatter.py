@@ -232,19 +232,19 @@ def unify_format(
             raise ValueError(err_msg)
 
     # 2. filter out those samples with empty or None text
-    # TODO: optimize the filtering operation for better efficiency
     logger.info(f"There are {len(dataset)} sample(s) in the original dataset.")
 
-    def non_empty_text(sample, target_keys):
-        for target_key in target_keys:
-            # TODO: case for CFT, in which the len(sample[target_key]) == 0
-            if sample[target_key] is None:
-                # we filter out the samples contains at least None column
-                # since the op can not handle it now
-                return False
-        return True
+    def non_empty_text(*columns):
+        # TODO: case for CFT, in which the len(sample[target_key]) == 0
+        # we filter out the samples contains at least None column since the
+        # op can not handle it now
+        return [all(value is not None for value in values) for values in zip(*columns)]
 
-    dataset = dataset.filter(non_empty_text, num_proc=num_proc, fn_kwargs={"target_keys": text_keys})
+    # arrow counts the nulls of a column without decoding any row, so the
+    # filter only runs when some text column has a null, and then it reads
+    # only the text columns, in batches
+    if any(dataset.data.column(key).null_count > 0 for key in text_keys):
+        dataset = dataset.filter(non_empty_text, num_proc=num_proc, input_columns=text_keys, batched=True)
     logger.info(f"{len(dataset)} samples left after filtering empty text.")
 
     # 3. convert relative paths to absolute paths

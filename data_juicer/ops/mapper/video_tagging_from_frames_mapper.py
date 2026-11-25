@@ -73,7 +73,9 @@ class VideoTaggingFromFramesMapper(Mapper):
         """
         kwargs["memory"] = "9GB" if kwargs.get("memory", 0) == 0 else kwargs["memory"]
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(["ram @ git+https://github.com/datajuicer/recognize-anything.git"])
+        LazyLoader.check_packages(
+            ["ram @ git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf"]
+        )
         if frame_sampling_method not in ["all_keyframes", "uniform"]:
             raise ValueError(
                 f"Frame sampling method [{frame_sampling_method}] is not "

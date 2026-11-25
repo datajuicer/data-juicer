@@ -1,5 +1,6 @@
 API
 ===
+
 .. toctree::
    :maxdepth: 2
    :glob:
@@ -10,6 +11,9 @@ API
    api/data_juicer.ops.mapper
    api/data_juicer.ops.deduplicator
    api/data_juicer.ops.selector
+   api/data_juicer.ops.aggregator
+   api/data_juicer.ops.grouper
+   api/data_juicer.ops.pipeline
    api/data_juicer.ops.common
    api/data_juicer.analysis
    api/data_juicer.config

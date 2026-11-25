@@ -78,6 +78,45 @@ class JsonlLenientLoaderTest(DataJuicerTestCaseBase):
         self.assertEqual(len(ds), 2)
         self.assertEqual(list(ds["a"]), [1, 2])
 
+    def test_dataset_from_lenient_jsonl_files_reloads_edited_file(self):
+        """An edited file should not be served from the stale HF cache."""
+        jsonl_path = os.path.join(self.tmp_dir, "test.jsonl")
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "v1"}) + "\n")
+        pairs = [(jsonl_path, ".jsonl")]
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["v1"])
+
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "v2"}) + "\n" + json.dumps({"text": "v3"}) + "\n")
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["v2", "v3"])
+
+    def test_dataset_from_lenient_jsonl_files_reloads_same_size_edit(self):
+        """A same-size edit with a newer mtime should not hit the stale cache."""
+        jsonl_path = os.path.join(self.tmp_dir, "same_size.jsonl")
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "aaaa"}) + "\n")
+        pairs = [(jsonl_path, ".jsonl")]
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["aaaa"])
+
+        st = os.stat(jsonl_path)
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "cccc"}) + "\n")
+        os.utime(jsonl_path, ns=(st.st_atime_ns, st.st_mtime_ns + 10**9))
+        ds = dataset_from_lenient_jsonl_files(pairs, add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["cccc"])
+
+    def test_dataset_from_lenient_jsonl_files_missing_file(self):
+        """A missing path should be skipped without crashing the stat step."""
+        good = os.path.join(self.tmp_dir, "good.jsonl")
+        with open(good, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"text": "ok"}) + "\n")
+        missing = os.path.join(self.tmp_dir, "missing.jsonl")
+        ds = dataset_from_lenient_jsonl_files([(missing, ".jsonl"), (good, ".jsonl")], add_suffix_column=False)
+        self.assertEqual(list(ds["text"]), ["ok"])
+
     def test_handles_big_integer(self):
         """Should handle big integers that ujson rejects."""
         jsonl_path = os.path.join(self.tmp_dir, "big_int.jsonl")
@@ -110,6 +149,69 @@ class JsonlLenientLoaderTest(DataJuicerTestCaseBase):
             )
         )
         self.assertEqual(len(rows), 2)
+
+
+    def test_handles_zstd_file(self):
+        """Should handle .jsonl.zst files via zstandard decompression."""
+        import zstandard as zstd_mod
+
+        jsonl_path = os.path.join(self.tmp_dir, "test.jsonl.zst")
+        raw = (json.dumps({"z": 1}) + "\n" + json.dumps({"z": 2}) + "\n").encode("utf-8")
+        cctx = zstd_mod.ZstdCompressor()
+        with open(jsonl_path, "wb") as f:
+            f.write(cctx.compress(raw))
+
+        rows = list(
+            iter_lenient_jsonl_records(
+                [(jsonl_path, ".jsonl.zst")],
+                add_suffix_column=False,
+            )
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["z"], 1)
+        self.assertEqual(rows[1]["z"], 2)
+
+    def test_missing_file_skipped(self):
+        """Missing files should be skipped gracefully, not raise."""
+        rows = list(
+            iter_lenient_jsonl_records(
+                [("/nonexistent/file.jsonl", ".jsonl")],
+                add_suffix_column=False,
+            )
+        )
+        self.assertEqual(rows, [])
+
+    def test_empty_lines_skipped(self):
+        """Blank lines in JSONL should be silently skipped."""
+        jsonl_path = os.path.join(self.tmp_dir, "blanks.jsonl")
+        with open(jsonl_path, "w") as f:
+            f.write("\n\n" + json.dumps({"k": 1}) + "\n\n")
+        rows = list(
+            iter_lenient_jsonl_records(
+                [(jsonl_path, ".jsonl")],
+                add_suffix_column=False,
+            )
+        )
+        self.assertEqual(len(rows), 1)
+
+    def test_zstd_with_suffix_column(self):
+        """Zstd file with add_suffix_column=True should add suffix."""
+        import zstandard as zstd_mod
+
+        jsonl_path = os.path.join(self.tmp_dir, "test.jsonl.zst")
+        raw = (json.dumps({"x": 1}) + "\n").encode("utf-8")
+        cctx = zstd_mod.ZstdCompressor()
+        with open(jsonl_path, "wb") as f:
+            f.write(cctx.compress(raw))
+
+        rows = list(
+            iter_lenient_jsonl_records(
+                [(jsonl_path, ".jsonl.zst")],
+                add_suffix_column=True,
+            )
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][Fields.suffix], ".jsonl.zst")
 
 
 if __name__ == "__main__":

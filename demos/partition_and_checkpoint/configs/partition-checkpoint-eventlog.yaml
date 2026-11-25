@@ -56,14 +56,9 @@ checkpoint:
   enabled: false
   strategy: "every_n_ops"
   n_ops: 3
-  # strategy: "every_op"  # every_op, every_partition, every_n_ops, manual, disabled
+  # strategy: "every_op"  # every_op, every_n_ops, manual, disabled
   # n_ops: 1  # Number of operations between checkpoints (for every_n_ops strategy)
   # op_names: []  # Specific operation names to checkpoint after (for manual strategy)
-
-# Intermediate storage configuration (includes file lifecycle management)
-intermediate_storage:
-  format: "parquet"  # parquet, arrow, jsonl; defaults to parquet
-  write_partitions: false
 
 # Event logging configuration
 event_logging:

@@ -8,6 +8,10 @@ from pydantic import PositiveInt
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.text_field_utils import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 
 OP_NAME = "extract_entity_attribute_mapper"
 
@@ -139,7 +143,7 @@ class ExtractEntityAttributeMapper(Mapper):
         self.drop_text = drop_text
 
     def parse_output(self, raw_output, attribute_name):
-        attribute_pattern = self.attr_pattern_template.format(attribute=attribute_name)
+        attribute_pattern = self.attr_pattern_template.format(attribute=re.escape(attribute_name))
         pattern = re.compile(attribute_pattern, re.VERBOSE | re.DOTALL)
         matches = pattern.findall(raw_output)
         if matches:
@@ -191,17 +195,17 @@ class ExtractEntityAttributeMapper(Mapper):
         if set([self.entity_key, self.attribute_key, self.attribute_desc_key, self.support_text_key]) <= set(
             sample[Fields.meta].keys()
         ):
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
-        res = self._process_single_text(sample[self.text_key], rank=rank)
+        res = self._process_single_text(read_text_from_sample(sample, self.text_key), rank=rank)
         entities, attributes, descs, demo_lists = res
-
-        if self.drop_text:
-            sample.pop(self.text_key)
 
         sample[Fields.meta][self.entity_key] = entities
         sample[Fields.meta][self.attribute_key] = attributes
         sample[Fields.meta][self.attribute_desc_key] = descs
         sample[Fields.meta][self.support_text_key] = demo_lists
+
+        if self.drop_text:
+            remove_text_from_sample(sample, self.text_key)
 
         return sample

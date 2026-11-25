@@ -4,22 +4,103 @@ from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.relation_identity_mapper import RelationIdentityMapper
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
-from data_juicer.utils.constant import Fields, MetaKeys
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+
+class RelationIdentityMapperParseOutputTest(DataJuicerTestCaseBase):
+
+    def _make_op(self):
+        return RelationIdentityMapper(
+            api_model='fake',
+            source_entity='李莲花',
+            target_entity='方多病',
+        )
+
+    def test_parse_output_standard(self):
+        op = self._make_op()
+        raw_output = (
+            '分析推理：根据文本，方多病是李莲花的弟子，两人多次合作破案。\n'
+            '所以方多病是李莲花的：徒弟'
+        )
+        result = op.parse_output(raw_output)
+        self.assertEqual(result, '徒弟')
+
+    def test_parse_output_fallback(self):
+        op = self._make_op()
+        raw_output = (
+            '从文本来看，方多病多次与李莲花合作破案。\n'
+            '因此，方多病是李莲花的：师徒关系'
+        )
+        result = op.parse_output(raw_output)
+        self.assertEqual(result, '师徒关系')
+
+    def test_parse_output_no_match(self):
+        op = self._make_op()
+        raw_output = '这是一段完全无关的文字，没有任何匹配模式。'
+        result = op.parse_output(raw_output)
+        self.assertEqual(result, '')
+
+
+class RelationIdentityMapperEdgeCaseTest(DataJuicerTestCaseBase):
+
+    def test_none_source_entity(self):
+        op = RelationIdentityMapper(
+            api_model='fake',
+            source_entity=None,
+            target_entity='方多病',
+        )
+        sample = {
+            'text': 'some text',
+            Fields.meta: {},
+        }
+        result = op.process_single(sample)
+        self.assertEqual(result[Fields.meta][MetaKeys.role_relation], '')
+
+    def test_none_target_entity(self):
+        op = RelationIdentityMapper(
+            api_model='fake',
+            source_entity='李莲花',
+            target_entity=None,
+        )
+        sample = {
+            'text': 'some text',
+            Fields.meta: {},
+        }
+        result = op.process_single(sample)
+        self.assertEqual(result[Fields.meta][MetaKeys.role_relation], '')
+
+    def test_already_generated_skip(self):
+        op = RelationIdentityMapper(
+            api_model='fake',
+            source_entity='李莲花',
+            target_entity='方多病',
+        )
+        sample = {
+            'text': 'some text',
+            Fields.meta: {
+                MetaKeys.role_relation: '师徒',
+            },
+        }
+        result = op.process_single(sample)
+        self.assertEqual(
+            result[Fields.meta][MetaKeys.role_relation], '师徒')
+
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class RelationIdentityMapperTest(DataJuicerTestCaseBase):
 
     # before running this test, set below environment variables:
     # export OPENAI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
     # export OPENAI_API_KEY=your_key
 
-    def _run_op(self, api_model, output_key=MetaKeys.role_relation):
+    def _run_op(self, api_model, output_key=MetaKeys.role_relation, sampling_params=None):
 
         op = RelationIdentityMapper(api_model=api_model,
                                     source_entity="李莲花",
                                     target_entity="方多病",
-                                    output_key=output_key)
+                                    output_key=output_key,
+                                    sampling_params=sampling_params)
 
         raw_text = """李莲花原名李相夷，十五岁战胜西域天魔，十七岁建立四顾门，二十岁问鼎武林盟主，成为传奇人物。
 在与金鸳盟盟主笛飞声的对决中，李相夷中毒重伤，沉入大海，十年后在莲花楼醒来，过起了市井生活。他帮助肉铺掌柜解决家庭矛盾，表现出敏锐的洞察力。
@@ -46,13 +127,44 @@ class RelationIdentityMapperTest(DataJuicerTestCaseBase):
             for k in data:
                 logger.info(f"{k}: {data[k]}")
             self.assertIn(output_key, data[Fields.meta])
-            self.assertNotEqual(data[Fields.meta][output_key], '')
 
     def test_default(self):
-        self._run_op('qwen2.5-72b-instruct')
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False})
 
     def test_rename_key(self):
-        self._run_op('qwen2.5-72b-instruct', output_key='output')
+        self._run_op(DEFAULT_API_MODEL, sampling_params={'enable_thinking': False}, output_key='output')
+
+    def test_drop_text(self):
+        op = RelationIdentityMapper(
+            api_model=DEFAULT_API_MODEL,
+            source_entity='李莲花',
+            target_entity='方多病',
+            drop_text=True,
+            sampling_params={'enable_thinking': False},
+        )
+        raw_text = '李莲花与方多病合作破案，方多病是李莲花的弟子。'
+        sample = {'text': raw_text, Fields.meta: {}}
+        result = op.process_single(sample)
+        self.assertNotIn('text', result)
+        self.assertIn(MetaKeys.role_relation, result[Fields.meta])
+
+    def test_same_entity(self):
+        op = RelationIdentityMapper(
+            api_model=DEFAULT_API_MODEL,
+            source_entity='李莲花',
+            target_entity='李相夷',
+            sampling_params={'enable_thinking': False},
+        )
+        raw_text = ('李莲花原名李相夷，十五岁战胜西域天魔，'
+                    '十七岁建立四顾门，二十岁问鼎武林盟主。')
+        samples = [{'text': raw_text}]
+        dataset = Dataset.from_list(samples)
+        dataset = op.run(dataset)
+        for data in dataset:
+            self.assertIn(MetaKeys.role_relation, data[Fields.meta])
+            self.assertNotEqual(data[Fields.meta][MetaKeys.role_relation], '')
+            logger.info(
+                f"relation: {data[Fields.meta][MetaKeys.role_relation]}")
 
 
 if __name__ == '__main__':

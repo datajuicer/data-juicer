@@ -26,12 +26,14 @@ Data-Juicer (DJ) 将原始数据转化为 AI 就绪的智能。它将数据处�
 
 > **阿里云 PAI** 已深度集成 Data-Juicer 到其数据处理产品中。请参阅 **[快速提交 DataJuicer 任务](https://www.alibabacloud.com/help/zh/pai/user-guide/quickly-submit-a-datajuicer-task)**。
 
+> 🧃 **Juicer** 是我们的自然语言数据精炼模型，可将清洗指令、过滤规则和语义标注需求转化为结构化输出。欢迎在 [HuggingFace](https://huggingface.co/datajuicer/Juicer-35B-A3B) 或 [ModelScope](https://www.modelscope.cn/models/Data-Juicer/Juicer-35B-A3B) 上试用，或查阅 **[Juicer 文档](docs/Juicer_ZH.md)**。
+
 ---
 
 ## 🚀 快速开始
 
 **零安装探索**：
-- [带教程的 JupyterLab 在线环境](http://8.138.149.181/) 
+- [带教程的 JupyterLab 在线环境](http://8.138.149.181/)
 - [询问 DJ Copilot](https://datajuicer.github.io/data-juicer/zh_CN/main/docs_index_ZH.html)
 
 **安装并运行**：
@@ -84,7 +86,102 @@ for s in res_ds:
 ---
 
 ## 📰 动态
+
+- [2026-11-24] 🚀 团队推出 **Piccolo**，一个通过**数据驱动的递归自我改进（RSI）** 迭代训练的高性能 System-1 决策模型系列，其 27B 模型在 [Decision Index 多模态榜单](https://huggingface.co/spaces/multimodalart/jev-decision-index)的 Private 评分中***排名第一***（截至 2026 年 11 月 24 日），并在团队自建的、面向数据处理决策的评测基准 [DataJevBench](https://github.com/datajuicer/DataJevBench) 上表现出色。欢迎阅读[技术报告](https://arxiv.org/abs/2611.24651v1)、[体验演示](https://decisionplayground.agentscope.io/blog.html)、使用[开源模型](https://huggingface.co/collections/agentscope-ai/piccolo)，并访问 [GitHub 仓库](https://github.com/agentscope-ai/Piccolo)！
+
 <details open>
+<summary>[2026-11-24] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>
+
+* 🧪 基准污染过滤器 — 新增 `benchmark_contamination_filter`，按字符或词的 n-gram 检查样本与参考基准的重叠。参考文件支持 JSONL、JSON、TXT 及其 gzip 压缩格式。设置 `benchmark_path` 后启用。默认 `threshold: 0.0` 会丢弃含任一匹配 n-gram 的样本，同领域数据需调整阈值。串联多个基准过滤器时，各自使用独立的统计字段名。
+* 📝 LLM 抽取输出 — 七个抽取算子在 `drop_text: true` 时统一删除配置的源字段，覆盖嵌套路径、带点的字面键、已有结果及批处理输出。源文本位于 metadata 中时，属性和事件抽取会保留新生成的结果。删除源字段后移除空父结构，保证 Parquet 可导出；保留同级字段及 `drop_text: false` 的行为。
+* 🧮 降低处理内存开销 — Top-k 和范围选择器使用有界堆；频率选择器先计数，再收集选中行的索引；图像 OHEM 减少一次重复扫描。MinHash 分块处理 shingle 和置换矩阵；`words_num_filter` 的默认路径分块计数。分词仍可能保留整个文档的 token 列表。
+* 🗄️ 导出与加载修复 — 本地分片名称保留完整文件主名，统计文件与数据导出分开，分片写入失败会传给调用方。`dataset_path` 支持 Hugging Face 数据集 ID。LeRobot 导出使用连续的全局行索引，不再依赖源视频帧编号。
+* 🛡️ PII 与文本修复 — PII 脱敏保留普通列表中的媒体路径，识别更多带前缀的秘密与 ID 键名，并在缺少必要标记时跳过正则扫描。文本处理保留全角数字及词内句点，支持跨文字系统比较重复句子，避免递归分块，并按完整 LaTeX 附录命令截断。
+* 🔧 去重、视频与诊断 — 无效的 MinHash 分带配置和 SimHash 分块、距离配置会提前报错。Ray 图像与视频去重保留无媒体样本。视频描述算子按后端传入生成参数，并正确返回生成批次。Mapper 改变批次行数时，Tracer 跳过按位置配对；日志摘要可统计当前格式的算子错误。MinHash 扩展以 C++17 和 GCC/MSVC 对应的 OpenMP 参数构建。
+</details>
+
+<details open>
+<summary>[2026-11-03] Release v1.6.2: <b>选择器与过滤器边界修复；PII 脱敏覆盖更全；去重与字段选择器提速</b></summary>
+
+* 🎯 选择器与过滤器边界修复 — 显式设置 `top_ratio: 0` 和随机选择得到零行时，现在保留零条样本；`range_specified_field_selector` 只设置单侧边界时按该边界生效，不再返回整个数据集；`topk_specified_field_selector` 对顶层数值字符串按数值排序，并可容忍 `None`；`specified_numeric_field_filter` 保留 `0` 和 `0.0`；`suffix_filter` 统一归一化 `txt`、`.TXT` 与 `.txt`。
+* 🛡️ PII 脱敏覆盖更全 — `pii_redaction_mapper` 新增对 JWT、国际电话、MAC 地址、飞书/钉钉 open ID 及方括号 IPv6 地址的脱敏；紧邻中文的手机号、身份证号及上述 token 也能识别；秘密值和 ID 值（`user_id: 42`、`{"user_id": "u-123"}`、`Authorization: Bearer ...`）整体脱敏并保留键名、分隔符和引号，支持全角 `：`，且值不会误吞下一行（缩进换行除外）；`clean_email_mapper` 匹配大写域名；`clean_ip_mapper` 匹配压缩写法的 IPv6 及内嵌 IPv4 的 IPv6 地址。
+* ⚡ 去重、加载与字段选择器提速 — 精确去重、simhash 去重、图像去重和视频去重只读取哈希列来计算保留行，不再解码其他列；行去重只从哈希列统计行哈希；MinHash 分带冲突在扫描过程中直接合并；`unify_format` 在所有文本列都无空值时跳过 None 过滤；四个字段选择器按每批 1 万行读取目标列。
+* 🔧 媒体、加载与作业修复 — 图像算子将结果回写为 PNG 字节，后续图像算子可正常读取；视频逐帧处理保留音轨；宽松 JSONL 保留带 BOM 的首条记录，并支持大写或大小写混合后缀的 `.jsonl.gz`/`.jsonl.zst` 分片；行内 LaTeX 注释不再吞掉前一个字符；`expand_macro_mapper` 可展开文本末尾或紧邻另一个宏的宏；作业进度从完成事件的 metadata 读取指标；`nltk` 升级至 3.10.4，GitPython 升级至 3.2.1。
+</details>
+
+<details open>
+<summary>[2026-10-19] Release v1.6.1: <b>吞吐感知的 GPU Actor 规划；自适应 GPU 微批；更省内存的 Ray MinHash 去重</b></summary>
+
+* 🎛️ 吞吐感知的 GPU Actor 规划 — `ray_partitioned` 在正式执行前进行 GPU 预检，测量各 GPU 算子的显存、稳态吞吐和输出比例，并独立于分区数规划 actor 数量；同一执行组内的分区共用 actor pool，避免重复加载模型。默认开启，设置 `partition.gpu_preflight_enabled: false` 可沿用显式配置的 GPU 资源。
+* 🪄 自适应 GPU 微批（需手动开启）— 设置 `elastic_juicer_adaptive_batching: true` 后，符合条件的 CUDA Mapper 在 OOM 时以更小的微批重试同一批数据，输入压力缓解后再谨慎恢复批大小；`elastic_juicer_profile_seed: true` 可在同一次 `ray_partitioned` 运行中，将兼容的批大小边界复用到后续执行组和替换的 actor。两项默认关闭。
+* 🧮 更省内存的 Ray MinHash 去重 — `ray_bts_minhash_deduplicator` 改用紧凑的 NumPy 数组保存边缓冲区和哈希键，代替 Python 对象，降低内存开销，配置和结果不变。
+* 🔧 算子修复 — `clean_html_mapper` 兼容 selectolax 1.0；`remove_specific_chars_mapper` 转义正则字符，不再误删 `|`；`remove_header_mapper` 的默认参数 `drop_no_head=True` 开始生效，会清空不含 LaTeX 头部的文本；实体关系与支撑文本抽取算子正确处理 `drop_text`；`general_field_filter` 条件支持负数；`text_embd_similarity_filter` 使用本地 Hugging Face embedding 时，输入文本不再混入模型对象的 repr。
+* 🗂️ 加载、分析与工具修复 — HuggingFace 加载策略改为加载后再应用 `limit`；设置 `max_sample_num` 时跳过分得 0 条样本的数据集；宽松 JSONL 加载在源文件变化后刷新缓存；整体分析不再因首个值为空而丢弃统计列；可视化应用在没有可调统计量的过滤器时不再报 `KeyError`；GPT 评估器从均值中排除失败的评审调用并报告其数量。
+</details>
+
+<details>
+<summary>[2026-09-08] Release v1.6.0: <b>Juicer 模型发布；集群感知分区；配置校验；LiteLLM 后端</b></summary>
+
+* 🧮 集群感知分区 — 自动分区数量根据实时 Ray 集群资源确定；手动 `partition.size` 按样本行切分，在输入 block 数少于分区数时也能正确划分数据。
+* ✅ 配置校验 — 管道预检在处理前发现算子配置错误及执行模式、数据字段不匹配；执行与分析统一应用读取默认参数。
+* 🔌 LiteLLM 后端 — 在 `prepare_api_model` 中选择 `api_backend="litellm"`，通过提供商模型路由调用聊天、embedding 和 Responses 接口；原有 OpenAI 兼容后端仍为默认值。
+* 📚 文档更新 — 重写安装、数据处理、分析、配置、导出及 playground 的中英文指南，为 28 个已有算子补充文档并修正示例；指南与 API 导航独立组织，文档支持按版本增量构建。
+* 🗄️ 统一远程导出 — 本地、S3 和 HDFS 导出共用文件系统分发；JSONL 导出支持将 Python 日期和时间值序列化为 ISO 格式。
+* 🖼️ 图像 OHEM 选择器 — 新增 `image_ohem_selector`，通过用户提供的评分函数及 top-k 或比例预算选择高损失图像样本。
+* ⚡ 分词批次限制 — token 计数过滤器限制分词批大小，降低长输入的内存峰值。
+* 🔧 健壮性修复 — 修复融合过滤器缓存隔离、MinHash 状态复用与空输入、去重器执行模式声明、文本空分块、gzip JSONL 的 HPO 采样及 pandas 扩展 dtype 处理；导入 HPO 模块不再启动 sweep。
+</details>
+
+<details>
+<summary>[2026-08-25] Juicer 模型发布：<b>自然语言数据精炼；本地部署；Playground</b></summary>
+
+* 🧃 自然语言数据精炼 — [Juicer](docs/Juicer_ZH.md) 可遵循自然语言指令完成文本清洗、过滤与语义标注。
+* 🏠 本地部署 — 下载[模型](https://huggingface.co/datajuicer/Juicer-35B-A3B)，在本地部署和使用。
+* 🧪 Playground — 在 [Juicer Playground](https://github.com/datajuicer/data-juicer-hub/tree/main/juicer_playground) 中体验数据精炼配方。
+</details>
+
+<details>
+<summary>[2026-08-07] Release v1.5.5: <b>外部算子插件；HDFS I/O 与 Ray Data 优化；多节点弹性分片</b></summary>
+
+* 🧩 外部算子插件 — 第三方算子现在可作为独立 pip 包分发，并通过 Python entry points 自动注册。
+* 🗄️ HDFS I/O — 新增 `hdfs://` 支持，可用于数据集加载与导出，与现有 S3 路径对齐。
+* ⚡ Ray Data 优化 — 移除会强制提前执行的急切操作，迁移至公开的 `TaskPoolStrategy`/`ActorPoolStrategy` API，并行化分区执行，保留弹性 actor pool 并发度，并使分区检查点在 block 布局变化后仍然有效。
+* 🌐 多节点弹性分片 — 新增位于 `demos/elastic_sharding/` 的可运行参考工作流，通过节点本地 Ray 执行器将大型 JSONL 数据集跨节点分片处理，支持重试与有序合并。
+* 📊 分布式 RayAnalyzer — 新增 `RayAnalyzer`，以 Ray 原生算子计算并汇总数据集统计量，避免 pandas 物化。
+* 🧮 内存优化 — 重复度过滤器的流式 n-gram 计数与分块式 MinHash 置换降低了内存峰值（RSS 768 → 272 MiB），且结果不变。
+* 🔧 健壮性与依赖修复 — 修复 `text_chunk_mapper` 分隔符泄漏、`calibrate_response_mapper` 的 `output_pattern` 处理以及 `image_diffusion_mapper` 的空 caption 问题；为 `general_field_filter` 增加成员运算符；放宽 `numpy`/`fsspec`/`pandas` 版本约束以兼容 Python 3.13+ 与 pyarrow>=17。
+</details>
+
+<details>
+<summary>[2026-07-17] Release v1.5.4: <b>HumanVBench 视频算子；批内阶段算子融合；健壮性修复</b></summary>
+
+* 🧑‍🤝‍🧑 新算子 — 新增 9 个以人为中心的视频理解算子（人物轨迹提取、活跃说话人检测、音频 ASR、语音情绪与年龄/性别检测、人脸人口统计与属性/情绪描述、人脸占比过滤），用于构建 HumanVBench (CVPR'26) 风格的处理流水线。
+* ⚡ 批内阶段算子融合 — 新增 `FusedSequentialBatchOp`，在一个 batch 内融合连续算子，减少算子间开销，加速顺序处理。
+* 🔧 健壮性与安装修复 — 修复 Ray 去重算子的共享状态处理；修复 Ray checkpoint writer 的相对路径问题；使 `clean_html_mapper` 对 null 文本值更健壮；`ColumnWiseAnalysis` 支持处理布尔型统计列；并通过为 `decord`/`torchcodec` 添加精确的平台标记解锁 ARM64 (aarch64) 平台的安装。
+* 🧪 测试覆盖与清理 — 扩展工具函数与模型处理相关的测试，并进行若干代码清理。
+</details>
+
+<details>
+<summary>[2026-06-26] Release v1.5.3: <b>VLA 算子升级；Ray 重分区管道；可扩展性与健壮性</b></summary>
+
+* 🤖 VLA 算子升级 — 新增/重命名 10+ 个 VLA 算子（DeepCalib/DroidCalib/MoGe 相机标定、原子动作分割、手部动作计算与运动平滑、片段重组、轨迹叠加、LeRobot 导出），并提供完整的 VLA pipeline 示例。
+* 🔄 Ray 重分区管道 — 新增 'ray_repartition_pipeline'，支持 Ray 模式下的数据集级块重分区。
+* ⚡ 可扩展的 Ray Data 读取 — 将 `override_num_blocks` 贯通整个调用链，支持通过 CLI 控制 PB 级数据集的块并行度。
+* 🧪 测试覆盖扩展 — 新增 409 个测试用例，覆盖 18 个测试文件。
+* 🐳 稳定性与健壮性修复 — JSONStreamDatasource 跨批次 schema 统一、OP 环境版本解析、PartitionedRayExecutor FUSE 安全 rmtree、废弃模型名更新、num_proc 处理修复等。
+</details>
+
+<details>
+<summary>[2026-05-29] Release v1.5.2: <b>语义化 LLM 算子；跨文档行级去重；更轻量的依赖</b></summary>
+
+- 🧹 新增去重算子：DocumentLineDeduplicator 支持跨文档的行级去重，依据全局文档频率识别并移除模板文本、版权声明、导航栏等样板行。
+- 🤖 Agent 数据质量工具集：上线交互质量算子与配方（recipe），新增 bad-case HTML 报告，并增强 JSONL / HuggingFace meta 加载的健壮性。
+- 📦 更轻量、更快的安装：精简默认依赖集（Ray、音频、spaCy、av 等移至按需安装的可选依赖），显著加快安装速度。
+- 🐳 稳定性与健壮性修复：库友好的错误处理（以 raise 替代 exit(1)）、Ray 初始化与临时目录修复、清理非法 API 参数（移除无效的 max_new_tokens）、PyArrow 20+ 批量读取 JSON 修复、支持本地路径的 aesthetics 模型，以及更多性能与 Bug 修复。
+- 🧠 新增语义化 LLM 算子：引入 llm_extract_mapper、llm_condition_filter 和 llm_structured_ops，统一 llm_* 命名规范，并支持可配置的推理策略（join/agg/top-k 等能力规划中）。
+</details>
+
+<details>
 <summary>[2026-03-17] Release v1.5.1: <b>LaTeX 算子上线；压缩格式支持；算子健壮性修复</b></summary>
 
 - 📄 新增两个面向 LaTeX 的 Mapper 算子，将 data-juicer 的文档处理能力延伸至 .tex 压缩包和图片上下文的提取与处理。
@@ -93,7 +190,7 @@ for s in res_ds:
 - 🤖 对 data-juicer-agents 的重大重构与升级已经完成：项目架构及 CLI/会话能力经过全面重新设计，以提升可维护性与可扩展性。详情请参阅 [date-juicer-agents](https://github.com/datajuicer/data-juicer-agents).
 </details>
 
-<details open>
+<details>
 <summary>[2026-02-12] Release v1.5.0: <b>分区Ray执行器，OP级环境隔离，以及更多具身算子</b></summary>
 
 - 🚀 *分布式执行框架升级* — 新增分区Ray执行器与OP级隔离环境，强化容错性、可扩展性及依赖冲突管理。
@@ -105,30 +202,11 @@ for s in res_ds:
 <details>
 <summary>[2026-02-02] Release v1.4.6: <b>Copilot、视频字节 I/O 与 Ray 追踪</b></summary>
 
-- 🤖 *Q&A Copilot* — 现已上线我们的[文档站点](https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH.html) | [钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK)。欢迎询问任何与 Data-Juicer 生态系统相关的问题！  
+- 🤖 *Q&A Copilot* — 现已上线我们的[文档站点](https://datajuicer.github.io/data-juicer/zh_CN/main/index_ZH.html) | [钉钉](https://qr.dingtalk.com/action/joingroup?code=v1,k1,N78tgW54U447gJP5aMC95B6qgQhlkVQS4+dp7qQq6MpuRVJIwrSsXmL8oFqU5ajJ&_dt_no_comment=1&origin=11?) | [Discord](https://discord.gg/ngQbB9hEVK)。欢迎询问任何与 Data-Juicer 生态系统相关的问题！
     - 查看 🤖 [Data-Juicer Agents](https://github.com/datajuicer/data-juicer-agents/blob/main) | 📃 [部署就绪代码](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot) | 🎬[更多演示](https://github.com/datajuicer/data-juicer-agents/blob/main/qa-copilot/DEMO.md) 了解更多详情。
-- 🎬 *视频字节 I/O* — 视频管道的直接字节处理  
-- 🫆 *Ray 模式追踪器* — 在分布式处理中追踪变更的样本  
+- 🎬 *视频字节 I/O* — 视频管道的直接字节处理
+- 🫆 *Ray 模式追踪器* — 在分布式处理中追踪变更的样本
 - 🐳 *增强与修复* — 刷新 Docker 镜像、小幅性能提升、GitHub Insights 流量工作流、Ray 兼容性更新以及 Bug/文档修复。
-</details>
-
-<details >
-<summary>[2026-01-15] Release v1.4.5: <b>20+ 新 OP、Ray vLLM 管道与 Sphinx 文档升级</b> </summary>
-
-- *具身 AI OP*：添加/增强了用于视频标题生成（VLM）、视频对象分割（YOLOE+SAM2）、视频深度估计（可视化 + 点云）、人体姿态（MMPose）、图像标签（VLM）、单图像 3D 人体网格恢复（SAM 3D Body）的映射器，以及 *S3 上传/下载*。
-- *新管道 OP*：将多个 OP 组合成一个管道；引入了用于 LLM/VLM 推理的 *Ray + vLLM* 管道。
-- *文档升级*：迁移到统一的基于 *Sphinx* 的文档构建/部署工作流，具有隔离的主题/架构仓库。
-- *增强与修复*：依赖更新、改进的 Ray 去重和 S3 加载、OpenAI Responses API 支持、追踪器一致性、Docker 基础更新为 CUDA 12.6.3 + Ubuntu 24.04 + Py3.11，以及多个 Bug 修复。 
-
-</details>
-
-<details>
-<summary>[2025-12-01] Release v1.4.4: <b>NeurIPS'25 Spotlight、6 个新视频/多模态 OP 与 S3 I/O</b> </summary>
-
-- Data-Juicer 2.0 获得 NeurIPS'25 **Spotlight**
-- *仓库拆分*：sandbox/recipes/agents 移至独立仓库
-- *S3 I/O* 添加到加载器/导出器
-- *6 个新的视频和多模态 OP*（角色检测、VGGT、全身姿态、手部重建）+ 文档/Ray/视频 I/O 改进和 Bug 修复
 </details>
 
 查看 [所有发布](https://github.com/datajuicer/data-juicer/releases) 和 [动态归档](docs/news_zh.md)
@@ -136,15 +214,15 @@ for s in res_ds:
 ---
 
 ## 🔌 用户与生态系统
-> 以下列表重点关注*面向开发者的集成和使用*，按*字母顺序*排列。  
+> 以下列表重点关注*面向开发者的集成和使用*，按*字母顺序*排列。
 > 缺少您的项目/名称？欢迎[提交 PR](https://github.com/datajuicer/data-juicer/pulls) 或[联系我们](#贡献与社区)。
 
 Data-Juicer 可无缝集成到您现有的技术栈，并随着社区贡献而不断发展：
 
 ### 扩展
-- **[data-juicer-agents](https://github.com/datajuicer/data-juicer-agents)** — DJ Copilot 和智能体工作流  
-- **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — 社区配方和最佳实践  
-- **[data-juicer-sandbox](https://github.com/datajuicer/data-juicer-sandbox)** — 带反馈循环的数据-模型协同开发  
+- **[data-juicer-agents](https://github.com/datajuicer/data-juicer-agents)** — DJ Copilot 和智能体工作流
+- **[data-juicer-hub](https://github.com/datajuicer/data-juicer-hub)** — 社区配方和最佳实践
+- **[data-juicer-sandbox](https://github.com/datajuicer/data-juicer-sandbox)** — 带反馈循环的数据-模型协同开发
 
 ### 框架与平台
 [阿里云 PAI](https://www.alibabacloud.com/zh/product/machine-learning?_p_lc=1) · [Delta Lake](https://delta.io/)[AgentScope](https://github.com/agentscope-ai/agentscope) · [Apache Arrow](https://github.com/apache/arrow) · [Apache HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html) · [Apache Hudi](https://hudi.apache.org/) · [Apache Iceberg](https://iceberg.apache.org/) · [Apache Paimon](https://paimon.apache.org/) · [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) · [EasyAnimate](https://github.com/aigc-apps/EasyAnimate) · [Eval-Scope](https://github.com/modelscope/evalscope) · [华为昇腾](https://www.huawei.com/en/products/cloud-computing-dc/atlas/ascend) · [Hugging Face](https://huggingface.co/) · [LanceDB](https://lancedb.github.io/lance/) · [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) · [ModelScope](https://modelscope.cn/) · [ModelScope Swift](https://github.com/modelscope/ms-swift) · [NVIDIA NeMo](https://github.com/NVIDIA/NeMo) · [Ray](https://docs.ray.io/) · [RM-Gallery](https://github.com/modelscope/RM-Gallery) · [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) · [火山引擎](https://www.volcengine.com/)
@@ -169,7 +247,7 @@ Data-Juicer 可无缝集成到您现有的技术栈，并随着社区贡献而�
 | <img src="https://gw.alicdn.com/imgextra/i1/O1CN011Oj8CB1f8Bw5JpgJA_!!6000000003961-0-tps-762-769.jpg" width="100"> | <img src="https://gw.alicdn.com/imgextra/i3/O1CN01bBPoaX1EwZsiYudtd_!!6000000000416-2-tps-656-660.png" width="100"> |
 
 Data-Juicer 由用户和社区共同打造：
-- **发起方**：阿里巴巴通义实验室  
+- **发起方**：阿里巴巴通义实验室
 - **联合开发**：阿里云 PAI、Anyscale（Ray 团队）、中山大学、NVIDIA（NeMo 团队）以及[全球贡献者](https://github.com/datajuicer/data-juicer/graphs/contributors)
 - **启发来源**：Apache Arrow、Ray、Hugging Face Datasets、BLOOM、RedPajama-Data、...
 
@@ -190,7 +268,7 @@ Data-Juicer 由用户和社区共同打造：
 
 ## 📄 许可证与致谢
 
-Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。  
+Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。
 如果您项目中要致谢DataJuicer：请使用我们的[Badge](https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/data_juicer/assets/DJ-Org-Logo.jpeg)，或文本譬如 "本项目使用Data-Juicer: https://github.com/datajuicer"。
 
 ---
@@ -221,16 +299,16 @@ Data-Juicer 在 [Apache License 2.0](LICENSE) 下发布。
 - (ICML'25 Spotlight) [Data-Juicer Sandbox: A Feedback-Driven Suite for Multimodal Data-Model Co-development](https://arxiv.org/abs/2407.11784)
 
 - (CVPR'25) [ImgDiff: Contrastive Data Synthesis for Vision Large Language Models](https://arxiv.org/abs/2408.04594)
- 
+
 - (TPAMI'25) [The Synergy between Data and Multi-Modal Large Language Models: A Survey from Co-Development Perspective](https://arxiv.org/abs/2407.08583)
 
 - (NeurIPS'25) [Diversity as a Reward: Fine-Tuning LLMs on a Mixture of Domain-Undetermined Data](https://arxiv.org/abs/2502.04380)
 
 - (NeurIPS'25) [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499)
 
-- (Benchmark Data) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
- 
-- (Benchmark Data) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
+- (CVPR'26) [HumanVBench: Exploring Human-Centric Video Understanding Capabilities of MLLMs with Synthetic Benchmark Data](https://arxiv.org/abs/2412.17574)
+
+- (ICML'26) [DetailMaster: Can Your Text-to-Image Model Handle Long Prompts?](https://www.arxiv.org/abs/2505.16915)
 
 - (Data Scaling) [BiMix: A Bivariate Data Mixing Law for Language Model Pretraining](https://arxiv.org/abs/2405.14908)
 

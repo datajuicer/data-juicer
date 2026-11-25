@@ -158,7 +158,7 @@ class CorrelationAnalysis:
         self.stats = pd.DataFrame(dataset[Fields.stats])
         # only keep the numeric columns
         for col_name in self.stats.columns:
-            if np.issubdtype(self.stats[col_name].dtype, np.number):
+            if pd.api.types.is_numeric_dtype(self.stats[col_name]):
                 continue
             elif is_numeric_list_series(self.stats[col_name]):
                 self.stats[col_name] = self.stats[col_name].apply(

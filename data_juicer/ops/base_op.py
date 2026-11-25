@@ -146,6 +146,13 @@ def wrap_mapper_with_tracer(process_method, op_name, text_key, tracer, is_batche
 
             processed_batch_dict = sample_to_dict(processed_batch)
 
+            # Rows can only be paired by position when the op kept the number
+            # of rows. An op that splits or drops samples, or a batch emptied
+            # by a skipped op error, has no such pairs.
+            num_processed = len(next(iter(processed_batch_dict.values()), []))
+            if num_processed != num_samples:
+                return processed_batch
+
             # Collect changes for each sample
             for i in range(num_samples):
                 if check_tracer_collect_complete(tracer, op_name):
@@ -296,10 +303,65 @@ class OP(metaclass=OPMetaClass):
     # whether this operator is a batched operator
     _batched_op = False
 
+    # executor modes this operator supports: "default", "ray", "ray_partitioned"
+    _supported_exec_modes = ("default",)
+
+    # Optional data-flow contract used by dependency-aware optimizers.  ``None``
+    # means that the operator has not declared its reads/writes; an explicitly
+    # empty collection means that it reads/writes no dataset columns.  Nested
+    # paths such as ``__dj__meta__.quality_score`` are supported by consumers.
+    # Keep these conservative by default so existing and third-party operators
+    # are never assumed independent merely because metadata is absent.
+    _input_columns = None
+    _output_columns = None
+
     # extra requirements for this operator. Should be:
     #   1. a list of packages
     #   2. a string of the path to the requirements.txt file
     _requirements = None
+
+    # Centralized declaration of all parameters accepted by the OP base class.
+    # Format: {param_name: (type_or_None, default_value)}
+    # This serves as the authoritative source for:
+    #   - preflight parameter name validation
+    #   - preflight parameter type checking
+    #   - documentation generation
+    _BASE_PARAMS = {
+        # Data keys
+        "text_key": (str, "text"),
+        "image_key": (str, "images"),
+        "audio_key": (str, "audios"),
+        "video_key": (str, "videos"),
+        "image_bytes_key": (str, "image_bytes"),
+        "system_key": (str, "system"),
+        "instruction_key": (str, "instruction"),
+        "prompt_key": (str, "prompt"),
+        "query_key": (str, "query"),
+        "response_key": (str, "response"),
+        "history_key": (str, "history"),
+        "index_key": (None, None),
+        "work_dir": (None, None),
+        "input_columns": (None, None),
+        "output_columns": (None, None),
+        # Behavior control
+        "skip_op_error": (bool, False),
+        "adaptive_batching": (bool, None),
+        "auto_op_parallelism": (bool, True),
+        "batch_mode": (None, None),
+        "accelerator": (None, None),
+        "batch_size": (int, DEFAULT_BATCH_SIZE),
+        "num_proc": (None, None),
+        "turbo": (bool, False),
+        # Resource declarations
+        "cpu_required": (None, None),
+        "gpu_required": (None, None),
+        "mem_required": (None, None),
+        "num_cpus": (None, None),
+        "num_gpus": (None, None),
+        "memory": (None, None),
+        "runtime_env": (None, None),
+        "ray_execution_mode": (None, None),
+    }
 
     # Attributes excluded from cache fingerprinting only (not from
     # pickling/dill serialization).  These do not affect data
@@ -315,6 +377,7 @@ class OP(metaclass=OPMetaClass):
             # reconstruction — the kwargs dict embeds work_dir
             "_init_args",
             "_init_kwargs",
+            "_elastic_juicer_stage_identity",
         }
     )
 
@@ -376,6 +439,8 @@ class OP(metaclass=OPMetaClass):
         :param index_key: the key name of field that stores index
         :param batch_size: the batch size for processing
         :param work_dir: the working directory for this operator
+        :param input_columns: optional input-column contract for dependency-aware planning
+        :param output_columns: optional output-column contract for dependency-aware planning
         :param skip_op_error: whether to skip the error when processing samples
 
         # Ray related parameters
@@ -411,9 +476,24 @@ class OP(metaclass=OPMetaClass):
         self.index_key = kwargs.get("index_key", None)
         self.work_dir = kwargs.get("work_dir", None)
 
+        # A recipe can provide the same dependency contract as class-level
+        # declarations without requiring changes to a custom operator module.
+        # Preserve a class declaration when the corresponding recipe option is
+        # omitted.  Strings represent one column rather than an iterable of
+        # characters.
+        if "input_columns" in kwargs:
+            value = kwargs["input_columns"]
+            self._input_columns = [value] if isinstance(value, str) else value
+        if "output_columns" in kwargs:
+            value = kwargs["output_columns"]
+            self._output_columns = [value] if isinstance(value, str) else value
+
         # for unittest, do not skip the error.
         # It would be set to be True in config init.
         self.skip_op_error = kwargs.get("skip_op_error", False)
+        self.adaptive_batching = kwargs.get("adaptive_batching", None)
+        if self.adaptive_batching is not None and not isinstance(self.adaptive_batching, bool):
+            raise TypeError("adaptive_batching must be a boolean or None")
         self.auto_op_parallelism = kwargs.get("auto_op_parallelism", True)
 
         # whether to enable batch processing
@@ -604,6 +684,11 @@ class OP(metaclass=OPMetaClass):
 
 
 class Mapper(OP):
+    # Opt-in contract: row/order preserving, slice independent and retry safe.
+    _supports_adaptive_batching = False
+
+    _supported_exec_modes = ("default", "ray", "ray_partitioned")
+
     def __init__(self, *args, **kwargs):
         """
         Base class that conducts data editing.
@@ -655,6 +740,17 @@ class Mapper(OP):
         first_key = next(iter(keys))
         num_samples = len(samples[first_key])
 
+        if getattr(self, "drop_text", False):
+            # Rebuild the columns so fields removed by process_single stay removed.
+            # Some rows can retain a parent field that other rows no longer need.
+            processed_samples = [
+                self.process_single({key: samples[key][i] for key in keys}, *args, **kwargs) for i in range(num_samples)
+            ]
+            if not processed_samples:
+                return {key: [] for key in keys}
+            output_keys = dict.fromkeys(key for row in processed_samples for key in row)
+            return {key: [row.get(key) for row in processed_samples] for key in output_keys}
+
         new_keys = {}
         for i in range(num_samples):
             this_sample = {key: samples[key][i] for key in keys}
@@ -682,8 +778,15 @@ class Mapper(OP):
         """
         raise NotImplementedError
 
+    def _get_output_features(self, input_features):
+        """Optionally declare HF output types, including empty-list predictions."""
+        return None
+
     def run(self, dataset, *, exporter=None, tracer=None):
         dataset = super(Mapper, self).run(dataset)
+        source_features = dataset.features if getattr(self, "drop_text", False) else None
+        output_features = self._get_output_features(getattr(dataset, "features", None))
+        map_kwargs = {"features": output_features} if output_features is not None else {}
 
         # Wrap process method with tracer for sample-level collection
         from data_juicer.core.tracer import should_trace_op
@@ -704,6 +807,7 @@ class Mapper(OP):
                 with_rank=self.use_cuda(),
                 batch_size=self.batch_size,
                 desc=self._name + "_process",
+                **map_kwargs,
             )
         finally:
             # Restore original process method
@@ -711,10 +815,25 @@ class Mapper(OP):
                 self.process = original_process
 
         free_models()
+        if source_features is not None:
+            from data_juicer.utils.text_field_utils import remove_text_from_dataset
+
+            # Keep the original path when a literal dotted key was already removed.
+            new_dataset = remove_text_from_dataset(new_dataset, self.text_key, source_features)
         return new_dataset
 
 
 class Filter(OP):
+    _supported_exec_modes = ("default", "ray", "ray_partitioned")
+
+    _BASE_PARAMS = {
+        **OP._BASE_PARAMS,
+        "stats_export_path": (None, None),
+        "min_closed_interval": (bool, True),
+        "max_closed_interval": (bool, True),
+        "reversed_range": (bool, False),
+    }
+
     def __init__(self, *args, **kwargs):
         """
         Base class that removes specific info.
@@ -865,6 +984,8 @@ class Filter(OP):
 
 
 class Deduplicator(OP):
+    _supported_exec_modes = ("default",)
+
     def __init__(self, *args, **kwargs):
         """
         Base class that conducts deduplication.
@@ -1082,6 +1203,8 @@ class Aggregator(OP):
 
 class Pipeline(OP):
     """Base class for Operators that represent a data processing pipeline."""
+
+    _supported_exec_modes = ("default", "ray", "ray_partitioned")
 
     def __init__(self, *args, **kwargs):
         """

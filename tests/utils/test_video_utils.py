@@ -1,10 +1,19 @@
 import os
 import shutil
+import tempfile
 import unittest
 import numpy as np
 import subprocess
 
-from data_juicer.utils.video_utils import Clip, AVReader, FFmpegReader, DecordReader
+from data_juicer.utils.video_utils import (
+    Clip,
+    AVReader,
+    FFmpegReader,
+    DecordReader,
+    Frames,
+    VideoMetadata,
+    VideoReader,
+)
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -33,8 +42,7 @@ class TestVideoReader(DataJuicerTestCaseBase):
                                  'ops',
                                  'data')
         self.vid_path1 = os.path.join(data_path, 'video1.mp4')
-        self.temp_output_path = 'tmp/test_video_utils/'
-        os.makedirs(self.temp_output_path, exist_ok=True)
+        self.temp_output_path = tempfile.mkdtemp(prefix="dj_test_video_utils_")
 
     def tearDown(self):
         if os.path.exists(self.temp_output_path):
@@ -302,6 +310,83 @@ class TestVideoReader(DataJuicerTestCaseBase):
                 self.assertEqual(frames.frames, [])
                 self.assertEqual(frames.indices, [0, 144, 237])
                 self.assertEqual(frames.pts_time, [0.0, 6.0, 9.875])
+
+
+class TestVideoReaderBaseLogic(DataJuicerTestCaseBase):
+    class TinyReader(VideoReader):
+        def __init__(self):
+            super().__init__("tiny")
+            self.closed = False
+            self.requests = []
+            self.frames = [
+                np.full((1, 1, 3), i, dtype=np.uint8)
+                for i in range(5)
+            ]
+
+        def get_metadata(self):
+            return VideoMetadata(height=1, width=1, fps=1.0, num_frames=5, duration=5.0)
+
+        def extract_frames(self, start_time=0, end_time=None):
+            self.requests.append((start_time, end_time))
+            idx = min(int(start_time), len(self.frames) - 1)
+            yield self.frames[idx]
+
+        def extract_keyframes(self, start_time=0, end_time=None):
+            return Frames(frames=[self.frames[0]], indices=[0], pts_time=[0.0])
+
+        def extract_clip(self, start_time=0, end_time=None, output_path=None, to_numpy=True):
+            return Clip(source_video=self.video_source, span=(start_time, end_time), frames=self.frames)
+
+        def close(self):
+            self.closed = True
+
+        @classmethod
+        def is_available(cls):
+            return True
+
+    def test_metadata_is_cached_and_context_manager_closes(self):
+        reader = self.TinyReader()
+        first = reader.metadata
+        second = reader.metadata
+
+        self.assertIs(first, second)
+        with reader as active:
+            self.assertIs(active, reader)
+        self.assertTrue(reader.closed)
+
+    def test_extract_frames_uniformly_uses_middle_or_even_spacing(self):
+        reader = self.TinyReader()
+
+        one = reader.extract_frames_uniformly(1)
+        three = reader.extract_frames_uniformly(3)
+        too_many = reader.extract_frames_uniformly(8)
+
+        self.assertEqual([int(frame[0, 0, 0]) for frame in one], [2])
+        self.assertEqual([int(frame[0, 0, 0]) for frame in three], [0, 2, 4])
+        self.assertEqual(len(too_many), 5)
+
+    def test_extract_frames_uniformly_by_seconds_skips_trailing_partial_segment(self):
+        reader = self.TinyReader()
+
+        frames = reader.extract_frames_uniformly_by_seconds(frame_num=2, duration=2.0)
+
+        self.assertEqual([int(frame[0, 0, 0]) for frame in frames], [0, 2, 2, 4])
+
+    def test_check_time_span_rejects_invalid_ranges(self):
+        reader = self.TinyReader()
+
+        with self.assertRaisesRegex(ValueError, "start_time cannot be negative"):
+            reader.check_time_span(-0.1, 1)
+        with self.assertRaisesRegex(ValueError, "end_time cannot be negative"):
+            reader.check_time_span(0, 0)
+        with self.assertRaisesRegex(ValueError, "end_time must be greater"):
+            reader.check_time_span(2, 1)
+
+    def test_ffmpeg_reader_reports_unavailable_when_binary_is_missing(self):
+        if shutil.which("ffmpeg") is not None:
+            self.skipTest("ffmpeg is installed")
+
+        self.assertFalse(FFmpegReader.is_available())
 
 
 if __name__ == '__main__':

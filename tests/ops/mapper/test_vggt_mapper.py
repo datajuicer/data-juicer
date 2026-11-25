@@ -1,14 +1,13 @@
 import os
 import unittest
 import numpy as np
-import tempfile
-import shutil
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.mapper.vggt_mapper import VggtMapper
 from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
+from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 
 
 class VggtMapperTest(DataJuicerTestCaseBase):
@@ -16,17 +15,6 @@ class VggtMapperTest(DataJuicerTestCaseBase):
                              'data')
     vid11_path = os.path.join(data_path, 'video11.mp4')
     vid10_path = os.path.join(data_path, 'video10.mp4')
-
-
-    def setUp(self):
-        self.tmp_dir = tempfile.TemporaryDirectory().name
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
-        if os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
-            
 
     def test(self):
         ds_list = [{
@@ -41,7 +29,7 @@ class VggtMapperTest(DataJuicerTestCaseBase):
             vggt_model_path="facebook/VGGT-1B",
             frame_num=2,
             duration=2,
-            frame_dir=os.path.join(self.tmp_dir, "vggt_test1"),
+            frame_dir=DATA_JUICER_ASSETS_CACHE,
             if_output_camera_parameters=True,
             if_output_depth_maps=True,
             if_output_point_maps_from_projection=True,
@@ -102,7 +90,7 @@ class VggtMapperTest(DataJuicerTestCaseBase):
             vggt_model_path="facebook/VGGT-1B",
             frame_num=2,
             duration=2,
-            frame_dir=os.path.join(self.tmp_dir, "vggt_test2"),
+            frame_dir=DATA_JUICER_ASSETS_CACHE,
             if_output_camera_parameters=True,
             if_output_depth_maps=True,
             if_output_point_maps_from_projection=True,
@@ -163,7 +151,7 @@ class VggtMapperTest(DataJuicerTestCaseBase):
             vggt_model_path="facebook/VGGT-1B",
             frame_num=2,
             duration=2,
-            frame_dir=os.path.join(self.tmp_dir, "vggt_test3"),
+            frame_dir=DATA_JUICER_ASSETS_CACHE,
             if_output_camera_parameters=False,
             if_output_depth_maps=False,
             if_output_point_maps_from_projection=False,

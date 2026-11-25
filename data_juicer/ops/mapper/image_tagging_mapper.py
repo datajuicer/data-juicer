@@ -39,7 +39,9 @@ class ImageTaggingMapper(Mapper):
         """
         kwargs["memory"] = "9GB" if kwargs.get("memory", 0) == 0 else kwargs["memory"]
         super().__init__(*args, **kwargs)
-        LazyLoader.check_packages(["ram @ git+https://github.com/datajuicer/recognize-anything.git"])
+        LazyLoader.check_packages(
+            ["ram @ git+https://github.com/cmgzn/recognize-anything.git@889201b76458513d04afde5d4cfa376aa9e33ebf"]
+        )
         self.model_key = prepare_model(
             model_type="recognizeAnything", pretrained_model_name_or_path="ram_plus_swin_large_14m.pth", input_size=384
         )

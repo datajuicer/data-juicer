@@ -438,7 +438,7 @@ def anderson(
         )  # rel diff correctly calculated is ~5% different from official implementation
         if verbose:
             print(
-                f"abs diff {abs_diff:.2E} \t rel diff: {rel_diff:.2E} \t z scale: {torch.mean(X[:, k % m]):.0E} +/- {torch.std(X[:,k % m]):.0E}"
+                f"abs diff {abs_diff:.2E} \t rel diff: {rel_diff:.2E} \t z scale: {torch.mean(X[:, k % m]):.0E} +/- {torch.std(X[:, k % m]):.0E}"
             )
 
         diff_dict = {"abs": abs_diff, "rel": rel_diff}

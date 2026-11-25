@@ -205,6 +205,51 @@ class SpecifiedNumericFieldFilterTest(DataJuicerTestCaseBase):
                                          max_value=70)
         self._run_specified_numeric_field_filter(dataset, tgt_list, op)
 
+    def test_zero_value_case(self):
+
+        ds_list = [{
+            'text': 'Today is Sun',
+            'meta': {
+                'star': 0
+            }
+        }, {
+            'text': 'a v s e c s f e f g a a a  ',
+            'meta': {
+                'star': 3
+            }
+        }, {
+            'text': '中文也是一个字算一个长度',
+            'meta': {
+                'star': -2
+            }
+        }, {
+            'text': '，。、„”“«»１」「《》´∶：？！',
+            'meta': {
+                'star': 8
+            }
+        }]
+        tgt_list = [{
+            'text': 'Today is Sun',
+            'meta': {
+                'star': 0
+            }
+        }, {
+            'text': 'a v s e c s f e f g a a a  ',
+            'meta': {
+                'star': 3
+            }
+        }, {
+            'text': '中文也是一个字算一个长度',
+            'meta': {
+                'star': -2
+            }
+        }]
+        dataset = Dataset.from_list(ds_list)
+        op = SpecifiedNumericFieldFilter(field_key='meta.star',
+                                         min_value=-5,
+                                         max_value=5)
+        self._run_specified_numeric_field_filter(dataset, tgt_list, op)
+
 
 if __name__ == '__main__':
     unittest.main()

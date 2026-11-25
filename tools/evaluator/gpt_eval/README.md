@@ -5,7 +5,7 @@
 1. Prepare your model and the baseline model.
     - your model: Huggingface and Megatron-LM format models are supported, other models will be supported in future releases
     - baseline model: Huggingface, Megatron-LM or OpenAI model
-    > Evaluating Megatron-LM models requires a customized Megatron-LM which is provided in [`thirdparty`](../../../thirdparty/).
+    > Evaluating Megatron-LM models requires a customized Megatron-LM which is provided in [`thirdparty`](../../../thirdparty/LLM_ecosystems/).
 
 2. Generate answers using [`answer_generator.py`](answer_generator.py) for both your model and the baseline model.
     1. Prepare the benchmark dataset. The toolkit has provided Vicuna Bench([`config/question.jsonl`](./config/question.jsonl)), and you can create custom dataset to generate answers. The custom datasets must be a single file in jsonl format, and each json object in it contains 3 attributes:

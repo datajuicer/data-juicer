@@ -70,10 +70,10 @@ class GPTEvaluator:
                 return [float(sp[0]), float(sp[1])]
             else:
                 logger.error("Invalid score pair.")
-                return [0, 0]
+                return None
         except Exception:
             logger.error("Invalid answer")
-            return [0, 0]
+            return None
 
     def run(self):
         results = []
@@ -118,24 +118,31 @@ class GPTEvaluator:
         target_score = 0.0
         baseline_score = 0.0
         cnt = 0
-        for i, review in enumerate(tqdm(reviews)):
-            scores = self.parse_score(review)
-            idx = i // 2
-            if i % 2 == 0:
-                results[idx]["review1"] = review
-                results[idx]["score1"] = scores
-                target_score += scores[0]
-                baseline_score += scores[1]
-            else:
-                results[idx]["review2"] = review
-                results[idx]["score2"] = scores
-                target_score += scores[1]
-                baseline_score += scores[0]
-                self.result_writer.write(results[idx])
-                cnt += 1
+        failed = 0
+        for idx in tqdm(range(question_num)):
+            review1, review2 = reviews[2 * idx], reviews[2 * idx + 1]
+            scores1 = self.parse_score(review1)
+            scores2 = self.parse_score(review2)
+            results[idx]["review1"] = review1
+            results[idx]["score1"] = scores1
+            results[idx]["review2"] = review2
+            results[idx]["score2"] = scores2
+            self.result_writer.write(results[idx])
+            if scores1 is None or scores2 is None:
+                # a comparison needs both answer orders scored, so it is left out of the averages
+                failed += 1
+                continue
+            target_score += scores1[0] + scores2[1]
+            baseline_score += scores1[1] + scores2[0]
+            cnt += 1
+        print("-------------------------")
+        print(f"> Failed comparisons (left out of the averages): {failed}/{question_num}")
+        if cnt == 0:
+            logger.error("No comparison was scored, so there are no averages to report.")
+            self.result_writer.close()
+            return
         target_avg_score = target_score / cnt / 2
         baseline_avg_score = baseline_score / cnt / 2
-        print("-------------------------")
         print(f"> {results[0]['model1']}: {target_avg_score}")
         print(f"> {results[0]['model2']}: {baseline_avg_score}")
         print("-------------------------")

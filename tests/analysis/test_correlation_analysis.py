@@ -54,7 +54,7 @@ class CorrelationAnalysisTest(DataJuicerTestCaseBase):
 
     def test_correlation_analysis(self):
         corr_analyzer = CorrelationAnalysis({Fields.stats: self.df}, self.temp_output_path)
-        self.assertEqual(set(corr_analyzer.stats.columns), {'A', 'B', 'E', 'G', 'H', 'I', 'J'})
+        self.assertEqual(set(corr_analyzer.stats.columns), {'A', 'B', 'E', 'F', 'G', 'H', 'I', 'J'})
 
         ret = corr_analyzer.analyze(skip_export=True)
         self.assertFalse(os.path.exists(os.path.join(self.temp_output_path, 'stats-corr-pearson.png')))
@@ -70,6 +70,22 @@ class CorrelationAnalysisTest(DataJuicerTestCaseBase):
         corr_analyzer = CorrelationAnalysis({Fields.stats: {}}, self.temp_output_path)
         ret = corr_analyzer.analyze()
         self.assertIsNone(ret)
+
+
+    def test_extension_dtypes_no_typeerror(self):
+        """Regression: pandas extension dtypes (StringDtype, Int64) must not
+        raise TypeError in the numeric column filter."""
+        df = pd.DataFrame({
+            'numeric_col': [1, 2, 3],
+            'string_col': pd.array(['a', 'b', 'c'], dtype='string'),
+            'nullable_int': pd.array([10, 20, 30], dtype='Int64'),
+        })
+        corr_analyzer = CorrelationAnalysis(
+            {Fields.stats: df}, self.temp_output_path
+        )
+        self.assertIn('numeric_col', corr_analyzer.stats.columns)
+        self.assertIn('nullable_int', corr_analyzer.stats.columns)
+        self.assertNotIn('string_col', corr_analyzer.stats.columns)
 
 
 if __name__ == '__main__':

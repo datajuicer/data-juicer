@@ -536,6 +536,200 @@ class RayCheckpointManagerTest(DataJuicerTestCaseBase):
         self.assertFalse(mgr.checkpoint_enabled)
 
 
+class CkptUtilsEdgeCaseTest(DataJuicerTestCaseBase):
+    """Tests for edge cases in CheckpointManager and base class."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp(prefix='test_ckpt_edge_')
+
+    def tearDown(self):
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+
+    def test_checkpoint_exists_true(self):
+        """checkpoint_exists returns True for existing path."""
+        mgr = CheckpointManager(
+            self.tmp_dir, original_process_list=[]
+        )
+        existing_file = os.path.join(self.tmp_dir, "somefile")
+        with open(existing_file, "w") as f:
+            f.write("data")
+        self.assertTrue(mgr.checkpoint_exists(existing_file))
+
+    def test_checkpoint_exists_false(self):
+        """checkpoint_exists returns False for non-existing path."""
+        mgr = CheckpointManager(
+            self.tmp_dir, original_process_list=[]
+        )
+        self.assertFalse(
+            mgr.checkpoint_exists(os.path.join(self.tmp_dir, "no_such_file"))
+        )
+
+    def test_save_checkpoint_empty_dataset(self):
+        """Saving an empty dataset logs warning and still writes op record."""
+        ckpt_path = os.path.join(self.tmp_dir, "ckpt_empty")
+        mgr = CheckpointManager(ckpt_path, original_process_list=[])
+        mgr.record({"op_a": {}})
+
+        empty_ds = NestedDataset.from_dict({"text": []})
+        result = mgr.save_checkpoint(empty_ds)
+
+        self.assertEqual(result, mgr.ckpt_ds_dir)
+        # Op record should still be written
+        self.assertTrue(os.path.exists(mgr.ckpt_op_record))
+        with open(mgr.ckpt_op_record) as f:
+            ops = json.load(f)
+        self.assertEqual(ops, [{"op_a": {}}])
+
+    def test_should_checkpoint_unknown_strategy(self):
+        """Unknown strategy logs warning and defaults to True."""
+        mgr = RayCheckpointManager(
+            ckpt_dir=self.tmp_dir,
+            checkpoint_enabled=True,
+            checkpoint_strategy=CheckpointStrategy.EVERY_OP,
+        )
+        # Force an unknown strategy value by bypassing the enum
+        mgr.checkpoint_strategy = "totally_bogus"
+        result = mgr.should_checkpoint(0, "op_a")
+        self.assertTrue(result)
+
+    def test_find_latest_checkpoint_malformed_filenames(self):
+        """find_latest_checkpoint skips files with unparseable names."""
+        mgr = RayCheckpointManager(ckpt_dir=self.tmp_dir)
+
+        # Create a file that starts with checkpoint_op_ and ends with
+        # _partition_0000.parquet but has a non-integer op index
+        bad_file = os.path.join(
+            self.tmp_dir,
+            "checkpoint_op_XXXX_partition_0000.parquet"
+        )
+        with open(bad_file, "w") as f:
+            f.write("mock")
+
+        # Also create a valid one to ensure it still finds it
+        good_file = os.path.join(
+            self.tmp_dir,
+            "checkpoint_op_0003_partition_0000.parquet"
+        )
+        with open(good_file, "w") as f:
+            f.write("mock")
+
+        result = mgr.find_latest_checkpoint(partition_id=0)
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0], 3)
+
+
+class RayCheckpointSaveLoadTest(DataJuicerTestCaseBase):
+    """Tests for RayCheckpointManager save/load with mocked ray."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp(prefix='test_ray_ckpt_sl_')
+
+    def tearDown(self):
+        super().tearDown()
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+
+    def test_save_checkpoint_calls_write_parquet(self):
+        """save_checkpoint extracts .data and writes parquet."""
+        mgr = RayCheckpointManager(ckpt_dir=self.tmp_dir)
+
+        mock_ray_data = MagicMock()
+        mock_dataset = MagicMock()
+        mock_dataset.data = mock_ray_data
+
+        path = mgr.save_checkpoint(
+            dataset=mock_dataset, op_idx=1, op_name="filter_a",
+        )
+
+        mock_ray_data.write_parquet.assert_called_once_with(path)
+        self.assertIn("checkpoint_op_0001", path)
+
+    def test_save_checkpoint_with_event_logger(self):
+        """save_checkpoint logs event when event_logger is provided."""
+        mock_logger = MagicMock()
+        mock_logger._log_event = MagicMock()
+        mgr = RayCheckpointManager(
+            ckpt_dir=self.tmp_dir, event_logger=mock_logger,
+        )
+
+        mock_dataset = MagicMock()
+        mock_dataset.data = MagicMock()
+
+        mgr.save_checkpoint(
+            dataset=mock_dataset, op_idx=2, op_name="clean_op",
+        )
+
+        mock_logger._log_event.assert_called_once()
+        call_kwargs = mock_logger._log_event.call_args[1]
+        self.assertEqual(call_kwargs["operation_name"], "clean_op")
+        self.assertEqual(call_kwargs["operation_idx"], 2)
+
+    def test_load_checkpoint_with_event_logger(self):
+        """load_checkpoint logs event when event_logger is provided."""
+        mock_logger = MagicMock()
+        mock_logger._log_event = MagicMock()
+        mgr = RayCheckpointManager(
+            ckpt_dir=self.tmp_dir, event_logger=mock_logger,
+        )
+
+        # Create a mock checkpoint file so path exists
+        ckpt_file = os.path.join(
+            self.tmp_dir, "checkpoint_op_0005_partition_0000.parquet"
+        )
+        with open(ckpt_file, "w") as f:
+            f.write("mock")
+
+        mock_ray_ds = MagicMock()
+        with patch(
+            "data_juicer.utils.lazy_loader.LazyLoader"
+        ) as mock_lazy:
+            mock_ray = MagicMock()
+            mock_ray.data.read_parquet.return_value = mock_ray_ds
+            mock_lazy.return_value = mock_ray
+
+            result = mgr.load_checkpoint(
+                op_idx=5, op_name="my_op", partition_id=0,
+            )
+
+        self.assertIs(result, mock_ray_ds)
+        mock_logger._log_event.assert_called_once()
+
+    def test_load_checkpoint_with_cfg_wraps_in_ray_dataset(self):
+        """load_checkpoint wraps result in RayDataset when cfg is provided."""
+        mgr = RayCheckpointManager(ckpt_dir=self.tmp_dir)
+
+        ckpt_file = os.path.join(
+            self.tmp_dir, "checkpoint_op_0002_partition_0000.parquet"
+        )
+        with open(ckpt_file, "w") as f:
+            f.write("mock")
+
+        mock_ray_ds = MagicMock()
+        mock_cfg = MagicMock()
+        mock_wrapped = MagicMock()
+
+        with patch(
+            "data_juicer.utils.lazy_loader.LazyLoader"
+        ) as mock_lazy, patch(
+            "data_juicer.core.data.ray_dataset.RayDataset",
+            return_value=mock_wrapped,
+        ) as mock_ray_dataset_cls:
+            mock_ray = MagicMock()
+            mock_ray.data.read_parquet.return_value = mock_ray_ds
+            mock_lazy.return_value = mock_ray
+
+            result = mgr.load_checkpoint(
+                op_idx=2, partition_id=0, cfg=mock_cfg,
+            )
+
+        mock_ray_dataset_cls.assert_called_once_with(mock_ray_ds, cfg=mock_cfg)
+        self.assertIs(result, mock_wrapped)
+
+
 class CheckpointStrategyEnumTest(DataJuicerTestCaseBase):
     """Tests for CheckpointStrategy enum."""
 

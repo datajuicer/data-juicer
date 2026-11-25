@@ -54,8 +54,8 @@ usage() {
   BAD_CASE_REPORT_BILINGUAL=0  同上，不加 --bilingual（默认会加）
   BAD_CASE_REPORT_LLM_TIMEOUT_SEC  导读 HTTP 读超时秒数（默认 120；亦可直接传 generate_bad_case_report.py --llm-timeout-sec）
 
-日常只看结论: demos/agent/BAD_CASE_REPORT.md
-详见: demos/agent/BAD_CASE_INSIGHTS.md 与 demos/agent/scripts/README.md
+日常只看结论: demos/agent/BAD_CASE_REPORT_ZH.md
+详见: demos/agent/BAD_CASE_INSIGHTS_ZH.md 与 demos/agent/scripts/README_ZH.md
 EOF
 }
 
@@ -140,7 +140,7 @@ case "$cmd" in
     if ! command -v dj-process >/dev/null 2>&1; then
       echo "ERROR: dj-process not in PATH. 请先激活本仓库环境，例如:" >&2
       echo "  uv venv && source .venv/bin/activate && uv pip install -e ." >&2
-      echo "  见 demos/agent/minimal_configs/README.md" >&2
+      echo "  见 demos/agent/minimal_configs/README_ZH.md" >&2
       exit 1
     fi
     mkdir -p "$(dirname "$SMOKE_OUT")"

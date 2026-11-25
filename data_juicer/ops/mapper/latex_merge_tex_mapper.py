@@ -8,6 +8,15 @@ from ..base_op import OPERATORS, Mapper
 OP_NAME = "latex_merge_tex_mapper"
 
 
+def _is_macos_metadata(name):
+    """Return True for an entry macOS adds to the archives it creates: an
+    AppleDouble file (``._main.tex``) or anything under ``__MACOSX/``.
+    Their names can end in ``.tex``, but they hold binary file metadata,
+    not LaTeX."""
+    parts = name.replace("\\", "/").split("/")
+    return parts[-1].startswith("._") or "__MACOSX" in parts[:-1]
+
+
 @OPERATORS.register_module(OP_NAME)
 class LatexMergeTexMapper(Mapper):
     """Extracts and concatenates all ``.tex`` files from a compressed
@@ -89,7 +98,7 @@ class LatexMergeTexMapper(Mapper):
             for member in tf:
                 if not member.isfile():
                     continue
-                if not member.name.endswith(".tex"):
+                if not member.name.endswith(".tex") or _is_macos_metadata(member.name):
                     continue
                 if max_file_size and member.size > max_file_size:
                     logger.warning(
@@ -134,7 +143,7 @@ class LatexMergeTexMapper(Mapper):
         total_bytes = 0
         with zipfile.ZipFile(archive_path) as zf:
             for name in zf.namelist():
-                if not name.endswith(".tex"):
+                if not name.endswith(".tex") or _is_macos_metadata(name):
                     continue
                 info = zf.getinfo(name)
                 if max_file_size and info.file_size > max_file_size:

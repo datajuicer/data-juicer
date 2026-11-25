@@ -45,6 +45,26 @@ class RemoveSpecificCharsMapperTest(DataJuicerTestCaseBase):
         ]
         self._run_helper(samples)
 
+    def test_keep_pipe_char(self):
+        # '|' is not in the default chars and must not be removed
+        samples = [
+            {
+                'text': '| a | b | ◆',
+                'target': '| a | b | ',
+            },
+        ]
+        self._run_helper(samples)
+
+    def test_regex_special_chars(self):
+        self.op = RemoveSpecificCharsMapper(chars_to_remove='^-]\\')
+        samples = [
+            {
+                'text': 'a^b-c]d\\e|f',
+                'target': 'abcde|f',
+            },
+        ]
+        self._run_helper(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

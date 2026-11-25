@@ -1,4 +1,5 @@
 import copy
+import gzip
 import inspect
 import io
 import os
@@ -10,6 +11,10 @@ from loguru import logger
 RAY_JOB_ENV_VAR = "RAY_JOB"
 SPECIAL_TOKEN_ENV_PREFIX = "_DJ_SPECIAL_TOKEN_"
 DEFAULT_PREFIX = "__dj__"
+
+# Default model names used across tests, docs and demos.
+DEFAULT_API_MODEL = "qwen3.7-max"
+DEFAULT_VL_API_MODEL = "qwen3-vl-8b-instruct"
 
 
 class Fields(object):
@@ -39,6 +44,19 @@ class BatchMetaKeys(object):
 
 class MetaKeys(object):
     # === text related tags ===
+
+    # # humanvbench related tags (CVPR'26)
+    active_speaker_flag = "active_speaker_flag"
+    audio_speech_attribute = "audio_speech_attribute"
+    speech_ASR = "speech_ASR"
+    speech_emotion = "speech_emotion"
+    video_facetrack_attribute_demographic = "video_facetrack_attribute_demographic"
+    video_facetrack_attribute_emotion = "video_facetrack_attribute_emotion"
+    track_video_caption = "track_video_caption"
+    video_track_is_child = "video_track_is_child"
+    human_track_data_path = "human_track_data_path"
+    number_people_in_video = "number_people_in_video"
+
     # # sentiment
     dialog_sentiment_intensity = "dialog_sentiment_intensity"
     dialog_sentiment_intensity_analysis = "dialog_sentiment_intensity_analysis"
@@ -74,6 +92,8 @@ class MetaKeys(object):
     video_depth_tags = "video_depth_tags"
     # # video optical flow
     video_optical_flow = "video_optical_flow"
+    # # video human 3d pose tags
+    video_human_3d_pose_tags = "video_human_3d_pose_tags"
     # # info extracted by VGGT
     vggt_tags = "vggt_tags"
     # # image tags
@@ -90,14 +110,18 @@ class MetaKeys(object):
 
     # # pose information
     pose_info = "pose_info"
-    # # Static Camera Calibration Info (for DeepCalib)
-    static_camera_calibration_deepcalib_tags = "static_camera_calibration_deepcalib_tags"
-    # # Static Camera Calibration Info (for Moge-2)
-    static_camera_calibration_moge_tags = "static_camera_calibration_moge_tags"
+    # # Camera Calibration Info (for DeepCalib)
+    camera_calibration_deepcalib_tags = "camera_calibration_deepcalib_tags"
+    # # Camera Calibration Info (for Moge-2)
+    camera_calibration_moge_tags = "camera_calibration_moge_tags"
     # # Video Undistortion Info
-    video_undistortion_tags = "video_undistortion_tags"
+    undistorted_video = "undistorted_video"
     # # Camera Pose Info
     video_camera_pose_tags = "video_camera_pose_tags"
+    # # Camera Calibration Info (for DroidCalib)
+    camera_calibration_droidcalib_tags = "camera_calibration_droidcalib_tags"
+    # # Hand action (state + action) computed from hand recon + camera pose
+    hand_action_tags = "hand_action_tags"
 
     # === info extraction related tags ===
     # # for event extraction
@@ -249,15 +273,15 @@ class StatsKeysMeta(type):
             tmp_dj_cfg = copy.deepcopy(dj_cfg)
             # the access has been skipped due to the use of cache
             # we will using a temp data sample to get the access log
-            if os.path.exists(dj_cfg.dataset_path) and (
-                "jsonl" in dj_cfg.dataset_path or "jsonl.zst" in dj_cfg.dataset_path
+            if os.path.exists(dj_cfg.dataset_path) and dj_cfg.dataset_path.endswith(
+                (".jsonl.zst", ".jsonl.gz", ".jsonl")
             ):
                 logger.info("Begin to track the usage of ops with a dummy data sample")
 
                 # load the first line as tmp_data
                 tmp_f_name = None
                 first_line = None
-                if "jsonl.zst" in dj_cfg.dataset_path:
+                if dj_cfg.dataset_path.endswith(".jsonl.zst"):
                     tmp_f_name = dj_cfg.dataset_path.replace(".jsonl.zst", ".tmp.jsonl")
                     # Open the file in binary mode and
                     # create a Zstandard decompression context
@@ -268,7 +292,11 @@ class StatsKeysMeta(type):
                         with dctx.stream_reader(compressed_file) as reader:
                             text_stream = io.TextIOWrapper(reader, encoding="utf-8")
                             first_line = text_stream.readline()
-                elif "jsonl" in dj_cfg.dataset_path:
+                elif dj_cfg.dataset_path.endswith(".jsonl.gz"):
+                    tmp_f_name = dj_cfg.dataset_path.replace(".jsonl.gz", ".tmp.jsonl")
+                    with gzip.open(dj_cfg.dataset_path, "rt", encoding="utf-8") as orig_file:
+                        first_line = orig_file.readline()
+                elif dj_cfg.dataset_path.endswith(".jsonl"):
                     tmp_f_name = dj_cfg.dataset_path.replace(".jsonl", ".tmp.jsonl")
                     with open(dj_cfg.dataset_path, "r", encoding="utf-8") as orig_file:
                         first_line = orig_file.readline()
@@ -292,14 +320,16 @@ class StatsKeysMeta(type):
                         op_config[op_name]["auto_op_parallelism"] = False
                         op_config[op_name]["num_proc"] = None
 
-                from data_juicer.config import get_init_configs
-                from data_juicer.core import Analyzer
+                try:
+                    from data_juicer.config import get_init_configs
+                    from data_juicer.core import Analyzer
 
-                tmp_analyzer = Analyzer(get_init_configs(tmp_dj_cfg))
-                # do not overwrite the true analysis results
-                tmp_analyzer.run(skip_export=True)
-
-                os.remove(tmp_f_name)
+                    tmp_analyzer = Analyzer(get_init_configs(tmp_dj_cfg))
+                    # do not overwrite the true analysis results
+                    tmp_analyzer.run(skip_export=True)
+                finally:
+                    if os.path.exists(tmp_f_name):
+                        os.remove(tmp_f_name)
             else:
                 raise NotImplementedError(
                     f"For now, the dummy data is supported for only jsonl type"
@@ -316,6 +346,8 @@ class StatsKeysConstant(object):
     alnum_ratio = "alnum_ratio"
     avg_line_length = "avg_line_length"
     char_rep_ratio = "char_rep_ratio"
+    contamination_ngram_count = "contamination_ngram_count"
+    contamination_ratio = "contamination_ratio"
     flagged_words_ratio = "flagged_words_ratio"
     in_context_influence = "in_context_influence"
     ifd_score = "ifd_score"
@@ -397,6 +429,9 @@ class StatsKeysConstant(object):
     # general-field-filter
     general_field_filter_condition = "general_field_filter_condition"
 
+    # video-face-ratio
+    video_face_exist = "video_face_exist"
+
 
 class StatsKeys(object, metaclass=StatsKeysMeta):
     _constants_class = StatsKeysConstant
@@ -449,3 +484,17 @@ class JobRequiredKeys(Enum):
     local = "local"
     dj_configs = "dj_configs"
     extra_configs = "extra_configs"
+
+
+class CameraCalibrationKeys(object):
+    intrinsics = "intrinsics"
+    xi = "xi"
+    hfov = "hfov"
+    vfov = "vfov"
+    points = "points"
+    mask = "mask"
+    depth = "depth"
+    cam_c2w = "cam_c2w"
+    dist_coeffs = "dist_coeffs"
+    rectify_R = "rectify_R"  # or "rotation_matrix"
+    new_intrinsics = "new_intrinsics"

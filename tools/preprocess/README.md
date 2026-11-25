@@ -1,6 +1,6 @@
 # Preprocess Tools
 
-This folder contains some preprocess scripts for additional processing of your dataset before using Data-Juicer.
+The scripts in [`tools/preprocess`](.) are used to convert various raw data (arXiv tar, Stack Exchange 7z, Alpaca-CoT, etc.) into JSONL format before formal processing with Data-Juicer.
 
 ## Usage
 

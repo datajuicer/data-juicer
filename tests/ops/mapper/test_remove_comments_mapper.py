@@ -14,6 +14,35 @@ class RemoveCommentsMapperTest(DataJuicerTestCaseBase):
         for data in dataset:
             self.assertEqual(data['text'], data['target'])
 
+    def test_inline_comments_preserve_preceding_text(self):
+        samples = [
+            {'text': 'Hello%comment', 'target': 'Hello'},
+            {'text': 'A%comment\nB', 'target': 'A\nB'},
+            {'text': r'\textbf{Title}%comment', 'target': r'\textbf{Title}'},
+            {'text': 'Text %comment', 'target': 'Text '},
+            {'text': r'50\% and text%comment', 'target': r'50\% and text'},
+            {'text': r'50\% done', 'target': r'50\% done'},
+            {'text': 'a\n%full line\nb', 'target': 'a\nb'},
+        ]
+        self._run_remove_comments(samples, RemoveCommentsMapper())
+
+    def test_inline_only_preserves_full_line_comments(self):
+        samples = [{
+            'text': '%first\n%second\nBody%inline',
+            'target': '%first\n%second\nBody',
+        }, {
+            'text': 'Head\r\n%comment\r\nTail%inline',
+            'target': 'Head\r\n%comment\r\nTail',
+        }]
+        self._run_remove_comments(samples, RemoveCommentsMapper(multiline=False))
+
+    def test_multiline_only_preserves_inline_comments(self):
+        samples = [{
+            'text': '%first\n%second\nBody%inline',
+            'target': 'Body%inline',
+        }]
+        self._run_remove_comments(samples, RemoveCommentsMapper(inline=False))
+
     def test_tex_case(self):
 
         samples = [{

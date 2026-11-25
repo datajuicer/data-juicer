@@ -1,10 +1,10 @@
 # Dataset Export
 
-This document describes how DataJuicer exports processed datasets, including supported formats, sharding, parallel export, S3 export, and stats/hash management.
+After processing, Data-Juicer writes the result dataset to the path you specify in `export_path`. This page covers supported output formats, sharding large datasets into multiple files, parallel export, writing directly to S3, and controlling which intermediate fields (stats, hashes) are kept in the output.
 
 ## Overview
 
-After processing, DataJuicer exports the result dataset to disk using the `Exporter` (default mode) or `RayExporter` (Ray mode). The export system supports:
+Data-Juicer exports via `Exporter` (default mode) or `RayExporter` (Ray mode). The export system supports:
 
 - **Multiple output formats** — JSONL, JSON, Parquet, and more in Ray mode
 - **Shard export** — split large datasets into multiple files by size
@@ -19,8 +19,8 @@ After processing, DataJuicer exports the result dataset to disk using the `Expor
 ```yaml
 export_path: ./outputs/result.jsonl       # Output file path (required)
 export_type: jsonl                         # Format type (auto-detected from path if omitted)
-export_shard_size: 0                       # Shard size in bytes (0 = single file)
-export_in_parallel: false                  # Parallel export for single-file mode
+export_shard_size: 0                       # Local: one file; Ray: use dataset block layout
+export_in_parallel: false                  # Local mode: parallel writing to one file
 keep_stats_in_res_ds: false                # Keep computed stats in output
 keep_hashes_in_res_ds: false               # Keep computed hashes in output
 export_extra_args: {}                      # Additional format-specific arguments
@@ -65,7 +65,11 @@ dj-process --config config.yaml --keep_stats_in_res_ds true
 | WebDataset | `webdataset` | WebDataset tar-based format |
 | Lance | `.lance` | Lance columnar format |
 
-## Shard Export
+In local mode, `export_path` is a file path. Include a `.jsonl`, `.json`, or `.parquet` extension, or set `export_type` explicitly.
+
+In Ray mode, `export_path` is a directory for output files, even when the path ends in `.jsonl`. Ray writes files according to the dataset block layout; `export_shard_size: 0` uses that default layout.
+
+## Shard Export (Local Mode)
 
 For large datasets, split the output into multiple shard files based on size:
 
@@ -83,11 +87,7 @@ outputs/
 └── result-03-of-04.jsonl
 ```
 
-**How shard size is calculated:**
-1. The total dataset size in bytes is estimated
-2. Number of shards = `ceil(dataset_bytes / export_shard_size)`
-3. The dataset is split into contiguous shards
-4. Each shard is exported in parallel using multiprocessing
+Data-Juicer estimates the dataset size, splits rows into contiguous shards, and writes the shards with multiple workers. The configured size is a target; the encoded files may be larger or smaller.
 
 **Recommended shard sizes:**
 
@@ -100,7 +100,7 @@ outputs/
 
 Shard sizes below 1 MiB or above 1 TiB will trigger warnings.
 
-## Parallel Export
+## Parallel Export (Local Mode)
 
 For single-file export (`export_shard_size: 0`), enable parallel writing to speed up the process:
 
@@ -117,58 +117,36 @@ When `export_shard_size > 0`, shards are always exported in parallel regardless 
 
 ## S3 Export
 
-Export results directly to Amazon S3 or S3-compatible storage.
+Both local and Ray modes can write results directly to S3. Set `export_path` to an S3 location:
 
-### Default Mode
+```yaml
+export_path: "s3://my-bucket/outputs/result.jsonl"
+```
+
+Provide credentials through environment variables:
+
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+For temporary credentials, also set `AWS_SESSION_TOKEN`. Alternatively, supply credentials through `export_aws_credentials` in your recipe. Both local and Ray modes support this configuration:
 
 ```yaml
 export_path: "s3://my-bucket/outputs/result.jsonl"
 export_aws_credentials:
-  aws_access_key_id: "AKIA..."
-  aws_secret_access_key: "secret..."
+  aws_access_key_id: "your-access-key-id"
+  aws_secret_access_key: "your-secret-access-key"
   aws_region: "us-east-1"
-  endpoint_url: "https://s3.example.com"   # Optional: for S3-compatible storage
+  endpoint_url: "https://s3.example.com"  # Set for S3-compatible storage
 ```
 
-The default exporter uses HuggingFace's `storage_options` with `fsspec`/`s3fs` for S3 access.
+Access keys, session tokens, and region are read from environment variables first, then from explicit configuration, field by field. When no access keys are supplied, the storage client uses its default AWS credential chain, such as an IAM role or a local credentials file.
 
-### Ray Mode
+Ray mode also accepts credentials in `export_extra_args`; values in `export_aws_credentials` take precedence over matching entries. Local mode accesses S3 through s3fs, while Ray mode uses PyArrow.
 
-```yaml
-export_path: "s3://my-bucket/outputs/result.jsonl"
-export_extra_args:
-  aws_access_key_id: "AKIA..."
-  aws_secret_access_key: "secret..."
-  aws_region: "us-east-1"
-```
-
-The Ray exporter uses PyArrow's S3 filesystem for S3 access.
-
-### S3 with Sharding
-
-When using S3 with shard export, shard files are written directly to S3:
-
-```yaml
-export_path: "s3://my-bucket/outputs/result.jsonl"
-export_shard_size: 268435456
-export_aws_credentials:
-  aws_access_key_id: "AKIA..."
-  aws_secret_access_key: "secret..."
-```
-
-This produces S3 objects like:
-```
-s3://my-bucket/outputs/result-00-of-04.jsonl
-s3://my-bucket/outputs/result-01-of-04.jsonl
-...
-```
-
-### Credential Resolution
-
-AWS credentials are resolved in priority order:
-1. `export_aws_credentials` config (default mode) or `export_extra_args` (Ray mode)
-2. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
-3. Default credential chain (IAM role, `~/.aws/credentials`)
+In local mode, set `export_shard_size: 268435456` for a target shard size of approximately 256 MiB. Output objects have names such as `result-00-of-04.jsonl`. Ray mode writes files under the directory prefix specified by `export_path`.
 
 ## Stats and Hash Management
 
@@ -185,15 +163,17 @@ keep_hashes_in_res_ds: true               # Keep hash fields
 
 ### Stats Export
 
-Regardless of `keep_stats_in_res_ds`, DataJuicer always exports a separate stats file alongside the main dataset:
+In local mode, a dataset containing `__dj__stats__` or `__dj__meta__` columns also produces a separate statistics file:
 
-```
+```text
 outputs/
-├── result.jsonl                          # Main dataset (stats removed by default)
-└── result_stats.jsonl                    # Stats-only file (always exported)
+├── result.jsonl
+└── result_stats.jsonl
 ```
 
-The stats file contains only the `__dj__stats__` and `__dj__meta__` columns.
+The statistics file contains only the stats and meta columns present in the dataset. When using the Python `Exporter` directly, set `export_stats=False` to turn off this additional export.
+
+Ray mode exports statistics as part of the main dataset. Set `keep_stats_in_res_ds: true` to retain them; Ray does not produce a separate `_stats.jsonl` file.
 
 ## WebDataset Export (Ray Mode)
 
@@ -278,5 +258,13 @@ export_shard_size: 1073741824             # 1 GB
 ```yaml
 # Keep stats in the result dataset
 keep_stats_in_res_ds: true
-# Or check the separate stats file: result_stats.jsonl
+# In local mode, also check the separate stats file: result_stats.jsonl
 ```
+
+---
+
+## What's next
+
+- [Cache Management](Cache.md) — speed up re-runs by caching intermediate results.
+- [Data Tracing](Tracing.md) — debug sample-level changes through the pipeline.
+- [Distributed Processing](Distributed.md) — scale export across a Ray cluster.

@@ -1,19 +1,24 @@
 import os
 
-import cv2
 import numpy as np
 from pydantic import PositiveInt
 
-import data_juicer
 from data_juicer.ops.load import load_ops
 from data_juicer.utils.cache_utils import DATA_JUICER_ASSETS_CACHE
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.lazy_loader import LazyLoader
-from data_juicer.utils.mm_utils import SpecialTokens
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.video_perception_utils import (
+    get_video_frame_groups,
+    get_video_output_features,
+    get_video_visualization_dir,
+    nested_video_feature,
+)
 
 from ..base_op import OPERATORS, TAGGING_OPS, UNFORKABLE, Mapper
 from ..op_fusion import LOADED_VIDEOS
+
+cv2 = LazyLoader("cv2", "opencv-contrib-python")
 
 OP_NAME = "video_face_keypoints_mapper"
 
@@ -77,7 +82,9 @@ class VideoFaceKeypointsMapper(Mapper):
             "frame_num": frame_num,
             "duration": duration,
             "frame_dir": frame_dir,
-            "frame_key": MetaKeys.video_frames,
+            "frame_field": MetaKeys.video_frames,
+            "video_key": self.video_key,
+            "legacy_split_by_text_token": False,
             "num_proc": None,  # Disable multiprocessing to avoid nested process pool issue
             "auto_op_parallelism": False,  # Disable auto parallelism to avoid nested process pool issue
         }
@@ -143,88 +150,63 @@ class VideoFaceKeypointsMapper(Mapper):
 
         return vis_img
 
+    def _get_output_features(self, input_features):
+        if input_features is None:
+            return None
+        fields = {
+            "face_keypoints": nested_video_feature("float64", 4),
+            "face_bboxes": nested_video_feature("int64", 3),
+            "frame_paths": nested_video_feature("string"),
+            "video_indices": nested_video_feature("int64"),
+        }
+        return get_video_output_features(input_features, self.tag_field_name, fields)
+
     def process_single(self, sample=None, rank=None):
-
-        # check if it's generated already
-        if self.tag_field_name in sample[Fields.meta]:
+        meta = sample.setdefault(Fields.meta, {})
+        if self.tag_field_name in meta:
             return sample
-
-        # there is no video in this sample
-        if (self.video_key not in sample or not sample[self.video_key]) and self.frame_field not in sample:
-            sample[Fields.meta][self.tag_field_name] = {"face_keypoints": [], "face_bboxes": []}
+        groups = get_video_frame_groups(sample, self.frame_field, self.video_key, self.fused_ops[0])
+        tags = {"face_keypoints": [], "face_bboxes": [], "frame_paths": [], "video_indices": []}
+        if not any(groups):
+            meta[self.tag_field_name] = tags
             return sample
 
         ldeq_model, detector, train_args = get_model(model_key=self.model_key, rank=rank, use_cuda=self.use_cuda())
-
-        if rank is not None:
-            device = f"cuda:{str(rank)}"
-        else:
-            device = "cuda"
-
-        if self.frame_field in sample:
-            frames_path = sample[self.frame_field]
-            video_name = frames_path[0].split("/")[-2]
-        else:
-            # load videos
-            ds_list = [{"text": SpecialTokens.video, "videos": sample[self.video_key]}]
-
-            dataset = data_juicer.core.data.NestedDataset.from_list(ds_list)
-            dataset = self.fused_ops[0].run(dataset)
-
-            temp_frame_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-            frames_root = os.path.join(self.frame_dir, temp_frame_name)
-            frame_names = os.listdir(frames_root)
-            frames_path = sorted([os.path.join(frames_root, frame_name) for frame_name in frame_names])
-            video_name = os.path.splitext(os.path.basename(sample[self.video_key][0]))[0]
-
-        if self.if_save_visualization:
-            os.makedirs(os.path.join(self.save_visualization_dir, video_name), exist_ok=True)
-
-        final_keypoints = []
-        final_bboxes = []
-
-        for temp_img_path_id, temp_img_path in enumerate(frames_path):
-
-            img = cv2.imread(temp_img_path)
-            faces = detector.get(img)
-            temp_results = []
-            temp_bboxes = []
-
-            for face in faces:
-                bbox = face.bbox.astype(int)  # [x1, y1, x2, y2]
-                temp_bboxes.append(bbox)
-
-                crop, (new_x1, new_y1), side = self.crop_and_pad(img, bbox)
-
-                input_tensor = self.preprocess(crop).to(device)
-
-                with torch.no_grad():
-                    output = ldeq_model(
-                        input_tensor,
-                        mode=train_args.model_mode,
-                        args=train_args,
-                        z0=torch.zeros(1, train_args.z_width, train_args.heatmap_size, train_args.heatmap_size).to(
-                            device
-                        ),
-                    )
-
-                    pred_keypoints = output["keypoints"][0].cpu().numpy()
-
-                final_kpts = pred_keypoints * [side, side] + [new_x1, new_y1]
-                temp_results.append(final_kpts)
-
-            final_keypoints.append(temp_results)
-            final_bboxes.append(temp_bboxes)
-
+        device = f"cuda:{rank}" if self.use_cuda() and rank is not None else ("cuda" if self.use_cuda() else "cpu")
+        for video_index, paths in enumerate(groups):
+            if not paths:
+                continue
             if self.if_save_visualization:
-                final_image = self.draw_landmarks_on_image(img, temp_results)
-                cv2.imwrite(
-                    os.path.join(self.save_visualization_dir, video_name, f"vis_{str(temp_img_path_id)}.jpg"),
-                    final_image,
+                visualization_dir = get_video_visualization_dir(
+                    self.save_visualization_dir, OP_NAME, paths, video_index
                 )
-
-        sample[Fields.meta][self.tag_field_name] = {}
-        sample[Fields.meta][self.tag_field_name]["face_keypoints"] = final_keypoints
-        sample[Fields.meta][self.tag_field_name]["face_bboxes"] = final_bboxes
-
+            for frame_index, path in enumerate(paths):
+                img = cv2.imread(path)
+                if img is None:
+                    raise ValueError(f"Could not read video frame: {path}")
+                keypoints, bboxes = [], []
+                for face in detector.get(img):
+                    bbox = face.bbox.astype(int)
+                    bboxes.append(bbox.tolist())
+                    crop, (new_x1, new_y1), side = self.crop_and_pad(img, bbox)
+                    input_tensor = self.preprocess(crop).to(device)
+                    with torch.no_grad():
+                        output = ldeq_model(
+                            input_tensor,
+                            mode=train_args.model_mode,
+                            args=train_args,
+                            z0=torch.zeros(1, train_args.z_width, train_args.heatmap_size, train_args.heatmap_size).to(
+                                device
+                            ),
+                        )
+                    prediction = output["keypoints"][0].cpu().numpy()
+                    keypoints.append(prediction * [side, side] + [new_x1, new_y1])
+                tags["face_keypoints"].append([points.tolist() for points in keypoints])
+                tags["face_bboxes"].append(bboxes)
+                tags["frame_paths"].append(path)
+                tags["video_indices"].append(video_index)
+                if self.if_save_visualization:
+                    visualization = self.draw_landmarks_on_image(img, keypoints)
+                    cv2.imwrite(os.path.join(visualization_dir, f"vis_{frame_index}.jpg"), visualization)
+        meta[self.tag_field_name] = tags
         return sample

@@ -1,3 +1,5 @@
+- 🛠️ [2026-01-15] 发布 [v1.4.5](https://github.com/datajuicer/data-juicer/releases/tag/v1.4.5)：20+ 新 OP（具身 AI 视频标题生成、对象分割、深度估计、人体姿态、图像标签、3D 人体网格）；新管道 OP 支持 Ray + vLLM；Sphinx 文档升级；Docker 基础更新为 CUDA 12.6.3 + Ubuntu 24.04 + Py3.11。
+- 🛠️ [2025-12-01] 发布 [v1.4.4](https://github.com/datajuicer/data-juicer/releases/tag/v1.4.4)：Data-Juicer 2.0 获得 NeurIPS'25 Spotlight；仓库拆分（sandbox/recipes/agents 移至独立仓库）；S3 I/O 支持加载器/导出器；6 个新视频与多模态 OP（角色检测、VGGT、全身姿态、手部重建）。
 - 🎉 [2025-09-19] 我们的工作 [Data-Juicer 2.0: Cloud-Scale Adaptive Data Processing for and with Foundation Models](https://arxiv.org/abs/2501.14755) 已被接收为 **NeurIPS'25 Spotlight**（所有投稿的前 3.1%）！
 - 🎉 [2025-09-19] 我们关于数据混合/选择/合成的两项工作：[Diversity as a Reward: Fine-Tuning LLMs on a Mixture of Domain-Undetermined Data](https://arxiv.org/abs/2502.04380) 和 [MindGYM: What Matters in Question Synthesis for Thinking-Centric Fine-Tuning?](https://arxiv.org/abs/2503.09499) 已被 **NeurIPS'25** 接收！
 - 🛠️ [2025-06-04] 如何在"经验时代"处理反馈数据？我们提出了 [Trinity-RFT: A General-Purpose and Unified Framework for Reinforcement Fine-Tuning of LLMs](https://arxiv.org/abs/2505.17826)，该框架利用 Data-Juicer 为 RFT 场景量身定制数据处理管道。
@@ -16,11 +18,11 @@
 - [2024-08-09] 我们提出了 Img-Diff，它通过*对比数据合成*来增强多模态大型语言模型的性能，在 [MMVP benchmark](https://tsb0601.github.io/mmvp_blog/) 中比 GPT-4V 高出 12 个点。更多细节请参阅我们的 [论文](https://arxiv.org/abs/2408.04594)，以及从 [huggingface](https://huggingface.co/datasets/datajuicer/Img-Diff) 和 [modelscope](https://modelscope.cn/datasets/Data-Juicer/Img-Diff) 下载这份数据集。
 - [2024-07-24] "天池 Better Synth 多模态大模型数据合成赛"——我们的第四届以数据为中心的 LLM 竞赛已经正式启动！请访问竞赛的[官方网站](https://tianchi.aliyun.com/competition/entrance/532251)了解更多信息。
 - [2024-07-17] 我们利用 Data-Juicer [沙盒实验室套件](https://datajuicer.github.io/data-juicer-sandbox/en/main/index.html) 通过数据与模型间的系统性协同开发工作流来优化数据和模型，在 [VBench](https://huggingface.co/spaces/Vchitect/VBench_Leaderboard) 文生视频排行榜取得了新的榜首。相关成果已经整理发表在[论文](http://arxiv.org/abs/2407.11784)中，并且模型已在 [ModelScope](https://modelscope.cn/models/Data-Juicer/Data-Juicer-T2V) 和 [HuggingFace](https://huggingface.co/datajuicer/Data-Juicer-T2V) 平台发布。
-- [2024-07-12] 我们的 *MLLM-Data 精选列表*已经演化为一个从模型-数据协同开发角度的系统性[综述](https://arxiv.org/abs/2407.08583)。欢迎[浏览](docs/awesome_llm_data.md)或参与贡献！
+- [2024-07-12] 我们的 *MLLM-Data 精选列表*已经演化为一个从模型-数据协同开发角度的系统性[综述](https://arxiv.org/abs/2407.08583)。欢迎[浏览](awesome_llm_data.md)或参与贡献！
 - [2024-06-01] ModelScope-Sora "数据导演"创意竞速——我们的第三届以数据为中心的 LLM 竞赛已经正式启动！请访问竞赛的[官方网站](https://tianchi.aliyun.com/competition/entrance/532219)了解更多信息。
-- [2024-03-07] 我们现在发布了 **Data-Juicer [v0.2.0](https://github.com/datajuicer/data-juicer/releases/tag/v0.2.0)**！在这个新版本中，我们支持了更多的 **多模态数据（包括视频）** 相关特性。我们还启动了 **[DJ-SORA](docs/DJ_SORA_ZH.md)**，为 SORA-like 大模型构建开放的大规模高质量数据集！
-- [2024-02-20] 我们在积极维护一份关于 LLM-Data 的*精选列表*，欢迎[访问](docs/awesome_llm_data.md)并参与贡献！
+- [2024-03-07] 我们现在发布了 **Data-Juicer [v0.2.0](https://github.com/datajuicer/data-juicer/releases/tag/v0.2.0)**！在这个新版本中，我们支持了更多的 **多模态数据（包括视频）** 相关特性。我们还启动了 **[DJ-SORA](DJ_SORA_ZH.md)**，为 SORA-like 大模型构建开放的大规模高质量数据集！
+- [2024-02-20] 我们在积极维护一份关于 LLM-Data 的*精选列表*，欢迎[访问](awesome_llm_data.md)并参与贡献！
 - [2024-02-05] 我们的论文被 SIGMOD'24 industrial track 接收！
 - [2024-01-10] 开启"数据混合"新视界——我们的第二届以数据为中心的 LLM 竞赛已经正式启动！请访问竞赛的[官方网站](https://tianchi.aliyun.com/competition/entrance/532174)了解更多信息。
-- [2024-01-05] **Data-Juicer v0.1.3** 版本发布了。在这个新版本中，我们支持了**更多 Python 版本**（3.8-3.10），同时支持了**多模态**数据集的[转换](tools/fmt_conversion/multimodal/README_ZH.md)和[处理](docs/Operators.md)（包括文本、图像和音频。更多模态也将会在之后支持）！此外，我们的论文也更新到了[第三版](https://arxiv.org/abs/2309.02033)。
+- [2024-01-05] **Data-Juicer v0.1.3** 版本发布了。在这个新版本中，我们支持了**更多 Python 版本**（3.8-3.10），同时支持了**多模态**数据集的[转换](../tools/fmt_conversion/multimodal/README_ZH.md)和[处理](Operators.md)（包括文本、图像和音频。更多模态也将会在之后支持）！此外，我们的论文也更新到了[第三版](https://arxiv.org/abs/2309.02033)。
 - [2023-10-13] 我们的第一届以数据为中心的 LLM 竞赛开始了！请访问竞赛的官方网站，FT-Data Ranker（[1B 赛道](https://tianchi.aliyun.com/competition/entrance/532157)、[7B 赛道](https://tianchi.aliyun.com/competition/entrance/532158)），了解更多信息。

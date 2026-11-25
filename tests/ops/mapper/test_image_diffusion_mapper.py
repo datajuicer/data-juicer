@@ -1,6 +1,10 @@
+import copy
 import os
 import shutil
 import unittest
+from unittest.mock import patch
+
+from PIL import Image
 
 from data_juicer.utils.resource_utils import cuda_device_count
 from data_juicer.core.data import NestedDataset as Dataset
@@ -183,6 +187,203 @@ class ImageDiffusionMapperTest(DataJuicerTestCaseBase):
                                       'test_for_given_caption_string'),
                          num_proc=num_proc,
                          total_num=aug_num * len(ds_list))
+
+
+class ImageDiffusionMapperEmptyCaptionTest(DataJuicerTestCaseBase):
+    """Regression tests for missing/empty captions.
+
+    An empty prompt is a valid input for image-to-image generation: it simply
+    means "no text guidance, redraw from the image alone". The OP already
+    behaved this way for an empty string, so a missing key, None, an empty list
+    or None entries inside a list must be normalized to an empty prompt and
+    generate as usual, rather than silently dropping the sample.
+
+    ``_real_guidance`` is stubbed so the caption handling runs for real without
+    downloading a diffusion model.
+    """
+
+    data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..',
+                             'data')
+
+    cat_path = os.path.join(data_path, 'cat.jpg')
+    img3_path = os.path.join(data_path, 'img3.jpg')
+
+    aug_num = 2
+
+    def _build_op(self, keep_original_sample, caption_key='caption'):
+        with patch('data_juicer.ops.mapper.image_diffusion_mapper.'
+                   'prepare_model',
+                   return_value='fake_model_key'):
+            return ImageDiffusionMapper(
+                aug_num=self.aug_num,
+                keep_original_sample=keep_original_sample,
+                caption_key=caption_key)
+
+    def _run(self, op, samples):
+        """Run the OP with generation stubbed, returning recorded prompts."""
+        prompts = []
+
+        def fake_guidance(inner_self, caption, image, rank=None):
+            prompts.append(caption)
+            return Image.new('RGB', (8, 8))
+
+        with patch.object(ImageDiffusionMapper, '_real_guidance',
+                          fake_guidance):
+            res = op.process_batched(copy.deepcopy(samples))
+        return res, prompts
+
+    def _assert_generated_with_empty_prompt(self, samples, num_images=1):
+        """Empty captions still generate, using an empty prompt."""
+        num_samples = len(samples['images'])
+
+        # keep_original_sample=False -> only the generated samples remain
+        op = self._build_op(keep_original_sample=False)
+        res, prompts = self._run(op, samples)
+        self.assertEqual(set(res.keys()), set(samples.keys()))
+        self.assertEqual(len(res['images']), self.aug_num * num_samples)
+        # every image of every augmentation is generated from an empty prompt
+        self.assertEqual(len(prompts),
+                         self.aug_num * num_samples * num_images)
+        self.assertTrue(all(p == '' for p in prompts),
+                        f'expected only empty prompts, got {prompts}')
+
+        # keep_original_sample=True -> originals are kept alongside
+        op = self._build_op(keep_original_sample=True)
+        res, _ = self._run(op, samples)
+        self.assertEqual(len(res['images']),
+                         (self.aug_num + 1) * num_samples)
+
+    def test_missing_caption_key(self):
+        samples = {
+            'text': [f'{SpecialTokens.image}a photo of a cat'],
+            'images': [[self.cat_path]],
+        }
+        self._assert_generated_with_empty_prompt(samples)
+
+    def test_none_caption(self):
+        samples = {
+            'text': [f'{SpecialTokens.image}a photo of a cat'],
+            'caption': [None],
+            'images': [[self.cat_path]],
+        }
+        self._assert_generated_with_empty_prompt(samples)
+
+    def test_blank_string_caption(self):
+        samples = {
+            'text': [
+                f'{SpecialTokens.image}a photo of a cat',
+                f'{SpecialTokens.image}a women with an umbrella',
+            ],
+            'caption': ['', '   \t\n'],
+            'images': [[self.cat_path], [self.img3_path]],
+        }
+        self._assert_generated_with_empty_prompt(samples)
+
+    def test_empty_list_caption(self):
+        samples = {
+            'text': [f'{SpecialTokens.image}a photo of a cat'],
+            'caption': [[]],
+            'images': [[self.cat_path]],
+        }
+        self._assert_generated_with_empty_prompt(samples)
+
+    def test_list_with_none_entries(self):
+        samples = {
+            'text': [f'{SpecialTokens.image}, {SpecialTokens.image}'],
+            'caption': [[None, '  ']],
+            'images': [[self.cat_path, self.img3_path]],
+        }
+        self._assert_generated_with_empty_prompt(samples, num_images=2)
+
+    def test_partial_caption_list_still_raises(self):
+        """A partially filled caption list keeps failing loudly.
+
+        Padding a short list would silently pair captions with the wrong
+        images, so the length check is kept. Callers must use an explicit
+        placeholder instead of omitting entries.
+        """
+        samples = {
+            'text': [f'{SpecialTokens.image}, {SpecialTokens.image}'],
+            'caption': [['a photo of a cat']],
+            'images': [[self.cat_path, self.img3_path]],
+        }
+        op = self._build_op(keep_original_sample=False)
+        with self.assertRaises(AssertionError):
+            self._run(op, samples)
+
+    def test_none_placeholder_keeps_alignment(self):
+        """An explicit None placeholder maps to an empty prompt in place."""
+        samples = {
+            'text': [f'{SpecialTokens.image}, {SpecialTokens.image}'],
+            'caption': [['a photo of a cat', None]],
+            'images': [[self.cat_path, self.img3_path]],
+        }
+        op = self._build_op(keep_original_sample=False)
+        res, prompts = self._run(op, samples)
+
+        self.assertEqual(len(res['images']), self.aug_num)
+        self.assertEqual(prompts, ['a photo of a cat', ''] * self.aug_num)
+
+    def test_leading_none_placeholder_keeps_alignment(self):
+        """A placeholder in the first slot must not shift the later caption."""
+        samples = {
+            'text': [f'{SpecialTokens.image}, {SpecialTokens.image}'],
+            'caption': [[None, 'a women with an umbrella']],
+            'images': [[self.cat_path, self.img3_path]],
+        }
+        op = self._build_op(keep_original_sample=False)
+        res, prompts = self._run(op, samples)
+
+        self.assertEqual(len(res['images']), self.aug_num)
+        self.assertEqual(prompts,
+                         ['', 'a women with an umbrella'] * self.aug_num)
+
+    def test_duplicate_images_align_with_key_list(self):
+        """Captions align with the image key list, not the deduplicated dict.
+
+        ``load_data_with_context`` returns a dict keyed by image path, so
+        repeating the same path collapses it. Alignment must follow the image
+        key list, otherwise captions get truncated and indexing overflows.
+        """
+        samples = {
+            'text': [f'{SpecialTokens.image}, {SpecialTokens.image}'],
+            'caption': [['first caption', 'second caption']],
+            'images': [[self.cat_path, self.cat_path]],
+        }
+        op = self._build_op(keep_original_sample=False)
+        res, prompts = self._run(op, samples)
+
+        self.assertEqual(len(res['images']), self.aug_num)
+        self.assertEqual(prompts,
+                         ['first caption', 'second caption'] * self.aug_num)
+
+    def test_empty_list_caption_with_duplicate_images(self):
+        """An empty caption list pads to the full image key count."""
+        samples = {
+            'text': [f'{SpecialTokens.image}, {SpecialTokens.image}'],
+            'caption': [[]],
+            'images': [[self.cat_path, self.cat_path]],
+        }
+        op = self._build_op(keep_original_sample=False)
+        res, prompts = self._run(op, samples)
+
+        self.assertEqual(len(res['images']), self.aug_num)
+        self.assertEqual(prompts, ['', ''] * self.aug_num)
+
+    def test_no_images_returns_empty_batch(self):
+        """Samples without images are skipped, but the schema is preserved."""
+        samples = {
+            'text': [f'{SpecialTokens.image}a photo of a cat'],
+            'caption': ['a photo of a cat'],
+            'images': [[]],
+        }
+        op = self._build_op(keep_original_sample=False)
+        res, prompts = self._run(op, samples)
+
+        self.assertEqual(set(res.keys()), set(samples.keys()))
+        for key in samples:
+            self.assertEqual(res[key], [])
+        self.assertEqual(prompts, [])
 
 
 if __name__ == '__main__':

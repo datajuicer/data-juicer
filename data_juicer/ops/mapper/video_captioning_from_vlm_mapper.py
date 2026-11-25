@@ -64,6 +64,7 @@ class VideoCaptioningFromVLMMapper(Mapper):
         keep_original_sample: bool = True,
         prompt: Optional[str] = None,
         prompt_key: Optional[str] = None,
+        system_prompt: Optional[str] = None,
         model_params: Dict = None,
         sampling_params: Dict = None,
         *args,
@@ -109,6 +110,9 @@ class VideoCaptioningFromVLMMapper(Mapper):
             for each sample. It's used for set different prompts for different
             samples. If it's none, use prompt in parameter "prompt". It's None
             in default.
+        :param system_prompt: a system prompt string used to set the context
+            of the conversation and provide global guidance for the VLM model.
+            If it's None, no system prompt will be used. It's None in default.
         :param model_params: Parameters for initializing the model.
         :param sampling_params: Extra parameters passed to the model calling.
             e.g {'temperature': 0.9, 'top_p': 0.95}
@@ -148,18 +152,21 @@ class VideoCaptioningFromVLMMapper(Mapper):
         self.keep_original_sample = keep_original_sample
         self.prompt = prompt
         self.prompt_key = prompt_key
+        self.system_prompt = system_prompt
         self.extra_args = kwargs
 
         self.enable_vllm = enable_vllm
 
         if not sampling_params:
-            sampling_params = {
-                "do_sample": True,
-                "temperature": 0,
-                "max_tokens": 1024,
-                "top_k": -1,
-                "stop_token_ids": [],
-            }
+            if self.enable_vllm:
+                sampling_params = {
+                    "temperature": 0,
+                    "max_tokens": 1024,
+                    "top_k": -1,
+                    "stop_token_ids": [],
+                }
+            else:
+                sampling_params = {"do_sample": False, "max_new_tokens": 1024}
 
         sampling_params = update_sampling_params(sampling_params, hf_model, self.enable_vllm)
 
@@ -244,7 +251,13 @@ class VideoCaptioningFromVLMMapper(Mapper):
                     else:
                         prompt_text = DEFAULT_PROMPT
 
-                    messages = [
+                    messages = []
+                    if self.system_prompt:
+                        messages.append({
+                            "role": "system",
+                            "content": self.system_prompt,
+                        })
+                    messages.append(
                         {
                             "role": "user",
                             "content": [
@@ -258,7 +271,7 @@ class VideoCaptioningFromVLMMapper(Mapper):
                                 }
                             ]
                         }
-                    ]
+                    )
 
                     if self.enable_vllm:
                         inputs = [prepare_qwen_vl_inputs_for_vllm(messages, processor)]
@@ -275,7 +288,7 @@ class VideoCaptioningFromVLMMapper(Mapper):
                         ).to(model.device)
                         with torch.no_grad():
                             for i in range(self.caption_num):
-                                generated_ids = model.generate(**inputs, max_new_tokens=128, **self.sampling_params)
+                                generated_ids = model.generate(**inputs, **self.sampling_params)
                                 generated_ids_trimmed = [
                                     out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
                                 ]
@@ -399,8 +412,8 @@ class VideoCaptioningFromVLMMapper(Mapper):
                 samples_after_generation.extend(generated_samples)
         # reconstruct samples from "list of dicts" to "dict of lists"
         res_samples = {}
-        if len(samples_after_generation) > 0:
-            return res_samples
+        if len(samples_after_generation) == 0:
+            return {key: [] for key in samples}
         keys = samples_after_generation[0].keys()
         for key in keys:
             res_samples[key] = [s[key] for s in samples_after_generation]

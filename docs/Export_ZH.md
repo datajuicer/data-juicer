@@ -1,10 +1,10 @@
 # 数据集导出
 
-本文档描述 DataJuicer 如何导出处理后的数据集，包括支持的格式、分片、并行导出、S3 导出以及统计信息/哈希管理。
+处理完成后，Data-Juicer 将结果数据集写入你在 `export_path` 中指定的路径。本页介绍支持的输出格式、将大数据集分片为多个文件、并行导出、直接写入 S3，以及控制哪些中间字段（统计信息、哈希）保留在输出中。
 
 ## 概述
 
-处理完成后，DataJuicer 使用 `Exporter`（默认模式）或 `RayExporter`（Ray 模式）将结果数据集导出到磁盘。导出系统支持：
+Data-Juicer 通过 `Exporter`（默认模式）或 `RayExporter`（Ray 模式）导出。导出系统支持：
 
 - **多种输出格式** — JSONL、JSON、Parquet，Ray 模式下支持更多格式
 - **分片导出** — 按大小将大型数据集拆分为多个文件
@@ -19,8 +19,8 @@
 ```yaml
 export_path: ./outputs/result.jsonl       # 输出文件路径（必需）
 export_type: jsonl                         # 格式类型（省略时从路径自动检测）
-export_shard_size: 0                       # 分片大小（字节），0 = 单文件
-export_in_parallel: false                  # 单文件模式下的并行导出
+export_shard_size: 0                       # 本地模式：写入单文件；Ray：按数据块布局写入
+export_in_parallel: false                  # 本地模式下并行写入单文件
 keep_stats_in_res_ds: false                # 在输出中保留计算的统计信息
 keep_hashes_in_res_ds: false               # 在输出中保留计算的哈希值
 export_extra_args: {}                      # 额外的格式特定参数
@@ -65,7 +65,11 @@ dj-process --config config.yaml --keep_stats_in_res_ds true
 | WebDataset | `webdataset` | WebDataset tar 格式 |
 | Lance | `.lance` | Lance 列式格式 |
 
-## 分片导出
+在本地模式下，`export_path` 是文件路径。请提供 `.jsonl`、`.json` 或 `.parquet` 扩展名，或显式设置 `export_type`。
+
+在 Ray 模式下，`export_path` 是存放输出文件的目录，即使路径以 `.jsonl` 结尾也是如此。Ray 按数据块布局写入文件；`export_shard_size: 0` 使用默认布局。
+
+## 分片导出（本地模式）
 
 对于大型数据集，按大小将输出拆分为多个分片文件：
 
@@ -83,11 +87,7 @@ outputs/
 └── result-03-of-04.jsonl
 ```
 
-**分片大小计算方式：**
-1. 估算数据集的总字节大小
-2. 分片数 = `ceil(dataset_bytes / export_shard_size)`
-3. 数据集被拆分为连续的分片
-4. 每个分片使用多进程并行导出
+Data-Juicer 估算数据集大小，将连续的数据行分成多个分片，再使用多个进程写入。配置的大小是目标值，编码后的文件可能更大或更小。
 
 **推荐的分片大小：**
 
@@ -100,7 +100,7 @@ outputs/
 
 分片大小低于 1 MiB 或高于 1 TiB 将触发警告。
 
-## 并行导出
+## 并行导出（本地模式）
 
 对于单文件导出（`export_shard_size: 0`），启用并行写入以加速导出过程：
 
@@ -117,58 +117,36 @@ np: 4                                     # 并行进程数
 
 ## S3 导出
 
-将结果直接导出到 Amazon S3 或 S3 兼容存储。
+本地和 Ray 模式都可以直接将结果写入 S3。先设置 `export_path`，例如：
 
-### 默认模式
+```yaml
+export_path: "s3://my-bucket/outputs/result.jsonl"
+```
+
+可以通过环境变量提供凭证：
+
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+使用临时凭证时，还需要设置 `AWS_SESSION_TOKEN`。也可以在配方的 `export_aws_credentials` 中提供凭证；本地和 Ray 模式均支持此配置：
 
 ```yaml
 export_path: "s3://my-bucket/outputs/result.jsonl"
 export_aws_credentials:
-  aws_access_key_id: "AKIA..."
-  aws_secret_access_key: "secret..."
+  aws_access_key_id: "your-access-key-id"
+  aws_secret_access_key: "your-secret-access-key"
   aws_region: "us-east-1"
-  endpoint_url: "https://s3.example.com"   # 可选：用于 S3 兼容存储
+  endpoint_url: "https://s3.example.com"  # 使用 S3 兼容存储时设置
 ```
 
-默认导出器使用 HuggingFace 的 `storage_options` 配合 `fsspec`/`s3fs` 进行 S3 访问。
+访问密钥、会话令牌和区域按字段依次从环境变量、显式配置读取。未提供访问密钥时，存储客户端会使用默认 AWS 凭证链，例如 IAM 角色或本地凭证文件。
 
-### Ray 模式
+Ray 模式也接受 `export_extra_args` 中的凭证；同名配置以 `export_aws_credentials` 为准。本地模式通过 s3fs 访问 S3，Ray 模式通过 PyArrow 访问 S3。
 
-```yaml
-export_path: "s3://my-bucket/outputs/result.jsonl"
-export_extra_args:
-  aws_access_key_id: "AKIA..."
-  aws_secret_access_key: "secret..."
-  aws_region: "us-east-1"
-```
-
-Ray 导出器使用 PyArrow 的 S3 文件系统进行 S3 访问。
-
-### S3 分片导出
-
-使用 S3 进行分片导出时，分片文件直接写入 S3：
-
-```yaml
-export_path: "s3://my-bucket/outputs/result.jsonl"
-export_shard_size: 268435456
-export_aws_credentials:
-  aws_access_key_id: "AKIA..."
-  aws_secret_access_key: "secret..."
-```
-
-生成的 S3 对象如下：
-```
-s3://my-bucket/outputs/result-00-of-04.jsonl
-s3://my-bucket/outputs/result-01-of-04.jsonl
-...
-```
-
-### 凭证解析
-
-AWS 凭证按以下优先级解析：
-1. `export_aws_credentials` 配置（默认模式）或 `export_extra_args`（Ray 模式）
-2. 环境变量（`AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY`）
-3. 默认凭证链（IAM 角色、`~/.aws/credentials`）
+在本地模式中，设置 `export_shard_size: 268435456` 可按约 256 MiB 的目标大小分片，输出对象形如 `result-00-of-04.jsonl`。Ray 模式将文件写入 `export_path` 对应的目录前缀。
 
 ## 统计信息和哈希管理
 
@@ -185,15 +163,17 @@ keep_hashes_in_res_ds: true               # 保留哈希字段
 
 ### 统计信息导出
 
-无论 `keep_stats_in_res_ds` 如何设置，DataJuicer 始终会在主数据集旁边导出一个单独的统计信息文件：
+本地模式下，数据包含 `__dj__stats__` 或 `__dj__meta__` 列时，会额外导出一份统计文件：
 
-```
+```text
 outputs/
-├── result.jsonl                          # 主数据集（默认移除统计信息）
-└── result_stats.jsonl                    # 仅统计信息文件（始终导出）
+├── result.jsonl
+└── result_stats.jsonl
 ```
 
-统计信息文件仅包含 `__dj__stats__` 和 `__dj__meta__` 列。
+统计文件只包含数据中已有的统计和元数据列。直接使用 Python `Exporter` 时，可以通过 `export_stats=False` 关闭该文件的导出。
+
+Ray 模式将统计信息与主数据集一起导出。需要保留它们时，请设置 `keep_stats_in_res_ds: true`；Ray 不会额外生成独立的 `_stats.jsonl` 文件。
 
 ## WebDataset 导出（Ray 模式）
 
@@ -278,5 +258,13 @@ export_shard_size: 1073741824             # 1 GB
 ```yaml
 # 在结果数据集中保留统计信息
 keep_stats_in_res_ds: true
-# 或检查单独的统计信息文件：result_stats.jsonl
+# 本地模式也可查看独立的统计文件：result_stats.jsonl
 ```
+
+---
+
+## 下一步
+
+- [缓存管理](Cache_ZH.md)——通过缓存中间结果加速重复运行。
+- [数据追踪](Tracing_ZH.md)——调试流水线中样本级别的变化。
+- [分布式处理](Distributed_ZH.md)——在 Ray 集群上扩展导出。

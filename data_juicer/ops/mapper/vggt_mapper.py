@@ -132,6 +132,10 @@ class VggtMapper(Mapper):
 
     def process_single(self, sample=None, rank=None):
 
+        # ensure __dj__meta__ exists
+        if Fields.meta not in sample or not isinstance(sample[Fields.meta], dict):
+            sample[Fields.meta] = {}
+
         # check if it's generated already
         if self.tag_field_name in sample[Fields.meta]:
             return sample

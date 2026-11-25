@@ -11,7 +11,8 @@ import uuid
 from argparse import ArgumentError
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
+from urllib.parse import urlparse
 
 import yaml
 from jsonargparse import (
@@ -118,7 +119,7 @@ def build_base_parser() -> ArgumentParser:
         "--auto_num",
         type=PositiveInt,
         default=1000,
-        help="The number of samples to be analyzed " "automatically. It's 1000 in default.",
+        help="Maximum number of input samples analyzed in Analyzer auto mode (--auto).",
     )
 
     parser.add_argument(
@@ -128,28 +129,34 @@ def build_base_parser() -> ArgumentParser:
         "--data_probe_algo",
         type=str,
         default="uniform",
-        help='Sampling algorithm to use. Options are "uniform", '
-        '"frequency_specified_field_selector", or '
-        '"topk_specified_field_selector". Default is "uniform". Only '
-        "used for dataset sampling",
+        help="Sampling algorithm consumed by the external Data-Juicer Sandbox model probe. Options: uniform, "
+        "frequency_specified_field_selector, topk_specified_field_selector.",
         required=False,
     )
     parser.add_argument(
         "--data_probe_ratio",
         type=ClosedUnitInterval,
         default=1.0,
-        help="The ratio of the sample size to the original dataset size. "  # noqa: E251
-        "Default is 1.0 (no sampling). Only used for dataset sampling",
+        help="Sampling ratio consumed by the external Data-Juicer Sandbox model probe. Default 1.0 uses the "
+        "full input for that probe.",
         required=False,
     )
 
-    # basic global paras with extended type hints
-    # e.g., files can be mode include flags
-    # "fr": "path to a file that exists and is readable")
-    # "fc": "path to a file that can be created if it does not exist")
-    # "dw": "path to a directory that exists and is writeable")
-    # "dc": "path to a directory that can be created if it does not exist")
-    # "drw": "path to a directory that exists and is readable and writeable")
+    parser.add_argument(
+        "--load_jsonl_lenient",
+        type=bool,
+        default=False,
+        help="Use the default executor/Analyzer's lenient JSONL loader to skip malformed lines. "
+        "Supports .jsonl, .jsonl.gz and .jsonl.zst; when these are present, other JSON files are skipped. "
+        "DATA_JUICER_JSONL_LENIENT=1 also enables this loader.",
+    )
+    parser.add_argument(
+        "--use_dag",
+        type=Optional[bool],
+        default=None,
+        help="Enable execution-plan generation and DAG monitoring. None uses the executor default: "
+        "enabled for ray and ray_partitioned, disabled for default.",
+    )
     parser.add_argument("--project_name", type=str, default="hello_world", help="Name of your data process project.")
     parser.add_argument(
         "--executor_type",
@@ -159,29 +166,33 @@ def build_base_parser() -> ArgumentParser:
         help='Type of executor, support "default", "ray", or "ray_partitioned".',
     )
     parser.add_argument(
+        "--strict_preflight",
+        type=bool,
+        default=True,
+        help="Whether to run preflight validation before pipeline execution. "
+        "Set to False to skip preflight checks (not recommended).",
+    )
+    parser.add_argument(
         "--dataset_path",
         type=str,
         default="",
-        help="Path to datasets with optional weights(0.0-1.0), 1.0 as "
-        "default. Accepted format:<w1> dataset1-path <w2> dataset2-path "
-        "<w3> dataset3-path ...",
+        help="Local file/directory or HuggingFace dataset path. Legacy syntax accepts optional nonnegative "
+        "relative weights: <w1> <path1> <w2> <path2>. Use dataset.configs with dataset.max_sample_num "
+        "to configure weighted sampling.",
     )
     parser.add_argument(
         "--dataset",
         type=Union[List[Dict], Dict],
         default=[],
-        help="Dataset setting to define local/remote datasets; could be a "  # noqa: E251
-        "dict or a list of dicts; refer to "
-        "https://datajuicer.github.io/data-juicer/en/main/docs/DatasetCfg.html for more "
-        "detailed examples",
+        help="Dataset configuration mapping with a configs list and optional max_sample_num sampling budget. "
+        "See the DatasetCfg documentation for local and remote source fields.",
     )
     parser.add_argument(
         "--generated_dataset_config",
         type=Dict,
         default=None,
-        help="Configuration used to create a dataset. "  # noqa: E251
-        "The dataset will be created from this configuration if provided. "
-        "It must contain the `--type` field to specify the dataset name.",
+        help="Configuration for generating a dataset. The type field selects a registered formatter; other "
+        "fields are passed to its constructor.",
     )
     parser.add_argument(
         "--validators",
@@ -194,34 +205,38 @@ def build_base_parser() -> ArgumentParser:
         "--load_dataset_kwargs",
         type=Dict,
         default={},
-        help="Extra keyword arguments passed through to the underlying "  # noqa: E251
-        "datasets.load_dataset() call. Useful for format-specific "
-        "options such as chunksize (JSON), columns (Parquet), or "
-        "delimiter (CSV). See the HuggingFace Datasets docs for "
-        "available options.",
+        help="Extra keyword arguments for HuggingFace dataset loading in the default executor and Analyzer, "
+        "such as columns (Parquet) or delimiter (CSV), or num_proc to load with a parallelism other than "
+        "np. Explicit DatasetBuilder.load_dataset() arguments override these defaults.",
     )
     parser.add_argument(
         "--read_options",
         type=Dict,
         default={},
-        help="Read options passed through to PyArrow reading functions "
-        "(e.g., block_size for JSON reading). This configuration is "
-        "especially useful when reading large JSON files.",
+        help="PyArrow JSON ReadOptions for Ray JSON input, including block_size. Used by ray, ray_partitioned "
+        "and RayAnalyzer.",
+    )
+    parser.add_argument(
+        "--override_num_blocks",
+        type=Optional[PositiveInt],
+        default=None,
+        help="Override the number of output blocks for Ray Data read "
+        "operations. Useful for controlling parallelism when reading "
+        "large datasets.",
     )
     parser.add_argument(
         "--work_dir",
         type=str,
         default=None,
-        help="Path to a work directory to store outputs during Data-Juicer "  # noqa: E251
-        "running. It's the directory where export_path is at in default.",
+        help="Base directory for job artifacts. A job_id suffix is appended unless already present. Defaults "
+        "to the local export directory, or ./outputs for S3/HDFS exports.",
     )
     parser.add_argument(
         "--export_path",
         type=str,
         default="./outputs/hello_world/hello_world.jsonl",
-        help="Path to export and save the output processed dataset. The "  # noqa: E251
-        "directory to store the processed dataset will be the work "
-        "directory of this process.",
+        help="Output dataset path. When work_dir is omitted, its local parent directory is used as the base "
+        "work directory.",
     )
     parser.add_argument(
         "--export_type",
@@ -235,24 +250,16 @@ def build_base_parser() -> ArgumentParser:
         "--export_shard_size",
         type=NonNegativeInt,
         default=0,
-        help="Shard size of exported dataset in Byte. In default, it's 0, "  # noqa: E251
-        "which means export the whole dataset into only one file. If "
-        "it's set a positive number, the exported dataset will be split "
-        "into several sub-dataset shards, and the max size of each shard "
-        "won't larger than the export_shard_size",
+        help="Target output shard size in bytes. The default 0 exports one file in standalone mode; Ray uses "
+        "its dataset block layout. Positive values guide shard sizing; encoded file sizes can differ from "
+        "estimates.",
     )
     parser.add_argument(
         "--export_in_parallel",
         type=bool,
         default=False,
-        help="Whether to export the result dataset in parallel to a single "  # noqa: E251
-        "file, which usually takes less time. It only works when "
-        "export_shard_size is 0, and its default number of processes is "
-        "the same as the argument np. **Notice**: If it's True, "
-        "sometimes exporting in parallel might require much more time "
-        "due to the IO blocking, especially for very large datasets. "
-        "When this happens, False is a better choice, although it takes "
-        "more time.",
+        help="Export a standalone dataset to a single file using parallel workers. Used by the default "
+        "executor and Analyzer when export_shard_size is 0; worker count follows np.",
     )
     parser.add_argument(
         "--export_extra_args",
@@ -265,9 +272,9 @@ def build_base_parser() -> ArgumentParser:
         "--export_aws_credentials",
         type=Dict,
         default=None,
-        help="Export-specific AWS credentials for S3 export. If export_path is S3 and this is not provided, "
-        "an error will be raised. Should contain aws_access_key_id, aws_secret_access_key, aws_region, "
-        "and optionally aws_session_token and endpoint_url.",
+        help="Optional AWS credentials for S3 export: aws_access_key_id, aws_secret_access_key, aws_region, "
+        "and optionally aws_session_token and endpoint_url. Exporters can also use dataset credentials or "
+        "the AWS default credential chain.",
     )
     parser.add_argument(
         "--decrypt_after_reading",
@@ -438,12 +445,9 @@ def build_base_parser() -> ArgumentParser:
         "--use_checkpoint",
         type=bool,
         default=False,
-        help="Whether to use the checkpoint management to save the latest "  # noqa: E251
-        "version of dataset to work dir when processing. Rerun the same "
-        "config will reload the checkpoint and skip ops before it. Cache "
-        "will be disabled when it is true . If args of ops before the "
-        "checkpoint are changed, all ops will be rerun from the "
-        "beginning.",
+        help="Enable checkpointing in the default executor. Saves the latest dataset under work_dir/ckpt and "
+        "disables the HuggingFace cache. Reusing the same job directory reloads the checkpoint and skips "
+        "unchanged completed operators.",
     )
     # Enhanced checkpoint configuration for PartitionedRayExecutor
     parser.add_argument(
@@ -456,13 +460,13 @@ def build_base_parser() -> ArgumentParser:
         "--checkpoint.strategy",
         type=str,
         default="every_n_ops",
-        choices=["every_op", "every_partition", "every_n_ops", "manual", "disabled"],
+        choices=["every_op", "every_n_ops", "manual", "disabled"],
         help="Checkpoint strategy: every_n_ops (default, balanced), every_op (max protection), "
         "manual (after specific ops), disabled (best performance)",
     )
     parser.add_argument(
         "--checkpoint.n_ops",
-        type=int,
+        type=PositiveInt,
         default=5,
         help="Number of operations between checkpoints for every_n_ops strategy. "
         "Default 5 balances fault tolerance with Ray optimization.",
@@ -480,31 +484,20 @@ def build_base_parser() -> ArgumentParser:
         default=True,
         help="Enable event logging for job tracking and resumption",
     )
-    # Logging configuration
-    parser.add_argument(
-        "--max_log_size_mb",
-        type=int,
-        default=100,
-        help="Maximum log file size in MB before rotation",
-    )
-    parser.add_argument(
-        "--backup_count",
-        type=int,
-        default=5,
-        help="Number of backup log files to keep",
-    )
     # Storage configuration
     parser.add_argument(
         "--event_log_dir",
         type=str,
         default=None,
-        help="Separate directory for event logs (fast storage)",
+        help="Directory for human-readable application logs. Defaults to work_dir/logs after job directory "
+        "resolution. Machine-readable event JSONL files are written directly under work_dir.",
     )
     parser.add_argument(
         "--checkpoint_dir",
         type=str,
         default=None,
-        help="Separate directory for checkpoints (large storage)",
+        help="Directory for ray_partitioned Parquet checkpoints. Defaults to work_dir/checkpoints after job "
+        "directory resolution.",
     )
     # Job management
     parser.add_argument(
@@ -512,6 +505,16 @@ def build_base_parser() -> ArgumentParser:
         type=str,
         default=None,
         help="Custom job ID for resumption and tracking. If not provided, a unique ID will be auto-generated.",
+    )
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        help=(
+            "Resume a ray_partitioned job using the job ID printed by its "
+            "original run. The saved partition boundaries and content hashes "
+            "are used to reconstruct and validate the original partitions."
+        ),
     )
     parser.add_argument(
         "--temp_dir",
@@ -614,11 +617,25 @@ def build_base_parser() -> ArgumentParser:
         'slow). It\'s "probe" in default.',
     )
     parser.add_argument(
+        "--mapper_fusion",
+        type=bool,
+        default=True,
+        help="Whether to fuse consecutive independent GPU Mappers into "
+        "FusedSequentialBatchOp for single-stage execution. Only effective when "
+        "op_fusion is True.",
+    )
+    parser.add_argument(
+        "--mapper_fusion_vram_limit",
+        type=float,
+        default=0.9,
+        help="Max aggregate estimated VRAM fraction for a fused mapper group. "
+        "Each mapper class must declare estimated_vram_fraction. Default 0.9.",
+    )
+    parser.add_argument(
         "--adaptive_batch_size",
         type=bool,
         default=False,
-        help="Whether to use adaptive batch sizes for each OP according to "  # noqa: E251
-        "the probed results. It's False in default.",
+        help="Use probe results to adjust batch sizes for batched operators in the default executor.",
     )
     parser.add_argument(
         "--process",
@@ -650,25 +667,11 @@ def build_base_parser() -> ArgumentParser:
     parser.add_argument("--ray_address", type=str, default="auto", help="The address of the Ray cluster.")
 
     # Partitioning configuration for PartitionedRayExecutor
-    # Support both flat and nested partition configuration
     parser.add_argument(
         "--partition_size",
-        type=int,
-        default=10000,
-        help="Number of samples per partition for PartitionedRayExecutor (legacy flat config)",
-    )
-    parser.add_argument(
-        "--max_partition_size_mb",
-        type=int,
-        default=128,
-        help="Maximum partition size in MB for PartitionedRayExecutor (legacy flat config)",
-    )
-
-    parser.add_argument(
-        "--preserve_intermediate_data",
-        type=bool,
-        default=False,
-        help="Preserve intermediate data for debugging (legacy flat config)",
+        type=Optional[PositiveInt],
+        default=None,
+        help="Deprecated; use --partition.size. Number of samples per partition.",
     )
 
     # partition configuration
@@ -680,93 +683,181 @@ def build_base_parser() -> ArgumentParser:
         help="Partition mode: manual (specify num_of_partitions) or auto (use partition size optimizer)",
     )
     parser.add_argument(
+        "--partition.size",
+        type=Optional[PositiveInt],
+        default=None,
+        help=(
+            "Optional samples-per-partition target. In manual mode, the executor derives the partition count "
+            "after loading the dataset. In auto mode, this is used only when the optimizer cannot recommend "
+            "a valid sample count."
+        ),
+    )
+    parser.add_argument(
         "--partition.num_of_partitions",
-        type=int,
-        default=4,
-        help="Number of partitions for manual mode (ignored in auto mode)",
+        type=Optional[Union[PositiveInt, Literal["auto"]]],
+        default=None,
+        help=(
+            "Number of partitions for manual mode (default: 4 when neither this nor partition.size is set). "
+            "In auto mode, 'auto' derives a cluster-aware count; a positive "
+            "integer acts as the data-driven ceiling for the cluster-aware "
+            "adjustment."
+        ),
+    )
+    parser.add_argument(
+        "--partition.partitions_per_node",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Per-node partition multiplier used by the cluster-aware auto "
+            "partition count. 'auto' uses per-node GPU slots for GPU "
+            "pipelines (2x for CPU-only pipelines); set a positive integer "
+            "to override."
+        ),
+    )
+    parser.add_argument(
+        "--partition.max_concurrent_partitions",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Maximum number of partition jobs submitted concurrently by the driver. "
+            "The default 'auto' derives a resource-aware limit from the Ray cluster "
+            "and operator requirements."
+        ),
+    )
+    parser.add_argument(
+        "--partition.max_gpu_workers_per_device",
+        type=PositiveInt,
+        default=5,
+        help=(
+            "Maximum number of auto-probed GPU model workers scheduled on one physical GPU. "
+            "The measured memory fraction is retained separately; the default of 5 prevents "
+            "tiny models from overloading one GPU with excessive actors."
+        ),
+    )
+    parser.add_argument(
+        "--partition.max_concurrent_gpu_probes",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Maximum number of dependency-safe GPU preflight tasks running concurrently. "
+            "The default 'auto' probes one target at a time, because concurrent probes "
+            "load several models from shared storage at once and storage bandwidth is not "
+            "a Ray resource. Set a positive integer to opt into parallel probing when "
+            "checkpoints are local or the I/O headroom is known; every probe reserves one "
+            "full GPU, so the cap is also bounded by the available GPU and CPU slots."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_preflight_enabled",
+        type=bool,
+        default=True,
+        help=(
+            "Whether to profile CUDA Mapper/Filter operators before formal partitioned "
+            "execution. Disable only when GPU resources and actor counts are configured "
+            "explicitly."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_timeout_seconds",
+        type=Optional[float],
+        default=None,
+        help=(
+            "Optional timeout in seconds for each dependency-safe GPU preflight task. "
+            "The default None disables termination while 30-second progress heartbeats "
+            "remain enabled."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_warmup_batches",
+        type=NonNegativeInt,
+        default=1,
+        help="Number of unmeasured warmup batches before GPU steady-state throughput sampling.",
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_steady_batches",
+        type=PositiveInt,
+        default=3,
+        help="Number of batches used to estimate steady-state GPU operator throughput.",
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_sample_offset",
+        type=NonNegativeInt,
+        default=0,
+        help=(
+            "Number of leading dataset rows skipped when collecting the GPU preflight sample. "
+            "Use it when the first rows are not representative; the skipped prefix is streamed, "
+            "not materialized, for dataset types that support row iteration."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_sample_shuffle",
+        type=bool,
+        default=False,
+        help=(
+            "Whether to randomize dataset block order before taking the GPU preflight sample. "
+            "Reads a random block instead of the first one, which avoids biased memory and "
+            "throughput measurements on datasets ordered by size or source."
+        ),
+    )
+    parser.add_argument(
+        "--partition.gpu_probe_sample_seed",
+        type=Optional[int],
+        default=42,
+        help=(
+            "Seed for the shuffled GPU preflight sample, keeping repeated runs and cached probe "
+            "reports comparable. Set null for a different sample on every run."
+        ),
+    )
+    parser.add_argument(
+        "--partition.execution_group_size",
+        type=Union[PositiveInt, Literal["auto"]],
+        default="auto",
+        help=(
+            "Number of logical checkpoint partitions processed by one GPU actor-pool lifecycle. "
+            "'auto' uses preflight initialization and throughput measurements."
+        ),
+    )
+    parser.add_argument(
+        "--partition.max_initialization_overhead_ratio",
+        type=float,
+        default=0.1,
+        help=(
+            "Maximum estimated fraction of execution-group time spent initializing GPU models; "
+            "must be between 0 and 1."
+        ),
     )
     parser.add_argument(
         "--partition.target_size_mb",
         type=int,
         default=256,
-        help="Target partition size in MB for auto mode (128, 256, 512, or 1024). "
-        "Controls how large each partition should be. Smaller = more checkpoints & better recovery, "
-        "larger = less overhead. Default 256MB balances memory safety and efficiency.",
-    )
-
-    # Resource optimization configuration
-    parser.add_argument(
-        "--resource_optimization.auto_configure",
-        type=bool,
-        default=False,
-        help="Enable automatic optimization of partition size, worker count, and other resource-dependent settings (nested resource_optimization config)",
-    )
-
-    # Intermediate storage configuration
-    parser.add_argument(
-        "--intermediate_storage.preserve_intermediate_data",
-        type=bool,
-        default=False,
-        help="Preserve intermediate data for debugging (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.cleanup_temp_files",
-        type=bool,
-        default=True,
-        help="Clean up temporary files after processing (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.cleanup_on_success",
-        type=bool,
-        default=False,
-        help="Clean up intermediate files even on successful completion (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.retention_policy",
-        type=str,
-        default="keep_all",
-        choices=["keep_all", "keep_failed_only", "cleanup_all"],
-        help="File retention policy (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.max_retention_days",
-        type=int,
-        default=7,
-        help="Maximum retention days for files (nested intermediate_storage config)",
-    )
-
-    # Intermediate storage format configuration
-    parser.add_argument(
-        "--intermediate_storage.format",
-        type=str,
-        default="parquet",
-        choices=["parquet", "arrow", "jsonl"],
-        help="Storage format for checkpoints and intermediate data (nested intermediate_storage config)",
-    )
-    parser.add_argument(
-        "--intermediate_storage.compression",
-        type=str,
-        default="snappy",
-        choices=["snappy", "gzip", "none"],
-        help="Compression format for storage files (nested intermediate_storage config)",
-    )
-
-    parser.add_argument(
-        "--intermediate_storage.write_partitions",
-        type=bool,
-        default=True,
-        help="Whether to write intermediate partition files to disk (nested intermediate_storage config). Set to false for better performance when intermediate files aren't needed.",
+        help="Target partition size in MB for the auto-mode optimizer, e.g. 128, 256, 512 or 1024. "
+        "Values that produce a recommendation below an optimizer minimum are accepted and clamped with a warning. "
+        "This is an estimate used for planning, not a hard memory or output-file size limit.",
     )
 
     parser.add_argument(
         "--partition_dir",
         type=str,
         default=None,
-        help="Directory to store partition files. Supports {work_dir} placeholder. If not set, defaults to {work_dir}/partitions.",
+        help="Resolved path recorded for partition metadata and external integrations. Defaults to "
+        "work_dir/partitions. The built-in ray_partitioned executor splits Ray datasets directly and does "
+        "not write input partition files here.",
     )
 
     parser.add_argument("--custom-operator-paths", nargs="+", help="Paths to custom operator scripts or directories.")
+    parser.add_argument(
+        "--elastic_juicer_adaptive_batching",
+        type=bool,
+        default=False,
+        help="Enable actor-local adaptive microbatches for opted-in, retry-safe CUDA Mappers in Ray mode.",
+    )
     parser.add_argument("--debug", action="store_true", help="Whether to run in debug mode.")
+    parser.add_argument(
+        "--elastic_juicer_profile_seed",
+        type=bool,
+        default=False,
+        help="Reuse compatible stage batch profiles within one ray_partitioned run. Requires adaptive batching.",
+    )
     parser.add_argument(
         "--auto_op_parallelism",
         type=bool,
@@ -777,7 +868,59 @@ def build_base_parser() -> ArgumentParser:
     return parser
 
 
-def init_configs(args: Optional[List[str]] = None, which_entry: object = None, load_configs_only=False):
+def _normalize_partition_size_config(cfg):
+    """Validate partition-size choices and bridge the deprecated flat field."""
+    flat_size = getattr(cfg, "partition_size", None)
+    partition_cfg = getattr(cfg, "partition", None)
+    if partition_cfg is None:
+        return
+
+    import warnings
+
+    if isinstance(partition_cfg, dict):
+        mode = partition_cfg.get("mode", "auto")
+        nested_size = partition_cfg.get("size")
+        configured_count = partition_cfg.get("num_of_partitions")
+    else:
+        mode = getattr(partition_cfg, "mode", "auto")
+        nested_size = getattr(partition_cfg, "size", None)
+        configured_count = getattr(partition_cfg, "num_of_partitions", None)
+
+    manual_count_mode = mode == "manual" and configured_count != "auto"
+    if manual_count_mode and nested_size is not None and configured_count is not None:
+        raise ValueError(
+            "partition.size and partition.num_of_partitions are mutually exclusive in manual mode; "
+            "configure either a samples-per-partition target or an explicit partition count."
+        )
+
+    if flat_size is not None:
+        warnings.warn(
+            "--partition_size is deprecated and will be removed in a future version. Use --partition.size instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        if manual_count_mode and configured_count is not None and nested_size is None:
+            warnings.warn(
+                "Ignoring deprecated partition_size because partition.num_of_partitions is explicitly configured "
+                "in manual mode.",
+                UserWarning,
+                stacklevel=3,
+            )
+        elif nested_size is None:
+            nested_size = flat_size
+
+    should_default_count = configured_count is None and not (mode == "manual" and nested_size is not None)
+    if isinstance(partition_cfg, dict):
+        partition_cfg["size"] = nested_size
+        if should_default_count:
+            partition_cfg["num_of_partitions"] = 4
+    else:
+        partition_cfg.size = nested_size
+        if should_default_count:
+            partition_cfg.num_of_partitions = 4
+
+
+def init_configs(args: Optional[List[str]] = None, allow_auto: bool = False, load_configs_only=False, **kwargs):
     """
     initialize the jsonargparse parser and parse configs from one of:
         1. POSIX-style commands line args;
@@ -786,11 +929,27 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
         4. hard-coded defaults
 
     :param args: list of params, e.g., ['--config', 'cfg.yaml'], default None.
-    :param which_entry: which entry to init configs (executor/analyzer)
+    :param allow_auto: whether --auto is allowed (only True for analyzer entries)
     :param load_configs_only: whether to load the configs only, not including backing up config files, display them, and
         setting up logger.
     :return: a global cfg object used by the DefaultExecutor or Analyzer
     """
+    # Backwards compatibility: accept deprecated `which_entry` keyword
+    if "which_entry" in kwargs:
+        import warnings
+
+        warnings.warn(
+            "The 'which_entry' parameter is deprecated. " "Use 'allow_auto=True' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        which_entry = kwargs.pop("which_entry")
+        if not allow_auto and which_entry is not None:
+            from data_juicer.core.analyzer import Analyzer
+
+            allow_auto = isinstance(which_entry, Analyzer)
+    if kwargs:
+        raise TypeError(f"init_configs() got unexpected keyword arguments: " f"{list(kwargs.keys())}")
     # Optional: stdlib json for HF datasets JSONL (avoids ujson "Value is too big!")
     from data_juicer.utils.datasets_json_compat import (
         apply_stdlib_json_patch_for_datasets,
@@ -855,12 +1014,12 @@ def init_configs(args: Optional[List[str]] = None, which_entry: object = None, l
                     load_custom_operators(cfg.custom_operator_paths)
 
                 # check the entry
-                from data_juicer.core.analyzer import Analyzer
-
-                if not isinstance(which_entry, Analyzer) and cfg.auto:
+                if cfg.auto and not allow_auto:
                     err_msg = "--auto argument can only be used for analyzer!"
                     logger.error(err_msg)
                     raise NotImplementedError(err_msg)
+
+                _normalize_partition_size_config(cfg)
 
         with timing_context("Initializing setup from config"):
             cfg = init_setup_from_cfg(cfg, load_configs_only)
@@ -926,15 +1085,29 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
     :param cfg: an updated cfg
     """
 
-    # Handle S3 paths differently from local paths
-    if cfg.export_path.startswith("s3://"):
-        # For S3 paths, keep as-is (don't use os.path.abspath)
+    if cfg.get("elastic_juicer_adaptive_batching", False):
+        if cfg.get("executor_type", "default") not in ("ray", "ray_partitioned"):
+            raise ValueError("elastic_juicer_adaptive_batching requires a Ray executor")
+        if cfg.get("op_fusion", False):
+            raise ValueError("elastic_juicer_adaptive_batching currently requires op_fusion=false")
+
+    if cfg.get("elastic_juicer_profile_seed", False):
+        if not cfg.get("elastic_juicer_adaptive_batching", False):
+            raise ValueError("elastic_juicer_profile_seed requires elastic_juicer_adaptive_batching=true")
+        if cfg.get("executor_type", "default") != "ray_partitioned":
+            raise ValueError("elastic_juicer_profile_seed currently requires ray_partitioned")
+
+    # Handle remote paths (S3/HDFS) differently from local paths
+    _export_scheme = urlparse(cfg.export_path).scheme.lower()
+    _is_remote = _export_scheme in ("s3", "hdfs")
+    if _is_remote:
+        # For remote paths, keep as-is (don't use os.path.abspath)
         # If work_dir is not provided, use a default local directory for logs/checkpoints
         if cfg.work_dir is None:
-            # Use a default local work directory for S3 exports
+            # Use a default local work directory for remote exports
             # This is where logs, checkpoints, and other local artifacts will be stored
             cfg.work_dir = os.path.abspath("./outputs")
-            logger.info(f"Using default work_dir [{cfg.work_dir}] for S3 export_path [{cfg.export_path}]")
+            logger.info(f"Using default work_dir [{cfg.work_dir}] for remote export_path [{cfg.export_path}]")
     else:
         # For local paths, convert to absolute path
         cfg.export_path = os.path.abspath(cfg.export_path)
@@ -947,11 +1120,13 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
 
     timestamp = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
     if not load_configs_only:
-        # For S3 paths, use a simplified export path for log filename
-        if cfg.export_path.startswith("s3://"):
-            # Extract bucket and key from S3 path for log filename
-            s3_path_parts = cfg.export_path.replace("s3://", "").split("/", 1)
-            export_rel_path = s3_path_parts[1] if len(s3_path_parts) > 1 else s3_path_parts[0]
+        # For remote paths, use a simplified export path for log filename
+        if _is_remote:
+            # Extract path after scheme prefix for log filename. urlparse
+            # splits the URI case-insensitively; netloc is the bucket/host
+            # and path is the key, falling back to netloc when no key.
+            _parsed = urlparse(cfg.export_path)
+            export_rel_path = _parsed.path.lstrip("/") or _parsed.netloc
         else:
             export_rel_path = os.path.relpath(cfg.export_path, start=cfg.work_dir)
 
@@ -1102,7 +1277,12 @@ def init_setup_from_cfg(cfg: Namespace, load_configs_only=False):
         "auto_op_parallelism": cfg.get("auto_op_parallelism", True),
         "work_dir": cfg.work_dir,
     }
-    if not is_ray_mode():
+    # ``np`` controls local multiprocessing.  A partitioned Ray pipeline
+    # uses it for data-loading and partition sizing, while operator actor
+    # parallelism is resolved after GPU preflight from the Ray cluster.
+    # Injecting it here would turn the default ``np`` into an explicit actor
+    # budget and disable that automatic planning.
+    if cfg.get("executor_type", "default") != "ray_partitioned" and not is_ray_mode():
         op_attrs.update({"num_proc": cfg.get("np", None)})
     cfg.process = update_op_attr(cfg.process, op_attrs)
 
@@ -1425,7 +1605,15 @@ def validate_config_for_resumption(cfg: Namespace, work_dir: str, original_args:
         # Compare CLI arguments per key
         cli_differences = []
         all_cli_keys = set(cli_config.keys()) | set(current_cli_config.keys())
-        excluded_keys = {"config", "_original_args", "backed_up_config_path", "_same_yaml_config", "job_id", "work_dir"}
+        excluded_keys = {
+            "config",
+            "_original_args",
+            "backed_up_config_path",
+            "_same_yaml_config",
+            "job_id",
+            "resume",
+            "work_dir",
+        }
 
         for key in all_cli_keys:
             if key in excluded_keys:
@@ -1781,6 +1969,7 @@ def get_init_configs(cfg: Union[Namespace, Dict], load_configs_only: bool = True
         # Remove internal attributes that are added during config processing
         internal_attrs = [
             "_user_provided_job_id",
+            "_resume_requested",
             "_same_yaml_config",
             "metadata_dir",
             "results_dir",
@@ -1841,6 +2030,19 @@ def prepare_cfgs_for_export(cfg):
 def resolve_job_id(cfg):
     """Resolve or auto-generate job_id and set it on cfg."""
     job_id = getattr(cfg, "job_id", None)
+    resume_id = getattr(cfg, "resume", None)
+
+    if resume_id is not None:
+        if job_id is not None and job_id != resume_id:
+            raise ValueError("--resume and --job_id must refer to the same job when both are provided.")
+        if getattr(cfg, "executor_type", "ray_partitioned") != "ray_partitioned":
+            raise ValueError("--resume is only supported by the ray_partitioned executor.")
+        setattr(cfg, "job_id", resume_id)
+        setattr(cfg, "_user_provided_job_id", True)
+        setattr(cfg, "_resume_requested", True)
+        return cfg
+
+    setattr(cfg, "_resume_requested", False)
 
     # Track whether job_id was user-provided
     if job_id is not None:

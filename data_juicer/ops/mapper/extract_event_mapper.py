@@ -8,6 +8,10 @@ from pydantic import PositiveInt
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.text_field_utils import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 
 from ..common import split_text_by_punctuation
 
@@ -147,28 +151,41 @@ class ExtractEventMapper(Mapper):
         return event_list, character_list
 
     def process_batched(self, samples, rank=None):
-        # check if it's generated already
-        if self.event_desc_key in samples[Fields.meta][0] and self.relevant_char_key in samples[Fields.meta][0]:
+        metadata = samples[Fields.meta]
+        cached = [
+            meta is not None
+            and meta.get(self.event_desc_key) is not None
+            and meta.get(self.relevant_char_key) is not None
+            for meta in metadata
+        ]
+        if all(cached):
+            if self.drop_text:
+                remove_text_from_sample(samples, self.text_key)
             return samples
 
-        events, characters = [], []
-        for text in samples[self.text_key]:
-            cur_events, cur_characters = self._process_single_sample(text, rank=rank)
-            events.append(cur_events)
-            characters.append(cur_characters)
-
-        if self.drop_text:
-            samples.pop(self.text_key)
-
+        texts = read_text_from_sample(samples, self.text_key)
         new_samples = []
-        for i in range(len(events)):
-            for event, character in zip(events[i], characters[i]):
-                cur_sample = {key: copy.deepcopy(samples[key][i]) for key in samples}
-                cur_sample[Fields.meta][self.event_desc_key] = event
-                cur_sample[Fields.meta][self.relevant_char_key] = character
+        generated_events = False
+        for i, is_cached in enumerate(cached):
+            row = {key: samples[key][i] for key in samples}
+            if is_cached:
+                new_samples.append(copy.deepcopy(row) if self.drop_text else row)
+                continue
+            events, characters = self._process_single_sample(texts[i], rank=rank)
+            for event, character in zip(events, characters):
+                cur_sample = copy.deepcopy(row)
+                meta = cur_sample[Fields.meta] or {}
+                meta[self.event_desc_key] = event
+                meta[self.relevant_char_key] = character
+                cur_sample[Fields.meta] = meta
                 new_samples.append(cur_sample)
+                generated_events = True
 
-        if len(new_samples) == 0:
+        # HF map must also lose the input source column before merging expanded rows.
+        if self.drop_text:
+            remove_text_from_sample(samples, self.text_key)
+
+        if not generated_events:
             logger.warning("Extract Not event in the batch of samples!")
             return samples
 
@@ -176,5 +193,6 @@ class ExtractEventMapper(Mapper):
         keys = new_samples[0].keys()
         for key in keys:
             res_samples[key] = [s[key] for s in new_samples]
-
+        if self.drop_text:
+            remove_text_from_sample(res_samples, self.text_key)
         return res_samples

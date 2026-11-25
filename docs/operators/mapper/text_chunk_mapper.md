@@ -30,7 +30,7 @@ Tags 标签: cpu, api, text
 | `max_len` | typing.Optional[typing.Annotated[int, Gt(gt=0)]] | `None` | Split text into multi texts with this max len if not None. |
 | `split_pattern` | typing.Optional[str] | `'\n\n'` | Make sure split in this pattern if it is not None and force cut if the length exceeds max_len. |
 | `overlap_len` | typing.Annotated[int, Ge(ge=0)] | `0` | Overlap length of the split texts if not split in the split pattern. |
-| `tokenizer` | typing.Optional[str] | `None` | The tokenizer name of Hugging Face tokenizers. The text length will be calculate as the token num if it is offered. Otherwise, the text length equals to string length. Support tiktoken tokenizer (such as gpt-4o), dashscope tokenizer ( such as qwen2.5-72b-instruct) and huggingface tokenizer. |
+| `tokenizer` | typing.Optional[str] | `None` | The tokenizer name of Hugging Face tokenizers. The text length will be calculate as the token num if it is offered. Otherwise, the text length equals to string length. Support tiktoken tokenizer (such as gpt-4o), dashscope tokenizer ( such as qwen3.7-max) and huggingface tokenizer. |
 | `trust_remote_code` | <class 'bool'> | `False` | whether to trust the remote code of HF models. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |

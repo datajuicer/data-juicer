@@ -1,14 +1,61 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from loguru import logger
 
 from data_juicer.core.data import NestedDataset as Dataset
 from data_juicer.ops.aggregator import MostRelevantEntitiesAggregator
-from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, FROM_FORK
+from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase, skip_if_from_fork
 
-from data_juicer.utils.constant import Fields, BatchMetaKeys, MetaKeys
+from data_juicer.utils.constant import DEFAULT_API_MODEL, Fields, BatchMetaKeys, MetaKeys
 
-@unittest.skipIf(FROM_FORK, "Skipping API-based test because running from a fork repo")
+
+class MostRelevantEntitiesAggregatorUnitTest(DataJuicerTestCaseBase):
+    """Pure logic tests that do not require an external API."""
+
+    def test_parse_output_extracts_entity_list(self):
+        op = MostRelevantEntitiesAggregator(
+            api_model="any-model",
+            entity="李莲花",
+            query_entity_type="人物",
+        )
+        self.assertEqual(
+            list(op.parse_output("## 列表\nrolea, roleb")), ["rolea", "roleb"]
+        )
+
+    def test_parse_output_returns_empty_without_entity_list(self):
+        op = MostRelevantEntitiesAggregator(
+            api_model="any-model",
+            entity="李莲花",
+            query_entity_type="人物",
+        )
+        self.assertEqual(list(op.parse_output("no list here")), [])
+        self.assertEqual(list(op.parse_output("## 列表\n")), [])
+
+    def test_retries_when_response_has_no_entity_list(self):
+        op = MostRelevantEntitiesAggregator(
+            api_model="any-model",
+            entity="李莲花",
+            query_entity_type="人物",
+            try_num=2,
+        )
+        responses = iter(["no list here", "## 列表\nrolea, roleb"])
+        model = MagicMock(side_effect=lambda *args, **kwargs: next(responses))
+        tokenizer = MagicMock()
+        tokenizer.encode.side_effect = lambda text: list(text)
+        with patch(
+            "data_juicer.ops.aggregator.most_relevant_entities_aggregator.get_model",
+            return_value=(model, tokenizer),
+        ):
+            result = op.query_most_relevant_entities(["doc"])
+        self.assertEqual(list(result), ["rolea", "roleb"])
+        self.assertEqual(model.call_count, 2)
+
+    def test_validates_required_fields(self):
+        with self.assertRaises(ValueError):
+            MostRelevantEntitiesAggregator(entity="李莲花", query_entity_type=None)
+
+@skip_if_from_fork("Skipping API-based test because running from a fork repo")
 class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
 
     def _run_helper(self, op, samples, output_key=BatchMetaKeys.most_relevant_entities):
@@ -42,7 +89,8 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
         
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物'
         )
@@ -62,7 +110,8 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
         ]
 
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物',
             input_key='events',
@@ -83,7 +132,8 @@ class MostRelevantEntitiesAggregatorTest(DataJuicerTestCaseBase):
             },
         ]
         op = MostRelevantEntitiesAggregator(
-            api_model='qwen2.5-72b-instruct',
+            api_model=DEFAULT_API_MODEL,
+            sampling_params={'enable_thinking': False},
             entity='李莲花',
             query_entity_type='人物',
             max_token_num=40

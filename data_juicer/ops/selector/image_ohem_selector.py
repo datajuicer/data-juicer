@@ -145,7 +145,6 @@ class ImageOHEMSelector(Selector):
         if not len(dataset):
             return dataset
         model = None
-        losses = []
         # Stream the top-k losses into a bounded heap to avoid a second O(n) pass.
         # heap[0] is the smallest loss in the current top-k (min-heap).
         heap = []
@@ -171,7 +170,6 @@ class ImageOHEMSelector(Selector):
                     raise ValueError("score_fn returned NaN or infinite loss")
                 for i, loss in enumerate(batch_losses):
                     global_idx = start + i
-                    losses.append(loss)
                     # Maintain a bounded min-heap of the top-k largest losses.
                     # Tie-break on -idx so that, on equal loss, the later row sits
                     # on top of the heap and gets evicted first — preserving the
@@ -185,6 +183,25 @@ class ImageOHEMSelector(Selector):
             self._release_model()
             model = None
 
+        # Sort heap entries by loss descending (and idx ascending for ties) to
+        # match nlargest's output order. The heap itself is a min-heap with no
+        # guaranteed order — we must restore the descending loss order explicitly.
+        heap_entries = [(loss, -neg_idx) for (loss, neg_idx) in heap]
+        heap_entries.sort(key=lambda x: (-x[0], x[1]))
+        indices = [idx for (loss, idx) in heap_entries]
+        all_selected = len(indices) == len(dataset)
+        if all_selected:
+            # No rows can be skipped. Annotate sequentially before reordering,
+            # avoiding an indexed gather of every input row during map().
+            losses = [0.0] * len(dataset)
+            for loss, idx in heap_entries:
+                losses[idx] = loss
+        else:
+            dataset = dataset.select(indices)
+            losses = [loss for loss, idx in heap_entries]
+
+        # Only the selected rows are returned. Reuse their heap losses rather
+        # than retaining all losses and annotating rows that will be discarded.
         def attach_loss(sample, index):
             stats = dict(sample.get(Fields.stats, {}))
             stats[self.loss_field] = float(losses[index])
@@ -192,10 +209,4 @@ class ImageOHEMSelector(Selector):
             return sample
 
         dataset = dataset.map(attach_loss, with_indices=True)
-        # Sort heap entries by loss descending (and idx ascending for ties) to
-        # match nlargest's output order. The heap itself is a min-heap with no
-        # guaranteed order — we must restore the descending loss order explicitly.
-        heap_entries = [(loss, -neg_idx) for (loss, neg_idx) in heap]
-        heap_entries.sort(key=lambda x: (-x[0], x[1]))
-        indices = [idx for (loss, idx) in heap_entries]
-        return dataset.select(indices)
+        return dataset.select(indices) if all_selected else dataset

@@ -120,8 +120,16 @@ class TextEmbdSimilarityFilter(Filter):
         n_shot = n_shot or len(dataset)
         dataset = dataset.select(range(0, n_shot))
         embeddings = self._get_embd(dataset)
-        # self.valid_feature = {"embeddings": embeddings}
         self.valid_feature.update({"embeddings": embeddings})
+        # mean(cosine(query, reference)) is the dot product of the normalized
+        # query with the mean of normalized references. Do not normalize that
+        # mean again: its magnitude is part of the average similarity score.
+        self.valid_feature.pop("mean_normalized_embedding", None)
+        if embeddings.ndim == 2 and all(embeddings.shape):
+            references = torch.from_numpy(embeddings)
+            self.valid_feature["mean_normalized_embedding"] = torch.nn.functional.normalize(
+                references, dim=1, eps=1e-8
+            ).mean(dim=0)
 
     def _sample_to_text(self, sample):
         formatter = string.Formatter()
@@ -184,13 +192,22 @@ class TextEmbdSimilarityFilter(Filter):
 
         embedding = self._get_embd_single(sample, rank)
         try:
-            similarity = (
-                torch.nn.functional.cosine_similarity(
-                    torch.tensor(embedding).view(1, -1), torch.from_numpy(self.valid_feature["embeddings"])
+            query = torch.tensor(embedding).view(1, -1)
+            mean_reference = self.valid_feature.get("mean_normalized_embedding")
+            if mean_reference is not None and query.shape[1] == mean_reference.numel() and not query.is_complex():
+                # cosine_similarity normalizes floating inputs in their own
+                # dtype before multiplication promotes them to float64.
+                if not query.is_floating_point():
+                    query = query.to(dtype=mean_reference.dtype)
+                similarity = (torch.nn.functional.normalize(query, dim=1, eps=1e-8) * mean_reference).sum().item()
+            else:
+                # Retain the original broadcasting/error behavior for unusual
+                # shapes and callers supplying validation embeddings directly.
+                similarity = (
+                    torch.nn.functional.cosine_similarity(query, torch.from_numpy(self.valid_feature["embeddings"]))
+                    .mean()
+                    .item()
                 )
-                .mean()
-                .item()
-            )
         except Exception as e:
             logger.warning(f"Exception: {e}")
             similarity = None

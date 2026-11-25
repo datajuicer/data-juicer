@@ -128,27 +128,9 @@ class RangeSpecifiedFieldSelector(Selector):
         # original row order for ties before the second-stage nlargest.
         heap_entries = [(-neg_val, -neg_idx) for (neg_val, neg_idx) in heap]
         heap_entries.sort(key=lambda x: (x[0], x[1]))
-        select_index = [idx for (val, idx) in heap_entries]
-        sub_dataset = dataset.select(select_index)
-
-        # Second pass on sub_dataset (size upper_bound) — already small enough to materialize.
-        def get_field_value_list(cur_dataset, field_keys):
-            if len(field_keys) == 1:
-                field_value_list = list(iter_column(cur_dataset, field_keys[0]))
-            else:
-                field_value_list = []
-                for item in iter_column(cur_dataset, field_keys[0]):
-                    field_value = item
-                    for key in field_keys[1:]:
-                        assert key in field_value.keys(), "'{}' not in {}".format(key, field_value.keys())
-                        field_value = field_value[key]
-                    field_value_list.append(field_value)
-            field_value_list = [stats_to_number(s) for s in field_value_list]
-            return field_value_list
-
-        field_value_list = get_field_value_list(sub_dataset, field_keys)
-        select_index = heapq.nlargest(
-            int(upper_bound - lower_bound), range(len(sub_dataset)), field_value_list.__getitem__
-        )
-
-        return sub_dataset.select(select_index)
+        # Reuse the normalized scores and original row indices. Reading a
+        # temporary sub-dataset would decode and normalize these values again
+        # and construct an extra Arrow index mapping. nlargest is stable for
+        # equal scores, retaining the ordering established above.
+        selected = heapq.nlargest(int(upper_bound - lower_bound), heap_entries, key=lambda entry: entry[0])
+        return dataset.select([idx for _, idx in selected])

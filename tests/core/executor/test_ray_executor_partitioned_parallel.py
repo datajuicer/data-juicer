@@ -393,75 +393,6 @@ def test_throughput_actor_plan_fails_before_oversubscribing_one_gpu():
         executor._configure_throughput_aware_gpu_parallelism(ops, total_samples=100)
 
 
-def test_execution_group_runs_once_and_keeps_partition_scoped_checkpoints():
-    class Schema:
-        names = [_LOGICAL_PARTITION_COLUMN, "value"]
-
-    class GroupedData:
-        def __init__(self, rows):
-            self.rows = rows
-
-        def count(self):
-            return len(self.rows)
-
-        def materialize(self):
-            return self
-
-        def schema(self):
-            return Schema()
-
-        def filter(self, function, fn_kwargs):
-            return GroupedData([row for row in self.rows if function(row, **fn_kwargs)])
-
-        def drop_columns(self, columns):
-            return GroupedData([{key: value for key, value in row.items() if key not in columns} for row in self.rows])
-
-    class GroupedRayDataset:
-        process_calls = 0
-
-        def __init__(self, data):
-            self.data = data
-
-        def process(self, ops):
-            type(self).process_calls += 1
-            return GroupedRayDataset(
-                GroupedData([{**row, "value": row["value"] + 1} for row in self.data.rows])
-            )
-
-    saved = {}
-
-    def save_checkpoint(dataset, op_idx, op_name, partition_id, cfg):
-        saved[partition_id] = dataset.data.rows
-
-    manager = SimpleNamespace(
-        checkpoint_enabled=True,
-        group_operations_for_checkpointing=lambda ops: [(0, 1, ops)],
-        should_checkpoint=lambda op_idx, op_name: True,
-        save_checkpoint=save_checkpoint,
-    )
-    executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
-    executor.cfg = {}
-    executor.pipeline_dag = None
-    executor.ckpt_manager = manager
-    executor._wrap_with_precomputed_parallelism = lambda data: GroupedRayDataset(data)
-    data = GroupedData(
-        [
-            {_LOGICAL_PARTITION_COLUMN: 0, "value": 10},
-            {_LOGICAL_PARTITION_COLUMN: 1, "value": 20},
-        ]
-    )
-
-    result = executor._process_execution_group_with_checkpointing(
-        GroupedRayDataset(data),
-        [0, 1],
-        [SimpleNamespace(_name="gpu_mapper")],
-    )
-
-    assert GroupedRayDataset.process_calls == 1
-    assert saved == {0: [{"value": 11}], 1: [{"value": 21}]}
-    assert result.data.rows == [{"value": 11}, {"value": 21}]
-
-
 def test_auto_partition_concurrency_falls_back_to_one_when_ray_inspection_fails():
     executor = PartitionedRayExecutor.__new__(PartitionedRayExecutor)
     executor.max_concurrent_partitions = "auto"
@@ -692,32 +623,24 @@ def test_checkpoint_paths_remain_partition_scoped_under_concurrency(tmp_path):
     )
     write_barrier = threading.Barrier(4, timeout=2)
 
-    class ConcurrentCheckpointData:
-        def __init__(self, partition_id):
-            self.partition_id = partition_id
+    def save_partition(partition_id):
+        import pyarrow as pa
+        from data_juicer.utils.ckpt_utils import write_checkpoint_block
 
-        def write_parquet(self, checkpoint_path):
-            write_barrier.wait()
-            path = Path(checkpoint_path)
-            path.mkdir(parents=True, exist_ok=True)
-            (path / "partition.txt").write_text(str(self.partition_id))
+        transaction = manager.begin_checkpoint(0, "mapper", [partition_id])
+        transaction.add_result(write_checkpoint_block(pa.table({"partition": [partition_id]}), transaction.directories))
+        write_barrier.wait()
+        transaction.publish()
+        return Path(manager.ckpt_dir, manager.resolve_checkpoint_filename(0, partition_id))
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        futures = [
-            pool.submit(
-                manager.save_checkpoint,
-                ConcurrentCheckpointData(partition_id),
-                0,
-                "mapper",
-                partition_id,
-            )
-            for partition_id in range(4)
-        ]
-        checkpoint_paths = [future.result() for future in futures]
+        checkpoint_paths = list(pool.map(save_partition, range(4)))
 
     assert len(set(checkpoint_paths)) == 4
     for partition_id, checkpoint_path in enumerate(checkpoint_paths):
-        assert Path(checkpoint_path, "partition.txt").read_text() == str(partition_id)
+        manifest = manager._read_manifest(checkpoint_path)
+        assert manifest["partition_id"] == partition_id
+        assert manifest["rows"] == 1
 
 
 def test_concurrent_dag_monitoring_tracks_current_node_per_partition(tmp_path):

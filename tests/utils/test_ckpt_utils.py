@@ -633,40 +633,30 @@ class RayCheckpointSaveLoadTest(DataJuicerTestCaseBase):
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 
-    def test_save_checkpoint_calls_write_parquet(self):
-        """save_checkpoint extracts .data and writes parquet."""
+    def test_save_checkpoint_retains_materialized_result(self):
+        """The save API keeps its signature and caches the saved result."""
         mgr = RayCheckpointManager(ckpt_dir=self.tmp_dir)
-
-        mock_ray_data = MagicMock()
-        mock_dataset = MagicMock()
-        mock_dataset.data = mock_ray_data
-
-        path = mgr.save_checkpoint(
-            dataset=mock_dataset, op_idx=1, op_name="filter_a",
-        )
-
-        mock_ray_data.write_parquet.assert_called_once_with(path)
+        dataset = MagicMock()
+        original = dataset.data
+        result = MagicMock()
+        with patch("data_juicer.core.data.ray_checkpoint_adapter.insert_checkpoint", return_value=result):
+            path = mgr.save_checkpoint(dataset, op_idx=1, op_name="filter_a")
+        self.assertIs(dataset.data, result.materialize.return_value)
+        self.assertIsNot(dataset.data, original)
         self.assertIn("checkpoint_op_0001", path)
 
-    def test_save_checkpoint_with_event_logger(self):
-        """save_checkpoint logs event when event_logger is provided."""
-        mock_logger = MagicMock()
-        mock_logger._log_event = MagicMock()
-        mgr = RayCheckpointManager(
-            ckpt_dir=self.tmp_dir, event_logger=mock_logger,
-        )
-
-        mock_dataset = MagicMock()
-        mock_dataset.data = MagicMock()
-
-        mgr.save_checkpoint(
-            dataset=mock_dataset, op_idx=2, op_name="clean_op",
-        )
-
-        mock_logger._log_event.assert_called_once()
-        call_kwargs = mock_logger._log_event.call_args[1]
+    def test_publish_checkpoint_with_event_logger(self):
+        """Save events follow manifest publication, including zero-row results."""
+        event_logger = MagicMock()
+        mgr = RayCheckpointManager(ckpt_dir=self.tmp_dir, event_logger=event_logger)
+        transaction = mgr.begin_checkpoint(2, "clean_op", [0])
+        event_logger._log_event.assert_not_called()
+        transaction.publish()
+        event_logger._log_event.assert_called_once()
+        call_kwargs = event_logger._log_event.call_args.kwargs
         self.assertEqual(call_kwargs["operation_name"], "clean_op")
         self.assertEqual(call_kwargs["operation_idx"], 2)
+        self.assertTrue(os.path.isfile(os.path.join(call_kwargs["metadata"]["checkpoint_path"], "manifest.json")))
 
     def test_load_checkpoint_with_event_logger(self):
         """load_checkpoint logs event when event_logger is provided."""

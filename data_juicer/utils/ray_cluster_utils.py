@@ -13,7 +13,9 @@ Key points:
   raising, so callers never need special error handling.
 """
 
+import math
 from dataclasses import dataclass
+from typing import Any, Dict, List
 
 from loguru import logger
 
@@ -77,3 +79,66 @@ def detect_cluster_topology() -> ClusterTopology:
     except Exception as e:
         logger.warning(f"Could not detect Ray cluster topology, using single-node fallback: {e}")
         return fallback
+
+
+def gpu_actor_requests_fit(
+    stage_specs: List[Dict[str, Any]], counts: List[int], total_gpus: float, gpu_devices_per_node=None
+) -> bool:
+    """Check scheduling and measured-memory fractions on individual GPUs.
+
+    Requests are processed largest first and placed with a best-fit policy,
+    preserving the largest remaining contiguous shares for later requests.
+    """
+    device_count = int(math.floor(total_gpus + 1e-9))
+    if device_count < 1:
+        return False
+    requests = []
+    for spec, count in zip(stage_specs, counts):
+        requests.extend([(spec["num_gpus"], spec["memory_fraction"], spec["max_per_device"])] * count)
+    requests.sort(key=lambda item: (max(item[0], item[1]), item[1]), reverse=True)
+    node_sizes = gpu_devices_per_node if gpu_devices_per_node is not None else (device_count,)
+    devices = [
+        {"gpu": 0.0, "memory": 0.0, "workers": 0, "node": node}
+        for node, size in enumerate(node_sizes)
+        for _ in range(size)
+    ]
+    for gpu_fraction, memory_fraction, max_per_device in requests:
+        if gpu_fraction > 1:
+            if not float(gpu_fraction).is_integer():
+                return False
+            # Ray reserves whole, same-node devices for integer requests.
+            for node in range(len(node_sizes)):
+                free = [device for device in devices if device["node"] == node and device["workers"] == 0]
+                if len(free) >= int(gpu_fraction):
+                    for device in free[: int(gpu_fraction)]:
+                        device.update(gpu=1.0, memory=1.0, workers=1)
+                    break
+            else:
+                return False
+            continue
+        eligible = [
+            device
+            for device in devices
+            if (
+                device["gpu"] + gpu_fraction <= 1.0 + 1e-9
+                and device["memory"] + memory_fraction <= 1.0 + 1e-9
+                and device["workers"] < max_per_device
+            )
+        ]
+        if not eligible:
+            return False
+
+        # Best fit avoids fragmenting devices by putting the request in the
+        # eligible device with the least remaining dominant resource share.
+        device = min(
+            eligible,
+            key=lambda item: (
+                max(1.0 - item["gpu"] - gpu_fraction, 1.0 - item["memory"] - memory_fraction),
+                2.0 - item["gpu"] - gpu_fraction - item["memory"] - memory_fraction,
+                max_per_device - item["workers"] - 1,
+            ),
+        )
+        device["gpu"] += gpu_fraction
+        device["memory"] += memory_fraction
+        device["workers"] += 1
+    return True

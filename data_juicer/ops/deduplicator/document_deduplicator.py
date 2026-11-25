@@ -4,8 +4,7 @@
 
 import hashlib
 import string
-from collections import defaultdict
-from typing import Dict, Set
+from collections import Counter
 
 import regex as re
 
@@ -85,12 +84,10 @@ class DocumentDeduplicator(Deduplicator):
 
         dup_hashes = None
         if show_num > 0:
-            # sample duplicate pairs
-            hash2ids: Dict[int, Set[int]] = defaultdict(set)
-            for sid, hash_val in enumerate(sample_hashes):
-                hash2ids[hash_val].add(sid)
-            dup_samples = sorted(list(hash2ids.items()), key=lambda x: len(x[1]), reverse=True)
-            dup_hashes = set([item[0] for item in dup_samples if len(item[1]) > 1][:show_num])
+            # Only frequencies are needed to choose trace groups, not row-ID
+            # sets. most_common preserves first-seen order for equal counts.
+            counts = Counter(sample_hashes)
+            dup_hashes = {hash_val for hash_val, count in counts.most_common(show_num) if count > 1}
 
         # keep the first sample of each hash; the kept indices are computed
         # from the hash column alone, so the other columns are never decoded

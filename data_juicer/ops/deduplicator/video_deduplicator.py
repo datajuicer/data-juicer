@@ -1,6 +1,5 @@
 import hashlib
-from collections import defaultdict
-from typing import Dict, Set, Tuple
+from collections import Counter
 
 from data_juicer.utils.constant import HashKeys
 from data_juicer.utils.mm_utils import close_video, load_data_with_context, load_video
@@ -93,16 +92,10 @@ class VideoDeduplicator(Deduplicator):
 
         dup_hashes = None
         if show_num > 0:
-            # sample duplicate pairs
-            if self.consider_text:
-                hash2ids: Dict[Tuple[int, int], Set[int]] = defaultdict(set)
-            else:
-                hash2ids: Dict[int, Set[int]] = defaultdict(set)
-            for sid, hash_val in enumerate(sample_hashes):
-                if hash_val:
-                    hash2ids[hash_val].add(sid)
-            dup_samples = sorted(list(hash2ids.items()), key=lambda x: len(x[1]), reverse=True)
-            dup_hashes = set([item[0] for item in dup_samples if len(item[1]) > 1][:show_num])
+            # Rank trace groups by frequency without retaining every row ID.
+            # most_common preserves first-seen order for equal counts.
+            counts = Counter(hash_val for hash_val in sample_hashes if hash_val)
+            dup_hashes = {hash_val for hash_val, count in counts.most_common(show_num) if count > 1}
 
         # keep the first sample of each hash, and every sample without one;
         # the kept indices are computed from the hash columns alone, so the

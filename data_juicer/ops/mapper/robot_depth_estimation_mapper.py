@@ -64,6 +64,7 @@ class RobotDepthEstimationMapper(Mapper):
         if not independent and self.inference_batch_size:
             raise ValueError("Any-view models require inference_batch_size=0 to retain the whole view context")
         views = read_json(root / "ir/sampling.json")["views"]
+        intrinsics = sample.get("camera_intrinsics")
         manifest = {
             "operator": self._name,
             "model_name": model_name,
@@ -81,7 +82,7 @@ class RobotDepthEstimationMapper(Mapper):
             count = len(view["images"])
             size = view["image_size"]
             batch = self.inference_batch_size or count
-            calibration = sample.get("camera_intrinsics", {}).get(camera)
+            calibration = intrinsics.get(camera) if intrinsics is not None else None
             records = []
             for begin in range(0, count, batch):
                 images = view["images"][begin : begin + batch]

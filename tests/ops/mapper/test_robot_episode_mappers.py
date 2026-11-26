@@ -191,6 +191,47 @@ class RobotEpisodeMappersTest(unittest.TestCase):
                 op.process_single(sample)
         model.inference.assert_not_called()
 
+    def test_depth_mapper_runs_episodes_with_and_without_intrinsics_together(self):
+        calibrated = {
+            **self.sample,
+            "camera_intrinsics": {"left": [[4800, 0, 16], [0, 4800, 16], [0, 0, 1]]},
+        }
+        uncalibrated = {**self.sample, "episode_id": "episode-8", "episode_index": 8}
+        for sample in (calibrated, uncalibrated):
+            root = robot.episode_root(sample, self.output)
+            robot.write_json(root / "ir/sampling.json", {"views": self.views})
+        dataset = NestedDataset.from_list([calibrated, uncalibrated])
+        self.assertIsNone(dataset[1]["camera_intrinsics"])
+
+        op = self._op(RobotDepthEstimationMapper)
+        model = Mock(model_name="da3metric-large")
+        model.inference.side_effect = lambda image, **kwargs: SimpleNamespace(
+            depth=np.ones((len(image), 4, 4), dtype=np.float32), is_metric=True
+        )
+        with patch("data_juicer.ops.mapper.robot_depth_estimation_mapper.get_model", return_value=model):
+            rows = op.run(dataset).to_list()
+        self.assertEqual([row["episode_id"] for row in rows], ["episode-7", "episode-8"])
+        for row in rows:
+            manifest = robot.read_json(row["depth_ir"])
+            self.assertEqual(set(manifest["views"]), {"left", "right"})
+            for camera, view in manifest["views"].items():
+                with self.subTest(episode=row["episode_id"], camera=camera):
+                    has_intrinsics = row["episode_id"] == "episode-7" and camera == "left"
+                    self.assertEqual(len(view["frames"]), 8)
+                    units = "metres" if has_intrinsics else "focal_normalized"
+                    self.assertTrue(all(frame["units"] == units for frame in view["frames"]))
+                    first_frame = Path(row["episode_dir"]) / view["frames"][0]["path"]
+                    with np.load(first_frame) as prediction:
+                        self.assertEqual("intrinsics" in prediction, has_intrinsics)
+                        np.testing.assert_allclose(prediction["depth"], 2.0 if has_intrinsics else 1.0)
+
+        invalid = {**calibrated, "camera_intrinsics": {"left": [[1, 0], [0, 1]]}}
+        with (
+            patch("data_juicer.ops.mapper.robot_depth_estimation_mapper.get_model", return_value=model),
+            self.assertRaisesRegex(ValueError, "finite 3x3 matrix"),
+        ):
+            op.run(NestedDataset.from_list([invalid]))
+
     def test_depth_mapper_can_run_twice_after_models_are_freed(self):
         sample = self._geometry_inputs()
         loaded = []

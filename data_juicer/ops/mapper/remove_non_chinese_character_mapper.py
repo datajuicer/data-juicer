@@ -29,7 +29,9 @@ class RemoveNonChineseCharacterlMapper(Mapper):
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
-        self.pattern = "[^\u4e00-\u9fa5"
+        # 〇 (U+3007) is outside the 4E00-9FA5 range but is the zero of Chinese
+        # numerals, as in 二〇二四年, so removing it would change the numbers.
+        self.pattern = "[^\u4e00-\u9fa5\u3007"
         if keep_alphabet:
             self.pattern += "A-Za-z"
         if keep_number:

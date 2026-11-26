@@ -4,7 +4,12 @@ import pyarrow
 
 from data_juicer.utils.common_utils import dict_to_hash, nested_access
 
-from ..base_op import DEFAULT_BATCH_SIZE, OPERATORS, Grouper, convert_list_dict_to_dict_list
+from ..base_op import (
+    DEFAULT_BATCH_SIZE,
+    OPERATORS,
+    Grouper,
+    convert_list_dict_to_dict_list,
+)
 from .naive_grouper import NaiveGrouper
 
 

@@ -60,6 +60,24 @@ class RemoveHeaderMapperTest(DataJuicerTestCaseBase):
         }]
         self._run_remove_header(samples)
 
+    def test_backslash_without_header_keeps_text(self):
+        # The backslash check passes, but no alternative matches: the search
+        # returns None and the text must survive when drop_no_head is False.
+        self.op = RemoveHeaderMapper(drop_no_head=False)
+        samples = [{
+            'text': 'A \\alpha $x$ and \\beta{y} but no heading.',
+            'target': 'A \\alpha $x$ and \\beta{y} but no heading.',
+        }]
+        self._run_remove_header(samples)
+
+    def test_backslash_without_header_drops_text(self):
+        # Same path with the default drop_no_head=True.
+        samples = [{
+            'text': 'A \\alpha $x$ and \\beta{y} but no heading.',
+            'target': '',
+        }]
+        self._run_remove_header(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -29,26 +29,40 @@ class RemoveHeaderMapper(Mapper):
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
-        self.pattern = r"^(.*?)("
-        self.pattern += r"\\\bchapter\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
-        self.pattern += r"\\\bpart\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
-        self.pattern += r"\\\bsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
-        self.pattern += r"\\\bsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
-        self.pattern += r"\\\bsubsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
-        self.pattern += r"\\\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
-        self.pattern += r"\\\bsubparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"
-        self.pattern += r")"
+        headers = (
+            r"\\\bchapter\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+            r"\\\bpart\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+            r"\\\bsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+            r"\\\bsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+            r"\\\bsubsubsection\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+            r"\\\bparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}|"
+            r"\\\bsubparagraph\b\*?(?:\[(.*?)\])?\{(.*?)\}"
+        )
+        # `^(.*?)(...)` anchors the match to the start, so the engine has to
+        # retry from every offset and cannot use its literal-prefix fast
+        # search. Searching the headers on their own and slicing the text
+        # gives the same result with a cheaper scan.
+        # Keep the plain-string attribute that existed before this change;
+        # subclass code and callers may read it.
+        self.pattern = headers
+        self.header_pattern = re.compile(headers, re.DOTALL)
 
         self.drop_no_head = drop_no_head
 
     def process_batched(self, samples):
         for idx, text in enumerate(samples[self.text_key]):
-            if not re.search(self.pattern, text, flags=re.DOTALL):
+            # Every alternative starts with a literal backslash, so text without
+            # one cannot contain a header. This is a C-level scan and skips the
+            # regex entirely on plain text.
+            if "\\" not in text:
                 if self.drop_no_head:
                     samples[self.text_key][idx] = ""
                 continue
-            text = re.sub(pattern=self.pattern, repl=r"\2", string=text, flags=re.DOTALL)
-
-            samples[self.text_key][idx] = text
+            match = self.header_pattern.search(text)
+            if match is None:
+                if self.drop_no_head:
+                    samples[self.text_key][idx] = ""
+                continue
+            samples[self.text_key][idx] = text[match.start() :]
 
         return samples

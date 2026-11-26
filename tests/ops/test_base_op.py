@@ -617,6 +617,39 @@ class FilterProcessTest(DataJuicerTestCaseBase):
 
 class FilterRunOptionsTest(DataJuicerTestCaseBase):
 
+    def test_run_appends_stats_without_rewriting_input(self):
+        from data_juicer.core.data import NestedDataset, add_same_content_to_new_column
+
+        dataset = NestedDataset.from_dict({'text': ['hi', 'hello world', 'another']})
+        op = LengthFilter(auto_op_parallelism=False)
+        baseline = dataset.map(
+            add_same_content_to_new_column,
+            fn_kwargs={'new_column_name': Fields.stats, 'initial_value': {}},
+        )
+        initialized = OP.run(op, dataset)
+        self.assertEqual(initialized.features, baseline.features)
+        self.assertEqual(initialized.to_list(), baseline.to_list())
+        self.assertEqual(
+            initialized.data.column('text').chunk(0).buffers()[2].address,
+            dataset.data.column('text').chunk(0).buffers()[2].address,
+        )
+        self.assertEqual(op.run(dataset).to_list(), [
+            {'text': 'hello world', Fields.stats: {'text_len': 11}},
+            {'text': 'another', Fields.stats: {'text_len': 7}},
+        ])
+
+    def test_run_preserves_indexed_order_and_duplicates(self):
+        from data_juicer.core.data import NestedDataset
+
+        dataset = NestedDataset.from_dict({'text': ['hi', 'hello world', 'another']})
+        indexed = dataset.select([2, 0, 1, 2])
+        result = LengthFilter(auto_op_parallelism=False).run(indexed)
+        self.assertEqual(result.to_list(), [
+            {'text': 'another', Fields.stats: {'text_len': 7}},
+            {'text': 'hello world', Fields.stats: {'text_len': 11}},
+            {'text': 'another', Fields.stats: {'text_len': 7}},
+        ])
+
     def test_run_reduce_false(self):
         from data_juicer.core.data import NestedDataset
         ds = NestedDataset.from_list([

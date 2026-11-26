@@ -456,6 +456,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.constant</span><span class="w"> </span><span class="kn">import</span> <span class="n">CameraCalibrationKeys</span><span class="p">,</span> <span class="n">Fields</span><span class="p">,</span> <span class="n">MetaKeys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.ffmpeg_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_ffmpeg</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_juicer.utils.lazy_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyLoader</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..base_op</span><span class="w"> </span><span class="kn">import</span> <span class="n">OPERATORS</span><span class="p">,</span> <span class="n">Mapper</span>
@@ -559,11 +560,12 @@
                 <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"file '</span><span class="si">{</span><span class="n">video_name</span><span class="si">}</span><span class="s2">_b</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">.ts'</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="c1"># Merge using ffmpeg concat demuxer</span>
-        <span class="n">ffmpeg</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">inputs_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"concat"</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">output</span><span class="p">(</span>
+        <span class="n">stream</span> <span class="o">=</span> <span class="n">ffmpeg</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">inputs_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"concat"</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">output</span><span class="p">(</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">video_name</span><span class="si">}</span><span class="s2">.mp4"</span><span class="p">),</span>
             <span class="n">c</span><span class="o">=</span><span class="s2">"copy"</span><span class="p">,</span>
             <span class="n">movflags</span><span class="o">=</span><span class="s2">"frag_keyframe+empty_moov"</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">overwrite_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">run_ffmpeg</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">overwrite_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capture_stderr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># Cleanup temporary TS files and list file</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_counts</span><span class="p">):</span>

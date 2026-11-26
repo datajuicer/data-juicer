@@ -8,6 +8,10 @@ This operator groups samples by the values of the given keys, which can be neste
 
 该算子根据给定键的值对样本进行分组，这些键可以是嵌套的。如果没有提供键，则默认使用文本键。它使用一种简单的分组策略来将具有相同键值的样本分批。生成的数据集是一个批次样本列表，每个批次包含具有相同键值的样本。这对于按特定属性或特征组织数据非常有用。
 
+With `executor_type: ray`, samples are grouped across Ray blocks. Each group must fit in memory on one worker. Group order and sample order within a group may differ from the default executor.
+
+使用 `executor_type: ray` 时，算子会跨 Ray block 分组。单个分组必须能放入一个 worker 的内存。分组及组内样本的顺序可能与默认执行器不同。
+
 Type 算子类型: **grouper**
 
 Tags 标签: cpu, text

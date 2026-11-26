@@ -1,4 +1,5 @@
 import heapq
+from numbers import Integral, Real
 from typing import Optional
 
 from pydantic import Field, PositiveInt
@@ -63,6 +64,14 @@ class RangeSpecifiedFieldSelector(Selector):
         :param args: extra args
         :param kwargs: extra args
         """
+        for name, value in (("lower_rank", lower_rank), ("upper_rank", upper_rank)):
+            if value is not None and (isinstance(value, bool) or not isinstance(value, Integral) or value < 1):
+                raise ValueError(f"range_specified_field_selector: {name} must be a positive integer")
+
+        for name, value in (("lower_percentile", lower_percentile), ("upper_percentile", upper_percentile)):
+            if value is not None and (isinstance(value, bool) or not isinstance(value, Real) or not 0 <= value <= 1):
+                raise ValueError(f"range_specified_field_selector: {name} must be a number between 0 and 1")
+
         super().__init__(*args, **kwargs)
         self.field_key = field_key
         self.lower_percentile = lower_percentile

@@ -464,6 +464,8 @@
 <p>This operator groups samples by the values of the given keys, which can be nested. If no keys are provided, it defaults to using the text key. It uses a naive grouping strategy to batch samples with identical key values. The resulting dataset is a list of batched samples, where each batch contains samples that share the same key values. This is useful for organizing data by specific attributes or features.</p>
 <p>根据指定键的值对样本进行分组。</p>
 <p>该算子根据给定键的值对样本进行分组，这些键可以是嵌套的。如果没有提供键，则默认使用文本键。它使用一种简单的分组策略来将具有相同键值的样本分批。生成的数据集是一个批次样本列表，每个批次包含具有相同键值的样本。这对于按特定属性或特征组织数据非常有用。</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">executor_type:</span> <span class="pre">ray</span></code>, samples are grouped across Ray blocks. Each group must fit in memory on one worker. Group order and sample order within a group may differ from the default executor.</p>
+<p>使用 <code class="docutils literal notranslate"><span class="pre">executor_type:</span> <span class="pre">ray</span></code> 时，算子会跨 Ray block 分组。单个分组必须能放入一个 worker 的内存。分组及组内样本的顺序可能与默认执行器不同。</p>
 <p>Type 算子类型: <strong>grouper</strong></p>
 <p>Tags 标签: cpu, text</p>
 <section id="parameter-configuration">

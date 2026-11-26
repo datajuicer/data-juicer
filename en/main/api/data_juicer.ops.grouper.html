@@ -172,6 +172,12 @@ It is [self.text_key] in default.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="data_juicer.ops.grouper.KeyValueGrouper.run_ray">
+<span class="sig-name descname"><span class="pre">run_ray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/grouper/key_value_grouper.html#KeyValueGrouper.run_ray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.grouper.KeyValueGrouper.run_ray" title="Link to this definition">¶</a></dt>
+<dd><p>Group across Ray blocks. Each group must fit in memory on one worker.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -271,6 +277,7 @@ Just drop the batch meta if it is None.</p></li>
 <li><a class="reference internal" href="#data_juicer.ops.grouper.KeyValueGrouper"><code class="docutils literal notranslate"><span class="pre">KeyValueGrouper</span></code></a><ul>
 <li><a class="reference internal" href="#data_juicer.ops.grouper.KeyValueGrouper.__init__"><code class="docutils literal notranslate"><span class="pre">KeyValueGrouper.__init__()</span></code></a></li>
 <li><a class="reference internal" href="#data_juicer.ops.grouper.KeyValueGrouper.process"><code class="docutils literal notranslate"><span class="pre">KeyValueGrouper.process()</span></code></a></li>
+<li><a class="reference internal" href="#data_juicer.ops.grouper.KeyValueGrouper.run_ray"><code class="docutils literal notranslate"><span class="pre">KeyValueGrouper.run_ray()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#data_juicer.ops.grouper.NaiveGrouper"><code class="docutils literal notranslate"><span class="pre">NaiveGrouper</span></code></a><ul>

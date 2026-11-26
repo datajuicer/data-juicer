@@ -4,6 +4,8 @@ import regex as re
 
 from ..base_op import OPERATORS, Mapper
 
+_IPV4_FRAGMENT = re.compile(r"[0-9]\.[0-9]")
+
 
 @OPERATORS.register_module("clean_ip_mapper")
 class CleanIpMapper(Mapper):
@@ -72,11 +74,23 @@ class CleanIpMapper(Mapper):
                 pattern.startswith("r'") and pattern.endswith("'") or pattern.startswith('r"') and pattern.endswith('"')
             ):
                 self.pattern = pattern[2:-1]
+        self._default_pattern = self.pattern if pattern is None else None
         self.repl = repl
 
     def process_batched(self, samples):
+        use_prefilter = getattr(self, "_default_pattern", None) == self.pattern
+        address = re.compile(self.pattern, flags=re.DOTALL)
         for idx, text in enumerate(samples[self.text_key]):
-            if not re.search(self.pattern, text, flags=re.DOTALL):
+            if (
+                use_prefilter
+                and text.count(":") < 7
+                and "::" not in text
+                and ("." not in text or not _IPV4_FRAGMENT.search(text))
+            ):
+                # Uncompressed IPv6 needs seven colons. Compressed IPv6
+                # contains "::", and IPv4 (including embedded) needs digit-dot-digit.
                 continue
-            samples[self.text_key][idx] = re.sub(pattern=self.pattern, repl=self.repl, string=text, flags=re.DOTALL)
+            if not address.search(text):
+                continue
+            samples[self.text_key][idx] = address.sub(self.repl, text)
         return samples

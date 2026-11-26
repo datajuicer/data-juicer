@@ -88,6 +88,14 @@ class MetaKeys(object):
     video_depth_tags = "video_depth_tags"
     # # video optical flow
     video_optical_flow = "video_optical_flow"
+    # # video normal map
+    video_normal_map_tags = "video_normal_map_tags"
+    # # video optical flow tags
+    video_optical_flow_tags = "video_optical_flow_tags"
+    # # video universal segmentation tags
+    video_universal_segmentation_tags = "video_universal_segmentation_tags"
+    # # video human 3d pose tags
+    video_human_3d_pose_tags = "video_human_3d_pose_tags"
     # # info extracted by VGGT
     vggt_tags = "vggt_tags"
     # # image tags
@@ -340,6 +348,8 @@ class StatsKeysConstant(object):
     alnum_ratio = "alnum_ratio"
     avg_line_length = "avg_line_length"
     char_rep_ratio = "char_rep_ratio"
+    contamination_ngram_count = "contamination_ngram_count"
+    contamination_ratio = "contamination_ratio"
     flagged_words_ratio = "flagged_words_ratio"
     in_context_influence = "in_context_influence"
     ifd_score = "ifd_score"

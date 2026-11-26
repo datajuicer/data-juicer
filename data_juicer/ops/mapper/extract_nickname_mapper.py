@@ -8,6 +8,10 @@ from pydantic import PositiveInt
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.text_field_utils import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 
 OP_NAME = "extract_nickname_mapper"
 
@@ -146,11 +150,11 @@ class ExtractNicknameMapper(Mapper):
     def process_single(self, sample, rank=None):
         # check if it's generated already
         if self.nickname_key in sample[Fields.meta]:
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
         client = get_model(self.model_key, rank=rank)
 
-        input_prompt = self.input_template.format(text=sample[self.text_key])
+        input_prompt = self.input_template.format(text=read_text_from_sample(sample, self.text_key))
         messages = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": input_prompt}]
         nickname_relations = [
             {
@@ -173,6 +177,6 @@ class ExtractNicknameMapper(Mapper):
 
         sample[Fields.meta][self.nickname_key] = nickname_relations
         if self.drop_text:
-            sample.pop(self.text_key)
+            remove_text_from_sample(sample, self.text_key)
 
         return sample

@@ -53,6 +53,15 @@ class RandomSampleTest(DataJuicerTestCaseBase):
         result = random_sample(ds, sample_number=7)
         self.assertEqual(len(result), 7)
 
+    def test_upsample_matches_seeded_cycles(self):
+        dataset = self._make_dataset(10)
+        for source in (dataset, dataset.shuffle(seed=19)):
+            for sample_number in (11, 20, 21):
+                with self.subTest(sample_number=sample_number):
+                    expected = source.shuffle(seed=42).select([i % len(source) for i in range(sample_number)])
+                    result = random_sample(source, sample_number=sample_number)
+                    self.assertEqual(list(result["text"]), list(expected["text"]))
+
     def test_weight_zero(self):
         """weight=0 with sample_number=0 → ceil(0)=0 → empty subset."""
         ds = self._make_dataset(10)
@@ -65,6 +74,15 @@ class RandomSampleTest(DataJuicerTestCaseBase):
         result = random_sample(ds, weight=0.15)
         # ceil(10 * 0.15) = ceil(1.5) = 2
         self.assertEqual(len(result), 2)
+
+    def test_matches_shuffle_selection_for_same_seed(self):
+        """The fast path must keep the rows `shuffle(seed).select()` returns."""
+        ds = self._make_dataset(10)
+        for sample_number in (3, 7):
+            for seed in (0, 1, 123):
+                result = random_sample(ds, sample_number=sample_number, seed=seed)
+                expected = ds.shuffle(seed=seed).select(range(sample_number))
+                self.assertEqual(result["text"], expected["text"])
 
 
 if __name__ == "__main__":

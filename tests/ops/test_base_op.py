@@ -902,6 +902,7 @@ class TestBaseParamsSync(unittest.TestCase):
             "RayBasicDeduplicator": ("ray", "ray_partitioned"),
             "RayDocumentDeduplicator": ("ray", "ray_partitioned"),
             "RayImageDeduplicator": ("ray", "ray_partitioned"),
+            "RayImageBTSMinhashDeduplicator": ("ray", "ray_partitioned"),
             "RayVideoDeduplicator": ("ray", "ray_partitioned"),
             "RayBTSMinhashDeduplicator": ("ray", "ray_partitioned"),
             "RayBTSMinhashCppDeduplicator": ("ray", "ray_partitioned"),

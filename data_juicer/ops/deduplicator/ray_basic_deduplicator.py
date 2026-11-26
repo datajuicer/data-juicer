@@ -144,14 +144,15 @@ class RayBasicDeduplicator(Filter):
         return True
 
     def calculate_hash(self, sample, context=False):
-        """Calculate hash value for the sample."""
+        """Calculate hash value for the sample, or None if the sample has
+        nothing to deduplicate on (e.g. no image), which keeps it."""
         raise NotImplementedError
 
     def compute_stats_single(self, sample, context=False):
         # compute hash
         md5_value = self.calculate_hash(sample, context)
         # check existing
-        sample[HashKeys.is_unique] = self.backend.is_unique(md5_value)
+        sample[HashKeys.is_unique] = md5_value is None or self.backend.is_unique(md5_value)
         return sample
 
     def process_single(self, sample):

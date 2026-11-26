@@ -38,11 +38,12 @@ class CleanEmailMapper(Mapper):
                 self.pattern = pattern[2:-1]
 
         self.repl = repl
+        self._email_pattern = re.compile(self.pattern, re.DOTALL)
 
     def process_batched(self, samples):
         for idx, text in enumerate(samples[self.text_key]):
-            if not re.search(self.pattern, text, flags=re.DOTALL):
+            if self._email_pattern.search(text) is None:
                 continue
-            samples[self.text_key][idx] = re.sub(pattern=self.pattern, repl=self.repl, string=text, flags=re.DOTALL)
+            samples[self.text_key][idx] = self._email_pattern.sub(self.repl, text)
 
         return samples

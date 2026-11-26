@@ -551,6 +551,88 @@ class LatexFigureContextExtractorMapperTest(DataJuicerTestCaseBase):
         self.assertEqual(results[0]['caption'],
                          'Unnumbered caption text')
 
+    # ------------------------------------------------------------------
+    # 22. Minipages with their own captions and no outer caption
+    # ------------------------------------------------------------------
+    def test_minipages_as_independent_figures(self):
+        latex = (
+            'See \\ref{fig:x} and \\ref{fig:y}.\n\n'
+            '\\begin{figure}\n'
+            '\\begin{minipage}{0.48\\linewidth}\n'
+            '\\includegraphics{x.png}\\caption{X}\\label{fig:x}\n'
+            '\\end{minipage}\n'
+            '\\begin{minipage}{0.48\\linewidth}\n'
+            '\\includegraphics{y.png}\\caption{Y}\\label{fig:y}\n'
+            '\\end{minipage}\n'
+            '\\end{figure}\n'
+        )
+        results = self._run_mapper([{'text': latex}])
+        self.assertEqual([r['images'] for r in results],
+                         [['x.png'], ['y.png']])
+        self.assertEqual([r['caption'] for r in results], ['X', 'Y'])
+        self.assertEqual([r['label'] for r in results], ['fig:x', 'fig:y'])
+        self.assertEqual([r['parent_label'] for r in results], ['', ''])
+        self.assertEqual([len(r['citing_paragraphs']) for r in results],
+                         [1, 1])
+
+    # ------------------------------------------------------------------
+    # 23. Minipages that only lay out images under one caption
+    # ------------------------------------------------------------------
+    def test_minipages_under_one_caption(self):
+        latex = (
+            'As \\ref{fig:pair} shows, both runs converge.\n\n'
+            '\\begin{figure}\n'
+            '\\begin{minipage}{0.48\\linewidth}\n'
+            '\\includegraphics{a.png}\n'
+            '\\end{minipage}\n'
+            '\\begin{minipage}{0.48\\linewidth}\n'
+            '\\includegraphics{b.png}\n'
+            '\\end{minipage}\n'
+            '\\caption{Loss on both datasets}\\label{fig:pair}\n'
+            '\\end{figure}\n'
+        )
+        results = self._run_mapper([{'text': latex}])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['images'], ['a.png', 'b.png'])
+        self.assertEqual(results[0]['caption'], 'Loss on both datasets')
+        self.assertEqual(results[0]['label'], 'fig:pair')
+        self.assertEqual(results[0]['parent_label'], '')
+        self.assertEqual(len(results[0]['citing_paragraphs']), 1)
+
+    # ------------------------------------------------------------------
+    # 24. Captioned minipages under an outer caption are subfigures
+    # ------------------------------------------------------------------
+    def test_captioned_minipages_under_outer_caption(self):
+        latex = (
+            'Figure \\ref{fig:both} compares the two.\n\n'
+            'The baseline is in \\ref{fig:left}.\n\n'
+            '\\begin{figure}\n'
+            '\\begin{minipage}{0.48\\linewidth}\n'
+            '\\includegraphics{a.png}\\caption{Baseline}\\label{fig:left}\n'
+            '\\end{minipage}\n'
+            '\\begin{minipage}{0.48\\linewidth}\n'
+            '\\includegraphics{b.png}\\caption{Ours}\\label{fig:right}\n'
+            '\\end{minipage}\n'
+            '\\begin{minipage}{0.3\\linewidth}\n'
+            '\\captionof{table}{Scores}\\begin{tabular}{c}1\\end{tabular}\n'
+            '\\end{minipage}\n'
+            '\\caption{Baseline and ours}\\label{fig:both}\n'
+            '\\end{figure}\n'
+        )
+        results = self._run_mapper([{'text': latex}])
+        self.assertEqual([r['images'] for r in results],
+                         [['a.png'], ['b.png']])
+        self.assertEqual([r['caption'] for r in results],
+                         ['Baseline', 'Ours'])
+        self.assertEqual([r['parent_caption'] for r in results],
+                         ['Baseline and ours', 'Baseline and ours'])
+        self.assertEqual([r['parent_label'] for r in results],
+                         ['fig:both', 'fig:both'])
+        # Both rows get the paragraph citing the parent; the first
+        # also gets the one citing its own label.
+        self.assertEqual([len(r['citing_paragraphs']) for r in results],
+                         [2, 1])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -42,11 +42,11 @@ Data-Juicer 中的算子分为以下 8 种类型。
 | Type 类型 | Number 数量 | Description 描述 |
 |------|:------:|-------------|
 | [aggregator](#aggregator) | 4 | Aggregate for batched samples, such as summary or conclusion. 对批量样本进行汇总，如得出总结或结论。 |
-| [deduplicator](#deduplicator) | 10 | Detects and removes duplicate samples. 识别、删除重复样本。 |
-| [filter](#filter) | 58 | Filters out low-quality samples. 过滤低质量样本。 |
+| [deduplicator](#deduplicator) | 11 | Detects and removes duplicate samples. 识别、删除重复样本。 |
+| [filter](#filter) | 59 | Filters out low-quality samples. 过滤低质量样本。 |
 | [formatter](#formatter) | 8 | Discovers, loads, and canonicalizes source data. 发现、加载、规范化原始数据。 |
 | [grouper](#grouper) | 3 | Group samples to batched samples. 将样本分组，每一组组成一个批量样本。 |
-| [mapper](#mapper) | 138 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
+| [mapper](#mapper) | 142 | Edits and transforms samples. 对数据样本进行编辑和转换。 |
 | [pipeline](#pipeline) | 3 | Applies dataset-level processing; both input and output are datasets. 执行数据集级别的操作，输入和输出均为完整数据集。 |
 | [selector](#selector) | 6 | Selects top samples based on ranking. 基于排序选取高质量样本。 |
 
@@ -88,6 +88,7 @@ All the specific operators are listed below, each featured with several capabili
 | document_minhash_deduplicator | 🔤Text 💻CPU 🟢Stable | Deduplicates samples at the document level using MinHash LSH. 使用MinHash LSH在文档级别删除重复样本。 | [info](operators/deduplicator/document_minhash_deduplicator.md) | - |
 | document_simhash_deduplicator | 🔤Text 💻CPU 🟢Stable | Deduplicates samples at the document level using SimHash. 使用SimHash在文档级别删除重复的样本。 | [info](operators/deduplicator/document_simhash_deduplicator.md) | - |
 | image_deduplicator | 🏞Image 💻CPU 🟢Stable | Deduplicates samples at the document level by exact matching of images. 通过图像的精确匹配在文档级别删除重复的样本。 | [info](operators/deduplicator/image_deduplicator.md) | - |
+| ray_bts_image_minhash_deduplicator | 🏞Image 🚀GPU 🧩HF 🟡Beta | A distributed image deduplicator using MinHash LSH and BTS Union-Find on Ray. 使用MinHash LSH和BTS Union-Find on Ray的分布式图像去重器。 | [info](operators/deduplicator/ray_bts_image_minhash_deduplicator.md) | [BTS Union-Find](https://ieeexplore.ieee.org/document/10598116) |
 | ray_bts_minhash_deduplicator | 🔤Text 💻CPU 🟡Beta | A MinhashLSH deduplicator that operates in Ray distributed mode. 在Ray分布式模式下运行的MinhashLSH重复数据删除程序。 | [info](operators/deduplicator/ray_bts_minhash_deduplicator.md) | [BTS Union-Find](https://ieeexplore.ieee.org/document/10598116) |
 | ray_document_deduplicator | 🔤Text 💻CPU 🟡Beta | Deduplicates samples at the document level using exact matching in Ray distributed mode. 在Ray分布式模式下使用精确匹配在文档级别删除重复的样本。 | [info](operators/deduplicator/ray_document_deduplicator.md) | - |
 | ray_image_deduplicator | 🏞Image 💻CPU 🟡Beta | Deduplicates samples at the document level using exact matching of images in Ray distributed mode. 在光线分布模式下使用图像的精确匹配在文档级别删除重复样本。 | [info](operators/deduplicator/ray_image_deduplicator.md) | - |
@@ -103,6 +104,7 @@ All the specific operators are listed below, each featured with several capabili
 | audio_nmf_snr_filter | 📣Audio 💻CPU 🟢Stable | Keep data samples whose audio Signal-to-Noise Ratios (SNRs) are within a specified range. 保留音频信噪比 (snr) 在指定范围内的数据样本。 | [info](operators/filter/audio_nmf_snr_filter.md) | - |
 | audio_size_filter | 📣Audio 💻CPU 🟢Stable | Keep data samples based on the size of their audio files. 根据音频文件的大小保留数据样本。 | [info](operators/filter/audio_size_filter.md) | - |
 | average_line_length_filter | 🔤Text 💻CPU 🟢Stable | Filter to keep samples with average line length within a specific range. 过滤器，以保持平均线长度在特定范围内的样本。 | [info](operators/filter/average_line_length_filter.md) | - |
+| benchmark_contamination_filter | 🔤Text 💻CPU 🟡Beta | Filter out samples that are contaminated by a benchmark corpus. 过滤出被基准语料库污染的样本。 | - | - |
 | character_repetition_filter | 🔤Text 💻CPU 🟢Stable | Filter to keep samples with character-level n-gram repetition ratio within a specific range. 过滤器将具有字符级n-gram重复比的样本保持在特定范围内。 | [info](operators/filter/character_repetition_filter.md) | - |
 | flagged_words_filter | 🔤Text 💻CPU 🟢Stable | Filter to keep samples with flagged-word ratio in a specified range. 过滤器将标记词比率的样本保留在指定范围内。 | [info](operators/filter/flagged_words_filter.md) | - |
 | general_field_filter | 💻CPU 🟡Beta | Filter to keep samples based on a general field filter condition. 根据常规字段筛选条件保留样本。 | [info](operators/filter/general_field_filter.md) | - |
@@ -305,9 +307,12 @@ All the specific operators are listed below, each featured with several capabili
 | video_hand_motion_smooth_mapper | 🎬Video 💻CPU 🟡Beta | Apply smoothing to world-space hand motions and remove outliers. 对世界空间手部运动应用平滑并移除异常值。 | [info](operators/mapper/video_hand_motion_smooth_mapper.md) | [arxiv 2510.21571](https://arxiv.org/abs/2510.21571) |
 | video_hand_reconstruction_hawor_mapper | 🎬Video 🚀GPU 🟡Beta | Use HaWoR and MoGe-2 for hand reconstruction. 使用HaWoR和MoGe-2进行手部重建。 | [info](operators/mapper/video_hand_reconstruction_hawor_mapper.md) | - |
 | video_hand_reconstruction_mapper | 🎬Video 🚀GPU 🔴Alpha | Use the WiLoR model for hand localization and reconstruction. 使用WiLoR模型进行手部定位和重建。 | [info](operators/mapper/video_hand_reconstruction_mapper.md) | - |
+| video_human_3d_pose_mapper | 🎬Video 🚀GPU 🟡Beta | Extract 3D human pose with Human3R (SMPL-X). 使用Human3R (SMPL-X) 提取3D人体姿势。 | [info](operators/mapper/video_human_3d_pose_mapper.md) | - |
 | video_human_tracks_extraction_mapper | 🎬Video 🚀GPU 🟡Beta | Extract face and human bounding box tracks from videos. 从视频中提取人脸和人体边界框轨迹. | [info](operators/mapper/video_human_tracks_extraction_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
 | video_human_tracks_face_demographic_mapper | 🎬Video 💻CPU 🟡Beta | Mapper to generate samples whose captions are generated based on a video-to-text model and sampled video frame. 映射器生成样本，其字幕是基于视频到文本模型和采样的视频帧生成的。 | [info](operators/mapper/video_human_tracks_face_demographic_mapper.md) | [HumanVBench](https://arxiv.org/abs/2412.17574) |
+| video_normal_map_mapper | 🎬Video 🚀GPU 🟡Beta | Generate normal maps for videos (with the Metric3D model). 为视频生成法线贴图 (使用Metric3D模型)。 | [info](operators/mapper/video_normal_map_mapper.md) | - |
 | video_object_segmenting_mapper | 🎬Video 🚀GPU 🧩HF 🟡Beta | Text-guided semantic segmentation of valid objects throughout the video (YOLOE + SAM2). 在整个视频中对有效对象进行文本引导的语义分割 (YOLOE SAM2)。 | [info](operators/mapper/video_object_segmenting_mapper.md) | - |
+| video_optical_flow_mapper | 🎬Video 🚀GPU 🟡Beta | Generate optical flow information for videos. 生成视频的光流信息。 | [info](operators/mapper/video_optical_flow_mapper.md) | - |
 | video_remove_watermark_mapper | 🎬Video 💻CPU 🟢Stable | Remove watermarks from videos based on specified regions. 根据指定区域从视频中删除水印。 | [info](operators/mapper/video_remove_watermark_mapper.md) | - |
 | video_resize_aspect_ratio_mapper | 🎬Video 💻CPU 🟢Stable | Resizes videos to fit within a specified aspect ratio range. 调整视频大小以适应指定的宽高比范围。 | [info](operators/mapper/video_resize_aspect_ratio_mapper.md) | - |
 | video_resize_resolution_mapper | 🎬Video 💻CPU 🟢Stable | Resizes video resolution based on specified width and height constraints. 根据指定的宽度和高度限制调整视频分辨率。 | [info](operators/mapper/video_resize_resolution_mapper.md) | - |
@@ -318,6 +323,7 @@ All the specific operators are listed below, each featured with several capabili
 | video_tagging_from_frames_mapper | 🎬Video 🚀GPU 🟢Stable | Generates video tags from frames extracted from videos. 从视频中提取的帧生成视频标签。 | [info](operators/mapper/video_tagging_from_frames_mapper.md) | - |
 | video_trajectory_overlay_mapper | 🎬Video 💻CPU 🟡Beta | Prepare VLM-ready frames by sampling and overlaying hand trajectories. 通过采样和覆盖手部轨迹来准备VLM就绪帧。 | [info](operators/mapper/video_trajectory_overlay_mapper.md) | [arxiv 2510.21571](https://arxiv.org/abs/2510.21571) |
 | video_undistort_mapper | 🎬Video 💻CPU 🟡Beta | Undistort raw videos with corresponding camera intrinsics and distortion coefficients. 使用相应的相机固有特性和失真系数对原始视频进行失真。 | [info](operators/mapper/video_undistort_mapper.md) | - |
+| video_universal_segmentation_mapper | 🎬Video 🚀GPU 🧩HF 🟡Beta | Generate semantic segmentation, instance segmentation, and panoptic segmentation information for videos (with the OneFormer model). 生成视频的语义分割、实例分割和全景分割信息 (使用OneFormer模型)。 | [info](operators/mapper/video_universal_segmentation_mapper.md) | - |
 | video_whole_body_pose_estimation_mapper | 🎬Video 🚀GPU 🟡Beta | Input a video containing people, and use the DWPose model to extract the body, hand, feet, and face keypoints of the human subjects in the video, i.e., 2D Whole-body Pose Estimation. 输入包含人的视频，并使用DWPose模型来提取视频中人类主体的身体、手、脚和面部关键点，即2D全身姿态估计。 | [info](operators/mapper/video_whole_body_pose_estimation_mapper.md) | - |
 | whitespace_normalization_mapper | 🔤Text 💻CPU 🟢Stable | Normalizes various types of whitespace characters to standard spaces in text samples. 将文本样本中各种类型的空白字符规范化为标准空格。 | [info](operators/mapper/whitespace_normalization_mapper.md) | - |
 

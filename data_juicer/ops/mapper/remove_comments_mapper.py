@@ -46,9 +46,16 @@ class RemoveCommentsMapper(Mapper):
         self.multiline = multiline
 
     def process_batched(self, samples):
+        if not self.inline and not self.multiline:
+            return samples
+
         # TODO: remove different comments by sample type
 
         for idx, text in enumerate(samples[self.text_key]):
+            # Both comment patterns require a literal '%', so a text without
+            # one cannot lose anything and both scans can be skipped.
+            if "%" not in text:
+                continue
             if self.inline:
                 # remove all in comments within a line
                 text = re.sub(pattern=r"(?<=[^\\\r\n])%.+$", repl=r"", string=text, flags=re.MULTILINE)

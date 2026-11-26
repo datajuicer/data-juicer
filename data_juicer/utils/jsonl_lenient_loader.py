@@ -24,10 +24,11 @@ JSONL_LENIENT_EXTENSIONS = frozenset({".jsonl", ".jsonl.gz", ".jsonl.zst"})
 
 
 def _iter_text_lines(path: str) -> Iterator[str]:
-    if path.endswith(".jsonl.gz"):
+    lower_path = path.lower()
+    if lower_path.endswith(".jsonl.gz"):
         with gzip.open(path, "rt", encoding="utf-8-sig", newline="") as handle:
             yield from handle
-    elif path.endswith(".jsonl.zst"):
+    elif lower_path.endswith(".jsonl.zst"):
         with open(path, "rb") as compressed:
             dctx = zstd.ZstdDecompressor()
             with dctx.stream_reader(compressed) as reader:

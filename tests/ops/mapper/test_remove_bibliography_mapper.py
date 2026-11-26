@@ -41,6 +41,66 @@ class RemoveBibliographyMapperTest(DataJuicerTestCaseBase):
 
         self._run_remove_bibliography(samples)
 
+    def test_longer_command_starting_with_appendix_is_kept(self):
+
+        preamble = ('\\documentclass{article}\n\\renewcommand{\\appendixname}{Supplement}\n'
+                    '\\begin{document}\n\\section{Intro}\nBody text.\n')
+        body = ('\\section{Intro}\nAs shown in \\appendixname~A, the loss falls.\n'
+                '\\section{Method}\nMore text.\n')
+        samples = [{
+            'text': preamble,
+            'target': preamble
+        }, {
+            'text': body,
+            'target': body
+        }]
+
+        self._run_remove_bibliography(samples)
+
+    def test_appendix_command_removes_the_rest(self):
+
+        samples = [{
+            'text': 'Body text.\n\\appendix\n\\section{Proofs}\nProof.\n',
+            'target': 'Body text.\n'
+        }, {
+            'text': 'Body text.\n\\appendix\\section{Proofs}\nProof.\n',
+            'target': 'Body text.\n'
+        }, {
+            'text': 'Body text.\n\\appendix',
+            'target': 'Body text.\n'
+        }, {
+            'text': '正文。\n\\appendix附录内容',
+            'target': '正文。\n'
+        }, {
+            # IEEEtran
+            'text': 'Body text.\n\\appendices\n\\section{Proofs}\nProof.\n',
+            'target': 'Body text.\n'
+        }, {
+            # the appendix package
+            'text': 'Body text.\n\\appendixpage\n\\begin{appendices}\n\\section{Proofs}\n\\end{appendices}\n',
+            'target': 'Body text.\n'
+        }]
+        self._run_remove_bibliography(samples)
+
+    def test_other_trigger_variants(self):
+        samples = [{
+            # uppercase REFERENCES
+            'text': 'Body.\n\\begin{REFERENCES}\nref\n',
+            'target': 'Body.\n',
+        }, {
+            'text': 'Body.\n\\begin{thebibliography}{9}\n\\bibitem{a} x\n\\end{thebibliography}\n',
+            'target': 'Body.\n',
+        }, {
+            # a space before the brace is not part of the pattern: keep the text
+            'text': 'Body.\n\\bibliography {sample}\n',
+            'target': 'Body.\n\\bibliography {sample}\n',
+        }, {
+            # the first trigger wins, even when a bibliography follows
+            'text': 'Body.\n\\appendix\n\\section{A}\n\\bibliography{b}\n',
+            'target': 'Body.\n',
+        }]
+        self._run_remove_bibliography(samples)
+
 
 if __name__ == '__main__':
     unittest.main()

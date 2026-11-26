@@ -1,4 +1,5 @@
 import os
+import tempfile
 import sys
 import unittest
 import unittest.mock
@@ -268,6 +269,42 @@ class MakeLogSummarizationTest(DataJuicerTestCaseBase):
             # Should return None (early exit) without error
             result = make_log_summarization()
             self.assertIsNone(result)
+
+    def test_make_log_summarization_counts_op_errors(self):
+        """Errors logged by the OP fault-tolerance wrappers are counted."""
+        from data_juicer.ops.base_op import catch_map_single_exception
+
+        def compute_stats(sample):
+            raise ValueError(f'bad sample {sample["text"]}\nsecond line')
+
+        error_records = []
+        sink_id = logger.add(error_records.append, level='ERROR', serialize=True)
+        try:
+            wrapped = catch_map_single_exception(compute_stats, skip_op_error=True, op_name='fake_filter')
+            wrapped({'text': ['a']})
+            wrapped({'text': ['a']})
+            wrapped({'text': ['b']})
+        finally:
+            logger.remove(sink_id)
+
+        summaries = []
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log_file = os.path.join(tmp_dir, 'log.txt')
+            with open(os.path.join(tmp_dir, 'log_ERROR.txt'), 'w') as fout:
+                fout.writelines(error_records)
+            sink_id = logger.add(lambda msg: summaries.append(msg.record['message']), level='INFO')
+            try:
+                with unittest.mock.patch('data_juicer.utils.logger_utils.get_log_file_path', return_value=log_file):
+                    make_log_summarization()
+            finally:
+                logger.remove(sink_id)
+
+        summary = summaries[-1]
+        self.assertEqual(re.findall(r'Errors\D*(\d+)', summary), ['3'])
+        self.assertIn('fake_filter', summary)
+        self.assertIn('ValueError', summary)
+        self.assertIn('bad sample a', summary)
+        self.assertIn('bad sample b', summary)
 
 
 class SetupLoggerIsolatedTest(DataJuicerTestCaseBase):

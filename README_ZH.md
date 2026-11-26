@@ -87,6 +87,28 @@ for s in res_ds:
 
 ## 📰 动态
 
+- [2026-11-24] 🚀 团队推出 **Piccolo**，一个通过**数据驱动的递归自我改进（RSI）** 迭代训练的高性能 System-1 决策模型系列，其 27B 模型在 [Decision Index 多模态榜单](https://huggingface.co/spaces/multimodalart/jev-decision-index)的 Private 评分中***排名第一***（截至 2026 年 11 月 24 日），并在团队自建的、面向数据处理决策的评测基准 [DataJevBench](https://github.com/datajuicer/DataJevBench) 上表现出色。欢迎阅读[技术报告](https://arxiv.org/abs/2611.24651v1)、[体验演示](https://decisionplayground.agentscope.io/blog.html)、使用[开源模型](https://huggingface.co/collections/agentscope-ai/piccolo)，并访问 [GitHub 仓库](https://github.com/agentscope-ai/Piccolo)！
+
+<details open>
+<summary>[2026-11-24] Release v1.6.3: <b>基准污染过滤器；降低处理内存开销；导出与算子修复</b></summary>
+
+* 🧪 基准污染过滤器 — 新增 `benchmark_contamination_filter`，按字符或词的 n-gram 检查样本与参考基准的重叠。参考文件支持 JSONL、JSON、TXT 及其 gzip 压缩格式。设置 `benchmark_path` 后启用。默认 `threshold: 0.0` 会丢弃含任一匹配 n-gram 的样本，同领域数据需调整阈值。串联多个基准过滤器时，各自使用独立的统计字段名。
+* 📝 LLM 抽取输出 — 七个抽取算子在 `drop_text: true` 时统一删除配置的源字段，覆盖嵌套路径、带点的字面键、已有结果及批处理输出。源文本位于 metadata 中时，属性和事件抽取会保留新生成的结果。删除源字段后移除空父结构，保证 Parquet 可导出；保留同级字段及 `drop_text: false` 的行为。
+* 🧮 降低处理内存开销 — Top-k 和范围选择器使用有界堆；频率选择器先计数，再收集选中行的索引；图像 OHEM 减少一次重复扫描。MinHash 分块处理 shingle 和置换矩阵；`words_num_filter` 的默认路径分块计数。分词仍可能保留整个文档的 token 列表。
+* 🗄️ 导出与加载修复 — 本地分片名称保留完整文件主名，统计文件与数据导出分开，分片写入失败会传给调用方。`dataset_path` 支持 Hugging Face 数据集 ID。LeRobot 导出使用连续的全局行索引，不再依赖源视频帧编号。
+* 🛡️ PII 与文本修复 — PII 脱敏保留普通列表中的媒体路径，识别更多带前缀的秘密与 ID 键名，并在缺少必要标记时跳过正则扫描。文本处理保留全角数字及词内句点，支持跨文字系统比较重复句子，避免递归分块，并按完整 LaTeX 附录命令截断。
+* 🔧 去重、视频与诊断 — 无效的 MinHash 分带配置和 SimHash 分块、距离配置会提前报错。Ray 图像与视频去重保留无媒体样本。视频描述算子按后端传入生成参数，并正确返回生成批次。Mapper 改变批次行数时，Tracer 跳过按位置配对；日志摘要可统计当前格式的算子错误。MinHash 扩展以 C++17 和 GCC/MSVC 对应的 OpenMP 参数构建。
+</details>
+
+<details open>
+<summary>[2026-11-03] Release v1.6.2: <b>选择器与过滤器边界修复；PII 脱敏覆盖更全；去重与字段选择器提速</b></summary>
+
+* 🎯 选择器与过滤器边界修复 — 显式设置 `top_ratio: 0` 和随机选择得到零行时，现在保留零条样本；`range_specified_field_selector` 只设置单侧边界时按该边界生效，不再返回整个数据集；`topk_specified_field_selector` 对顶层数值字符串按数值排序，并可容忍 `None`；`specified_numeric_field_filter` 保留 `0` 和 `0.0`；`suffix_filter` 统一归一化 `txt`、`.TXT` 与 `.txt`。
+* 🛡️ PII 脱敏覆盖更全 — `pii_redaction_mapper` 新增对 JWT、国际电话、MAC 地址、飞书/钉钉 open ID 及方括号 IPv6 地址的脱敏；紧邻中文的手机号、身份证号及上述 token 也能识别；秘密值和 ID 值（`user_id: 42`、`{"user_id": "u-123"}`、`Authorization: Bearer ...`）整体脱敏并保留键名、分隔符和引号，支持全角 `：`，且值不会误吞下一行（缩进换行除外）；`clean_email_mapper` 匹配大写域名；`clean_ip_mapper` 匹配压缩写法的 IPv6 及内嵌 IPv4 的 IPv6 地址。
+* ⚡ 去重、加载与字段选择器提速 — 精确去重、simhash 去重、图像去重和视频去重只读取哈希列来计算保留行，不再解码其他列；行去重只从哈希列统计行哈希；MinHash 分带冲突在扫描过程中直接合并；`unify_format` 在所有文本列都无空值时跳过 None 过滤；四个字段选择器按每批 1 万行读取目标列。
+* 🔧 媒体、加载与作业修复 — 图像算子将结果回写为 PNG 字节，后续图像算子可正常读取；视频逐帧处理保留音轨；宽松 JSONL 保留带 BOM 的首条记录，并支持大写或大小写混合后缀的 `.jsonl.gz`/`.jsonl.zst` 分片；行内 LaTeX 注释不再吞掉前一个字符；`expand_macro_mapper` 可展开文本末尾或紧邻另一个宏的宏；作业进度从完成事件的 metadata 读取指标；`nltk` 升级至 3.10.4，GitPython 升级至 3.2.1。
+</details>
+
 <details open>
 <summary>[2026-10-19] Release v1.6.1: <b>吞吐感知的 GPU Actor 规划；自适应 GPU 微批；更省内存的 Ray MinHash 去重</b></summary>
 
@@ -97,7 +119,7 @@ for s in res_ds:
 * 🗂️ 加载、分析与工具修复 — HuggingFace 加载策略改为加载后再应用 `limit`；设置 `max_sample_num` 时跳过分得 0 条样本的数据集；宽松 JSONL 加载在源文件变化后刷新缓存；整体分析不再因首个值为空而丢弃统计列；可视化应用在没有可调统计量的过滤器时不再报 `KeyError`；GPT 评估器从均值中排除失败的评审调用并报告其数量。
 </details>
 
-<details open>
+<details>
 <summary>[2026-09-08] Release v1.6.0: <b>Juicer 模型发布；集群感知分区；配置校验；LiteLLM 后端</b></summary>
 
 * 🧮 集群感知分区 — 自动分区数量根据实时 Ray 集群资源确定；手动 `partition.size` 按样本行切分，在输入 block 数少于分区数时也能正确划分数据。
@@ -110,7 +132,7 @@ for s in res_ds:
 * 🔧 健壮性修复 — 修复融合过滤器缓存隔离、MinHash 状态复用与空输入、去重器执行模式声明、文本空分块、gzip JSONL 的 HPO 采样及 pandas 扩展 dtype 处理；导入 HPO 模块不再启动 sweep。
 </details>
 
-<details open>
+<details>
 <summary>[2026-08-25] Juicer 模型发布：<b>自然语言数据精炼；本地部署；Playground</b></summary>
 
 * 🧃 自然语言数据精炼 — [Juicer](docs/Juicer_ZH.md) 可遵循自然语言指令完成文本清洗、过滤与语义标注。

@@ -95,9 +95,9 @@ py::list calc_minhash_batch_c(
         std::vector<uint32_t> hash_values(num_permutation);
 
         #pragma omp for nowait
-        for (size_t doc_idx = 0; doc_idx < total_docs; ++doc_idx) {
-            const auto& tokens = tokens_list[doc_idx];
-            uint64_t uid = uid_begin + doc_idx;
+        for (std::int64_t doc_idx = 0; doc_idx < static_cast<std::int64_t>(total_docs); ++doc_idx) {
+            const auto& tokens = tokens_list[static_cast<size_t>(doc_idx)];
+            uint64_t uid = uid_begin + static_cast<uint64_t>(doc_idx);
 
             if (tokens.empty()) {
                 local_pairs.emplace_back(MAX_HASH % union_find_parallel_num, empty_hash_value, uid);

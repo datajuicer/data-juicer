@@ -147,14 +147,22 @@ class DocumentLineDeduplicator(Deduplicator):
             to sample texts that contained it.
         """
         if len(dataset) <= 1:
+            # nothing to remove, but the temporary column must not reach the
+            # output, as on the other return paths
+            if HashKeys.line_hashes in dataset.column_names:
+                dataset = dataset.remove_columns([HashKeys.line_hashes])
             return dataset, {}
 
         # --- count document frequency for each line hash ---------------
+        # read only the hash column, in batches: iterating the dataset
+        # decodes every column of every row
         doc_freq: Dict[str, int] = defaultdict(int)
-        for row in dataset:
-            unique_hashes = {h for h in row[HashKeys.line_hashes] if h}
-            for h in unique_hashes:
-                doc_freq[h] += 1
+        hash_column = dataset.select_columns([HashKeys.line_hashes])
+        for batch in hash_column.iter(batch_size=10000):
+            for line_hashes in batch[HashKeys.line_hashes]:
+                unique_hashes = {h for h in line_hashes if h}
+                for h in unique_hashes:
+                    doc_freq[h] += 1
 
         high_freq: Set[str] = {h for h, cnt in doc_freq.items() if cnt > self.frequency_threshold}
 

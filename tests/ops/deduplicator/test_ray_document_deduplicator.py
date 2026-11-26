@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import patch
 
@@ -187,9 +188,10 @@ class RayDocumentDeduplicatorTest(DataJuicerTestCaseBase):
         from data_juicer.ops.deduplicator.ray_image_deduplicator import RayImageDeduplicator
         from data_juicer.ops.deduplicator.ray_video_deduplicator import RayVideoDeduplicator
 
+        data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data')
         cases = [
-            (RayImageDeduplicator, {'images': []}),
-            (RayVideoDeduplicator, {'videos': []}),
+            (RayImageDeduplicator, {'images': [os.path.join(data_path, 'img1.png')]}),
+            (RayVideoDeduplicator, {'videos': [os.path.join(data_path, 'video1.mp4')]}),
         ]
         for op_cls, sample in cases:
             with self.subTest(op_cls=op_cls.__name__):

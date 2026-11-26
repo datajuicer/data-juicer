@@ -598,6 +598,21 @@ class UnifyFormatNoneFilterTest(DataJuicerTestCaseBase):
         result = unify_format(ds, text_keys=["text"])
         self.assertEqual(len(result), 0)
 
+    def test_filters_none_in_any_text_key(self):
+        ds = HFDataset.from_dict({
+            "query": ["q1", "q2", "q3"],
+            "response": ["r1", None, "r3"],
+        })
+        result = unify_format(ds, text_keys=["query", "response"])
+        self.assertEqual(list(result["query"]), ["q1", "q3"])
+
+    def test_filters_none_after_select(self):
+        ds = HFDataset.from_dict({"text": ["a", None, "c", None]})
+        result = unify_format(ds.select([0, 1, 2]), text_keys=["text"])
+        self.assertEqual(list(result["text"]), ["a", "c"])
+        result = unify_format(ds.select([0, 2]), text_keys=["text"])
+        self.assertEqual(list(result["text"]), ["a", "c"])
+
 
 class UnifyFormatTextKeysTest(DataJuicerTestCaseBase):
 

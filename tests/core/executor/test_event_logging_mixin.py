@@ -27,6 +27,7 @@ from data_juicer.core.executor.event_logging_mixin import (
     EventLoggingMixin,
     EventType,
 )
+from data_juicer.utils.job.common import JobUtils
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
 
@@ -599,6 +600,32 @@ class CoreEventLoggingFileTest(DataJuicerTestCaseBase):
         }
         with open(os.path.join(executor.work_dir, "job_summary.json"), "w") as f:
             json.dump(summary, f)
+
+    def test_operation_metrics_survive_jsonl_progress_round_trip(self):
+        executor = self.ConcreteExecutor(self.work_dir)
+        cases = [
+            (2.0, 100, 60, 50.0, 0.4),
+            (2.0, 100, 0, 50.0, 1.0),
+            (2.0, 0, 0, 0, 0),
+            (2.0, None, None, 0, 0),
+            (0.0, 100, 60, 0, 0.4),
+        ]
+        for index, (duration, input_rows, output_rows, throughput, reduction) in enumerate(cases):
+            with self.subTest(index=index):
+                executor.log_op_complete(0, "filter", index, duration, None, input_rows, output_rows)
+                status = JobUtils("job-real", work_dir=self.work_dir).get_partition_status()
+                self.assertEqual(
+                    status[0]["completed_ops"][index],
+                    {
+                        "name": "filter",
+                        "idx": index,
+                        "duration": duration,
+                        "input_rows": input_rows or 0,
+                        "output_rows": output_rows or 0,
+                        "throughput": throughput,
+                        "reduction_ratio": reduction,
+                    },
+                )
 
     def test_lifecycle_methods_write_events_summary_and_status(self):
         executor = self.ConcreteExecutor(self.work_dir)

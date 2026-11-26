@@ -88,6 +88,28 @@ for s in res_ds:
 
 ## 📰 News
 
+- [2026-11-24] 🚀 The team has released **Piccolo**, a family of powerful System-1 decision models developed through **data-driven recursive self-improvement (RSI)**: Piccolo-27B ***ranks first*** by Private score on [Decision Index Vision](https://huggingface.co/spaces/multimodalart/jev-decision-index) (as of November 24, 2026), with strong results on [DataJevBench](https://github.com/datajuicer/DataJevBench), a benchmark developed by us for data-processing decisions. Read the [technical report](https://arxiv.org/abs/2611.24651v1), explore the [demos](https://decisionplayground.agentscope.io/blog.html), try the [open models](https://huggingface.co/collections/agentscope-ai/piccolo), and visit the [repository](https://github.com/agentscope-ai/Piccolo)!
+
+<details open>
+<summary>[2026-11-24] Release v1.6.3: <b>Benchmark Contamination Filter; Lower-Memory Processing; Export & Operator Fixes</b></summary>
+
+* 🧪 *Benchmark Contamination Filter* — New `benchmark_contamination_filter` checks character or word n-gram overlap against a reference benchmark in JSONL, JSON, or TXT format, optionally gzipped. Set `benchmark_path` to enable it. The default `threshold: 0.0` drops any sample with a matching n-gram; tune it for same-domain data. Use distinct stats keys for each benchmark when chaining these filters.
+* 📝 *LLM Extraction Output* — Seven extraction mappers consistently remove the configured source field with `drop_text: true`, including nested and literal dotted paths, cached results, and batched output. Attribute and event extraction retain generated metadata when the source text is inside that metadata. Empty parent structs are removed so Parquet export works; sibling fields and `drop_text: false` remain intact.
+* 🧮 *Lower-Memory Processing* — Top-k and range selectors maintain bounded heaps; the frequency selector counts values before collecting selected indices; image OHEM removes a redundant scan. MinHash folds shingles and permutations in bounded blocks, and `words_num_filter` counts words in chunks on its default path. Tokenization can still retain the document's token list.
+* 🗄️ *Export & Loading Fixes* — Local shard names retain the full file stem, stats files stay separate from data exports, and shard write failures reach the caller. Hugging Face IDs work through `dataset_path`. LeRobot exports use contiguous global row indices independently of source frame IDs.
+* 🛡️ *PII & Text Fixes* — PII redaction preserves media paths in ordinary lists, recognizes more prefixed secret/ID keys, and skips regex scans when required markers are absent. Text processing preserves fullwidth digits and dots inside words, compares repeated sentences across scripts, avoids recursive chunking, and matches LaTeX appendix commands at command boundaries.
+* 🔧 *Deduplication, Video & Diagnostics* — Invalid MinHash band settings and SimHash block/distance settings fail early. Ray image/video deduplication keeps samples without media. Video captioning forwards backend-specific generation settings and returns generated batches. Tracing skips positional pairing when a mapper changes the batch row count, and the log summary counts current OP error messages. The MinHash extension build uses C++17 and compiler-specific OpenMP flags for GCC/MSVC.
+</details>
+
+<details open>
+<summary>[2026-11-03] Release v1.6.2: <b>Selector & Filter Boundary Fixes; Broader PII Redaction; Faster Dedup & Field Selectors</b></summary>
+
+* 🎯 *Boundary-Correct Selectors & Filters* — explicit `top_ratio: 0` and zero-row random selections now keep zero rows; single-sided `range_specified_field_selector` bounds apply instead of returning the whole dataset; `topk_specified_field_selector` ranks top-level numeric strings numerically and tolerates `None`; `specified_numeric_field_filter` keeps `0` and `0.0`; `suffix_filter` normalizes `txt`, `.TXT` and `.txt` alike.
+* 🛡️ *Broader PII Redaction* — `pii_redaction_mapper` also redacts JWTs, international phone numbers, MAC addresses, Feishu/DingTalk open IDs and bracketed IPv6 addresses; CN phone and ID numbers and these tokens are caught when they sit directly next to CJK text; secret and ID values (`user_id: 42`, `{"user_id": "u-123"}`, `Authorization: Bearer ...`) are redacted whole while keeping the key, separator and quotes, full-width `：` is accepted, and values no longer run onto the next line unless it is indented. `clean_email_mapper` matches uppercase domains; `clean_ip_mapper` matches compressed IPv6 and IPv6-embedded IPv4 addresses.
+* ⚡ *Faster Dedup, Loading & Field Selectors* — exact, simhash, image and video deduplication compute kept rows from the hash columns instead of decoding every column; line dedup counts line hashes from the hash column; MinHash band collisions are unioned during the scan; `unify_format` skips the None-text filter when no text column has nulls; four field selectors read their column in 10,000-row batches.
+* 🔧 *Media, Loading & Job Fixes* — image OPs write results back as PNG bytes so chained image OPs can read them; video frame processing keeps the audio track; lenient JSONL keeps the BOM-prefixed first record and loads `.jsonl.gz`/`.jsonl.zst` shards whose suffixes are uppercase or mixed-case; inline LaTeX comments no longer consume the preceding character; `expand_macro_mapper` expands macros at the end of the text or directly followed by another macro; job progress reads metrics from completion-event metadata; `nltk` upgraded to 3.10.4 and GitPython to 3.2.1.
+</details>
+
 <details open>
 <summary>[2026-10-19] Release v1.6.1: <b>Throughput-Aware GPU Actor Planning; Adaptive GPU Microbatching; Leaner Ray MinHash Dedup</b></summary>
 
@@ -98,7 +120,7 @@ for s in res_ds:
 * 🗂️ *Loading, Analysis & Tool Fixes* — The HuggingFace load strategy applies `limit` after loading; datasets allotted zero samples under `max_sample_num` are skipped; the lenient JSONL cache refreshes when source files change; overall analysis keeps stats columns whose first value is null; the visualization app no longer raises `KeyError` when no filter has tunable stats; the GPT evaluator excludes failed judge calls from averages and reports their count.
 </details>
 
-<details open>
+<details>
 <summary>[2026-09-08] Release v1.6.0: <b>Juicer Model Release; Cluster-Aware Partitioning; Config Validation; LiteLLM Backend</b></summary>
 
 * 🧮 *Cluster-Aware Partitioning* — Automatic partition counts use live Ray cluster resources. Manual `partition.size` targets split data at row boundaries, including inputs with fewer blocks than partitions.
@@ -111,7 +133,7 @@ for s in res_ds:
 * 🔧 *Robustness Fixes* — Fixed fused-filter cache isolation, MinHash state reuse and empty inputs, deduplicator execution-mode declarations, empty text chunks, gzip JSONL HPO sampling, and pandas extension-dtype handling. HPO modules can now be imported without starting a sweep.
 </details>
 
-<details open>
+<details>
 <summary>[2026-08-25] Juicer Model Release: <b>Natural-Language Data Refinement; Local Deployment; Playground</b></summary>
 
 * 🧃 *Natural-Language Data Refinement* — [Juicer](docs/Juicer.md) follows natural-language instructions for text cleaning, filtering, and semantic labeling.

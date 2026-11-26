@@ -124,6 +124,10 @@ class MostRelevantEntitiesAggregator(Aggregator):
             result = matches[0].strip()
         else:
             result = ""
+        # no entity list in the response: return nothing so that the caller
+        # retries, since split_text_by_punctuation("") returns [""]
+        if not result:
+            return []
         result = split_text_by_punctuation(result)
 
         return result

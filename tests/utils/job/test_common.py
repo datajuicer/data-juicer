@@ -1,6 +1,9 @@
 import json
 import os
+import subprocess
+import sys
 import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -22,6 +25,41 @@ def setUpModule():
 
 
 class JobUtilsInitTest(DataJuicerTestCaseBase):
+
+    def test_init_preserves_redirected_application_logging(self):
+        # Use a child process because the old logging loop can hang the runner.
+        script = textwrap.dedent("""
+            import sys
+            import tempfile
+            from pathlib import Path
+
+            from loguru import logger
+
+            from data_juicer.utils.job.common import JobUtils
+            from data_juicer.utils.logger_utils import setup_logger
+
+            with tempfile.TemporaryDirectory() as work_dir:
+                setup_logger(work_dir, filename="application.log", redirect=True)
+                logger.info("before job inspection")
+                for _ in range(2):
+                    job = JobUtils("test_job", work_dir=work_dir)
+                    assert job.get_partition_status() == {}
+                    logger.info("after job inspection")
+                    sys.stderr.write("redirected output still works\\n")
+                logger.complete()
+                content = (Path(work_dir) / "application.log").read_text()
+                assert "before job inspection" in content
+                assert content.count("after job inspection") == 2
+                assert content.count("redirected output still works") == 2
+        """)
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=Path(__file__).resolve().parents[3],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_init_with_work_dir(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -223,10 +261,13 @@ class GetPartitionStatusTest(DataJuicerTestCaseBase):
                     "operation_name": "filter_a",
                     "operation_idx": 0,
                     "timestamp": 3.0,
-                    "duration": 1.0,
-                    "input_rows": 100,
-                    "output_rows": 80,
-                    "performance_metrics": {"throughput": 100, "reduction_ratio": 0.2},
+                    "metadata": {
+                        "duration_seconds": 1.0,
+                        "input_rows": 100,
+                        "output_rows": 80,
+                        "throughput_rows_per_second": 100,
+                        "reduction_ratio": 0.2,
+                    },
                 },
                 {"event_type": "partition_complete", "partition_id": 0, "timestamp": 4.0},
             ]
@@ -239,6 +280,38 @@ class GetPartitionStatusTest(DataJuicerTestCaseBase):
             self.assertEqual(status[0]["status"], "completed")
             self.assertEqual(len(status[0]["completed_ops"]), 1)
             self.assertIsNone(status[0]["current_op"])
+            self.assertEqual(
+                status[0]["completed_ops"][0],
+                {
+                    "name": "filter_a",
+                    "idx": 0,
+                    "duration": 1.0,
+                    "input_rows": 100,
+                    "output_rows": 80,
+                    "throughput": 100,
+                    "reduction_ratio": 0.2,
+                },
+            )
+
+    def test_missing_metrics_default_to_zero(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for extra in [{}, {"metadata": None}, {"metadata": {}}]:
+                with self.subTest(extra=extra):
+                    event = {"event_type": "op_complete", "partition_id": 0, "timestamp": 1.0, **extra}
+                    (Path(tmpdir) / "events.jsonl").write_text(json.dumps(event) + "\n")
+                    status = JobUtils("test", work_dir=tmpdir).get_partition_status()
+                    self.assertEqual(
+                        status[0]["completed_ops"][0],
+                        {
+                            "name": "Unknown",
+                            "idx": 0,
+                            "duration": 0,
+                            "input_rows": 0,
+                            "output_rows": 0,
+                            "throughput": 0,
+                            "reduction_ratio": 0,
+                        },
+                    )
 
     def test_checkpoint_tracked(self):
         with tempfile.TemporaryDirectory() as tmpdir:

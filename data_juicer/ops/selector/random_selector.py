@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import Field, PositiveInt
+from pydantic import Field, NonNegativeInt, PositiveInt
 from typing_extensions import Annotated
 
 from data_juicer.ops.base_op import OPERATORS, Selector
@@ -18,12 +18,14 @@ class RandomSelector(Selector):
 
     - `select_ratio`: The ratio of samples to select (0 to 1).
     - `select_num`: The exact number of samples to select.
+    - `seed`: Random seed for reproducible selection, defaulting to 42.
     - If neither `select_ratio` nor `select_num` is set, the dataset remains unchanged."""
 
     def __init__(
         self,
         select_ratio: Optional[Annotated[float, Field(ge=0, le=1)]] = None,
         select_num: Optional[PositiveInt] = None,
+        seed: NonNegativeInt = 42,
         *args,
         **kwargs,
     ):
@@ -36,12 +38,16 @@ class RandomSelector(Selector):
         :param select_num: The number of samples to select. When both
             select_ratio and select_num are set, the value corresponding
             to the smaller number of samples will be applied.
+        :param seed: Random seed for sampling. The default 42 preserves
+            existing selections. Reproducibility requires the same input
+            dataset and row order.
         :param args: extra args
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
         self.select_ratio = select_ratio
         self.select_num = select_num
+        self.seed = seed
 
     def process(self, dataset):
         if len(dataset) <= 1:
@@ -61,4 +67,4 @@ class RandomSelector(Selector):
         if select_num == 0:
             return dataset.select([])
 
-        return random_sample(dataset, sample_number=select_num)
+        return random_sample(dataset, sample_number=select_num, seed=self.seed)

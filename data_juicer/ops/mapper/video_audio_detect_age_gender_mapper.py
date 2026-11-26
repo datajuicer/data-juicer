@@ -16,6 +16,11 @@ class VideoAudioDetectAgeGenderMapper(Mapper):
     """
     Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model.
 
+    **Notice**: The default model, `audeering/wav2vec2-large-robust-24-ft-age-gender`,
+    has `CC-BY-NC-SA-4.0` in its Hugging Face model card, including
+    non-commercial and share-alike restrictions. Review the license and pass a
+    compatible model through `hf_audio_mapper` before license-sensitive use.
+
     Source: This operator is a part of HumanVBench (CVPR 2026).
     """
 
@@ -28,10 +33,10 @@ class VideoAudioDetectAgeGenderMapper(Mapper):
         """
         Initialization method.
 
-        :param keep_original_sample: whether to keep the original sample. If
-            it's set to False, there will be only captioned sample in the
-            final datasets and the original sample will be removed. It's True
-            in default.
+        :param hf_audio_mapper: Hugging Face model for age/gender classification.
+            The default model card lists `CC-BY-NC-SA-4.0`; verify the
+            selected model's license before commercial or production use.
+        :param tag_field_name: field name used to store age/gender results.
         :param args: extra args
         :param kwargs: extra args
         """

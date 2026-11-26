@@ -33,6 +33,7 @@ dependencies = [
     "pydantic>=2.0", # data validation
     "uv",
     "httpx",
+    "aiohttp", # async downloads; imported by file_utils
     "emoji==2.2.0", # emoji handling
     "tabulate",
     "beautifulsoup4",
@@ -85,11 +86,12 @@ vision = [
     "imageio>=2.37",  # required by VideoLLaMA3 remote code
     "imageio-ffmpeg>=0.6",  # ffmpeg backend for imageio
     "scipy",  # signal/interpolation/wavfile for face-track ASD ops
+    "nvidia-dali-cuda120; sys_platform == 'linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')",  # GPU image decode for ray_bts_image_minhash_deduplicator
 ]
 
 # Natural Language Processing
 nlp = [
-    "nltk==3.10.3",  # NLP toolkit
+    "nltk==3.10.4",  # NLP toolkit
     "easyocr==1.7.1",  # OCR
     "fasttext-predict",  # FastText (no numpy dependency, numpy 2.x safe)
     "kenlm",  # Language modeling
@@ -212,6 +214,18 @@ include = ["uv.lock", "pyproject.toml"]
 
 [tool.hatch.build.targets.wheel.hooks.custom]
 path = "hatch_build.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/data_juicer",
+    "/tools",
+    "/hatch_build.py",
+    "/pyproject.toml",
+    "/uv.lock",
+    "/README.md",
+    "/README_ZH.md",
+    "/LICENSE",
+]
 
 [tool.hatch.build]
 include = ["uv.lock", "pyproject.toml"]

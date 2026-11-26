@@ -10,6 +10,10 @@ from pydantic import PositiveInt
 from data_juicer.ops.base_op import OPERATORS, TAGGING_OPS, Mapper
 from data_juicer.utils.constant import Fields, MetaKeys
 from data_juicer.utils.model_utils import get_model, prepare_model
+from data_juicer.utils.text_field_utils import (
+    read_text_from_sample,
+    remove_text_from_sample,
+)
 
 from ..common import split_text_by_punctuation
 
@@ -172,12 +176,12 @@ Output:
     def process_single(self, sample, rank=None):
         # check if it's generated already
         if self.keyword_key in sample[Fields.meta]:
-            return sample
+            return remove_text_from_sample(sample, self.text_key) if self.drop_text else sample
 
         client = get_model(self.model_key, rank=rank)
 
         input_prompt = self.prompt_template.format(
-            completion_delimiter=self.completion_delimiter, input_text=sample[self.text_key]
+            completion_delimiter=self.completion_delimiter, input_text=read_text_from_sample(sample, self.text_key)
         )
         messages = [{"role": "user", "content": input_prompt}]
 
@@ -194,6 +198,6 @@ Output:
 
         sample[Fields.meta][self.keyword_key] = keywords
         if self.drop_text:
-            sample.pop(self.text_key)
+            remove_text_from_sample(sample, self.text_key)
 
         return sample

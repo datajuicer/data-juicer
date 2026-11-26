@@ -26,16 +26,24 @@ class RemoveBibliographyMapper(Mapper):
         :param kwargs: extra args
         """
         super().__init__(*args, **kwargs)
-        self.pattern = r"(\\appendix|"
+        # \appendix, \appendices (IEEEtran) or \appendixpage (the appendix package), each as a
+        # whole command: \appendixname and other longer commands must not remove the rest of the text
+        self.pattern = r"(\\(?:appendix|appendices|appendixpage)(?![a-zA-Z])|"
         self.pattern += r"\\begin\{references\}|"
         self.pattern += r"\\begin\{REFERENCES\}|"
         self.pattern += r"\\begin\{thebibliography\}|"
         self.pattern += r"\\bibliography\{.*\}"
         self.pattern += r").*$"
+        self.bibliography_pattern = re.compile(self.pattern, re.DOTALL)
 
     def process_batched(self, samples):
+        # `.*$` under DOTALL swallows everything from the first match to the end of
+        # the text, so substituting it with an empty string is the same as keeping
+        # the prefix before that match. Slicing avoids building a match object for
+        # the whole tail.
         samples[self.text_key] = [
-            re.sub(pattern=self.pattern, repl=r"", string=text, flags=re.DOTALL) for text in samples[self.text_key]
+            text if (match := self.bibliography_pattern.search(text)) is None else text[: match.start()]
+            for text in samples[self.text_key]
         ]
 
         return samples

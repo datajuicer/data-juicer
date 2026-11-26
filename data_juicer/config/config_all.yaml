@@ -753,6 +753,35 @@ process:
       capture_stderr: true                                    # whether to capture stderr.
       overwrite_output: true                                  # whether to overwrite the output file.
       save_dir: null                                          # The directory where generated files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
+  - video_normal_map_mapper:                                # Generate normal maps for videos (with the Metric3D model).
+      model_path: "onnx-community/metric3d-vit-large/onnx/model.onnx"   # The path to the Metric3D model.
+      if_save_visualization: true                            # Whether to save visualization results.
+      save_visualization_dir: null                            # The path for saving visualization results.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                         # Output directory to save extracted frames.
+  - video_optical_flow_mapper:                              # Generate optical flow information for videos.
+      if_save_visualization: true                            # Whether to save visualization results.
+      save_visualization_dir: null                            # The path for saving visualization results.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                         # Output directory to save extracted frames.
+  - video_universal_segmentation_mapper:                # Generate semantic segmentation, instance segmentation, and panoptic segmentation information for videos (with the OneFormer model).
+      model_path: "shi-labs/oneformer_ade20k_swin_large"    # The path to the OneFormer model.
+      if_output_semantic_segmentation: true                 # Whether to output semantic segmentation.
+      if_output_instance_segmentation: true                 # Whether to output instance segmentation.
+      if_output_panoptic_segmentation: true                 # Whether to output panoptic segmentation.
+      if_save_visualization: true                          # Whether to save visualization results.
+      save_visualization_dir: null                          # The path for saving visualization results.
+      frame_num: 3                                          # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                           # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                       # Output directory to save extracted frames.
+  - video_human_3d_pose_mapper:                             # Extract 3D human pose with Human3R (SMPL-X).
+      model_path: "human3r_896L.pth"                          # The path to the Human3R model checkpoint.
+      human3r_repo_path: null                                # Prepared Human3R checkout containing the required SMPL/SMPL-X assets.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                         # Output directory to save extracted frames.
   - video_remove_watermark_mapper:                          # Remove the watermarks in videos given regions
       roi_strings: ['0,0,0.1,0.1']                            # a given list of regions the watermarks locate. The format of each can be "x1, y1, x2, y2", "(x1, y1, x2, y2)", or "[x1, y1, x2, y2]".
       roi_type: ratio                                         # the roi string type. When the type is 'pixel', (x1, y1), (x2, y2) are the locations of pixels in the top left corner and the bottom right corner respectively. If the roi_type is 'ratio', the coordinates are normalized by widths and heights.
@@ -827,6 +856,7 @@ process:
       detect_interval: 5
 
   # video_audio_detect_age_gender_mapper should be operated after video_tagging_from_audio_mapper.
+  # The default age/gender weight has a CC-BY-NC-SA-4.0 model card; review it for production use.
   - video_audio_detect_age_gender_mapper:                   # If the audio is speech, classify the gender and age of the speech
       hf_audio_mapper: 'audeering/wav2vec2-large-robust-24-ft-age-gender'   # Huggingface model name for speech age and gender classification
       mem_required: '7GB'
@@ -891,6 +921,17 @@ process:
   - average_line_length_filter:                             # filter text with the average length of lines out of specific range.
       min_len: 10                                             # the min length of filter range
       max_len: 10000                                          # the max length of filter range
+  - benchmark_contamination_filter:                         # filter samples overlapping with a benchmark corpus.
+      benchmark_path: null                                    # path to the benchmark file (.jsonl/.json/.txt, optionally .gz)
+      benchmark_text_key: "text"                              # field of the benchmark record holding the text to match
+      ngram_size: 13                                          # the size of the n-grams used for matching
+      tokenization: "char"                                    # "char" for CJK, "word" for space-delimited languages
+      lowercase: true                                         # whether to lowercase the text before matching
+      normalize_whitespace: true                              # whether to collapse consecutive whitespaces
+      threshold: 0.0                                          # drop samples whose contamination ratio exceeds this value
+      contamination_ratio_key: "contamination_ratio"         # stats field holding the overlap ratio; give each benchmark
+                                                               # its own name when several contamination filters share a recipe
+      contamination_ngram_count_key: "contamination_ngram_count"   # stats field holding the matching n-gram count
   - character_repetition_filter:                            # filter text with the character repetition ratio out of specific range
       rep_len: 10                                             # repetition length for char-level n-gram
       min_ratio: 0.0                                          # the min ratio of filter range

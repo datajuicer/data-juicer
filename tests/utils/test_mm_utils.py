@@ -20,7 +20,7 @@ from data_juicer.utils.mm_utils import (
     extract_key_frames_by_seconds, extract_key_frames, get_key_frame_seconds,
     extract_video_frames_uniformly_by_seconds, extract_video_frames_uniformly,
     extract_audio_from_video, size_to_bytes, insert_texts_after_placeholders,
-    timecode_string_to_seconds, parse_string_to_roi,
+    timecode_string_to_seconds, parse_string_to_roi, image_to_bytes,
 )
 from data_juicer.utils.unittest_utils import DataJuicerTestCaseBase
 
@@ -107,6 +107,13 @@ class MMTest(DataJuicerTestCaseBase):
     def test_img_to_base64(self):
         self.assertIsInstance(image_path_to_base64(self.img_path), str)
         self.assertIsInstance(image_byte_to_base64(load_image_byte(self.img_path)), str)
+
+    def test_image_to_bytes(self):
+        pil_img = load_image(self.img_path)
+        np.testing.assert_array_equal(np.array(load_image(image_to_bytes(pil_img))), np.array(pil_img))
+        # also for modes JPEG cannot store, e.g. the RGBA output of image_remove_background_mapper
+        rgba_img = pil_img.convert('RGBA')
+        self.assertEqual(load_image(image_to_bytes(rgba_img)).size, rgba_img.size)
 
     def test_pil_to_opencv(self):
         pil_img = load_image(self.img_path)
@@ -205,12 +212,21 @@ class MMTest(DataJuicerTestCaseBase):
         self.assertEqual(process_each_frame(input_path, output_path, lambda x: x), input_path)
         container = load_video(input_path)
         self.assertEqual(process_each_frame(container, output_path, lambda x: x), input_path)
+        # the unused output video is removed
+        self.assertFalse(os.path.exists(output_path))
         # tiny change
         def change_frame(frame: av.VideoFrame):
             img = frame.to_image()
             img = img.filter(ImageFilter.BLUR)
             return av.VideoFrame.from_image(img)
         self.assertEqual(process_each_frame(input_path, output_path, change_frame), output_path)
+        # the audio is copied to the output video
+        with av.open(input_path) as src, av.open(output_path) as res:
+            self.assertEqual(len(res.streams.audio), 1)
+            src_audio = [p for p in src.demux(src.streams.audio[0]) if p.dts is not None]
+            res_audio = [p for p in res.demux(res.streams.audio[0]) if p.dts is not None]
+            self.assertEqual(len(res_audio), len(src_audio))
+            self.assertAlmostEqual(get_video_duration(res), get_video_duration(src), delta=0.1)
 
     def test_extract_key_frames(self):
         input_path = self.vid_path  # 11.75s
@@ -297,6 +313,10 @@ class MMTest(DataJuicerTestCaseBase):
             ('2 zb', 2 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024),
             ('9 YiB', 9 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024),
             ('15', 15),
+            ('1.5GB', 1536 * 1024 * 1024),
+            ('0.5 MiB', 512 * 1024),
+            ('.25kb', 256),
+            ('2.5', 2),
         ]
         for size, expected_bytes in test_data:
             self.assertEqual(size_to_bytes(size), expected_bytes)
@@ -306,6 +326,12 @@ class MMTest(DataJuicerTestCaseBase):
 
         with self.assertRaises(ValueError):
             size_to_bytes('2 k')
+
+        with self.assertRaises(ValueError):
+            size_to_bytes('. GB')
+
+        with self.assertRaises(ValueError):
+            size_to_bytes('1.2.3GB')
 
     def test_insert_texts_after_placeholders(self):
         test_data = [
@@ -319,6 +345,23 @@ class MMTest(DataJuicerTestCaseBase):
             insert_texts_after_placeholders('test', ['<ph1>', '<ph2>'], ['only 1 text'])
         with self.assertRaises(ValueError):
             insert_texts_after_placeholders('no place holders', ['<ph1>', '<ph2>'], ['f', 'g'])
+
+    def test_insert_texts_after_repeated_placeholders(self):
+        # the captioning mappers pass [SpecialTokens.image] * img_count: the
+        # i-th text belongs right after the i-th occurrence of the token
+        test_data = [
+            ('<ph><ph>', ['<ph>', '<ph>'], ['f', 'g'], ' ', '<ph> f <ph> g '),
+            ('a<ph>b<ph>c<ph>', ['<ph>'] * 3, ['f', 'g', 'h'], '', 'a<ph>fb<ph>gc<ph>h'),
+            # placeholders listed out of string order still find their own spot
+            ('a<ph2>b<ph1>c', ['<ph1>', '<ph2>'], ['f', 'g'], '', 'a<ph2>gb<ph1>fc'),
+            ('<a>x<b>y<a>', ['<b>', '<a>', '<a>'], ['1', '2', '3'], '', '<a>2x<b>1y<a>3'),
+        ]
+        for string, phs, new_txts, delimiter, tgt_res in test_data:
+            self.assertEqual(insert_texts_after_placeholders(string, phs, new_txts, delimiter), tgt_res)
+
+        with self.assertRaises(ValueError):
+            # more texts than occurrences of the placeholder
+            insert_texts_after_placeholders('<ph>', ['<ph>', '<ph>'], ['f', 'g'])
 
     def test_timecode_string_to_seconds(self):
         test_data = [

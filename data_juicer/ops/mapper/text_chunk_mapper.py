@@ -81,32 +81,44 @@ class TextChunkMapper(Mapper):
             )
 
     def recursively_chunk(self, text):
-        if self.tokenizer_name is not None:
-            _, tokenizer = get_model(self.model_key)
-            tokens = tokenizer.encode(text)
-            total_len = len(tokens)
-            sub_text = tokenizer.decode(tokens[: self.max_len])
-        else:
-            total_len = len(text)
-            sub_text = text[: self.max_len]
-
-        if total_len <= self.max_len:
-            return [text]
-
-        matches = list(re.finditer(self.split_pattern, sub_text))
-        if not matches:
-            cur_text = sub_text
+        # cut one chunk off the front per iteration; recursing once per chunk
+        # hits the recursion limit on long texts
+        chunks = []
+        while True:
             if self.tokenizer_name is not None:
-                left_text = tokenizer.decode(tokens[self.max_len - self.overlap_len :])
+                _, tokenizer = get_model(self.model_key)
+                tokens = tokenizer.encode(text)
+                total_len = len(tokens)
+                sub_text = tokenizer.decode(tokens[: self.max_len])
             else:
-                left_text = text[self.max_len - self.overlap_len :]
-        else:
-            last_match = matches[-1]
-            cur_text = sub_text[: last_match.start()]
-            left_text = text[last_match.end() :]
+                total_len = len(text)
+                sub_text = text[: self.max_len]
 
-        chunks = [cur_text] if cur_text.strip() else []
-        return chunks + self.recursively_chunk(left_text)
+            if total_len <= self.max_len:
+                chunks.append(text)
+                return chunks
+
+            matches = list(re.finditer(self.split_pattern, sub_text))
+            if not matches:
+                cur_text = sub_text
+                if self.tokenizer_name is not None:
+                    left_text = tokenizer.decode(tokens[self.max_len - self.overlap_len :])
+                else:
+                    left_text = text[self.max_len - self.overlap_len :]
+            else:
+                last_match = matches[-1]
+                if last_match.end() == 0:
+                    raise ValueError(
+                        f"split_pattern {self.split_pattern!r} matches only an "
+                        "empty string at the start of the remaining text, so "
+                        "the text does not shrink and cannot be chunked."
+                    )
+                cur_text = sub_text[: last_match.start()]
+                left_text = text[last_match.end() :]
+
+            if cur_text.strip():
+                chunks.append(cur_text)
+            text = left_text
 
     def get_text_chunks(self, text, rank=None):
         if self.split_pattern is not None and self.max_len is None:
@@ -127,6 +139,9 @@ class TextChunkMapper(Mapper):
                 if self.tokenizer_name is not None:
                     cur = tokenizer.decode(cur)
                 chunks.append(cur)
+                # The rest of the text is already in this chunk
+                if start + self.max_len >= total_len:
+                    break
         else:
             chunks = self.recursively_chunk(text)
 

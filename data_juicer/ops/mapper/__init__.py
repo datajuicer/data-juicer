@@ -136,11 +136,14 @@ from .video_hand_action_compute_mapper import VideoHandActionComputeMapper
 from .video_hand_motion_smooth_mapper import VideoHandMotionSmoothMapper
 from .video_hand_reconstruction_hawor_mapper import VideoHandReconstructionHaworMapper
 from .video_hand_reconstruction_mapper import VideoHandReconstructionMapper
+from .video_human_3d_pose_mapper import VideoHuman3DPoseMapper
 from .video_human_tracks_extraction_mapper import VideoHumanTracksExtractionMapper
 from .video_human_tracks_face_demographic_mapper import (
     VideoHumantrackFaceDemographicMapper,
 )
+from .video_normal_map_mapper import VideoNormalMapMapper
 from .video_object_segmenting_mapper import VideoObjectSegmentingMapper
+from .video_optical_flow_mapper import VideoOpticalFlowMapper
 from .video_remove_watermark_mapper import VideoRemoveWatermarkMapper
 from .video_resize_aspect_ratio_mapper import VideoResizeAspectRatioMapper
 from .video_resize_resolution_mapper import VideoResizeResolutionMapper
@@ -151,10 +154,15 @@ from .video_tagging_from_audio_mapper import VideoTaggingFromAudioMapper
 from .video_tagging_from_frames_mapper import VideoTaggingFromFramesMapper
 from .video_trajectory_overlay_mapper import VideoTrajectoryOverlayMapper
 from .video_undistort_mapper import VideoUndistortMapper
+from .video_universal_segmentation_mapper import VideoUniversalSegmentationMapper
 from .video_whole_body_pose_estimation_mapper import VideoWholeBodyPoseEstimationMapper
 from .whitespace_normalization_mapper import WhitespaceNormalizationMapper
 
 __all__ = [
+    "VideoUniversalSegmentationMapper",
+    "VideoOpticalFlowMapper",
+    "VideoNormalMapMapper",
+    "VideoHuman3DPoseMapper",
     "AgentBadCaseSignalMapper",
     "AgentDialogNormalizeMapper",
     "AgentInsightLLMMapper",

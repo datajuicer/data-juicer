@@ -26,6 +26,19 @@ def stats_to_number(s, reverse=True):
             return sys.maxsize
 
 
+def iter_column(dataset, column_name, batch_size=10000):
+    """
+    Iterate over the values of a dataset column in batches.
+
+    Iterating ``dataset[column_name]`` directly decodes the column one row
+    at a time. Slicing it decodes a whole batch at once, and reading one
+    batch at a time keeps the decoded rows from piling up in memory.
+    """
+    column = dataset[column_name]
+    for start in range(0, len(column), batch_size):
+        yield from column[start : start + batch_size]
+
+
 def dict_to_hash(input_dict: dict, hash_length=None):
     """
     hash a dict to a string with length hash_length

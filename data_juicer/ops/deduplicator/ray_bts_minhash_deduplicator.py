@@ -19,6 +19,7 @@ from ..common.helper_func import split_on_whitespace
 from .document_minhash_deduplicator import (
     MAX_HASH,
     MERSENNE_PRIME,
+    check_band_params,
     optimal_param,
     sha1_hash32,
 )
@@ -31,6 +32,34 @@ EDGE_DTYPE = np.dtype([("u", UID_DTYPE), ("v", UID_DTYPE)])
 _OBJECT_EDGE_DTYPE = np.dtype([("u", object), ("v", object)])
 HASH_PAIR_BLOCK_BYTES = 8 << 20
 HASH_BOUNDARY_CHUNK_ROWS = 1 << 20
+
+# Keep in sync with document_minhash_deduplicator._MINHASH_PERMUTATION_BLOCK_BYTES.
+_MINHASH_PERMUTATION_BLOCK_BYTES = 8 * 1024 * 1024
+
+
+def _minhash_values_from_tokens(tokens, perm_a, perm_b, num_permutation, block_bytes=_MINHASH_PERMUTATION_BLOCK_BYTES):
+    """Compute MinHash minima without materializing the full N x P matrix.
+
+    The permutation matrix is the dominant transient allocation for a long
+    document. Fold it in bounded blocks; uint32 min is associative and
+    commutative, so applying the same truncation before the minimum gives
+    element-wise identical results to the full-matrix implementation.
+    """
+    hv = np.fromiter((sha1_hash32(token) for token in tokens), dtype=np.uint64, count=len(tokens))
+    if len(hv) == 0:
+        return np.full(num_permutation, MAX_HASH, dtype=np.uint32)
+    bytes_per_token = num_permutation * np.dtype(np.uint64).itemsize
+    tokens_per_block = max(1, block_bytes // bytes_per_token)
+    hash_values = None
+    for start in range(0, len(hv), tokens_per_block):
+        block = hv[start : start + tokens_per_block]
+        phv = ((block[:, None] * perm_a[None, :] + perm_b) % MERSENNE_PRIME).astype(np.uint32)
+        block_min = phv.min(axis=0)
+        if hash_values is None:
+            hash_values = block_min
+        else:
+            np.minimum(hash_values, block_min, out=hash_values)
+    return hash_values
 
 
 def _empty_edge_array():
@@ -121,7 +150,7 @@ def _hash_pair_dtype(key_size, uid_dtype=UID_DTYPE):
 
 
 def _union_uid_run(union_find, uids):
-    """Union one equal-key run without creating an unbounded Python list."""
+    """Union one equal-key run in chunks of at most the union threshold."""
     if len(uids) == 1:
         return int(uids[0])
     if len(uids) == 0:
@@ -132,18 +161,12 @@ def _union_uid_run(union_find, uids):
     else:
         chunk_size = max(2, union_find.union_threshold + 1)
 
-    current = uids
+    union_list = union_find.union_list
+    current = uids.tolist()
     while len(current) > chunk_size:
-        representative_count = (len(current) + chunk_size - 1) // chunk_size
-        representatives = np.empty(representative_count, dtype=union_find.hash_pair_dtype["uid"])
-        for index, start in enumerate(range(0, len(current), chunk_size)):
-            chunk = current[start : start + chunk_size]
-            if len(chunk) == 1:
-                representatives[index] = chunk[0]
-            else:
-                representatives[index] = union_find.union_list(chunk.tolist())
-        current = representatives
-    return union_find.union_list(current.tolist())
+        chunks = (current[start : start + chunk_size] for start in range(0, len(current), chunk_size))
+        current = [union_list(chunk) if len(chunk) > 1 else chunk[0] for chunk in chunks]
+    return union_list(current)
 
 
 def _compact_hash_pair_block(union_find, pairs, fingerprints):
@@ -155,7 +178,9 @@ def _compact_hash_pair_block(union_find, pairs, fingerprints):
     if len(np.unique(fingerprints)) == len(pairs):
         return pairs
 
-    pairs.sort(order="key")
+    # Sort by key only: union_list roots every run at its minimum UID, so the
+    # UID order inside an equal-key run does not change the result.
+    pairs = pairs[np.argsort(pairs["key"], kind="stable")]
     boundaries = np.flatnonzero(pairs["key"][1:] != pairs["key"][:-1]) + 1
     if len(boundaries) == len(pairs) - 1:
         return pairs
@@ -257,10 +282,10 @@ class BTSUnionFind:
             return
 
         keys = [pair[0] for pair in pairs]
-        if not all(isinstance(key, bytes) for key in keys):
+        if not all(issubclass(key_type, bytes) for key_type in set(map(type, keys))):
             raise TypeError("MinHash keys must be bytes")
         key_size = len(keys[0])
-        if any(len(key) != key_size for key in keys):
+        if len(set(map(len, keys))) > 1:
             raise ValueError("MinHash keys must have a fixed width")
 
         pair_dtype = _hash_pair_dtype(key_size)
@@ -281,7 +306,7 @@ class BTSUnionFind:
         uid_dtype = self.hash_pair_dtype["uid"]
 
         first_key = keys[0]
-        if first_key in self.hot_key_roots and all(key == first_key for key in keys[1:]):
+        if first_key in self.hot_key_roots and keys.count(first_key) == len(keys):
             values = np.empty(len(uid_array) + 1, dtype=uid_dtype)
             values[0] = self.hot_key_roots[first_key]
             values[1:] = uid_array
@@ -292,14 +317,14 @@ class BTSUnionFind:
             hot_values = {}
             cold_keys = []
             cold_uids = []
-            for index, key in enumerate(keys):
+            for key, uid in zip(keys, uid_array.tolist()):
                 if key in self.hot_key_roots:
                     if key not in hot_values:
                         hot_values[key] = [self.hot_key_roots[key]]
-                    hot_values[key].append(int(uid_array[index]))
+                    hot_values[key].append(uid)
                 else:
                     cold_keys.append(key)
-                    cold_uids.append(int(uid_array[index]))
+                    cold_uids.append(uid)
             for key, values in hot_values.items():
                 self.hot_key_roots[key] = _union_uid_run(self, np.asarray(values, dtype=uid_dtype))
             if not cold_keys:
@@ -309,7 +334,7 @@ class BTSUnionFind:
             cold_keys = keys
 
         key_array = np.frombuffer(b"".join(cold_keys), dtype=f"S{key_size}")
-        fingerprints = np.fromiter((hash(key) for key in cold_keys), dtype=UID_DTYPE, count=len(cold_keys))
+        fingerprints = np.fromiter(map(hash, cold_keys), dtype=UID_DTYPE, count=len(cold_keys))
         pair_count = len(cold_keys)
         offset = 0
         while offset < pair_count:
@@ -439,14 +464,15 @@ class BTSUnionFind:
         return edge_uids[:edge_count], edge_parents[:edge_count], deleted_uids[:deleted_count]
 
     def find(self, x):
+        parent = self.parent
         root = x
-        while root in self.parent:
-            root = self.parent[root]
+        while root in parent:
+            root = parent[root]
 
-        while x in self.parent:
-            parent = self.parent[x]
-            self.parent[x] = root
-            x = parent
+        while x in parent:
+            next_x = parent[x]
+            parent[x] = root
+            x = next_x
         return root
 
     def union(self, x, y):
@@ -459,11 +485,13 @@ class BTSUnionFind:
         self.parent[py] = px
 
     def union_list(self, x_list):
-        px_list = [self.find(x) for x in x_list]
+        parent = self.parent
+        find = self.find
+        px_list = [find(x) if x in parent else x for x in x_list]
         p = min(px_list)
         for px in px_list:
             if p != px:
-                self.parent[px] = p
+                parent[px] = p
         return p
 
     def rebalancing(self):
@@ -757,6 +785,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
                 self.jaccard_threshold,
                 self.num_permutation,
             )
+        check_band_params(self.num_bands, self.num_rows_per_band, self.num_permutation)
 
         # compute hash ranges and create hash tables
         self.hash_ranges = [
@@ -882,9 +911,7 @@ class RayBTSMinhashDeduplicator(Deduplicator):
 
             tokens = self.tokenization_func(text)
             if len(tokens) > 0:
-                hv = np.array([sha1_hash32(token) for token in tokens], dtype=np.uint64)
-                phv = ((hv[:, None] * self.perm_a[None, :] + self.perm_b) % MERSENNE_PRIME).astype(np.uint32)
-                hash_values = phv.min(axis=0)
+                hash_values = _minhash_values_from_tokens(tokens, self.perm_a, self.perm_b, self.num_permutation)
                 for i, (start, end) in enumerate(self.hash_ranges):
                     hash_value = i.to_bytes(4, "big") + hash_values[start:end].tobytes()
                     hash_table_id = hash_values[start] % self.union_find_parallel_num

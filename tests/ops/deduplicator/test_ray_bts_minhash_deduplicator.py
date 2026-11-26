@@ -1356,5 +1356,16 @@ class RayBTSMinhashDeduplicatorTest(DataJuicerTestCaseBase):
         self._run_minhash_dedup(dataset, tgt_list, op)
 
 
+class RayBTSMinhashBandParamTest(unittest.TestCase):
+
+    def test_bands_exceeding_permutations_rejected(self):
+        # 30 bands x 10 rows needs 300 permutations. The check runs before
+        # the op touches the Ray cluster, so no cluster is needed here.
+        for op_cls in (RayBTSMinhashDeduplicator, RayBTSMinhashCppDeduplicator):
+            with self.subTest(op=op_cls.__name__):
+                with self.assertRaises(ValueError):
+                    op_cls(num_permutations=256, num_bands=30, num_rows_per_band=10)
+
+
 if __name__ == '__main__':
     unittest.main()

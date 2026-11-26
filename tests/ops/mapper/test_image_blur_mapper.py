@@ -87,6 +87,15 @@ class ImageBlurMapperTest(DataJuicerTestCaseBase):
         blur_kernel = self._get_blur_kernel('gaussian', 2)
         self._run_image_blur_mapper(op, ds_list, blur_kernel)
 
+    def test_image_bytes(self):
+        # the image is only in the bytes field, e.g. after download_file_mapper
+        with open(self.img2_path, 'rb') as f:
+            img_bytes = f.read()
+        op = ImageBlurMapper(p=1, blur_type='gaussian', radius=2)
+        res = op.process_single({'images': ['https://example.com/img2.jpg'], 'image_bytes': [img_bytes]})
+        expected = load_image(img_bytes).filter(self._get_blur_kernel('gaussian', 2))
+        np.testing.assert_array_equal(np.array(load_image(res['image_bytes'][0])), np.array(expected))
+
 
 if __name__ == '__main__':
     unittest.main()

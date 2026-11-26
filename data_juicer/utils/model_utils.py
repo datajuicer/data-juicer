@@ -940,6 +940,52 @@ def prepare_huggingface_model(
     return (model, processor) if return_model else processor
 
 
+def prepare_human_3d_pose_human3r(model_path, human3r_repo_path=None, **model_params):
+    from filelock import FileLock
+
+    device = model_params.pop("device", "cpu")
+    repo = os.path.abspath(human3r_repo_path or os.path.join(DATA_JUICER_ASSETS_CACHE, "Human3R"))
+    os.makedirs(os.path.dirname(repo), exist_ok=True)
+    with FileLock(repo + ".lock"):
+        if not os.path.exists(repo):
+            if human3r_repo_path is not None:
+                raise FileNotFoundError(f"Human3R checkout does not exist: {repo}")
+            subprocess.run(["git", "clone", "https://github.com/fanegg/Human3R.git", repo], check=True)
+        required_assets = [
+            "smplx/SMPLX_NEUTRAL.npz",
+            "smplx/SMPLX_MALE.npz",
+            "smplx/SMPLX_FEMALE.npz",
+            "smplx/smplx2smpl.pkl",
+            "smpl/SMPL_NEUTRAL.pkl",
+            "smpl/SMPL_MALE.pkl",
+            "smpl/SMPL_FEMALE.pkl",
+            "smpl/J_regressor_h36m.npy",
+        ]
+        missing = [name for name in required_assets if not os.path.isfile(os.path.join(repo, "src", "models", name))]
+        if missing:
+            raise FileNotFoundError(
+                f"Missing Human3R assets in {repo}: {', '.join(missing)}. "
+                "Follow Human3R setup instructions and run bash scripts/fetch_smplx.sh from that checkout."
+            )
+        if not os.path.isfile(model_path):
+            huggingface_hub = LazyLoader("huggingface_hub")
+            model_path = huggingface_hub.hf_hub_download(
+                repo_id="faneggg/human3r", filename="human3r_896L.pth", local_dir=DJMC
+            )
+    added_paths = [path for path in [repo, os.path.join(repo, "src")] if path not in sys.path]
+    sys.path[:0] = added_paths
+    try:
+        from src.dust3r.inference import inference_recurrent_lighter
+        from src.dust3r.model import ARCroco3DStereo
+
+        model = ARCroco3DStereo.from_pretrained(model_path).to(device)
+        model.eval()
+    finally:
+        for path in added_paths:
+            sys.path.remove(path)
+    return model, inference_recurrent_lighter
+
+
 def prepare_hawor_model(hawor_model_path, hawor_config_path, mano_right_path, mano_left_path=None, **model_params):
 
     device = model_params.pop("device", "cpu")
@@ -1120,9 +1166,50 @@ def prepare_nltk_pos_tagger(**model_params):
     return tagger
 
 
+def prepare_normal_map_metric3d(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+    if device == "cpu":
+        providers = ["CPUExecutionProvider"]
+    else:
+        rank = int(device.split(":")[-1]) if ":" in device else 0
+        providers = [
+            ("CUDAExecutionProvider", {"cudnn_conv_use_max_workspace": "1", "device_id": str(rank)}),
+            "CPUExecutionProvider",
+        ]
+    if not os.path.isfile(model_path):
+        huggingface_hub = LazyLoader("huggingface_hub")
+        model_path = huggingface_hub.hf_hub_download(
+            repo_id="onnx-community/metric3d-vit-large",
+            filename="onnx/model.onnx",
+            local_dir=os.path.join(DJMC, "metric3d"),
+        )
+    import onnxruntime as ort
+
+    session = ort.InferenceSession(model_path, providers=providers)
+    if device != "cpu" and "CUDAExecutionProvider" not in session.get_providers():
+        raise RuntimeError(
+            "Metric3D could not activate CUDAExecutionProvider. Check onnxruntime-gpu and its CUDA/cuDNN "
+            "dependencies or set accelerator='cpu'."
+        )
+    return session
+
+
 def prepare_opencv_classifier(model_path, **model_params):
     model = cv2.CascadeClassifier(model_path)
     return model
+
+
+def prepare_optical_flow_raft(**model_params):
+    device = model_params.pop("device")
+
+    from torchvision.models.optical_flow import Raft_Large_Weights, raft_large
+
+    weights = Raft_Large_Weights.DEFAULT
+    transforms = weights.transforms()
+    model = raft_large(weights=weights).to(device)
+    model.eval()
+
+    return model, transforms
 
 
 def prepare_recognizeAnything_model(
@@ -2185,6 +2272,7 @@ def prepare_face_detect_S3FD_model(model_path=None, **model_params):
     return model
 
 
+# The default model card declares CC-BY-NC-SA-4.0; verify commercial use.
 def prepare_wav2vec2_age_gender_model(
     pretrained_model_name_or_path="audeering/wav2vec2-large-robust-24-ft-age-gender", **model_params
 ):
@@ -2258,11 +2346,14 @@ MODEL_FUNCTION_MAPPING = {
     "fastsam": prepare_fastsam_model,
     "hawor": prepare_hawor_model,
     "huggingface": prepare_huggingface_model,
+    "human_3d_pose_human3r": prepare_human_3d_pose_human3r,
     "kenlm": prepare_kenlm_model,
     "moge": prepare_moge_model,
     "nltk": prepare_nltk_model,
     "nltk_pos_tagger": prepare_nltk_pos_tagger,
+    "normal_map_metric3d": prepare_normal_map_metric3d,
     "opencv_classifier": prepare_opencv_classifier,
+    "optical_flow_raft": prepare_optical_flow_raft,
     "recognizeAnything": prepare_recognizeAnything_model,
     "sdxl-prompt-to-prompt": prepare_sdxl_prompt2prompt,
     "sentencepiece": prepare_sentencepiece_for_lang,

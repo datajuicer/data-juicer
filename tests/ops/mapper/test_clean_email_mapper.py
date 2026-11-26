@@ -115,5 +115,30 @@ class CleanEmailMapperTest(DataJuicerTestCaseBase):
         self.assertDatasetEqual(result, tgt_list)
 
 
+    def test_multiple_emails_and_plus_tags(self):
+        samples = [{
+            'text': 'ping a.b+c_d-e@sub.example.co.uk and x@y.org now',
+            'target': 'ping  and  now',
+        }, {
+            'text': '',
+            'target': '',
+        }, {
+            'text': 'mail me at USER@HOST.DEV',
+            'target': 'mail me at ',
+        }]
+        op = CleanEmailMapper()
+        self._run_clean_email(op, samples)
+
+
+    def test_custom_pattern_not_matching(self):
+        input_text = 'Contact: admin@srv.co today'
+        op = CleanEmailMapper(pattern=r"r'{admin}@[a-z]+\.[a-z]+'", repl='<MAIL>')
+        samples = [{
+            'text': input_text,
+            'target': input_text,
+        }]
+        self._run_clean_email(op, samples)
+
+
 if __name__ == '__main__':
     unittest.main()

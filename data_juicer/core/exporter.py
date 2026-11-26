@@ -421,16 +421,26 @@ class Exporter:
         return obj
 
     @staticmethod
+    def _json_default(obj):
+        converted = Exporter._row_to_json_serializable(obj)
+        if converted is obj:
+            raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+        return converted
+
+    @staticmethod
     def _write_jsonl_utf8(dataset, export_path, storage_options=None):
         """
         Write dataset to JSONL with UTF-8 text (no \\uXXXX escape).
         HuggingFace's to_json(force_ascii=False) can still escape in some paths;
-        we iterate and use json.dumps(ensure_ascii=False) per row.
+        we use a JSON encoder with ensure_ascii=False per row.
         Use HFDataset.__getitem__ to get raw batch (avoid NestedQueryDict wrapping
         which fails on None in list columns e.g. response_usage).
         """
         batch_size = 1000
         total = len(dataset)
+        # Let the encoder handle native values directly. Only values such as
+        # dates and NumPy scalars need the Python conversion callback.
+        encode = json.JSONEncoder(ensure_ascii=False, default=Exporter._json_default).encode
         os.makedirs(os.path.dirname(os.path.abspath(export_path)), exist_ok=True)
         with open(export_path, "w", encoding="utf-8") as f:
             for start in range(0, total, batch_size):
@@ -440,12 +450,10 @@ class Exporter:
                     keys = list(batch.keys())
                     for i in range(len(batch[keys[0]])):
                         row = {k: batch[k][i] for k in keys}
-                        row = Exporter._row_to_json_serializable(row)
-                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                        f.write(encode(row) + "\n")
                 else:
                     for row in batch:
-                        row = Exporter._row_to_json_serializable(row)
-                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                        f.write(encode(row) + "\n")
 
     @staticmethod
     def to_jsonl(dataset, export_path, num_proc=1, **kwargs):

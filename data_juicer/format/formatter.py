@@ -1,7 +1,8 @@
 import os
 from typing import List, Optional, Union
 
-from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
+import pyarrow.compute as pc
+from datasets import Dataset, DatasetDict, Value, concatenate_datasets, load_dataset
 from jsonargparse import Namespace, dict_to_namespace
 from loguru import logger
 
@@ -240,11 +241,25 @@ def unify_format(
         # op can not handle it now
         return [all(value is not None for value in values) for values in zip(*columns)]
 
-    # arrow counts the nulls of a column without decoding any row, so the
-    # filter only runs when some text column has a null, and then it reads
-    # only the text columns, in batches
-    if any(dataset.data.column(key).null_count > 0 for key in text_keys):
-        dataset = dataset.filter(non_empty_text, num_proc=num_proc, input_columns=text_keys, batched=True)
+    null_columns = [dataset.data.column(key) for key in text_keys if dataset.data.column(key).null_count]
+    if null_columns:
+        if dataset.format["type"] is None and all(
+            isinstance(dataset.features[key], Value)
+            and dataset.features[key].dtype in ("string", "large_string", "null")
+            for key in text_keys
+        ):
+            # Use Arrow validity without materializing text as Python strings.
+            valid = pc.is_valid(null_columns[0])
+            for column in null_columns[1:]:
+                valid = pc.and_(valid, pc.is_valid(column))
+            if dataset._indices is not None:
+                # Match the logical row order, including repeated selections.
+                valid = pc.take(valid, dataset._indices.column(0))
+            # HF's contiguous select needs signed offsets (Arrow returns uint64).
+            indices = pc.indices_nonzero(valid).to_numpy().view("int64")
+            dataset = dataset.select(indices)
+        else:
+            dataset = dataset.filter(non_empty_text, num_proc=num_proc, input_columns=text_keys, batched=True)
     logger.info(f"{len(dataset)} samples left after filtering empty text.")
 
     # 3. convert relative paths to absolute paths

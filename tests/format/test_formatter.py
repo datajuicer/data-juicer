@@ -613,6 +613,35 @@ class UnifyFormatNoneFilterTest(DataJuicerTestCaseBase):
         result = unify_format(ds.select([0, 2]), text_keys=["text"])
         self.assertEqual(list(result["text"]), ["a", "c"])
 
+    def test_keeps_empty_strings_and_preserves_index_order(self):
+        ds = HFDataset.from_dict({
+            "id": [0, 1, 2, 3, 4],
+            "query": ["", None, "q2", "q3", "q4"],
+            "response": ["r0", "r1", None, "r3", ""],
+        })
+        selected = ds.select([4, 1, 0, 4, 2, 3])
+        result = unify_format(selected, text_keys=["query", "response"])
+        self.assertEqual(result.to_list(), [ds[i] for i in [4, 0, 4, 3]])
+        self.assertEqual(result.features, ds.features)
+
+    def test_nulls_at_edges_leave_contiguous_rows(self):
+        ds = HFDataset.from_dict({"text": [None, "a", "", None]})
+        result = unify_format(ds, text_keys="text")
+        self.assertEqual(list(result["text"]), ["a", ""])
+
+    def test_custom_format_filters_transformed_values(self):
+        ds = HFDataset.from_dict({"text": [None, "drop", "keep"]})
+
+        def transform(batch):
+            batch["text"] = [
+                "filled" if value is None else None if value == "drop" else value
+                for value in batch["text"]
+            ]
+            return batch
+
+        result = unify_format(ds.with_transform(transform), text_keys="text")
+        self.assertEqual(result[:]["text"], ["filled", "keep"])
+
 
 class UnifyFormatTextKeysTest(DataJuicerTestCaseBase):
 

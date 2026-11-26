@@ -43,6 +43,44 @@ class RemoveCommentsMapperTest(DataJuicerTestCaseBase):
         }]
         self._run_remove_comments(samples, RemoveCommentsMapper(inline=False))
 
+    def test_no_percent_keeps_text_unchanged(self):
+        # Neither pattern can match without a '%', so the text must pass
+        # through untouched for every switch combination.
+        samples = [
+            {'text': 'Plain text without comments.',
+             'target': 'Plain text without comments.'},
+            {'text': '', 'target': ''},
+            {'text': '中文 and emoji \U0001F600 stay',
+             'target': '中文 and emoji \U0001F600 stay'},
+            {'text': 'a\\b#c{d}\n e', 'target': 'a\\b#c{d}\n e'},
+        ]
+        for op in (RemoveCommentsMapper(),
+                   RemoveCommentsMapper(multiline=False),
+                   RemoveCommentsMapper(inline=False),
+                   RemoveCommentsMapper(inline=False, multiline=False)):
+            self._run_remove_comments(samples, op)
+
+    def test_disabled_options_preserve_null_and_valid_rows(self):
+        samples = [
+            {'text': None, 'id': 0},
+            {'text': 'Body%inline\n%full line', 'id': 1},
+            {'text': 'Plain text', 'id': 2},
+            {'text': '', 'id': 3},
+        ]
+        for skip_op_error in (False, True):
+            with self.subTest(skip_op_error=skip_op_error):
+                op = RemoveCommentsMapper(
+                    inline=False, multiline=False,
+                    skip_op_error=skip_op_error)
+                batch = {'text': [row['text'] for row in samples],
+                         'id': [row['id'] for row in samples]}
+                self.assertIs(op.process_batched(batch), batch)
+                self.assertEqual(batch['text'], [row['text'] for row in samples])
+                dataset = Dataset.from_list(samples)
+                result = dataset.map(op.process, batch_size=2)
+                self.assertEqual(len(result), len(samples))
+                self.assertEqual(result.to_list(), samples)
+
     def test_tex_case(self):
 
         samples = [{

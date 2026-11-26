@@ -70,11 +70,12 @@ def split_on_whitespace(document, new_line=False, tab=False):
     :param tag: whether to split document with '\\\\t'
     :return: word list obtained after splitting document
     """
-    sep = [" "] + new_line * ["\n"] + tab * ["\t"]
-    sep = "|".join(sep)
-    split_document = re.split(sep, document)
-    split_document = [word for word in split_document if word]
-    return split_document
+    if new_line:
+        document = document.replace("\n", " ")
+    if tab:
+        document = document.replace("\t", " ")
+    # An explicit delimiter preserves other whitespace (such as CR and NBSP).
+    return [word for word in document.split(" ") if word]
 
 
 def split_on_newline_tab_whitespace(document):

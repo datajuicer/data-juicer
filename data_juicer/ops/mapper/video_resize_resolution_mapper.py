@@ -5,6 +5,7 @@ import sys
 from pydantic import PositiveInt
 
 from data_juicer.utils.constant import Fields
+from data_juicer.utils.ffmpeg_utils import run_ffmpeg
 from data_juicer.utils.file_utils import transfer_filename
 from data_juicer.utils.lazy_loader import LazyLoader
 from data_juicer.utils.logger_utils import HiddenPrints
@@ -168,11 +169,11 @@ class VideoResizeResolutionMapper(Mapper):
             # resize
             resized_video_key = transfer_filename(video_key, OP_NAME, self.save_dir, **self._init_parameters)
             if not os.path.exists(resized_video_key) or resized_video_key not in loaded_video_keys:
-                args = ["-nostdin", "-v", "quiet", "-y"]  # close the ffmpeg log
+                args = ["-nostdin", "-v", "error", "-y"]  # only errors, captured for the message
                 stream = ffmpeg.input(video_key)
                 stream = stream.filter("scale", width=width, height=height)
                 stream = stream.output(resized_video_key).global_args(*args)
-                stream.run()
+                run_ffmpeg(stream, capture_stderr=True)
 
             loaded_video_keys[index] = resized_video_key
 

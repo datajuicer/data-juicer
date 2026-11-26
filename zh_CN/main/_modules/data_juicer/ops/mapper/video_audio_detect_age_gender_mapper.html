@@ -478,6 +478,11 @@
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model.</span>
 
+<span class="sd">    **Notice**: The default model, `audeering/wav2vec2-large-robust-24-ft-age-gender`,</span>
+<span class="sd">    has `CC-BY-NC-SA-4.0` in its Hugging Face model card, including</span>
+<span class="sd">    non-commercial and share-alike restrictions. Review the license and pass a</span>
+<span class="sd">    compatible model through `hf_audio_mapper` before license-sensitive use.</span>
+
 <span class="sd">    Source: This operator is a part of HumanVBench (CVPR 2026).</span>
 <span class="sd">    """</span>
 
@@ -492,10 +497,10 @@
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialization method.</span>
 
-<span class="sd">        :param keep_original_sample: whether to keep the original sample. If</span>
-<span class="sd">            it's set to False, there will be only captioned sample in the</span>
-<span class="sd">            final datasets and the original sample will be removed. It's True</span>
-<span class="sd">            in default.</span>
+<span class="sd">        :param hf_audio_mapper: Hugging Face model for age/gender classification.</span>
+<span class="sd">            The default model card lists `CC-BY-NC-SA-4.0`; verify the</span>
+<span class="sd">            selected model's license before commercial or production use.</span>
+<span class="sd">        :param tag_field_name: field name used to store age/gender results.</span>
 <span class="sd">        :param args: extra args</span>
 <span class="sd">        :param kwargs: extra args</span>
 <span class="sd">        """</span>

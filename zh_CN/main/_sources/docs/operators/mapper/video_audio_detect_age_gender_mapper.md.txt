@@ -2,7 +2,19 @@
 
 Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model. This operator processes videos tagged as containing speech and classifies the speaker's age and gender from the audio stream. It must be operated after video_tagging_from_audio_mapper.
 
+**Notice**: The default model, `audeering/wav2vec2-large-robust-24-ft-age-gender`,
+is declared as [CC-BY-NC-SA-4.0](https://huggingface.co/audeering/wav2vec2-large-robust-24-ft-age-gender)
+in its Hugging Face model card, including non-commercial and share-alike terms.
+Review the license and set `hf_audio_mapper` to a compatible model with
+acceptable terms before commercial or production use.
+
 使用预训练的 wav2vec2 模型从视频音频信号中检测年龄和性别（男性、女性、儿童）。此算子处理被标记为包含语音的视频，并从音频流中分类说话者的年龄和性别。它必须在 video_tagging_from_audio_mapper 之后运行。
+
+**注意**：默认模型 `audeering/wav2vec2-large-robust-24-ft-age-gender` 的
+Hugging Face 模型卡声明为
+[CC-BY-NC-SA-4.0](https://huggingface.co/audeering/wav2vec2-large-robust-24-ft-age-gender)，
+包含非商业性和相同方式共享条款。商业或生产使用前，请审阅模型许可，或通过
+`hf_audio_mapper` 替换为许可合适且兼容的模型。
 
 Type 算子类型: **mapper**
 
@@ -11,7 +23,7 @@ Tags 标签: gpu, hf, video
 ## 🔧 Parameter Configuration 参数配置
 | name 参数名 | type 类型 | default 默认值 | desc 说明 |
 |--------|------|--------|------|
-| `hf_audio_mapper` | <class 'str'> | `'audeering/wav2vec2-large-robust-24-ft-age-gender'` | HuggingFace model for age/gender classification. |
+| `hf_audio_mapper` | <class 'str'> | `'audeering/wav2vec2-large-robust-24-ft-age-gender'` | HuggingFace model for age/gender classification. The default checkpoint has a CC-BY-NC-SA-4.0 model card, including non-commercial restrictions; verify the selected checkpoint before commercial or production use. |
 | `tag_field_name` | <class 'str'> | `'audio_speech_attribute'` | field name to store the age/gender results. |
 | `args` |  | `''` | extra args |
 | `kwargs` |  | `''` | extra args |

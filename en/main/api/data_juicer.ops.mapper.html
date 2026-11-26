@@ -8137,6 +8137,10 @@ using the Audio Spectrogram Transformer.</p>
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">data_juicer.ops.mapper.</span></span><span class="sig-name descname"><span class="pre">VideoAudioDetectAgeGenderMapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data_juicer/ops/mapper/video_audio_detect_age_gender_mapper.html#VideoAudioDetectAgeGenderMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data_juicer.ops.mapper.VideoAudioDetectAgeGenderMapper" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="data_juicer.ops.base_op.html#data_juicer.ops.base_op.Mapper" title="data_juicer.ops.base_op.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a></p>
 <p>Detect age and gender (male, female, child) from video audio signals using a pretrained wav2vec2 model.</p>
+<p><strong>Notice</strong>: The default model, <cite>audeering/wav2vec2-large-robust-24-ft-age-gender</cite>,
+has <cite>CC-BY-NC-SA-4.0</cite> in its Hugging Face model card, including
+non-commercial and share-alike restrictions. Review the license and pass a
+compatible model through <cite>hf_audio_mapper</cite> before license-sensitive use.</p>
 <p>Source: This operator is a part of HumanVBench (CVPR 2026).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="data_juicer.ops.mapper.VideoAudioDetectAgeGenderMapper.__init__">
@@ -8145,10 +8149,10 @@ using the Audio Spectrogram Transformer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>keep_original_sample</strong> – whether to keep the original sample. If
-it’s set to False, there will be only captioned sample in the
-final datasets and the original sample will be removed. It’s True
-in default.</p></li>
+<li><p><strong>hf_audio_mapper</strong> – Hugging Face model for age/gender classification.
+The default model card lists <cite>CC-BY-NC-SA-4.0</cite>; verify the
+selected model’s license before commercial or production use.</p></li>
+<li><p><strong>tag_field_name</strong> – field name used to store age/gender results.</p></li>
 <li><p><strong>args</strong> – extra args</p></li>
 <li><p><strong>kwargs</strong> – extra args</p></li>
 </ul>

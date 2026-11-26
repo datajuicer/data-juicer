@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional, Union
 
+import pyarrow as pa
 from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
 from jsonargparse import Namespace, dict_to_namespace
 from loguru import logger
@@ -179,6 +180,44 @@ def add_suffixes(datasets: DatasetDict, num_proc: int = 1) -> Dataset:
     return NestedDataset(datasets)
 
 
+def _rebase_paths(paths, dataset_dir):
+    if not paths:
+        return paths
+    return [path if is_absolute_path(path) else os.path.join(dataset_dir, path) for path in paths]
+
+
+def _is_path_list(column_type):
+    return (pa.types.is_list(column_type) or pa.types.is_large_list(column_type)) and (
+        pa.types.is_string(column_type.value_type) or pa.types.is_large_string(column_type.value_type)
+    )
+
+
+def _rebase_path_columns(dataset, path_keys, dataset_dir):
+    columns = dataset.column_names
+    for key in path_keys:
+        source = dataset.data.column(key)
+        chunks = []
+        changed = False
+        for chunk in source.chunks:
+            # In-memory datasets can store the whole column in one chunk.
+            for offset in range(0, len(chunk), 4096):
+                batch = chunk.slice(offset, 4096)
+                paths = batch.to_pylist()
+                rebased = [_rebase_paths(row, dataset_dir) for row in paths]
+                if rebased != paths:
+                    batch = pa.array(rebased, type=batch.type)
+                    changed = True
+                chunks.append(batch)
+        if changed:
+            feature = dataset.features[key]
+            dataset = dataset.remove_columns(key).add_column(
+                key, pa.chunked_array(chunks, type=source.type), feature=feature
+            )
+    if dataset.column_names != columns:
+        dataset = dataset.select_columns(columns)
+    return dataset
+
+
 def unify_format(
     dataset: Dataset,
     text_keys: Union[List[str], str] = "text",
@@ -287,6 +326,18 @@ def unify_format(
             "dataset file)"
         )
 
+        dataset_format = dataset.format
+        if (
+            num_proc in (None, 1)
+            and dataset._indices is None
+            and dataset_format["type"] is None
+            and dataset_format["columns"] == dataset.column_names
+            and len(dataset.column_names) > 1
+            and all(_is_path_list(dataset.data.column(key).type) for key in data_path_keys)
+        ):
+            # Keep the existing Arrow buffers for text, embeddings and metadata.
+            return _rebase_path_columns(dataset, data_path_keys, ds_dir)
+
         # function to convert relative paths to absolute paths
         def rel2abs(sample, path_keys, dataset_dir):
             for path_key in path_keys:
@@ -295,8 +346,7 @@ def unify_format(
                 paths = sample[path_key]
                 if not paths:
                     continue
-                new_paths = [path if is_absolute_path(path) else os.path.join(dataset_dir, path) for path in paths]
-                sample[path_key] = new_paths
+                sample[path_key] = _rebase_paths(paths, dataset_dir)
             return sample
 
         dataset = dataset.map(

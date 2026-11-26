@@ -696,6 +696,42 @@ class UnifyFormatPathConversionTest(DataJuicerTestCaseBase):
         result = unify_format(ds, text_keys=["text"], global_cfg=cfg)
         self.assertEqual(result[0]["images"][0], abs_path)
 
+    def test_rebases_media_columns_without_rewriting_text(self):
+        remote = "HTTPS://example.org/image.jpg"
+        ds = HFDataset.from_dict({
+            "photos": [["img.jpg", remote], [], None],
+            "text": ["first", "second", "third"],
+            "audios": [None, ["speech.wav"], []],
+        })
+        cfg = JANamespace(dataset_path=self.ds_dir, image_key="photos")
+        result = unify_format(ds, global_cfg=cfg, num_proc=None)
+
+        self.assertEqual(result.column_names, ds.column_names)
+        self.assertEqual(result.features, ds.features)
+        self.assertEqual(result.to_list(), [
+            {"photos": [os.path.join(self.ds_dir, "img.jpg"), remote], "text": "first", "audios": None},
+            {"photos": [], "text": "second", "audios": [os.path.join(self.ds_dir, "speech.wav")]},
+            {"photos": None, "text": "third", "audios": []},
+        ])
+        self.assertEqual(
+            result.data.column("text").chunk(0).buffers()[2].address,
+            ds.data.column("text").chunk(0).buffers()[2].address,
+        )
+
+    def test_rebases_only_selected_rows_in_logical_order(self):
+        ds = HFDataset.from_dict({
+            "text": ["unused", "second", "third"],
+            "images": [[None], ["two.jpg"], ["three.jpg"]],
+        }).select([2, 1, 2])
+        cfg = JANamespace(dataset_path=self.ds_dir)
+        result = unify_format(ds, global_cfg=cfg, num_proc=None)
+
+        self.assertEqual(result.to_list(), [
+            {"text": "third", "images": [os.path.join(self.ds_dir, "three.jpg")]},
+            {"text": "second", "images": [os.path.join(self.ds_dir, "two.jpg")]},
+            {"text": "third", "images": [os.path.join(self.ds_dir, "three.jpg")]},
+        ])
+
     def test_no_media_keys_returns_unchanged(self):
         ds = HFDataset.from_dict({"text": ["sample"]})
         cfg = JANamespace(

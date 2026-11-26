@@ -494,6 +494,14 @@ python<span class="w"> </span>tools/postprocess/data_mixture.py<span class="w"> 
 <li><p><code class="docutils literal notranslate"><span class="pre">export_path</span></code>: a dataset file name for exporting mixed dataset, support <code class="docutils literal notranslate"><span class="pre">json</span></code> / <code class="docutils literal notranslate"><span class="pre">jsonl</span></code> / <code class="docutils literal notranslate"><span class="pre">parquet</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">export_shard_size</span></code>:  dataset file size in Byte. If not set, mixed dataset will be exported into only one file.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">num_proc</span></code>:  process num to load and export datasets.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_samples</span></code>: positive total sample count. When provided, weights allocate this
+count across datasets; a source is sampled with repetition if its allocation
+exceeds its size. Without this option, all rows are concatenated and weights
+do not change the source sizes.</p></li>
+</ul>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">--data_path</span> <span class="pre">1</span> <span class="pre">a.jsonl</span> <span class="pre">3</span> <span class="pre">b.jsonl</span> <span class="pre">--max_samples</span> <span class="pre">1000</span></code> exports
+250 samples from <code class="docutils literal notranslate"><span class="pre">a.jsonl</span></code> and 750 from <code class="docutils literal notranslate"><span class="pre">b.jsonl</span></code>. Quote paths containing spaces.</p>
+<ul class="simple">
 <li><p>e.g., <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/postprocess/data_mixture.py</span>&#160; <span class="pre">--data_path</span>&#160; <span class="pre">&lt;w1&gt;</span> <span class="pre">ds.jsonl</span> <span class="pre">&lt;w2&gt;</span> <span class="pre">ds_dir</span> <span class="pre">&lt;w3&gt;</span> <span class="pre">ds_file.json</span></code></p></li>
 </ul>
 <p><strong>Note:</strong> All datasets must have the same meta field, so we can use <a class="reference external" href="https://huggingface.co/docs/datasets/index">HuggingFace Datasets</a> to align their features.</p>

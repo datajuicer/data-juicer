@@ -1194,9 +1194,50 @@ def prepare_nltk_pos_tagger(**model_params):
     return tagger
 
 
+def prepare_normal_map_metric3d(model_path, **model_params):
+    device = model_params.pop("device", "cpu")
+    if device == "cpu":
+        providers = ["CPUExecutionProvider"]
+    else:
+        rank = int(device.split(":")[-1]) if ":" in device else 0
+        providers = [
+            ("CUDAExecutionProvider", {"cudnn_conv_use_max_workspace": "1", "device_id": str(rank)}),
+            "CPUExecutionProvider",
+        ]
+    if not os.path.isfile(model_path):
+        huggingface_hub = LazyLoader("huggingface_hub")
+        model_path = huggingface_hub.hf_hub_download(
+            repo_id="onnx-community/metric3d-vit-large",
+            filename="onnx/model.onnx",
+            local_dir=os.path.join(DJMC, "metric3d"),
+        )
+    import onnxruntime as ort
+
+    session = ort.InferenceSession(model_path, providers=providers)
+    if device != "cpu" and "CUDAExecutionProvider" not in session.get_providers():
+        raise RuntimeError(
+            "Metric3D could not activate CUDAExecutionProvider. Check onnxruntime-gpu and its CUDA/cuDNN "
+            "dependencies or set accelerator='cpu'."
+        )
+    return session
+
+
 def prepare_opencv_classifier(model_path, **model_params):
     model = cv2.CascadeClassifier(model_path)
     return model
+
+
+def prepare_optical_flow_raft(**model_params):
+    device = model_params.pop("device")
+
+    from torchvision.models.optical_flow import Raft_Large_Weights, raft_large
+
+    weights = Raft_Large_Weights.DEFAULT
+    transforms = weights.transforms()
+    model = raft_large(weights=weights).to(device)
+    model.eval()
+
+    return model, transforms
 
 
 def prepare_recognizeAnything_model(
@@ -2378,7 +2419,9 @@ MODEL_FUNCTION_MAPPING = {
     "moge": prepare_moge_model,
     "nltk": prepare_nltk_model,
     "nltk_pos_tagger": prepare_nltk_pos_tagger,
+    "normal_map_metric3d": prepare_normal_map_metric3d,
     "opencv_classifier": prepare_opencv_classifier,
+    "optical_flow_raft": prepare_optical_flow_raft,
     "recognizeAnything": prepare_recognizeAnything_model,
     "sdxl-prompt-to-prompt": prepare_sdxl_prompt2prompt,
     "sentencepiece": prepare_sentencepiece_for_lang,

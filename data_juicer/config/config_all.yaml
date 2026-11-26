@@ -752,6 +752,29 @@ process:
       capture_stderr: true                                    # whether to capture stderr.
       overwrite_output: true                                  # whether to overwrite the output file.
       save_dir: null                                          # The directory where generated files will be stored. If not specified, outputs will be saved in the same directory as their corresponding input files. This path can alternatively be defined by setting the `DJ_PRODUCED_DATA_DIR` environment variable.
+  - video_normal_map_mapper:                                # Generate normal maps for videos (with the Metric3D model).
+      model_path: "onnx-community/metric3d-vit-large/onnx/model.onnx"   # The path to the Metric3D model.
+      if_save_visualization: true                            # Whether to save visualization results.
+      save_visualization_dir: null                            # The path for saving visualization results.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                         # Output directory to save extracted frames.
+  - video_optical_flow_mapper:                              # Generate optical flow information for videos.
+      if_save_visualization: true                            # Whether to save visualization results.
+      save_visualization_dir: null                            # The path for saving visualization results.
+      frame_num: 3                                            # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                             # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                         # Output directory to save extracted frames.
+  - video_universal_segmentation_mapper:                # Generate semantic segmentation, instance segmentation, and panoptic segmentation information for videos (with the OneFormer model).
+      model_path: "shi-labs/oneformer_ade20k_swin_large"    # The path to the OneFormer model.
+      if_output_semantic_segmentation: true                 # Whether to output semantic segmentation.
+      if_output_instance_segmentation: true                 # Whether to output instance segmentation.
+      if_output_panoptic_segmentation: true                 # Whether to output panoptic segmentation.
+      if_save_visualization: true                          # Whether to save visualization results.
+      save_visualization_dir: null                          # The path for saving visualization results.
+      frame_num: 3                                          # the number of frames to be extracted uniformly from the video. If it's 1, only the middle frame will be extracted. If it's 2, only the first and the last frames will be extracted. If it's larger than 2, in addition to the first and the last frames, other frames will be extracted uniformly within the video duration.
+      duration: 0                                           # the duration of each segment in seconds. If 0, frames are extracted from the entire video. If duration > 0, the video is segmented into multiple segments based on duration, and frames are extracted from each segment.
+      frame_dir: null                                       # Output directory to save extracted frames.
   - video_human_3d_pose_mapper:                             # Extract 3D human pose with Human3R (SMPL-X).
       model_path: "human3r_896L.pth"                          # The path to the Human3R model checkpoint.
       human3r_repo_path: null                                # Prepared Human3R checkout containing the required SMPL/SMPL-X assets.
